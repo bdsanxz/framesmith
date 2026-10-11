@@ -10,19 +10,20 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// One test's machine: two tools folders that each hold a browser and `ffmpeg` and nothing else (in the
-/// second the browser is started without its own process sandbox), an empty home folder and an empty
-/// temporary folder.
+/// second the browser is started without its own process sandbox), an empty home folder, an empty
+/// temporary folder and an empty applications folder.
 struct Machine {
     root: PathBuf,
     tools: PathBuf,
     tools_unsandboxed: PathBuf,
     home: PathBuf,
     tmp: PathBuf,
+    applications: PathBuf,
 }
 
 fn machine(test: &str) -> Machine {
     let root = scratch(test);
-    let [tools, tools_unsandboxed, home, tmp] = ["tools", "tools-unsandboxed", "home", "tmp"].map(|name| {
+    let [tools, tools_unsandboxed, home, tmp, applications] = ["tools", "tools-unsandboxed", "home", "tmp", "applications"].map(|name| {
         let dir = root.join(name);
         std::fs::create_dir_all(&dir).unwrap();
         dir
@@ -37,12 +38,15 @@ fn machine(test: &str) -> Machine {
         tools_unsandboxed,
         home,
         tmp,
+        applications,
     }
 }
 
 impl Machine {
     /// Runs `program` in the folder `dir` of the machine with an emptied environment: the search path is
-    /// `tools` alone, and the home and temporary folders are the machine's own.
+    /// `tools` alone, and the home and temporary folders are the machine's own. So is the applications
+    /// folder: a browser installed on the computer the test runs on is not part of the machine, and
+    /// would otherwise be found before the one in `tools`.
     fn run(&self, tools: &Path, dir: &str, program: &Path, args: &[&str]) -> Ran {
         let dir = self.root.join(dir);
         std::fs::create_dir_all(&dir).unwrap();
@@ -53,6 +57,7 @@ impl Machine {
             .env("PATH", tools)
             .env("HOME", &self.home)
             .env("TMPDIR", &self.tmp)
+            .env("FRAMESMITH_DEBUG_APPLICATIONS", &self.applications)
             .stdin(Stdio::null())
             .output()
             .unwrap_or_else(|e| panic!("{} could not be run: {e}", program.display()));
@@ -120,6 +125,7 @@ fn t053_c1_c5_init_check_and_render_run_in_order_with_only_a_browser_and_ffmpeg_
     );
     assert_eq!(names(&m.tools), ["chromium", "ffmpeg"].map(String::from).into());
     assert_eq!(names(&m.tmp), BTreeSet::new());
+    assert_eq!(names(&m.applications), BTreeSet::new());
     let in_home = files(&m.home);
     assert!(
         !in_home.is_empty() && in_home.iter().all(|path| path.starts_with("Library/Logs/framesmith/")),

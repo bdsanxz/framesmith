@@ -18,7 +18,8 @@ looks for one.\n";
 
 /// One test's machine: an empty home folder, an empty temporary folder, its
 /// own log folder, an `ffmpeg` that leaves a marker when it is started, and
-/// a tiny project.
+/// a tiny project. No browser is installed on it: its application folder is
+/// the empty folder, whatever is installed on the computer the test runs on.
 struct Kit {
     root: PathBuf,
     home: PathBuf,
@@ -62,6 +63,11 @@ impl Kit {
     /// whole search path; `named` is the value of `FRAMESMITH_BROWSER` (empty
     /// means it is not set); `home` is the home folder.
     fn render<P: AsRef<Path>>(&self, path: &[P], named: &Path, home: &Path, extra: &[&str]) -> Ran {
+        self.render_with(path, named, home, &self.empty, extra)
+    }
+
+    /// The same, with `applications` as the folder that holds installed applications.
+    fn render_with<P: AsRef<Path>>(&self, path: &[P], named: &Path, home: &Path, applications: &Path, extra: &[&str]) -> Ran {
         let path = std::env::join_paths(path.iter().map(AsRef::as_ref)).unwrap();
         let mut args = vec!["render", text(&self.project)];
         args.extend_from_slice(extra);
@@ -72,6 +78,7 @@ impl Kit {
                 ("PATH", &path),
                 ("HOME", home.as_os_str()),
                 ("FRAMESMITH_BROWSER", named.as_os_str()),
+                ("FRAMESMITH_DEBUG_APPLICATIONS", applications.as_os_str()),
                 ("TMPDIR", self.tmp.as_os_str()),
                 ("FRAMESMITH_LOG_DIR", self.logs.as_os_str()),
             ],
@@ -111,23 +118,6 @@ fn stages_in_log(kit: &Kit) -> usize {
         .count()
 }
 
-/// The tests that need "no browser" cannot be run on a machine where a
-/// browser sits in an application folder: the empty home folder and search
-/// path hide everything else.
-fn assert_no_browser_in_applications() {
-    let places = browser::Places {
-        applications: vec![PathBuf::from("/Applications")],
-        ..Default::default()
-    };
-    if let Ok(found) = browser::find(&places) {
-        panic!(
-            "this test cannot simulate a machine with no browser: {} is installed in /Applications, which no environment \
-change can hide",
-            found.display()
-        );
-    }
-}
-
 fn assert_rendered(ran: &Ran, video: &Path) {
     assert_eq!(ran.code, 0, "{}", ran.all());
     let facts = facts(video);
@@ -144,7 +134,6 @@ fn browser_on_path(kit: &Kit) -> (PathBuf, PathBuf) {
 
 #[test]
 fn t040_c1_c4_no_browser_stops_before_compiling_and_nothing_starts_or_is_written() {
-    assert_no_browser_in_applications();
     let kit = kit("t040_c1");
     let project_before = tree(&kit.project);
     let root_before = kit.entries(&kit.root);
@@ -227,7 +216,6 @@ fn t040_c3_a_named_browser_that_is_missing_or_cannot_run_is_named_and_nothing_re
 
 #[test]
 fn t040_c5_a_render_proceeds_once_a_browser_is_installed_or_named() {
-    assert_no_browser_in_applications();
     let kit = kit("t040_c5");
     let nothing = Path::new("");
     let first = kit.bare(&[&kit.tools], nothing, &[]);
@@ -240,13 +228,30 @@ fn t040_c5_a_render_proceeds_once_a_browser_is_installed_or_named() {
     assert_rendered(&ran, &kit.root.join("named.mp4"));
 
     // Or a browser is installed where the search path looks.
-    let (on_path, _) = browser_on_path(&kit);
+    let (on_path, on_path_started) = browser_on_path(&kit);
     let ran = kit.bare(
         &[&on_path, &kit.tools],
         nothing,
         &["--output", text(&kit.root.join("installed.mp4"))],
     );
     assert_rendered(&ran, &kit.root.join("installed.mp4"));
+    assert!(on_path_started.exists());
+    std::fs::remove_file(&on_path_started).unwrap();
+
+    // Or it is installed as an application: that one is found before the one on the search path.
+    let applications = kit.root.join("applications");
+    let program_dir = applications.join("Chromium.app/Contents/MacOS");
+    std::fs::create_dir_all(&program_dir).unwrap();
+    let (_, application_started) = spy(&program_dir, "Chromium", &browser());
+    let ran = kit.render_with(
+        &[&on_path, &kit.tools],
+        nothing,
+        &kit.home,
+        &applications,
+        &["--output", text(&kit.root.join("application.mp4"))],
+    );
+    assert_rendered(&ran, &kit.root.join("application.mp4"));
+    assert!(application_started.exists() && !on_path_started.exists());
 }
 
 #[test]
@@ -268,7 +273,6 @@ fn t041_c1_no_ffmpeg_stops_before_a_browser_starts() {
 
 #[test]
 fn t041_c2_both_missing_are_named_in_one_run_each_with_its_fix() {
-    assert_no_browser_in_applications();
     let kit = kit("t041_c2");
     let project_before = tree(&kit.project);
     let root_before = kit.entries(&kit.root);

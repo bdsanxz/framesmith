@@ -264,3 +264,29 @@ fn t006_c4_a_bad_fps_value_stops_before_anything_starts() {
 fn t008_c3_no_written_rate_renders_at_30() {
     assert_eq!(rendered_frames("t008_c3", "data-fs-duration=\"2\"", &[]), (60, "30/1".to_string()));
 }
+
+#[test]
+fn a_composition_far_smaller_than_a_browser_window_renders_at_its_exact_size() {
+    // A full browser build keeps a strip of its window for itself; a window as short as these
+    // compositions has no room left for the page (see `render-stages.md`). The left half of the
+    // page is red and the rest blue, so a page laid out at any other size shows at once.
+    let style = "[data-fs-composition] { background: rgb(0, 0, 255); }\n\
+                 #left { position: fixed; left: 0; top: 0; width: 50vw; height: 100vh; background: rgb(255, 0, 0); }";
+    for (name, width, height) in [("dot", 16_u32, 16_u32), ("strip", 320, 50)] {
+        let attrs = format!("data-fs-size=\"{width}x{height}\" data-fs-duration=\"0.1\"");
+        let dir = project(&format!("small_{name}"), name, &page(&attrs, style, "<div id=\"left\"></div>", ""));
+        let (ran, frames) = render_frames(&dir, &[], &[]);
+        assert_eq!(ran.code, 0, "{}", ran.all());
+        assert_eq!(frames.len(), 3, "{}", ran.all());
+        for frame in &frames {
+            assert_eq!((frame.width, frame.height), (width, height));
+            for (at, pixel) in frame.rgb.as_chunks::<3>().0.iter().enumerate() {
+                let x = at as u32 % width;
+                let expected = if x < width / 2 { [255, 0, 0] } else { [0, 0, 255] };
+                assert_eq!(*pixel, expected, "{name}: the pixel at column {x}, row {}", at as u32 / width);
+            }
+        }
+        let facts = facts(&dir.join(format!("out/{name}.mp4")));
+        assert_eq!((facts.width, facts.height, facts.frames), (width, height, 3));
+    }
+}

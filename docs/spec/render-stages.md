@@ -35,6 +35,14 @@ Framesmith never downloads a browser in this version, and never uses the network
 | encode | `ffmpeg` finishes the file. The browser is stopped. | `ffmpeg` exits with success. |
 | commit | The staging file is moved onto the output path in one step. | The output file is in place. |
 
+### The page's size and the browser's window
+
+The page is always laid out and pictured at exactly the composition's size, at a scale of 1, whatever the size of the display or of the browser's window. The size of the page is given to the browser when the page is opened; it is not taken from the window.
+
+The browser's window is asked to be the composition's size, but never less than 500 in width or in height. A full browser build keeps a strip of its window for itself, so a window as short as a small composition leaves no room for the page; such a browser then gives no picture, and the capture would wait without end. With this lower limit a composition of any allowed size renders, and the pictures are the same as with a browser that has no such strip.
+
+Source: our own observation on 2026-10-11. Google Chrome 155 on macOS gave no picture for compositions 72 pixels high or less (64x36, 160x36, 128x72) and rendered 64x90 and larger; a headless-only build and an older full build rendered every size. With the lower limit all three give identical frames for the same 64x36 composition.
+
 - One worker. Frames are captured and encoded strictly in order.
 - No time limit applies to capture. Only the wait for the page to become ready is limited (30 seconds).
 - No retry and no resume in this version.
@@ -102,6 +110,7 @@ Environment variables for tests and measurement. They are not part of the user i
 |---|---|
 | `FRAMESMITH_LOG_DIR`, `FRAMESMITH_LOG` | Where the log is written, and its level (see `commands.md`). |
 | `FRAMESMITH_DEBUG_FRAMES=<dir>` | Each captured picture is also saved there as `frame-<number>.png`. |
+| `FRAMESMITH_DEBUG_APPLICATIONS=<folders>` | The application folders of step 2 of "Finding a browser" are these (a list written like the search path) instead of `/Applications` and `~/Applications`. An empty value is the same as not set. A test names an empty folder here to stand for a machine with no browser installed, or a folder of its own to stand for one that has. |
 | `FRAMESMITH_DEBUG_ORDER=reverse` | Frames are captured from the last to the first, then encoded in order. |
 | `FRAMESMITH_DEBUG_ORDER=<n>,<n>,…` | The listed frames are captured first, in the order written; every other frame follows from the first to the last. Frames are then encoded in order. A number past the last frame, or written twice, is ignored. |
 | `FRAMESMITH_DEBUG_HOLD=<stage>` | The run waits at the start of that stage (up to 20 seconds) and prints `holding in <stage>` to standard error, so a test can interrupt it there. |

@@ -8,6 +8,9 @@ use std::time::SystemTime;
 
 /// The variable that names the browser to use.
 pub const BROWSER_VAR: &str = "FRAMESMITH_BROWSER";
+/// The maintainer switch that names the application folders to look in
+/// instead of the system's (see `docs/spec/render-stages.md`).
+pub const APPLICATIONS_VAR: &str = "FRAMESMITH_DEBUG_APPLICATIONS";
 
 const APP_NAMES: [&str; 8] = [
     "Google Chrome",
@@ -74,6 +77,9 @@ impl Places {
             }
             caches.push(home.join(".cache/puppeteer"));
             caches.push(home.join(".cache/ms-playwright"));
+        }
+        if let Some(folders) = std::env::var_os(APPLICATIONS_VAR).filter(|value| !value.is_empty()) {
+            applications = std::env::split_paths(&folders).collect();
         }
         Places {
             named: std::env::var_os(BROWSER_VAR).filter(|value| !value.is_empty()),

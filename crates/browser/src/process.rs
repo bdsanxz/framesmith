@@ -60,6 +60,12 @@ pub enum Served {
 
 type Server = Box<dyn FnMut(&str) -> Served + Send>;
 
+/// The browser's window is never asked to be narrower or shorter than this. A full browser build
+/// keeps part of its window for itself, and a window with no room left for the page gives no
+/// pictures. The page's own size is set separately, when it is opened, and is always exact.
+/// See `docs/spec/render-stages.md`.
+const SMALLEST_WINDOW: u32 = 500;
+
 pub struct Browser {
     child: Child,
     input: File,
@@ -91,7 +97,8 @@ fn pipe() -> std::io::Result<(RawFd, RawFd)> {
 
 impl Browser {
     /// Starts the browser at `path` with a new, empty profile in `profile`
-    /// and a window of the given size. Nothing is loaded yet.
+    /// and a window of the given size, or of the smallest window's size where
+    /// that is larger. Nothing is loaded yet.
     pub fn launch(path: &Path, profile: &Path, width: u32, height: u32, cancel: Arc<AtomicBool>) -> Result<Browser, Error> {
         std::fs::create_dir_all(profile)
             .map_err(|e| Error::Start(format!("the profile folder {} could not be made: {e}", profile.display())))?;
@@ -102,7 +109,11 @@ impl Browser {
             .arg("--headless")
             .arg("--remote-debugging-pipe")
             .arg(format!("--user-data-dir={}", profile.display()))
-            .arg(format!("--window-size={width},{height}"))
+            .arg(format!(
+                "--window-size={},{}",
+                width.max(SMALLEST_WINDOW),
+                height.max(SMALLEST_WINDOW)
+            ))
             .args([
                 "--no-first-run",
                 "--no-default-browser-check",
