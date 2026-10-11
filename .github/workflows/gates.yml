@@ -1,0 +1,44 @@
+name: gates
+
+# The four quality gates (formatting, static analysis, tests, licences) on every push and pull request.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    # macOS on Apple silicon, the target of this sprint.
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      CARGO_TERM_COLOR: never
+      # The tests drive a real browser; the runner's Google Chrome is found automatically.
+      # Set FRAMESMITH_BROWSER here only if it is ever installed somewhere unusual.
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Check the runner is Apple silicon
+        run: test "$(uname -m)" = "arm64"
+
+      - name: Install the Rust toolchain (rustfmt, clippy, wasm32 target)
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target wasm32-unknown-unknown
+
+      - name: Cache cargo-deny
+        id: cache-deny
+        uses: actions/cache@v4.2.0
+        with:
+          path: ~/.cargo/bin/cargo-deny
+          key: cargo-deny-0.20.2-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install cargo-deny
+        if: steps.cache-deny.outputs.cache-hit != 'true'
+        run: cargo install cargo-deny --version 0.20.2 --locked
+
+      - name: Install ffmpeg
+        run: brew install ffmpeg
+
+      - name: Run the four gates
+        run: scripts/gates.sh

@@ -1,0 +1,13 @@
+[package]
+name = "media"
+description = "Runs the user's ffmpeg as a separate program to encode captured frames."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tracing = { workspace = true }
+libc = { workspace = true }

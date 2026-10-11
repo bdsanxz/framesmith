@@ -1,0 +1,20 @@
+[package]
+name = "parity"
+description = "Development only: runs the reference as a black box and compares its video with ours (container facts, pictures, timing, position). Never a dependency of the product, its build or its tests."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "parity"
+path = "src/main.rs"
+
+[dependencies]
+measure = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,8 @@
+/target/
+/logs/
+/evidence/
+/tools/blackbox/
+/assets/samples/
+**/out/
+*.part
+.DS_Store

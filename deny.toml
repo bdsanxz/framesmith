@@ -1,0 +1,34 @@
+# Licence gate (run with `cargo deny check licenses`; see scripts/gates.sh).
+# Closed-source distribution depends on every dependency allowing it, so only the
+# licences below are accepted. Anything else, and any unknown or missing licence, is denied.
+
+[graph]
+all-features = true
+targets = [
+    "aarch64-apple-darwin",
+    "wasm32-unknown-unknown",
+]
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "CC0-1.0",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "MPL-2.0",
+]
+# Nothing outside the list above is accepted, and a licence cannot be guessed from a loose text match.
+confidence-threshold = 0.93
+# A licence in the list that no current dependency uses is fine.
+unused-allowed-license = "allow"
+
+# Our own workspace crates are unpublished (`publish = false`) and carry no licence field.
+# They are skipped because they are private, not because the gate is loosened for anyone else.
+[licenses.private]
+ignore = true

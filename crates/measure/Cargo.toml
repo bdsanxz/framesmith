@@ -1,0 +1,12 @@
+[package]
+name = "measure"
+description = "Development only: reads frames and video facts, and measures what is painted. Used by tests, the seek measurement and the comparison tool; never by the product."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde_json = { workspace = true }

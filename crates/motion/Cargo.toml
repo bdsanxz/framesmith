@@ -1,0 +1,13 @@
+[package]
+name = "motion"
+description = "The motion block format and its pure evaluator. Built for the host and for the page."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+timebase = { workspace = true }

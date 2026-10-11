@@ -1,0 +1,55 @@
+//! The `framesmith` command. What each command prints and returns is
+//! written down in `docs/spec/commands.md` and `docs/spec/render-stages.md`.
+
+pub mod args;
+mod check;
+mod init;
+pub mod log;
+pub mod progress;
+mod render;
+mod signal;
+pub mod text;
+
+use args::Command;
+use std::ffi::OsString;
+
+const HELP: &str = "\
+framesmith renders an HTML composition to a video on this machine.
+
+Usage:
+  framesmith init <folder>      Create a starter project in a new folder.
+  framesmith check <project>    Read a project and report what a render would trip over.
+  framesmith render <project> [--output <path>] [--fps <n>] [--json]
+                                Render the project to an MP4 file.
+
+Options for render:
+  --output <path>   Where the video is written. Default: <project>/out/<folder name>.mp4
+  --fps <n>         The frame rate of this run, a whole number from 1 to 240.
+  --json            Print the result as one JSON document on standard output.
+
+  framesmith --help             Show this text.
+  framesmith --version          Show the version.
+";
+
+/// Runs one command and returns its exit code. `args` are the words after
+/// the program name.
+pub fn run(args: &[OsString]) -> i32 {
+    let command = args::parse(args);
+    if let Ok(Command::Help) = command {
+        print!("{HELP}");
+        return 0;
+    }
+    if let Ok(Command::Version) = command {
+        println!("framesmith {}", env!("CARGO_PKG_VERSION"));
+        return 0;
+    }
+    let run_id = log::new_run_id();
+    log::install(&run_id);
+    match command {
+        Ok(Command::Init { folder }) => init::run(&folder),
+        Ok(Command::Check { project }) => check::run(&project),
+        Ok(Command::Render(options)) => render::run(&options, &run_id),
+        Ok(Command::Help | Command::Version) => 0,
+        Err(usage) => render::usage_error(&usage, &run_id),
+    }
+}

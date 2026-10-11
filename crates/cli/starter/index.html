@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Title card</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- The composition: its name, picture size, frame rate and length in seconds. -->
+<div data-fs-composition="main" data-fs-size="1280x720" data-fs-fps="30" data-fs-duration="5">
+  <div class="backdrop"></div>
+  <div class="ring"></div>
+
+  <!-- A clip shows only from its start for its duration. -->
+  <div id="bar" class="bar" data-fs-clip data-fs-start="0.2" data-fs-duration="4.8"></div>
+  <h1 id="title" data-fs-clip data-fs-start="0.5" data-fs-duration="4.5">Hello from Framesmith</h1>
+  <p id="subtitle" data-fs-clip data-fs-start="1.2" data-fs-duration="3.8">Edit index.html, then render again.</p>
+</div>
+
+<!-- The motion block: each tween moves or fades the elements its target matches. -->
+<script type="application/framesmith-motion+json">
+{ "composition": "main",
+  "tweens": [
+    { "target": "#bar", "from": { "x": -420, "opacity": 0 }, "at": 0.2, "duration": 0.6, "ease": "out-cubic" },
+    { "target": "#title", "from": { "y": 60, "opacity": 0 }, "at": 0.5, "duration": 0.7, "ease": "out-cubic" },
+    { "target": "#subtitle", "from": { "y": 30, "opacity": 0 }, "at": 1.2, "duration": 0.6, "ease": "out-quad" },
+    { "target": ".ring", "to": { "rotation": 90, "scale": 1.15 }, "at": 0, "duration": 5, "ease": "in-out-quad" },
+    { "target": "#bar, #title, #subtitle", "to": { "opacity": 0 }, "at": 4.4, "duration": 0.5, "ease": "in-quad" }
+  ] }
+</script>
+</body>
+</html>
