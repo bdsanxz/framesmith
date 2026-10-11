@@ -136,9 +136,19 @@ fn t015_c6_a_capture_longer_than_the_readiness_limit_is_not_stopped() {
     let a_frame = ((forty - ten) / 30.0).max(0.01);
     // Enough frames for 50 seconds of capture: well past the 30 seconds allowed for readiness,
     // with room for the machine being quicker now than in the two short runs.
-    let frames = (50.0 / a_frame).ceil() as u32;
-    let dir = slow("t015_c6", frames);
-    let (took, ran) = timed(&dir);
+    let mut frames = (50.0 / a_frame).ceil() as u32;
+    let mut dir = slow("t015_c6", frames);
+    let (mut took, mut ran) = timed(&dir);
+    // The short runs share the machine with the other tests of this file, so they can overstate the
+    // cost of a frame by a lot. A run that ended too soon is itself a better measure: size from it.
+    for again in ["t015_c6_again", "t015_c6_once_more"] {
+        if took > 36.0 {
+            break;
+        }
+        frames = (f64::from(frames) * 50.0 / took).ceil() as u32;
+        dir = slow(again, frames);
+        (took, ran) = timed(&dir);
+    }
     let facts = facts(&dir.join("out/long.mp4"));
     assert_eq!(facts.frames, u64::from(frames));
     // Away from a terminal a capture line is printed about once a second, so
