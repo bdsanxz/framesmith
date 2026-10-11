@@ -182,11 +182,14 @@ impl UserBrowser {
     }
 
     /// Its open pages, each as `id type url title`, sorted. `None` when it no longer answers.
+    /// Only pages are listed: a full browser build also reports workers of its own built-in
+    /// extensions, which are not windows or tabs and come and go on their own.
     pub fn windows(&self) -> Option<Vec<String>> {
         let list = self.asked()?;
         let mut pages: Vec<String> = list
             .as_array()?
             .iter()
+            .filter(|page| page["type"] == "page")
             .map(|page| {
                 let field = |key: &str| page[key].as_str().unwrap_or_default().to_string();
                 format!("{} {} {} {}", field("id"), field("type"), field("url"), field("title"))

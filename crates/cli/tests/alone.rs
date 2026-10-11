@@ -131,8 +131,17 @@ fn t053_c1_c5_init_check_and_render_run_in_order_with_only_a_browser_and_ffmpeg_
 #[test]
 fn t053_c3_with_every_use_of_the_network_denied_the_three_commands_give_the_same_video() {
     const SANDBOX: &str = "/usr/bin/sandbox-exec";
-    const DENY: &str = "(version 1)(allow default)(deny network*)";
     let m = machine("t053_offline");
+    // Every use of the network is denied. One thing is let through: sockets that are files in the
+    // system's per-user temporary folders. A full browser build makes one there to find another copy
+    // of itself on the same profile, and stops when it cannot. Such a socket reaches nothing outside
+    // this machine, and the system's own services (name lookup among them) do not listen there.
+    let files = "(subpath \"/private/var/folders\")";
+    let deny = format!(
+        "(version 1)(allow default)(deny network*)\
+         (allow network-bind network-inbound (local unix-socket {files}))\
+         (allow network-outbound (remote unix-socket {files}))"
+    );
 
     // The sandbox does cut the network off, this machine's own loopback address included.
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -144,14 +153,14 @@ fn t053_c3_with_every_use_of_the_network_denied_the_three_commands_give_the_same
         Path::new("/usr/bin"),
         "control",
         Path::new(SANDBOX),
-        &[&["-p", DENY][..], &reach[..]].concat(),
+        &[&["-p", &deny][..], &reach[..]].concat(),
     );
     assert_ne!(inside.code, 0, "{}", inside.all());
 
     // A browser cannot set up its own process sandbox inside another sandbox, so in the sandboxed run
     // the machine's browser is started without it.
     m.three_commands(&m.tools, "online", &[]);
-    m.three_commands(&m.tools_unsandboxed, "offline", &[SANDBOX, "-p", DENY]);
+    m.three_commands(&m.tools_unsandboxed, "offline", &[SANDBOX, "-p", &deny]);
 
     let starter = |dir: &str| -> Vec<_> {
         tree(&m.root.join(dir).join("demo"))
