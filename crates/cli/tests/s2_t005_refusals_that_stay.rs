@@ -1024,13 +1024,18 @@ fn s2_t005_c4_every_sprint1_code_that_can_be_raised_cheaply_is_raised_with_its_k
 // Criterion 5: the support matrix lists every refusal and the sprint it waits for
 // ---------------------------------------------------------------------
 
-/// A "waits for" entry names a sprint, a ticket that lifts the refusal, "Not targeted", or says
-/// plainly that no sprint is assigned yet.
-fn names_a_wait(waits: &str) -> bool {
+/// A "waits for" entry of a refusal names a sprint: "Sprint" and its number, or "This sprint" with the
+/// ticket that lifts the refusal.
+fn names_a_sprint(waits: &str) -> bool {
     let sprint = waits
         .strip_prefix("Sprint ")
         .is_some_and(|rest| rest.chars().next().is_some_and(|c| c.is_ascii_digit()));
-    sprint || waits.starts_with("This sprint (ticket T") || waits.starts_with("Not targeted") || waits.starts_with("Not yet assigned")
+    sprint || waits.starts_with("This sprint (ticket T")
+}
+
+/// The name rows may also say "Not targeted": the product owner closed those two on 2026-10-11.
+fn names_a_sprint_or_not_targeted(waits: &str) -> bool {
+    names_a_sprint(waits) || waits.starts_with("Not targeted")
 }
 
 #[test]
@@ -1040,8 +1045,17 @@ fn s2_t005_c5_every_refusal_in_the_support_matrix_names_what_it_waits_for() {
     for (code, use_, waits) in &in_spec {
         assert!(!use_.is_empty(), "{code}");
         assert!(!waits.is_empty(), "{code} has an empty \"waits for\"");
-        assert!(names_a_wait(waits), "{code}: {waits:?} names no sprint");
+        assert_ne!(waits, "Not yet assigned", "{code} still says \"Not yet assigned\"");
+        assert!(names_a_sprint(waits), "{code}: {waits:?} names no sprint");
     }
+    assert!(
+        !matrix().contains("Not yet assigned"),
+        "the support matrix still says \"Not yet assigned\" somewhere"
+    );
+    assert!(
+        matrix().contains("2026-10-12"),
+        "the support matrix does not state the date of the decision that gives FS-U018 to FS-U021 their sprints"
+    );
     // Every code that stays is listed.
     let listed_codes: BTreeSet<&str> = in_spec.iter().map(|row| row.0.as_str()).collect();
     for (code, _) in STAYING {
@@ -1063,7 +1077,8 @@ fn s2_t005_c5_the_four_names_not_accepted_are_listed_as_unknown_with_the_sprint_
         assert!(reported.starts_with("FS-X001"), "{name}: {reported}");
         assert!(reported.contains("unknown"), "{name}: {reported}");
         assert!(!waits.is_empty(), "{name} has an empty \"waits for\"");
-        assert!(names_a_wait(waits), "{name}: {waits:?}");
+        assert_ne!(waits, "Not yet assigned", "{name} still says \"Not yet assigned\"");
+        assert!(names_a_sprint_or_not_targeted(waits), "{name}: {waits:?}");
     }
     let waits_of = |wanted: &str| names.iter().find(|row| row.0 == wanted).unwrap().2.clone();
     // The sprints decided on 2026-10-11 (proposal points P2 and P3, and the thumbnail row).
@@ -1087,9 +1102,10 @@ fn s2_t005_c5_the_sprint_each_staying_refusal_waits_for_is_the_one_in_the_plan()
     ] {
         assert_eq!(waits(code), "Sprint 4", "{code}");
     }
-    // No line of the roadmap or the plan assigns these; the matrix says so instead of guessing, and a
-    // sprint may be written here later by the product owner's decision.
-    for code in ["FS-U018", "FS-U019", "FS-U020", "FS-U021"] {
-        assert!(names_a_wait(&waits(code)), "{code}: {}", waits(code));
+    // No line of the roadmap or the plan names these four; the product owner's decision of 2026-10-12
+    // gives them their sprints (note 2 of the matrix).
+    assert_eq!(waits("FS-U018"), "Sprint 11");
+    for code in ["FS-U019", "FS-U020", "FS-U021"] {
+        assert_eq!(waits(code), "Sprint 4", "{code}");
     }
 }
