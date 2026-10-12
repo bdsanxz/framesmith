@@ -156,6 +156,13 @@ fn deny_network() -> String {
     )
 }
 
+/// The sandbox profile that denies every use of the network and lets nothing through: the words of
+/// criterion 6 of T060, "every use", without an exception.
+#[cfg(target_os = "macos")]
+fn deny_network_entirely() -> &'static str {
+    "(version 1)(allow default)(deny network*)"
+}
+
 /// The sandbox does cut the network off, this machine's own loopback address included.
 #[cfg(target_os = "macos")]
 fn assert_sandbox_cuts_loopback(m: &Machine, deny: &str) {
@@ -247,9 +254,26 @@ fn s2_t060_c6_with_every_use_of_the_network_denied_init_check_and_render_give_th
     // not use it, and this is the test of that: the same commands, run with the operating system denying
     // every use of the network and with it allowed, give the same exit codes, the same words, the same
     // files and the same frames.
+    //
+    // Which profile each command runs under, and why. The criterion says "every use", so the profile
+    // that denies everything and lets nothing through is used wherever it can be:
+    //   - `init` and `check` start no browser: they always run under that profile.
+    //   - `render` runs under it when the browser of this test run is a headless-only build (told by its
+    //     file name, as the other tests of the suite tell it).
+    //   - `render` with a full browser build runs under the profile that lets one thing through, sockets
+    //     that are files under the system's per-user temporary folders: a full build makes one there to
+    //     find another copy of itself and stops when it cannot. That socket reaches nothing outside the
+    //     machine. Only this one case needs the exception.
+    // For each profile that the test uses, a connection to a loopback listener is shown to succeed
+    // outside it and to fail inside it.
     let m = machine("s2_t060_c6");
-    let deny = deny_network();
-    assert_sandbox_cuts_loopback(&m, &deny);
+    let strict = deny_network_entirely().to_string();
+    let (kind, _) = sprint1::browser_in_use();
+    let render_profile = if kind == "headless" { strict.clone() } else { deny_network() };
+    assert_sandbox_cuts_loopback(&m, &strict);
+    if render_profile != strict {
+        assert_sandbox_cuts_loopback(&m, &render_profile);
+    }
     projects(&m, "online");
     projects(&m, "offline");
 
@@ -264,13 +288,18 @@ fn s2_t060_c6_with_every_use_of_the_network_denied_init_check_and_render_give_th
         (&["check", "refused"], 2),
         (&["render", "refused"], 2),
     ];
-    let run_all = |tools: &Path, dir: &str, before: &[&str]| -> Vec<Ran> {
+    let run_all = |tools: &Path, dir: &str, denied: bool| -> Vec<Ran> {
         commands
             .iter()
             .map(|(command, code)| {
-                let (program, args) = match before.split_first() {
-                    Some((first, rest)) => (Path::new(first), [rest, &[BIN][..], command].concat()),
-                    None => (Path::new(BIN), command.to_vec()),
+                let (program, args) = if denied {
+                    let profile = if command[0] == "render" { &render_profile } else { &strict };
+                    (
+                        Path::new(SANDBOX),
+                        ["-p", profile, BIN].into_iter().chain(command.iter().copied()).collect::<Vec<_>>(),
+                    )
+                } else {
+                    (Path::new(BIN), command.to_vec())
                 };
                 let ran = m.run(tools, dir, program, &args);
                 assert_eq!(ran.code, *code, "{command:?} in {dir}: {}", ran.all());
@@ -280,8 +309,8 @@ fn s2_t060_c6_with_every_use_of_the_network_denied_init_check_and_render_give_th
     };
     // A browser cannot set up its own process sandbox inside another sandbox, so in the sandboxed run
     // the machine's browser is started without it.
-    let online = run_all(&m.tools, "online", &[]);
-    let offline = run_all(&m.tools_unsandboxed, "offline", &[SANDBOX, "-p", &deny]);
+    let online = run_all(&m.tools, "online", false);
+    let offline = run_all(&m.tools_unsandboxed, "offline", true);
     for (((command, _), allowed), denied) in commands.iter().zip(&online).zip(&offline) {
         assert_eq!(results(allowed), results(denied), "{command:?}");
     }
@@ -310,7 +339,7 @@ fn s2_t060_c6_with_every_use_of_the_network_denied_init_check_and_render_give_th
         &m.tools_unsandboxed,
         "offline",
         Path::new(SANDBOX),
-        &["-p", &deny, BIN, "preview", "demo"],
+        &["-p", &strict, BIN, "preview", "demo"],
     );
     assert_eq!(preview.code, 1, "{}", preview.all());
     assert!(preview.stderr.contains("FS-P001"), "{}", preview.all());
