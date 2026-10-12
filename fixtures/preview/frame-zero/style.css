@@ -1,0 +1,9 @@
+.ground { position: absolute; inset: 0; background: #101820; }
+.corner { position: absolute; width: 24px; height: 24px; }
+.top-left { left: 0; top: 0; background: #e63946; }
+.top-right { right: 0; top: 0; background: #2ecc71; }
+.bottom-left { left: 0; bottom: 0; background: #3498db; }
+.bottom-right { right: 0; bottom: 0; background: #f1c40f; }
+#slide { position: absolute; left: 200px; top: 120px; width: 60px; height: 60px; background: #ff7f11; }
+#title { position: absolute; left: 60px; top: 220px; margin: 0; font: 700 48px/1.1 Helvetica, Arial, sans-serif; color: #ffffff; white-space: nowrap; }
+#late { position: absolute; left: 400px; top: 120px; width: 60px; height: 60px; background: #ff00ff; }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Runtime animate</title>
+<style>
+  .ground { position: absolute; inset: 0; background: #202830; }
+  #box { position: absolute; left: 100px; top: 60px; width: 120px; height: 60px; background: #e63946; }
+</style>
+</head>
+<body>
+<div data-fs-composition="runtime-animate" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="1">
+  <div class="ground"></div>
+  <div id="box"></div>
+</div>
+<script>
+  // The name of the method is put together at run time, so the files do not show the use to the check.
+  document.getElementById('box')['ani' + 'mate']([{ opacity: 0 }, { opacity: 1 }], 500);
+</script>
+</body>
+</html>

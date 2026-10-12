@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frame zero</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div data-fs-composition="frame-zero" data-fs-size="640x360" data-fs-fps="30" data-fs-duration="3">
+  <div class="ground"></div>
+  <div class="corner top-left"></div>
+  <div class="corner top-right"></div>
+  <div class="corner bottom-left"></div>
+  <div class="corner bottom-right"></div>
+  <div id="slide"></div>
+  <p id="title" data-fs-clip data-fs-start="0" data-fs-duration="3">Frame zero</p>
+  <div id="late" data-fs-clip data-fs-start="1" data-fs-duration="1"></div>
+</div>
+<script type="application/framesmith-motion+json">
+{ "composition": "frame-zero",
+  "tweens": [
+    { "target": "#slide", "from": { "x": 100 }, "at": 0, "duration": 1, "ease": "linear" }
+  ] }
+</script>
+</body>
+</html>

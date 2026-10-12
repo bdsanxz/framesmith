@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/timebase", "crates/motion", "crates/model", "crates/protocol", "crates/runtime", "crates/compile", "crates/browser", "crates/media", "crates/render", "crates/cli", "crates/measure", "crates/parity", "bench"]
+members = ["crates/timebase", "crates/motion", "crates/model", "crates/protocol", "crates/runtime", "crates/compile", "crates/browser", "crates/media", "crates/render", "crates/server", "crates/cli", "crates/measure", "crates/parity", "bench"]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,6 +22,7 @@ compile = { path = "crates/compile" }
 browser = { path = "crates/browser" }
 media = { path = "crates/media" }
 render = { path = "crates/render" }
+server = { path = "crates/server" }
 measure = { path = "crates/measure" }
 bench = { path = "bench" }
 
