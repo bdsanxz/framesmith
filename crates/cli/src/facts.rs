@@ -237,6 +237,10 @@ pub struct TimelineClip {
     pub duration: Time,
     /// `true` when the duration was not written and was worked out.
     pub duration_filled_in: bool,
+    /// The clip's lane: the number written, or 0.
+    pub lane: i64,
+    /// `true` when no lane was written and 0 was filled in.
+    pub lane_filled_in: bool,
 }
 
 /// What `timeline` shows of a project that passed: the facts of the composition, and its clips in
@@ -260,9 +264,21 @@ impl Timeline {
                     end: clip.end(),
                     duration: clip.duration,
                     duration_filled_in: !clip.duration_written,
+                    lane: clip.lane(),
+                    lane_filled_in: clip.lane_filled_in(),
                 })
                 .collect(),
         }
+    }
+
+    /// The lanes in number order, each with the indices (into `clips`) of its clips in document order.
+    /// A lane that holds no clip is not in the list.
+    pub fn lanes(&self) -> Vec<(i64, Vec<usize>)> {
+        let mut lanes: std::collections::BTreeMap<i64, Vec<usize>> = std::collections::BTreeMap::new();
+        for (index, clip) in self.clips.iter().enumerate() {
+            lanes.entry(clip.lane).or_default().push(index);
+        }
+        lanes.into_iter().collect()
     }
 }
 
@@ -274,6 +290,8 @@ fn clip_value(clip: &TimelineClip) -> Value {
     entry.insert("end".into(), seconds(clip.end));
     entry.insert("duration".into(), seconds(clip.duration));
     entry.insert("duration_filled_in".into(), json!(clip.duration_filled_in));
+    entry.insert("lane".into(), json!(clip.lane));
+    entry.insert("lane_filled_in".into(), json!(clip.lane_filled_in));
     Value::Object(entry)
 }
 

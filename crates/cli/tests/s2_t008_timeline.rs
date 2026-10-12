@@ -47,8 +47,9 @@ const WRITTEN: Known = Known {
     clips: &[("0", Some("0.5")), ("0.5", Some("0.5"))],
     tweens: TWEEN,
     timeline: "main  64x36  24 fps  1 s  24 frames\n\
-               \x20 #c0  0 s   to 0.5 s  0.5 s\n\
-               \x20 #c1  0.5 s to 1 s    0.5 s\n",
+               lane 0\n\
+               \x20 #c0  0 s   to 0.5 s  0.5 s (lane filled in)\n\
+               \x20 #c1  0.5 s to 1 s    0.5 s (lane filled in)\n",
 };
 
 /// The rate is left out: 30 is filled in.
@@ -58,8 +59,9 @@ const RATE_FILLED: Known = Known {
     clips: &[("0", Some("0.5")), ("0.5", Some("0.5"))],
     tweens: TWEEN,
     timeline: "main  64x36  30 fps (filled in)  1 s  30 frames\n\
-               \x20 #c0  0 s   to 0.5 s  0.5 s\n\
-               \x20 #c1  0.5 s to 1 s    0.5 s\n",
+               lane 0\n\
+               \x20 #c0  0 s   to 0.5 s  0.5 s (lane filled in)\n\
+               \x20 #c1  0.5 s to 1 s    0.5 s (lane filled in)\n",
 };
 
 /// The length is left out: it is worked out from the motion (2 s), and a clip with no duration runs to the
@@ -70,8 +72,9 @@ const LENGTH_WORKED_OUT: Known = Known {
     clips: &[("0", Some("0.5")), ("0.5", None)],
     tweens: "{ \"target\": \"#c0\", \"to\": { \"x\": 10 }, \"at\": 1, \"duration\": 1 }",
     timeline: "main  64x36  25 fps  2 s (filled in)  50 frames\n\
-               \x20 #c0  0 s   to 0.5 s  0.5 s\n\
-               \x20 #c1  0.5 s to 2 s    1.5 s (filled in)\n",
+               lane 0\n\
+               \x20 #c0  0 s   to 0.5 s  0.5 s (lane filled in)\n\
+               \x20 #c1  0.5 s to 2 s    1.5 s (filled in) (lane filled in)\n",
 };
 
 /// The length is written (3 s) and two clips have no duration: only those clips are marked.
@@ -81,9 +84,10 @@ const DURATIONS_WORKED_OUT: Known = Known {
     clips: &[("0", Some("1")), ("1", None), ("2.5", None)],
     tweens: TWEEN,
     timeline: "main  64x36  10 fps  3 s  30 frames\n\
-               \x20 #c0  0 s   to 1 s  1 s\n\
-               \x20 #c1  1 s   to 3 s  2 s (filled in)\n\
-               \x20 #c2  2.5 s to 3 s  0.5 s (filled in)\n",
+               lane 0\n\
+               \x20 #c0  0 s   to 1 s  1 s (lane filled in)\n\
+               \x20 #c1  1 s   to 3 s  2 s (filled in) (lane filled in)\n\
+               \x20 #c2  2.5 s to 3 s  0.5 s (filled in) (lane filled in)\n",
 };
 
 const ALL: [&Known; 4] = [&WRITTEN, &RATE_FILLED, &LENGTH_WORKED_OUT, &DURATIONS_WORKED_OUT];
@@ -151,38 +155,57 @@ struct Row {
     end: String,
     duration: String,
     filled_in: bool,
+    /// The number of the lane line the clip stands under.
+    lane: String,
+    /// Whether the line ends in the mark of a lane that was filled in.
+    lane_filled_in: bool,
 }
 
-/// Reads the printed timeline: the header's five cells (separated by two spaces) and the clip lines.
-/// A line that does not have the shape of the layout makes the test fail, so a change of layout is seen.
+/// Reads the printed timeline: the header's five cells (separated by two spaces), the lane lines and the
+/// clip lines under them. A line that does not have the shape of the layout makes the test fail, so a change
+/// of layout is seen. Since ticket T014 the clips stand under lane lines (`lane 0`), and a clip whose lane
+/// was not written ends in `(lane filled in)`.
 fn read_timeline(printed: &str) -> ([String; 5], Vec<Row>) {
     let mut lines = printed.lines();
     let header = lines.next().expect("a header line");
     let cells: Vec<String> = header.split("  ").map(String::from).collect();
     let header: [String; 5] = cells.try_into().unwrap_or_else(|c| panic!("the header is not five cells: {c:?}"));
-    let rows = lines
-        .map(|line| {
-            let body = line
-                .strip_prefix("  ")
-                .unwrap_or_else(|| panic!("a clip line is indented by two spaces: {line:?}"));
-            let (name, rest) = body
-                .split_once("  ")
-                .unwrap_or_else(|| panic!("no two spaces after the name: {line:?}"));
-            let words: Vec<&str> = rest.split_whitespace().collect();
-            let (times, filled_in) = match words[..] {
-                [a, "s", "to", b, "s", c, "s"] => ([a, b, c], false),
-                [a, "s", "to", b, "s", c, "s", "(filled", "in)"] => ([a, b, c], true),
-                _ => panic!("a clip line does not have the shape of the layout: {line:?}"),
-            };
-            Row {
-                name: name.trim_end().to_string(),
-                start: times[0].to_string(),
-                end: times[1].to_string(),
-                duration: times[2].to_string(),
-                filled_in,
-            }
-        })
-        .collect();
+    let mut lane = None;
+    let mut rows = Vec::new();
+    for line in lines {
+        if let Some(number) = line.strip_prefix("lane ") {
+            lane = Some(number.to_string());
+            continue;
+        }
+        let lane = lane
+            .clone()
+            .unwrap_or_else(|| panic!("a clip line comes before any lane line: {line:?}"));
+        let body = line
+            .strip_prefix("  ")
+            .unwrap_or_else(|| panic!("a clip line is indented by two spaces: {line:?}"));
+        let (body, lane_filled_in) = match body.strip_suffix(" (lane filled in)") {
+            Some(body) => (body, true),
+            None => (body, false),
+        };
+        let (name, rest) = body
+            .split_once("  ")
+            .unwrap_or_else(|| panic!("no two spaces after the name: {line:?}"));
+        let words: Vec<&str> = rest.split_whitespace().collect();
+        let (times, filled_in) = match words[..] {
+            [a, "s", "to", b, "s", c, "s"] => ([a, b, c], false),
+            [a, "s", "to", b, "s", c, "s", "(filled", "in)"] => ([a, b, c], true),
+            _ => panic!("a clip line does not have the shape of the layout: {line:?}"),
+        };
+        rows.push(Row {
+            name: name.trim_end().to_string(),
+            start: times[0].to_string(),
+            end: times[1].to_string(),
+            duration: times[2].to_string(),
+            filled_in,
+            lane,
+            lane_filled_in,
+        });
+    }
     (header, rows)
 }
 
@@ -198,8 +221,9 @@ fn s2_t008_c1_timeline_prints_the_header_and_one_line_for_each_clip_and_exits_0(
         assert_eq!(ran.code, 0, "{}", ran.all());
         assert!(ran.stderr.is_empty(), "{}", ran.stderr);
         assert_eq!(ran.stdout, known.timeline, "{}", known.name);
-        // One header line, then exactly one line for each clip.
-        assert_eq!(ran.stdout.lines().count(), 1 + known.clips.len(), "{}", known.name);
+        // One header line, one lane line (no lane is written, so every clip is in lane 0), then exactly one
+        // line for each clip.
+        assert_eq!(ran.stdout.lines().count(), 2 + known.clips.len(), "{}", known.name);
     }
 }
 
@@ -262,7 +286,7 @@ fn s2_t008_c1_the_clips_are_listed_in_document_order_with_their_names_and_the_co
     assert!(rows.iter().all(|r| !r.filled_in));
     // The columns line up: the name begins at the same place on every line, so does the start, the
     // word `to`, the end and the duration; and no line ends in a space.
-    let clip_lines: Vec<&str> = ran.stdout.lines().skip(1).collect();
+    let clip_lines: Vec<&str> = ran.stdout.lines().skip(2).collect();
     let at = |line: &str, text: &str| line.find(text).unwrap_or_else(|| panic!("{text:?} not in {line:?}"));
     let name_width = "number 2 <div>".len();
     for line in &clip_lines {
@@ -293,6 +317,7 @@ fn s2_t008_c1_a_composition_with_no_clips_prints_the_header_only() {
     );
     let ran = timeline(&dir);
     assert_eq!(ran.code, 0, "{}", ran.all());
+    // No clip, so no lane line either.
     assert_eq!(ran.stdout, "main  64x36  24 fps  1 s  24 frames\n");
 }
 
@@ -344,7 +369,7 @@ fn s2_t008_c1_warnings_of_a_passing_project_are_printed_before_the_timeline() {
     assert!(warning.ends_with("\n\n"), "{warning:?}");
     assert_eq!(
         ran.stdout,
-        format!("{warning}main  64x36  24 fps  2 s  48 frames\n  #c0    0 s to 1 s  1 s\n  #late  5 s to 6 s  1 s\n")
+        format!("{warning}main  64x36  24 fps  2 s  48 frames\nlane 0\n  #c0    0 s to 1 s  1 s (lane filled in)\n  #late  5 s to 6 s  1 s (lane filled in)\n")
     );
 }
 
@@ -399,8 +424,10 @@ fn marks(printed: &str) -> Vec<String> {
     for row in rows.iter().filter(|r| r.filled_in) {
         found.push(format!("clip {}", row.name));
     }
-    // Nothing else of the text carries the words.
-    assert_eq!(printed.matches("filled in").count(), found.len(), "{printed}");
+    // Nothing else of the text carries the words, but the mark of a lane that was filled in (ticket T014),
+    // which is not one of these marks and is counted apart.
+    let lane_marks = rows.iter().filter(|r| r.lane_filled_in).count();
+    assert_eq!(printed.matches("filled in").count(), found.len() + lane_marks, "{printed}");
     found
 }
 
@@ -429,8 +456,15 @@ fn s2_t008_c2_the_mark_is_in_the_header_after_the_length_and_after_the_duration_
     let ran = timeline(&dir);
     let lines: Vec<&str> = ran.stdout.lines().collect();
     assert_eq!(lines[0], "main  64x36  25 fps  2 s (filled in)  50 frames");
-    assert!(lines[1].ends_with("  0.5 s") && !lines[1].contains("filled"), "{}", lines[1]);
-    assert!(lines[2].ends_with("  1.5 s (filled in)"), "{}", lines[2]);
+    // (ticket T014: a lane line stands between the header and the clips, and a clip with no lane written
+    // ends in the mark of a lane that was filled in, after the mark of the duration)
+    assert_eq!(lines[1], "lane 0");
+    assert!(
+        lines[2].ends_with("  0.5 s (lane filled in)") && !lines[2].contains("(filled in)"),
+        "{}",
+        lines[2]
+    );
+    assert!(lines[3].ends_with("  1.5 s (filled in) (lane filled in)"), "{}", lines[3]);
 }
 
 #[test]
@@ -441,7 +475,8 @@ fn s2_t008_c2_a_rate_written_as_30_and_a_length_written_are_not_marked() {
         &page(
             "data-fs-size=\"64x36\" data-fs-fps=\"30\" data-fs-duration=\"2\"",
             "",
-            "<div id=\"c0\" data-fs-clip data-fs-start=\"0\" data-fs-duration=\"1\"></div>",
+            // (ticket T014: the lane is written too, 0, so that nothing at all is filled in)
+            "<div id=\"c0\" data-fs-clip data-fs-start=\"0\" data-fs-duration=\"1\" data-fs-track=\"0\"></div>",
             "",
         ),
     );

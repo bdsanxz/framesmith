@@ -201,10 +201,11 @@ fn s2_t013_c1_check_marks_the_image_duration_as_filled_in_and_prints_the_followe
     assert_eq!(
         timeline.stdout,
         "main  320x180  30 fps  5.5 s (filled in)  165 frames\n\
-         \x20 #photo    1 s   to 4 s    3 s (filled in)\n\
-         \x20 #next     4 s   to 5 s    1 s\n\
-         \x20 #later    4.5 s to 5.5 s  1 s\n\
-         \x20 #earlier  3.5 s to 4.5 s  1 s\n"
+        lane 0\n\
+         \x20 #photo    1 s   to 4 s    3 s (filled in) (lane filled in)\n\
+         \x20 #next     4 s   to 5 s    1 s (lane filled in)\n\
+         \x20 #later    4.5 s to 5.5 s  1 s (lane filled in)\n\
+         \x20 #earlier  3.5 s to 4.5 s  1 s (lane filled in)\n"
     );
     let json = document(&framesmith(&["timeline", text(&dir), "--json"]));
     assert_eq!(json["clips"][0]["duration_filled_in"], true);
@@ -663,8 +664,9 @@ fn s2_t013_the_new_code_is_listed_once_follows_the_last_error_code_and_is_given_
         .filter_map(|line| line.strip_prefix("| FS-E"))
         .map(|rest| format!("FS-E{}", rest.split(' ').next().unwrap()))
         .collect();
-    assert_eq!(errors.last().map(String::as_str), Some("FS-E054"));
-    assert_eq!(errors[errors.len() - 2], "FS-E053");
+    // (ticket T014 added FS-E055 after it)
+    assert_eq!(errors[errors.len() - 2], "FS-E054");
+    assert_eq!(errors[errors.len() - 3], "FS-E053");
     let row = matrix.lines().find(|line| line.starts_with("| FS-E054 |")).unwrap();
     assert!(
         row.contains("lasts to the end of the composition") && row.contains("names both clips"),

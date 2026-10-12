@@ -608,19 +608,35 @@ impl Draft {
         }
     }
 
+    /// Reads a clip's lane, written in `data-fs-track`: digits only, 0 or more, at most nine of them.
+    /// A value that is not such a number is FS-E028; a minus sign before a number other than zero is
+    /// FS-E055 (Sprint 1 accepted it). A clip with a fault in its lane has none.
     fn read_clip_track(&mut self, element: &RawElement, label: &str) -> Option<i64> {
         let attr = element.attr(A_TRACK)?;
         let value = attr.value.trim();
-        let digits = value.strip_prefix('-').unwrap_or(value);
+        let (negative, digits) = match value.strip_prefix('-') {
+            Some(digits) => (true, digits),
+            None => (false, value),
+        };
         let whole = !digits.is_empty() && digits.len() <= 9 && digits.bytes().all(|b| b.is_ascii_digit());
-        match value.parse::<i64>() {
-            Ok(track) if whole => Some(track),
+        match digits.parse::<i64>() {
+            Ok(0) if whole => Some(0),
+            Ok(_) if whole && negative => {
+                self.add(
+                    "FS-E055",
+                    attr.line,
+                    format!("The lane (data-fs-track) of the clip {label}, \"{value}\", is negative; a lane is 0 or more."),
+                    "Write the lane as a whole number of 0 or more, for example data-fs-track=\"1\", or remove it.",
+                );
+                None
+            }
+            Ok(lane) if whole => Some(lane),
             _ => {
                 self.add(
                     "FS-E028",
                     attr.line,
-                    format!("The track of the clip {label}, \"{value}\", is not a whole number."),
-                    "Write the track as a whole number, for example data-fs-track=\"1\", or remove it.",
+                    format!("The lane (data-fs-track) of the clip {label}, \"{value}\", is not a whole number."),
+                    "Write the lane as a whole number of 0 or more, for example data-fs-track=\"1\", or remove it.",
                 );
                 None
             }

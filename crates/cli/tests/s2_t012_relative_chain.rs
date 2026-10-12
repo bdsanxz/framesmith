@@ -240,9 +240,10 @@ fn s2_t012_c1_check_prints_the_starts_of_the_clips_of_a_chain_and_info_and_timel
     assert_eq!(
         timeline.stdout,
         "main  320x180  30 fps  8 s  240 frames\n\
-         \x20 #a  1 s to 3 s    2 s\n\
-         \x20 #b  3 s to 4.5 s  1.5 s\n\
-         \x20 #c  5 s to 6 s    1 s\n"
+        lane 0\n\
+         \x20 #a  1 s to 3 s    2 s (lane filled in)\n\
+         \x20 #b  3 s to 4.5 s  1.5 s (lane filled in)\n\
+         \x20 #c  5 s to 6 s    1 s (lane filled in)\n"
     );
     let json = framesmith(&["timeline", text(&dir), "--json"]);
     let clips = document(&json)["clips"].clone();
@@ -283,9 +284,10 @@ fn s2_t012_c1_when_the_first_clip_lasts_one_second_longer_check_info_and_timelin
     assert_eq!(
         timeline.stdout,
         "main  320x180  30 fps  8 s  240 frames\n\
-         \x20 #a  1 s to 4 s    3 s\n\
-         \x20 #b  4 s to 5.5 s  1.5 s\n\
-         \x20 #c  6 s to 7 s    1 s\n"
+        lane 0\n\
+         \x20 #a  1 s to 4 s    3 s (lane filled in)\n\
+         \x20 #b  4 s to 5.5 s  1.5 s (lane filled in)\n\
+         \x20 #c  6 s to 7 s    1 s (lane filled in)\n"
     );
     let json_before = document(&framesmith(&["timeline", text(&before), "--json"]));
     let json_after = document(&framesmith(&["timeline", text(&after), "--json"]));
@@ -683,8 +685,8 @@ fn s2_t012_the_new_code_is_listed_once_follows_the_last_error_code_and_is_given_
         .filter_map(|line| line.strip_prefix("| FS-E"))
         .map(|rest| format!("FS-E{}", rest.split(' ').next().unwrap()))
         .collect();
-    // (ticket T013 added FS-E054 after it)
-    assert_eq!(errors.get(errors.len().saturating_sub(2)).map(String::as_str), Some("FS-E053"));
+    // (tickets T013 and T014 added FS-E054 and FS-E055 after it)
+    assert_eq!(errors.get(errors.len().saturating_sub(3)).map(String::as_str), Some("FS-E053"));
     let row = matrix.lines().find(|line| line.starts_with("| FS-E053 |")).unwrap();
     assert!(row.contains("circle") && row.contains("every clip"), "{row}");
     // The number is written in one place of the product, the resolver of the model, and the spec of the

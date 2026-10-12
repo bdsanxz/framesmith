@@ -288,7 +288,8 @@ const PASS_KEYS: [&str; 12] = [
     "width",
 ];
 
-const CLIP_KEYS: [&str; 5] = ["duration", "duration_filled_in", "end", "name", "start"];
+/// (ticket T014 added `lane` and `lane_filled_in`)
+const CLIP_KEYS: [&str; 7] = ["duration", "duration_filled_in", "end", "lane", "lane_filled_in", "name", "start"];
 
 const DIAGNOSTIC_KEYS: [&str; 6] = ["code", "description", "file", "kind", "line", "remedy"];
 
@@ -300,38 +301,57 @@ struct Row {
     end: String,
     duration: String,
     filled_in: bool,
+    /// The number of the lane line the clip stands under (ticket T014).
+    lane: String,
+    /// Whether the line ends in the mark of a lane that was filled in.
+    lane_filled_in: bool,
 }
 
-/// Reads the printed timeline (after any warnings): the header's five cells (separated by two spaces) and
-/// the clip lines. A line that does not have the shape of the layout makes the test fail.
+/// Reads the printed timeline (after any warnings): the header's five cells (separated by two spaces), the
+/// lane lines (`lane 0`) and the clip lines under them. A line that does not have the shape of the layout
+/// makes the test fail. The rows come in the order of the text form, which groups the clips by lane; the
+/// projects of this file write no lane, so that order is the document order the JSON list keeps.
 fn read_timeline(printed: &str) -> ([String; 5], Vec<Row>) {
     let mut lines = printed.lines();
     let header = lines.next().expect("a header line");
     let cells: Vec<String> = header.split("  ").map(String::from).collect();
     let header: [String; 5] = cells.try_into().unwrap_or_else(|c| panic!("the header is not five cells: {c:?}"));
-    let rows = lines
-        .map(|line| {
-            let body = line
-                .strip_prefix("  ")
-                .unwrap_or_else(|| panic!("a clip line is indented by two spaces: {line:?}"));
-            let (name, rest) = body
-                .split_once("  ")
-                .unwrap_or_else(|| panic!("no two spaces after the name: {line:?}"));
-            let words: Vec<&str> = rest.split_whitespace().collect();
-            let (times, filled_in) = match words[..] {
-                [a, "s", "to", b, "s", c, "s"] => ([a, b, c], false),
-                [a, "s", "to", b, "s", c, "s", "(filled", "in)"] => ([a, b, c], true),
-                _ => panic!("a clip line does not have the shape of the layout: {line:?}"),
-            };
-            Row {
-                name: name.trim_end().to_string(),
-                start: times[0].to_string(),
-                end: times[1].to_string(),
-                duration: times[2].to_string(),
-                filled_in,
-            }
-        })
-        .collect();
+    let mut lane = None;
+    let mut rows = Vec::new();
+    for line in lines {
+        if let Some(number) = line.strip_prefix("lane ") {
+            lane = Some(number.to_string());
+            continue;
+        }
+        let lane = lane
+            .clone()
+            .unwrap_or_else(|| panic!("a clip line comes before any lane line: {line:?}"));
+        let body = line
+            .strip_prefix("  ")
+            .unwrap_or_else(|| panic!("a clip line is indented by two spaces: {line:?}"));
+        let (body, lane_filled_in) = match body.strip_suffix(" (lane filled in)") {
+            Some(body) => (body, true),
+            None => (body, false),
+        };
+        let (name, rest) = body
+            .split_once("  ")
+            .unwrap_or_else(|| panic!("no two spaces after the name: {line:?}"));
+        let words: Vec<&str> = rest.split_whitespace().collect();
+        let (times, filled_in) = match words[..] {
+            [a, "s", "to", b, "s", c, "s"] => ([a, b, c], false),
+            [a, "s", "to", b, "s", c, "s", "(filled", "in)"] => ([a, b, c], true),
+            _ => panic!("a clip line does not have the shape of the layout: {line:?}"),
+        };
+        rows.push(Row {
+            name: name.trim_end().to_string(),
+            start: times[0].to_string(),
+            end: times[1].to_string(),
+            duration: times[2].to_string(),
+            filled_in,
+            lane,
+            lane_filled_in,
+        });
+    }
     (header, rows)
 }
 
@@ -447,6 +467,16 @@ fn disagreements(line: &str, printed: &str) -> Vec<String> {
         }
         if clip["duration_filled_in"].as_bool() != Some(row.filled_in) {
             found.push(format!("clip {number}: mark {} / {}", clip["duration_filled_in"], row.filled_in));
+        }
+        let lane = clip["lane"].as_u64().map_or_else(String::new, |lane| lane.to_string());
+        if lane != row.lane {
+            found.push(format!("clip {number}: lane {} / {}", clip["lane"], row.lane));
+        }
+        if clip["lane_filled_in"].as_bool() != Some(row.lane_filled_in) {
+            found.push(format!(
+                "clip {number}: lane mark {} / {}",
+                clip["lane_filled_in"], row.lane_filled_in
+            ));
         }
     }
     found
@@ -765,7 +795,7 @@ fn s2_t009_c1_the_option_stands_before_or_after_the_folder_and_the_text_form_is_
     assert_eq!(told.code, 0);
     assert_eq!(
         told.stdout,
-        "main  64x36  25 fps  2 s (filled in)  50 frames\n  #c0  0 s   to 0.5 s  0.5 s\n  #c1  0.5 s to 2 s    1.5 s (filled in)\n"
+        "main  64x36  25 fps  2 s (filled in)  50 frames\nlane 0\n  #c0  0 s   to 0.5 s  0.5 s (lane filled in)\n  #c1  0.5 s to 2 s    1.5 s (filled in) (lane filled in)\n"
     );
     // The relative form of the folder works too.
     let parent = std::fs::canonicalize(dir.parent().unwrap()).unwrap();

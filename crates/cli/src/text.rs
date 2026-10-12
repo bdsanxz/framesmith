@@ -162,9 +162,11 @@ pub fn timeline_header(facts: &Facts) -> String {
     )
 }
 
-/// A timeline: the header, then one line for each clip in document order with its name and the start,
-/// end and duration the project resolved, as `Timeline::of` took them from the manifest. Each column is as
-/// wide as its widest cell, so the lines read as a table; no line ends in a space.
+/// A timeline: the header, then the lanes in number order, each a line of its own followed by one line for
+/// each of its clips in document order, with the clip's name and the start, end and duration the project
+/// resolved, as `Timeline::of` took them from the manifest. A clip whose lane was filled in carries a mark
+/// at the end of its line. Each column is as wide as its widest cell over all the clips, so the lines read
+/// as a table from one lane to the next; no line ends in a space.
 pub fn timeline_text(timeline: &Timeline) -> String {
     let mut out = timeline_header(&timeline.facts);
     out.push('\n');
@@ -176,14 +178,23 @@ pub fn timeline_text(timeline: &Timeline) -> String {
                 clip.name.clone(),
                 format!("{} s", clip.start),
                 format!("{} s", clip.end),
-                format!("{} s{}", clip.duration, filled(clip.duration_filled_in)),
+                format!(
+                    "{} s{}{}",
+                    clip.duration,
+                    filled(clip.duration_filled_in),
+                    if clip.lane_filled_in { " (lane filled in)" } else { "" }
+                ),
             ]
         })
         .collect();
     let width = |column: usize| rows.iter().map(|row| row[column].chars().count()).max().unwrap_or(0);
     let (names, starts, ends) = (width(0), width(1), width(2));
-    for [name, start, end, duration] in &rows {
-        out.push_str(&format!("  {name:<names$}  {start:<starts$} to {end:<ends$}  {duration}\n"));
+    for (lane, members) in timeline.lanes() {
+        out.push_str(&format!("lane {lane}\n"));
+        for index in members {
+            let [name, start, end, duration] = &rows[index];
+            out.push_str(&format!("  {name:<names$}  {start:<starts$} to {end:<ends$}  {duration}\n"));
+        }
     }
     out
 }

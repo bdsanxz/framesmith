@@ -203,10 +203,11 @@ fn s2_t011_c1_check_prints_the_start_with_a_plus_and_with_a_minus_offset_beside_
     assert_eq!(
         timeline.stdout,
         "main  320x180  30 fps  5 s  150 frames\n\
-         \x20 #intro   1 s   to 3 s    2 s\n\
-         \x20 #later   3.5 s to 4.5 s  1 s\n\
-         \x20 #sooner  2.5 s to 3.5 s  1 s\n\
-         \x20 #spaced  4 s   to 4.5 s  0.5 s\n"
+        lane 0\n\
+         \x20 #intro   1 s   to 3 s    2 s (lane filled in)\n\
+         \x20 #later   3.5 s to 4.5 s  1 s (lane filled in)\n\
+         \x20 #sooner  2.5 s to 3.5 s  1 s (lane filled in)\n\
+         \x20 #spaced  4 s   to 4.5 s  0.5 s (lane filled in)\n"
     );
     let json = framesmith(&["timeline", text(&dir), "--json"]);
     let clips = document(&json)["clips"].clone();
@@ -666,7 +667,7 @@ fn s2_t011_c3_c4_the_two_codes_are_new_differ_from_each_other_and_from_every_oth
         .lines()
         .filter_map(|line| line.strip_prefix("| FS-"))
         .map(|rest| format!("FS-{}", rest.split(' ').next().unwrap()))
-        .filter(|code| code != "FS-E051" && code != "FS-E052" && code != "FS-E053" && code != "FS-E054")
+        .filter(|code| code != "FS-E051" && code != "FS-E052" && code != "FS-E053" && code != "FS-E054" && code != "FS-E055")
         .collect();
     assert!(others.contains("FS-E050") && !others.contains("FS-E051") && !others.contains("FS-E052"));
     let errors: Vec<&String> = others.iter().filter(|code| code.starts_with("FS-E")).collect();

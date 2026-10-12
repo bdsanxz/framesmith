@@ -40,6 +40,16 @@ impl Clip {
     pub fn end(&self) -> Time {
         self.start + self.duration
     }
+
+    /// The clip's lane: the number written in `data-fs-track`, or 0 when none was. Display data only.
+    pub fn lane(&self) -> i64 {
+        self.track.unwrap_or(0)
+    }
+
+    /// `true` when no lane was written and 0 was filled in.
+    pub fn lane_filled_in(&self) -> bool {
+        self.track.is_none()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

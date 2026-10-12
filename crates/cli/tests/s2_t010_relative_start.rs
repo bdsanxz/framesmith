@@ -202,10 +202,11 @@ fn s2_t010_c1_check_prints_three_seconds_beside_the_written_form_and_info_and_ti
     assert_eq!(
         timeline.stdout,
         "main  320x180  30 fps  5 s  150 frames\n\
-         \x20 #intro  1 s   to 3 s  2 s\n\
-         \x20 #outro  3 s   to 4 s  1 s\n\
-         \x20 #echo   1 s   to 2 s  1 s\n\
-         \x20 #last   0.5 s to 1 s  0.5 s\n"
+        lane 0\n\
+         \x20 #intro  1 s   to 3 s  2 s (lane filled in)\n\
+         \x20 #outro  3 s   to 4 s  1 s (lane filled in)\n\
+         \x20 #echo   1 s   to 2 s  1 s (lane filled in)\n\
+         \x20 #last   0.5 s to 1 s  0.5 s (lane filled in)\n"
     );
     let json = framesmith(&["timeline", text(&dir), "--json"]);
     let clips = document(&json)["clips"].clone();
@@ -276,9 +277,11 @@ fn s2_t010_c1_the_render_is_right_where_the_end_of_the_named_clip_falls_between_
 fn starts(dir: &Path) -> Vec<(String, String)> {
     let ran = framesmith(&["timeline", text(dir)]);
     assert_eq!(ran.code, 0, "{}", ran.all());
+    // (ticket T014: a lane line stands over the clips of a lane)
     ran.stdout
         .lines()
         .skip(1)
+        .filter(|line| !line.starts_with("lane "))
         .map(|line| {
             let cells: Vec<&str> = line.split_whitespace().collect();
             (cells[0].to_string(), cells[1].to_string())
@@ -516,7 +519,7 @@ fn s2_t010_c3_c4_the_two_codes_are_new_and_each_is_listed_once_in_the_support_ma
         .lines()
         .filter_map(|line| line.strip_prefix("| FS-"))
         .map(|rest| format!("FS-{}", rest.split(' ').next().unwrap()))
-        .filter(|code| !["FS-E049", "FS-E050", "FS-E051", "FS-E052", "FS-E053", "FS-E054"].contains(&code.as_str()))
+        .filter(|code| !["FS-E049", "FS-E050", "FS-E051", "FS-E052", "FS-E053", "FS-E054", "FS-E055"].contains(&code.as_str()))
         .collect();
     assert!(before.contains("FS-E048") && before.contains("FS-U003"));
     assert!(!before.contains("FS-E049") && !before.contains("FS-E050"));

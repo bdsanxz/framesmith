@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lanes</title>
+<style>
+  .box { position: absolute; width: 100px; height: 100px; }
+  #sky   { left: 20px;  top: 20px; background: #ff0000; z-index: 1; }
+  #cloud { left: 60px;  top: 40px; background: #0000ff; z-index: 2; }
+  #sun   { left: 100px; top: 20px; background: #00ff00; z-index: 3; }
+  #bird  { left: 140px; top: 40px; background: #ffff00; z-index: 4; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="10" data-fs-duration="2">
+  <div id="sky" class="box" data-fs-clip data-fs-start="0" data-fs-duration="2" data-fs-track="1"></div>
+  <div id="cloud" class="box" data-fs-clip data-fs-start="0" data-fs-duration="1.5" data-fs-track="2"></div>
+  <div id="sun" class="box" data-fs-clip data-fs-start="0.5" data-fs-duration="1" data-fs-track="5"></div>
+  <div id="bird" class="box" data-fs-clip data-fs-start="1" data-fs-duration="1" data-fs-track="1"></div>
+</div>
+</body>
+</html>
