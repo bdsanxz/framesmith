@@ -666,7 +666,7 @@ fn s2_t011_c3_c4_the_two_codes_are_new_differ_from_each_other_and_from_every_oth
         .lines()
         .filter_map(|line| line.strip_prefix("| FS-"))
         .map(|rest| format!("FS-{}", rest.split(' ').next().unwrap()))
-        .filter(|code| code != "FS-E051" && code != "FS-E052" && code != "FS-E053")
+        .filter(|code| code != "FS-E051" && code != "FS-E052" && code != "FS-E053" && code != "FS-E054")
         .collect();
     assert!(others.contains("FS-E050") && !others.contains("FS-E051") && !others.contains("FS-E052"));
     let errors: Vec<&String> = others.iter().filter(|code| code.starts_with("FS-E")).collect();
@@ -772,38 +772,28 @@ fn s2_t011_fs_u003_is_no_longer_raised_for_an_offset_and_the_forms_that_wait_are
         assert_eq!(ran.code, 0, "{written}: {}", ran.all());
         assert!(!ran.all().contains("FS-U003"), "{written}");
     }
-    // The forms that wait stay refused (exit 2) with an offset as without one. (A chain no longer waits:
-    // ticket T012. A follower of a link of a chain that has no written duration does.)
-    let named = clip("a", "1", Some("2"));
-    let unwritten = "<div id=\"a\" class=\"box\" data-fs-clip data-fs-start=\"1\"></div>\n".to_string();
-    let unwritten_link = "<div id=\"b\" class=\"box\" data-fs-clip data-fs-start=\"after:a\"></div>\n".to_string();
+    // The form that waits stays refused (exit 2) with an offset as without one. (A chain no longer waits:
+    // ticket T012. A named clip with no written duration does not either: ticket T013.)
+    let nested = "<div id=\"inner\" data-fs-composition=\"inner\" data-fs-size=\"64x36\"></div>\n".to_string();
+    let says = "a nested composition";
     let cases: Vec<(&str, String, &str)> = vec![
+        ("nested_plus", format!("{nested}{}", clip("b", "after:inner+0.5", Some("1"))), says),
+        ("nested_minus", format!("{nested}{}", clip("b", "after:inner-0.5", Some("1"))), says),
         (
-            "unwritten_plus",
-            format!("{unwritten}{}", clip("b", "after:a+0.5", Some("1"))),
-            "which has no written duration",
-        ),
-        (
-            "unwritten_minus",
-            format!("{unwritten}{}", clip("b", "after:a-0.5", Some("1"))),
-            "which has no written duration",
-        ),
-        (
-            "unwritten_link_plus",
-            format!("{named}{unwritten_link}{}", clip("c", "after:b+0.5", Some("1"))),
-            "which has no written duration",
-        ),
-        (
-            "unwritten_link_minus",
-            format!("{named}{unwritten_link}{}", clip("c", "after:b-0.5", Some("1"))),
-            "which has no written duration",
+            "nested_spaced",
+            format!("{nested}{}", clip("b", "after:inner - 0.5", Some("1"))),
+            says,
         ),
     ];
     for (key, body, says) in cases {
         let dir = boxes(&format!("s2_t011_u003_{key}"), 30, &body);
         let ran = check(&dir);
         assert_eq!(ran.code, 2, "{key}: {}", ran.all());
-        assert!(codes(&ran.stdout).iter().all(|code| code == "FS-U003"), "{key}: {}", ran.stdout);
+        assert!(
+            codes(&ran.stdout).iter().all(|code| code == "FS-U003" || code == "FS-U006"),
+            "{key}: {}",
+            ran.stdout
+        );
         assert!(ran.stdout.contains(says), "{key}: {}", ran.stdout);
         assert!(!ran.stdout.contains("offsets are not supported"), "{key}: {}", ran.stdout);
         let spies = Spies::new(&format!("s2_t011_u003_{key}"));
@@ -811,10 +801,11 @@ fn s2_t011_fs_u003_is_no_longer_raised_for_an_offset_and_the_forms_that_wait_are
         assert_eq!(render.code, 2, "{key}: {}", render.all());
         assert_eq!(spies.started(), (false, false), "{key}");
     }
-    // The fixture of the row is a follower of a clip with no written duration (it was a chain until T012).
-    let ran = check(&fixture("s2_t011_u003_fixture", "unsupported/fs-u003-relative-start"));
+    // The fixture of the row is a follower of a nested composition (it was a chain until T012 and a clip
+    // with no written duration until T013).
+    let ran = check(&fixture("s2_t011_u003_fixture", "unsupported/fs-u003-nested-composition-start"));
     assert_eq!(ran.code, 2, "{}", ran.all());
-    assert!(ran.stdout.contains("which has no written duration"), "{}", ran.stdout);
+    assert!(ran.stdout.contains("a nested composition"), "{}", ran.stdout);
 }
 
 #[test]
@@ -833,7 +824,7 @@ fn s2_t011_the_support_matrix_row_is_narrowed_and_the_message_for_an_offset_is_g
         cells[1]
     );
     assert!(
-        !cells[3].contains("T011") && !cells[3].contains("T012") && cells[3].contains("T013") && cells[3].contains("T038"),
+        !cells[3].contains("T011") && !cells[3].contains("T012") && !cells[3].contains("T013") && cells[3].contains("T038"),
         "{}",
         cells[3]
     );

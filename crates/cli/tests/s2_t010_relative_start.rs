@@ -10,9 +10,9 @@
 //! * The times are read from the text of the built binary and from the pictures of real renders; the
 //!   expected values are written out here from the way each project is written, not taken from the code.
 //! * The fixtures are `fixtures/relative-start*`; the forms that wait are written out in this file as small
-//!   projects, one per form (the form that waits has a fixture of its own, `unsupported/fs-u003-relative-start`;
-//!   the fixture was an offset until ticket T011 built the offset, and a chain until ticket T012 built
-//!   chains; the tests that expected them to be refused were replaced then by `s2_t011_relative_offset.rs`
+//!   projects, one per form (the form that waits has a fixture of its own, `unsupported/fs-u003-nested-composition-start`;
+//!   the fixture was an offset until ticket T011 built the offset, a chain until ticket T012 built
+//!   chains, and a clip with no written duration until ticket T013 built it; the tests that expected them to be refused were replaced then by `s2_t011_relative_offset.rs`
 //!   and `s2_t012_relative_chain.rs`).
 //! * Only the render tests (c1, and the page tests at the end) need a browser and `ffmpeg`; the others
 //!   read files only. The refusing tests use stand-ins that note being started.
@@ -516,7 +516,7 @@ fn s2_t010_c3_c4_the_two_codes_are_new_and_each_is_listed_once_in_the_support_ma
         .lines()
         .filter_map(|line| line.strip_prefix("| FS-"))
         .map(|rest| format!("FS-{}", rest.split(' ').next().unwrap()))
-        .filter(|code| !["FS-E049", "FS-E050", "FS-E051", "FS-E052", "FS-E053"].contains(&code.as_str()))
+        .filter(|code| !["FS-E049", "FS-E050", "FS-E051", "FS-E052", "FS-E053", "FS-E054"].contains(&code.as_str()))
         .collect();
     assert!(before.contains("FS-E048") && before.contains("FS-U003"));
     assert!(!before.contains("FS-E049") && !before.contains("FS-E050"));
@@ -604,59 +604,31 @@ struct Waits {
 }
 
 fn waits() -> Vec<Waits> {
-    let named = clip("a", "1", Some("2"));
-    let unwritten = "<div id=\"a\" class=\"box\" data-fs-clip data-fs-start=\"1\"></div>\n".to_string();
+    let nested = "<div id=\"inner\" data-fs-composition=\"inner\" data-fs-size=\"64x36\"></div>\n";
     vec![
-        // Ticket T011 built the offset and ticket T012 built chains, so neither is a form that waits; a
-        // follower of a clip that is itself a link of a chain, and that has no written duration, waits.
-        Waits {
-            key: "link_of_a_chain_with_no_written_duration",
-            body: format!(
-                "{named}<div id=\"b\" class=\"box\" data-fs-clip data-fs-start=\"after:a\"></div>\n{}",
-                clip("c", "after:b", Some("1"))
-            ),
-            says:
-                "starts after #b, which has no written duration; following a clip whose end is worked out is not supported in this version.",
-            codes: &["FS-U003"],
-        },
-        Waits {
-            key: "link_of_a_chain_with_no_written_duration_and_an_offset",
-            body: format!(
-                "{named}<div id=\"b\" class=\"box\" data-fs-clip data-fs-start=\"after:a+0.5\"></div>\n{}",
-                clip("c", "after:b -0.5", Some("1"))
-            ),
-            says: "starts after #b, which has no written duration;",
-            codes: &["FS-U003"],
-        },
-        Waits {
-            key: "no_written_duration_with_an_offset",
-            body: format!("{unwritten}{}", clip("b", "after:a+0.5", Some("1"))),
-            says: "starts after #a, which has no written duration;",
-            codes: &["FS-U003"],
-        },
-        Waits {
-            key: "no_written_duration",
-            body: format!("{unwritten}{}", clip("b", "after:a", Some("1"))),
-            says:
-                "starts after #a, which has no written duration; following a clip whose end is worked out is not supported in this version.",
-            codes: &["FS-U003"],
-        },
-        Waits {
-            key: "image_with_no_duration",
-            body: format!(
-                "<img id=\"a\" class=\"box\" data-fs-clip data-fs-start=\"1\" src=\"a.png\" alt=\"\">\n{}",
-                clip("b", "after:a", Some("1"))
-            ),
-            says: "starts after #a, which has no written duration;",
-            codes: &["FS-U003"],
-        },
+        // Ticket T011 built the offset, ticket T012 built chains and ticket T013 built a named clip with no
+        // written duration, so none of them is a form that waits; a nested composition as the named clip
+        // still waits (ticket T038).
         Waits {
             key: "nested_composition",
-            body: format!(
-                "<div id=\"inner\" data-fs-composition=\"inner\" data-fs-size=\"64x36\"></div>\n{}",
-                clip("b", "after:inner", Some("1"))
-            ),
+            body: format!("{nested}{}", clip("b", "after:inner", Some("1"))),
             says: "starts after \"inner\", a nested composition; following a nested composition is not supported in this version.",
+            codes: &["FS-U006", "FS-U003"],
+        },
+        Waits {
+            key: "nested_composition_with_an_offset",
+            body: format!("{nested}{}", clip("b", "after:inner + 0.5", Some("1"))),
+            says: "starts after \"inner\", a nested composition;",
+            codes: &["FS-U006", "FS-U003"],
+        },
+        Waits {
+            key: "nested_composition_followed_by_a_chain",
+            body: format!(
+                "{nested}{}{}",
+                clip("b", "after:inner", Some("1")),
+                clip("c", "after:b -0.5", Some("1"))
+            ),
+            says: "starts after \"inner\", a nested composition;",
             codes: &["FS-U006", "FS-U003"],
         },
     ]
@@ -711,28 +683,28 @@ fn s2_t010_c6_the_forms_that_wait_are_still_refused_and_say_which_form_they_are(
         assert_eq!(spies.started(), (false, false), "{}", case.key);
         assert!(!dir.join("out").exists(), "{}", case.key);
     }
-    // The fixture of the matrix is a follower of a clip with no written duration (it was an offset until
-    // T011 and a chain until T012).
-    let fixture_dir = fixture("s2_t010_c6_offset_fixture", "unsupported/fs-u003-relative-start");
+    // The fixture of the matrix is a follower of a nested composition (it was an offset until T011, a
+    // chain until T012 and a clip with no written duration until T013).
+    let fixture_dir = fixture("s2_t010_c6_offset_fixture", "unsupported/fs-u003-nested-composition-start");
     let ran = check(&fixture_dir);
     assert_eq!(ran.code, 2, "{}", ran.all());
-    assert_eq!(codes(&ran.stdout), ["FS-U003"]);
+    assert_eq!(codes(&ran.stdout), ["FS-U006", "FS-U003"]);
 }
 
 #[test]
 fn s2_t010_c6_a_fault_and_a_form_that_waits_in_one_file_exit_1_and_list_both() {
-    // A follower of a clip with no written duration (a form that waits) and an id no clip has.
+    // A follower of a nested composition (a form that waits) and an id no clip has.
     let body = format!(
         "{}{}{}",
-        "<div id=\"a\" class=\"box\" data-fs-clip data-fs-start=\"1\"></div>\n",
-        clip("b", "after:a", Some("1")),
+        "<div id=\"inner\" data-fs-composition=\"inner\" data-fs-size=\"64x36\"></div>\n",
+        clip("b", "after:inner", Some("1")),
         clip("d", "after:nothing", Some("1"))
     );
     let ran = check(&boxes("s2_t010_c6_both", 30, &body));
     assert_eq!(ran.code, 1, "{}", ran.all());
     let mut found = codes(&ran.stdout);
     found.sort();
-    assert_eq!(found, ["FS-E050", "FS-U003"]);
+    assert_eq!(found, ["FS-E050", "FS-U003", "FS-U006"]);
 }
 
 #[test]
@@ -760,10 +732,10 @@ fn s2_t010_c6_the_code_is_given_to_nothing_else_and_the_support_matrix_lists_rel
         "{}",
         cells[1]
     );
-    // It waits for the tickets that build the other forms, and no longer for T010, T011 or T012.
-    assert!(cells[3].contains("T013"), "{}", cells[3]);
+    // It waits for the ticket that builds the other form, and no longer for T010, T011, T012 or T013.
+    assert!(cells[3].contains("T038"), "{}", cells[3]);
     assert!(
-        !cells[3].contains("T010") && !cells[3].contains("T011") && !cells[3].contains("T012"),
+        !cells[3].contains("T010") && !cells[3].contains("T011") && !cells[3].contains("T012") && !cells[3].contains("T013"),
         "{}",
         cells[3]
     );

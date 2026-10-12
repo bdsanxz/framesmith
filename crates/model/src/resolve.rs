@@ -47,6 +47,17 @@ struct RelativeStart {
     line: u32,
 }
 
+/// A relative start that cannot be worked out until the length of the composition is known, because it
+/// follows a clip that lasts to the end of the composition, or follows a clip that does (`composition.md`,
+/// "Sprint 2 rules for values that are not written", rule 3).
+struct PendingStart {
+    /// The clip that follows.
+    index: usize,
+    /// The clip it follows.
+    named: usize,
+    offset: Time,
+}
+
 /// What follows `after:` in a start, trimmed. `None` when the value does not begin with `after:`.
 fn relative_text(value: &str) -> Option<&str> {
     Some(value.strip_prefix(RELATIVE_PREFIX)?.trim())
@@ -717,7 +728,8 @@ impl Draft {
 
         // The length is settled first: a clip with no end of its own lasts until it.
         let mut drafts = std::mem::take(&mut self.clips);
-        self.resolve_relative_starts(&mut drafts);
+        let pending = self.resolve_relative_starts(&mut drafts);
+        // A start that waits for the length has none yet, so it takes no part in working the length out.
         let last_own_end = drafts.iter().filter_map(|draft| Some(draft.start? + draft.own_duration()?.0)).max();
         let written_length = self.composition.as_ref().map(|composition| composition.length);
         let length = match written_length {
@@ -726,6 +738,7 @@ impl Draft {
             _ => None,
         };
         let no_length_to_work_out = written_length == Some(Some(None)) && length.is_none();
+        self.resolve_pending_starts(&mut drafts, &pending, length.map(|(length, _)| length), no_length_to_work_out);
 
         let mut clips: Vec<Clip> = Vec::new();
         let mut clip_elements: Vec<usize> = Vec::new();
@@ -816,8 +829,10 @@ impl Draft {
     /// starts are worked out from the clip that has a time, down each line, whatever order the clips are
     /// written in. A fault, or a form that is not built yet, is reported and leaves the start open, and a
     /// clip that follows a clip whose start is open gets no report of its own. Clips whose starts depend
-    /// on each other in a circle are reported once, together (FS-E053).
-    fn resolve_relative_starts(&mut self, drafts: &mut [ClipDraft]) {
+    /// on each other in a circle are reported once, together (FS-E053). A start that follows a clip that
+    /// lasts to the end of the composition, or follows a clip that does, waits for the length: it is
+    /// returned, in an order in which the clip named comes before the clip that names it.
+    fn resolve_relative_starts(&mut self, drafts: &mut [ClipDraft]) -> Vec<PendingStart> {
         // First, what each relative start names: the index of the clip it follows, and its offset
         // (`None` when the offset is not a time, which is already reported). A start with a fault of its
         // own names nothing.
@@ -898,6 +913,8 @@ impl Draft {
             .iter()
             .map(|draft| if draft.relative.is_some() { State::Fresh } else { State::Settled })
             .collect();
+        let mut waits_for_length: Vec<bool> = vec![false; drafts.len()];
+        let mut pending: Vec<PendingStart> = Vec::new();
         for first in 0..drafts.len() {
             let mut walk: Vec<usize> = Vec::new();
             let mut current = first;
@@ -934,47 +951,102 @@ impl Draft {
                 let Some((named, Some(offset))) = links[index] else {
                     continue;
                 };
-                let label = drafts[index].label.clone();
-                let written = drafts[index]
-                    .relative
-                    .as_ref()
-                    .map(|relative| relative.written.clone())
-                    .unwrap_or_default();
-                let line = drafts[index].relative.as_ref().map_or(0, |relative| relative.line);
-                let target_label = drafts[named].label.clone();
+                // The named clip waits for the length, so this one does too, whatever the named clip's duration.
+                if waits_for_length[named] {
+                    waits_for_length[index] = true;
+                    pending.push(PendingStart { index, named, offset });
+                    continue;
+                }
                 // The named clip's start is open: its own fault is reported with it.
                 let Some(start) = drafts[named].start else {
                     continue;
                 };
-                match drafts[named].duration {
+                let end = match drafts[named].duration {
                     // Written wrongly: reported with the named clip.
-                    None => {}
-                    Some(None) => self.add(
-                        "FS-U003",
-                        line,
-                        format!(
-                            "The clip {label} starts after {target_label}, which has no written duration; following a clip whose end is worked out is not supported in this version."
-                        ),
-                        format!("Write a duration on {target_label}, for example data-fs-duration=\"2\", or write the start of {label} as a time in seconds."),
-                    ),
-                    Some(Some(duration)) => {
-                        let end = start + duration;
-                        let sum = end + offset;
-                        if sum.is_negative() {
+                    None => continue,
+                    Some(Some(duration)) => start + duration,
+                    // No duration written: a still image lasts a fixed time.
+                    Some(None) if drafts[named].tag == "img" => start + Time::from_secs(IMAGE_CLIP_SECONDS),
+                    // Any other clip lasts to the end of the composition, which is not known yet.
+                    Some(None) => {
+                        waits_for_length[index] = true;
+                        pending.push(PendingStart { index, named, offset });
+                        continue;
+                    }
+                };
+                self.settle_start(drafts, index, named, end, offset);
+            }
+        }
+        pending
+    }
+
+    /// Gives the clip `index` its start, the end of the clip it names plus the offset, or reports that the
+    /// sum is before the start of the composition (FS-E052) and leaves the start open.
+    fn settle_start(&mut self, drafts: &mut [ClipDraft], index: usize, named: usize, end: Time, offset: Time) {
+        let sum = end + offset;
+        if sum.is_negative() {
+            let (label, target_label) = (&drafts[index].label, &drafts[named].label);
+            let (written, line) = drafts[index]
+                .relative
+                .as_ref()
+                .map_or((String::new(), 0), |relative| (relative.written.clone(), relative.line));
+            self.add(
+                "FS-E052",
+                line,
+                format!(
+                    "The clip {label} starts at {sum} s (\"{written}\", and {target_label} ends at {end} s), before the start of the composition."
+                ),
+                format!("Use an offset of -{end} s or later, or write the start as a time of 0 or more in seconds. The clip is not moved to 0."),
+            );
+        } else {
+            drafts[index].start = Some(sum);
+        }
+    }
+
+    /// Gives the starts that waited for the length their value, now that the length is known: the end of the
+    /// named clip, which for a clip that lasts to the end of the composition is the length (or its own start,
+    /// when that is at or after the length: its duration is then 0), plus the offset. When the length cannot
+    /// be worked out, the clip that follows a clip that lasts to the end of the composition is the error
+    /// FS-E054, and a clip that follows that one gets none of its own.
+    fn resolve_pending_starts(
+        &mut self,
+        drafts: &mut [ClipDraft],
+        pending: &[PendingStart],
+        length: Option<Time>,
+        no_length_to_work_out: bool,
+    ) {
+        for step in pending {
+            let named = &drafts[step.named];
+            // The named clip has no start: its own fault, or the error of the clip before it, is reported.
+            let Some(start) = named.start else {
+                continue;
+            };
+            let end = if named.lasts_to_the_end() {
+                match length {
+                    Some(length) => start.max(length),
+                    None => {
+                        if no_length_to_work_out {
+                            let (label, target_label) = (drafts[step.index].label.clone(), named.label.clone());
+                            let line = drafts[step.index].relative.as_ref().map_or(0, |relative| relative.line);
                             self.add(
-                                "FS-E052",
+                                "FS-E054",
                                 line,
                                 format!(
-                                    "The clip {label} starts at {sum} s (\"{written}\", and {target_label} ends at {end} s), before the start of the composition."
+                                    "The clip {label} starts after {target_label}, which has no duration and lasts until the end of the composition, but the composition has no length for it to last until: none is written, and there is no motion and no clip with its own end to work one out from, so the start of {label} cannot be worked out."
                                 ),
-                                format!("Use an offset of -{end} s or later, or write the start as a time of 0 or more in seconds. The clip is not moved to 0."),
+                                format!("Write a duration on {target_label}, for example data-fs-duration=\"2\", or a length on the composition, for example data-fs-duration=\"6\", or write the start of {label} as a time in seconds."),
                             );
-                        } else {
-                            drafts[index].start = Some(sum);
                         }
+                        continue;
                     }
                 }
-            }
+            } else {
+                match named.own_duration() {
+                    Some((duration, _)) => start + duration,
+                    None => continue,
+                }
+            };
+            self.settle_start(drafts, step.index, step.named, end, step.offset);
         }
     }
 

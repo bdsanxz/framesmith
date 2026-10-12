@@ -423,7 +423,7 @@ fn s2_t011_a_clip_that_names_itself_with_an_offset_is_still_a_clip_that_names_it
 }
 
 #[test]
-fn s2_t011_the_forms_that_wait_stay_refused_with_or_without_an_offset_and_are_never_resolved() {
+fn s2_t011_a_chain_is_resolved_a_circle_and_a_nested_composition_are_not_and_a_named_clip_with_no_written_duration_takes_the_offset() {
     // A chain no longer waits (ticket T012): the offset on a link is added to the end of the clip before
     // it, and a link that would start before zero is FS-E052 for that link.
     for (written, start) in [("after:b", "3"), ("after:b+0.5", "3.5"), ("after:b-0.5", "2.5")] {
@@ -445,13 +445,15 @@ fn s2_t011_the_forms_that_wait_stay_refused_with_or_without_an_offset_and_are_ne
     // A cycle of two is one error (ticket T012).
     let cycle = resolve(vec![clip("a", "after:b+1", Some("1"), 4), clip("b", "after:a-1", Some("1"), 5)]);
     assert_eq!(codes(&cycle), ["FS-E053"]);
-    // A named clip with no written duration, a still image included.
+    // A named clip with no written duration, a still image included (ticket T013): the offset is added to
+    // its worked-out end. The composition lasts 10 s, so #a lasts to the end.
     let unwritten = resolve(vec![clip("a", "1", None, 4), clip("b", "after:a+0.5", Some("1"), 5)]);
-    assert_eq!(codes(&unwritten), ["FS-U003"]);
-    assert!(unwritten.diagnostics[0].description.contains("has no written duration"));
+    assert_eq!(codes(&unwritten), ["FS-W001"]);
+    assert_eq!(unwritten.manifest.unwrap().clips[1].start, time("10.5"));
     let image = element("img", Some("a"), Some(0), 4, &[("data-fs-clip", ""), ("data-fs-start", "1")]);
     let image = resolve(vec![image, clip("b", "after:a-0.5", Some("1"), 5)]);
-    assert_eq!(codes(&image), ["FS-U003"]);
+    assert_eq!(codes(&image), Vec::<&str>::new());
+    assert_eq!(image.manifest.unwrap().clips[1].start, time("3.5"));
     // A nested composition, named with an offset.
     let nested = element(
         "div",

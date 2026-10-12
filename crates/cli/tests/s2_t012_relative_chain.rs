@@ -683,7 +683,8 @@ fn s2_t012_the_new_code_is_listed_once_follows_the_last_error_code_and_is_given_
         .filter_map(|line| line.strip_prefix("| FS-E"))
         .map(|rest| format!("FS-E{}", rest.split(' ').next().unwrap()))
         .collect();
-    assert_eq!(errors.last().map(String::as_str), Some("FS-E053"));
+    // (ticket T013 added FS-E054 after it)
+    assert_eq!(errors.get(errors.len().saturating_sub(2)).map(String::as_str), Some("FS-E053"));
     let row = matrix.lines().find(|line| line.starts_with("| FS-E053 |")).unwrap();
     assert!(row.contains("circle") && row.contains("every clip"), "{row}");
     // The number is written in one place of the product, the resolver of the model, and the spec of the
@@ -712,7 +713,7 @@ fn s2_t012_the_new_code_is_listed_once_follows_the_last_error_code_and_is_given_
 }
 
 #[test]
-fn s2_t012_fs_u003_is_no_longer_raised_for_a_chain_and_the_forms_that_wait_are_still_refused_with_it() {
+fn s2_t012_fs_u003_is_no_longer_raised_for_a_chain_and_the_form_that_waits_is_still_refused_with_it() {
     // A chain of any of the shapes: supported, nothing refused.
     for (key, body) in [
         (
@@ -747,43 +748,38 @@ fn s2_t012_fs_u003_is_no_longer_raised_for_a_chain_and_the_forms_that_wait_are_s
         assert_eq!(ran.code, 0, "{key}: {}", ran.all());
         assert!(!ran.all().contains("FS-U003"), "{key}");
     }
-    // A named clip with no written duration, also when it is a link of a chain, is still refused (exit 2).
-    let unwritten = "<div id=\"b\" class=\"box\" data-fs-clip data-fs-start=\"after:a\"></div>\n";
+    // A named clip with no written duration, also when it is a link of a chain, is refused no more
+    // (ticket T013); a nested composition as the named clip still is (exit 2).
+    let nested = "<div id=\"inner\" data-fs-composition=\"inner\" data-fs-size=\"64x36\"></div>\n";
     let cases: Vec<(&str, String)> = vec![
+        ("nested", format!("{nested}{}", clip("b", "after:inner", Some("1")))),
         (
-            "unwritten",
-            format!(
-                "<div id=\"a\" class=\"box\" data-fs-clip data-fs-start=\"1\"></div>\n{}",
-                clip("b", "after:a", Some("1"))
-            ),
-        ),
-        (
-            "unwritten_link",
-            format!("{}{unwritten}{}", clip("a", "1", Some("2")), clip("c", "after:b", Some("1"))),
+            "nested_link",
+            format!("{nested}{}{}", clip("b", "after:inner", Some("1")), clip("c", "after:b", Some("1"))),
         ),
     ];
     for (key, body) in cases {
         let dir = boxes(&format!("s2_t012_u003_waits_{key}"), 30, &body);
         let ran = check(&dir);
         assert_eq!(ran.code, 2, "{key}: {}", ran.all());
-        assert_eq!(codes(&ran.stdout), ["FS-U003"], "{key}");
-        assert!(ran.stdout.contains("which has no written duration"), "{key}: {}", ran.stdout);
+        assert_eq!(codes(&ran.stdout), ["FS-U006", "FS-U003"], "{key}");
+        assert!(ran.stdout.contains("a nested composition"), "{key}: {}", ran.stdout);
         assert!(!ran.stdout.contains("chains and cycles"), "{key}: {}", ran.stdout);
         let spies = Spies::new(&format!("s2_t012_u003_waits_{key}"));
         let render = spies.run(dir.parent().unwrap(), &["render", text(&dir)]);
         assert_eq!(render.code, 2, "{key}: {}", render.all());
         assert_eq!(spies.started(), (false, false), "{key}");
     }
-    // The fixture of the row is a follower of a clip with no written duration.
-    let ran = check(&fixture("s2_t012_u003_fixture", "unsupported/fs-u003-relative-start"));
+    // The fixture of the row is a follower of a nested composition.
+    let ran = check(&fixture("s2_t012_u003_fixture", "unsupported/fs-u003-nested-composition-start"));
     assert_eq!(ran.code, 2, "{}", ran.all());
-    assert_eq!(codes(&ran.stdout), ["FS-U003"]);
-    assert!(ran.stdout.contains("which has no written duration"), "{}", ran.stdout);
+    assert_eq!(codes(&ran.stdout), ["FS-U006", "FS-U003"]);
+    assert!(ran.stdout.contains("a nested composition"), "{}", ran.stdout);
     assert!(!ran.stdout.contains("whose own start is also relative"), "{}", ran.stdout);
 }
 
 #[test]
-fn s2_t012_the_message_for_a_chain_is_gone_from_the_product_and_the_matrix_row_waits_only_for_the_two_tickets_left() {
+fn s2_t012_the_message_for_a_chain_is_gone_from_the_product_and_the_matrix_row_waits_only_for_the_ticket_left() {
     let matrix = spec("support-matrix.md");
     let row = matrix.lines().find(|line| line.starts_with("| FS-U003 |")).unwrap();
     let cells: Vec<&str> = row.trim().trim_matches('|').split('|').map(str::trim).collect();
@@ -798,7 +794,7 @@ fn s2_t012_the_message_for_a_chain_is_gone_from_the_product_and_the_matrix_row_w
         cells[1]
     );
     assert!(
-        cells[3].contains("T013") && cells[3].contains("T038") && !cells[3].contains("T012"),
+        !cells[3].contains("T013") && cells[3].contains("T038") && !cells[3].contains("T012"),
         "{}",
         cells[3]
     );
@@ -810,7 +806,7 @@ fn s2_t012_the_message_for_a_chain_is_gone_from_the_product_and_the_matrix_row_w
                 .contains("chains and cycles of relative starts"));
         }
     }
-    // The composition spec lists two forms that wait, no more.
+    // The composition spec lists one form that waits, no more (ticket T013 built the other).
     let composition = spec("composition.md");
     let waits: Vec<&str> = composition
         .lines()
@@ -818,8 +814,8 @@ fn s2_t012_the_message_for_a_chain_is_gone_from_the_product_and_the_matrix_row_w
         .skip(1)
         .take_while(|line| line.starts_with("- "))
         .collect();
-    assert_eq!(waits.len(), 2, "{waits:?}");
-    assert!(waits[0].contains("T013") && waits[1].contains("T038"), "{waits:?}");
+    assert_eq!(waits.len(), 1, "{waits:?}");
+    assert!(waits[0].contains("T038") && !waits[0].contains("T013"), "{waits:?}");
 }
 
 // ---------------------------------------------------------------------

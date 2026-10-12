@@ -484,14 +484,22 @@ fn s2_t012_a_clip_that_follows_a_clip_whose_start_has_another_fault_gets_no_erro
         assert_eq!(resolved.diagnostics[0].line, 5, "{written}");
         assert!(resolved.manifest.is_none(), "{written}");
     }
-    // A follower of a clip that is itself refused (a named clip with no written duration) is silent too.
+    // A follower of a clip that is itself refused (a nested composition named as the clip to follow) is
+    // silent too. (A named clip with no written duration is refused no more: ticket T013.)
+    let nested = element(
+        "div",
+        Some("inner"),
+        Some(0),
+        4,
+        &[("data-fs-composition", "inner"), ("data-fs-size", "10x10")],
+    );
     let resolved = resolve(vec![
-        clip("a", "1", None, 4),
-        clip("b", "after:a", Some("1"), 5),
+        nested,
+        clip("b", "after:inner", Some("1"), 5),
         clip("c", "after:b", Some("1"), 6),
     ]);
-    assert_eq!(codes(&resolved), ["FS-U003"]);
-    assert_eq!(resolved.diagnostics[0].line, 5);
+    assert_eq!(codes(&resolved), ["FS-U006", "FS-U003"]);
+    assert_eq!(resolved.diagnostics[1].line, 5);
 }
 
 #[test]

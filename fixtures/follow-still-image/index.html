@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Follow a still image</title>
+<style>
+  .box { position: absolute; top: 60px; width: 60px; height: 60px; }
+  #photo { left: 20px; }
+  #next { left: 100px; background: #00ff00; }
+  #later { left: 180px; background: #0000ff; }
+  #earlier { left: 250px; background: #ffff00; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30">
+  <img id="photo" class="box" src="photo.png" alt="" data-fs-clip data-fs-start="1">
+  <div id="next" class="box" data-fs-clip data-fs-start="after:photo" data-fs-duration="1"></div>
+  <div id="later" class="box" data-fs-clip data-fs-start="after:photo + 0.5" data-fs-duration="1"></div>
+  <div id="earlier" class="box" data-fs-clip data-fs-start="after:photo - 0.5" data-fs-duration="1"></div>
+</div>
+</body>
+</html>
