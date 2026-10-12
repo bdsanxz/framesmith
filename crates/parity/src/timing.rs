@@ -15,6 +15,8 @@ pub const POSITION_LIMIT_PIXELS: f64 = 1.0;
 pub struct Options {
     /// The flat colour of a clip that appears and disappears.
     pub clip: Option<Rgb>,
+    /// More clips told apart by their flat colours, each under a name of its own: the clips of a chain.
+    pub named_clips: Vec<(String, Rgb)>,
     /// The flat colour of one moving element.
     pub mover: Option<Rgb>,
     /// The flat colour behind them.
@@ -33,6 +35,7 @@ impl Default for Options {
     fn default() -> Options {
         Options {
             clip: None,
+            named_clips: Vec::new(),
             mover: None,
             background: [0, 0, 0],
             tolerance: 24,
@@ -49,20 +52,32 @@ pub struct Track {
     pub frames: usize,
     /// Per frame: whether the clip colour is there.
     pub clip_present: Vec<bool>,
+    /// Per named clip, in the order of `Options::named_clips`: per frame, whether its colour is there.
+    pub named_present: Vec<Vec<bool>>,
     /// Per frame: the centre of the moving element, or `None` when it is not there.
     pub centres: Vec<Option<(f64, f64)>>,
+}
+
+/// The first frame a clip is there.
+pub fn appears_on(present: &[bool]) -> Option<usize> {
+    present.iter().position(|&p| p)
+}
+
+/// The first frame after a clip appeared on which it is gone again.
+pub fn disappears_on(present: &[bool]) -> Option<usize> {
+    let from = appears_on(present)?;
+    present[from..].iter().position(|&p| !p).map(|at| from + at)
 }
 
 impl Track {
     /// The first frame the clip is there.
     pub fn appears(&self) -> Option<usize> {
-        self.clip_present.iter().position(|&p| p)
+        appears_on(&self.clip_present)
     }
 
     /// The first frame after the clip appeared on which it is gone again.
     pub fn disappears(&self) -> Option<usize> {
-        let from = self.appears()?;
-        self.clip_present[from..].iter().position(|&p| !p).map(|at| from + at)
+        disappears_on(&self.clip_present)
     }
 }
 
@@ -130,6 +145,26 @@ pub fn centre(frame: &Frame, background: Rgb, colour: Rgb, tolerance: u8, min_pi
     (mass >= min_pixels as f64).then(|| (sx / mass, sy / mass))
 }
 
+/// How many pixels of the frame are within `tolerance` of each colour, counted in one pass. A run of
+/// equal pixels (a flat area) is sorted once.
+fn count_colours(frame: &Frame, colours: &[Rgb], tolerance: u8) -> Vec<usize> {
+    let near = |pixel: &Rgb, colour: &Rgb| pixel.iter().zip(colour).all(|(a, b)| a.abs_diff(*b) <= tolerance);
+    let mut counts = vec![0usize; colours.len()];
+    let mut last: Option<&Rgb> = None;
+    let mut hits: Vec<usize> = Vec::new();
+    for pixel in frame.rgb.as_chunks::<3>().0 {
+        if last != Some(pixel) {
+            hits.clear();
+            hits.extend((0..colours.len()).filter(|&k| near(pixel, &colours[k])));
+            last = Some(pixel);
+        }
+        for &k in &hits {
+            counts[k] += 1;
+        }
+    }
+    counts
+}
+
 /// Watches one video.
 pub fn track(tools: &Tools, video: &Path, options: &Options) -> Result<Track, String> {
     let facts = measure::facts(&tools.ffprobe, video)?;
@@ -146,13 +181,28 @@ pub fn track(tools: &Tools, video: &Path, options: &Options) -> Result<Track, St
     }
     let (left, top) = options.region.map_or((0, 0), |r| (r.0, r.1));
     let mut seen = Track::default();
+    seen.named_present = vec![Vec::new(); options.named_clips.len()];
     seen.frames = each_frame(&tools.ffmpeg, video, facts.width, facts.height, |_, frame| {
         let frame = match options.region {
             Some((left, top, width, height)) => frame.crop(left, top, width, height),
             None => frame,
         };
-        if let Some(colour) = options.clip {
-            seen.clip_present.push(frame.count(colour, options.tolerance) >= options.min_pixels);
+        // Every clip colour is counted in one pass over the picture.
+        let colours: Vec<Rgb> = options
+            .clip
+            .into_iter()
+            .chain(options.named_clips.iter().map(|(_, c)| *c))
+            .collect();
+        if !colours.is_empty() {
+            let counts = count_colours(&frame, &colours, options.tolerance);
+            let there = |k: usize| counts[k] >= options.min_pixels;
+            if options.clip.is_some() {
+                seen.clip_present.push(there(0));
+            }
+            let first_named = usize::from(options.clip.is_some());
+            for k in 0..options.named_clips.len() {
+                seen.named_present[k].push(there(first_named + k));
+            }
         }
         if let Some(colour) = options.mover {
             // Positions are reported in the whole picture, whatever the region.
@@ -193,20 +243,32 @@ fn event(report: &mut Report, name: &str, ours: Option<usize>, theirs: Option<us
     }
 }
 
+/// The appearance and the disappearance of one clip, under `label`, in two videos.
+fn clip_events(report: &mut Report, label: &str, ours: &[bool], theirs: &[bool]) {
+    let (appears, gone) = (format!("{label} appears"), format!("{label} disappears"));
+    event(report, &appears, appears_on(ours), appears_on(theirs));
+    // A clip that is still there on the last frame has no disappearance in either video.
+    match (disappears_on(ours), disappears_on(theirs)) {
+        (None, None) if appears_on(ours).is_some() && appears_on(theirs).is_some() => {
+            report.check(&gone, Verdict::Pass, "it is still there on the last frame in both videos")
+        }
+        (a, b) => event(report, &gone, a, b),
+    }
+}
+
 /// Compares what was seen in two videos.
 pub fn compare(ours: &Track, theirs: &Track, options: &Options) -> Report {
     let mut report = Report::new("timing and position: ours (first) against the reference (second); frames count from 0");
     if options.clip.is_some() {
-        event(&mut report, "clip appears", ours.appears(), theirs.appears());
-        // A clip that is still there on the last frame has no disappearance in either video.
-        match (ours.disappears(), theirs.disappears()) {
-            (None, None) if ours.appears().is_some() && theirs.appears().is_some() => report.check(
-                "clip disappears",
-                Verdict::Pass,
-                "it is still there on the last frame in both videos",
-            ),
-            (a, b) => event(&mut report, "clip disappears", a, b),
-        }
+        clip_events(&mut report, "clip", &ours.clip_present, &theirs.clip_present);
+    }
+    for (k, (name, _)) in options.named_clips.iter().enumerate() {
+        clip_events(
+            &mut report,
+            &format!("clip {name}"),
+            &ours.named_present[k],
+            &theirs.named_present[k],
+        );
     }
     if options.mover.is_some() {
         position(&mut report, ours, theirs);
@@ -285,7 +347,7 @@ fn position(report: &mut Report, ours: &Track, theirs: &Track) {
 
 /// Watches both videos and compares them.
 pub fn compare_files(tools: &Tools, ours: &Path, theirs: &Path, options: &Options) -> Result<Report, String> {
-    if options.clip.is_none() && options.mover.is_none() {
+    if options.clip.is_none() && options.named_clips.is_empty() && options.mover.is_none() {
         return Err("ask for at least one of a clip colour or a mover colour".into());
     }
     let a = track(tools, ours, options)?;

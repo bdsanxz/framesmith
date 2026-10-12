@@ -15,6 +15,8 @@ pub const SAMPLES: usize = 8;
 #[derive(Clone, Debug)]
 pub struct Options {
     pub samples: usize,
+    /// Frames to look at instead of the evenly spaced ones: counting from 0, each less than the frame count.
+    pub frames: Option<Vec<usize>>,
     pub threshold: f64,
     /// Where to write the side-by-side sheet, if wanted.
     pub sheet: Option<PathBuf>,
@@ -24,6 +26,7 @@ impl Default for Options {
     fn default() -> Options {
         Options {
             samples: SAMPLES,
+            frames: None,
             threshold: THRESHOLD,
             sheet: None,
         }
@@ -90,7 +93,20 @@ pub fn compare(tools: &Tools, ours: &Path, theirs: &Path, options: &Options) -> 
         return Ok(report);
     }
     let total = a.frames as usize;
-    let indices = sample_indices(total, options.samples);
+    let indices = match &options.frames {
+        Some(asked) => {
+            if let Some(beyond) = asked.iter().find(|&&n| n >= total) {
+                return Err(format!(
+                    "frame {beyond} was asked for, and the videos have {total} frames (counting from 0)"
+                ));
+            }
+            let mut asked = asked.clone();
+            asked.sort_unstable();
+            asked.dedup();
+            asked
+        }
+        None => sample_indices(total, options.samples),
+    };
     if indices.is_empty() {
         return Err("there are no frames to sample".into());
     }

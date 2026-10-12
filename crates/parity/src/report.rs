@@ -25,7 +25,10 @@ impl Verdict {
 pub struct Line {
     pub name: String,
     pub verdict: Verdict,
+    /// What was measured.
     pub detail: String,
+    /// The agreed limit the measured value is held to, in words; empty when the check does not state one.
+    pub threshold: String,
 }
 
 /// A comparison's findings.
@@ -63,7 +66,16 @@ impl Report {
             name: name.into(),
             verdict,
             detail: detail.into(),
+            threshold: String::new(),
         });
+    }
+
+    /// Writes the agreed limit on every check that does not state one yet, using `limit` to choose it
+    /// from the check's name.
+    pub fn state_thresholds(&mut self, limit: impl Fn(&str) -> String) {
+        for line in self.checks.iter_mut().filter(|l| l.threshold.is_empty()) {
+            line.threshold = limit(&line.name);
+        }
     }
 
     /// The verdict of the whole report: pass only when there is at least one check and all of them pass.
@@ -90,7 +102,27 @@ impl Report {
         let mut out = format!("{}\n", self.title);
         let width = self.checks.iter().map(|c| c.name.len()).max().unwrap_or(0);
         for c in &self.checks {
-            out.push_str(&format!("  {:<width$}  {:<7}  {}\n", c.name, c.verdict.word(), c.detail));
+            out.push_str(&format!("  {:<width$}  {:<7}  {}", c.name, c.verdict.word(), c.detail));
+            if !c.threshold.is_empty() {
+                out.push_str(&format!(" | threshold: {}", c.threshold));
+            }
+            out.push('\n');
+        }
+        // A report whose checks state their limits repeats each failed check with its value and limit.
+        let failed: Vec<&Line> = self
+            .checks
+            .iter()
+            .filter(|c| c.verdict == Verdict::Fail && !c.threshold.is_empty())
+            .collect();
+        if !failed.is_empty() {
+            out.push_str("failed checks (the check, the measured value, the threshold):\n");
+            for c in failed {
+                let measured = c.detail.strip_prefix("measured: ").unwrap_or(&c.detail);
+                out.push_str(&format!(
+                    "  {}\n    measured:  {}\n    threshold: {}\n",
+                    c.name, measured, c.threshold
+                ));
+            }
         }
         for (heading, lines) in [
             ("information only (never fails the comparison)", &self.info),
@@ -116,7 +148,7 @@ impl Report {
     pub fn json(&self) -> Value {
         json!({
             "title": self.title,
-            "checks": self.checks.iter().map(|c| json!({"name": c.name, "verdict": c.verdict.word(), "detail": c.detail})).collect::<Vec<_>>(),
+            "checks": self.checks.iter().map(|c| json!({"name": c.name, "verdict": c.verdict.word(), "detail": c.detail, "threshold": c.threshold})).collect::<Vec<_>>(),
             "information": self.info,
             "not_compared": self.not_compared,
             "notes": self.notes,

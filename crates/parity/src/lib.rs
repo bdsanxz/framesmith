@@ -5,6 +5,7 @@
 
 pub mod blackbox;
 pub mod cli;
+pub mod compare;
 pub mod container;
 pub mod frames;
 pub mod pictures;
