@@ -4,7 +4,7 @@
 
 use crate::args::Usage;
 use crate::facts::Facts;
-use crate::{render as command, text};
+use crate::{render as command, signal, text};
 use model::{Diagnostic, Severity};
 use std::ffi::OsString;
 use std::io::Write;
@@ -79,6 +79,9 @@ pub fn run(words: &[OsString], run_id: &str) -> i32 {
     for warning in &report.diagnostics {
         stderr(&format!("{}\n", text::diagnostic_block(warning)));
     }
+    // From here a signal stops the preview in an orderly way; before it, the signal's default effect ends
+    // the command, with nothing listening yet.
+    let stop = signal::watch();
     let preview = match server::Preview::start(&project) {
         Ok(preview) => preview,
         Err(error) => {
@@ -116,6 +119,14 @@ pub fn run(words: &[OsString], run_id: &str) -> i32 {
         fps = facts.fps,
         "preview running"
     );
-    preview.wait();
+    preview.wait_until(&stop);
+    tracing::info!(target: "cli", command = "preview", "stop requested");
+    // Dropping the preview closes the listening socket and ends the server's thread: only then is the stop
+    // told, so a reader of the line finds the address refused and the port free.
+    drop(preview);
+    let _ = out.write_all(b"Preview stopped\n");
+    let _ = out.flush();
+    tracing::info!(target: "cli", command = "preview", exit = 0, outcome = "stopped", "preview stopped");
+    tracing::info!(target: "cli", command = "preview", exit = 0, outcome = "stopped", "command finished");
     0
 }

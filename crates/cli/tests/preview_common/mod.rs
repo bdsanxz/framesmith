@@ -133,10 +133,39 @@ impl Preview {
     /// Stops the command with a terminate signal and returns how it ended. The standard output holds the
     /// lines printed after the first one.
     pub fn stop(mut self) -> Ran {
-        self.end()
+        self.end(libc::SIGTERM)
     }
 
-    fn end(&mut self) -> Ran {
+    /// Sends the command `signal` (`libc::SIGINT`, `libc::SIGTERM`) and returns how it ended, as `stop` does.
+    pub fn stop_with(mut self, signal: libc::c_int) -> Ran {
+        self.end(signal)
+    }
+
+    /// Sends the command `signal` and returns at once. Use `finish` to collect the end.
+    pub fn send(&self, signal: libc::c_int) {
+        // SAFETY: a plain signal to a child this value started.
+        unsafe { libc::kill(self.pid() as libc::pid_t, signal) };
+    }
+
+    /// The next line printed on standard output, or `None` when none comes within `within`.
+    pub fn next_line(&self, within: Duration) -> Option<String> {
+        self.lines.recv_timeout(within).ok()
+    }
+
+    /// Waits for the command to end on its own, as `stop` does after a signal, and returns how it ended.
+    pub fn finish(mut self) -> Ran {
+        self.collect()
+    }
+
+    fn end(&mut self, signal: libc::c_int) -> Ran {
+        if let Some(child) = self.child.as_ref() {
+            // SAFETY: a plain signal to a child this value started.
+            unsafe { libc::kill(child.id() as libc::pid_t, signal) };
+        }
+        self.collect()
+    }
+
+    fn collect(&mut self) -> Ran {
         let Some(mut child) = self.child.take() else {
             return Ran {
                 code: -1,
@@ -144,8 +173,6 @@ impl Preview {
                 stderr: String::new(),
             };
         };
-        // SAFETY: a plain signal to a child this value started.
-        unsafe { libc::kill(child.id() as libc::pid_t, libc::SIGTERM) };
         let until = Instant::now() + Duration::from_secs(5);
         let status = loop {
             if let Some(status) = child.try_wait().unwrap() {
@@ -178,7 +205,7 @@ impl Preview {
 
 impl Drop for Preview {
     fn drop(&mut self) {
-        let _ = self.end();
+        let _ = self.end(libc::SIGTERM);
     }
 }
 

@@ -57,8 +57,9 @@ fn s2_t060_c1_preview_prints_one_line_with_the_address_and_the_compositions_fact
     assert_eq!(preview.get("/").status, 200);
     let pid = preview.pid();
     let ran = preview.stop();
-    // Nothing else was printed on standard output, and nothing on standard error.
-    assert_eq!(ran.stdout, "", "{}", ran.all());
+    // Nothing else was printed on standard output but the line of the stop (ticket T061), and nothing on
+    // standard error.
+    assert_eq!(ran.stdout, "Preview stopped\n", "{}", ran.all());
     assert_eq!(ran.stderr, "", "{}", ran.all());
     assert!(!live::alive(pid), "the command is still running after it was stopped");
 }
