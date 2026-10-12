@@ -12,6 +12,9 @@ use std::time::Duration;
 /// The one address the preview listens on and is reached at.
 pub const ADDRESS_HOST: &str = "127.0.0.1";
 
+/// How often a waiting preview looks whether it was asked to stop.
+const WATCH: Duration = Duration::from_millis(20);
+
 /// Why a preview could not start.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StartError {
@@ -75,10 +78,11 @@ impl Preview {
         format!("http://{ADDRESS_HOST}:{}/", self.port)
     }
 
-    /// Waits for as long as the preview answers.
-    pub fn wait(mut self) {
-        if let Some(accepting) = self.accepting.take() {
-            let _ = accepting.join();
+    /// Waits until `stop` turns true (or the server ends by itself). The preview keeps answering; dropping
+    /// it then stops it.
+    pub fn wait_until(&self, stop: &AtomicBool) {
+        while !stop.load(Ordering::SeqCst) && self.accepting.as_ref().is_some_and(|accepting| !accepting.is_finished()) {
+            std::thread::sleep(WATCH);
         }
     }
 }

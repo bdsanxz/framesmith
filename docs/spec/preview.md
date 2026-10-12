@@ -1,6 +1,6 @@
 # Preview
 
-Status: v0 (Sprint 2); ticket T060 wrote this file: `framesmith preview <project>` in the foreground, the address it prints, the preview page with frame 0, the files it serves, and the network behaviour of the whole binary. Later preview tickets extend it. Sources: proposal `s02-timing-nesting-preview` (CAP-022, CAP-023 for the frame-0 half, CAP-037; journey steps J-05 and J-06; states STATE-01 and STATE-02; points P10 and P19); the sprint plan (`PLAN.md`, section 8: the crate `server` is the preview and Studio server; the in-page runtime is the same file for preview and render); project rule 10 (one runtime file, two hand-written JavaScript files, an in-page behaviour is tested in a real browser) and rule 5 (logging); the facts taken from the research on the concept source are that its preview listens on the loopback address only and runs the same in-page runtime and the same seek as its render. The wording, the address line, the page and the codes below are our own.
+Status: v0 (Sprint 2); ticket T060 wrote this file: `framesmith preview <project>` in the foreground, the address it prints, the preview page with frame 0, the files it serves, and the network behaviour of the whole binary; ticket T061 added how a foreground preview is stopped (an interrupt or a terminate signal: the line `Preview stopped`, exit code 0, the port freed, no process left). Later preview tickets extend it. Sources: proposal `s02-timing-nesting-preview` (CAP-022, CAP-023 for the frame-0 half, CAP-037; journey steps J-05, J-06 and J-12; states STATE-01 and STATE-02; points P10 and P19); ticket T061 (stopping a preview is its normal end, so its code is 0, while 130 keeps its Sprint 1 meaning of a cancelled job); the sprint plan (`PLAN.md`, section 8: the crate `server` is the preview and Studio server; the in-page runtime is the same file for preview and render); project rule 10 (one runtime file, two hand-written JavaScript files, an in-page behaviour is tested in a real browser) and rule 5 (logging); the facts taken from the research on the concept source are that its preview listens on the loopback address only and runs the same in-page runtime and the same seek as its render. The wording, the address line, the page and the codes below are our own.
 
 ## What the command does
 
@@ -17,8 +17,8 @@ Order of work:
 Preview at http://127.0.0.1:41873/  main  1280x720  30 fps  5 s
 ```
 
-The line is: the word `Preview at`, the address (always `http://127.0.0.1:<port>/`, with the port actually used), then the composition's name, size, rate and length, separated by two spaces, written as the other commands write them (`check` and `timeline`). Nothing else is printed on standard output. The line is complete and flushed before the command waits, so a program that reads it can open the address at once: the server already answers.
-5. **Running.** The command waits. It starts no other program: no `ffmpeg` and no browser is looked for, started or needed, so the preview starts on a machine that has neither. Stopping (Ctrl-C, a terminate signal) is ticket T061; until then the process is stopped by the signal's default effect, which ends it and frees the port.
+The line is: the word `Preview at`, the address (always `http://127.0.0.1:<port>/`, with the port actually used), then the composition's name, size, rate and length, separated by two spaces, written as the other commands write them (`check` and `timeline`). Nothing else is printed on standard output while the preview runs (the one line printed when it stops is under "Stopping"). The line is complete and flushed before the command waits, so a program that reads it can open the address at once: the server already answers.
+5. **Running.** The command waits. It starts no other program: no `ffmpeg` and no browser is looked for, started or needed, so the preview starts on a machine that has neither. It runs until it is stopped ("Stopping", below).
 
 Exit codes follow `commands.md`; a foreground preview that was stopped normally exits 0 (ticket T061).
 
@@ -60,9 +60,21 @@ The page makes no request to any other address than the preview's own. It carrie
 
 The page has a dark grey background, the picture area fills the window, and the picture is centred in it. The notice of item 3 is a block of text on the same background, readable at every width from 480 to 2560 CSS pixels. The picture and the notice never overlap.
 
+## Stopping
+
+A foreground preview ends when the process receives an interrupt (SIGINT, which Ctrl-C sends to the program running in a terminal) or a terminate signal (SIGTERM). The two have the same result, in this order:
+
+1. **The address stops answering.** The server stops accepting connections and closes its listening socket. This is finished before anything is printed, so that a program which has read the line of item 2 already finds the address refused and the port free: another program, a new preview among them, can listen on the same port at once, also when a page was open a moment ago and its connections are still closing. A request that is being answered at that moment may be cut short; the preview does not wait for a page.
+2. **The line.** The command prints one line on standard output, `Preview stopped`, complete and flushed. Nothing is printed on standard error.
+3. **The code.** The command exits with code 0. Stopping a preview is its normal end, so it is not a failure and not a cancelled job: code 130 keeps its meaning from `commands.md` (a cancelled `render`) and `preview` never returns it.
+
+**No process is left.** The preview starts no program of its own in this version ("Running", item 5): its threads end with the command, and there is nothing else to stop. A program that a later option starts for the preview is stopped before the command exits, except the author's own browser, which Framesmith never stops (point P10).
+
+**Edges.** The handler for the two signals is set up just before the server starts listening. A signal that arrives earlier, while the project is read or checked, has its default effect: the command ends by the signal and nothing listens yet. A signal that arrives between the start of the server and the address line is kept and acted on as soon as the line is printed. A second signal while the preview is stopping changes nothing. Stopping a preview that runs in the background, from another command, is ticket T086.
+
 ## Logging
 
-The run log (`commands.md`, "The log") tells a preview in order under one run id: `command started` with the project, `preview listening` with the address, the project's name and the counts of the check, each failure to answer a request that is not a client's mistake, and a refusal at the start (`command finished` with the codes). Requests are logged at the debug level only (the path and the status). The log holds no file content.
+The run log (`commands.md`, "The log") tells a preview in order under one run id: `command started` with the project, `preview listening` with the address, the project's name and the counts of the check, each failure to answer a request that is not a client's mistake, and a refusal at the start (`command finished` with the codes). A stop is told in order: `stop requested` (a signal was received), `preview stopped listening` (the server, once the port is free), `preview stopped`, and `command finished` with exit 0 and the outcome `stopped`, all at the info level and under the same run id; a normal stop logs no warning and no error. Requests are logged at the debug level only (the path and the status). The log holds no file content.
 
 ## Diagnostic codes of the preview (family FS-P)
 
@@ -76,4 +88,4 @@ A run failure of the preview is printed as the other run failures are (`commands
 
 ## Not yet built (each waits for its ticket)
 
-Stopping with Ctrl-C and the line `Preview stopped` (T061); the containment tests (T062); the controls, scrubbing and the readout of the frame (T063 onward); the notice for a browser that is not Chromium-based (T069); reload on save (T070 onward); problems in place of the picture (T074 onward); the search for a free port and `--port` (T079, T080); `--open`, `--composition`, `--background`, `--status`, `--stop`, `--list`, `--stop-all`, `--json` (later tickets). A word or option of these is refused by item 1 of "What the command does" until its ticket reads it.
+The containment tests (T062); the controls, scrubbing and the readout of the frame (T063 onward); the notice for a browser that is not Chromium-based (T069); reload on save (T070 onward); problems in place of the picture (T074 onward); the search for a free port and `--port` (T079, T080); `--open`, `--composition`, `--background`, `--status`, `--stop`, `--list`, `--stop-all`, `--json` (later tickets). A word or option of these is refused by item 1 of "What the command does" until its ticket reads it.
