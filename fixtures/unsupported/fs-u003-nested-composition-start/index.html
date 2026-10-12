@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Relative clip start</title>
+<title>Relative clip start after a nested composition</title>
 <style>
   .box { position: absolute; left: 20px; top: 20px; width: 80px; height: 60px; background: #3a6ea5; }
 </style>
 </head>
 <body>
 <div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="1">
-  <div id="first" class="box" data-fs-clip data-fs-start="0" data-fs-duration="0.3"></div>
-  <div id="second" class="box" data-fs-clip data-fs-start="0.3"></div>
-  <div id="third" class="box" data-fs-clip data-fs-start="after:second" data-fs-duration="0.3"></div>
+  <div id="inner" data-fs-composition="inner" data-fs-size="160x90" data-fs-fps="30" data-fs-duration="1"></div>
+  <div id="after-inner" class="box" data-fs-clip data-fs-start="after:inner" data-fs-duration="0.3"></div>
 </div>
 </body>
 </html>

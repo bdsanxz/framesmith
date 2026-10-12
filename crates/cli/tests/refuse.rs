@@ -205,9 +205,14 @@ fn t028_to_t032_every_fixture_is_listed_by_check_and_refused_by_render() {
             assert!(!found.is_empty(), "{folder}: no `{kind} {code} <file>:<line>` line in\n{output}");
             assert!(found.iter().all(|place| is_place(place)), "{folder}: {found:?}");
         }
-        // The fixture holds exactly that one use and nothing else.
+        // The fixture holds exactly that one use and nothing else, except for the companions of a code
+        // that no input raises alone (FS-U003 is raised for a clip that follows a nested composition,
+        // and the nested composition is itself listed, FS-U006).
+        let companions: &[&str] = if code == "FS-U003" { &["FS-U006"] } else { &[] };
         for line in headers(&both.check.stdout) {
-            assert!(line.starts_with(&format!("{kind} {code} ")), "{folder} also lists: {line}");
+            let own = line.starts_with(&format!("{kind} {code} "));
+            let beside = companions.iter().any(|other| line.starts_with(&format!("{kind} {other} ")));
+            assert!(own || beside, "{folder} also lists: {line}");
         }
     }
 }
@@ -369,17 +374,19 @@ fn t028_c7_the_support_matrix_spec_exists_and_lists_every_code() {
 
 #[test]
 fn t029_c1_a_clip_start_that_names_another_clip_is_unsupported() {
-    let (both, found) = listed("t029_c1", "fs-u003-relative-start");
-    // The fixture is a follower of a clip with no written duration, a form that still waits (ticket
-    // T013); it was an offset until ticket T011 built the offset and a chain until ticket T012 built chains.
-    assert_eq!(found, ["index.html:14"]);
+    let (both, found) = listed("t029_c1", "fs-u003-nested-composition-start");
+    // The fixture is a follower of a nested composition, the form that still waits (ticket T038); it was
+    // an offset until ticket T011 built the offset, a chain until ticket T012 built chains, and a clip
+    // with no written duration until ticket T013. The nested composition is itself refused, FS-U006.
+    assert_eq!(found, ["index.html:13"]);
     assert!(
         both.check
             .stdout
-            .contains("starts after #second, which has no written duration; following a clip whose end is worked out is not supported in this version."),
+            .contains("starts after \"inner\", a nested composition; following a nested composition is not supported in this version."),
         "{}",
         both.check.stdout
     );
+    assert_eq!(places(&both.check.stdout, "unsupported", "FS-U006"), ["index.html:12"]);
 }
 
 #[test]

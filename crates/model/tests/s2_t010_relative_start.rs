@@ -192,9 +192,9 @@ fn a_missing_clip_and_a_clip_that_names_itself_have_codes_of_their_own() {
 }
 
 #[test]
-fn the_forms_that_wait_are_refused_and_never_resolved() {
+fn a_chain_is_resolved_a_circle_is_an_error_and_a_named_clip_with_no_written_duration_is_resolved_too() {
     // (The offset form no longer waits: ticket T011. A chain no longer waits either: ticket T012; a circle
-    // is the error FS-E053.) A named clip with no written duration, an image with none.
+    // is the error FS-E053. A named clip with no written duration no longer waits: ticket T013.)
     let chain = resolve(vec![
         clip("a", "1", Some("1"), 4),
         clip("b", "after:a", Some("1"), 5),
@@ -204,14 +204,16 @@ fn the_forms_that_wait_are_refused_and_never_resolved() {
     assert!(chain.manifest.is_some());
     let cycle = resolve(vec![clip("a", "after:b", Some("1"), 4), clip("b", "after:a", Some("1"), 5)]);
     assert_eq!(codes(&cycle), ["FS-E053"]);
+    assert!(cycle.manifest.is_none());
+    // The composition lasts 10 s, so #a lasts to the end and #b starts there, at 10 s: it never shows.
     let unwritten = resolve(vec![clip("a", "1", None, 4), clip("b", "after:a", Some("1"), 5)]);
-    assert_eq!(codes(&unwritten), ["FS-U003"]);
+    assert_eq!(codes(&unwritten), ["FS-W001"]);
+    assert_eq!(unwritten.manifest.unwrap().clips[1].start, time("10"));
+    // An image with none lasts 3 s, so #b starts at 4 s.
     let image = element("img", Some("a"), Some(0), 4, &[("data-fs-clip", ""), ("data-fs-start", "1")]);
     let image = resolve(vec![image, clip("b", "after:a", Some("1"), 5)]);
-    assert_eq!(codes(&image), ["FS-U003"]);
-    for resolved in [cycle, unwritten, image] {
-        assert!(resolved.manifest.is_none());
-    }
+    assert_eq!(codes(&image), Vec::<&str>::new());
+    assert_eq!(image.manifest.unwrap().clips[1].start, time("4"));
 }
 
 #[test]

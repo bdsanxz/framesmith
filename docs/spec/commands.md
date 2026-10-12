@@ -1,6 +1,6 @@
 # Commands
 
-Status: v0 (Sprint 1); Sprint 2 ticket T006 added `framesmith info`, ticket T007 added its `--json` form, ticket T008 added `framesmith timeline`, ticket T009 added its `--json` form, ticket T010 added the line for a relative start to `check` and `info`, ticket T011 added the offset to that line, ticket T012 added the error for starts that form a circle (FS-E053) to what `check`, `info` and `timeline` list. Sources: proposal `s01-first-render` (CAP-001, CAP-006, CAP-018, CAP-019, CAP-020); proposal `s02-timing-nesting-preview` (CAP-001 for the line of a relative start, CAP-032 for `info`, CAP-035 for `info --json`, CAP-034 and INT-001 for `timeline`, CAP-035 for `timeline --json`); project rules 5 (logging) and 10 (other programs integrate by running the command with `--json`).
+Status: v0 (Sprint 1); Sprint 2 ticket T006 added `framesmith info`, ticket T007 added its `--json` form, ticket T008 added `framesmith timeline`, ticket T009 added its `--json` form, ticket T010 added the line for a relative start to `check` and `info`, ticket T011 added the offset to that line, ticket T012 added the error for starts that form a circle (FS-E053) to what `check`, `info` and `timeline` list, ticket T013 added the start of a clip that follows a clip with no written duration (and the error FS-E054 for an end that cannot be worked out) to what they print. Sources: proposal `s01-first-render` (CAP-001, CAP-006, CAP-018, CAP-019, CAP-020); proposal `s02-timing-nesting-preview` (CAP-001 for the line of a relative start, CAP-032 for `info`, CAP-035 for `info --json`, CAP-034 and INT-001 for `timeline`, CAP-035 for `timeline --json`); project rules 5 (logging) and 10 (other programs integrate by running the command with `--json`).
 
 ## Exit codes
 
@@ -90,6 +90,29 @@ error FS-E053 index.html:16
   fix: Break the circle: write the start of one of the clips of the circle as a time in seconds, or make it start after a clip that is not in the circle.
 
 check failed: 1 error, 0 unsupported, 0 unknown, 0 warnings
+```
+
+A clip may follow a clip that has no written duration (`composition.md`, "Sprint 2 rules for values that are not written", rule 3). After a still image with none (the fixture `follow-still-image`, where `#photo` starts at 1 s) the follower starts three seconds later, and `check` marks the image's duration as filled in:
+
+```text
+  clip #photo  duration 3 s (filled in)
+  clip #next  start 4 s (after:photo)
+```
+
+After a clip that lasts to the end of the composition (the fixture `follow-to-the-end`, length 4 s, where `#never` is `after:base`) the follower starts at the end and can never show; `check` lists the warning FS-W001 for it and passes, and `render` proceeds:
+
+```text
+warning FS-W001 index.html:16
+  The clip #never starts at 4 s, at or after the end of the composition (4 s), so it never shows.
+  fix: Give the clip an earlier start, lengthen the composition, or remove the clip.
+```
+
+When the composition has no length for such a clip to last until (the fixture `follow-unknown-end`), the named clip has its error FS-E025 and the clip that follows it has FS-E054, on the line of its `data-fs-start`; `check` exits 1, `render` prints the same list on standard error, exits 1 and starts nothing, and `info` and `timeline` print it as `check` does:
+
+```text
+error FS-E054 index.html:15
+  The clip #follower starts after #base, which has no duration and lasts until the end of the composition, but the composition has no length for it to last until: none is written, and there is no motion and no clip with its own end to work one out from, so the start of #follower cannot be worked out.
+  fix: Write a duration on #base, for example data-fs-duration="2", or a length on the composition, for example data-fs-duration="6", or write the start of #follower as a time in seconds.
 ```
 
 On a fail, every diagnostic is listed, then one summary line. For a page whose composition element is written on line 8 of `index.html` with `data-fs-size="1921x1080"`:

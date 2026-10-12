@@ -11,8 +11,8 @@
 //!   T034 for FS-U006) removes the row from `LIFTED`, the row of the same code from `SPRINT1` and the
 //!   row from `docs/spec/support-matrix.md`, and deletes the fixture folders. It never renumbers a
 //!   code and never edits another row.
-//! * **A refusal that is lifted in parts** (FS-U003: T010 lifted the plain form, T011 the offset, T012 chains;
-//!   T013 and T038 lift the rest) keeps its row in `LIFTED`, with every ticket that still waits on it, and is
+//! * **A refusal that is lifted in parts** (FS-U003: T010 lifted the plain form, T011 the offset, T012 chains,
+//!   T013 a named clip with no written duration; T038 lifts the rest) keeps its row in `LIFTED`, with every ticket that still waits on it, and is
 //!   listed in `NARROWED` with the meaning its row has now. Each ticket of the part narrows the row
 //!   and drops its ticket from the list; the last one removes the row from `LIFTED`, `NARROWED` and
 //!   `SPRINT1`, as above. The row's wording is still checked word for word: against `NARROWED`
@@ -141,17 +141,22 @@ const UNKNOWN: &[(&str, &[Case])] = &[
 /// The refusals that Sprint 2 lifts, with the tickets that still wait on each. They are still raised
 /// today (FS-U003 only for the forms that are not built); the last ticket removes the row.
 const LIFTED: &[(&str, &[&str], &[&str])] = &[
-    ("FS-U003", &["T013", "T038"], &["fs-u003-relative-start"]),
+    ("FS-U003", &["T038"], &["fs-u003-nested-composition-start"]),
     ("FS-U004", &["T021"], &["fs-u004-ratio-rate"]),
     ("FS-U005", &["T026"], &["fs-u005-other-page", "fs-u005-second-composition"]),
     ("FS-U006", &["T034"], &["fs-u006-nested-composition"]),
 ];
 
+/// A lifted refusal that no input raises alone, and the codes that are listed beside it: a clip that
+/// follows a nested composition is refused (FS-U003), and the nested composition itself is listed too
+/// (FS-U006). Only these.
+const COMPANIONS: &[(&str, &[&str])] = &[("FS-U003", &["FS-U006"])];
+
 /// The refusals whose meaning a ticket has narrowed, with the meaning the row has now. The Sprint 1
 /// meaning stays in `SPRINT1`; it is the text this one replaces.
 const NARROWED: &[(&str, &str)] = &[(
     "FS-U003",
-    "A clip start written relative to another clip in a form that is not built yet: naming a clip with no written duration (also when that clip is itself a link of a chain), or naming a nested composition. The plain form `after:<clip id>`, the form with an offset (`after:<clip id>` followed by `+` or `-` and a time) and chains of them, in which a clip names a clip whose own start is relative, are supported when each named clip has a written duration.",
+    "A clip start written relative to another clip in a form that is not built yet: naming a nested composition. The plain form `after:<clip id>`, the form with an offset (`after:<clip id>` followed by `+` or `-` and a time), chains of them, in which a clip names a clip whose own start is relative, and a start that names a clip with no written duration (a still image, or a clip that lasts to the end of the composition) are supported.",
 )];
 
 /// The four names that are deliberately not accepted: the attribute, whether it is written on a
@@ -585,8 +590,13 @@ fn s2_t005_c1_the_four_lifted_refusals_are_still_refused_until_their_tickets_lif
                 &format!("s2_t005_c1_lifted_{folder}"),
                 fixture(&format!("s2_t005_c1_lifted_{folder}"), &format!("unsupported/{folder}")),
             );
+            let beside: &[&str] = COMPANIONS.iter().find(|row| row.0 == *code).map_or(&[], |row| row.1);
             assert!(
-                result.listed.iter().all(|item| item.code == *code && item.kind == "unsupported") && !result.listed.is_empty(),
+                result
+                    .listed
+                    .iter()
+                    .all(|item| (item.code == *code || beside.contains(&item.code.as_str())) && item.kind == "unsupported")
+                    && result.listed.iter().any(|item| item.code == *code),
                 "{folder} ({tickets:?}): {:?}",
                 result.listed
             );

@@ -421,8 +421,8 @@ fn t029_deferred_timing_and_structure_are_unsupported() {
                 ("data-fs-fps", "30000/1001"),
                 ("data-fs-var-title", "Hello"),
             ]),
-            // A follower of a clip that has no written duration (`b` below, which follows `a`) is the form of a
-            // relative start that still waits (ticket T013). A chain no longer does (ticket T012).
+            // A follower of a nested composition is the form of a relative start that still waits (ticket
+            // T038). A chain no longer does (ticket T012), nor does a clip with no written duration (ticket T013).
             element(
                 "p",
                 Some("a"),
@@ -435,8 +435,7 @@ fn t029_deferred_timing_and_structure_are_unsupported() {
                 Some("b"),
                 Some(0),
                 4,
-                // No written duration: a clip that follows it is a form that still waits (ticket T012 built
-                // chains, which this used to be).
+                // No written duration: a clip that follows it is no longer a form that waits (ticket T013).
                 &[("data-fs-clip", ""), ("data-fs-start", "after:a")],
             ),
             element(
@@ -444,11 +443,11 @@ fn t029_deferred_timing_and_structure_are_unsupported() {
                 Some("c"),
                 Some(0),
                 5,
-                &[("data-fs-clip", ""), ("data-fs-start", "after:b"), ("data-fs-duration", "1")],
+                &[("data-fs-clip", ""), ("data-fs-start", "after:inner"), ("data-fs-duration", "1")],
             ),
             element(
                 "div",
-                None,
+                Some("inner"),
                 Some(0),
                 6,
                 &[("data-fs-composition", "inner"), ("data-fs-size", "10x10")],

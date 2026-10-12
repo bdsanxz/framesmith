@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Follow a clip that lasts to the end</title>
+<style>
+  .box { position: absolute; top: 60px; width: 60px; height: 60px; }
+  #base { left: 20px; background: #ff0000; }
+  #never { left: 100px; background: #00ff00; }
+  #shows { left: 180px; background: #0000ff; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="4">
+  <div id="base" class="box" data-fs-clip data-fs-start="1"></div>
+  <div id="never" class="box" data-fs-clip data-fs-start="after:base" data-fs-duration="1"></div>
+  <div id="shows" class="box" data-fs-clip data-fs-start="after:base - 1" data-fs-duration="1"></div>
+</div>
+</body>
+</html>
