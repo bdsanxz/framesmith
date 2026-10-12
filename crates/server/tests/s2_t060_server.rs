@@ -199,3 +199,14 @@ fn s2_t060_c1_dropping_the_preview_frees_the_port() {
     drop(preview);
     assert!(TcpStream::connect_timeout(&SocketAddr::from((Ipv4Addr::LOCALHOST, port)), Duration::from_secs(2)).is_err());
 }
+
+#[test]
+fn s2_t060_c2_the_page_carries_the_protocol_version_the_binary_speaks_and_the_script_holds_none() {
+    let preview = Preview::start(&project()).unwrap();
+    let page = text(&get(preview.port(), "/"));
+    assert!(page.contains(&format!("data-protocol=\"{}\"", protocol::VERSION)), "{page}");
+    // The script compares the runtime's report with the page's attribute and writes no number of its own.
+    let script = text(&get(preview.port(), "/__framesmith__/preview.js"));
+    assert!(script.contains("dataset.protocol"), "{script}");
+    assert!(!script.contains("protocol !== 1") && !script.contains("protocol != 1"), "{script}");
+}

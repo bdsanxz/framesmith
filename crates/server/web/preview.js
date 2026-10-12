@@ -9,6 +9,8 @@
   const notice = document.getElementById('notice');
   const width = Number(page.dataset.width);
   const height = Number(page.dataset.height);
+  // The page protocol version this preview speaks is written into the page by the server; none is kept here.
+  const speaks = Number(page.dataset.protocol);
 
   // The composition keeps its declared size; the box takes the largest size of that shape that fits.
   const fit = () => {
@@ -50,7 +52,7 @@
     }
     const report = JSON.parse(await loader.ready);
     const reasons = lines(report);
-    if (report.protocol !== 1) reasons.push(`protocol: the page speaks version ${report.protocol}`);
+    if (report.protocol !== speaks) reasons.push(`protocol: the page speaks version ${report.protocol}, this preview speaks version ${speaks}`);
     if (report.clocks !== true) reasons.push('clocks: the clocks of the page could not be replaced');
     if (!report.manifest) reasons.push('manifest: the page could not work out its composition');
     if (reasons.length) return refuse(reasons);

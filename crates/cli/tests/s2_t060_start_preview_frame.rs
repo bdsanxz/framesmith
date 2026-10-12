@@ -11,8 +11,11 @@ use measure::Rgb;
 use preview_common::*;
 use serde_json::Value;
 use std::ffi::OsStr;
+use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 const GROUND: Rgb = [0x10, 0x18, 0x20];
@@ -567,4 +570,105 @@ fn s2_t060_c7_the_preview_crate_has_no_dependency_that_is_not_recorded() {
         locked, RECORDED_DEPENDENCIES,
         "the dependencies of the package server in Cargo.lock"
     );
+}
+
+/// A stand-in between a browser and a preview that gives every answer through unchanged, except that the
+/// page's `data-protocol` names another version. It is stopped when it goes out of scope.
+struct Rewriting {
+    port: u16,
+    stop: Arc<AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Rewriting {
+    fn start(preview_port: u16, version: &str) -> Rewriting {
+        let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let stop = Arc::new(AtomicBool::new(false));
+        let thread = {
+            let (stop, version) = (Arc::clone(&stop), version.to_string());
+            std::thread::spawn(move || {
+                while !stop.load(Ordering::SeqCst) {
+                    let Ok((mut client, _)) = listener.accept() else {
+                        std::thread::sleep(Duration::from_millis(5));
+                        continue;
+                    };
+                    client.set_nonblocking(false).unwrap();
+                    client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+                    let mut request = Vec::new();
+                    let mut buffer = [0u8; 2048];
+                    while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                        match client.read(&mut buffer) {
+                            Ok(0) | Err(_) => break,
+                            Ok(count) => request.extend_from_slice(&buffer[..count]),
+                        }
+                    }
+                    let reply = parse_reply(&raw(preview_port, &request));
+                    let mut body = reply.body.clone();
+                    let marker = b"data-protocol=\"";
+                    if let Some(at) = body.windows(marker.len()).position(|w| w == marker) {
+                        let start = at + marker.len();
+                        let end = start + body[start..].iter().position(|&b| b == b'"').unwrap();
+                        body.splice(start..end, version.bytes());
+                    }
+                    let kind = reply.header("Content-Type").unwrap_or("application/octet-stream").to_string();
+                    let head = format!(
+                        "HTTP/1.1 {} X\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
+                        reply.status,
+                        body.len()
+                    );
+                    let _ = client.write_all(head.as_bytes());
+                    let _ = client.write_all(&body);
+                }
+            })
+        };
+        Rewriting {
+            port,
+            stop,
+            thread: Some(thread),
+        }
+    }
+}
+
+impl Drop for Rewriting {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::SeqCst);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+#[test]
+fn s2_t060_c2_the_page_names_the_protocol_version_and_refuses_a_runtime_that_reports_another() {
+    let project = frame_zero("s2_t060_c2_protocol");
+    let preview = start(&project);
+    // The page the server writes carries a version, and the runtime's report agrees with it: the picture is shown.
+    let page = preview.get("/").text();
+    assert!(page.contains("data-protocol=\"1\""), "{page}");
+    let mut window = Window::open("s2_t060_c2_protocol_agree", &preview.address, 640, 360);
+    window.wait_state("shown");
+    assert_eq!(window.eval("document.body.dataset.protocol"), "1");
+    drop(window);
+    // The same page naming another version: the script holds no number of its own, so it compares the
+    // runtime's report with the attribute and refuses, with the protocol line, and shows no picture.
+    let other = Rewriting::start(preview.port, "999");
+    let mut window = Window::open("s2_t060_c2_protocol_differ", &format!("http://127.0.0.1:{}/", other.port), 640, 360);
+    window.wait_state("refused");
+    assert_eq!(window.eval("document.body.dataset.protocol"), "999");
+    let says = window
+        .eval("document.getElementById('notice').innerText")
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(
+        says.contains("The preview cannot show this project.") && says.contains("protocol: the page speaks version 1"),
+        "{says}"
+    );
+    assert_eq!(
+        window.eval("getComputedStyle(document.getElementById('composition')).visibility"),
+        "hidden"
+    );
+    assert_eq!(window.eval("document.body.dataset.frame || null"), Value::Null);
 }

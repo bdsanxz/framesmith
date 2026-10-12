@@ -2,6 +2,7 @@
 //! `web/preview.js`. Specified in `docs/spec/preview.md`, "The preview page".
 
 use model::Manifest;
+use protocol::VERSION;
 use timebase::frame_count;
 
 /// The path the preview page's script is served from.
@@ -47,7 +48,7 @@ pub fn shell(manifest: &Manifest) -> String {
         "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
          <title>{name} - Framesmith preview</title>\n<link rel=\"icon\" href=\"data:,\">\n<style>{STYLE}</style>\n</head>\n\
-         <body data-state=\"loading\" data-name=\"{name}\" data-width=\"{width}\" data-height=\"{height}\" data-fps=\"{fps}\" data-frames=\"{frames}\">\n\
+         <body data-state=\"loading\" data-name=\"{name}\" data-width=\"{width}\" data-height=\"{height}\" data-fps=\"{fps}\" data-frames=\"{frames}\" data-protocol=\"{VERSION}\">\n\
          <main id=\"stage\" aria-label=\"Preview of {name}\">\n\
          <div id=\"picture\"><iframe id=\"composition\" src=\"{COMPOSITION_PATH}\" title=\"Composition {name}\" width=\"{width}\" height=\"{height}\" \
          style=\"width:{width}px;height:{height}px\"></iframe></div>\n</main>\n\
