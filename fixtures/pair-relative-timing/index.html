@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pair relative timing</title>
+<!--
+  The Framesmith half of a pair. The same scene is written a second time for the comparison with the
+  reference; the second text lives outside this repository.
+
+  Four clips on one chain, each a flat colour box in a place of its own, and one white box that moves
+  steadily the whole time. At 30 frames per second:
+    a  starts at 1 s (frame 30), lasts 2 s, ends at frame 90.
+    b  starts after a, plus 0.5 s: frame 105, lasts 2 s, ends at frame 165.      a gap of 15 frames after a
+    c  starts after b, minus 0.5 s: frame 150, lasts 2 s, ends at frame 210.     overlaps b for 15 frames
+    d  starts after c: frame 210, lasts 1 s, ends at frame 240.                  appears as c goes
+  The white box moves 480 px to the right between 0.5 s and 8.5 s, 2 px a frame.
+  Every time is a whole number of frames, so no start is rounded.
+-->
+<style>
+  .ground { position: absolute; inset: 0; background: #101820; }
+  .tile { position: absolute; top: 40px; width: 120px; height: 120px; }
+  #a { left: 40px; background: #ff5a36; }
+  #b { left: 190px; background: #ffb000; }
+  #c { left: 340px; background: #3498db; }
+  #d { left: 490px; background: #2ecc71; }
+  .mover { position: absolute; left: 40px; top: 240px; width: 60px; height: 60px; background: #ffffff; }
+</style>
+</head>
+<body>
+<div data-fs-composition="pair-relative-timing" data-fs-size="640x360" data-fs-fps="30" data-fs-duration="9">
+  <div class="ground"></div>
+  <div id="a" class="tile" data-fs-clip data-fs-start="1" data-fs-duration="2"></div>
+  <div id="b" class="tile" data-fs-clip data-fs-start="after:a+0.5" data-fs-duration="2"></div>
+  <div id="c" class="tile" data-fs-clip data-fs-start="after:b-0.5" data-fs-duration="2"></div>
+  <div id="d" class="tile" data-fs-clip data-fs-start="after:c" data-fs-duration="1"></div>
+  <div id="mover" class="mover"></div>
+</div>
+<script type="application/framesmith-motion+json">
+{ "composition": "pair-relative-timing",
+  "tweens": [
+    { "target": "#mover", "to": { "x": 480 }, "at": 0.5, "duration": 8, "ease": "linear" }
+  ] }
+</script>
+</body>
+</html>
