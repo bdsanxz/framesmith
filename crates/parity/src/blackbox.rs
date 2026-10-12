@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// The command the reference installs.
-const COMMAND: &str = "hyperframes";
+pub const COMMAND: &str = "hyperframes";
 /// The quality preset used when nothing else is asked.
 pub const QUALITY: &str = "standard";
 /// The frame rate used when nothing else is asked.
