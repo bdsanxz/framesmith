@@ -7,11 +7,25 @@ use std::path::PathBuf;
 pub enum Command {
     Help,
     Version,
-    Init { folder: PathBuf },
-    Check { project: PathBuf },
-    Info { project: PathBuf, json: bool },
-    Timeline { project: PathBuf, json: bool },
+    Init {
+        folder: PathBuf,
+    },
+    Check {
+        project: PathBuf,
+    },
+    Info {
+        project: PathBuf,
+        json: bool,
+    },
+    Timeline {
+        project: PathBuf,
+        json: bool,
+    },
     Render(RenderOptions),
+    /// The words after `preview`, as written; `preview.rs` reads them.
+    Preview {
+        words: Vec<OsString>,
+    },
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -150,6 +164,7 @@ pub fn parse(args: &[OsString]) -> Result<Command, Usage> {
         "info" => info(rest),
         "timeline" => timeline(rest),
         "render" => render(rest),
+        "preview" => Ok(Command::Preview { words: rest.to_vec() }),
         other => Err(usage(format!("framesmith has no command {other}."))),
     }
 }

@@ -21,6 +21,7 @@ model = { workspace = true }
 browser = { workspace = true }
 media = { workspace = true }
 render = { workspace = true }
+server = { workspace = true }
 
 [dev-dependencies]
 bench = { workspace = true }

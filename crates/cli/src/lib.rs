@@ -7,6 +7,7 @@ mod facts;
 mod info;
 mod init;
 pub mod log;
+mod preview;
 pub mod progress;
 mod render;
 mod signal;
@@ -16,7 +17,7 @@ mod timeline;
 use args::Command;
 use std::ffi::OsString;
 
-const HELP: &str = "\
+const HELP_HEAD: &str = "\
 framesmith renders an HTML composition to a video on this machine.
 
 Usage:
@@ -28,7 +29,11 @@ Usage:
                                 Print the clips of a project with their start, end and duration.
   framesmith render <project> [--output <path>] [--fps <n>] [--json]
                                 Render the project to an MP4 file.
+";
 
+/// The lines about `preview` come from `preview.rs`, which reads its options, so that no later preview
+/// option changes this file. They stand between `HELP_HEAD` and `HELP_TAIL`.
+const HELP_TAIL: &str = "
 Options for render:
   --output <path>   Where the video is written. Default: <project>/out/<folder name>.mp4
   --fps <n>         The frame rate of this run, a whole number from 1 to 240.
@@ -46,7 +51,7 @@ Option for info and timeline:
 pub fn run(args: &[OsString]) -> i32 {
     let command = args::parse(args);
     if let Ok(Command::Help) = command {
-        print!("{HELP}");
+        print!("{HELP_HEAD}{}{HELP_TAIL}", preview::HELP);
         return 0;
     }
     if let Ok(Command::Version) = command {
@@ -61,6 +66,7 @@ pub fn run(args: &[OsString]) -> i32 {
         Ok(Command::Info { project, json }) => info::run(&project, json, &run_id),
         Ok(Command::Timeline { project, json }) => timeline::run(&project, json, &run_id),
         Ok(Command::Render(options)) => render::run(&options, &run_id),
+        Ok(Command::Preview { words }) => preview::run(&words, &run_id),
         Ok(Command::Help | Command::Version) => 0,
         Err(usage) => render::usage_error(&usage, &run_id),
     }

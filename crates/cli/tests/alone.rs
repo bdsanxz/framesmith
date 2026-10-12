@@ -1,5 +1,10 @@
 //! T053: with nothing to be found but a Chromium-based browser and `ffmpeg`, the binary runs `init`,
 //! `check` and `render` in order, uses no network and installs nothing.
+//!
+//! Sprint 2, ticket T060: `preview` listens on the loopback address, so the binary now holds network code and
+//! the Sprint 1 test that it holds none (`t053_c4`) is gone. What replaces it is a check of behaviour,
+//! `s2_t060_c6_...`: with every use of the network denied by the operating system, `init`, `check` and
+//! `render` give the same results as with it allowed.
 
 mod common;
 
@@ -133,23 +138,27 @@ fn t053_c1_c5_init_check_and_render_run_in_order_with_only_a_browser_and_ffmpeg_
     );
 }
 
+/// The program that runs another inside a profile of the operating system's sandbox.
 #[cfg(target_os = "macos")]
-#[test]
-fn t053_c3_with_every_use_of_the_network_denied_the_three_commands_give_the_same_video() {
-    const SANDBOX: &str = "/usr/bin/sandbox-exec";
-    let m = machine("t053_offline");
-    // Every use of the network is denied. One thing is let through: sockets that are files in the
-    // system's per-user temporary folders. A full browser build makes one there to find another copy
-    // of itself on the same profile, and stops when it cannot. Such a socket reaches nothing outside
-    // this machine, and the system's own services (name lookup among them) do not listen there.
+const SANDBOX: &str = "/usr/bin/sandbox-exec";
+
+/// The sandbox profile that denies every use of the network. One thing is let through: sockets that are
+/// files in the system's per-user temporary folders. A full browser build makes one there to find another
+/// copy of itself on the same profile, and stops when it cannot. Such a socket reaches nothing outside
+/// this machine, and the system's own services (name lookup among them) do not listen there.
+#[cfg(target_os = "macos")]
+fn deny_network() -> String {
     let files = "(subpath \"/private/var/folders\")";
-    let deny = format!(
+    format!(
         "(version 1)(allow default)(deny network*)\
          (allow network-bind network-inbound (local unix-socket {files}))\
          (allow network-outbound (remote unix-socket {files}))"
-    );
+    )
+}
 
-    // The sandbox does cut the network off, this machine's own loopback address included.
+/// The sandbox does cut the network off, this machine's own loopback address included.
+#[cfg(target_os = "macos")]
+fn assert_sandbox_cuts_loopback(m: &Machine, deny: &str) {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port().to_string();
     let reach = ["/usr/bin/nc", "-z", "-G", "2", "127.0.0.1", &port];
@@ -159,9 +168,18 @@ fn t053_c3_with_every_use_of_the_network_denied_the_three_commands_give_the_same
         Path::new("/usr/bin"),
         "control",
         Path::new(SANDBOX),
-        &[&["-p", &deny][..], &reach[..]].concat(),
+        &[&["-p", deny][..], &reach[..]].concat(),
     );
     assert_ne!(inside.code, 0, "{}", inside.all());
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn t053_c3_with_every_use_of_the_network_denied_the_three_commands_give_the_same_video() {
+    let m = machine("t053_offline");
+    let deny = deny_network();
+
+    assert_sandbox_cuts_loopback(&m, &deny);
 
     // A browser cannot set up its own process sandbox inside another sandbox, so in the sandboxed run
     // the machine's browser is started without it.
@@ -181,35 +199,120 @@ fn t053_c3_with_every_use_of_the_network_denied_the_three_commands_give_the_same
     assert_eq!(online, offline);
 }
 
-#[test]
-fn t053_c4_the_binary_calls_none_of_the_system_s_network_functions() {
-    let nm = measure::tool("nm").expect("nm is needed for this test");
-    let ran = measure::run(&nm, &["-u", BIN], Path::new("/"), &[]);
-    assert_eq!(ran.code, 0, "{}", ran.all());
-    // An imported name as the linker writes it: `_socket` on macOS, `socket@GLIBC_2.2.5` elsewhere.
-    let imported: BTreeSet<&str> = ran
-        .stdout
-        .lines()
-        .filter_map(|line| line.split_whitespace().last())
-        .map(|name| name.split('@').next().unwrap().trim_start_matches('_'))
-        .collect();
-    assert!(
-        imported.len() > 50 && imported.contains("write"),
-        "the list of imported names looks wrong: {imported:?}"
+/// What a run gave that does not change from one run to the next: the exit code and the words on both
+/// streams, without the lines of progress that depend on timing and without the time a render took.
+fn results(ran: &Ran) -> (i32, String, String) {
+    let kept = |text: &str| -> String {
+        text.lines()
+            .filter(|line| !line.starts_with("capture "))
+            .map(
+                |line| match line.strip_prefix("Rendered ").and_then(|_| line.rsplit_once(", in ")) {
+                    Some((head, _)) => head,
+                    None => line,
+                },
+            )
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    (ran.code, kept(&ran.stdout), kept(&ran.stderr))
+}
+
+/// Writes the projects the commands are run on into `dir` of the machine: a small one to render, one with
+/// an error, and one that uses something Framesmith refuses.
+#[cfg(target_os = "macos")]
+fn projects(m: &Machine, dir: &str) {
+    let root = m.root.join(dir);
+    std::fs::create_dir_all(&root).unwrap();
+    let ground = "<div style=\"position:absolute;inset:0;background:#c33\"></div>";
+    write(
+        &root,
+        "tiny/index.html",
+        page("data-fs-size=\"64x36\" data-fs-duration=\"0.2\"", "", ground, ""),
     );
-    let network = [
-        "socket",
-        "connect",
-        "bind",
-        "listen",
-        "accept",
-        "getaddrinfo",
-        "gethostbyname",
-        "sendto",
-        "sendmsg",
-        "recvfrom",
-        "recvmsg",
+    write(
+        &root,
+        "broken/index.html",
+        page("data-fs-size=\"65x36\" data-fs-duration=\"0.2\"", "", "", ""),
+    );
+    copy_tree(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/unsupported/fs-u004-ratio-rate"),
+        &root.join("refused"),
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn s2_t060_c6_with_every_use_of_the_network_denied_init_check_and_render_give_the_same_results_as_with_it_allowed() {
+    // `preview` listens on the loopback address, so the binary holds network code. The three commands do
+    // not use it, and this is the test of that: the same commands, run with the operating system denying
+    // every use of the network and with it allowed, give the same exit codes, the same words, the same
+    // files and the same frames.
+    let m = machine("s2_t060_c6");
+    let deny = deny_network();
+    assert_sandbox_cuts_loopback(&m, &deny);
+    projects(&m, "online");
+    projects(&m, "offline");
+
+    // The commands, in order; the codes they give are fixed here so that the two runs cannot agree by both failing.
+    let commands: [(&[&str], i32); 8] = [
+        (&["init", "demo"], 0),
+        (&["check", "demo"], 0),
+        (&["check", "tiny"], 0),
+        (&["render", "tiny"], 0),
+        (&["check", "broken"], 1),
+        (&["render", "broken"], 1),
+        (&["check", "refused"], 2),
+        (&["render", "refused"], 2),
     ];
-    let used: Vec<&&str> = network.iter().filter(|name| imported.contains(**name)).collect();
-    assert!(used.is_empty(), "the binary imports {used:?}");
+    let run_all = |tools: &Path, dir: &str, before: &[&str]| -> Vec<Ran> {
+        commands
+            .iter()
+            .map(|(command, code)| {
+                let (program, args) = match before.split_first() {
+                    Some((first, rest)) => (Path::new(first), [rest, &[BIN][..], command].concat()),
+                    None => (Path::new(BIN), command.to_vec()),
+                };
+                let ran = m.run(tools, dir, program, &args);
+                assert_eq!(ran.code, *code, "{command:?} in {dir}: {}", ran.all());
+                ran
+            })
+            .collect()
+    };
+    // A browser cannot set up its own process sandbox inside another sandbox, so in the sandboxed run
+    // the machine's browser is started without it.
+    let online = run_all(&m.tools, "online", &[]);
+    let offline = run_all(&m.tools_unsandboxed, "offline", &[SANDBOX, "-p", &deny]);
+    for (((command, _), allowed), denied) in commands.iter().zip(&online).zip(&offline) {
+        assert_eq!(results(allowed), results(denied), "{command:?}");
+    }
+    // The words themselves are not empty: the comparison compared something.
+    assert!(online[3].stdout.contains("Rendered 6 frames, 64x36, 30 fps"), "{}", online[3].all());
+    assert!(online[6].stdout.contains("FS-U004"), "{}", online[6].all());
+
+    // The same files: the starter, the projects, and the frames of the video.
+    let written = |dir: &str| -> Vec<_> {
+        tree(&m.root.join(dir))
+            .into_iter()
+            .filter(|(path, _)| path.extension().is_none_or(|extension| extension != "mp4"))
+            .collect()
+    };
+    assert_eq!(written("online"), written("offline"));
+    let (allowed, denied) = (
+        frame_hashes(&m.root.join("online/tiny/out/tiny.mp4")),
+        frame_hashes(&m.root.join("offline/tiny/out/tiny.mp4")),
+    );
+    assert_eq!(allowed.len(), 6);
+    assert_eq!(allowed, denied);
+
+    // The control: the one command that needs the network of its machine does not get it. With the
+    // network denied `preview` cannot listen, and says so.
+    let preview = m.run(
+        &m.tools_unsandboxed,
+        "offline",
+        Path::new(SANDBOX),
+        &["-p", &deny, BIN, "preview", "demo"],
+    );
+    assert_eq!(preview.code, 1, "{}", preview.all());
+    assert!(preview.stderr.contains("FS-P001"), "{}", preview.all());
+    assert_eq!(preview.stdout, "");
 }

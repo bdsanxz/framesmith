@@ -31,6 +31,7 @@ dependencies = [
  "motion",
  "render",
  "serde_json",
+ "server",
  "timebase",
  "tracing",
 ]
@@ -209,6 +210,17 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "compile",
+ "model",
+ "protocol",
+ "timebase",
+ "tracing",
 ]
 
 [[package]]
