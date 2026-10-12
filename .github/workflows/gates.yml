@@ -1,6 +1,9 @@
 name: gates
 
 # The four quality gates (formatting, static analysis, tests, licences) on every push and pull request.
+# scripts/gates.sh runs them twice: with a full browser build (the runner's Google Chrome, found
+# automatically) and with a headless-only build (fetched below, for the tests only). The job passes
+# only when both passes are green.
 on:
   push:
   pull_request:
@@ -15,8 +18,10 @@ jobs:
     timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: never
-      # The tests drive a real browser; the runner's Google Chrome is found automatically.
-      # Set FRAMESMITH_BROWSER here only if it is ever installed somewhere unusual.
+      # The tests drive a real browser. The first pass uses the runner's Google Chrome, found
+      # automatically (name another with FRAMESMITH_GATES_FULL_BROWSER if it is ever somewhere unusual).
+      # The second pass uses the headless-only build fetched below (FRAMESMITH_GATES_HEADLESS_BROWSER).
+      HEADLESS_SHELL_VERSION: 148.0.7778.96
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -40,5 +45,25 @@ jobs:
       - name: Install ffmpeg
         run: brew install ffmpeg
 
-      - name: Run the four gates
-        run: scripts/gates.sh
+      # A test tool only: never part of the product, the repository or a release. Pinned by version,
+      # downloaded over HTTPS from the browser vendor's Chrome for Testing storage, and cached.
+      - name: Cache the headless-only browser build
+        id: cache-headless
+        uses: actions/cache@v4.2.0
+        with:
+          path: ~/headless-shell
+          key: chrome-headless-shell-${{ env.HEADLESS_SHELL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Fetch the headless-only browser build
+        if: steps.cache-headless.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/headless-shell
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$RUNNER_TEMP/headless-shell.zip" \
+            "https://storage.googleapis.com/chrome-for-testing-public/${HEADLESS_SHELL_VERSION}/mac-arm64/chrome-headless-shell-mac-arm64.zip"
+          unzip -q "$RUNNER_TEMP/headless-shell.zip" -d ~/headless-shell
+
+      - name: Run the four gates (full browser build, then headless-only build)
+        run: |
+          FRAMESMITH_GATES_HEADLESS_BROWSER="$HOME/headless-shell/chrome-headless-shell-mac-arm64/chrome-headless-shell" \
+            scripts/gates.sh

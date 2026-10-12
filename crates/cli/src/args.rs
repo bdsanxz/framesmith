@@ -9,6 +9,8 @@ pub enum Command {
     Version,
     Init { folder: PathBuf },
     Check { project: PathBuf },
+    Info { project: PathBuf, json: bool },
+    Timeline { project: PathBuf, json: bool },
     Render(RenderOptions),
 }
 
@@ -94,6 +96,43 @@ fn render(rest: &[OsString]) -> Result<Command, Usage> {
     }
 }
 
+/// `info`: one path, and `--json` before or after it. Only the exact word `--json` is the option; every
+/// other word is read as `check` reads it, so an unknown option is refused in the same words.
+fn info(rest: &[OsString]) -> Result<Command, Usage> {
+    let is_json = |word: &OsString| word.to_string_lossy() == "--json";
+    let json = rest.iter().any(is_json);
+    let others: Vec<OsString> = rest.iter().filter(|word| !is_json(word)).cloned().collect();
+    match one_path("info", "the path of a project folder", &others) {
+        Ok(project) => Ok(Command::Info { project, json }),
+        Err(usage) => Err(Usage { json, ..usage }),
+    }
+}
+
+/// `timeline`: the project folder, and `--json` before or after it. `timeline` only prints, so a word
+/// after the folder that is not an option (an edit word such as `move`) is refused in words that say so;
+/// any other option is refused as `info` refuses one it does not have. With `--json` present the refusal
+/// is answered as a document.
+fn timeline(rest: &[OsString]) -> Result<Command, Usage> {
+    let is_json = |word: &OsString| word.to_string_lossy() == "--json";
+    let json = rest.iter().any(is_json);
+    let others: Vec<OsString> = rest.iter().filter(|word| !is_json(word)).cloned().collect();
+    if let [_, word, ..] = others.as_slice() {
+        let word = word.to_string_lossy();
+        if !word.starts_with("--") {
+            return Err(Usage {
+                json,
+                ..usage(format!(
+                    "`framesmith timeline` only prints the timeline and has no edit commands; {word} is not one of its words."
+                ))
+            });
+        }
+    }
+    match one_path("timeline", "the path of a project folder", &others) {
+        Ok(project) => Ok(Command::Timeline { project, json }),
+        Err(usage) => Err(Usage { json, ..usage }),
+    }
+}
+
 /// Reads the words after the program name.
 pub fn parse(args: &[OsString]) -> Result<Command, Usage> {
     let Some((first, rest)) = args.split_first() else {
@@ -108,6 +147,8 @@ pub fn parse(args: &[OsString]) -> Result<Command, Usage> {
         "check" => Ok(Command::Check {
             project: one_path("check", "the path of a project folder", rest)?,
         }),
+        "info" => info(rest),
+        "timeline" => timeline(rest),
         "render" => render(rest),
         other => Err(usage(format!("framesmith has no command {other}."))),
     }

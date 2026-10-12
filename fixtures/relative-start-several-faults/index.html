@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Relative start: several timing faults</title>
+<style>
+  .box { position: absolute; top: 60px; width: 60px; height: 60px; }
+  #intro { left: 20px; background: #ff0000; }
+  #second { left: 100px; background: #00ff00; }
+  #third { left: 180px; background: #0000ff; }
+  #fourth { left: 250px; background: #ffff00; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="5">
+  <div id="intro" class="box" data-fs-clip data-fs-start="1" data-fs-duration="0"></div>
+  <div id="second" class="box" data-fs-clip data-fs-start="after:opening" data-fs-duration="1"></div>
+  <div id="third" class="box" data-fs-clip data-fs-start="after:third" data-fs-duration="1"></div>
+  <div id="fourth" class="box" data-fs-clip data-fs-start="after:intro" data-fs-duration="1"></div>
+</div>
+</body>
+</html>

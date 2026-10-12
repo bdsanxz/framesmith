@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Two clips that follow each other</title>
+<style>
+  .box { position: absolute; top: 60px; width: 60px; height: 60px; }
+  #base { left: 20px; background: #ff0000; }
+  #first { left: 100px; background: #00ff00; }
+  #second { left: 180px; background: #0000ff; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="6">
+  <div id="base" class="box" data-fs-clip data-fs-start="0" data-fs-duration="1"></div>
+  <div id="first" class="box" data-fs-clip data-fs-start="after:second" data-fs-duration="1"></div>
+  <div id="second" class="box" data-fs-clip data-fs-start="after:first+0.5" data-fs-duration="1"></div>
+</div>
+</body>
+</html>

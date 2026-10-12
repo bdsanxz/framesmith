@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offset that goes before zero</title>
+<style>
+  .box { position: absolute; top: 60px; width: 60px; height: 60px; }
+  #intro { left: 20px; background: #ff0000; }
+  #outro { left: 100px; background: #00ff00; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="5">
+  <div id="intro" class="box" data-fs-clip data-fs-start="1" data-fs-duration="1"></div>
+  <div id="outro" class="box" data-fs-clip data-fs-start="after:intro-2.5" data-fs-duration="1"></div>
+</div>
+</body>
+</html>

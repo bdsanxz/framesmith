@@ -27,6 +27,8 @@ allow = [
 confidence-threshold = 0.93
 # A licence in the list that no current dependency uses is fine.
 unused-allowed-license = "allow"
+# Crates used only for tests and tools are crates of the project too, and every crate must pass.
+include-dev = true
 
 # Our own workspace crates are unpublished (`publish = false`) and carry no licence field.
 # They are skipped because they are private, not because the gate is loosened for anyone else.
