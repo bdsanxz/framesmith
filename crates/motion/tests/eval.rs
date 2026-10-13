@@ -17,7 +17,7 @@ fn at(timeline: &Timeline, prop: Prop, secs: &str) -> f64 {
 }
 
 #[test]
-fn t016_c1_to_tween_moves_between_its_start_and_end() {
+fn to_tween_moves_between_its_start_and_end() {
     let tl = timeline(r##"[{ "target": "#a", "to": { "x": 300 }, "at": 1, "duration": 1 }]"##, 30);
     assert_eq!(at(&tl, Prop::X, "0"), 0.0);
     assert_eq!(at(&tl, Prop::X, "1"), 0.0);
@@ -28,7 +28,7 @@ fn t016_c1_to_tween_moves_between_its_start_and_end() {
 }
 
 #[test]
-fn t017_c1_from_tween_holds_its_start_before_it_begins() {
+fn from_tween_holds_its_start_before_it_begins() {
     let tl = timeline(r##"[{ "target": "#a", "from": { "y": 60 }, "at": 1, "duration": 0.5 }]"##, 30);
     assert_eq!(at(&tl, Prop::Y, "0"), 60.0);
     assert_eq!(at(&tl, Prop::Y, "0.9"), 60.0);
@@ -38,7 +38,7 @@ fn t017_c1_from_tween_holds_its_start_before_it_begins() {
 }
 
 #[test]
-fn t017_c2_from_to_tween_holds_both_ends() {
+fn from_to_tween_holds_both_ends() {
     let tl = timeline(
         r##"[{ "target": "#a", "from": { "x": 100 }, "to": { "x": 200 }, "at": 1, "duration": 2 }]"##,
         30,
@@ -49,7 +49,7 @@ fn t017_c2_from_to_tween_holds_both_ends() {
 }
 
 #[test]
-fn t017_c3_set_applies_from_its_frame_on() {
+fn set_applies_from_its_frame_on() {
     let tl = timeline(r##"[{ "target": "#a", "set": { "x": 120 }, "at": 2 }]"##, 30);
     let frame = |i: i64| tl.elements[0].tracks[0].as_ref().unwrap().value(Time::of_frame(i, 30));
     assert_eq!(frame(59), 0.0);
@@ -58,7 +58,7 @@ fn t017_c3_set_applies_from_its_frame_on() {
 }
 
 #[test]
-fn t017_c4_an_earlier_tween_holds_until_the_next_one_starts() {
+fn an_earlier_tween_holds_until_the_next_one_starts() {
     let tl = timeline(
         r##"[{ "target": "#a", "to": { "x": 100 }, "at": 0, "duration": 1 },
              { "target": "#a", "from": { "x": 400 }, "to": { "x": 500 }, "at": 3, "duration": 1 }]"##,
@@ -106,7 +106,7 @@ fn tweens_with_the_same_start_keep_document_order() {
 }
 
 #[test]
-fn t019_c2_eased_tweens_are_exact_at_both_ends() {
+fn eased_tweens_are_exact_at_both_ends() {
     for ease in Ease::ALL {
         let tl = timeline(
             &format!(
@@ -122,7 +122,7 @@ fn t019_c2_eased_tweens_are_exact_at_both_ends() {
 }
 
 #[test]
-fn t017_c5_the_value_does_not_depend_on_evaluation_order() {
+fn the_value_does_not_depend_on_evaluation_order() {
     let tl = timeline(
         r##"[{ "target": "#a", "from": { "x": -50, "opacity": 0 }, "at": 0.5, "duration": 1, "ease": "in-out-cubic" },
              { "target": "#a", "to": { "x": 80, "rotation": 90 }, "at": 2, "duration": 1, "ease": "out-quart" }]"##,

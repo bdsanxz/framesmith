@@ -34,14 +34,14 @@ fn a_bare_list_is_a_block() {
 }
 
 #[test]
-fn t020_c2_invalid_json_names_the_line() {
+fn invalid_json_names_the_line() {
     let block = parse_block("{ \"tweens\": [\n  { \"target\": \"#a\" \"to\": {} }\n] }");
     assert_eq!(codes(&block), vec!["FS-E040"]);
     assert_eq!(block.findings[0].line, 2);
 }
 
 #[test]
-fn t020_c3_missing_fields_are_named() {
+fn missing_fields_are_named() {
     let block = parse_block(
         r##"[ { "to": { "x": 1 }, "at": 0, "duration": 1 },
              { "target": "#a", "at": 0, "duration": 1 },
@@ -55,7 +55,7 @@ fn t020_c3_missing_fields_are_named() {
 }
 
 #[test]
-fn t020_c4_negative_times_are_errors() {
+fn negative_times_are_errors() {
     let block = parse_block(
         r##"[ { "target": "#a", "to": { "x": 1 }, "at": -1, "duration": 1 },
              { "target": "#b", "to": { "x": 1 }, "at": 0, "duration": -0.5 } ]"##,
@@ -66,7 +66,7 @@ fn t020_c4_negative_times_are_errors() {
 }
 
 #[test]
-fn t031_recognised_but_unbuilt_names_are_unsupported() {
+fn recognised_but_unbuilt_names_are_unsupported() {
     let block = parse_block(
         r##"[ { "target": "#a", "to": { "x": 1 }, "at": 0, "duration": 1, "ease": "out-bounce" },
              { "target": "#a", "to": { "color": 1 }, "at": 0, "duration": 1 },
@@ -83,7 +83,7 @@ fn t031_recognised_but_unbuilt_names_are_unsupported() {
 }
 
 #[test]
-fn t032_unrecognised_names_are_unknown() {
+fn unrecognised_names_are_unknown() {
     let block = parse_block(
         r##"{ "speed": 2, "tweens": [
              { "target": "#a", "to": { "x": 1 }, "at": 0, "duration": 1, "durration": 2 },

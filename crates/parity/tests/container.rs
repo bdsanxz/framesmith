@@ -1,4 +1,4 @@
-//! T049: container facts compared with the reference, by stream type.
+//! Container facts compared with the reference, by stream type.
 
 mod common;
 
@@ -22,8 +22,8 @@ fn detail(report: &parity::Report, name: &str) -> String {
 const FIVE: [&str; 5] = ["frame count", "frame rate", "size", "codec", "pixel format"];
 
 #[test]
-fn t049_c1_the_five_facts_are_reported_separately_and_pass_on_equal_videos() {
-    let dir = folder("t049_c1_equal");
+fn the_five_facts_are_reported_separately_and_pass_on_equal_videos() {
+    let dir = folder("container_equal");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = container::compare_files(&tools().ffprobe, &a, &b).unwrap();
     let names: Vec<&str> = report.checks.iter().map(|c| c.name.as_str()).collect();
@@ -37,8 +37,8 @@ fn t049_c1_the_five_facts_are_reported_separately_and_pass_on_equal_videos() {
 }
 
 #[test]
-fn t049_c1_each_fact_fails_on_its_own_and_names_both_values() {
-    let dir = folder("t049_c1_each");
+fn each_fact_fails_on_its_own_and_names_both_values() {
+    let dir = folder("container_each");
     let (a, b) = (dir.join("a.mp4"), dir.join("b.mp4"));
     make(&a, &Spec::default());
     // A different number of frames at the same rate fails only the frame count.
@@ -62,8 +62,8 @@ fn t049_c1_each_fact_fails_on_its_own_and_names_both_values() {
 }
 
 #[test]
-fn t049_c1_codec_size_and_pixel_format_failures_are_separate() {
-    let dir = folder("t049_c1_codec");
+fn codec_size_and_pixel_format_failures_are_separate() {
+    let dir = folder("container_codec");
     let a = dir.join("a.mp4");
     make(&a, &Spec::default());
     // The same picture re-encoded: other codec, other pixel format and another size.
@@ -97,8 +97,8 @@ fn t049_c1_codec_size_and_pixel_format_failures_are_separate() {
 }
 
 #[test]
-fn t049_c2_an_audio_stream_on_one_side_does_not_change_the_video_checks() {
-    let dir = folder("t049_c2_audio");
+fn an_audio_stream_on_one_side_does_not_change_the_video_checks() {
+    let dir = folder("container_audio");
     let (a, b) = pair(
         &dir,
         &Spec::default(),
@@ -122,8 +122,8 @@ fn t049_c2_an_audio_stream_on_one_side_does_not_change_the_video_checks() {
 }
 
 #[test]
-fn t049_c2_the_video_stream_is_found_by_type_not_by_position() {
-    let dir = folder("t049_c2_position");
+fn the_video_stream_is_found_by_type_not_by_position() {
+    let dir = folder("container_position");
     // Audio comes first in the second file: stream 0 is audio, stream 1 is video.
     let (a, b) = pair(
         &dir,
@@ -150,8 +150,8 @@ fn t049_c2_the_video_stream_is_found_by_type_not_by_position() {
 }
 
 #[test]
-fn t049_c3_a_colour_tag_difference_is_information_and_does_not_fail() {
-    let dir = folder("t049_c3_tags");
+fn a_colour_tag_difference_is_information_and_does_not_fail() {
+    let dir = folder("container_tags");
     let (a, b) = pair(
         &dir,
         &Spec::default(),
@@ -174,8 +174,8 @@ fn t049_c3_a_colour_tag_difference_is_information_and_does_not_fail() {
 }
 
 #[test]
-fn t049_c4_a_different_frame_rate_fails_and_names_both_values() {
-    let dir = folder("t049_c4_rate");
+fn a_different_frame_rate_fails_and_names_both_values() {
+    let dir = folder("container_rate");
     // 2.5 seconds at 24 and 30 frames per second would differ in count; keep 60 frames in both
     // so that only the rate differs.
     let (a, b) = pair(
@@ -200,7 +200,7 @@ fn t049_c4_a_different_frame_rate_fails_and_names_both_values() {
 }
 
 #[test]
-fn t049_equal_rates_written_differently_are_the_same_rate() {
+fn equal_rates_written_differently_are_the_same_rate() {
     assert!(container::same_rate("30/1", "30000/1000"));
     assert!(container::same_rate("30", "30/1"));
     assert!(!container::same_rate("30000/1001", "30/1"));

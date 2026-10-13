@@ -1,4 +1,4 @@
-//! T050: similarity at sampled frames and the side-by-side sheet.
+//! Similarity at sampled frames and the side-by-side sheet.
 
 mod common;
 
@@ -15,8 +15,8 @@ fn spec_shifted(range: (u32, u32), dx: i32) -> Spec {
 }
 
 #[test]
-fn t050_c1_every_sampled_frame_gets_a_value_and_it_passes_only_at_or_above_the_threshold() {
-    let dir = folder("t050_c1_equal");
+fn every_sampled_frame_gets_a_value_and_it_passes_only_at_or_above_the_threshold() {
+    let dir = folder("pictures_equal");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = pictures::compare(&tools(), &a, &b, &Options::default()).unwrap();
     let frames: Vec<&parity::Line> = report.checks.iter().filter(|c| c.name.starts_with("frame ")).collect();
@@ -31,8 +31,8 @@ fn t050_c1_every_sampled_frame_gets_a_value_and_it_passes_only_at_or_above_the_t
 }
 
 #[test]
-fn t050_c1_a_threshold_above_the_value_fails_the_check() {
-    let dir = folder("t050_c1_threshold");
+fn a_threshold_above_the_value_fails_the_check() {
+    let dir = folder("pictures_threshold");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     // Identical pictures give 1.0 at best, so a threshold above 1 can never be met.
     let options = Options {
@@ -44,7 +44,7 @@ fn t050_c1_a_threshold_above_the_value_fails_the_check() {
 }
 
 #[test]
-fn t050_c1_sampling_is_fixed_and_repeatable_and_includes_the_first_and_last_frames() {
+fn sampling_is_fixed_and_repeatable_and_includes_the_first_and_last_frames() {
     assert_eq!(pictures::sample_indices(60, 8), vec![0, 8, 17, 25, 34, 42, 51, 59]);
     assert_eq!(pictures::sample_indices(60, 8), pictures::sample_indices(60, 8));
     assert_eq!(pictures::sample_indices(60, 2), vec![0, 59]);
@@ -54,8 +54,8 @@ fn t050_c1_sampling_is_fixed_and_repeatable_and_includes_the_first_and_last_fram
 }
 
 #[test]
-fn t050_c3_a_shifted_element_fails_and_names_the_lowest_scoring_frame() {
-    let dir = folder("t050_c3_shift");
+fn a_shifted_element_fails_and_names_the_lowest_scoring_frame() {
+    let dir = folder("pictures_shift");
     // The still box is moved 20 pixels, but only on frames 40 to 48: of the sampled frames only 42 is inside.
     let (a, b) = pair(&dir, &Spec::default(), &spec_shifted((40, 48), 20));
     let report = pictures::compare(&tools(), &a, &b, &Options::default()).unwrap();
@@ -75,8 +75,8 @@ fn t050_c3_a_shifted_element_fails_and_names_the_lowest_scoring_frame() {
 }
 
 #[test]
-fn t050_c5_different_frame_counts_cannot_be_paired_and_never_pass() {
-    let dir = folder("t050_c5_counts");
+fn different_frame_counts_cannot_be_paired_and_never_pass() {
+    let dir = folder("pictures_counts");
     let (a, b) = pair(
         &dir,
         &Spec::default(),
@@ -98,8 +98,8 @@ fn t050_c5_different_frame_counts_cannot_be_paired_and_never_pass() {
 }
 
 #[test]
-fn t050_different_sizes_cannot_be_paired_either() {
-    let dir = folder("t050_sizes");
+fn different_sizes_cannot_be_paired_either() {
+    let dir = folder("pictures_sizes");
     let (a, _) = pair(&dir, &Spec::default(), &Spec::default());
     let small = dir.join("small.mp4");
     let out = std::process::Command::new(&tools().ffmpeg)
@@ -116,8 +116,8 @@ fn t050_different_sizes_cannot_be_paired_either() {
 }
 
 #[test]
-fn t050_c2_one_sheet_shows_every_sampled_frame_from_both_videos_with_its_number() {
-    let dir = folder("t050_c2_sheet");
+fn one_sheet_shows_every_sampled_frame_from_both_videos_with_its_number() {
+    let dir = folder("pictures_sheet");
     let (a, b) = pair(&dir, &Spec::default(), &spec_shifted((40, 48), 20));
     let path = dir.join("nested").join("sheet.png");
     let options = Options {
@@ -140,7 +140,7 @@ fn t050_c2_one_sheet_shows_every_sampled_frame_from_both_videos_with_its_number(
 }
 
 #[test]
-fn t050_c2_the_frame_number_is_drawn_and_differs_from_one_number_to_another() {
+fn the_frame_number_is_drawn_and_differs_from_one_number_to_another() {
     let draw = |text: &str| {
         let mut canvas = sheet::Canvas::new(200, 30, [0, 0, 0]);
         sheet::draw_text(&mut canvas, 2, 2, text, 3, [255, 255, 255]);

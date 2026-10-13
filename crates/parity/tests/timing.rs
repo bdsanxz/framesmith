@@ -1,4 +1,4 @@
-//! T051: when a clip appears and disappears, and where a moving element is on every frame.
+//! When a clip appears and disappears, and where a moving element is on every frame.
 
 mod common;
 
@@ -31,8 +31,8 @@ fn late(by: u32) -> Spec {
 }
 
 #[test]
-fn t051_c1_the_appearance_and_disappearance_frames_are_reported_for_both_videos() {
-    let dir = folder("t051_c1_equal");
+fn the_appearance_and_disappearance_frames_are_reported_for_both_videos() {
+    let dir = folder("timing_equal");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
     let appears = line(&report, "clip appears");
@@ -44,14 +44,14 @@ fn t051_c1_the_appearance_and_disappearance_frames_are_reported_for_both_videos(
 }
 
 #[test]
-fn t051_c1_one_frame_apart_passes_and_two_frames_apart_fails() {
-    let dir = folder("t051_c1_limit");
+fn one_frame_apart_passes_and_two_frames_apart_fails() {
+    let dir = folder("timing_limit");
     let (a, b) = pair(&dir, &late(1), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
     assert_eq!(line(&report, "clip appears").verdict, Verdict::Pass, "{}", report.text());
     assert_eq!(line(&report, "clip disappears").verdict, Verdict::Pass);
     assert!(line(&report, "clip appears").detail.contains("1 frame(s) apart"));
-    let dir = folder("t051_c1_limit_two");
+    let dir = folder("timing_limit_two");
     let (a, b) = pair(&dir, &late(2), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
     assert_eq!(line(&report, "clip appears").verdict, Verdict::Fail);
@@ -59,8 +59,8 @@ fn t051_c1_one_frame_apart_passes_and_two_frames_apart_fails() {
 }
 
 #[test]
-fn t051_c3_a_clip_three_frames_late_fails_and_names_the_event_and_both_frames() {
-    let dir = folder("t051_c3_late");
+fn a_clip_three_frames_late_fails_and_names_the_event_and_both_frames() {
+    let dir = folder("timing_late");
     // Ours starts three frames late and ends where it should.
     let ours = Spec {
         clip: (23, 40),
@@ -79,8 +79,8 @@ fn t051_c3_a_clip_three_frames_late_fails_and_names_the_event_and_both_frames() 
 }
 
 #[test]
-fn t051_c2_the_tracked_position_passes_within_one_pixel_and_reports_the_measured_value() {
-    let dir = folder("t051_c2_position");
+fn the_tracked_position_passes_within_one_pixel_and_reports_the_measured_value() {
+    let dir = folder("timing_position");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
     let position = line(&report, "position");
@@ -92,8 +92,8 @@ fn t051_c2_the_tracked_position_passes_within_one_pixel_and_reports_the_measured
 }
 
 #[test]
-fn t051_c4_an_element_five_pixels_off_at_the_end_fails_and_names_the_frame() {
-    let dir = folder("t051_c4_off");
+fn an_element_five_pixels_off_at_the_end_fails_and_names_the_frame() {
+    let dir = folder("timing_off");
     let ours = Spec {
         mover: (10, 50, 20, 185),
         ..Spec::default()
@@ -133,8 +133,8 @@ fn t051_c4_an_element_five_pixels_off_at_the_end_fails_and_names_the_frame() {
 }
 
 #[test]
-fn t051_c5_a_failure_gives_the_measured_value_and_the_threshold() {
-    let dir = folder("t051_c5_report");
+fn a_failure_gives_the_measured_value_and_the_threshold() {
+    let dir = folder("timing_report");
     let ours = Spec {
         clip: (23, 40),
         mover: (10, 50, 20, 185),
@@ -150,8 +150,8 @@ fn t051_c5_a_failure_gives_the_measured_value_and_the_threshold() {
 }
 
 #[test]
-fn t051_a_clip_missing_from_one_video_fails() {
-    let dir = folder("t051_missing");
+fn a_clip_missing_from_one_video_fails() {
+    let dir = folder("timing_missing");
     let nothing = Spec {
         clip: (1000, 1001),
         ..Spec::default()
@@ -164,8 +164,8 @@ fn t051_a_clip_missing_from_one_video_fails() {
 }
 
 #[test]
-fn t051_a_clip_that_stays_to_the_end_in_both_videos_has_no_disappearance_to_compare() {
-    let dir = folder("t051_stays");
+fn a_clip_that_stays_to_the_end_in_both_videos_has_no_disappearance_to_compare() {
+    let dir = folder("timing_stays");
     let stays = Spec {
         clip: (20, 60),
         ..Spec::default()
@@ -177,8 +177,8 @@ fn t051_a_clip_that_stays_to_the_end_in_both_videos_has_no_disappearance_to_comp
 }
 
 #[test]
-fn t051_different_frame_counts_are_noted_and_only_shared_frames_are_compared() {
-    let dir = folder("t051_counts");
+fn different_frame_counts_are_noted_and_only_shared_frames_are_compared() {
+    let dir = folder("timing_counts");
     let shorter = Spec {
         frames: 45,
         mover: (10, 40, 20, 180),
@@ -190,7 +190,7 @@ fn t051_different_frame_counts_are_noted_and_only_shared_frames_are_compared() {
 }
 
 #[test]
-fn t051_the_centre_of_a_flat_element_is_found_to_a_fraction_of_a_pixel() {
+fn the_centre_of_a_flat_element_is_found_to_a_fraction_of_a_pixel() {
     let mut frame = measure::Frame {
         width: 100,
         height: 100,
@@ -214,8 +214,8 @@ fn t051_the_centre_of_a_flat_element_is_found_to_a_fraction_of_a_pixel() {
 }
 
 #[test]
-fn t051_asking_for_nothing_to_measure_is_a_mistake() {
-    let dir = folder("t051_nothing");
+fn asking_for_nothing_to_measure_is_a_mistake() {
+    let dir = folder("timing_nothing");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let asked = Options {
         background: BACKGROUND,
@@ -225,8 +225,8 @@ fn t051_asking_for_nothing_to_measure_is_a_mistake() {
 }
 
 #[test]
-fn t051_a_region_limits_where_the_element_is_looked_for_and_positions_stay_those_of_the_whole_picture() {
-    let dir = folder("t051_region");
+fn a_region_limits_where_the_element_is_looked_for_and_positions_stay_those_of_the_whole_picture() {
+    let dir = folder("timing_region");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let whole = Options {
         mover: Some(MOVER),
@@ -268,8 +268,8 @@ fn t051_a_region_limits_where_the_element_is_looked_for_and_positions_stay_those
 }
 
 #[test]
-fn t051_in_a_region_every_colour_may_count_and_a_five_pixel_gap_is_still_measured() {
-    let dir = folder("t051_region_wide");
+fn in_a_region_every_colour_may_count_and_a_five_pixel_gap_is_still_measured() {
+    let dir = folder("timing_region_wide");
     let ours = Spec {
         mover: (10, 50, 20, 185),
         ..Spec::default()
@@ -300,8 +300,8 @@ fn t051_in_a_region_every_colour_may_count_and_a_five_pixel_gap_is_still_measure
 }
 
 #[test]
-fn t051_a_region_outside_the_picture_is_a_mistake() {
-    let dir = folder("t051_region_outside");
+fn a_region_outside_the_picture_is_a_mistake() {
+    let dir = folder("timing_region_outside");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let asked = Options {
         mover: Some(MOVER),

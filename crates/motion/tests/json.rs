@@ -13,7 +13,7 @@ fn reads_values_with_their_lines() {
 }
 
 #[test]
-fn t020_c2_reports_the_line_of_the_first_fault() {
+fn reports_the_line_of_the_first_fault() {
     let err = parse("[\n  {\"target\": \"#a\"},\n  {\"target\": }\n]").unwrap_err();
     assert_eq!(err.line, 3);
     let err = parse("[1, 2").unwrap_err();

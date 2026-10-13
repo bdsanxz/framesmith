@@ -1,4 +1,4 @@
-//! T048: the reference is a black box in a git-ignored folder; nothing the product builds or tests needs it.
+//! The reference is a black box in a folder outside the repository; nothing the product builds or tests needs it.
 
 mod common;
 
@@ -48,8 +48,8 @@ fn fake_reference(blackbox: &Path, exit_code: i32) {
 }
 
 #[test]
-fn t048_c5_with_the_reference_absent_the_tool_says_not_run_and_never_passed() {
-    let dir = folder("t048_c5_absent");
+fn with_the_reference_absent_the_tool_says_not_run_and_never_passed() {
+    let dir = folder("blackbox_absent");
     let empty = dir.join("blackbox");
     std::fs::create_dir_all(&empty).unwrap();
     let outcome = blackbox::run(&job(&dir, &empty));
@@ -64,8 +64,8 @@ fn t048_c5_with_the_reference_absent_the_tool_says_not_run_and_never_passed() {
 }
 
 #[test]
-fn t048_c5_the_binary_prints_not_run_and_exits_with_the_distinct_code() {
-    let dir = folder("t048_c5_binary");
+fn the_binary_prints_not_run_and_exits_with_the_distinct_code() {
+    let dir = folder("blackbox_binary");
     let c = counterpart(&dir);
     let out = Command::new(env!("CARGO_BIN_EXE_parity"))
         .args(["reference"])
@@ -82,8 +82,8 @@ fn t048_c5_the_binary_prints_not_run_and_exits_with_the_distinct_code() {
 }
 
 #[test]
-fn t048_c1_the_reference_is_run_with_the_rate_quality_and_one_worker_set_explicitly() {
-    let dir = folder("t048_c1_args");
+fn the_reference_is_run_with_the_rate_quality_and_one_worker_set_explicitly() {
+    let dir = folder("blackbox_args");
     let blackbox = dir.join("blackbox");
     fake_reference(&blackbox, 0);
     let mut j = job(&dir, &blackbox);
@@ -111,8 +111,8 @@ fn t048_c1_the_reference_is_run_with_the_rate_quality_and_one_worker_set_explici
 }
 
 #[test]
-fn t048_c3_usage_data_and_update_checks_are_off_and_its_state_stays_inside_the_folder() {
-    let dir = folder("t048_c3_env");
+fn usage_data_and_update_checks_are_off_and_its_state_stays_inside_the_folder() {
+    let dir = folder("blackbox_env");
     let blackbox = dir.join("blackbox");
     fake_reference(&blackbox, 0);
     let mut j = job(&dir, &blackbox);
@@ -147,8 +147,8 @@ fn t048_c3_usage_data_and_update_checks_are_off_and_its_state_stays_inside_the_f
 }
 
 #[test]
-fn t048_a_reference_that_fails_is_reported_as_failed_not_as_not_run_or_passed() {
-    let dir = folder("t048_failed");
+fn a_reference_that_fails_is_reported_as_failed_not_as_not_run_or_passed() {
+    let dir = folder("blackbox_failed");
     let blackbox = dir.join("blackbox");
     fake_reference(&blackbox, 1);
     let outcome = blackbox::run(&job(&dir, &blackbox));
@@ -158,8 +158,8 @@ fn t048_a_reference_that_fails_is_reported_as_failed_not_as_not_run_or_passed() 
 }
 
 #[test]
-fn t048_a_counterpart_without_an_entry_page_is_refused_before_anything_runs() {
-    let dir = folder("t048_no_entry");
+fn a_counterpart_without_an_entry_page_is_refused_before_anything_runs() {
+    let dir = folder("blackbox_no_entry");
     let blackbox = dir.join("blackbox");
     fake_reference(&blackbox, 0);
     let mut j = job(&dir, &blackbox);
@@ -178,8 +178,8 @@ fn root() -> PathBuf {
 }
 
 #[test]
-fn t048_c2_the_reference_folder_defaults_to_the_nearest_tools_blackbox_at_or_above_the_current_folder() {
-    let dir = folder("t048_c2_default_folder");
+fn the_reference_folder_defaults_to_the_nearest_tools_blackbox_at_or_above_the_current_folder() {
+    let dir = folder("blackbox_default_folder");
     let workspace = dir.join("workspace");
     let outer = workspace.join("tools").join("blackbox");
     let deep = workspace.join("repository").join("crates").join("parity");
@@ -197,8 +197,8 @@ fn t048_c2_the_reference_folder_defaults_to_the_nearest_tools_blackbox_at_or_abo
 }
 
 #[test]
-fn t048_c2_the_default_folder_is_found_by_the_binary_when_the_flag_is_left_out() {
-    let dir = folder("t048_c2_binary_default");
+fn the_default_folder_is_found_by_the_binary_when_the_flag_is_left_out() {
+    let dir = folder("blackbox_binary_default");
     let workspace = dir.join("workspace");
     let work = workspace.join("repository");
     std::fs::create_dir_all(&work).unwrap();
@@ -235,7 +235,7 @@ fn files_under(dir: &Path, found: &mut Vec<PathBuf>) {
 }
 
 #[test]
-fn t048_c6_nothing_in_the_products_gates_depends_on_the_reference() {
+fn nothing_in_the_products_gates_depends_on_the_reference() {
     let crates = root().join("crates");
     let mut offences = Vec::new();
     for entry in std::fs::read_dir(&crates).unwrap().flatten() {
@@ -268,26 +268,26 @@ fn t048_c6_nothing_in_the_products_gates_depends_on_the_reference() {
 }
 
 #[test]
-fn t048_c6_the_comparison_tools_own_tests_never_read_the_reference_folder() {
+fn the_comparison_tools_own_tests_never_read_the_reference_folder() {
     let mut files = Vec::new();
     files_under(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests"), &mut files);
     for file in files {
-        if file.file_name().is_some_and(|n| n == "t048_blackbox.rs") {
+        if file.file_name().is_some_and(|n| n == "blackbox.rs") {
             continue;
         }
         let text = std::fs::read_to_string(&file).unwrap();
         assert!(!text.contains("tools/blackbox"), "{} reads the reference's folder", file.display());
     }
     // And with the default folder absent, the run says so (it is not required to exist).
-    let dir = folder("t048_c6_default");
+    let dir = folder("blackbox_default");
     let mut j = job(&dir, Path::new("tools/blackbox-that-is-not-here"));
     j.blackbox = dir.join("never-installed");
     assert!(matches!(blackbox::run(&j), Outcome::NotRun(_)));
 }
 
 #[test]
-fn t048_no_frame_rate_is_passed_when_the_maintainer_asks_for_the_reference_s_own() {
-    let dir = folder("t048_own_rate");
+fn no_frame_rate_is_passed_when_the_maintainer_asks_for_the_reference_s_own() {
+    let dir = folder("blackbox_own_rate");
     let blackbox = dir.join("blackbox");
     fake_reference(&blackbox, 0);
     let mut j = job(&dir, &blackbox);

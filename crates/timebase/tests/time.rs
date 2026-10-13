@@ -17,19 +17,19 @@ fn reads_decimals_exactly() {
 }
 
 #[test]
-fn t005_c1_six_seconds_at_24_30_60() {
+fn six_seconds_at_24_30_60() {
     assert_eq!(frame_count(t("6"), 24), 144);
     assert_eq!(frame_count(t("6"), 30), 180);
     assert_eq!(frame_count(t("6"), 60), 360);
 }
 
 #[test]
-fn t005_c2_six_point_zero_one_rounds_up() {
+fn six_point_zero_one_rounds_up() {
     assert_eq!(frame_count(t("6.01"), 30), 181);
 }
 
 #[test]
-fn t005_c3_within_a_thousandth_takes_the_whole_number() {
+fn within_a_thousandth_takes_the_whole_number() {
     // 6.000016667 s × 30 = 180.0005 frames.
     assert_eq!(frame_count(t("6.000016667"), 30), 180);
     // 180.001 is still inside the tolerance; 180.0011 is not.
@@ -48,7 +48,7 @@ fn frame_time_is_exact() {
 }
 
 #[test]
-fn t011_c3_seven_sixtieths_lands_on_frame_seven() {
+fn seven_sixtieths_lands_on_frame_seven() {
     // 7/60 s cannot be written exactly; these are what an author writes.
     for written in ["0.116667", "0.1166667", "0.11666667", "0.116666667"] {
         assert_eq!(t(written).grid_frame(60), 7, "{written}");

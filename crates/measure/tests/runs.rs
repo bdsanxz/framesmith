@@ -1,4 +1,4 @@
-//! Comparing two runs frame for frame (T025 c3, T026 c4).
+//! Comparing two runs frame for frame.
 
 use measure::{same_frames, Frame};
 
@@ -19,7 +19,7 @@ fn two_equal_runs_compare_equal() {
 }
 
 #[test]
-fn t025_c3_one_differing_pixel_fails_and_names_the_frame() {
+fn one_differing_pixel_fails_and_names_the_frame() {
     let mut second = run();
     // One level of one channel of one pixel: the pixel at column 5 of row 2 of frame 2.
     second[2].rgb[(2 * 6 + 5) * 3 + 1] ^= 1;
@@ -30,7 +30,7 @@ fn t025_c3_one_differing_pixel_fails_and_names_the_frame() {
 }
 
 #[test]
-fn t026_c4_the_first_of_several_differing_frames_is_the_one_named() {
+fn the_first_of_several_differing_frames_is_the_one_named() {
     let mut second = run();
     second[3].rgb[0] ^= 0x80;
     second[1].rgb[4 * 3] ^= 0x80;
