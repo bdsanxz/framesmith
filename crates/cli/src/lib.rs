@@ -54,7 +54,8 @@ enum Reply {
     Unreadable(String),
 }
 
-/// `framesmith check <folder>`: opens the project and says whether its root is valid.
+/// `framesmith check <folder>`: opens the project and says whether its root is valid, or every
+/// problem it has.
 fn check(folder: PathBuf) -> Reply {
     match Project::open(&folder) {
         Ok(project) => {
@@ -73,9 +74,10 @@ fn check(folder: PathBuf) -> Reply {
             )
         }
         Err(error @ OpenError::NoProject(_)) => Reply::Printed(vec![error.to_string()], EXIT_FAILED),
-        Err(error @ OpenError::Invalid(_)) => Reply::Printed(
-            vec![error.to_string(), format!("Invalid: the project is not valid ({COMPOSITION_FILE})")],
-            EXIT_FAILED,
-        ),
+        Err(OpenError::Invalid(reports)) => {
+            let mut lines: Vec<String> = reports.iter().map(ToString::to_string).collect();
+            lines.push(format!("Invalid: the project is not valid ({COMPOSITION_FILE})"));
+            Reply::Printed(lines, EXIT_FAILED)
+        }
     }
 }

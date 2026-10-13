@@ -1,6 +1,7 @@
 //! The root `<composition>` of a composition file: `docs/spec/notation.md` section 6.1, with the
 //! wording of `docs/spec/check-command.md` section 4.
 
+use crate::code::Code;
 use crate::problem::Problem;
 use crate::value;
 use timebase::{frame_count, Time, DEFAULT_FPS, MAX_FPS, MIN_FPS};
@@ -51,134 +52,218 @@ pub struct Root {
     pub background: Colour,
 }
 
+/// Where something is in the file: its line and its column, both counted from 1.
+#[derive(Clone, Copy)]
+struct Spot {
+    line: u32,
+    column: u32,
+}
+
+/// A problem with the place it points at, so that the problems of a file can be put in order.
+struct Found {
+    spot: Spot,
+    problem: Problem,
+}
+
+fn found(code: Code, spot: Spot, message: String) -> Found {
+    Found {
+        spot,
+        problem: Problem::new(code, spot.line, message),
+    }
+}
+
+/// An attribute as it is written: its value without the surrounding white space, and where it is.
+type Written<'a> = Option<(&'a str, Spot)>;
+
 /// Reads the root of a composition file from its bytes, and judges it.
 ///
-/// The first problem found is returned, looking in this order: the text is UTF-8, it is XML, its
-/// root is `<composition>`, then `version`, `width`, `height`, `fps`, `duration`, `background`. The
-/// children of the root are not read.
-pub fn read_root(source: &[u8]) -> Result<Root, Problem> {
+/// Every problem of the root is returned, in the order of their places in the file (a line, then a
+/// column; a missing attribute is at the root's opening `<`). A text that is not UTF-8, a text that
+/// is not XML, and a root that is not `<composition>` each give that one problem and no other, since
+/// nothing more can be judged. Otherwise `version`, `width`, `height`, `fps`, `duration` and
+/// `background` are each judged, whatever the others hold. The children of the root are not read.
+pub fn read_root(source: &[u8]) -> Result<Root, Vec<Problem>> {
     let text = match std::str::from_utf8(source) {
         Ok(text) => text,
         Err(error) => {
             let line = 1 + source[..error.valid_up_to()].iter().filter(|&&byte| byte == b'\n').count();
-            return Err(Problem::new(
+            return Err(vec![Problem::new(
+                Code::NotUtf8,
                 line as u32,
                 "the file is not well-formed XML: it is not valid UTF-8 text".to_string(),
-            ));
+            )]);
         }
     };
-    let document = roxmltree::Document::parse(text)
-        .map_err(|error| Problem::new(error.pos().row, format!("the file is not well-formed XML: {error}")))?;
+    let document = roxmltree::Document::parse(text).map_err(|error| {
+        vec![Problem::new(
+            Code::NotXml,
+            error.pos().row,
+            format!("the file is not well-formed XML: {error}"),
+        )]
+    })?;
 
     let element = document.root_element();
-    let line_at = |offset: usize| document.text_pos_at(offset).row;
-    let element_line = line_at(element.range().start);
+    let spot_at = |offset: usize| {
+        let position = document.text_pos_at(offset);
+        Spot {
+            line: position.row,
+            column: position.col,
+        }
+    };
+    let root_spot = spot_at(element.range().start);
     let name = element.tag_name().name();
     if name != "composition" {
-        return Err(Problem::new(
-            element_line,
+        return Err(vec![Problem::new(
+            Code::RootNotComposition,
+            root_spot.line,
             format!("the root element is <{name}>, not <composition>"),
-        ));
+        )]);
     }
 
-    // The written value of an attribute with the line it is on; the attribute has no namespace.
-    let attribute = |name: &str| {
+    // The written value of an attribute with the place it is at; the attribute has no namespace.
+    let attribute = |name: &str| -> Written {
         element
             .attributes()
             .find(|attribute| attribute.namespace().is_none() && attribute.name() == name)
-            .map(|attribute| (trimmed(attribute.value()), line_at(attribute.range().start)))
+            .map(|attribute| (trimmed(attribute.value()), spot_at(attribute.range().start)))
     };
 
-    let version = attribute("version");
-    let Some((written, line)) = version else {
-        return Err(Problem::new(
-            element_line,
+    let mut problems = Vec::new();
+    let version = keep(version(attribute("version"), root_spot), &mut problems);
+    let width = keep(size(attribute("width"), "width", root_spot), &mut problems);
+    let height = keep(size(attribute("height"), "height", root_spot), &mut problems);
+    let fps = keep(fps(attribute("fps")), &mut problems);
+    let duration = keep(duration(attribute("duration"), root_spot), &mut problems);
+    let background = keep(background(attribute("background")), &mut problems);
+
+    match (version, width, height, fps, duration, background) {
+        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) => Ok(Root {
+            id: attribute("id").map(|(written, _)| written.to_string()),
+            width,
+            height,
+            fps,
+            duration,
+            frames: frame_count(duration, fps),
+            background,
+        }),
+        _ => {
+            // Stable: two problems at one place stay in the order the attributes were judged.
+            problems.sort_by_key(|found| (found.spot.line, found.spot.column));
+            Err(problems.into_iter().map(|found| found.problem).collect())
+        }
+    }
+}
+
+/// The value of a judgement, or `None` after the problem has been put on the list.
+fn keep<T>(judged: Result<T, Found>, problems: &mut Vec<Found>) -> Option<T> {
+    match judged {
+        Ok(value) => Some(value),
+        Err(found) => {
+            problems.push(found);
+            None
+        }
+    }
+}
+
+/// The `version`: written, and the only one that is read.
+fn version(written: Written, root: Spot) -> Result<(), Found> {
+    let Some((written, spot)) = written else {
+        return Err(found(
+            Code::VersionMissing,
+            root,
             "<composition> needs the attribute `version`; the versions read are: 1".to_string(),
         ));
     };
-    if value::whole_number(written) != Some(VERSION) {
-        return Err(Problem::new(
-            line,
+    if value::whole_number(written) == Some(VERSION) {
+        Ok(())
+    } else {
+        Err(found(
+            Code::VersionNotRead,
+            spot,
             format!(
                 "`version=\"{}\"` is not a version this program reads; the versions read are: 1",
                 shown(written)
             ),
-        ));
+        ))
     }
-
-    let width = size(attribute("width"), "width", element_line)?;
-    let height = size(attribute("height"), "height", element_line)?;
-
-    let fps = match attribute("fps") {
-        None => DEFAULT_FPS,
-        Some((written, line)) => match value::whole_number(written) {
-            Some(fps) if (i64::from(MIN_FPS)..=i64::from(MAX_FPS)).contains(&fps) => fps as u32,
-            _ => {
-                return Err(Problem::new(
-                    line,
-                    format!("`fps` must be a whole number from {MIN_FPS} to {MAX_FPS}, not {}", shown(written)),
-                ))
-            }
-        },
-    };
-
-    let duration = match attribute("duration") {
-        None => return Err(Problem::new(element_line, "<composition> needs a `duration` above 0".to_string())),
-        Some((written, line)) => match value::time(written) {
-            None => {
-                return Err(Problem::new(
-                    line,
-                    format!(
-                        "`duration=\"{}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
-                        shown(written)
-                    ),
-                ))
-            }
-            Some(time) if !time.is_positive() => {
-                return Err(Problem::new(line, format!("`duration=\"{}\"` must be above 0", shown(written))))
-            }
-            Some(time) => time,
-        },
-    };
-
-    let background = match attribute("background") {
-        None => Colour::BLACK,
-        Some((written, line)) => match value::colour(written) {
-            Some([red, green, blue, alpha]) => Colour { red, green, blue, alpha },
-            None => {
-                return Err(Problem::new(
-                    line,
-                    format!(
-                        "`background=\"{}\"` is not a colour written as #rrggbb or #rrggbbaa",
-                        shown(written)
-                    ),
-                ))
-            }
-        },
-    };
-
-    Ok(Root {
-        id: attribute("id").map(|(written, _)| written.to_string()),
-        width,
-        height,
-        fps,
-        duration,
-        frames: frame_count(duration, fps),
-        background,
-    })
 }
 
 /// A `width` or a `height`: an even whole number from 2 to 8192.
-fn size(written: Option<(&str, u32)>, name: &str, element_line: u32) -> Result<u32, Problem> {
-    let Some((written, line)) = written else {
-        return Err(Problem::new(element_line, format!("<composition> needs the attribute `{name}`")));
+fn size(written: Written, name: &str, root: Spot) -> Result<u32, Found> {
+    let Some((written, spot)) = written else {
+        return Err(found(
+            Code::SizeMissing,
+            root,
+            format!("<composition> needs the attribute `{name}`, an even whole number from {MIN_SIZE} to {MAX_SIZE}"),
+        ));
     };
     match value::whole_number(written) {
         Some(size) if (MIN_SIZE..=MAX_SIZE).contains(&size) && size % 2 == 0 => Ok(size as u32),
-        _ => Err(Problem::new(
-            line,
+        _ => Err(found(
+            Code::SizeNotAccepted,
+            spot,
             format!(
                 "`{name}` must be an even whole number from {MIN_SIZE} to {MAX_SIZE}, not {}",
+                shown(written)
+            ),
+        )),
+    }
+}
+
+/// The `fps`: a whole number from 1 to 240, and 30 when it is not written.
+fn fps(written: Written) -> Result<u32, Found> {
+    let Some((written, spot)) = written else {
+        return Ok(DEFAULT_FPS);
+    };
+    match value::whole_number(written) {
+        Some(fps) if (i64::from(MIN_FPS)..=i64::from(MAX_FPS)).contains(&fps) => Ok(fps as u32),
+        _ => Err(found(
+            Code::FpsNotAccepted,
+            spot,
+            format!("`fps` must be a whole number from {MIN_FPS} to {MAX_FPS}, not {}", shown(written)),
+        )),
+    }
+}
+
+/// The `duration`: a time above 0, in seconds.
+fn duration(written: Written, root: Spot) -> Result<Time, Found> {
+    let Some((written, spot)) = written else {
+        return Err(found(
+            Code::DurationMissing,
+            root,
+            "<composition> needs a `duration` above 0".to_string(),
+        ));
+    };
+    match value::time(written) {
+        None => Err(found(
+            Code::DurationNotATime,
+            spot,
+            format!(
+                "`duration=\"{}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
+                shown(written)
+            ),
+        )),
+        Some(time) if !time.is_positive() => Err(found(
+            Code::DurationNotAboveZero,
+            spot,
+            format!("`duration=\"{}\"` must be above 0", shown(written)),
+        )),
+        Some(time) => Ok(time),
+    }
+}
+
+/// The `background`: one colour, and black when it is not written.
+fn background(written: Written) -> Result<Colour, Found> {
+    let Some((written, spot)) = written else {
+        return Ok(Colour::BLACK);
+    };
+    match value::colour(written) {
+        Some([red, green, blue, alpha]) => Ok(Colour { red, green, blue, alpha }),
+        None => Err(found(
+            Code::BackgroundNotAColour,
+            spot,
+            format!(
+                "`background=\"{}\"` is not a colour written as #rrggbb or #rrggbbaa",
                 shown(written)
             ),
         )),

@@ -8,7 +8,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-pub use notation::{Colour, Problem, Root};
+pub use notation::{Code, Colour, Problem, Root};
 
 /// The name of the composition file in a project folder.
 pub const COMPOSITION_FILE: &str = "composition.xml";
@@ -25,8 +25,37 @@ pub struct Project {
 pub enum OpenError {
     /// There is no composition to read. The paths are as the caller wrote them.
     NoProject(NoProject),
-    /// The composition's root is not valid.
-    Invalid(Problem),
+    /// The composition's root is not valid: every problem found, in the order of the file's lines.
+    /// There is at least one.
+    Invalid(Vec<Report>),
+}
+
+/// One problem of a file of the project, with the name of the file.
+///
+/// It prints as one line, `file, line N: code: message` (`docs/spec/check-command.md` section 4),
+/// and the line is the same whether the project has one file or many.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Report {
+    file: String,
+    problem: Problem,
+}
+
+impl Report {
+    /// The file the problem is in, as the path from the project folder written with `/`.
+    pub fn file(&self) -> &str {
+        &self.file
+    }
+
+    /// The problem, with its code, its line and its message.
+    pub fn problem(&self) -> &Problem {
+        &self.problem
+    }
+}
+
+impl fmt::Display for Report {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}, {}", self.file, self.problem)
+    }
 }
 
 /// The reasons there is no composition to read in a folder.
@@ -44,7 +73,7 @@ pub enum NoProject {
 
 impl Project {
     /// Opens the project in `folder`: reads its `composition.xml`, for reading only, and judges the
-    /// root. Nothing is created, changed or removed.
+    /// root, reporting every problem it has. Nothing is created, changed or removed.
     pub fn open(folder: &Path) -> Result<Project, OpenError> {
         match fs::metadata(folder) {
             Err(error) if error.kind() == ErrorKind::NotFound => {
@@ -61,7 +90,17 @@ impl Project {
             }
             Err(error) => return Err(OpenError::NoProject(NoProject::Unreadable(folder.to_path_buf(), reason(&error)))),
         };
-        let root = notation::read_root(&source).map_err(OpenError::Invalid)?;
+        let root = notation::read_root(&source).map_err(|problems| {
+            OpenError::Invalid(
+                problems
+                    .into_iter()
+                    .map(|problem| Report {
+                        file: COMPOSITION_FILE.to_string(),
+                        problem,
+                    })
+                    .collect(),
+            )
+        })?;
         Ok(Project {
             folder: folder.to_path_buf(),
             root,
@@ -105,7 +144,15 @@ impl fmt::Display for OpenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OpenError::NoProject(no_project) => write!(f, "No project: {no_project}"),
-            OpenError::Invalid(problem) => write!(f, "{problem}"),
+            OpenError::Invalid(reports) => {
+                for (index, report) in reports.iter().enumerate() {
+                    if index > 0 {
+                        writeln!(f)?;
+                    }
+                    write!(f, "{report}")?;
+                }
+                Ok(())
+            }
         }
     }
 }

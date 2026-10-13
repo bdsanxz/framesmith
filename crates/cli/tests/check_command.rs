@@ -135,7 +135,7 @@ fn a_missing_or_wrong_version_is_reported_with_its_line_and_the_versions_read_an
     assert_eq!(code, Some(1));
     assert_eq!(
         text,
-        "line 1: <composition> needs the attribute `version`; the versions read are: 1\nInvalid: the project is not valid (composition.xml)\n"
+        "composition.xml, line 1: FS-0004: <composition> needs the attribute `version`; the versions read are: 1\nInvalid: the project is not valid (composition.xml)\n"
     );
 
     let (text, code) = check_root(
@@ -145,7 +145,7 @@ fn a_missing_or_wrong_version_is_reported_with_its_line_and_the_versions_read_an
     assert_eq!(code, Some(1));
     assert_eq!(
         text,
-        "line 3: `version=\"2\"` is not a version this program reads; the versions read are: 1\nInvalid: the project is not valid (composition.xml)\n"
+        "composition.xml, line 3: FS-0005: `version=\"2\"` is not a version this program reads; the versions read are: 1\nInvalid: the project is not valid (composition.xml)\n"
     );
 }
 
@@ -163,7 +163,7 @@ fn a_size_that_is_not_an_even_whole_number_from_2_to_8192_is_reported_with_its_l
         assert_eq!(code, Some(1), "{name}");
         assert_eq!(
             text,
-            format!("line 3: `width` must be an even whole number from 2 to 8192, not {value}\nInvalid: the project is not valid (composition.xml)\n"),
+            format!("composition.xml, line 3: FS-0007: `width` must be an even whole number from 2 to 8192, not {value}\nInvalid: the project is not valid (composition.xml)\n"),
             "{name}"
         );
     }
@@ -173,7 +173,7 @@ fn a_size_that_is_not_an_even_whole_number_from_2_to_8192_is_reported_with_its_l
     );
     assert_eq!(code, Some(1));
     assert!(
-        text.starts_with("line 2: `height` must be an even whole number from 2 to 8192, not 361\n"),
+        text.starts_with("composition.xml, line 2: FS-0007: `height` must be an even whole number from 2 to 8192, not 361\n"),
         "{text}"
     );
 }
@@ -183,48 +183,55 @@ fn a_wrong_fps_duration_or_background_is_reported_with_its_line_and_the_form_and
     let cases = [
         (
             "fps-zero",
+            "FS-0008",
             r#"fps="0" duration="2""#,
             "`fps` must be a whole number from 1 to 240, not 0",
         ),
         (
             "fps-above",
+            "FS-0008",
             r#"fps="241" duration="2""#,
             "`fps` must be a whole number from 1 to 240, not 241",
         ),
         (
             "fps-fraction",
+            "FS-0008",
             r#"fps="29.97" duration="2""#,
             "`fps` must be a whole number from 1 to 240, not 29.97",
         ),
-        ("duration-zero", r#"duration="0""#, "`duration=\"0\"` must be above 0"),
+        ("duration-zero", "FS-0011", r#"duration="0""#, "`duration=\"0\"` must be above 0"),
         (
             "duration-negative",
+            "FS-0010",
             r#"duration="-5""#,
             "`duration=\"-5\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
         ),
         (
             "duration-word",
+            "FS-0010",
             r#"duration="long""#,
             "`duration=\"long\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
         ),
         (
             "background-name",
+            "FS-0012",
             r##"duration="2" background="red""##,
             "`background=\"red\"` is not a colour written as #rrggbb or #rrggbbaa",
         ),
         (
             "background-two",
+            "FS-0012",
             r##"duration="2" background="#000000, #ffffff""##,
             "`background=\"#000000, #ffffff\"` is not a colour written as #rrggbb or #rrggbbaa",
         ),
     ];
-    for (name, attributes, message) in cases {
+    for (name, fs_code, attributes, message) in cases {
         let root = format!("<composition version=\"1\" width=\"640\" height=\"360\"\n {attributes}/>");
         let (text, code) = check_root(name, &root);
         assert_eq!(code, Some(1), "{name}");
         assert_eq!(
             text,
-            format!("line 2: {message}\nInvalid: the project is not valid (composition.xml)\n"),
+            format!("composition.xml, line 2: {fs_code}: {message}\nInvalid: the project is not valid (composition.xml)\n"),
             "{name}"
         );
     }
@@ -234,7 +241,10 @@ fn a_wrong_fps_duration_or_background_is_reported_with_its_line_and_the_form_and
 fn a_file_that_is_not_xml_is_reported_and_exits_1() {
     let (text, code) = check_root("not-xml", "<composition version=\"1\">\n</box>");
     assert_eq!(code, Some(1));
-    assert!(text.starts_with("line 2: the file is not well-formed XML: "), "{text}");
+    assert!(
+        text.starts_with("composition.xml, line 2: FS-0002: the file is not well-formed XML: "),
+        "{text}"
+    );
     assert!(text.ends_with("Invalid: the project is not valid (composition.xml)\n"), "{text}");
 }
 

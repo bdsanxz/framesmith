@@ -2,12 +2,19 @@
 
 use notation::{read_root, Problem};
 
-/// The first problem of a root with these attributes, written on one line.
+/// The one problem of a root with these attributes, written on one line.
 fn problem(attributes: &str) -> Problem {
-    let text = format!("<composition {attributes}/>");
-    match read_root(text.as_bytes()) {
-        Ok(root) => panic!("{attributes} was read: {root:?}"),
-        Err(problem) => problem,
+    only(format!("<composition {attributes}/>").as_bytes())
+}
+
+/// The one problem of a file: it is read, it is not valid, and there is exactly one report.
+fn only(source: &[u8]) -> Problem {
+    match read_root(source) {
+        Ok(root) => panic!("{} was read: {root:?}", String::from_utf8_lossy(source)),
+        Err(mut problems) => {
+            assert_eq!(problems.len(), 1, "{problems:?}");
+            problems.remove(0)
+        }
     }
 }
 
@@ -19,7 +26,7 @@ fn a_root_with_no_version_is_reported_with_the_versions_read() {
     assert_eq!(problem.line(), 1);
     assert_eq!(
         problem.to_string(),
-        "line 1: <composition> needs the attribute `version`; the versions read are: 1"
+        "line 1: FS-0004: <composition> needs the attribute `version`; the versions read are: 1"
     );
 }
 
@@ -29,7 +36,7 @@ fn a_version_other_than_1_is_reported_with_the_versions_read() {
         let problem = problem(&format!(r#"version="{version}" {GOOD}"#));
         assert_eq!(
             problem.to_string(),
-            format!("line 1: `version=\"{version}\"` is not a version this program reads; the versions read are: 1"),
+            format!("line 1: FS-0005: `version=\"{version}\"` is not a version this program reads; the versions read are: 1"),
             "{version}"
         );
     }
@@ -57,7 +64,7 @@ fn a_size_that_is_odd_small_large_or_not_whole_is_reported_with_the_rule() {
             let text = format!("version=\"1\" {name}=\"{value}\" {other}=\"360\" duration=\"2\"");
             assert_eq!(
                 problem(&text).to_string(),
-                format!("line 1: `{name}` must be an even whole number from 2 to 8192, not {value}"),
+                format!("line 1: FS-0007: `{name}` must be an even whole number from 2 to 8192, not {value}"),
                 "{name}={value}"
             );
         }
@@ -68,11 +75,11 @@ fn a_size_that_is_odd_small_large_or_not_whole_is_reported_with_the_rule() {
 fn a_missing_width_or_height_is_reported_at_the_root() {
     assert_eq!(
         problem(r#"version="1" height="360" duration="2""#).to_string(),
-        "line 1: <composition> needs the attribute `width`"
+        "line 1: FS-0006: <composition> needs the attribute `width`, an even whole number from 2 to 8192"
     );
     assert_eq!(
         problem(r#"version="1" width="640" duration="2""#).to_string(),
-        "line 1: <composition> needs the attribute `height`"
+        "line 1: FS-0006: <composition> needs the attribute `height`, an even whole number from 2 to 8192"
     );
 }
 
@@ -82,7 +89,7 @@ fn an_fps_that_is_not_a_whole_number_from_1_to_240_is_reported_with_the_form() {
         let problem = problem(&format!(r#"version="1" width="640" height="360" fps="{value}" duration="2""#));
         assert_eq!(
             problem.to_string(),
-            format!("line 1: `fps` must be a whole number from 1 to 240, not {value}"),
+            format!("line 1: FS-0008: `fps` must be a whole number from 1 to 240, not {value}"),
             "{value}"
         );
     }
@@ -94,7 +101,7 @@ fn a_duration_of_zero_is_reported_as_not_above_zero() {
         let problem = problem(&format!(r#"version="1" width="640" height="360" duration="{value}""#));
         assert_eq!(
             problem.to_string(),
-            format!("line 1: `duration=\"{value}\"` must be above 0"),
+            format!("line 1: FS-0011: `duration=\"{value}\"` must be above 0"),
             "{value}"
         );
     }
@@ -121,7 +128,7 @@ fn a_duration_that_is_negative_or_not_a_number_is_reported_with_the_form() {
         let problem = problem(&format!(r#"version="1" width="640" height="360" duration="{value}""#));
         assert_eq!(
             problem.to_string(),
-            format!("line 1: `duration=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
+            format!("line 1: FS-0010: `duration=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
             "{value}"
         );
     }
@@ -131,7 +138,7 @@ fn a_duration_that_is_negative_or_not_a_number_is_reported_with_the_form() {
 fn a_missing_duration_is_reported_at_the_root() {
     assert_eq!(
         problem(r#"version="1" width="640" height="360""#).to_string(),
-        "line 1: <composition> needs a `duration` above 0"
+        "line 1: FS-0009: <composition> needs a `duration` above 0"
     );
 }
 
@@ -155,7 +162,7 @@ fn a_background_that_is_not_one_colour_is_reported_with_the_form() {
         ));
         assert_eq!(
             problem.to_string(),
-            format!("line 1: `background=\"{value}\"` is not a colour written as #rrggbb or #rrggbbaa"),
+            format!("line 1: FS-0012: `background=\"{value}\"` is not a colour written as #rrggbb or #rrggbbaa"),
             "{value}"
         );
     }
@@ -164,76 +171,49 @@ fn a_background_that_is_not_one_colour_is_reported_with_the_form() {
 #[test]
 fn a_problem_is_on_the_line_of_its_attribute() {
     let text = "<?xml version=\"1.0\"?>\n<!-- a\n comment -->\n<composition\n  version=\"1\"\n  width=\"640\"\n  height=\"361\"\n  duration=\"2\"\n  background=\"red\">\n</composition>\n";
-    let problem = read_root(text.as_bytes()).unwrap_err();
-    assert_eq!(problem.line(), 7);
+    let problems = read_root(text.as_bytes()).unwrap_err();
+    assert_eq!(problems.len(), 2, "{problems:?}");
+    assert_eq!(problems[0].line(), 7);
     assert_eq!(
-        problem.to_string(),
-        "line 7: `height` must be an even whole number from 2 to 8192, not 361"
+        problems[0].to_string(),
+        "line 7: FS-0007: `height` must be an even whole number from 2 to 8192, not 361"
     );
+    assert_eq!(problems[1].line(), 9);
+    assert!(problems[1].message().starts_with("`background=\"red\"`"));
 
     let text = text.replace("height=\"361\"", "height=\"360\"");
-    let problem = read_root(text.as_bytes()).unwrap_err();
+    let problem = only(text.as_bytes());
     assert_eq!(problem.line(), 9);
-    assert!(problem.message().starts_with("`background=\"red\"`"));
 }
 
 #[test]
 fn a_missing_attribute_is_reported_on_the_line_the_root_opens() {
     let text = "<!-- first -->\n\n<composition\n  version=\"1\"\n  height=\"360\"\n  duration=\"2\"/>";
-    let problem = read_root(text.as_bytes()).unwrap_err();
+    let problem = only(text.as_bytes());
     assert_eq!(problem.line(), 3);
-    assert_eq!(problem.message(), "<composition> needs the attribute `width`");
-}
-
-#[test]
-fn the_first_problem_is_reported_in_the_order_version_size_rate_duration_background() {
-    let wrong = [
-        ("version", "9"),
-        ("width", "1"),
-        ("height", "1"),
-        ("fps", "0"),
-        ("duration", "0"),
-        ("background", "red"),
-    ];
-    let right = [
-        ("version", "1"),
-        ("width", "640"),
-        ("height", "360"),
-        ("fps", "30"),
-        ("duration", "2"),
-        ("background", "#000000"),
-    ];
-    for first in 0..wrong.len() {
-        // The attributes before `first` are right, the ones from `first` on are wrong.
-        let attributes: Vec<String> = (0..wrong.len())
-            .map(|at| {
-                let (name, value) = if at < first { right[at] } else { wrong[at] };
-                format!("{name}=\"{value}\"")
-            })
-            .collect();
-        let problem = problem(&attributes.join(" "));
-        assert!(
-            problem.message().contains(&format!("`{}", wrong[first].0)),
-            "{} first: {problem}",
-            wrong[first].0
-        );
-    }
+    assert_eq!(
+        problem.message(),
+        "<composition> needs the attribute `width`, an even whole number from 2 to 8192"
+    );
 }
 
 #[test]
 fn a_root_that_is_not_a_composition_is_reported() {
-    let problem = read_root(b"\n<html>\n</html>").unwrap_err();
-    assert_eq!(problem.to_string(), "line 2: the root element is <html>, not <composition>");
+    let problem = only(b"\n<html>\n</html>");
+    assert_eq!(
+        problem.to_string(),
+        "line 2: FS-0003: the root element is <html>, not <composition>"
+    );
 }
 
 #[test]
 fn a_file_that_is_not_xml_is_reported_with_the_readers_reason_and_line() {
-    let problem = read_root(b"<composition version=\"1\">\n<box>\n</composition>").unwrap_err();
+    let problem = only(b"<composition version=\"1\">\n<box>\n</composition>");
     assert_eq!(problem.line(), 3);
     assert!(problem.message().starts_with("the file is not well-formed XML: "), "{problem}");
 
     for text in ["", "not xml at all", "<composition", "<composition version=1/>", "<a/><b/>"] {
-        let problem = read_root(text.as_bytes()).unwrap_err();
+        let problem = only(text.as_bytes());
         assert!(
             problem.message().starts_with("the file is not well-formed XML: "),
             "{text:?}: {problem}"
@@ -246,10 +226,10 @@ fn a_file_that_is_not_utf_8_is_reported_on_the_line_of_the_first_bad_byte() {
     let mut text = b"<composition version=\"1\"\n width=\"640\" id=\"".to_vec();
     text.push(0xff);
     text.extend_from_slice(b"\"/>");
-    let problem = read_root(&text).unwrap_err();
+    let problem = only(&text);
     assert_eq!(
         problem.to_string(),
-        "line 2: the file is not well-formed XML: it is not valid UTF-8 text"
+        "line 2: FS-0001: the file is not well-formed XML: it is not valid UTF-8 text"
     );
 }
 
@@ -268,7 +248,7 @@ fn a_message_is_one_line_of_plain_text_whatever_the_value_holds() {
                 .collect();
             attributes.push(format!("{attribute}=\"{value}\""));
             let text = format!("<composition {}/>", attributes.join(" "));
-            let message = read_root(text.as_bytes()).unwrap_err().to_string();
+            let message = only(text.as_bytes()).to_string();
             assert!(
                 !message.contains(['\n', '\r', '\u{1b}', '\t', '\u{85}']),
                 "{attribute}={value:?}: {message:?}"
@@ -276,30 +256,26 @@ fn a_message_is_one_line_of_plain_text_whatever_the_value_holds() {
             assert!(message.chars().count() < 200, "{attribute}: {} characters", message.chars().count());
         }
     }
-    let message = read_root(b"<composition version=\"a&#10;b\"/>").unwrap_err().to_string();
+    let message = only(b"<composition version=\"a&#10;b\" width=\"2\" height=\"2\" duration=\"1\"/>").to_string();
     assert_eq!(
         message,
-        "line 1: `version=\"a\\u{a}b\"` is not a version this program reads; the versions read are: 1"
+        "line 1: FS-0005: `version=\"a\\u{a}b\"` is not a version this program reads; the versions read are: 1"
     );
 }
 
 #[test]
 fn a_long_value_is_cut_after_80_characters() {
     let value = "x".repeat(81);
-    let message = read_root(format!(r#"<composition version="1" width="{value}"/>"#).as_bytes())
-        .unwrap_err()
-        .to_string();
+    let message = only(format!(r#"<composition version="1" width="{value}" height="2" duration="1"/>"#).as_bytes()).to_string();
     assert_eq!(
         message,
         format!(
-            "line 1: `width` must be an even whole number from 2 to 8192, not {}...",
+            "line 1: FS-0007: `width` must be an even whole number from 2 to 8192, not {}...",
             "x".repeat(80)
         )
     );
     let value = "x".repeat(80);
-    let message = read_root(format!(r#"<composition version="1" width="{value}"/>"#).as_bytes())
-        .unwrap_err()
-        .to_string();
+    let message = only(format!(r#"<composition version="1" width="{value}" height="2" duration="1"/>"#).as_bytes()).to_string();
     assert!(message.ends_with(&format!("not {value}")), "{message}");
 }
 
@@ -315,7 +291,10 @@ fn no_message_carries_colour_or_a_control_character() {
         r#"version="1" width="4" height="4" duration="1" background="red""#,
     ];
     for attributes in attributes {
-        let message = problem(attributes).to_string();
-        assert!(message.chars().all(|c| !c.is_control()), "{message:?}");
+        let text = format!("<composition {attributes}/>");
+        for problem in read_root(text.as_bytes()).unwrap_err() {
+            let message = problem.to_string();
+            assert!(message.chars().all(|c| !c.is_control()), "{message:?}");
+        }
     }
 }
