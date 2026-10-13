@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// The command the reference installs.
-const COMMAND: &str = "hyperframes";
+pub const COMMAND: &str = "hyperframes";
 /// The program its command is a script of; the reference cannot start without it.
 const RUNTIME: &str = "node";
 /// The quality preset used when nothing else is asked.
@@ -149,24 +149,30 @@ pub fn version(blackbox: &Path) -> Result<String, String> {
     }
 }
 
-/// The reference as a yardstick program: present when its command is installed in the folder a run
-/// from here would use (`default_folder`). Looking starts nothing.
+/// Why the reference cannot be started from `folder` with `path` as the search path, or `Ok` when it
+/// can: its command is installed in the folder and its runtime is a file in a folder of the path.
+/// Looking starts nothing.
+pub fn absence(folder: &Path, path: &std::ffi::OsStr) -> Result<(), String> {
+    if installed(&absolute(folder)).is_none() {
+        return Err(format!("the reference is not installed under {}", folder.display()));
+    }
+    // Its command is a script of its own runtime, which has to be on the search path to start it.
+    if measure::yardstick::missing_on(path, &[RUNTIME]).is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "the reference is installed under {} but its runtime, {RUNTIME}, was not found in any folder of the search path",
+            folder.display()
+        ))
+    }
+}
+
+/// The reference as a yardstick program: present when [`absence`] finds nothing against it, for the
+/// folder a run from here would use (`default_folder`) and the search path of the run.
 pub fn needs() -> measure::yardstick::Needs {
     fn present() -> Result<(), String> {
         let folder = default_folder(&std::env::current_dir().unwrap_or_default());
-        if installed(&absolute(&folder)).is_none() {
-            return Err(format!("the reference is not installed under {}", folder.display()));
-        }
-        // Its command is a script of its own runtime, which has to be on the search path to start it.
-        let path = std::env::var_os("PATH").unwrap_or_default();
-        if measure::yardstick::missing_on(&path, &[RUNTIME]).is_empty() {
-            Ok(())
-        } else {
-            Err(format!(
-                "the reference is installed under {} but its runtime, {RUNTIME}, was not found in any folder of the search path",
-                folder.display()
-            ))
-        }
+        absence(&folder, &std::env::var_os("PATH").unwrap_or_default())
     }
     measure::yardstick::Needs {
         program: "the reference",
