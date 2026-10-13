@@ -31,7 +31,8 @@ fn late(by: u32) -> Spec {
 }
 
 #[test]
-fn the_appearance_and_disappearance_frames_are_reported_for_both_videos() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_the_appearance_and_disappearance_frames_are_reported_for_both_videos() {
     let dir = folder("timing_equal");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
@@ -44,7 +45,8 @@ fn the_appearance_and_disappearance_frames_are_reported_for_both_videos() {
 }
 
 #[test]
-fn one_frame_apart_passes_and_two_frames_apart_fails() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_one_frame_apart_passes_and_two_frames_apart_fails() {
     let dir = folder("timing_limit");
     let (a, b) = pair(&dir, &late(1), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
@@ -59,7 +61,8 @@ fn one_frame_apart_passes_and_two_frames_apart_fails() {
 }
 
 #[test]
-fn a_clip_three_frames_late_fails_and_names_the_event_and_both_frames() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_clip_three_frames_late_fails_and_names_the_event_and_both_frames() {
     let dir = folder("timing_late");
     // Ours starts three frames late and ends where it should.
     let ours = Spec {
@@ -79,7 +82,8 @@ fn a_clip_three_frames_late_fails_and_names_the_event_and_both_frames() {
 }
 
 #[test]
-fn the_tracked_position_passes_within_one_pixel_and_reports_the_measured_value() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_the_tracked_position_passes_within_one_pixel_and_reports_the_measured_value() {
     let dir = folder("timing_position");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = timing::compare_files(&tools(), &a, &b, &options()).unwrap();
@@ -92,7 +96,8 @@ fn the_tracked_position_passes_within_one_pixel_and_reports_the_measured_value()
 }
 
 #[test]
-fn an_element_five_pixels_off_at_the_end_fails_and_names_the_frame() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_an_element_five_pixels_off_at_the_end_fails_and_names_the_frame() {
     let dir = folder("timing_off");
     let ours = Spec {
         mover: (10, 50, 20, 185),
@@ -133,7 +138,8 @@ fn an_element_five_pixels_off_at_the_end_fails_and_names_the_frame() {
 }
 
 #[test]
-fn a_failure_gives_the_measured_value_and_the_threshold() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_failure_gives_the_measured_value_and_the_threshold() {
     let dir = folder("timing_report");
     let ours = Spec {
         clip: (23, 40),
@@ -150,7 +156,8 @@ fn a_failure_gives_the_measured_value_and_the_threshold() {
 }
 
 #[test]
-fn a_clip_missing_from_one_video_fails() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_clip_missing_from_one_video_fails() {
     let dir = folder("timing_missing");
     let nothing = Spec {
         clip: (1000, 1001),
@@ -164,7 +171,8 @@ fn a_clip_missing_from_one_video_fails() {
 }
 
 #[test]
-fn a_clip_that_stays_to_the_end_in_both_videos_has_no_disappearance_to_compare() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_clip_that_stays_to_the_end_in_both_videos_has_no_disappearance_to_compare() {
     let dir = folder("timing_stays");
     let stays = Spec {
         clip: (20, 60),
@@ -177,7 +185,8 @@ fn a_clip_that_stays_to_the_end_in_both_videos_has_no_disappearance_to_compare()
 }
 
 #[test]
-fn different_frame_counts_are_noted_and_only_shared_frames_are_compared() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_different_frame_counts_are_noted_and_only_shared_frames_are_compared() {
     let dir = folder("timing_counts");
     let shorter = Spec {
         frames: 45,
@@ -214,7 +223,8 @@ fn the_centre_of_a_flat_element_is_found_to_a_fraction_of_a_pixel() {
 }
 
 #[test]
-fn asking_for_nothing_to_measure_is_a_mistake() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_asking_for_nothing_to_measure_is_a_mistake() {
     let dir = folder("timing_nothing");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let asked = Options {
@@ -225,7 +235,8 @@ fn asking_for_nothing_to_measure_is_a_mistake() {
 }
 
 #[test]
-fn a_region_limits_where_the_element_is_looked_for_and_positions_stay_those_of_the_whole_picture() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_region_limits_where_the_element_is_looked_for_and_positions_stay_those_of_the_whole_picture() {
     let dir = folder("timing_region");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let whole = Options {
@@ -268,7 +279,8 @@ fn a_region_limits_where_the_element_is_looked_for_and_positions_stay_those_of_t
 }
 
 #[test]
-fn in_a_region_every_colour_may_count_and_a_five_pixel_gap_is_still_measured() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_in_a_region_every_colour_may_count_and_a_five_pixel_gap_is_still_measured() {
     let dir = folder("timing_region_wide");
     let ours = Spec {
         mover: (10, 50, 20, 185),
@@ -300,7 +312,8 @@ fn in_a_region_every_colour_may_count_and_a_five_pixel_gap_is_still_measured() {
 }
 
 #[test]
-fn a_region_outside_the_picture_is_a_mistake() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_region_outside_the_picture_is_a_mistake() {
     let dir = folder("timing_region_outside");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let asked = Options {

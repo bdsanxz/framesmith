@@ -1,43 +1,80 @@
+# The quality gates of Framesmith on a hosted macOS runner: formatting, static analysis, the tests and
+# the licence gate, each a job of its own so that the run reports each by name. Hosted jobs run
+# on `main` and on pull requests only (decision A7); work branches rely on the local gates
+# (.githooks/pre-push). Every job runs scripts/gates.sh, the script the local gates run.
+# No job installs a browser or FFmpeg: the only installs are the Rust toolchain and cargo-deny.
+# The behaviour is specified in docs/dev/gates.md.
 name: gates
 
-# The four quality gates (formatting, static analysis, tests, licences) on every push and pull request.
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: gates-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_NET_RETRY: 5
+
 jobs:
-  gates:
-    # macOS on Apple silicon, the target of this sprint.
+  formatting:
+    name: formatting
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (the one rust-toolchain.toml names)
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: formatting
+        run: scripts/gates.sh --hosted --gate format
+
+  static-analysis:
+    name: static analysis
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (the one rust-toolchain.toml names)
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: static analysis
+        run: scripts/gates.sh --hosted --gate lint
+
+  tests:
+    name: tests
     runs-on: macos-latest
     timeout-minutes: 60
-    env:
-      CARGO_TERM_COLOR: never
     steps:
-      - uses: actions/checkout@v4.2.2
-
-      - name: Check the runner is Apple silicon
-        run: test "$(uname -m)" = "arm64"
-
-      - name: Install the Rust toolchain (rustfmt, clippy)
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      # Tests marked "reference machine only" (hardware encoder, graphics card) and yardstick tests
+      # (they start FFmpeg from outside, to compare) are ignored here: the job lists each by name as
+      # not run, and never counts one as passed (decision A27).
+      - name: tests
+        run: scripts/gates.sh --hosted --gate test
 
-      - name: Cache cargo-deny
-        id: cache-deny
-        uses: actions/cache@v4.2.0
+  licence-gate:
+    name: licence gate
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (the one rust-toolchain.toml names)
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: cargo-deny 0.20.2 from the cache
+        id: deny-cache
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/bin/cargo-deny
           key: cargo-deny-0.20.2-${{ runner.os }}-${{ runner.arch }}
-
-      - name: Install cargo-deny
-        if: steps.cache-deny.outputs.cache-hit != 'true'
-        run: cargo install cargo-deny --version 0.20.2 --locked
-
-      # The comparison tool's tests make their test videos with ffmpeg.
-      - name: Install ffmpeg
-        run: brew install ffmpeg
-
-      - name: Run the four gates
-        run: scripts/gates.sh
+      - name: cargo-deny 0.20.2 (built from the crates.io source, at the version the local gates use)
+        if: steps.deny-cache.outputs.cache-hit != 'true'
+        run: cargo install --locked cargo-deny --version 0.20.2
+      - name: licence gate
+        run: scripts/gates.sh --hosted --gate licence

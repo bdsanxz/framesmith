@@ -4,9 +4,8 @@
 
 [graph]
 all-features = true
-targets = [
-    "aarch64-apple-darwin",
-]
+# No `targets` line: every package in Cargo.lock is checked, whatever system it is built for, so that
+# a dependency used only on Windows or Linux is not missed when those systems are added.
 
 [licenses]
 allow = [
@@ -26,6 +25,8 @@ allow = [
 confidence-threshold = 0.93
 # A licence in the list that no current dependency uses is fine.
 unused-allowed-license = "allow"
+# Crates used only for tests and tools are crates of the project too, and every crate must pass.
+include-dev = true
 
 # Our own workspace crates are unpublished (`publish = false`) and carry no licence field.
 # They are skipped because they are private, not because the gate is loosened for anyone else.
