@@ -3,6 +3,7 @@
 # Behaviour: docs/dev/gates.md, section 6.
 #
 #   scripts/gates/dependencies.sh list           name<TAB>version<TAB>licence of every outside crate of Cargo.lock
+#   scripts/gates/dependencies.sh frx7           name<TAB>version<TAB>revision of every crate of frx7 (ours, so apart)
 #   scripts/gates/dependencies.sh compare FILE   each outside crate whose name is not in FILE in backticks
 #
 # `compare` exits 0 when every outside crate is named, 1 when one is not, 2 on wrong usage.
@@ -14,11 +15,19 @@ cd "$root" || exit 2
 # Every outside crate of the lock file, for every system and every feature, build and test
 # dependencies included, as the manifest of each states its licence. `cargo metadata` prints one
 # line of JSON in which every package starts with its name, version, id and licence, in that
-# order; the packages of this workspace have an id that begins with `path+`.
-list() {
+# order; the packages of this workspace have an id that begins with `path+`. The crates of frx7 are
+# ours, taken from its remote at the pinned revision (docs/dev/frx7.md): they are not outside crates
+# and are left out here; `frx7` lists them.
+FRX7_ID='git+https://github.com/bdsanxz/frx7'
+packages() {
     cargo metadata --format-version 1 --offline --locked |
-        grep -o '{"name":"[^"]*","version":"[^"]*","id":"[^"]*","license":\(null\|"[^"]*"\)' |
+        grep -o '{"name":"[^"]*","version":"[^"]*","id":"[^"]*","license":\(null\|"[^"]*"\)'
+}
+
+list() {
+    packages |
         grep -v '"id":"path+' |
+        grep -v "\"id\":\"$FRX7_ID" |
         sed -e 's/^{"name":"\([^"]*\)","version":"\([^"]*\)","id":"[^"]*","license":/\1\t\2\t/' -e 's/\t"\(.*\)"$/\t\1/' -e 's/\tnull$/\t(no licence stated)/' |
         sort -u
 }
@@ -28,8 +37,18 @@ case "${1:-}" in
         out=$(list) || exit 1
         printf '%s\n' "$out"
         found=$(printf '%s\n' "$out" | wc -l | tr -d ' ')
-        locked=$(grep -c '^source = ' Cargo.lock)
-        echo "outside crates listed: $found; packages with a source in Cargo.lock: $locked" >&2
+        locked=$(grep '^source = ' Cargo.lock | grep -vc "^source = \"$FRX7_ID")
+        echo "outside crates listed: $found; packages with a source in Cargo.lock that is not frx7's: $locked" >&2
+        [ "$found" -eq "$locked" ] || { echo "the two counts differ: the list is not the lock file's" >&2; exit 1; }
+        ;;
+    frx7)
+        # The id of a git package is git+<remote>?rev=<revision>#<name>@<version>.
+        out=$(packages | grep "\"id\":\"$FRX7_ID" |
+            sed -e 's/^{"name":"\([^"]*\)","version":"\([^"]*\)","id":"[^"]*?rev=\([0-9a-f]*\)#.*$/\1\t\2\t\3/' | sort -u) || exit 1
+        printf '%s\n' "$out"
+        found=$(printf '%s\n' "$out" | sed '/^$/d' | wc -l | tr -d ' ')
+        locked=$(grep -c "^source = \"$FRX7_ID" Cargo.lock)
+        echo "crates of frx7 listed: $found; packages with frx7's source in Cargo.lock: $locked" >&2
         [ "$found" -eq "$locked" ] || { echo "the two counts differ: the list is not the lock file's" >&2; exit 1; }
         ;;
     compare)
@@ -47,7 +66,7 @@ case "${1:-}" in
         [ "$missing" -eq 0 ]
         ;;
     *)
-        echo "usage: scripts/gates/dependencies.sh list | compare FILE" >&2
+        echo "usage: scripts/gates/dependencies.sh list | frx7 | compare FILE" >&2
         exit 2
         ;;
 esac

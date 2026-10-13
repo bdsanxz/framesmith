@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# The quality gates of the Framesmith repository: formatting, static analysis, the tests and the
-# licence gate. The same script runs them before a push (.githooks/pre-push) and on the hosted
-# runner (.github/workflows/gates.yml). The behaviour is specified in docs/dev/gates.md.
+# The quality gates of the Framesmith repository: formatting, static analysis, the tests, the
+# licence gate and the frx7 pin. The same script runs them before a push (.githooks/pre-push) and
+# on the hosted runner (.github/workflows/gates.yml). The behaviour is specified in docs/dev/gates.md.
 #
 # Written for the bash 3.2 that macOS ships.
 
@@ -11,7 +11,7 @@ usage() {
     cat <<'EOF'
 usage: scripts/gates.sh [--hosted] [--gate NAME]... [-p CRATE]...
 
-  With no option it runs the four gates, then the tests marked "reference machine only" and the
+  With no option it runs the five gates, then the tests marked "reference machine only" and the
   yardstick tests (which start ffmpeg and ffprobe from outside, to compare, where they are installed).
   Each gate reports PASS, or FAIL with what failed. All of them run; the exit code is
   0 when every gate passed, 1 when any failed.
@@ -21,11 +21,12 @@ gates (NAME):
   lint      static analysis    cargo clippy --workspace --all-targets -- -D warnings
   test      tests              cargo test --workspace --no-fail-fast
   licence   licence gate       cargo deny check licenses
+  pin       frx7 pin           scripts/gates/frx7.sh check (no path override committed, one pinned revision, the pin moved with its record)
 
 options:
   --gate NAME   run only this gate (may be given more than once). NARROWED.
   -p CRATE      narrow format, lint and test to this crate (may be given more than once).
-                The licence gate always looks at the whole workspace. NARROWED.
+                The licence gate and the frx7 pin gate always look at the whole workspace. NARROWED.
   --hosted      the hosted runner's form: the tests marked "reference machine only" and the
                 yardstick tests are listed as not run and never run. The hosted workflow runs
                 one job for each gate, so --hosted with --gate is not narrowed.
@@ -49,8 +50,8 @@ while [ $# -gt 0 ]; do
         --gate)
             [ $# -ge 2 ] || { echo "--gate needs a name" >&2; usage >&2; exit 2; }
             case "$2" in
-                format | lint | test | licence) WANTED="$WANTED $2" ;;
-                *) echo "unknown gate: $2 (there are format, lint, test, licence)" >&2; usage >&2; exit 2 ;;
+                format | lint | test | licence | pin) WANTED="$WANTED $2" ;;
+                *) echo "unknown gate: $2 (there are format, lint, test, licence, pin)" >&2; usage >&2; exit 2 ;;
             esac
             shift
             ;;
@@ -66,11 +67,11 @@ while [ $# -gt 0 ]; do
 done
 
 # A run is narrowed when it leaves out a gate or a crate. The hosted workflow runs each gate as a
-# job of its own, so a gate named under --hosted is not a narrowing: the four jobs are the gates.
+# job of its own, so a gate named under --hosted is not a narrowing: the five jobs are the gates.
 NARROWED=0
 [ -n "$CRATES" ] && NARROWED=1
 [ -n "$WANTED" ] && [ "$HOSTED" -eq 0 ] && NARROWED=1
-[ -z "$WANTED" ] && WANTED=" format lint test licence"
+[ -z "$WANTED" ] && WANTED=" format lint test licence pin"
 
 # The scope of the cargo commands: the whole workspace, or the crates named with -p.
 if [ -z "$CRATES" ]; then
@@ -171,6 +172,11 @@ gate_licence() {
     run licence cargo deny check licenses
 }
 
+gate_pin() {
+    NAME="frx7 pin"
+    run pin bash "$ROOT/scripts/gates/frx7.sh" check
+}
+
 # --- what a failure names ---------------------------------------------------------------------
 
 named_format() {
@@ -199,6 +205,15 @@ named_test() {
         }
     ' "$LOGS/test.log"
     compiler_problems "$LOGS/test.log"
+}
+
+named_pin() { grep '^refused: ' "$LOGS/pin.log" | sed 's/^refused: //'; }
+
+# A fetch of frx7 that cargo could not make, from its "unable to update <remote>?rev=<revision>" line
+# (docs/dev/frx7.md, section 7). Any gate that builds can print it.
+named_fetch() {
+    grep -h 'unable to update [^ ]*bdsanxz/frx7?rev=' "$LOGS/$1.log" 2>/dev/null |
+        sed -e 's|^.*unable to update \([^ ]*bdsanxz/frx7\)?rev=\([0-9A-Za-z]*\).*$|frx7 revision \2 could not be fetched from \1; see docs/dev/frx7.md, section 7|' | sort -u
 }
 
 named_licence() {
@@ -268,6 +283,7 @@ for gate in $WANTED; do
         lint) gate_lint ;;
         test) gate_test ;;
         licence) gate_licence ;;
+        pin) gate_pin ;;
     esac
     problems=""
     if [ "$RUN_CODE" -ne 0 ]; then
@@ -276,7 +292,12 @@ for gate in $WANTED; do
             lint) problems=$(named_lint) ;;
             test) problems=$(named_test) ;;
             licence) problems=$(named_licence) ;;
+            pin) problems=$(named_pin) ;;
         esac
+        fetched=$(named_fetch "$gate")
+        if [ -n "$fetched" ]; then
+            problems="$fetched"$'\n'"$problems"
+        fi
     fi
 
     if [ "$gate" = "test" ]; then
