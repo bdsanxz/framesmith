@@ -105,10 +105,20 @@ placement() {
 }
 
 # The programs the sandbox refused to start since the run began, read from the system log when it
-# can be read.
+# can be read. The log belongs to the whole machine, so a refusal is kept only when the process
+# that was refused is one of the test programs of this run (named in $1, the log of the run; the
+# system keeps the first 32 characters of a program's name): a run of another worktree at the same
+# time is not this run's.
 refused_starts() {
+    local programs
+    programs=$(sed -n 's/^ *Running .* (.*\/deps\/\([^/)]*\))$/\1/p' "$1" | sort -u)
     perl -e 'alarm 30; exec @ARGV' log show --start "$STARTED" --predicate 'eventMessage CONTAINS "deny(1) process-exec"' --style compact |
-        sed -n 's/^.*Sandbox: [^ ]*([0-9]*) deny(1) process-exec\*\{0,1\} /core problem: the system refused to start /p' | sort -u
+        sed -n 's/^.*Sandbox: \([^ (]*\)([0-9]*) deny(1) process-exec\*\{0,1\} \(.*\)$/\1 \2/p' |
+        while read -r process path; do
+            if printf '%s\n' "$programs" | awk -v process="$process" 'index($0, process) == 1 { found = 1 } END { exit !found }'; then
+                echo "core problem: the system refused to start $path"
+            fi
+        done | sort -u
 }
 
 # Runs the tests through the runner, with the output streamed and kept in $LOGS/$1.log.
@@ -132,7 +142,7 @@ fi
 run_tests core-suite
 if [ "$RUN_CODE" -ne 0 ]; then
     FAILED=1
-    refused_starts
+    refused_starts "$LOGS/core-suite.log"
 fi
 
 if [ "$HOSTED" -eq 0 ]; then
@@ -142,7 +152,7 @@ if [ "$HOSTED" -eq 0 ]; then
     run_tests core-reference --ignored reference_machine_only_
     if [ "$RUN_CODE" -ne 0 ]; then
         FAILED=1
-        refused_starts
+        refused_starts "$LOGS/core-reference.log"
     fi
     RAN=$(grep -c '^test .* \.\.\. ok$' "$LOGS/core-reference.log")
     echo "reference machine only: $MARKED marked, $RAN ran and passed"
