@@ -5,6 +5,19 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use project::Code;
+
+/// What a report says after its place: the code, its kind, the message as a sentence and the
+/// remedy (`docs/spec/error-catalogue.md` section 3).
+fn statement(code: Code, message: &str) -> String {
+    format!("{code}: {}: {message}. {}", code.kind().as_str(), code.remedy())
+}
+
+/// One report as the command prints it: the place, then the statement.
+fn report(place: &str, code: Code, message: &str) -> String {
+    format!("{place}: {}", statement(code, message))
+}
+
 /// A new folder named `name` for one test, under the tests' scratch folder.
 fn folder(name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("check-command").join(name);
@@ -135,7 +148,14 @@ fn a_missing_or_wrong_version_is_reported_with_its_line_and_the_versions_read_an
     assert_eq!(code, Some(1));
     assert_eq!(
         text,
-        "composition.xml, line 1: FS-0004: <composition> needs the attribute `version`; the versions read are: 1\nInvalid: the project is not valid (composition.xml)\n"
+        format!(
+            "{}\nInvalid: the project is not valid (composition.xml)\n",
+            report(
+                "composition.xml, line 1",
+                Code::VersionMissing,
+                "<composition> needs the attribute `version`; the versions read are: 1"
+            )
+        )
     );
 
     let (text, code) = check_root(
@@ -145,7 +165,14 @@ fn a_missing_or_wrong_version_is_reported_with_its_line_and_the_versions_read_an
     assert_eq!(code, Some(1));
     assert_eq!(
         text,
-        "composition.xml, line 3: FS-0005: `version=\"2\"` is not a version this program reads; the versions read are: 1\nInvalid: the project is not valid (composition.xml)\n"
+        format!(
+            "{}\nInvalid: the project is not valid (composition.xml)\n",
+            report(
+                "composition.xml, line 3",
+                Code::VersionNotRead,
+                "`version=\"2\"` is not a version this program reads; the versions read are: 1"
+            )
+        )
     );
 }
 
@@ -163,7 +190,14 @@ fn a_size_that_is_not_an_even_whole_number_from_2_to_8192_is_reported_with_its_l
         assert_eq!(code, Some(1), "{name}");
         assert_eq!(
             text,
-            format!("composition.xml, line 3: FS-0007: `width` must be an even whole number from 2 to 8192, not {value}\nInvalid: the project is not valid (composition.xml)\n"),
+            format!(
+                "{}\nInvalid: the project is not valid (composition.xml)\n",
+                report(
+                    "composition.xml, line 3",
+                    Code::SizeNotAccepted,
+                    &format!("`width` must be an even whole number from 2 to 8192, not {value}")
+                )
+            ),
             "{name}"
         );
     }
@@ -173,7 +207,14 @@ fn a_size_that_is_not_an_even_whole_number_from_2_to_8192_is_reported_with_its_l
     );
     assert_eq!(code, Some(1));
     assert!(
-        text.starts_with("composition.xml, line 2: FS-0007: `height` must be an even whole number from 2 to 8192, not 361\n"),
+        text.starts_with(&format!(
+            "{}\n",
+            report(
+                "composition.xml, line 2",
+                Code::SizeNotAccepted,
+                "`height` must be an even whole number from 2 to 8192, not 361"
+            )
+        )),
         "{text}"
     );
 }
@@ -183,55 +224,63 @@ fn a_wrong_fps_duration_or_background_is_reported_with_its_line_and_the_form_and
     let cases = [
         (
             "fps-zero",
-            "FS-0008",
+            Code::FpsNotAccepted,
             r#"fps="0" duration="2""#,
             "`fps` must be a whole number from 1 to 240, not 0",
         ),
         (
             "fps-above",
-            "FS-0008",
+            Code::FpsNotAccepted,
             r#"fps="241" duration="2""#,
             "`fps` must be a whole number from 1 to 240, not 241",
         ),
         (
             "fps-fraction",
-            "FS-0008",
+            Code::FpsNotAccepted,
             r#"fps="29.97" duration="2""#,
             "`fps` must be a whole number from 1 to 240, not 29.97",
         ),
-        ("duration-zero", "FS-0011", r#"duration="0""#, "`duration=\"0\"` must be above 0"),
+        (
+            "duration-zero",
+            Code::DurationNotAboveZero,
+            r#"duration="0""#,
+            "`duration=\"0\"` must be above 0",
+        ),
         (
             "duration-negative",
-            "FS-0010",
+            Code::DurationNotATime,
             r#"duration="-5""#,
             "`duration=\"-5\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
         ),
         (
             "duration-word",
-            "FS-0010",
+            Code::DurationNotATime,
             r#"duration="long""#,
             "`duration=\"long\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
         ),
         (
             "background-name",
-            "FS-0012",
+            Code::BackgroundNotAColour,
             r##"duration="2" background="red""##,
             "`background=\"red\"` is not a colour written as #rrggbb or #rrggbbaa",
         ),
         (
             "background-two",
-            "FS-0012",
+            Code::BackgroundNotAColour,
             r##"duration="2" background="#000000, #ffffff""##,
             "`background=\"#000000, #ffffff\"` is not a colour written as #rrggbb or #rrggbbaa",
         ),
     ];
-    for (name, fs_code, attributes, message) in cases {
+    for (name, code_of_case, attributes, message) in cases {
         let root = format!("<composition version=\"1\" width=\"640\" height=\"360\"\n {attributes}/>");
         let (text, code) = check_root(name, &root);
         assert_eq!(code, Some(1), "{name}");
         assert_eq!(
             text,
-            format!("composition.xml, line 2: {fs_code}: {message}\nInvalid: the project is not valid (composition.xml)\n"),
+            format!(
+                "{}\nInvalid: the project is not valid (composition.xml)\n",
+                report("composition.xml, line 2", code_of_case, message)
+            ),
             "{name}"
         );
     }
@@ -242,7 +291,11 @@ fn a_file_that_is_not_xml_is_reported_and_exits_1() {
     let (text, code) = check_root("not-xml", "<composition version=\"1\">\n</box>");
     assert_eq!(code, Some(1));
     assert!(
-        text.starts_with("composition.xml, line 2: FS-0002: the file is not well-formed XML: "),
+        text.starts_with("composition.xml, line 2: FS-0002: invalid: the file is not well-formed XML: "),
+        "{text}"
+    );
+    assert!(
+        text.lines().next().unwrap().ends_with(&format!(" {}", Code::NotXml.remedy())),
         "{text}"
     );
     assert!(text.ends_with("Invalid: the project is not valid (composition.xml)\n"), "{text}");
@@ -312,12 +365,24 @@ fn a_folder_without_a_composition_is_no_project_and_exits_1() {
     let base = folder("no-composition");
     let output = framesmith(&base, [OsStr::new("check"), OsStr::new("empty")]);
     assert_eq!(output.status.code(), Some(1));
-    assert_eq!(out(&output), "No project: the folder `empty` does not exist\n");
+    assert_eq!(
+        out(&output),
+        format!(
+            "No project: {}\n",
+            statement(Code::FolderMissing, "the folder `empty` does not exist")
+        )
+    );
 
     fs::create_dir(base.join("empty")).unwrap();
     let output = framesmith(&base, [OsStr::new("check"), OsStr::new("empty")]);
     assert_eq!(output.status.code(), Some(1));
-    assert_eq!(out(&output), "No project: there is no composition.xml in `empty`\n");
+    assert_eq!(
+        out(&output),
+        format!(
+            "No project: {}\n",
+            statement(Code::NoComposition, "there is no composition.xml in `empty`")
+        )
+    );
     assert_eq!(err(&output), "");
 }
 
@@ -325,32 +390,27 @@ fn a_folder_without_a_composition_is_no_project_and_exits_1() {
 fn a_command_line_that_cannot_be_read_is_told_on_standard_error_and_exits_1() {
     let base = folder("bad-command-lines");
     let cases: [(&[&str], &str); 6] = [
-        (&[], "framesmith: no command is given\nusage: framesmith check <folder>\n"),
-        (
-            &["render", "demo"],
-            "framesmith: `render` is not a command\nusage: framesmith check <folder>\n",
-        ),
-        (
-            &["check"],
-            "framesmith: `check` needs the folder of a project\nusage: framesmith check <folder>\n",
-        ),
-        (
-            &["check", "--json", "demo"],
-            "framesmith: `check` takes no option, and --json is one\nusage: framesmith check <folder>\n",
-        ),
+        (&[], "no command is given"),
+        (&["render", "demo"], "`render` is not a command"),
+        (&["check"], "`check` needs the folder of a project"),
+        (&["check", "--json", "demo"], "`check` takes no option, and --json is one"),
         (
             &["check", "demo", "other"],
-            "framesmith: `check` takes the folder of one project, and other is one word too many\nusage: framesmith check <folder>\n",
+            "`check` takes the folder of one project, and other is one word too many",
         ),
-        (
-            &["check", "-x"],
-            "framesmith: `check` takes no option, and -x is one\nusage: framesmith check <folder>\n",
-        ),
+        (&["check", "-x"], "`check` takes no option, and -x is one"),
     ];
     for (args, message) in cases {
         let output = framesmith(&base, args);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert_eq!(out(&output), "", "{args:?}");
-        assert_eq!(err(&output), message, "{args:?}");
+        assert_eq!(
+            err(&output),
+            format!(
+                "framesmith: {}\nusage: framesmith check <folder>\n",
+                statement(Code::CommandLineNotRead, message)
+            ),
+            "{args:?}"
+        );
     }
 }

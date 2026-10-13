@@ -5,6 +5,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use project::Code;
+
+/// One report as the command prints it: the place, the code, its kind, the message as a sentence
+/// and the remedy (`docs/spec/error-catalogue.md` section 3).
+fn report(place: &str, code: Code, message: &str) -> String {
+    format!("{place}: {code}: {}: {message}. {}", code.kind().as_str(), code.remedy())
+}
+
 /// A project folder `demo` whose `composition.xml` is `text`, next to an empty folder to run from.
 fn make_project(name: &str, text: &[u8]) -> (PathBuf, PathBuf) {
     let base = Path::new(env!("CARGO_TARGET_TMPDIR")).join("check-reports").join(name);
@@ -56,10 +64,22 @@ fn three_wrong_root_values_are_all_reported_in_one_run_with_code_file_line_and_f
     assert_eq!(
         lines(&output),
         [
-            "composition.xml, line 6: FS-0012: `background=\"red\"` is not a colour written as #rrggbb or #rrggbbaa",
-            "composition.xml, line 8: FS-0007: `width` must be an even whole number from 2 to 8192, not 641",
-            "composition.xml, line 9: FS-0008: `fps` must be a whole number from 1 to 240, not 0",
-            INVALID,
+            report(
+                "composition.xml, line 6",
+                Code::BackgroundNotAColour,
+                "`background=\"red\"` is not a colour written as #rrggbb or #rrggbbaa"
+            ),
+            report(
+                "composition.xml, line 8",
+                Code::SizeNotAccepted,
+                "`width` must be an even whole number from 2 to 8192, not 641"
+            ),
+            report(
+                "composition.xml, line 9",
+                Code::FpsNotAccepted,
+                "`fps` must be a whole number from 1 to 240, not 0"
+            ),
+            INVALID.to_string(),
         ]
     );
 }
@@ -96,12 +116,10 @@ fn a_file_that_is_not_well_formed_xml_is_reported_once_with_the_readers_reason_a
     assert_eq!(output.status.code(), Some(1));
     let printed = lines(&output);
     assert_eq!(printed.len(), 2, "{printed:?}");
-    assert!(
-        printed[0].starts_with("composition.xml, line 3: FS-0002: the file is not well-formed XML: "),
-        "{}",
-        printed[0]
-    );
-    assert!(printed[0].len() > "composition.xml, line 3: FS-0002: the file is not well-formed XML: ".len());
+    let start = "composition.xml, line 3: FS-0002: invalid: the file is not well-formed XML: ";
+    assert!(printed[0].starts_with(start), "{}", printed[0]);
+    assert!(printed[0].len() > start.len() + Code::NotXml.remedy().len());
+    assert!(printed[0].ends_with(Code::NotXml.remedy()), "{}", printed[0]);
     assert_eq!(printed[1], INVALID);
 
     // Not UTF-8 text is also reported once.
@@ -113,8 +131,12 @@ fn a_file_that_is_not_well_formed_xml_is_reported_once_with_the_readers_reason_a
     assert_eq!(
         printed,
         [
-            "composition.xml, line 2: FS-0001: the file is not well-formed XML: it is not valid UTF-8 text",
-            INVALID
+            report(
+                "composition.xml, line 2",
+                Code::NotUtf8,
+                "the file is not well-formed XML: it is not valid UTF-8 text"
+            ),
+            INVALID.to_string()
         ]
     );
 }
@@ -163,6 +185,8 @@ fn each_report_is_one_line_that_names_its_file_and_there_is_no_colour_with_one_f
             "{report}"
         );
         assert_eq!(&rest[7..9], ": ", "{report}");
+        // Then the kind, a word of its own.
+        assert!(rest[9..].starts_with("invalid: "), "{report}");
     }
     // A report ends where the line does: the next one starts a line of its own.
     assert_eq!(output.stdout.iter().filter(|&&byte| byte == b'\n').count(), printed.len());

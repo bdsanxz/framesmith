@@ -22,7 +22,10 @@ fn three_wrong_values_are_three_problems_each_on_its_own_line() {
     let problems = all_problems(text);
     assert_eq!(places(&problems), [("FS-0007", 3), ("FS-0008", 5), ("FS-0012", 7)]);
     assert_eq!(
-        problems.iter().map(ToString::to_string).collect::<Vec<_>>(),
+        problems
+            .iter()
+            .map(|problem| format!("line {}: {}: {}", problem.line(), problem.code(), problem.message()))
+            .collect::<Vec<_>>(),
         [
             "line 3: FS-0007: `width` must be an even whole number from 2 to 8192, not 641",
             "line 5: FS-0008: `fps` must be a whole number from 1 to 240, not 0",

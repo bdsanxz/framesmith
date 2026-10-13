@@ -6,7 +6,7 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::PathBuf;
 
-use project::{OpenError, Project, COMPOSITION_FILE};
+use project::{Code, OpenError, Project, COMPOSITION_FILE};
 
 /// The exit code of a command that found nothing wrong.
 pub const EXIT_OK: u8 = 0;
@@ -38,7 +38,9 @@ pub fn run(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     };
     let written = match &reply {
         Reply::Printed(lines, _) => lines.iter().try_for_each(|line| writeln!(out, "{line}")),
-        Reply::Unreadable(why) => writeln!(err, "framesmith: {why}").and_then(|()| writeln!(err, "{USAGE}")),
+        Reply::Unreadable(why) => {
+            writeln!(err, "framesmith: {}", Code::CommandLineNotRead.statement(why)).and_then(|()| writeln!(err, "{USAGE}"))
+        }
     };
     match (written, reply) {
         (Ok(()), Reply::Printed(_, code)) => code,

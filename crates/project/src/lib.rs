@@ -8,7 +8,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-pub use notation::{Code, Colour, Problem, Root};
+pub use notation::{Code, Colour, Kind, Problem, Root};
 
 /// The name of the composition file in a project folder.
 pub const COMPOSITION_FILE: &str = "composition.xml";
@@ -32,8 +32,8 @@ pub enum OpenError {
 
 /// One problem of a file of the project, with the name of the file.
 ///
-/// It prints as one line, `file, line N: code: message` (`docs/spec/check-command.md` section 4),
-/// and the line is the same whether the project has one file or many.
+/// It prints as one line, `file, line N: code: kind: message. remedy` (`docs/spec/check-command.md`
+/// section 4), and the line is the same whether the project has one file or many.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Report {
     file: String,
@@ -69,6 +69,28 @@ pub enum NoProject {
     NoComposition(PathBuf),
     /// The folder holds a `composition.xml` that could not be read, with the reason the system gave.
     Unreadable(PathBuf, String),
+}
+
+impl NoProject {
+    /// The code of the reason (`docs/spec/error-catalogue.md`).
+    pub fn code(&self) -> Code {
+        match self {
+            NoProject::FolderMissing(_) => Code::FolderMissing,
+            NoProject::NotAFolder(_) => Code::NotAFolder,
+            NoProject::NoComposition(_) => Code::NoComposition,
+            NoProject::Unreadable(..) => Code::CompositionUnreadable,
+        }
+    }
+
+    /// The kind of the reason: the kind of its code.
+    pub fn kind(&self) -> Kind {
+        self.code().kind()
+    }
+
+    /// What to change: the remedy of the reason's code.
+    pub fn remedy(&self) -> &'static str {
+        self.code().remedy()
+    }
 }
 
 impl Project {
@@ -143,7 +165,9 @@ impl fmt::Display for NoProject {
 impl fmt::Display for OpenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OpenError::NoProject(no_project) => write!(f, "No project: {no_project}"),
+            OpenError::NoProject(no_project) => {
+                write!(f, "No project: {}", no_project.code().statement(&no_project.to_string()))
+            }
             OpenError::Invalid(reports) => {
                 for (index, report) in reports.iter().enumerate() {
                     if index > 0 {
