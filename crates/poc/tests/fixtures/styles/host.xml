@@ -1,0 +1,5 @@
+<composition width="64" height="32" fps="10" duration="1" background="#000000">
+  <style id="plate" width="16" height="16" background="#ff0000"/>
+  <rect id="own" class="plate" left="0" top="0"/>
+  <composition id="shown" src="scenes/part.xml" left="32" top="0"/>
+</composition>

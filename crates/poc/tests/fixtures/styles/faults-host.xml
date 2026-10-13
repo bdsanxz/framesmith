@@ -1,0 +1,4 @@
+<composition width="64" height="32" fps="10" duration="1">
+  <style id="plate" width="16" height="16" background="#ff0000"/>
+  <composition src="scenes/faults.xml"/>
+</composition>

@@ -1,0 +1,6 @@
+<composition width="64" height="32" fps="10" duration="2">
+  <composition src="scenes/faults.xml"/>
+  <composition src="scenes/missing.xml"/>
+  <composition src="scenes/card.xml" width="32"><rect/></composition>
+  <composition/>
+</composition>

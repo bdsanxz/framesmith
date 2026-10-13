@@ -1,0 +1,37 @@
+[package]
+name = "poc"
+description = "Proof of concept: an XML composition drawn by a renderer of our own (CPU and GPU) and piped to the encoder."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+timebase = { workspace = true }
+motion = { workspace = true }
+roxmltree = "0.21"
+vello_cpu = "0.3"
+vello = "0.11"
+# `complex-scripts`: line ends in scripts written without spaces (Thai and others), by dictionary.
+parley = { version = "0.12", features = ["complex-scripts"] }
+pollster = "1"
+saphyr = "0.2"
+wuff = { version = "0.2", features = ["brotli"] }
+# frx7, our own media stack: a repository of its own at the workspace root (`frx7/`), reached by
+# path from this worktree. Its crates have plain names, so each is given a key that says where it
+# comes from.
+frx7-base = { package = "base", path = "../../../../../frx7/crates/base" }
+frx7-format = { package = "format", path = "../../../../../frx7/crates/format" }
+frx7-mp4 = { package = "mp4", path = "../../../../../frx7/crates/mp4" }
+frx7-codec = { package = "codec", path = "../../../../../frx7/crates/codec" }
+frx7-backend-os = { package = "backend-os", path = "../../../../../frx7/crates/backend-os" }
+frx7-export = { package = "export", path = "../../../../../frx7/crates/export" }
+frx7-pixel = { package = "pixel", path = "../../../../../frx7/crates/pixel" }
+frx7-audio = { package = "audio", path = "../../../../../frx7/crates/audio" }
+
+[features]
+# The GPU renderer is built in. `--no-default-features` leaves it out.
+default = ["gpu"]
+gpu = []

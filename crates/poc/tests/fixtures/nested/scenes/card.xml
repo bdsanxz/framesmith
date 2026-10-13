@@ -1,0 +1,7 @@
+<!-- A small card: a green square for its first second, then a blue one that reaches past its frame. -->
+<composition id="card" width="16" height="16" fps="10" duration="3" background="#ff0000">
+  <font src="fonts/card.ttf" family="Card"/>
+  <audio id="ping" src="ping.mp3" start="0.5" duration="5" volume="0.5"/>
+  <rect id="first" left="0" top="0" width="8" height="8" background="#00ff00" start="0" duration="1"/>
+  <rect id="second" left="8" top="8" width="16" height="16" background="#0000ff" start="1" duration="2"/>
+</composition>

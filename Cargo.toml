@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["crates/timebase", "crates/motion", "crates/model", "crates/protocol", "crates/runtime", "crates/compile", "crates/browser", "crates/media", "crates/render", "crates/server", "crates/cli", "crates/measure", "crates/parity", "bench"]
+members = ["crates/timebase", "crates/motion", "crates/model", "crates/protocol", "crates/runtime", "crates/compile", "crates/browser", "crates/media", "crates/render", "crates/server", "crates/cli", "crates/measure", "crates/parity", "crates/poc", "bench"]
+# frx7, our own media stack, is a repository of its own at the workspace root (`frx7/`, beside
+# this repository's checkout); `crates/poc` uses its crates by path.
 
 [workspace.package]
 version = "0.1.0"

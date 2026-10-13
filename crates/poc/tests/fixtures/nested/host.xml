@@ -1,0 +1,8 @@
+<!-- A composition that shows another file twice: once as a clip, once moved and for its whole length. -->
+<composition id="host" width="64" height="32" fps="10" duration="6" background="#000000">
+  <audio id="bed" src="bed.mp3" start="0" duration="6"/>
+  <box id="scene" start="1" duration="5">
+    <composition id="card" src="scenes/card.xml" left="8" top="4" start="1" duration="2"/>
+  </box>
+  <composition id="again" src="scenes/card.xml" left="40" top="0"/>
+</composition>

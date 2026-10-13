@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The title card: the same scene as fixtures/title-card, written in the XML notation. -->
+<composition id="title-card" width="1280" height="720" fps="30" duration="4" background="#101820">
+  <text id="title" left="140" top="250" font-family="Helvetica" font-weight="700" font-size="96" line-height="1.1"
+        color="#ffffff" start="0.8" duration="2.7">
+    Framesmith
+    <tween at="0.8" duration="0.6" ease="out-quad" from-y="40" from-opacity="0" to-y="0" to-opacity="1"/>
+  </text>
+  <rect id="bar" left="140" top="420" width="360" height="16" background="#ff5a36" start="0.5" duration="3">
+    <tween at="0.5" duration="0.6" ease="out-cubic" from-x="400"/>
+    <tween at="3" duration="1" ease="in-quart" to-x="60"/>
+  </rect>
+  <rect id="tag" left="140" top="480" width="200" height="60" background="#3498db">
+    <set at="2" x="300"/>
+    <tween at="2.5" duration="0.5" ease="linear" to-opacity="0.5"/>
+  </rect>
+  <text id="subtitle" left="140" top="580" font-family="Helvetica" font-weight="400" font-size="40" line-height="1.2"
+        color="#ffffff" start="1.5" duration="2">
+    made frame by frame
+    <tween at="1.5" duration="0.5" ease="in-out-cubic" from-x="-30" from-opacity="0"/>
+  </text>
+  <rect id="badge" left="960" top="150" width="160" height="100" background="#2ecc71">
+    <tween at="1" duration="1.5" ease="in-out-quad" to-rotation="90" to-scale="1.5"/>
+  </rect>
+</composition>
