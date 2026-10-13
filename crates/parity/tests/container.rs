@@ -22,7 +22,8 @@ fn detail(report: &parity::Report, name: &str) -> String {
 const FIVE: [&str; 5] = ["frame count", "frame rate", "size", "codec", "pixel format"];
 
 #[test]
-fn the_five_facts_are_reported_separately_and_pass_on_equal_videos() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_the_five_facts_are_reported_separately_and_pass_on_equal_videos() {
     let dir = folder("container_equal");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = container::compare_files(&tools().ffprobe, &a, &b).unwrap();
@@ -37,7 +38,8 @@ fn the_five_facts_are_reported_separately_and_pass_on_equal_videos() {
 }
 
 #[test]
-fn each_fact_fails_on_its_own_and_names_both_values() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_each_fact_fails_on_its_own_and_names_both_values() {
     let dir = folder("container_each");
     let (a, b) = (dir.join("a.mp4"), dir.join("b.mp4"));
     make(&a, &Spec::default());
@@ -62,7 +64,8 @@ fn each_fact_fails_on_its_own_and_names_both_values() {
 }
 
 #[test]
-fn codec_size_and_pixel_format_failures_are_separate() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_codec_size_and_pixel_format_failures_are_separate() {
     let dir = folder("container_codec");
     let a = dir.join("a.mp4");
     make(&a, &Spec::default());
@@ -97,7 +100,8 @@ fn codec_size_and_pixel_format_failures_are_separate() {
 }
 
 #[test]
-fn an_audio_stream_on_one_side_does_not_change_the_video_checks() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_an_audio_stream_on_one_side_does_not_change_the_video_checks() {
     let dir = folder("container_audio");
     let (a, b) = pair(
         &dir,
@@ -122,7 +126,8 @@ fn an_audio_stream_on_one_side_does_not_change_the_video_checks() {
 }
 
 #[test]
-fn the_video_stream_is_found_by_type_not_by_position() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_the_video_stream_is_found_by_type_not_by_position() {
     let dir = folder("container_position");
     // Audio comes first in the second file: stream 0 is audio, stream 1 is video.
     let (a, b) = pair(
@@ -150,7 +155,8 @@ fn the_video_stream_is_found_by_type_not_by_position() {
 }
 
 #[test]
-fn a_colour_tag_difference_is_information_and_does_not_fail() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_colour_tag_difference_is_information_and_does_not_fail() {
     let dir = folder("container_tags");
     let (a, b) = pair(
         &dir,
@@ -174,7 +180,8 @@ fn a_colour_tag_difference_is_information_and_does_not_fail() {
 }
 
 #[test]
-fn a_different_frame_rate_fails_and_names_both_values() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_different_frame_rate_fails_and_names_both_values() {
     let dir = folder("container_rate");
     // 2.5 seconds at 24 and 30 frames per second would differ in count; keep 60 frames in both
     // so that only the rate differs.

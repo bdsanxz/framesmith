@@ -15,7 +15,8 @@ fn spec_shifted(range: (u32, u32), dx: i32) -> Spec {
 }
 
 #[test]
-fn every_sampled_frame_gets_a_value_and_it_passes_only_at_or_above_the_threshold() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_every_sampled_frame_gets_a_value_and_it_passes_only_at_or_above_the_threshold() {
     let dir = folder("pictures_equal");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     let report = pictures::compare(&tools(), &a, &b, &Options::default()).unwrap();
@@ -31,7 +32,8 @@ fn every_sampled_frame_gets_a_value_and_it_passes_only_at_or_above_the_threshold
 }
 
 #[test]
-fn a_threshold_above_the_value_fails_the_check() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_threshold_above_the_value_fails_the_check() {
     let dir = folder("pictures_threshold");
     let (a, b) = pair(&dir, &Spec::default(), &Spec::default());
     // Identical pictures give 1.0 at best, so a threshold above 1 can never be met.
@@ -54,7 +56,8 @@ fn sampling_is_fixed_and_repeatable_and_includes_the_first_and_last_frames() {
 }
 
 #[test]
-fn a_shifted_element_fails_and_names_the_lowest_scoring_frame() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_a_shifted_element_fails_and_names_the_lowest_scoring_frame() {
     let dir = folder("pictures_shift");
     // The still box is moved 20 pixels, but only on frames 40 to 48: of the sampled frames only 42 is inside.
     let (a, b) = pair(&dir, &Spec::default(), &spec_shifted((40, 48), 20));
@@ -75,7 +78,8 @@ fn a_shifted_element_fails_and_names_the_lowest_scoring_frame() {
 }
 
 #[test]
-fn different_frame_counts_cannot_be_paired_and_never_pass() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_different_frame_counts_cannot_be_paired_and_never_pass() {
     let dir = folder("pictures_counts");
     let (a, b) = pair(
         &dir,
@@ -98,7 +102,8 @@ fn different_frame_counts_cannot_be_paired_and_never_pass() {
 }
 
 #[test]
-fn different_sizes_cannot_be_paired_either() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_different_sizes_cannot_be_paired_either() {
     let dir = folder("pictures_sizes");
     let (a, _) = pair(&dir, &Spec::default(), &Spec::default());
     let small = dir.join("small.mp4");
@@ -116,7 +121,8 @@ fn different_sizes_cannot_be_paired_either() {
 }
 
 #[test]
-fn one_sheet_shows_every_sampled_frame_from_both_videos_with_its_number() {
+#[ignore = "yardstick: needs ffmpeg and ffprobe, which it starts from outside"]
+fn yardstick_one_sheet_shows_every_sampled_frame_from_both_videos_with_its_number() {
     let dir = folder("pictures_sheet");
     let (a, b) = pair(&dir, &Spec::default(), &spec_shifted((40, 48), 20));
     let path = dir.join("nested").join("sheet.png");
