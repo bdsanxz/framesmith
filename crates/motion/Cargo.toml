@@ -1,6 +1,6 @@
 [package]
 name = "motion"
-description = "The motion block format and its pure evaluator. Built for the host and for the page."
+description = "The motion engine: tweens, easings and the pure evaluator that gives every animated value at a time."
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
