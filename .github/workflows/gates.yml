@@ -15,16 +15,14 @@ jobs:
     timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: never
-      # The tests drive a real browser; the runner's Google Chrome is found automatically.
-      # Set FRAMESMITH_BROWSER here only if it is ever installed somewhere unusual.
     steps:
       - uses: actions/checkout@v4.2.2
 
       - name: Check the runner is Apple silicon
         run: test "$(uname -m)" = "arm64"
 
-      - name: Install the Rust toolchain (rustfmt, clippy, wasm32 target)
-        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy --target wasm32-unknown-unknown
+      - name: Install the Rust toolchain (rustfmt, clippy)
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
 
       - name: Cache cargo-deny
         id: cache-deny
@@ -37,6 +35,7 @@ jobs:
         if: steps.cache-deny.outputs.cache-hit != 'true'
         run: cargo install cargo-deny --version 0.20.2 --locked
 
+      # The comparison tool's tests make their test videos with ffmpeg.
       - name: Install ffmpeg
         run: brew install ffmpeg
 
