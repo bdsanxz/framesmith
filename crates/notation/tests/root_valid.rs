@@ -5,7 +5,7 @@ use timebase::Time;
 
 fn root(attributes: &str) -> Root {
     let text = format!("<composition {attributes}/>");
-    read_root(text.as_bytes()).unwrap_or_else(|problem| panic!("{attributes}: {problem}"))
+    read_root(text.as_bytes()).unwrap_or_else(|problems| panic!("{attributes}: {problems:?}"))
 }
 
 #[test]

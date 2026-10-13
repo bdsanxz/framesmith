@@ -1,6 +1,6 @@
 //! Opening a project folder: the composition found, the root judged, and nothing written.
 
-use project::{NoProject, OpenError, Project, COMPOSITION_FILE};
+use project::{Code, NoProject, OpenError, Project, COMPOSITION_FILE};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -61,7 +61,7 @@ fn opening_changes_nothing_in_the_folder() {
 }
 
 #[test]
-fn a_wrong_root_is_reported_with_its_line() {
+fn a_wrong_root_is_reported_with_the_file_the_line_and_the_code() {
     let dir = folder("wrong-root");
     fs::write(
         dir.join(COMPOSITION_FILE),
@@ -69,14 +69,44 @@ fn a_wrong_root_is_reported_with_its_line() {
     )
     .unwrap();
     match Project::open(&dir) {
-        Err(OpenError::Invalid(problem)) => {
-            assert_eq!(problem.line(), 2);
+        Err(OpenError::Invalid(reports)) => {
+            assert_eq!(reports.len(), 1);
+            assert_eq!(reports[0].file(), "composition.xml");
+            assert_eq!(reports[0].problem().line(), 2);
+            assert_eq!(reports[0].problem().code(), Code::SizeNotAccepted);
             assert_eq!(
-                OpenError::Invalid(problem).to_string(),
-                "line 2: `width` must be an even whole number from 2 to 8192, not 641"
+                reports[0].to_string(),
+                "composition.xml, line 2: FS-0007: `width` must be an even whole number from 2 to 8192, not 641"
             );
         }
         other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn every_problem_of_the_composition_is_one_report_in_the_order_of_the_lines() {
+    let dir = folder("several-problems");
+    fs::write(
+        dir.join(COMPOSITION_FILE),
+        "<composition\n version=\"1\"\n width=\"641\"\n height=\"360\"\n fps=\"0\"\n duration=\"2\"\n background=\"red\"/>",
+    )
+    .unwrap();
+    let error = Project::open(&dir).unwrap_err();
+    let OpenError::Invalid(reports) = &error else {
+        panic!("{error:?}");
+    };
+    assert_eq!(
+        reports
+            .iter()
+            .map(|report| (report.file(), report.problem().line()))
+            .collect::<Vec<_>>(),
+        [("composition.xml", 3), ("composition.xml", 5), ("composition.xml", 7)]
+    );
+    let text = error.to_string();
+    assert_eq!(text.lines().count(), 3, "{text}");
+    for (line, code) in text.lines().zip(["FS-0007", "FS-0008", "FS-0012"]) {
+        assert!(line.starts_with("composition.xml, line "), "{line}");
+        assert!(line.contains(&format!(": {code}: ")), "{line}");
     }
 }
 
