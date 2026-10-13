@@ -1,4 +1,4 @@
-//! The data model of a motion block.
+//! The data model of the engine: properties, kinds and tweens.
 
 use crate::Ease;
 use serde::{Deserialize, Serialize};

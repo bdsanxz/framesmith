@@ -9,7 +9,7 @@ fn every_curve_is_exact_at_both_ends() {
 }
 
 #[test]
-fn t019_c3_in_out_curves_are_half_way_at_half_time() {
+fn in_out_curves_are_half_way_at_half_time() {
     for ease in [Ease::InOutQuad, Ease::InOutCubic, Ease::InOutQuart] {
         assert_eq!(ease.apply(0.5), 0.5, "{}", ease.name());
     }

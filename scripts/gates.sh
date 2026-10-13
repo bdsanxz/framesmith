@@ -2,7 +2,7 @@
 # The four quality gates: formatting, static analysis, tests, licences.
 # Run from anywhere; prints one line per gate and exits 0 only when all four pass.
 # All four always run, even when one fails. An optional CARGO_TARGET_DIR is honoured.
-# Needs only the Rust toolchain, cargo-deny, a Chromium-based browser and ffmpeg (for the tests).
+# Needs the Rust toolchain, cargo-deny and ffmpeg (the tests of the comparison tool make their test videos with it).
 
 cd "$(dirname "$0")/.." || exit 2
 
