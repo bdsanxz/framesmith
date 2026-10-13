@@ -340,6 +340,8 @@ for gate in $WANTED; do
                     problems="$problems"$'\n'"$Y_MARKED test(s) are marked yardstick and $Y_RAN ran passing"
                 fi
                 echo "yardstick: $Y_MARKED marked, $Y_RAN ran and passed"
+            elif [ "$Y_MARKED" -eq 0 ]; then
+                echo "yardstick: 0 marked"
             else
                 echo
                 echo "-- not run (yardstick): $Y_MARKED test(s); ffmpeg and ffprobe were not found in any folder of the search path, so nothing was compared"
