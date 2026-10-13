@@ -26,7 +26,7 @@ fn the_hosted_workflow_runs_the_core_gate_on_main_and_on_pull_requests() {
         .expect("the workflow has no job core-suite");
     let job = job.split("\n\n").next().unwrap();
     assert!(
-        job.contains("run: scripts/gates.sh --hosted --gate core"),
+        job.lines().any(|line| line.trim() == "run: scripts/gates.sh --hosted --gate core"),
         "the job does not run the core gate: {job}"
     );
 }
