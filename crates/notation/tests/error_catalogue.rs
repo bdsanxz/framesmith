@@ -237,42 +237,69 @@ fn every_code_of_the_list_has_a_kind_a_meaning_and_a_remedy_sentence() {
     assert!(problems.is_empty(), "{problems:#?}");
 }
 
+/// A small list that is right, in the form of section 4 of the catalogue, for the tests that make a
+/// list wrong in one place and look at what the checks say. They do not depend on the real list.
+const SAMPLE: &str = "\
+## 4. The list of codes
+
+| Code | Kind | Meaning | Remedy |
+|---|---|---|---|
+| `FS-0001` | invalid | The file is not text. | Save the file as text. |
+| `FS-0002` | failure | The file could not be read. | Make the file readable, then run the command again. |
+| `FS-0003` | unsupported | The form is not supported yet. | Remove the form. |
+";
+
+const SAMPLE_RECORD: &str = "\
+| Code | Meaning when recorded |
+|---|---|
+| `FS-0001` | The file is not text. |
+| `FS-0002` | The file could not be read. |
+";
+
+#[test]
+fn the_sample_list_is_right() {
+    assert!(walk(&list_of(SAMPLE)).is_empty());
+    assert!(meaning_drift(&list_of(SAMPLE), &record_of(SAMPLE_RECORD)).is_empty());
+}
+
 #[test]
 fn a_code_with_no_remedy_sentence_fails_the_walk_and_is_named() {
-    let text = read(SPEC).replace("| Write the size as an even whole number from 2 to 8192. |", "|  |");
-    let problems = walk(&list_of(&text));
-    assert_eq!(problems, ["FS-0007: no remedy sentence"]);
+    let text = SAMPLE.replace("| Save the file as text. |", "|  |");
+    assert_eq!(walk(&list_of(&text)), ["FS-0001: no remedy sentence"]);
 
-    let text = read(SPEC).replace(
-        "| Save the file as UTF-8 text. |",
-        "| Save the file as UTF-8 text and try again. Or give up. |",
-    );
+    let text = SAMPLE.replace("| Remove the form. |", "| Remove the form. Or wait. |");
     let problems = walk(&list_of(&text));
     assert_eq!(problems.len(), 1, "{problems:?}");
-    assert!(problems[0].starts_with("FS-0001: the remedy is not one sentence"), "{problems:?}");
+    assert!(problems[0].starts_with("FS-0003: the remedy is not one sentence"), "{problems:?}");
+
+    let text = SAMPLE.replace("| Remove the form. |", "| remove the form |");
+    assert!(walk(&list_of(&text))[0].starts_with("FS-0003: the remedy is not one sentence"));
 }
 
 #[test]
 fn a_code_with_no_kind_or_an_unknown_kind_fails_the_walk_and_is_named() {
-    let text = read(SPEC).replace("| `FS-0008` | invalid |", "| `FS-0008` |  |");
-    assert_eq!(walk(&list_of(&text)), ["FS-0008: no kind"]);
+    let text = SAMPLE.replace("| `FS-0002` | failure |", "| `FS-0002` |  |");
+    assert_eq!(walk(&list_of(&text)), ["FS-0002: no kind"]);
 
-    let text = read(SPEC).replace("| `FS-0009` | invalid |", "| `FS-0009` | broken |");
+    let text = SAMPLE.replace("| `FS-0003` | unsupported |", "| `FS-0003` | broken |");
     let problems = walk(&list_of(&text));
     assert_eq!(problems.len(), 1, "{problems:?}");
     assert!(
-        problems[0].starts_with("FS-0009: the kind \"broken\" is not one of"),
+        problems[0].starts_with("FS-0003: the kind \"broken\" is not one of"),
         "{problems:?}"
     );
 }
 
 #[test]
-fn a_code_that_does_not_begin_fs_or_is_listed_twice_fails_the_walk_and_is_named() {
-    let text = read(SPEC).replace("| `FS-0010` |", "| `XX-0010` |");
-    assert_eq!(walk(&list_of(&text)), ["XX-0010: a code is FS- and four digits"]);
+fn a_code_with_no_meaning_or_a_wrong_form_or_listed_twice_fails_the_walk_and_is_named() {
+    let text = SAMPLE.replace("| The file is not text. |", "|  |");
+    assert_eq!(walk(&list_of(&text)), ["FS-0001: no meaning"]);
 
-    let text = read(SPEC).replace("| `FS-0011` |", "| `FS-0010` |");
-    assert_eq!(walk(&list_of(&text)), ["FS-0010: listed twice"]);
+    let text = SAMPLE.replace("| `FS-0002` |", "| `XX-0002` |");
+    assert_eq!(walk(&list_of(&text)), ["XX-0002: a code is FS- and four digits"]);
+
+    let text = SAMPLE.replace("| `FS-0003` |", "| `FS-0002` |");
+    assert_eq!(walk(&list_of(&text)), ["FS-0002: listed twice"]);
 }
 
 #[test]
@@ -292,21 +319,24 @@ fn the_source_names_exactly_the_codes_of_the_code_type() {
 
 #[test]
 fn a_code_the_program_can_emit_and_the_list_lacks_fails_and_is_named() {
-    let mut listed = listed_codes(&the_list());
-    listed.remove("FS-0012");
+    let program: BTreeSet<String> = listed_codes(&list_of(SAMPLE));
+    let listed: BTreeSet<String> = listed_codes(&list_of(&SAMPLE.replace("| `FS-0002` |", "| `FS-0020` |")));
+    let problems = compare_codes(&program, &listed);
     assert_eq!(
-        compare_codes(&program_codes(), &listed),
-        ["FS-0012: the program can emit it and the spec does not list it"]
+        problems,
+        [
+            "FS-0002: the program can emit it and the spec does not list it",
+            "FS-0020: the spec lists it and the program cannot emit it"
+        ]
     );
 }
 
 #[test]
 fn a_code_the_list_has_and_the_program_cannot_emit_fails_and_is_named() {
-    let mut listed = listed_codes(&the_list());
-    listed.insert("FS-0099".to_string());
+    let program: BTreeSet<String> = ["FS-0001", "FS-0002"].iter().map(|code| code.to_string()).collect();
     assert_eq!(
-        compare_codes(&program_codes(), &listed),
-        ["FS-0099: the spec lists it and the program cannot emit it"]
+        compare_codes(&program, &listed_codes(&list_of(SAMPLE))),
+        ["FS-0003: the spec lists it and the program cannot emit it"]
     );
 }
 
@@ -350,28 +380,29 @@ fn every_code_of_the_list_has_a_row_in_the_record() {
 
 #[test]
 fn a_meaning_that_differs_from_the_recorded_one_fails_and_names_the_code() {
-    let record = record_of(&read(RECORD));
-    let text = read(SPEC).replace("The root's `duration` is 0.", "The root's `duration` is zero or less.");
+    let record = record_of(SAMPLE_RECORD);
+    let text = SAMPLE.replace("The file is not text.", "The file is empty.");
     let problems = meaning_drift(&list_of(&text), &record);
     assert_eq!(problems.len(), 1, "{problems:?}");
-    assert!(problems[0].starts_with("FS-0011: the meaning was recorded as"), "{problems:?}");
+    assert!(problems[0].starts_with("FS-0001: the meaning was recorded as"), "{problems:?}");
 }
 
 #[test]
 fn a_recorded_code_that_is_gone_from_the_list_fails_and_names_the_code() {
-    let record = record_of(&read(RECORD));
-    let mut rows = the_list();
-    rows.retain(|row| row.code != "FS-0003");
-    assert_eq!(meaning_drift(&rows, &record), ["FS-0003: recorded and no longer on the list"]);
+    let mut rows = list_of(SAMPLE);
+    rows.retain(|row| row.code != "FS-0002");
+    assert_eq!(
+        meaning_drift(&rows, &record_of(SAMPLE_RECORD)),
+        ["FS-0002: recorded and no longer on the list"]
+    );
 }
 
 #[test]
-fn a_code_given_another_meaning_in_the_record_is_caught_the_same_way() {
-    // The record itself is the other side: a recorded meaning that is changed no longer matches.
-    let text = read(RECORD).replace("The composition file is not valid UTF-8 text.", "The file is empty.");
-    let problems = meaning_drift(&the_list(), &record_of(&text));
+fn a_recorded_meaning_that_is_changed_in_the_record_is_caught_the_same_way() {
+    let text = SAMPLE_RECORD.replace("The file could not be read.", "The file is locked.");
+    let problems = meaning_drift(&list_of(SAMPLE), &record_of(&text));
     assert_eq!(problems.len(), 1, "{problems:?}");
-    assert!(problems[0].starts_with("FS-0001:"), "{problems:?}");
+    assert!(problems[0].starts_with("FS-0002:"), "{problems:?}");
 }
 
 #[test]
