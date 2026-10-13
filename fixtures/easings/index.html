@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The ten easings</title>
+<style>
+  [data-fs-composition] { background: #101820; }
+  .box { position: absolute; left: 40px; width: 40px; height: 30px; background: #ffb000; }
+  #e0 { top: 30px; }
+  #e1 { top: 98px; }
+  #e2 { top: 166px; }
+  #e3 { top: 234px; }
+  #e4 { top: 302px; }
+  #e5 { top: 370px; }
+  #e6 { top: 438px; }
+  #e7 { top: 506px; }
+  #e8 { top: 574px; }
+  #e9 { top: 642px; }
+</style>
+</head>
+<body>
+<div data-fs-composition="easings" data-fs-size="1280x720" data-fs-fps="30" data-fs-duration="3">
+  <div id="e0" class="box"></div>
+  <div id="e1" class="box"></div>
+  <div id="e2" class="box"></div>
+  <div id="e3" class="box"></div>
+  <div id="e4" class="box"></div>
+  <div id="e5" class="box"></div>
+  <div id="e6" class="box"></div>
+  <div id="e7" class="box"></div>
+  <div id="e8" class="box"></div>
+  <div id="e9" class="box"></div>
+</div>
+<script type="application/framesmith-motion+json">
+[
+  { "target": "#e0", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "linear" },
+  { "target": "#e1", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "in-quad" },
+  { "target": "#e2", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "out-quad" },
+  { "target": "#e3", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "in-out-quad" },
+  { "target": "#e4", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "in-cubic" },
+  { "target": "#e5", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "out-cubic" },
+  { "target": "#e6", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "in-out-cubic" },
+  { "target": "#e7", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "in-quart" },
+  { "target": "#e8", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "out-quart" },
+  { "target": "#e9", "to": { "x": 1000 }, "at": 0.5, "duration": 2, "ease": "in-out-quart" }
+]
+</script>
+</body>
+</html>

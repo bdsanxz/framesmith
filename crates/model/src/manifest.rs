@@ -25,10 +25,6 @@ pub struct Clip {
     pub label: String,
     pub tag: String,
     pub start: Time,
-    /// The start as the author wrote it when it is relative to another clip (`after:intro`, spaces at
-    /// its ends removed); `None` for a start written as a time.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub relative_start: Option<String>,
     pub duration: Time,
     pub duration_written: bool,
     pub track: Option<i64>,
@@ -66,12 +62,6 @@ fn differ(what: impl Into<String>, files: impl ToString, page: impl ToString) ->
     })
 }
 
-fn written_start_text(written: &Option<String>) -> String {
-    written
-        .as_ref()
-        .map_or_else(|| "a time in seconds".to_string(), |written| format!("\"{written}\""))
-}
-
 fn track_text(track: Option<i64>) -> String {
     track.map_or_else(|| "none".to_string(), |track| track.to_string())
 }
@@ -105,13 +95,6 @@ pub fn first_difference(files: &Manifest, page: &Manifest) -> Option<Difference>
         }
         if a.start != b.start {
             return differ(format!("the start of {name}"), format!("{} s", a.start), format!("{} s", b.start));
-        }
-        if a.relative_start != b.relative_start {
-            return differ(
-                format!("the way the start of {name} is written"),
-                written_start_text(&a.relative_start),
-                written_start_text(&b.relative_start),
-            );
         }
         if a.duration != b.duration {
             return differ(

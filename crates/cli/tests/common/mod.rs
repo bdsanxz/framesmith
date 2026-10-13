@@ -3,7 +3,6 @@
 #![allow(dead_code)]
 
 pub mod live;
-pub mod sprint1;
 
 use measure::{Facts, Frame, Ran};
 use std::collections::BTreeMap;

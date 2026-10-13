@@ -2,7 +2,6 @@
 //! the result as text or as one JSON document.
 
 use crate::args::{RenderOptions, Usage};
-use crate::facts;
 use crate::progress::Progress;
 use crate::{signal, text};
 use browser::{FindError, Places};
@@ -165,7 +164,13 @@ fn outcome_word(code: i32) -> &'static str {
 fn document(end: &End, run_id: &str) -> (i32, Value) {
     match end {
         End::Completed(summary) => {
-            let duration = facts::seconds(summary.length);
+            let seconds = summary.length.to_f64();
+            // A whole number of seconds is written without a decimal point.
+            let duration = if seconds.fract() == 0.0 {
+                json!(seconds as u64)
+            } else {
+                json!(seconds)
+            };
             let document = json!({
                 "outcome": "completed",
                 "run_id": run_id,
@@ -185,7 +190,7 @@ fn document(end: &End, run_id: &str) -> (i32, Value) {
             };
             (
                 code,
-                json!({ "outcome": outcome_word(code), "run_id": run_id, "diagnostics": facts::diagnostics_value(diagnostics) }),
+                json!({ "outcome": outcome_word(code), "run_id": run_id, "diagnostics": diagnostics }),
             )
         }
         End::Failed(failures) => {

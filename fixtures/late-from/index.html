@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>From tweens that start late</title>
+<style>
+  [data-fs-composition] { background: #101820; }
+  #slider { position: absolute; left: 40px; top: 60px; width: 80px; height: 60px; background: #ff5a36; }
+  #fader { position: absolute; left: 40px; top: 160px; width: 80px; height: 60px; background: #2ecc71; }
+  #mark { position: absolute; left: 40px; top: 280px; width: 80px; height: 40px; background: #3498db; }
+</style>
+</head>
+<body>
+<div data-fs-composition="late-from" data-fs-size="640x360" data-fs-fps="30" data-fs-duration="3">
+  <div id="slider"></div>
+  <div id="fader"></div>
+  <div id="mark"></div>
+</div>
+<script type="application/framesmith-motion+json">
+[
+  { "target": "#slider", "from": { "x": 400 }, "at": 1.2, "duration": 0.8, "ease": "out-quad" },
+  { "target": "#fader", "from": { "x": 300, "opacity": 0 }, "at": 1.5, "duration": 0.5, "ease": "linear" },
+  { "target": "#mark", "to": { "x": 200 }, "at": 1.1, "duration": 0.4, "ease": "linear" }
+]
+</script>
+</body>
+</html>

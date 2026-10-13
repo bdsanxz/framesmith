@@ -370,13 +370,9 @@ fn t028_c7_the_support_matrix_spec_exists_and_lists_every_code() {
 #[test]
 fn t029_c1_a_clip_start_that_names_another_clip_is_unsupported() {
     let (both, found) = listed("t029_c1", "fs-u003-relative-start");
-    // The fixture is a follower of a clip with no written duration, a form that still waits (ticket
-    // T013); it was an offset until ticket T011 built the offset and a chain until ticket T012 built chains.
-    assert_eq!(found, ["index.html:14"]);
+    assert_eq!(found, ["index.html:13"]);
     assert!(
-        both.check
-            .stdout
-            .contains("starts after #second, which has no written duration; following a clip whose end is worked out is not supported in this version."),
+        both.check.stdout.contains("relative starts are not supported in this version"),
         "{}",
         both.check.stdout
     );

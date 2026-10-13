@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stagger option</title>
+<style>
+  .box { position: absolute; left: 20px; top: 20px; width: 80px; height: 60px; background: #3a6ea5; }
+</style>
+</head>
+<body>
+<div data-fs-composition="main" data-fs-size="320x180" data-fs-fps="30" data-fs-duration="1">
+  <div id="box" class="box"></div>
+
+</div>
+<script type="application/framesmith-motion+json">
+{ "composition": "main",
+  "tweens": [
+    { "target": "#box", "to": { "x": 100 }, "at": 0, "duration": 1, "stagger": 0.1 }
+  ] }
+</script>
+</body>
+</html>

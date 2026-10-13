@@ -35,77 +35,12 @@ pub enum SelectorProblem {
     Unsupported,
 }
 
-/// A start written with `after:` and a text, still to be read against the ids of the clips.
-#[derive(Clone)]
-struct RelativeStart {
-    /// What follows `after:`, spaces at its ends and after the colon removed: the id of the clip to
-    /// follow in the plain form, or an offset (decided once the ids of all the clips are known).
-    text: String,
-    /// The value as written, spaces at its ends removed.
-    written: String,
-    /// The line of the `data-fs-start` attribute.
-    line: u32,
-}
-
-/// What follows `after:` in a start, trimmed. `None` when the value does not begin with `after:`.
-fn relative_text(value: &str) -> Option<&str> {
-    Some(value.strip_prefix(RELATIVE_PREFIX)?.trim())
-}
-
-/// Where an offset begins in a text that is not the id of a clip, and whether the text is of the offset
-/// form (`composition.md`, "Relative start", steps 2 and 3): the base (the id the offset is added to) and
-/// the offset text (a sign, or signs, and what follows). `None` when the text is not of the offset form.
-fn split_offset(text: &str) -> Option<(&str, &str)> {
-    // A `+` always begins the offset; without one, only the last `-` can.
-    let mut start = match text.find('+') {
-        Some(at) => at,
-        None => text.rfind('-')?,
-    };
-    // Signs that stand directly before it (spaces between them) belong to the offset.
-    loop {
-        let before = text[..start].trim_end();
-        if before.ends_with(['+', '-']) {
-            start = before.len() - 1;
-        } else {
-            break;
-        }
-    }
-    let base = text[..start].trim_end();
-    if base.is_empty() {
-        return None;
-    }
-    let offset_text = &text[start..];
-    let tail = offset_text.trim_start_matches(|c: char| c == '+' || c == '-' || c.is_whitespace());
-    let is_number = tail.chars().any(|c| c.is_ascii_digit()) && tail.chars().all(|c| c.is_ascii_digit() || c == '.');
-    (offset_text.contains('+') || is_number).then_some((base, offset_text))
-}
-
-/// Reads an offset text: one sign, spaces, and a time as every written time is read (no sign of its own).
-/// The result is exact: a plus or minus the time.
-fn read_offset(offset_text: &str) -> Option<Time> {
-    let mut chars = offset_text.chars();
-    let sign = chars.next()?;
-    let rest = chars.as_str().trim_start();
-    if rest.starts_with(['+', '-']) {
-        return None;
-    }
-    let time = Time::parse(rest)?;
-    match sign {
-        '+' => Some(time),
-        '-' => Some(Time::ZERO - time),
-        _ => None,
-    }
-}
-
 struct ClipDraft {
     element: usize,
-    id: Option<String>,
     label: String,
     tag: String,
     line: u32,
     start: Option<Time>,
-    /// Set when the start is the plain relative form, still to be resolved.
-    relative: Option<RelativeStart>,
     /// `Some(None)`: no duration written. `None`: written wrongly.
     duration: Option<Option<Time>>,
     track: Option<i64>,
@@ -145,8 +80,6 @@ pub struct Draft {
     file: String,
     diagnostics: Vec<Diagnostic>,
     composition: Option<CompositionDraft>,
-    /// The ids of the compositions other than the one being read.
-    other_compositions: Vec<String>,
     clips: Vec<ClipDraft>,
     tweens: Vec<(Tween, u32)>,
 }
@@ -161,15 +94,6 @@ pub struct Resolved {
     pub targets: Vec<Vec<usize>>,
     /// For each clip in the manifest, its index in the raw element list.
     pub clip_elements: Vec<usize>,
-}
-
-/// "a", "a and b", "a, b and c".
-fn join_names(items: &[String]) -> String {
-    match items {
-        [] => String::new(),
-        [only] => only.clone(),
-        [init @ .., last] => format!("{} and {last}", init.join(", ")),
-    }
 }
 
 fn is_name(text: &str) -> bool {
@@ -196,7 +120,6 @@ impl Draft {
             file: file.to_string(),
             diagnostics: Vec::new(),
             composition: None,
-            other_compositions: Vec::new(),
             clips: Vec::new(),
             tweens: Vec::new(),
         };
@@ -225,9 +148,6 @@ impl Draft {
                 continue;
             };
             owner[index] = Some(index);
-            if let Some(id) = element.id.as_ref().filter(|id| !id.is_empty()) {
-                self.other_compositions.push(id.clone());
-            }
             if inherited.is_some() {
                 self.add(
                     "FS-U006",
@@ -250,14 +170,6 @@ impl Draft {
                 );
             } else {
                 main = Some(index);
-            }
-        }
-        if let Some(main) = main {
-            // The composition being read is not "another" one.
-            if let Some(id) = raw.elements[main].id.as_ref() {
-                if let Some(at) = self.other_compositions.iter().position(|other| other == id) {
-                    self.other_compositions.remove(at);
-                }
             }
         }
         match main {
@@ -483,7 +395,7 @@ impl Draft {
                 Some(id) if !id.is_empty() => format!("#{id}"),
                 _ => format!("number {number} <{}>", element.tag),
             };
-            let (start, relative) = self.read_clip_start(element, &label);
+            let start = self.read_clip_start(element, &label);
             let duration = self.read_clip_duration(element, &label);
             let track = self.read_clip_track(element, &label);
             let mut parent = None;
@@ -498,12 +410,10 @@ impl Draft {
             clip_of.insert(index, self.clips.len());
             self.clips.push(ClipDraft {
                 element: index,
-                id: element.id.clone().filter(|id| !id.is_empty()),
                 label,
                 tag: element.tag.clone(),
                 line: element.line,
                 start,
-                relative,
                 duration,
                 track,
                 parent,
@@ -511,8 +421,7 @@ impl Draft {
         }
     }
 
-    /// Reads a clip's start: the time, or the relative start still to be resolved.
-    fn read_clip_start(&mut self, element: &RawElement, label: &str) -> (Option<Time>, Option<RelativeStart>) {
+    fn read_clip_start(&mut self, element: &RawElement, label: &str) -> Option<Time> {
         let Some(attr) = element.attr(A_START) else {
             self.add(
                 "FS-E020",
@@ -520,32 +429,21 @@ impl Draft {
                 format!("The clip {label} has no start."),
                 "Add data-fs-start with the time in seconds at which the clip appears, for example data-fs-start=\"1\".",
             );
-            return (None, None);
+            return None;
         };
         let value = attr.value.trim();
-        match relative_text(value) {
-            Some("") => {
-                self.add(
-                    "FS-E021",
-                    attr.line,
-                    format!(
-                        "The start of the clip {label}, \"{value}\", is neither a number of seconds nor the id of one clip after after:."
-                    ),
-                    "Write the start as a plain number of seconds, or as after: and the id of one clip, for example data-fs-start=\"after:intro\".",
-                );
-                return (None, None);
-            }
-            Some(text) => {
-                let relative = RelativeStart {
-                    text: text.to_string(),
-                    written: value.to_string(),
-                    line: attr.line,
-                };
-                return (None, Some(relative));
-            }
-            None => {}
+        if is_relative_start(value) {
+            self.add(
+                "FS-U003",
+                attr.line,
+                format!(
+                    "The clip {label} starts relative to another clip (\"{value}\"); relative starts are not supported in this version."
+                ),
+                "Write the start as a time in seconds from the start of the composition, for example data-fs-start=\"2.5\".",
+            );
+            return None;
         }
-        let start = match Time::parse(value) {
+        match Time::parse(value) {
             None => {
                 self.add(
                     "FS-E021",
@@ -565,8 +463,7 @@ impl Draft {
                 None
             }
             Some(start) => Some(start),
-        };
-        (start, None)
+        }
     }
 
     fn read_clip_duration(&mut self, element: &RawElement, label: &str) -> Option<Option<Time>> {
@@ -716,8 +613,7 @@ impl Draft {
         let motion_end = motion::motion_end(&all_tweens).filter(|end| end.is_positive());
 
         // The length is settled first: a clip with no end of its own lasts until it.
-        let mut drafts = std::mem::take(&mut self.clips);
-        self.resolve_relative_starts(&mut drafts);
+        let drafts = std::mem::take(&mut self.clips);
         let last_own_end = drafts.iter().filter_map(|draft| Some(draft.start? + draft.own_duration()?.0)).max();
         let written_length = self.composition.as_ref().map(|composition| composition.length);
         let length = match written_length {
@@ -760,7 +656,6 @@ impl Draft {
                         label: draft.label.clone(),
                         tag: draft.tag.clone(),
                         start,
-                        relative_start: draft.relative.as_ref().map(|relative| relative.written.clone()),
                         duration,
                         duration_written,
                         track: draft.track,
@@ -811,209 +706,6 @@ impl Draft {
         }
     }
 
-    /// Gives every clip that follows another its start: the end of the named clip (its start plus its
-    /// written duration) plus the offset. The named clip may itself follow another, to any depth; the
-    /// starts are worked out from the clip that has a time, down each line, whatever order the clips are
-    /// written in. A fault, or a form that is not built yet, is reported and leaves the start open, and a
-    /// clip that follows a clip whose start is open gets no report of its own. Clips whose starts depend
-    /// on each other in a circle are reported once, together (FS-E053).
-    fn resolve_relative_starts(&mut self, drafts: &mut [ClipDraft]) {
-        // First, what each relative start names: the index of the clip it follows, and its offset
-        // (`None` when the offset is not a time, which is already reported). A start with a fault of its
-        // own names nothing.
-        let mut links: Vec<Option<(usize, Option<Time>)>> = vec![None; drafts.len()];
-        for index in 0..drafts.len() {
-            let Some(relative) = drafts[index].relative.clone() else {
-                continue;
-            };
-            let label = drafts[index].label.clone();
-            let (text, written, line) = (relative.text.as_str(), relative.written.as_str(), relative.line);
-            let by_id = |id: &str| drafts.iter().position(|draft| draft.id.as_deref() == Some(id));
-            let remedy_missing = "Write the id of a clip of this composition, give the clip you mean data-fs-clip and that id, or write the start as a time in seconds.";
-            let nested_remedy =
-                "Write the start as a time in seconds from the start of the composition, for example data-fs-start=\"2.5\".";
-            let nested = |id: &str| {
-                format!("The clip {label} starts after \"{id}\", a nested composition; following a nested composition is not supported in this version.")
-            };
-
-            // Step 1: the whole text is the id of a clip.
-            let (named, offset) = if let Some(named) = by_id(text) {
-                (named, Some(Time::ZERO))
-            } else if self.other_compositions.iter().any(|name| name == text) {
-                self.add("FS-U003", line, nested(text), nested_remedy);
-                continue;
-            } else if let Some((base, offset_text)) = split_offset(text) {
-                // Steps 2 and 3: a base and an offset.
-                let offset = read_offset(offset_text);
-                if offset.is_none() {
-                    self.add(
-                        "FS-E051",
-                        line,
-                        format!("The offset \"{offset_text}\" in the start \"{written}\" of the clip {label} is not a time in seconds."),
-                        format!("Write the offset as + or - and a number of seconds with at most nine decimals and no unit, for example after:{base}+0.5, or write the start as a time in seconds."),
-                    );
-                }
-                if self.other_compositions.iter().any(|name| name == base) {
-                    self.add("FS-U003", line, nested(base), nested_remedy);
-                    continue;
-                }
-                let Some(named) = by_id(base) else {
-                    let description = if offset.is_some() {
-                        format!("The clip {label} starts after \"{text}\", but no clip with the id \"{text}\" is in this composition; read as the clip \"{base}\" and the offset \"{offset_text}\", no clip with the id \"{base}\" is in it either; only an element marked data-fs-clip can be named.")
-                    } else {
-                        format!("The clip {label} starts after \"{base}\" (the part of \"{written}\" before the offset), but no clip with the id \"{base}\" is in this composition; only an element marked data-fs-clip can be named.")
-                    };
-                    self.add("FS-E050", line, description, remedy_missing);
-                    continue;
-                };
-                (named, offset)
-            } else {
-                // Step 4: an id that no clip has.
-                self.add(
-                    "FS-E050",
-                    line,
-                    format!("The clip {label} starts after \"{text}\", but no clip with the id \"{text}\" is in this composition; only an element marked data-fs-clip can be named."),
-                    remedy_missing,
-                );
-                continue;
-            };
-            if named == index {
-                self.add_names_itself(&label, written, line);
-                continue;
-            }
-            links[index] = Some((named, offset));
-        }
-
-        // Then the starts, from the clips that have a time down each line of followers. A walk follows
-        // the names from one clip until it reaches a clip that is settled (an absolute start, a fault,
-        // or one worked out already), or comes back to a clip on its own way, which is a circle.
-        // Nothing recurses, so the depth of a line does not matter.
-        #[derive(Clone, Copy, PartialEq)]
-        enum State {
-            Fresh,
-            OnWalk,
-            Settled,
-        }
-        let mut state: Vec<State> = drafts
-            .iter()
-            .map(|draft| if draft.relative.is_some() { State::Fresh } else { State::Settled })
-            .collect();
-        for first in 0..drafts.len() {
-            let mut walk: Vec<usize> = Vec::new();
-            let mut current = first;
-            let mut closed_at: Option<usize> = None;
-            loop {
-                match state[current] {
-                    State::Settled => break,
-                    State::OnWalk => {
-                        closed_at = walk.iter().position(|&member| member == current);
-                        break;
-                    }
-                    State::Fresh => {}
-                }
-                state[current] = State::OnWalk;
-                walk.push(current);
-                match links[current] {
-                    Some((named, _)) => current = named,
-                    None => break,
-                }
-            }
-            if let Some(from) = closed_at {
-                // The clips of the walk before `from` only lead into the circle: they are settled with no
-                // start and no report of their own.
-                self.add_circle(drafts, &links, &walk[from..]);
-                for &member in &walk {
-                    state[member] = State::Settled;
-                }
-                continue;
-            }
-            // From the end of the walk back to where it began, each clip's start is worked out from the
-            // start of the clip it names, which is settled by then.
-            while let Some(index) = walk.pop() {
-                state[index] = State::Settled;
-                let Some((named, Some(offset))) = links[index] else {
-                    continue;
-                };
-                let label = drafts[index].label.clone();
-                let written = drafts[index]
-                    .relative
-                    .as_ref()
-                    .map(|relative| relative.written.clone())
-                    .unwrap_or_default();
-                let line = drafts[index].relative.as_ref().map_or(0, |relative| relative.line);
-                let target_label = drafts[named].label.clone();
-                // The named clip's start is open: its own fault is reported with it.
-                let Some(start) = drafts[named].start else {
-                    continue;
-                };
-                match drafts[named].duration {
-                    // Written wrongly: reported with the named clip.
-                    None => {}
-                    Some(None) => self.add(
-                        "FS-U003",
-                        line,
-                        format!(
-                            "The clip {label} starts after {target_label}, which has no written duration; following a clip whose end is worked out is not supported in this version."
-                        ),
-                        format!("Write a duration on {target_label}, for example data-fs-duration=\"2\", or write the start of {label} as a time in seconds."),
-                    ),
-                    Some(Some(duration)) => {
-                        let end = start + duration;
-                        let sum = end + offset;
-                        if sum.is_negative() {
-                            self.add(
-                                "FS-E052",
-                                line,
-                                format!(
-                                    "The clip {label} starts at {sum} s (\"{written}\", and {target_label} ends at {end} s), before the start of the composition."
-                                ),
-                                format!("Use an offset of -{end} s or later, or write the start as a time of 0 or more in seconds. The clip is not moved to 0."),
-                            );
-                        } else {
-                            drafts[index].start = Some(sum);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// Reports a circle of relative starts once: every clip of it, from the one written first, each with
-    /// the clip it starts after. `members` are in the order of the names (each starts after the next).
-    fn add_circle(&mut self, drafts: &[ClipDraft], links: &[Option<(usize, Option<Time>)>], members: &[usize]) {
-        let first = members.iter().enumerate().min_by_key(|(_, &member)| member).map_or(0, |(at, _)| at);
-        let ordered: Vec<usize> = members[first..].iter().chain(&members[..first]).copied().collect();
-        let label = |index: usize| drafts[index].label.clone();
-        let names: Vec<String> = ordered.iter().map(|&member| label(member)).collect();
-        let steps: Vec<String> = ordered
-            .iter()
-            .map(|&member| {
-                let (named, _) = links[member].unwrap_or((member, None));
-                format!("{} starts after {}", label(member), label(named))
-            })
-            .collect();
-        let line = drafts[ordered[0]].relative.as_ref().map_or(0, |relative| relative.line);
-        self.add(
-            "FS-E053",
-            line,
-            format!(
-                "The starts of {} depend on each other in a circle: {}, so none of them can be worked out.",
-                join_names(&names),
-                join_names(&steps)
-            ),
-            "Break the circle: write the start of one of the clips of the circle as a time in seconds, or make it start after a clip that is not in the circle.",
-        );
-    }
-
-    fn add_names_itself(&mut self, label: &str, written: &str, line: u32) {
-        self.add(
-            "FS-E049",
-            line,
-            format!("The clip {label} starts after itself (\"{written}\"), so its start cannot be worked out."),
-            "Name the clip it should follow, for example data-fs-start=\"after:intro\", or write the start as a time in seconds.",
-        );
-    }
-
     fn build_manifest(&self, clips: Vec<Clip>, tweens: Vec<TweenFact>, length: Option<(Time, bool)>) -> Option<Manifest> {
         let composition = self.composition.as_ref()?;
         let (width, height) = composition.size?;
@@ -1031,4 +723,8 @@ impl Draft {
             tweens,
         })
     }
+}
+
+fn is_relative_start(value: &str) -> bool {
+    value.strip_prefix(RELATIVE_PREFIX).is_some_and(|rest| !rest.trim().is_empty())
 }

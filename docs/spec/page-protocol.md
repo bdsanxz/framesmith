@@ -1,6 +1,6 @@
 # Page protocol
 
-Status: version 1 (Sprint 1); Sprint 2 ticket T010 added one optional field to a clip of the manifest, `relative_start`, without changing the version. Sources: proposal `s01-first-render` (CAP-013, CAP-014, INT-002, CAP-023); project rule 10 (one versioned contract between the Rust core and the in-page runtime).
+Status: version 1 (Sprint 1). Sources: proposal `s01-first-render` (CAP-013, CAP-014, INT-002, CAP-023); project rule 10 (one versioned contract between the Rust core and the in-page runtime).
 
 This is the contract between Framesmith (the host) and the page it renders. Change it in this order: this document, the tests, then both sides in one change.
 
@@ -70,7 +70,7 @@ The ready report:
 ```
 
 - `clocks` is true only when the loader has confirmed that the replaced clocks are the ones the page sees.
-- `manifest` is the composition as the page sees it: name, size, rate, length, clips with their windows, tweens with the number of elements each target matches. A clip whose start is written relative to another clip (`after:<clip id>`, `composition.md`) carries its resolved `start` like any clip, and also `relative_start`: the value as written, offset included (`after:intro+0.5`), spaces at its ends removed. Ticket T011 changed nothing else in the protocol: the offset is part of the same text. A clip whose start is a time has no `relative_start` field. The page resolves the relative start itself, with the same code as the host, from the clips of its own document. It is `null` when the page's composition cannot be resolved; `problems` then says why.
+- `manifest` is the composition as the page sees it: name, size, rate, length, clips with their windows, tweens with the number of elements each target matches. It is `null` when the page's composition cannot be resolved; `problems` then says why.
 - `failures` lists what stopped the page from being ready in a usable state: `image`, `font`, `file` (any other file the page asked for, such as a style sheet) or `script`, with the file or the error message.
 
 The host waits at most 30 seconds for `ready`.
@@ -85,9 +85,7 @@ In this order, before any frame is captured:
 4. Any failure stops the run (FS-R006 for an image, a font or a file; FS-R007 for a script).
 5. Any unsupported use stops the run with exit code 2.
 6. Problems the page found in its own composition, when it could not resolve it, stop the run (FS-R010).
-7. The manifest is compared with the one read from the files. Any difference stops the run and names the first difference with both values (FS-R010). Neither side wins. For a clip the comparison covers its start, then the way the start is written (a relative start or a time), then its duration. When only the way the start is written differs, the message reads, for example: the way the start of clip 2 (#b) is written is "after:a" in the files and a time in seconds in the page.
-
-The protocol version stays 1 for `relative_start` because the field is optional and left out when absent: a manifest of clips that all have a time as their start is exactly what it was, a reader that does not know the field reads such a manifest unchanged, and the page and the host are built and shipped together from the same source, so they never meet with only one of them knowing the field.
+7. The manifest is compared with the one read from the files. Any difference stops the run and names the first difference with both values (FS-R010). Neither side wins.
 
 ### Seek
 

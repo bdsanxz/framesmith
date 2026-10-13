@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pair move</title>
+<style>
+  .ground { position: absolute; inset: 0; background: #101820; }
+  .flash { position: absolute; left: 900px; top: 100px; width: 200px; height: 200px; background: #ff5a36; }
+  .mover { position: absolute; left: 100px; top: 450px; width: 120px; height: 120px; background: #2ecc71; }
+</style>
+</head>
+<body>
+<div data-fs-composition="pair-move" data-fs-size="1280x720" data-fs-fps="30" data-fs-duration="3">
+  <div class="ground"></div>
+  <div id="flash" class="flash" data-fs-clip data-fs-start="1" data-fs-duration="1"></div>
+  <div id="mover" class="mover"></div>
+</div>
+<script type="application/framesmith-motion+json">
+{ "composition": "pair-move",
+  "tweens": [
+    { "target": "#mover", "to": { "x": 900 }, "at": 0.5, "duration": 2, "ease": "linear" }
+  ] }
+</script>
+</body>
+</html>
