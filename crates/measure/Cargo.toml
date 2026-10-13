@@ -10,3 +10,7 @@ workspace = true
 
 [dependencies]
 serde_json = { workspace = true }
+base = { workspace = true }
+format = { workspace = true }
+mp4 = { workspace = true }
+probe = { workspace = true }
