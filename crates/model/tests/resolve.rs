@@ -421,12 +421,30 @@ fn t029_deferred_timing_and_structure_are_unsupported() {
                 ("data-fs-fps", "30000/1001"),
                 ("data-fs-var-title", "Hello"),
             ]),
+            // A follower of a clip that has no written duration (`b` below, which follows `a`) is the form of a
+            // relative start that still waits (ticket T013). A chain no longer does (ticket T012).
             element(
                 "p",
                 Some("a"),
                 Some(0),
+                4,
+                &[("data-fs-clip", ""), ("data-fs-start", "1"), ("data-fs-duration", "1")],
+            ),
+            element(
+                "p",
+                Some("b"),
+                Some(0),
+                4,
+                // No written duration: a clip that follows it is a form that still waits (ticket T012 built
+                // chains, which this used to be).
+                &[("data-fs-clip", ""), ("data-fs-start", "after:a")],
+            ),
+            element(
+                "p",
+                Some("c"),
+                Some(0),
                 5,
-                &[("data-fs-clip", ""), ("data-fs-start", "after:intro"), ("data-fs-duration", "1")],
+                &[("data-fs-clip", ""), ("data-fs-start", "after:b"), ("data-fs-duration", "1")],
             ),
             element(
                 "div",

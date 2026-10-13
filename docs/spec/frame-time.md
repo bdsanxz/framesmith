@@ -34,6 +34,7 @@ Why a tolerance: an author cannot write a time such as 7/60 of a second exactly 
 - The frame count is the frame grid rule applied to the composition length, with a minimum of 1.
 - Examples: 6 s at 24, 30 and 60 gives 144, 180 and 360. 6.01 s at 30 gives 181 (180.3 rounds up). A length that gives 180.0005 frames gives 180.
 - The video is never lengthened by a clip or a tween that runs past the end.
+- Sprint 2 rule, not yet built: a length shorter than one sixtieth of a second is an error that names the minimum, so the minimum of 1 above is reached only by lengths from one sixtieth up. Source and an open difference: the sampling of 2026-10-11, ticket T002, recorded in `PROGRESS.md`; see "Sprint 2 rules for values that are not written (not yet built)", rule 2, in `composition.md`. Open: the product owner decides. The reference gave 1 frame for written lengths below one sixtieth instead of refusing them.
 
 ## Clip window in frames
 
