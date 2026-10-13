@@ -137,7 +137,7 @@ The root of a file. Children: `<style>`, `<font>`, `<audio>`, `<box>`, `<rect>`,
 | `height` | even whole number, 2 to 8192 | required | 12 (N6) |
 | `fps` | whole number, 1 to 240 | `30` | 5.1 |
 | `duration` | time above 0 | required | 5.1 |
-| `background` | layer list | none | 7.4 |
+| `background` | colour | `#000000`, fully opaque | 7.4 |
 
 ### 6.2 `<box>`
 
