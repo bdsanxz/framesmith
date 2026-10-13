@@ -8,6 +8,13 @@ version = "0.1.0"
 source = "git+https://github.com/bdsanxz/frx7?rev=23b07bc0c72771c9406461fedbe2ae89ffcf2816#23b07bc0c72771c9406461fedbe2ae89ffcf2816"
 
 [[package]]
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "project",
+]
+
+[[package]]
 name = "format"
 version = "0.1.0"
 source = "git+https://github.com/bdsanxz/frx7?rev=23b07bc0c72771c9406461fedbe2ae89ffcf2816#23b07bc0c72771c9406461fedbe2ae89ffcf2816"
@@ -56,6 +63,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "notation"
+version = "0.1.0"
+dependencies = [
+ "roxmltree",
+ "timebase",
+]
+
+[[package]]
 name = "parity"
 version = "0.1.0"
 dependencies = [
@@ -82,12 +97,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "project"
+version = "0.1.0"
+dependencies = [
+ "notation",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "roxmltree"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1964b10c76125c36f8afe190065a4bf9a87bf324842c05701330bba9f1cacbb"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]

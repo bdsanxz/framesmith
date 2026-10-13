@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/timebase", "crates/motion", "crates/measure", "crates/parity"]
+members = ["crates/timebase", "crates/motion", "crates/notation", "crates/project", "crates/cli", "crates/measure", "crates/parity"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,8 +11,11 @@ rust-version = "1.85"
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+roxmltree = "0.21"
 timebase = { path = "crates/timebase" }
 motion = { path = "crates/motion" }
+notation = { path = "crates/notation" }
+project = { path = "crates/project" }
 measure = { path = "crates/measure" }
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
