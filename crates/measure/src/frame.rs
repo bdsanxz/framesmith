@@ -207,7 +207,7 @@ fn decode(ffmpeg: &Path, input: &[&str], width: u32, height: u32) -> Result<Vec<
 }
 
 /// Reads the pictures `frame-00000.png`, `frame-00001.png`, … of a folder,
-/// in order. These are exactly the pixels the browser painted.
+/// in order, with the pixels exactly as the files hold them.
 pub fn frames_from_pngs(ffmpeg: &Path, dir: &Path) -> Result<Vec<Frame>, String> {
     let first = std::fs::read(dir.join("frame-00000.png")).map_err(|e| format!("{} has no frame-00000.png ({e})", dir.display()))?;
     let (width, height) = png_size(&first).ok_or("frame-00000.png is not a PNG file")?;
