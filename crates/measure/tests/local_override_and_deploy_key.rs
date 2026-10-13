@@ -145,7 +145,7 @@ fn dropping_the_override_removes_its_file_and_only_its_file() {
 /// A throwaway SSH key pair made by `ssh-keygen`, in the repository's folder.
 fn throwaway_key(repo: &Repo) -> String {
     let key = repo.dir.join("throwaway_key");
-    let made = std::process::Command::new("ssh-keygen")
+    let made = common::isolate_from_runner(&mut std::process::Command::new("ssh-keygen"))
         .args(["-q", "-t", "ed25519", "-N", "", "-C", "throwaway", "-f"])
         .arg(&key)
         .status()

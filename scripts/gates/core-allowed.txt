@@ -1,0 +1,14 @@
+# The record of the folders a core test may start programs from (docs/dev/gates.md, section 10).
+#
+# One absolute folder on each line. The runner (core-runner.sh) lets a core test start a program of
+# these folders, of the folder the workspace built (target/), of the developer tools that
+# `xcode-select -p` names and of the Rust toolchain that runs the suite, and of nothing else. A folder
+# must lie in /usr/bin, /bin, /usr/sbin, /sbin, /usr/libexec or /System: the folders of the system's
+# tools, which is where bash, git's stub, ssh-keygen and the like are. No other place is allowed
+# here: FFmpeg and the reference are never in these folders.
+/usr/bin
+/bin
+/usr/sbin
+/sbin
+/usr/libexec
+/System

@@ -10,6 +10,26 @@ pub const REMOTE: &str = "https://github.com/bdsanxz/frx7";
 pub const PIN_A: &str = "1111111111111111111111111111111111111111";
 pub const PIN_B: &str = "2222222222222222222222222222222222222222";
 
+/// What a hosted runner gives every step: the marker of the runner and the files a step may write to
+/// (its job summary, its outputs, the environment and the search path of later steps).
+pub const RUNNER_VARIABLES: [&str; 5] = [
+    "GITHUB_ACTIONS",
+    "GITHUB_STEP_SUMMARY",
+    "GITHUB_OUTPUT",
+    "GITHUB_ENV",
+    "GITHUB_PATH",
+];
+
+/// Takes the runner's variables out of a child's environment, so that a script a test starts, one that
+/// is made to fail on purpose, reports to no runner and writes no file of one (`docs/dev/gates.md`,
+/// section 12). Every helper that starts a script or a program of the repository calls it.
+pub fn isolate_from_runner(command: &mut Command) -> &mut Command {
+    for name in RUNNER_VARIABLES {
+        command.env_remove(name);
+    }
+    command
+}
+
 /// The script under test, in this repository.
 pub fn script_source() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../scripts/gates/frx7.sh")
@@ -93,8 +113,9 @@ impl Repo {
         std::fs::read_to_string(self.dir.join(relative)).expect("the file is read")
     }
 
-    fn command(&self, program: &str) -> Command {
+    pub fn command(&self, program: &str) -> Command {
         let mut command = Command::new(program);
+        isolate_from_runner(&mut command);
         command
             .current_dir(&self.dir)
             .env("GIT_CONFIG_GLOBAL", "/dev/null")

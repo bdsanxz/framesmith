@@ -55,7 +55,7 @@ entries_at() {
 # The revisions the root manifest of a commit pins, one line each, or "none".
 pin_at() {
     local revs
-    revs=$(git show "$1:Cargo.toml" 2>/dev/null | awk "$ENTRY_AWK" | cut -f3 | sort -u)
+    revs=$(git show "$1:Cargo.toml" 2>/dev/null | awk "$ENTRY_AWK" | cut -f3 | sed '/^$/d' | sort -u)
     if [ -z "$revs" ]; then echo none; else echo "$revs"; fi
 }
 
@@ -136,16 +136,25 @@ cmd_check() {
     if [ -z "$entries" ]; then
         refuse "no Cargo.toml pins frx7: the root Cargo.toml names no crate of $REMOTE at a revision (docs/dev/frx7.md, section 1)"
     fi
-    while IFS="$(printf '\t')" read -r manifest line url rev other; do
+    # An entry with no rev has an empty field, which read would lose (a tab is blank space to it and
+    # the fields after it would move up one place); a dash stands in for it.
+    local tab
+    tab=$(printf '\t')
+    entries=$(printf '%s\n' "$entries" | sed "s/$tab$tab/$tab-$tab/")
+    while IFS="$tab" read -r manifest line url rev other; do
         [ -n "$manifest" ] || continue
         [ "$manifest" = "Cargo.toml" ] || refuse "$manifest line $line names frx7 itself; only the root Cargo.toml does, a crate takes it as { workspace = true }"
         [ "$url" = "$REMOTE" ] || refuse "$manifest line $line names the remote \`$url\`; frx7 is spelled \`$REMOTE\`"
-        is_revision "$rev" || refuse "$manifest line $line pins frx7 without a full revision (rev = \"<40 hex digits>\"): \`$rev\`"
+        if [ "$rev" = "-" ]; then
+            refuse "$manifest line $line pins frx7 without a full revision (rev = \"<40 hex digits>\"): it has no rev"
+        else
+            is_revision "$rev" || refuse "$manifest line $line pins frx7 without a full revision (rev = \"<40 hex digits>\"): \`$rev\`"
+        fi
         [ "$other" = "no" ] || refuse "$manifest line $line names a branch or a tag of frx7; only a full revision does not move"
     done <<EOF
 $entries
 EOF
-    revs=$(printf '%s\n' "$entries" | cut -f4 | sort -u | sed '/^$/d')
+    revs=$(printf '%s\n' "$entries" | cut -f4 | grep -v '^-$' | sort -u | sed '/^$/d')
     local pin=""
     if [ "$(printf '%s\n' "$revs" | sed '/^$/d' | wc -l | tr -d ' ')" -gt 1 ]; then
         refuse "frx7 is pinned at more than one revision: $(printf '%s' "$revs" | tr '\n' ' ')"

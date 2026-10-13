@@ -20,16 +20,16 @@ scripts/gates/frx7.sh drop-override             # back to the pin
 
 ## The quality gates
 
-Five gates stand between a change and this repository: formatting, static analysis, the tests, the licence gate and the frx7 pin (no committed path override, one pinned revision, a moved pin carries its record). Their behaviour is specified in `docs/dev/gates.md` and `docs/dev/frx7.md`.
+Six gates stand between a change and this repository: formatting, static analysis, the tests, the core suite without FFmpeg (the tests again with only the system's folders on the search path), the licence gate and the frx7 pin (no committed path override, one pinned revision, a moved pin carries its record). Their behaviour is specified in `docs/dev/gates.md` and `docs/dev/frx7.md`.
 
 ```
 scripts/gates/install-hooks.sh    # once after cloning: a failing gate then stops every push
-scripts/gates.sh                  # the five gates, then the tests marked "reference machine only" and the yardstick tests
+scripts/gates.sh                  # the six gates, then the tests marked "reference machine only" and the yardstick tests
 ```
 
 `cargo-deny` is needed for the licence gate: `cargo install --locked cargo-deny --version 0.20.2`. No browser and no FFmpeg is needed by any gate.
 
-`scripts/gates.sh --gate lint`, `-p CRATE` and the like run a part and say they are narrowed; a narrowed run exits 3 at best and is never a pass of the gates. The hosted run (`.github/workflows/gates.yml`) runs on `main` and on pull requests only and reports the five gates each by name; its jobs that build fetch frx7 with a read-only deploy key kept in the Actions secret `FRX7_DEPLOY_KEY`. Work branches rely on the local gates.
+`scripts/gates.sh --gate lint`, `-p CRATE` and the like run a part and say they are narrowed; a narrowed run exits 3 at best and is never a pass of the gates. The hosted run (`.github/workflows/gates.yml`) runs on `main` and on pull requests only and reports the six gates each by name; its jobs that build fetch frx7 with a read-only deploy key kept in the Actions secret `FRX7_DEPLOY_KEY`. Work branches rely on the local gates.
 
 ### Tests that need the hardware encoder or a graphics card
 
@@ -37,7 +37,9 @@ A test that needs the hardware encoder or a card cannot be judged on a hosted ru
 
 ### Tests that compare with a program from outside
 
-A test that starts a program the developer installed (today `ffmpeg` and `ffprobe`, to make and read test videos) is a yardstick test. Mark it in one way: its name starts with `yardstick_` and it carries `#[ignore = "yardstick: <the reason>"]`. The hosted run, and a machine without the programs, list it as not run, by name, and never as passed; `scripts/gates.sh` runs it on a machine that has them.
+A test that starts a program the developer installed to compare (today `ffmpeg` and `ffprobe`, to make and read test videos, and the reference) is a yardstick test. Mark it in one way: its name starts with `yardstick_` (`yardstick_reference_` for one that needs the reference), it sits in a test file or folder whose name starts with `yardstick`, and its test target has `harness = false` with `measure::yardstick_tests!` as its `main`. A plain `cargo test` lists it as ignored; `cargo test --workspace -- --ignored yardstick_` runs it, and where its program is not installed it is reported as skipped, by name, and never as passed. The hosted run lists it as not run. A skipped comparison is never evidence that a line of the roadmap passes.
+
+`scripts/gates.sh --gate core` (part of every full run and a job of the hosted run) runs the core suite, every test but the yardstick tests, with only `/usr/bin:/bin:/usr/sbin:/sbin` on the search path, under a system sandbox that refuses to start `ffmpeg`, `ffprobe` or the reference, and fails with the name of the test that tries. Details: `docs/dev/gates.md`, sections 5, 10 and 11.
 
 ### Tests stand alone
 

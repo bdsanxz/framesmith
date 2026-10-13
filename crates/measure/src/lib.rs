@@ -9,6 +9,7 @@ mod font;
 mod frame;
 mod shape;
 mod similarity;
+pub mod yardstick;
 
 pub use clip::{clip_facts, write_clip, ClipFacts, ClipSpec};
 pub use command::{run, tool, Ran};

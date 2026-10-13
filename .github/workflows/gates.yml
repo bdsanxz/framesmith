@@ -1,9 +1,10 @@
 # The quality gates of Framesmith on a hosted macOS runner: formatting, static analysis, the tests,
-# the licence gate and the frx7 pin, each a job of its own so that the run reports each by name.
+# the core suite without FFmpeg, the licence gate and the frx7 pin, each a job of its own so that the
+# run reports each by name.
 # Hosted jobs run on `main` and on pull requests only (decision A7); work branches rely on the local
 # gates (.githooks/pre-push). Every job runs scripts/gates.sh, the script the local gates run.
 # No job installs a browser or FFmpeg: the only installs are the Rust toolchain and cargo-deny.
-# frx7 is a private repository: every job that builds (static analysis, tests, licence gate) fetches
+# frx7 is a private repository: every job that builds (static analysis, tests, core suite, licence gate) fetches
 # it at the pinned revision with the read-only deploy key kept in the secret FRX7_DEPLOY_KEY
 # (scripts/gates/frx7.sh deploy-key, which never prints it). Formatting reads no dependency, and the
 # job "frx7 pin" reads git only (all of its history); neither needs the key.
@@ -72,6 +73,26 @@ jobs:
       # not run, and never counts one as passed (decision A27).
       - name: tests
         run: scripts/gates.sh --hosted --gate test
+
+  # The tests again, started through a runner that gives them only the system's folders as their search
+  # path and forbids starting any program but the system's and the ones the workspace built, after a
+  # control of tests that start ffmpeg, ffprobe and a command outside the repository on purpose and
+  # must each be failed by name (docs/dev/gates.md, section 10). The tests marked "reference machine
+  # only" are not run here.
+  core-suite:
+    name: core suite without FFmpeg
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (the one rust-toolchain.toml names)
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: frx7 (private remote, read-only deploy key)
+        env:
+          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
+        run: scripts/gates/frx7.sh deploy-key
+      - name: core suite without FFmpeg
+        run: scripts/gates.sh --hosted --gate core
 
   licence-gate:
     name: licence gate
