@@ -11,18 +11,25 @@ cargo build --workspace
 cargo test --workspace
 ```
 
+frx7, the media stack, is a repository of its own with a private remote. This repository takes it at one pinned revision (`Cargo.toml`, `docs/dev/frx7.md`), so a fresh copy builds on a machine with no frx7 folder: Cargo fetches the revision with the git credentials you already have for `github.com` (for example `gh auth setup-git`). To work on both at once, build against your local frx7 folder with an override that is never committed:
+
+```
+scripts/gates/frx7.sh override /path/to/frx7    # writes .cargo/config.toml, which git ignores
+scripts/gates/frx7.sh drop-override             # back to the pin
+```
+
 ## The quality gates
 
-Four gates stand between a change and this repository: formatting, static analysis, the tests and the licence gate. Their behaviour is specified in `docs/dev/gates.md`.
+Five gates stand between a change and this repository: formatting, static analysis, the tests, the licence gate and the frx7 pin (no committed path override, one pinned revision, a moved pin carries its record). Their behaviour is specified in `docs/dev/gates.md` and `docs/dev/frx7.md`.
 
 ```
 scripts/gates/install-hooks.sh    # once after cloning: a failing gate then stops every push
-scripts/gates.sh                  # the four gates, then the tests marked "reference machine only" and the yardstick tests
+scripts/gates.sh                  # the five gates, then the tests marked "reference machine only" and the yardstick tests
 ```
 
 `cargo-deny` is needed for the licence gate: `cargo install --locked cargo-deny --version 0.20.2`. No browser and no FFmpeg is needed by any gate.
 
-`scripts/gates.sh --gate lint`, `-p CRATE` and the like run a part and say they are narrowed; a narrowed run exits 3 at best and is never a pass of the gates. The hosted run (`.github/workflows/gates.yml`) runs on `main` and on pull requests only and reports the four gates each by name. Work branches rely on the local gates.
+`scripts/gates.sh --gate lint`, `-p CRATE` and the like run a part and say they are narrowed; a narrowed run exits 3 at best and is never a pass of the gates. The hosted run (`.github/workflows/gates.yml`) runs on `main` and on pull requests only and reports the five gates each by name; its jobs that build fetch frx7 with a read-only deploy key kept in the Actions secret `FRX7_DEPLOY_KEY`. Work branches rely on the local gates.
 
 ### Tests that need the hardware encoder or a graphics card
 
@@ -38,4 +45,4 @@ A test never reads a file that another test writes and never relies on the order
 
 ## Dependencies
 
-Each dependency is recorded in `PROGRESS.md` of the workspace with its name, licence and reason. `scripts/gates/dependencies.sh list` prints the outside crates of `Cargo.lock` with their licences; `scripts/gates/dependencies.sh compare FILE` shows which ones a record leaves out. The licence gate refuses GPL, AGPL, LGPL, SSPL and unknown licences.
+Each dependency is recorded in `PROGRESS.md` of the workspace with its name, licence and reason. `scripts/gates/dependencies.sh list` prints the outside crates of `Cargo.lock` with their licences; `scripts/gates/dependencies.sh frx7` lists the crates of frx7 apart, with the revision; `scripts/gates/dependencies.sh compare FILE` shows which ones a record leaves out. The licence gate refuses GPL, AGPL, LGPL, SSPL and unknown licences.

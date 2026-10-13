@@ -1,0 +1,4 @@
+# The local override of frx7 (docs/dev/frx7.md, section 4) is written here by
+# `scripts/gates/frx7.sh override` and is never committed: the gate "frx7 pin" refuses a commit that carries it.
+config.toml
+config
