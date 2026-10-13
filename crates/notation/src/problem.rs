@@ -1,11 +1,12 @@
 use std::fmt;
 
-use crate::code::Code;
+use crate::code::{Code, Kind};
 
 /// One thing wrong in a composition file, with its code and the line it is on.
 ///
-/// It prints as `line N: ` the code, `: ` and the message, the form of `docs/spec/notation.md`
-/// section 13 with the code of `docs/spec/check-command.md` section 4. It does not know the file.
+/// It prints as `line N: ` and the code's statement: the code, its kind, the message as one
+/// sentence and the code's remedy (`docs/spec/error-catalogue.md` section 3). It does not know the
+/// file.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Problem {
     code: Code,
@@ -28,7 +29,17 @@ impl Problem {
         self.line
     }
 
-    /// What is wrong, without the line and the code.
+    /// The kind of the problem: the kind of its code.
+    pub fn kind(&self) -> Kind {
+        self.code.kind()
+    }
+
+    /// What to change: the remedy of the problem's code.
+    pub fn remedy(&self) -> &'static str {
+        self.code.remedy()
+    }
+
+    /// What is wrong, without the line, the code and the remedy.
     pub fn message(&self) -> &str {
         &self.message
     }
@@ -36,6 +47,6 @@ impl Problem {
 
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "line {}: {}: {}", self.line, self.code, self.message)
+        write!(f, "line {}: {}", self.line, self.code.statement(&self.message))
     }
 }

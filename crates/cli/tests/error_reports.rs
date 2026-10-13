@@ -1,0 +1,299 @@
+//! What `framesmith check` prints for every refusal and failure: the code, the kind, the file and
+//! line where there is one, one sentence on what is wrong and one on what to change
+//! (`docs/spec/error-catalogue.md`), with or without a terminal that asks for colour.
+
+use std::collections::BTreeSet;
+use std::ffi::OsStr;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+
+use project::{Code, Kind};
+
+/// A new folder named `name` for one test, under the tests' scratch folder.
+fn folder(name: &str) -> PathBuf {
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("error-reports").join(name);
+    if dir.exists() {
+        fs::remove_dir_all(&dir).unwrap();
+    }
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+/// How the terminal of the run is set: the variables that ask for colour, or for none.
+#[derive(Clone, Copy, Debug)]
+enum Terminal {
+    /// Asks for colour in every way it can.
+    AsksForColour,
+    /// Asks for none: `NO_COLOR` and a terminal that cannot show any.
+    AsksForNone,
+    /// None of the variables is set.
+    Unset,
+}
+
+/// Runs `framesmith` with `args` from `cwd` under the terminal described.
+fn framesmith<I, S>(cwd: &Path, terminal: Terminal, args: I) -> Output
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(env!("CARGO_BIN_EXE_framesmith"));
+    command
+        .args(args)
+        .current_dir(cwd)
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env_remove("FORCE_COLOR")
+        .env_remove("TERM");
+    match terminal {
+        Terminal::AsksForColour => {
+            command
+                .env("CLICOLOR_FORCE", "1")
+                .env("FORCE_COLOR", "1")
+                .env("TERM", "xterm-256color");
+        }
+        Terminal::AsksForNone => {
+            command.env("NO_COLOR", "1").env("TERM", "dumb");
+        }
+        Terminal::Unset => {}
+    }
+    command.output().unwrap()
+}
+
+fn text(bytes: &[u8]) -> String {
+    String::from_utf8(bytes.to_vec()).unwrap()
+}
+
+/// A project folder whose `composition.xml` holds `bytes`, and an empty folder to run from.
+fn project(name: &str, bytes: &[u8]) -> (PathBuf, PathBuf) {
+    let base = folder(name);
+    let project = base.join("demo");
+    let cwd = base.join("cwd");
+    fs::create_dir_all(&project).unwrap();
+    fs::create_dir_all(&cwd).unwrap();
+    fs::write(project.join("composition.xml"), bytes).unwrap();
+    (project, cwd)
+}
+
+/// The text of `docs/spec/error-catalogue.md`.
+fn catalogue() -> String {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("docs/spec/error-catalogue.md");
+    fs::read_to_string(path).unwrap()
+}
+
+/// Composition files that each have one wrong root value: the name, the bytes, the code the
+/// command must report and the line it must report it on.
+fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
+    let mut not_utf8 = b"<composition version=\"1\"\n id=\"".to_vec();
+    not_utf8.push(0xff);
+    not_utf8.extend_from_slice(b"\"/>");
+    let good = "width=\"640\" height=\"360\" duration=\"2\"";
+    let root = |attributes: &str| format!("<?xml version=\"1.0\"?>\n<composition\n {attributes}/>").into_bytes();
+    vec![
+        ("not-utf-8", not_utf8, Code::NotUtf8, 2),
+        ("not-xml", b"<composition version=\"1\">\n</box>".to_vec(), Code::NotXml, 2),
+        ("not-a-composition", b"\n<html/>".to_vec(), Code::RootNotComposition, 2),
+        ("no-version", root(good), Code::VersionMissing, 2),
+        ("version-2", root(&format!("version=\"2\" {good}")), Code::VersionNotRead, 3),
+        (
+            "no-width",
+            root("version=\"1\" height=\"360\" duration=\"2\""),
+            Code::SizeMissing,
+            2,
+        ),
+        (
+            "odd-width",
+            root("version=\"1\" width=\"641\" height=\"360\" duration=\"2\""),
+            Code::SizeNotAccepted,
+            3,
+        ),
+        (
+            "fps-zero",
+            root(&format!("version=\"1\" fps=\"0\" {good}")),
+            Code::FpsNotAccepted,
+            3,
+        ),
+        (
+            "no-duration",
+            root("version=\"1\" width=\"640\" height=\"360\""),
+            Code::DurationMissing,
+            2,
+        ),
+        (
+            "duration-negative",
+            root("version=\"1\" width=\"640\" height=\"360\" duration=\"-5\""),
+            Code::DurationNotATime,
+            3,
+        ),
+        (
+            "duration-zero",
+            root("version=\"1\" width=\"640\" height=\"360\" duration=\"0\""),
+            Code::DurationNotAboveZero,
+            3,
+        ),
+        (
+            "background-name",
+            root(&format!("version=\"1\" background=\"red\" {good}")),
+            Code::BackgroundNotAColour,
+            3,
+        ),
+    ]
+}
+
+/// The parts of one report line: `file, line N: code: kind: sentence. remedy`.
+struct Parts {
+    file: String,
+    line: u32,
+    code: String,
+    kind: String,
+    sentence: String,
+    remedy: String,
+}
+
+/// Splits a report line into its parts, knowing the remedy of the code it must carry.
+fn split(report: &str, remedy: &str) -> Parts {
+    let (place, rest) = report.split_once(": ").unwrap_or_else(|| panic!("no place: {report}"));
+    let (file, line) = place.split_once(", line ").unwrap_or_else(|| panic!("no file and line: {report}"));
+    let (code, rest) = rest.split_once(": ").unwrap_or_else(|| panic!("no code: {report}"));
+    let (kind, rest) = rest.split_once(": ").unwrap_or_else(|| panic!("no kind: {report}"));
+    let sentence = rest
+        .strip_suffix(&format!(" {remedy}"))
+        .unwrap_or_else(|| panic!("the line does not end with the remedy {remedy:?}: {report}"));
+    Parts {
+        file: file.to_string(),
+        line: line.parse().unwrap_or_else(|_| panic!("no line number: {report}")),
+        code: code.to_string(),
+        kind: kind.to_string(),
+        sentence: sentence.to_string(),
+        remedy: remedy.to_string(),
+    }
+}
+
+#[test]
+fn every_problem_of_a_wrong_root_shows_code_kind_file_line_what_is_wrong_and_what_to_change() {
+    let catalogue = catalogue();
+    for (name, bytes, code, line) in wrong_roots() {
+        let (project, cwd) = project(name, &bytes);
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        assert_eq!(output.status.code(), Some(1), "{name}");
+        let printed = text(&output.stdout);
+        let reports: Vec<&str> = printed.lines().filter(|line| !line.starts_with("Invalid:")).collect();
+        assert_eq!(reports.len(), 1, "{name}: {printed}");
+
+        let parts = split(reports[0], code.remedy());
+        assert_eq!(parts.file, "composition.xml", "{name}");
+        assert_eq!(parts.line, line, "{name}");
+        assert_eq!(parts.code, code.as_str(), "{name}");
+        assert_eq!(parts.kind, "invalid", "{name}");
+        // What is wrong: one sentence, with its full stop and no second one.
+        assert!(
+            parts.sentence.ends_with('.') && !parts.sentence.contains(". "),
+            "{name}: {}",
+            parts.sentence
+        );
+        assert!(parts.sentence.len() > 10, "{name}: {}", parts.sentence);
+        // What to change: the catalogue's own sentence, word for word.
+        assert!(catalogue.contains(&format!("| {} |", parts.remedy)), "{name}: {}", parts.remedy);
+        assert!(
+            catalogue.contains(&format!("| `{}` | invalid |", parts.code)),
+            "{name}: {} is not listed as invalid",
+            parts.code
+        );
+    }
+}
+
+#[test]
+fn a_report_without_colour_still_shows_the_code_the_kind_and_the_remedy() {
+    for terminal in [Terminal::AsksForNone, Terminal::AsksForColour, Terminal::Unset] {
+        for (name, bytes, code, _) in wrong_roots() {
+            let (project, cwd) = project(&format!("{name}-{terminal:?}"), &bytes);
+            let output = framesmith(&cwd, terminal, [OsStr::new("check"), project.as_os_str()]);
+            for stream in [&output.stdout, &output.stderr] {
+                assert!(!stream.contains(&0x1b), "{name} {terminal:?}: an escape byte");
+                assert!(
+                    stream.iter().all(|&byte| byte == b'\n' || (0x20..0x7f).contains(&byte)),
+                    "{name} {terminal:?}: {stream:?}"
+                );
+            }
+            let printed = text(&output.stdout);
+            let report = printed.lines().next().unwrap();
+            assert!(report.contains(&format!(": {code}: invalid: ")), "{name} {terminal:?}: {report}");
+            assert!(report.ends_with(code.remedy()), "{name} {terminal:?}: {report}");
+        }
+    }
+}
+
+/// A run that ends in `No project`, or in a command line that cannot be read: what it printed on
+/// standard output and on standard error, and the code it must carry.
+fn refusals() -> Vec<(&'static str, String, String, Code)> {
+    let base = folder("refusals");
+    let cwd = base.join("cwd");
+    fs::create_dir_all(&cwd).unwrap();
+    fs::create_dir_all(base.join("empty")).unwrap();
+    fs::write(base.join("a-file"), "<composition/>").unwrap();
+    fs::create_dir_all(base.join("unreadable").join("composition.xml")).unwrap();
+    let run = |args: Vec<&str>| {
+        let shown = format!("{args:?}");
+        let output = framesmith(&cwd, Terminal::AsksForNone, args);
+        assert_eq!(output.status.code(), Some(1), "{shown}");
+        (text(&output.stdout), text(&output.stderr))
+    };
+    let mut runs = Vec::new();
+    for (name, folder, code) in [
+        ("folder-missing", "../nothing-here", Code::FolderMissing),
+        ("not-a-folder", "../a-file", Code::NotAFolder),
+        ("no-composition", "../empty", Code::NoComposition),
+        ("composition-unreadable", "../unreadable", Code::CompositionUnreadable),
+    ] {
+        let (out, err) = run(vec!["check", folder]);
+        runs.push((name, out, err, code));
+    }
+    let (out, err) = run(vec!["check"]);
+    runs.push(("command-line", out, err, Code::CommandLineNotRead));
+    runs
+}
+
+#[test]
+fn a_refusal_with_no_file_to_name_shows_its_code_its_kind_and_its_remedy() {
+    let catalogue = catalogue();
+    for (name, out, err, code) in refusals() {
+        let report = if code == Code::CommandLineNotRead {
+            assert_eq!(out, "", "{name}");
+            err.lines().next().unwrap().strip_prefix("framesmith: ").unwrap().to_string()
+        } else {
+            assert_eq!(err, "", "{name}");
+            assert_eq!(out.lines().count(), 1, "{name}: {out}");
+            out.lines().next().unwrap().strip_prefix("No project: ").unwrap().to_string()
+        };
+        assert!(
+            report.starts_with(&format!("{code}: {}: ", code.kind().as_str())),
+            "{name}: {report}"
+        );
+        assert!(report.ends_with(&format!(". {}", code.remedy())), "{name}: {report}");
+        assert!(catalogue.contains(&format!("| {} |", code.remedy())), "{name}");
+    }
+    // The machine's refusal to read is a failure; a path that is wrong is invalid.
+    assert_eq!(Code::CompositionUnreadable.kind(), Kind::Failure);
+    assert_eq!(Code::FolderMissing.kind(), Kind::Invalid);
+}
+
+#[test]
+fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
+    let mut emitted = BTreeSet::new();
+    for (name, bytes, code, _) in wrong_roots() {
+        let (project, cwd) = project(&format!("emit-{name}"), &bytes);
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert!(printed.contains(&format!(": {code}: ")), "{name}: {printed}");
+        emitted.insert(code.as_str());
+    }
+    for (name, out, err, code) in refusals() {
+        assert!(out.contains(code.as_str()) || err.contains(code.as_str()), "{name}");
+        emitted.insert(code.as_str());
+    }
+    let all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
+    assert_eq!(emitted, all);
+}

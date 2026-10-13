@@ -1,6 +1,6 @@
 //! Opening a project folder: the composition found, the root judged, and nothing written.
 
-use project::{Code, NoProject, OpenError, Project, COMPOSITION_FILE};
+use project::{Code, Kind, NoProject, OpenError, Project, COMPOSITION_FILE};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -12,6 +12,12 @@ fn folder(name: &str) -> PathBuf {
     }
     fs::create_dir_all(&dir).unwrap();
     dir
+}
+
+/// What a report says after its place: the code, its kind, the message as a sentence and the
+/// remedy (`docs/spec/error-catalogue.md` section 3).
+fn statement(code: Code, message: &str) -> String {
+    format!("{code}: {}: {message}. {}", code.kind().as_str(), code.remedy())
 }
 
 const VALID: &str = r#"<composition version="1" id="demo" width="1280" height="720" duration="5"/>"#;
@@ -76,8 +82,15 @@ fn a_wrong_root_is_reported_with_the_file_the_line_and_the_code() {
             assert_eq!(reports[0].problem().code(), Code::SizeNotAccepted);
             assert_eq!(
                 reports[0].to_string(),
-                "composition.xml, line 2: FS-0007: `width` must be an even whole number from 2 to 8192, not 641"
+                format!(
+                    "composition.xml, line 2: {}",
+                    statement(
+                        Code::SizeNotAccepted,
+                        "`width` must be an even whole number from 2 to 8192, not 641"
+                    )
+                )
             );
+            assert_eq!(reports[0].problem().kind(), Kind::Invalid);
         }
         other => panic!("{other:?}"),
     }
@@ -106,7 +119,7 @@ fn every_problem_of_the_composition_is_one_report_in_the_order_of_the_lines() {
     assert_eq!(text.lines().count(), 3, "{text}");
     for (line, code) in text.lines().zip(["FS-0007", "FS-0008", "FS-0012"]) {
         assert!(line.starts_with("composition.xml, line "), "{line}");
-        assert!(line.contains(&format!(": {code}: ")), "{line}");
+        assert!(line.contains(&format!(": {code}: invalid: ")), "{line}");
     }
 }
 
@@ -117,8 +130,15 @@ fn a_folder_that_does_not_exist_is_no_project() {
     assert!(matches!(error, OpenError::NoProject(NoProject::FolderMissing(_))), "{error:?}");
     assert_eq!(
         error.to_string(),
-        format!("No project: the folder `{}` does not exist", dir.display())
+        format!(
+            "No project: {}",
+            statement(Code::FolderMissing, &format!("the folder `{}` does not exist", dir.display()))
+        )
     );
+    let OpenError::NoProject(reason) = &error else {
+        panic!("{error:?}");
+    };
+    assert_eq!((reason.code(), reason.kind()), (Code::FolderMissing, Kind::Invalid));
 }
 
 #[test]
@@ -128,7 +148,13 @@ fn a_path_that_is_a_file_is_no_project() {
     fs::write(&file, VALID).unwrap();
     let error = Project::open(&file).unwrap_err();
     assert!(matches!(error, OpenError::NoProject(NoProject::NotAFolder(_))), "{error:?}");
-    assert_eq!(error.to_string(), format!("No project: `{}` is not a folder", file.display()));
+    assert_eq!(
+        error.to_string(),
+        format!(
+            "No project: {}",
+            statement(Code::NotAFolder, &format!("`{}` is not a folder", file.display()))
+        )
+    );
 }
 
 #[test]
@@ -138,7 +164,10 @@ fn a_folder_with_no_composition_is_no_project() {
     assert!(matches!(error, OpenError::NoProject(NoProject::NoComposition(_))), "{error:?}");
     assert_eq!(
         error.to_string(),
-        format!("No project: there is no composition.xml in `{}`", dir.display())
+        format!(
+            "No project: {}",
+            statement(Code::NoComposition, &format!("there is no composition.xml in `{}`", dir.display()))
+        )
     );
     assert!(
         fs::read_dir(&dir).unwrap().next().is_none(),
@@ -154,8 +183,16 @@ fn a_composition_that_cannot_be_read_is_no_project_with_the_reason() {
     assert!(matches!(error, OpenError::NoProject(NoProject::Unreadable(..))), "{error:?}");
     let text = error.to_string();
     assert!(
-        text.starts_with(&format!("No project: composition.xml in `{}` could not be read: ", dir.display())),
+        text.starts_with(&format!(
+            "No project: FS-0016: failure: composition.xml in `{}` could not be read: ",
+            dir.display()
+        )),
         "{text}"
     );
+    assert!(text.ends_with(Code::CompositionUnreadable.remedy()), "{text}");
     assert!(!text.contains("os error"), "{text}");
+    let OpenError::NoProject(reason) = &error else {
+        panic!("{error:?}");
+    };
+    assert_eq!((reason.code(), reason.kind()), (Code::CompositionUnreadable, Kind::Failure));
 }
