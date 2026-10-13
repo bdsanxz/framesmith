@@ -1,6 +1,6 @@
 # The `check` command: the root of a composition
 
-Status: in force from Sprint 1, for the first form of `framesmith check`. Sources: `notation.md` (section 2 for the version, section 3 for the project folder, the root and the rule that every problem is reported at once, section 4 for the value forms, section 5.1 for the frame count, section 6.1 for the root's table, N6 for the size, N8 for times, N9 for numbers, section 7.4 and Q5 for the root's `background`, section 13 for the wording of the messages); `frame-time.md` (the frame grid rule, done by the `timebase` crate); decisions P1 and P2 of `DECISIONS.md` (the version rule, the exit codes) and A29 (the root's name is `id`); `PLAN.md` section 3 (which crate holds what); `CLAUDE.md` rules 1 and 5. Where this file and `notation.md` say the same thing, `notation.md` is the text and this file only points to it.
+Status: in force from Sprint 1, for the first form of `framesmith check`. Sources: `notation.md` (section 2 for the version, section 3 for the project folder, the root and the rule that every problem is reported at once, section 4 for the value forms, section 5.1 for the frame count, section 6.1 for the root's table, N6 for the size, N8 for times, N9 for numbers, section 7.4 and Q5 for the root's `background`, section 13 for the wording of the messages); `frame-time.md` (the frame grid rule, done by the `timebase` crate); decisions P1 and P2 of `DECISIONS.md` (the version rule, the exit codes) and A29 (the root's name is `id`); `PLAN.md` section 3 (which crate holds what); `CLAUDE.md` rules 1 and 5. `error-catalogue.md` (the codes, their kinds and remedies, and the form of a report). Where this file and `notation.md` say the same thing, `notation.md` is the text and this file only points to it.
 
 This version of `check` reads the root of one composition file and nothing else. It is the first step of the author's journey: a folder with a `composition.xml` is a project, and the command says whether its root is one a render could use. When the root has problems it reports all of them in one run, each with a code, its file and its line (sections 4 and 5).
 
@@ -11,7 +11,7 @@ framesmith check <folder>
 ```
 
 - **One argument, the project folder.** A folder that holds a `composition.xml` and no project file is a complete project. The project file (`framesmith.yaml`) is not read in this version: whether it is there or not changes nothing. A path that is a composition file, and a folder found by searching upward, come with the tickets that read the project file.
-- **Anything else is a command line that cannot be read**: no word at all, a word other than `check`, `check` with no folder, `check` with more than one word after it, or an option. The command prints `framesmith: ` and one sentence saying what is wrong, then the line `usage: framesmith check <folder>`, both on standard error, prints nothing on standard output, and exits with code 1. No option is taken yet (`--json` is Sprint 6).
+- **Anything else is a command line that cannot be read**: no word at all, a word other than `check`, `check` with no folder, `check` with more than one word after it, or an option. The command prints `framesmith: ` and a statement of the code `FS-0017` (section 4: the code, its kind, one sentence saying what is wrong and the remedy), then the line `usage: framesmith check <folder>`, both on standard error, prints nothing on standard output, and exits with code 1. No option is taken yet (`--json` is Sprint 6).
 
 ## 2. What is read
 
@@ -39,16 +39,18 @@ The table and the rules are those of `notation.md` section 6.1, with N6 for the 
 
 ## 4. The reports
 
-**A report** is one line of plain text with four parts, in this order: the file, the line, the code and the message.
+**A report** is one line of plain text with six parts, in this order: the file, the line, the code, the kind, the message and the remedy (`error-catalogue.md` section 3).
 
 ```
-composition.xml, line 3: FS-0007: `width` must be an even whole number from 2 to 8192, not 641
+composition.xml, line 3: FS-0007: invalid: `width` must be an even whole number from 2 to 8192, not 641. Write the size as an even whole number from 2 to 8192.
 ```
 
 - **The file** is the file the problem is in, written as the path from the project folder with `/` (`notation.md` section 13: `file, line N: message`). It is on every report, also when the project has only the one file. It is first on the line, so that a report begins where the next one cannot: every report of a run is one line, every line starts with the file's name, and the code is the first word after the colon.
 - **The line** is `line N`, with `N` counted from 1: the line of the attribute, or, for an attribute that is not written, the line of the root's opening `<`.
-- **The code** is `FS-` and four digits. It names the kind of problem, never the value: the same mistake has the same code in every file and every run, and a code is never given another meaning. The codes are listed in one place in the program (the type `Code` of the `notation` crate); the table below is their list for this version. The numbers follow the order of the table and say nothing more.
-- **The message** says what is wrong and, where the problem is a value, the form that is accepted (`notation.md` section 13). It is one line, whatever the value holds: a value is shown as it was written, white space removed; a character that is not printable is shown as `\u{...}` with its code in hexadecimal; a value longer than 80 characters is shown as its first 80 characters followed by `...`.
+- **The code** is `FS-` and four digits. It names the kind of problem, never the value: the same mistake has the same code in every file and every run, and a code is never given another meaning. The codes are listed in one place in the program (the type `Code` of the `notation` crate) and in one place in the specs, `error-catalogue.md` section 4, which also gives each code's kind, meaning and remedy. The table below gives the message of each code of the root.
+- **The kind** is `invalid` for every code of this version except `FS-0016`, which is `failure` (`error-catalogue.md` section 2). It is the word after the code.
+- **The message** says what is wrong and, where the problem is a value, the form that is accepted (`notation.md` section 13). It is one sentence on one line, whatever the value holds: a value is shown as it was written, white space removed; a character that is not printable is shown as `\u{...}` with its code in hexadecimal; a value longer than 80 characters is shown as its first 80 characters followed by `...`. The message is printed with a full stop after it, and the table gives it without.
+- **The remedy** is the last sentence of the line: the sentence of the catalogue for the code, word for word (`error-catalogue.md` section 4).
 
 | Code | Mistake | Message (after the code) |
 |---|---|---|
@@ -71,27 +73,27 @@ The wording of a time that is not a time, and of a missing `width` or `height`, 
 
 **A file that is not well-formed XML** has one report (`FS-0001` or `FS-0002`) and nothing else is reported for the file.
 
-**A `No project` line** is not a report of a file's problem: there is no file to name. It keeps its wording (section 5); the codes for it come with the catalogue of codes.
+**A `No project` line** is not a report of a file's problem: there is no file to name. It begins with its outcome, `No project: `, and goes on with the code of its reason, the kind, the sentence of the reason (section 5) and the remedy: ``No project: FS-0013: invalid: the folder `demo` does not exist. Give the path of a folder that exists.`` The codes are `FS-0013` to `FS-0016`.
 
 ## 5. What is printed and how it ends
 
-Everything the command reports is plain text: no colour, no control character other than the line feed, no cursor movement, whatever the terminal, the environment variables (`NO_COLOR`, `CLICOLOR_FORCE`, `TERM`) or whether standard output is a terminal. A report reads the same in a file, in a pipe and on a screen. It is told from the next by its line alone: one report is one line and begins with the name of its file (section 4). Nothing is printed on standard error except the command line that cannot be read (section 1).
+Everything the command reports is plain text: no colour, no control character other than the line feed, no cursor movement, whatever the terminal, the environment variables (`NO_COLOR`, `CLICOLOR_FORCE`, `TERM`) or whether standard output is a terminal. A report reads the same in a file, in a pipe and on a screen, and it shows its code, its kind and its remedy as words. It is told from the next by its line alone: one report is one line and begins with the name of its file (section 4). Nothing is printed on standard error except the command line that cannot be read (section 1).
 
 | Outcome | Standard output | Exit code |
 |---|---|---|
 | The root is valid | One line: ``Ready: the project is valid, 150 frames, 1280x720, 30 fps`` (`1 frame` when it is one). The numbers are the frame count, the width, the height and the frame rate in use, written or not. | 0 |
 | The root has one problem or more | Every report of section 4, one line each, in the order of section 4; then the line ``Invalid: the project is not valid (composition.xml)`` | 1 |
-| There is no composition to read | One line, ``No project: `` and the reason, then nothing else (below) | 1 |
+| There is no composition to read | One line, ``No project: `` and the code, the kind, the reason and the remedy (section 4), then nothing else (below) | 1 |
 | The command line cannot be read | Nothing (see section 1, standard error) | 1 |
 
 After the author has corrected every line a run reported, the next run of `check` on the project is the first row: the same attributes, judged again, give no report, and the exit code is 0. A value is reported and never corrected: the file is not changed (section 6).
 
-The reasons of `No project` name the path as it was written on the command line:
+The reasons of `No project` name the path as it was written on the command line. Each has its code and kind (`error-catalogue.md` section 4):
 
-- ``the folder `demo` does not exist``
-- ```demo` is not a folder``
-- ``there is no composition.xml in `demo` ``
-- ``composition.xml in `demo` could not be read: `` and the reason the system gives.
+- ``the folder `demo` does not exist`` (`FS-0013`, invalid)
+- ```demo` is not a folder`` (`FS-0014`, invalid)
+- ``there is no composition.xml in `demo` `` (`FS-0015`, invalid)
+- ``composition.xml in `demo` could not be read: `` and the reason the system gives (`FS-0016`, failure).
 
 The exit code 2 (a project that is valid and uses something unsupported) is not used yet: this version knows no unsupported form.
 
@@ -101,7 +103,7 @@ The exit code 2 (a project that is valid and uses something unsupported) is not 
 
 ## 7. Where the code lives
 
-- `notation` reads the XML and judges the root; it knows nothing of folders or of the command (`PLAN.md` section 3). It holds the value forms (a whole number, a time, a colour), the root's rules, the wording of the messages of section 4, and the codes: the type `Code` is the one place where a code is named, with the list of all of them, so that the catalogue of codes extends it and nothing else. It gives back every problem of a file, as `Problem`s in the order of section 4; a `Problem` has a code, a line and a message, and knows no file.
-- `project` knows the project folder: it finds `composition.xml`, reads it, and gives the root or the reasons there is no project, or the reports of the file: a `Report` is a `Problem` with the name of the file it is in, and prints as the line of section 4. Its wording is that of the `No project` lines.
+- `notation` reads the XML and judges the root; it knows nothing of folders or of the command (`PLAN.md` section 3). It holds the value forms (a whole number, a time, a colour), the root's rules, the wording of the messages of section 4, and the codes: the type `Code` is the one place where a code is named, with the list of all of them, so that the catalogue of codes (`error-catalogue.md`) extends it and nothing else: each code has its kind and its remedy there. It gives back every problem of a file, as `Problem`s in the order of section 4; a `Problem` has a code, a line and a message, gives the kind and the remedy of its code, and knows no file.
+- `project` knows the project folder: it finds `composition.xml`, reads it, and gives the root or the reasons there is no project, or the reports of the file: a `Report` is a `Problem` with the name of the file it is in, and prints as the line of section 4. Its wording is that of the `No project` lines, each with the code of its reason.
 - `cli` is the `framesmith` command: it reads the arguments, calls `project`, prints, and sets the exit code.
 - The XML reader is the outside crate `roxmltree` (MIT OR Apache-2.0), named in `PLAN.md` section 3. No type of it appears in a public interface of `notation`.
