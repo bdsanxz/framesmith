@@ -1,5 +1,0 @@
-@font-face {
-  font-family: "Remote";
-  src: url("https://example.invalid/remote.woff2") format("woff2");
-}
-p { font-family: "Remote", sans-serif; }
