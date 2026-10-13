@@ -2,6 +2,7 @@
 //! `ffmpeg` and `ffprobe`, and measures what is painted in a frame. The
 //! product never depends on this crate.
 
+mod clip;
 mod command;
 mod facts;
 mod font;
@@ -9,6 +10,7 @@ mod frame;
 mod shape;
 mod similarity;
 
+pub use clip::{clip_facts, write_clip, ClipFacts, ClipSpec};
 pub use command::{run, tool, Ran};
 pub use facts::{facts, Facts};
 pub use font::block_font;
