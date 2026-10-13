@@ -10,7 +10,9 @@ parity: compare a Framesmith video with the reference's, one fact at a time (dev
 
   parity reference <counterpart-folder> <output.mp4> [--fps N] [--quality Q] [--blackbox DIR] [--browser PATH]
       run the reference on a counterpart composition (single worker, usage-data and update checks off);
-      --fps none passes no frame rate, so the reference fills in its own
+      --fps none passes no frame rate, so the reference fills in its own;
+      --blackbox names the folder the reference is installed in; without it, the nearest
+      tools/blackbox folder at or above the current folder is used (the workspace's)
   parity facts <ours.mp4> <reference.mp4> [--json]
       frame count, frame rate, size, codec and pixel format of the video streams
   parity pictures <ours.mp4> <reference.mp4> [--samples N] [--threshold X] [--sheet out.png] [--json]
@@ -88,13 +90,10 @@ fn parse_region(text: &str) -> Result<(u32, u32, u32, u32), String> {
     }
 }
 
-/// `tools/blackbox` in the current folder, or in `framesmith/` when run from the workspace root.
+/// The folder the reference is installed in when `--blackbox` is not given: see `blackbox::default_folder`.
 fn default_blackbox() -> PathBuf {
-    ["tools/blackbox", "framesmith/tools/blackbox"]
-        .into_iter()
-        .map(PathBuf::from)
-        .find(|p| p.is_dir())
-        .unwrap_or_else(|| PathBuf::from("tools/blackbox"))
+    let here = std::env::current_dir().unwrap_or_default();
+    blackbox::default_folder(&here)
 }
 
 fn show(report: &Report, json: bool) -> (String, i32) {

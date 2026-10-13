@@ -1,7 +1,10 @@
 //! Running the reference as a black box, only through its command line.
 //!
-//! It lives in the git-ignored folder `tools/blackbox/`. When it is not installed there, nothing is
-//! run and the outcome is "not run": never "passed".
+//! It is installed outside the repository, in the folder `tools/blackbox/` of the workspace root
+//! (decision A3). The folder is a setting, not a place written into the code: `--blackbox DIR`
+//! names it, and when that is not given [`default_folder`] takes the nearest `tools/blackbox`
+//! folder at or above the folder the command is run from. When the reference is not installed
+//! there, nothing is run and the outcome is "not run": never "passed".
 
 use crate::report::{EXIT_FAIL, EXIT_NOT_RUN, EXIT_PASS};
 use std::ffi::OsString;
@@ -18,7 +21,7 @@ pub const FPS: u32 = 30;
 /// One run of the reference.
 #[derive(Clone, Debug)]
 pub struct Job {
-    /// The folder the reference is installed in (`tools/blackbox`).
+    /// The folder the reference is installed in (by default the workspace's `tools/blackbox`).
     pub blackbox: PathBuf,
     /// The folder with the counterpart composition.
     pub counterpart: PathBuf,
@@ -58,6 +61,16 @@ impl Outcome {
             Outcome::Failed(why) => format!("reference: {why}\nresult: failed\n"),
         }
     }
+}
+
+/// The folder the reference is installed in when none is named: the nearest `tools/blackbox`
+/// folder at or above `from`. When there is none, the relative path `tools/blackbox` is returned,
+/// which is not installed, so the run says "not run".
+pub fn default_folder(from: &Path) -> PathBuf {
+    from.ancestors()
+        .map(|folder| folder.join("tools").join("blackbox"))
+        .find(|candidate| candidate.is_dir())
+        .unwrap_or_else(|| PathBuf::from("tools/blackbox"))
 }
 
 /// The reference's command inside the folder, when it is installed.

@@ -178,11 +178,42 @@ fn root() -> PathBuf {
 }
 
 #[test]
-fn t048_c2_the_reference_and_its_counterparts_live_in_a_git_ignored_folder() {
-    let ignore = std::fs::read_to_string(root().join(".gitignore")).unwrap();
-    assert!(ignore.lines().any(|l| l.trim() == "/tools/blackbox/"), "{ignore}");
-    // The Framesmith half of the first pair is in the repository.
-    assert!(root().join("fixtures").join("still").join("index.html").is_file());
+fn t048_c2_the_reference_folder_defaults_to_the_nearest_tools_blackbox_at_or_above_the_current_folder() {
+    let dir = folder("t048_c2_default_folder");
+    let workspace = dir.join("workspace");
+    let outer = workspace.join("tools").join("blackbox");
+    let deep = workspace.join("repository").join("crates").join("parity");
+    std::fs::create_dir_all(&outer).unwrap();
+    std::fs::create_dir_all(&deep).unwrap();
+    // From the workspace root, from a folder of the repository, and from a worktree deeper down.
+    assert_eq!(blackbox::default_folder(&workspace), outer);
+    assert_eq!(blackbox::default_folder(&workspace.join("repository")), outer);
+    assert_eq!(blackbox::default_folder(&deep), outer);
+    // A nearer `tools/blackbox` wins over a farther one.
+    let nearer = workspace.join("repository").join("tools").join("blackbox");
+    std::fs::create_dir_all(&nearer).unwrap();
+    assert_eq!(blackbox::default_folder(&deep), nearer);
+    assert_eq!(blackbox::default_folder(&workspace), outer);
+}
+
+#[test]
+fn t048_c2_the_default_folder_is_found_by_the_binary_when_the_flag_is_left_out() {
+    let dir = folder("t048_c2_binary_default");
+    let workspace = dir.join("workspace");
+    let work = workspace.join("repository");
+    std::fs::create_dir_all(&work).unwrap();
+    // The reference is installed in the workspace's folder, outside the folder the command runs in.
+    fake_reference(&workspace.join("tools").join("blackbox"), 0);
+    let out = Command::new(env!("CARGO_BIN_EXE_parity"))
+        .current_dir(&work)
+        .args(["reference"])
+        .arg(counterpart(&dir))
+        .arg(dir.join("o.mp4"))
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("result: rendered"), "{stdout}");
+    assert_eq!(out.status.code(), Some(0));
 }
 
 fn files_under(dir: &Path, found: &mut Vec<PathBuf>) {
