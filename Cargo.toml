@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/timebase", "crates/motion", "crates/model", "crates/protocol", "crates/runtime", "crates/compile", "crates/browser", "crates/media", "crates/render", "crates/cli", "crates/measure", "crates/parity", "bench"]
+members = ["crates/timebase", "crates/motion", "crates/measure", "crates/parity"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,19 +11,9 @@ rust-version = "1.85"
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tracing = { version = "0.1", default-features = false, features = ["std"] }
-libc = "0.2"
 timebase = { path = "crates/timebase" }
 motion = { path = "crates/motion" }
-model = { path = "crates/model" }
-protocol = { path = "crates/protocol" }
-runtime = { path = "crates/runtime" }
-compile = { path = "crates/compile" }
-browser = { path = "crates/browser" }
-media = { path = "crates/media" }
-render = { path = "crates/render" }
 measure = { path = "crates/measure" }
-bench = { path = "bench" }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
@@ -34,12 +24,3 @@ all = { level = "deny", priority = -1 }
 [profile.release]
 opt-level = 3
 lto = "thin"
-
-# The in-page runtime, compiled to WebAssembly by crates/compile/build.rs.
-[profile.wasm]
-inherits = "release"
-opt-level = "s"
-lto = true
-codegen-units = 1
-panic = "abort"
-strip = true
