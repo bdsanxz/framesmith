@@ -11,7 +11,7 @@ framesmith check <folder>
 ```
 
 - **One argument, the project folder.** A folder that holds a `composition.xml` and no project file is a complete project. The project file (`framesmith.yaml`) is not read in this version: whether it is there or not changes nothing. A path that is a composition file, and a folder found by searching upward, come with the tickets that read the project file.
-- **Anything else is a command line that cannot be read**: no word at all, a word other than `check`, `check` with no folder, `check` with more than one word after it, or an option. The command prints one line saying what is wrong and a line `usage: framesmith check <folder>` on standard error, prints nothing on standard output, and exits with code 1. No option is taken yet (`--json` is Sprint 6).
+- **Anything else is a command line that cannot be read**: no word at all, a word other than `check`, `check` with no folder, `check` with more than one word after it, or an option. The command prints `framesmith: ` and one sentence saying what is wrong, then the line `usage: framesmith check <folder>`, both on standard error, prints nothing on standard output, and exits with code 1. No option is taken yet (`--json` is Sprint 6).
 
 ## 2. What is read
 
