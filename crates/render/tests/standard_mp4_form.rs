@@ -48,7 +48,10 @@ fn rendered(name: &str, fps: u32, duration: &str) -> PathBuf {
 }
 
 fn picture_track(info: &probe::Info) -> &probe::Found {
-    info.tracks.iter().find(|found| found.track.video().is_some()).expect("a picture track")
+    info.tracks
+        .iter()
+        .find(|found| found.track.video().is_some())
+        .expect("a picture track")
 }
 
 #[test]
@@ -63,7 +66,11 @@ fn the_stream_is_h264_of_8_bits_in_4_2_0_marked_bt709_in_its_headers_and_its_tra
     assert_eq!(format!("{:?}", facts.chroma), "Yuv420", "4:2:0");
     assert!(!facts.interlaced);
     assert_eq!(facts.color, Some(Color::BT709), "the colour description of the headers");
-    assert_eq!(found.track.video().unwrap().color, Some(Color::BT709), "the colour marks of the track");
+    assert_eq!(
+        found.track.video().unwrap().color,
+        Some(Color::BT709),
+        "the colour marks of the track"
+    );
     let text = info.text();
     assert!(text.contains("primaries 1, transfer 1, matrix 1, limited range"), "{text}");
     assert!(text.contains("headers: 8 bits, 4:2:0"), "{text}");
@@ -195,7 +202,11 @@ fn ycbcr(picture: &base::Picture, x: usize, y: usize) -> [u8; 3] {
 /// The most every sample inside a box, 4 pixels in from its edges, differs from `want`, over every
 /// picture of the file.
 fn largest_differences(film: &Path) -> Vec<(&'static str, [u8; 3], u8)> {
-    let boxes: [(&str, usize, [u8; 3]); 3] = [("grey", 16, [126, 128, 128]), ("white", 80, [235, 128, 128]), ("black", 144, [16, 128, 128])];
+    let boxes: [(&str, usize, [u8; 3]); 3] = [
+        ("grey", 16, [126, 128, 128]),
+        ("white", 80, [235, 128, 128]),
+        ("black", 144, [16, 128, 128]),
+    ];
     let mut most = [0u8; 3];
     let mut pictures = Pictures::open(film, &formats(), &codecs(), Hardware::Any).unwrap();
     let mut count = 0;
