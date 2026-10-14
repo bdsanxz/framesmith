@@ -22,7 +22,7 @@ A kind says who has to act, and it never changes with the command that found the
 | Unsupported | `unsupported` | What the author gave is known to Framesmith and is not supported in this version. It is named by the support table of `notation.md` section 14; anything else that is not accepted is invalid. The remedy is to remove it, to replace it, or to wait for the sprint that brings it. |
 | Failure | `failure` | What the author gave may be right, and Framesmith or the machine could not carry it out: a file that cannot be read, a device that does not answer. The remedy is to put the machine right and run the command again. |
 
-The exit code is derived from the kind and the command (decisions P2 and A19); this file does not state it again. The rule that tells unsupported from invalid is the support table, and the codes of the kind unsupported for what the notation does not support yet are added with the work that lists and refuses the table (`DECISIONS.md` A28). The one code of that kind on the list so far is `FS-0023`, for the two keys of the project file that wait for Sprint 2 (`project-file.md` section 5.4).
+The exit code is derived from the kind and the command (decisions P2 and A19); this file does not state it again. The rule that tells unsupported from invalid is the support table, and the codes of the kind unsupported for what the notation does not support yet are added with the work that lists and refuses the table (`DECISIONS.md` A28). The codes of that kind on the list so far are `FS-0023`, for the two keys of the project file that wait for Sprint 2 (`project-file.md` section 5.4), and `FS-0035`, for what `render` does not draw or apply yet (`render-command.md` section 3).
 
 ## 3. A report
 
@@ -62,7 +62,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0014` | invalid | The path given to the command is not a folder. | Give the path of a folder, or of a `framesmith.yaml` or a composition file; the path of a file has no closing `/`. |
 | `FS-0015` | invalid | The folder given to the command holds no `composition.xml`. | Put a `composition.xml` in the folder, or give the folder that holds one. |
 | `FS-0016` | failure | The `composition.xml` of the folder exists and could not be read. | Make `composition.xml` a file this user may read, then run the command again. |
-| `FS-0017` | invalid | The command line cannot be read. | Run `framesmith check <path>` with the folder, the project file or the composition file of one project. |
+| `FS-0017` | invalid | The command line cannot be read. | Run `framesmith check <path>` or `framesmith render <path>` with the folder, the project file or the composition file of one project. |
 | `FS-0018` | invalid | The project file is not valid UTF-8 text. | Save the project file as UTF-8 text. |
 | `FS-0019` | invalid | The project file is not well-formed YAML. | Correct the YAML at the line given: indent with spaces and write each key as `key: value`. |
 | `FS-0020` | failure | The `framesmith.yaml` of the folder exists and could not be read. | Make `framesmith.yaml` a file this user may read, then run the command again. |
@@ -79,6 +79,9 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0031` | invalid | An element of the composition file stands in a place where the notation does not allow it. | Move the element to a place the message names, or remove it. |
 | `FS-0032` | invalid | A value in the composition file that must be a number is not one. | Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign. |
 | `FS-0033` | invalid | A value in the composition file that must be a time in seconds is not one. | Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit. |
+| `FS-0034` | invalid | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. | Write the length as a number of pixels, such as 40, or as a percentage, such as 50%, and not below 0 where the message says 0 or more. |
+| `FS-0035` | unsupported | The project uses a form that is known and that this version does not draw or apply. | Remove what the message names, or wait for the sprint that brings it. |
+| `FS-0036` | failure | The video could not be made. | Put right what the message names (the folder, the disk or the system's video encoder), then run the command again. |
 
 Notes on the rows:
 
@@ -87,6 +90,7 @@ Notes on the rows:
 - `FS-0017` is for every command line that cannot be read. Its message says which way the line is wrong (`check-command.md` section 1).
 - `FS-0027` and `FS-0028` were added with the three forms of the argument (`project-location.md`). `FS-0014` and `FS-0017` kept their meanings and had their remedies improved to name the three forms.
 - `FS-0029` to `FS-0033` are the codes of the form of a composition file (`check-command.md` section 3a): `FS-0029` to `FS-0031` stand for an element or an attribute and its place, `FS-0032` and `FS-0033` for a number or a time anywhere in the file. A form that the support table of `notation.md` section 14 lists will get codes of the kind unsupported with the work that lists and refuses that table (decision A28).
+- `FS-0034` to `FS-0036` are the codes of `render` (`render-command.md`): `FS-0034` for a length that is wrong, `FS-0035` for a form that is known and is not drawn or applied by this version (it is listed by `render` and, with the support table of `notation.md` section 14, will be listed by `check`), `FS-0036` for a film that could not be made. `FS-0017` kept its meaning and had its remedy improved to name both commands.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

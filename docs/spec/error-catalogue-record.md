@@ -39,3 +39,6 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0031` | An element of the composition file stands in a place where the notation does not allow it. |
 | `FS-0032` | A value in the composition file that must be a number is not one. |
 | `FS-0033` | A value in the composition file that must be a time in seconds is not one. |
+| `FS-0034` | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. |
+| `FS-0035` | The project uses a form that is known and that this version does not draw or apply. |
+| `FS-0036` | The video could not be made. |
