@@ -30,6 +30,9 @@ base = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72
 format = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
 mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
 probe = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+codec = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+pixel = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

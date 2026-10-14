@@ -15,6 +15,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "backend-os"
+version = "0.1.0"
+source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+dependencies = [
+ "base",
+ "codec",
+]
+
+[[package]]
 name = "base"
 version = "0.1.0"
 source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
@@ -41,6 +50,15 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "codec"
+version = "0.1.0"
+source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+dependencies = [
+ "base",
+ "format",
 ]
 
 [[package]]
@@ -112,9 +130,12 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 name = "measure"
 version = "0.1.0"
 dependencies = [
+ "backend-os",
  "base",
+ "codec",
  "format",
  "mp4",
+ "pixel",
  "probe",
  "serde_json",
 ]
@@ -193,6 +214,14 @@ name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+
+[[package]]
+name = "pixel"
+version = "0.1.0"
+source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+dependencies = [
+ "base",
+]
 
 [[package]]
 name = "powerfmt"
