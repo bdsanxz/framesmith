@@ -6,6 +6,7 @@ members = [
     "crates/notation",
     "crates/project",
     "crates/layout",
+    "crates/timeline",
     "crates/draw",
     "crates/draw-cpu",
     "crates/render",
@@ -38,6 +39,7 @@ layout = { path = "crates/layout" }
 draw = { path = "crates/draw" }
 draw-cpu = { path = "crates/draw-cpu" }
 render = { path = "crates/render" }
+timeline = { path = "crates/timeline" }
 measure = { path = "crates/measure" }
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
