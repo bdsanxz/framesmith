@@ -28,7 +28,7 @@ fn messages(base: &Path) -> Vec<String> {
         .iter()
         .map(|line| {
             let text = &line.text;
-            let cut = [" version=", " bytes=", " problems=", " file=", " outcome="]
+            let cut = [" version=", " bytes=", " problems=", " file=", " outcome=", " form="]
                 .iter()
                 .filter_map(|marker| text.find(marker))
                 .min()
@@ -47,6 +47,7 @@ fn a_project_file_is_read_and_judged_before_the_composition_and_the_steps_are_lo
         messages(&base),
         [
             "command started",
+            "project located",
             "project file read",
             "project file judged",
             "composition file read",
@@ -55,9 +56,10 @@ fn a_project_file_is_read_and_judged_before_the_composition_and_the_steps_are_lo
         ]
     );
     let lines = lines(&base);
-    assert!(lines[2].text.contains("problems=0"), "{}", lines[2].raw);
+    assert!(lines[3].text.contains("problems=0"), "{}", lines[3].raw);
     assert_eq!(lines[1].component, "project");
     assert_eq!(lines[2].component, "project");
+    assert_eq!(lines[3].component, "project");
     assert!(lines.iter().all(|line| line.run_id == lines[0].run_id));
 }
 
@@ -68,7 +70,13 @@ fn a_project_with_no_project_file_logs_no_step_for_it() {
     check(&base, "debug");
     assert_eq!(
         messages(&base),
-        ["command started", "composition file read", "root judged", "command finished"]
+        [
+            "command started",
+            "project located",
+            "composition file read",
+            "root judged",
+            "command finished"
+        ]
     );
 }
 
@@ -81,6 +89,7 @@ fn an_invalid_project_file_logs_its_reports_by_code_and_line_and_the_count_of_pr
         messages(&base),
         [
             "command started",
+            "project located",
             "project file read",
             "project file judged",
             "composition file read",
@@ -91,19 +100,19 @@ fn an_invalid_project_file_logs_its_reports_by_code_and_line_and_the_count_of_pr
         ]
     );
     let lines = lines(&base);
-    assert!(lines[2].text.contains("problems=2"), "{}", lines[2].raw);
+    assert!(lines[3].text.contains("problems=2"), "{}", lines[3].raw);
     assert!(
-        lines[5].text.contains(r#"file="framesmith.yaml" code="FS-0022" line=2"#),
-        "{}",
-        lines[5].raw
-    );
-    assert!(
-        lines[6].text.contains(r#"file="framesmith.yaml" code="FS-0024" line=4"#),
+        lines[6].text.contains(r#"file="framesmith.yaml" code="FS-0022" line=2"#),
         "{}",
         lines[6].raw
     );
-    assert_eq!(lines[7].level, "WARN");
-    assert!(lines[7].text.contains(r#"outcome="invalid" exit=1 problems=2"#), "{}", lines[7].raw);
+    assert!(
+        lines[7].text.contains(r#"file="framesmith.yaml" code="FS-0024" line=4"#),
+        "{}",
+        lines[7].raw
+    );
+    assert_eq!(lines[8].level, "WARN");
+    assert!(lines[8].text.contains(r#"outcome="invalid" exit=1 problems=2"#), "{}", lines[8].raw);
 }
 
 #[test]
@@ -112,9 +121,15 @@ fn a_file_that_is_not_yaml_stops_the_log_before_the_composition_is_read() {
     check(&base, "debug");
     assert_eq!(
         messages(&base),
-        ["command started", "project file read", "project file judged", "command finished"]
+        [
+            "command started",
+            "project located",
+            "project file read",
+            "project file judged",
+            "command finished"
+        ]
     );
-    assert!(lines(&base)[2].text.contains("problems=1"));
+    assert!(lines(&base)[3].text.contains("problems=1"));
 }
 
 #[test]

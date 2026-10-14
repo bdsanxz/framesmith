@@ -67,7 +67,7 @@ fn a_command_line_that_cannot_be_read_and_a_missing_folder_are_logged_with_their
         lines[1].raw
     );
     assert!(
-        lines[3].text.contains(r#"outcome="no project" exit=1 code="FS-0013""#),
+        lines[3].text.contains(r#"outcome="no project" exit=1 code="FS-0027""#),
         "{}",
         lines[3].raw
     );
@@ -103,8 +103,8 @@ fn two_runs_have_different_run_ids_and_every_line_of_a_run_carries_that_runs_id(
         let all = lines(&base);
         let this_run = &all[seen_before..];
         seen_before = all.len();
-        // Trace shows the command, two steps of the project, two reports and the result: six lines.
-        assert_eq!(this_run.len(), 6, "{this_run:#?}");
+        // Trace shows the command, three steps of the project, two reports and the result: seven lines.
+        assert_eq!(this_run.len(), 7, "{this_run:#?}");
         let id = &this_run[0].run_id;
         assert_eq!(id.len(), 16);
         assert!(id.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)), "{id}");
@@ -181,6 +181,7 @@ fn messages(base: &Path) -> Vec<String> {
                 .or(line.text.find(" bytes="))
                 .or(line.text.find(" problems="))
                 .or(line.text.find(" file="))
+                .or(line.text.find(" form="))
                 .unwrap_or(line.text.len());
             line.text[..end].to_string()
         })
@@ -199,16 +200,17 @@ fn a_quieter_level_removes_lines_below_it_and_a_more_detailed_level_adds_them() 
     }
     assert_eq!(
         counts,
-        [("error", 0), ("warn", 1), ("info", 2), ("debug", 4), ("trace", 6)],
+        [("error", 0), ("warn", 1), ("info", 2), ("debug", 5), ("trace", 7)],
         "each level adds the lines of its own level to those of the quieter ones"
     );
 
-    // The last run was at trace: the six lines, in order.
+    // The last run was at trace: the seven lines, in order.
     let all = messages(&base);
     assert_eq!(
-        &all[all.len() - 6..],
+        &all[all.len() - 7..],
         [
             "command started",
+            "project located",
             "composition file read",
             "root judged",
             "report",
@@ -227,9 +229,9 @@ fn a_valid_check_is_silent_at_warn_and_a_level_is_read_in_any_case_with_white_sp
     check(&base, &[("FRAMESMITH_LOG", "warn")]);
     assert_eq!(lines(&base).len(), 0);
     check(&base, &[("FRAMESMITH_LOG", "  DeBuG ")]);
-    assert_eq!(lines(&base).len(), 4);
+    assert_eq!(lines(&base).len(), 5);
     check(&base, &[("FRAMESMITH_LOG", "")]);
-    assert_eq!(lines(&base).len(), 6, "an empty value is the default level, info");
+    assert_eq!(lines(&base).len(), 7, "an empty value is the default level, info");
 }
 
 #[test]

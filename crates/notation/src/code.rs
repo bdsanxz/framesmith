@@ -93,11 +93,15 @@ pub enum Code {
     NamedCompositionMissing,
     /// The composition named by the project file exists and could not be read.
     NamedCompositionUnreadable,
+    /// The path given to the command does not exist.
+    PathMissing,
+    /// The path given to the command exists and could not be read.
+    PathUnreadable,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 26] = [
+    pub const ALL: [Code; 28] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -124,6 +128,8 @@ impl Code {
         Code::ValueNotAccepted,
         Code::NamedCompositionMissing,
         Code::NamedCompositionUnreadable,
+        Code::PathMissing,
+        Code::PathUnreadable,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -155,13 +161,17 @@ impl Code {
             Code::ValueNotAccepted => "FS-0024",
             Code::NamedCompositionMissing => "FS-0025",
             Code::NamedCompositionUnreadable => "FS-0026",
+            Code::PathMissing => "FS-0027",
+            Code::PathUnreadable => "FS-0028",
         }
     }
 
     /// The kind of the code.
     pub fn kind(self) -> Kind {
         match self {
-            Code::CompositionUnreadable | Code::ProjectFileUnreadable | Code::NamedCompositionUnreadable => Kind::Failure,
+            Code::CompositionUnreadable | Code::ProjectFileUnreadable | Code::NamedCompositionUnreadable | Code::PathUnreadable => {
+                Kind::Failure
+            }
             Code::KeyNotSupported => Kind::Unsupported,
             _ => Kind::Invalid,
         }
@@ -183,10 +193,14 @@ impl Code {
             Code::DurationNotAboveZero => "Write `duration` as a number of seconds above 0.",
             Code::BackgroundNotAColour => "Write `background` as one colour, #rrggbb or #rrggbbaa, or leave it out for black.",
             Code::FolderMissing => "Give the path of a folder that exists.",
-            Code::NotAFolder => "Give the folder that holds `composition.xml`, not a file.",
+            Code::NotAFolder => {
+                "Give the path of a folder, or of a `framesmith.yaml` or a composition file; the path of a file has no closing `/`."
+            }
             Code::NoComposition => "Put a `composition.xml` in the folder, or give the folder that holds one.",
             Code::CompositionUnreadable => "Make `composition.xml` a file this user may read, then run the command again.",
-            Code::CommandLineNotRead => "Run `framesmith check <folder>` with the folder of one project.",
+            Code::CommandLineNotRead => {
+                "Run `framesmith check <path>` with the folder, the project file or the composition file of one project."
+            }
             Code::ProjectFileNotUtf8 => "Save the project file as UTF-8 text.",
             Code::ProjectFileNotYaml => "Correct the YAML at the line given: indent with spaces and write each key as `key: value`.",
             Code::ProjectFileUnreadable => "Make `framesmith.yaml` a file this user may read, then run the command again.",
@@ -196,6 +210,8 @@ impl Code {
             Code::ValueNotAccepted => "Write the value in the form the message gives.",
             Code::NamedCompositionMissing => "Set `composition` to the path of a composition file that exists, or put the file there.",
             Code::NamedCompositionUnreadable => "Make the composition file one this user may read, then run the command again.",
+            Code::PathMissing => "Give the path of a folder, a `framesmith.yaml` or a composition file that exists.",
+            Code::PathUnreadable => "Make the path one this user may read, then run the command again.",
         }
     }
 

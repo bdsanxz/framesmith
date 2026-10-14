@@ -124,8 +124,8 @@ fn every_problem_of_the_composition_is_one_report_in_the_order_of_the_lines() {
 }
 
 #[test]
-fn a_folder_that_does_not_exist_is_no_project() {
-    let dir = folder("missing").join("nothing-here");
+fn a_folder_written_with_a_closing_slash_that_does_not_exist_is_no_project() {
+    let dir = PathBuf::from(format!("{}/", folder("missing").join("nothing-here").display()));
     let error = Project::open(&dir).unwrap_err();
     assert!(matches!(error, OpenError::NoProject(NoProject::FolderMissing(_))), "{error:?}");
     assert_eq!(
@@ -142,10 +142,10 @@ fn a_folder_that_does_not_exist_is_no_project() {
 }
 
 #[test]
-fn a_path_that_is_a_file_is_no_project() {
+fn a_file_written_with_a_closing_slash_is_not_a_folder() {
     let dir = folder("a-file");
-    let file = dir.join(COMPOSITION_FILE);
-    fs::write(&file, VALID).unwrap();
+    let file = PathBuf::from(format!("{}/", dir.join(COMPOSITION_FILE).display()));
+    fs::write(dir.join(COMPOSITION_FILE), VALID).unwrap();
     let error = Project::open(&file).unwrap_err();
     assert!(matches!(error, OpenError::NoProject(NoProject::NotAFolder(_))), "{error:?}");
     assert_eq!(
@@ -166,7 +166,13 @@ fn a_folder_with_no_composition_is_no_project() {
         error.to_string(),
         format!(
             "No project: {}",
-            statement(Code::NoComposition, &format!("there is no composition.xml in `{}`", dir.display()))
+            statement(
+                Code::NoComposition,
+                &format!(
+                    "there is no composition.xml in `{}`, and no framesmith.yaml there names a composition",
+                    dir.display()
+                )
+            )
         )
     );
     assert!(
