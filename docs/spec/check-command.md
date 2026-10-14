@@ -77,7 +77,7 @@ The wording of a time that is not a time, and of a missing `width` or `height`, 
 
 ## 5. What is printed and how it ends
 
-Everything the command reports is plain text: no colour, no control character other than the line feed, no cursor movement, whatever the terminal, the environment variables (`NO_COLOR`, `CLICOLOR_FORCE`, `TERM`) or whether standard output is a terminal. A report reads the same in a file, in a pipe and on a screen, and it shows its code, its kind and its remedy as words. It is told from the next by its line alone: one report is one line and begins with the name of its file (section 4). Nothing is printed on standard error except the command line that cannot be read (section 1).
+Everything the command reports is plain text: no colour, no control character other than the line feed, no cursor movement, whatever the terminal, the environment variables (`NO_COLOR`, `CLICOLOR_FORCE`, `TERM`) or whether standard output is a terminal. A report reads the same in a file, in a pipe and on a screen, and it shows its code, its kind and its remedy as words. It is told from the next by its line alone: one report is one line and begins with the name of its file (section 4). Nothing is printed on standard error except the command line that cannot be read (section 1) and, when the run log cannot be written, the one line that says so (`run-log.md` section 7).
 
 | Outcome | Standard output | Exit code |
 |---|---|---|
@@ -97,9 +97,9 @@ The reasons of `No project` name the path as it was written on the command line.
 
 The exit code 2 (a project that is valid and uses something unsupported) is not used yet: this version knows no unsupported form.
 
-## 6. It writes nothing
+## 6. It changes nothing of the project
 
-`check` draws nothing and writes no file. It opens `composition.xml` for reading, and creates, changes, renames and deletes nothing: not in the project folder, not under the folder the command is run from, not anywhere else. After a run, every file of the project folder has the same name and the same bytes as before, and no file or folder is new. There is no log yet; the run log is the work of the logging ticket, which fixes where it goes (`DECISIONS.md` A2). A project folder that cannot be written to, and one on a read-only disk, are checked like any other.
+`check` draws nothing. It opens `composition.xml` for reading, and creates, changes, renames and deletes nothing in the project folder or beside it. The one thing a run writes is its run log, `logs/framesmith.log` under the folder the command is run from, which is never the project folder (`run-log.md` section 1); apart from the lines added to the log (and the folder `logs` when it is missing), the folder the command is run from is left as it was too. After a run, every file of the project folder has the same name and the same bytes as before, and no file or folder is new. A project folder that cannot be written to, and one on a read-only disk, are checked like any other.
 
 ## 7. Where the code lives
 
