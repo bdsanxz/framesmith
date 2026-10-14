@@ -58,7 +58,8 @@ fn picture_track(info: &probe::Info) -> &probe::Found {
 fn the_stream_is_h264_of_8_bits_in_4_2_0_marked_bt709_in_its_headers_and_its_track() {
     let film = rendered("marks", 30, "1");
     let info = probe::look(&film, &formats()).unwrap();
-    assert_eq!(info.tracks.len(), 1);
+    // One picture track; the one sound track beside it is section 5.2's.
+    assert_eq!(info.tracks.iter().filter(|found| found.track.video().is_some()).count(), 1);
     let found = picture_track(&info);
     assert_eq!(found.track.codec.name(), "h264");
     let facts = found.facts.expect("the headers of the stream are read");

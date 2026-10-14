@@ -13,6 +13,7 @@ timeline = { workspace = true }
 project = { workspace = true }
 layout = { workspace = true }
 draw = { workspace = true }
+mix = { workspace = true }
 tracing = { workspace = true }
 base = { workspace = true }
 format = { workspace = true }

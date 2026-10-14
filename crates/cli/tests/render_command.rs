@@ -340,7 +340,7 @@ fn a_render_logs_its_stages_in_order_under_one_run_id_with_counts_and_codes_only
     let lines = lines(&cwd);
     let stages: Vec<(&str, String)> = lines
         .iter()
-        .map(|line| (line.component.as_str(), line.text.split(' ').take(2).collect::<Vec<_>>().join(" ")))
+        .map(|line| (line.component.as_str(), line.text.split(' ').take(3).collect::<Vec<_>>().join(" ")))
         .collect();
     let position = |component: &str, text: &str| {
         stages
@@ -353,6 +353,8 @@ fn a_render_logs_its_stages_in_order_under_one_run_id_with_counts_and_codes_only
         position("render::scene", "scene made"),
         position("render::film", "render started"),
         position("render::film", "encoder started"),
+        position("render::film", "sound encoder started"),
+        position("render::film", "sound encoder finished"),
         position("render::film", "render finished"),
         position("cli", "command finished"),
     ];
@@ -373,9 +375,9 @@ fn a_render_logs_its_stages_in_order_under_one_run_id_with_counts_and_codes_only
         started.contains("renderer=\"processor\"") || started.contains("renderer=processor"),
         "{started}"
     );
-    let finished = &lines[order[4]].text;
+    let finished = &lines[order[6]].text;
     assert!(finished.contains("frames=10") && finished.contains("bytes="), "{finished}");
-    let last = &lines[order[5]];
+    let last = &lines[order[7]];
     assert_eq!(last.level, "INFO");
     assert!(
         last.text.contains("outcome=\"rendered\"") && last.text.contains("exit=0") && last.text.contains("frames=10"),
