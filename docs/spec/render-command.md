@@ -132,5 +132,5 @@ The lines of a `render` are in `run-log.md` section 4. They hold counts, names o
 - `project` holds the project's tree, and the lines of the render settings the project file wrote.
 - `layout` places a box: the rectangle in the frame from the written `left`, `top`, `width` and `height`.
 - `draw` holds the list of drawing steps and the trait both renderers will implement; `draw-cpu` is the renderer on the processor.
-- `render` makes the scene from a project (and refuses what is not drawn), draws any frame on request, and writes the film through frx7.
+- `timeline` makes the scene from a project (and refuses what is not drawn) and draws any frame of it on request (`timeline.md`); `render` takes that scene and writes the film through frx7.
 - `cli` is the command: it reads the arguments, calls `project` and `render`, prints, and sets the exit code.
