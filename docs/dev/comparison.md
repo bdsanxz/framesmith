@@ -17,8 +17,12 @@ Two videos of one fixture, "ours" and "the reference's". Both are MP4 files whos
 | picture | the average over all frames, and the result of every scene, are at 99 % or better (section 4) |
 | events | every visible event of every marked element (it appears, disappears, starts or stops moving) happens in ours within 1 frame of the same event in the reference's (section 5) |
 | tracking | the tracked element is within 1 pixel of the reference's on every frame; *not applicable* when the fixture marks none (section 5) |
+| sound length | the sound of ours is as long as the picture of ours, to the sample (section 12) |
+| loudness | the integrated loudness of the two sounds is within 0.5 LU (section 12) |
+| peak | the peaks of the two sounds are within 0.5 dB (section 12) |
+| alignment | the two sounds are in step within 1 ms (section 12) |
 
-Sound is the next slice's. The report names it as not compared (section 7). The commands of the tool for starting the reference alone (`parity reference`) and the older `parity timing` (which reads its pictures with an outside program and is not the agreed check; the checks `events` and `tracking` of `parity compare` are) go on as they were. The two older commands that read videos with an outside program, `parity facts` (the facts of the streams, compared one by one) and `parity pictures` (a similarity score on eight sampled frames), are replaced by `parity compare` and `parity against`: the sampled score is not the agreed check, which is 99 % of pixels on every frame.
+How a mix sounds is not judged: only the four measured sound checks. The report names that as not compared (section 7). The commands of the tool for starting the reference alone (`parity reference`) and the older `parity timing` (which reads its pictures with an outside program and is not the agreed check; the checks `events` and `tracking` of `parity compare` are) go on as they were. The two older commands that read videos with an outside program, `parity facts` (the facts of the streams, compared one by one) and `parity pictures` (a similarity score on eight sampled frames), are replaced by `parity compare` and `parity against`: the sampled score is not the agreed check, which is 99 % of pixels on every frame.
 
 ## 2. Reading the two videos
 
@@ -161,7 +165,7 @@ An exit code of 3 or 2 is never 0. The word `passed` is printed only when every 
 
 ## 7. Not compared
 
-The report ends its checks with the lines of what it did not compare, so that a pass is never read wider than it is: the sound (the next slice's). It is not a check and does not change the result.
+The report ends its checks with the lines of what it did not compare, so that a pass is never read wider than it is: how the sound sounds (only its length, loudness, peak and alignment are measured, section 12). It is not a check and does not change the result.
 
 ## 8. Calls
 
@@ -193,6 +197,10 @@ parity: ours (ours.mp4) against the reference's render of counterpart
   picture           not run         needs the reference's render
   events            not run         needs the reference's render
   tracking          not run         needs the reference's render
+  sound length      not run         needs the reference's render
+  loudness          not run         needs the reference's render
+  peak              not run         needs the reference's render
+  alignment         not run         needs the reference's render
 result: not run
 ```
 
@@ -215,3 +223,72 @@ The tests of `crates/parity` and `crates/measure` are the link from each rule ab
 The test videos are small: 160 x 90 pixels, 12 to 40 frames. The pairs of the event and tracking checks (`crates/parity/tests/event_and_tracking_checks.rs`) are written from pictures with a known shift in time (an element that appears 1 or 2 frames later, a motion that starts 2 frames later) or in place (1 pixel on every frame, 2 pixels on one frame); `cargo run -p parity --example made_pairs -- <new folder>` writes such pairs for trying the tool by hand. A video encoded for lossy storage is not the same to the bit as the pictures that were encoded; the tests that need "equal frames" give the tool a file and a copy of it and require 100 % on every frame, and one more test gives it two files written separately from the same pictures and requires the check to pass (the system's encoder gave 100.000 % on every frame in each run measured), and the tests that need a difference give frames that differ by a large block of pixels, far above the loss of the coding.
 
 The yardstick tests are `crates/parity/tests/yardstick_pixelmatch_counts.rs` (section 4.2) and `crates/parity/tests/yardstick_video_reading.rs`, which holds the facts frx7 reads to `ffprobe`'s and the pictures it decodes to FFmpeg's (the count of pixels that differ by the measure of section 4.2 is at most half a percent of the picture; 0.2 % was the most measured, on hard-edged squares where the two converters round the chroma differently).
+
+## 12. The sound checks
+
+Sources: `PLAN.md`, section 5.1 (sound length equal to the picture's, to the sample; integrated loudness within 0.5 LU; peak within 0.5 dB; alignment within 1 ms); Recommendation ITU-R BS.1770-4 (2015), "Algorithms to measure audio programme loudness and true-peak audio level": Annex 1 (the frequency weighting, its two filters and their coefficients at 48 kHz in Tables 1 and 2; the weights of the channels in Table 3; the gating of blocks of 400 ms overlapping by 75 %, with the absolute gate at -70 LKFS and the relative gate 10 LU under, in clause 5.1 and the formulas of Annex 1); the analogue parameters of the two filters that give those coefficients at any rate by the bilinear transform, as published by B. De Man, "Evaluation of implementations of the EBU R128 loudness measurement", AES convention paper 10035 (2018); decision A29 of `DECISIONS.md` (the methods called "stated" are fixed here, open to the owner's change). LUFS and LKFS are the same unit; this document writes LUFS.
+
+### 12.1 Reading the sound
+
+Each video's first sound track is read with frx7: the container (`probe`) says whether there is one and how long it plays (its length after the edit list, at its own rate), and the system's decoder (`codec::AudioSource`) gives its samples as 32-bit floating point numbers, from the first sample of real sound (the encoder's lead-in is not given). The decoder gives the last coded block whole; the samples past the length the container says is played are not sound and are left out (`measure::read_sound`). A decoder that gives fewer samples than the container says is an error that names the file (exit code 2). No program is started.
+
+### 12.2 Sound length
+
+Ours only: the sound of our render is as long as its picture. The picture's length is the picture track's length (section 3), *ticks* of a clock of *timescale* a second. The check passes when *sample frames* x *timescale* = *ticks* x *rate*, in whole numbers: no margin, not even one sample. The line gives both lengths in sample frames, and the picture's in seconds:
+
+```
+  sound length  fail  ours: sound 47999 sample frames, picture 48000 sample frames (1.000000 s at 48000 Hz)
+```
+
+When the picture's length is not a whole number of sample frames it is given to three decimals, and the check fails: no sound can be as long.
+
+### 12.3 Loudness
+
+The integrated loudness of each sound, by BS.1770-4:
+
+1. Each channel is weighted by two filters of second order run one after the other, `y[n] = b0 x[n] + b1 x[n-1] + b2 x[n-2] - a1 y[n-1] - a2 y[n-2]`, from rest. The first is a shelf (analogue parameters: centre 1681.974450955533 Hz, gain 3.999843853973347 dB, quality 0.7071752369554196); the second a high-pass (38.13547087602444 Hz, quality 0.5003270373238773). At a rate *fs*, with *K* = tan(pi f0 / fs):
+   - shelf: *Vh* = 10^(gain/20), *Vb* = *Vh*^0.4996667741545416, *a0* = 1 + K/Q + K²; b0 = (Vh + Vb K/Q + K²)/a0, b1 = 2(K² - Vh)/a0, b2 = (Vh - Vb K/Q + K²)/a0, a1 = 2(K² - 1)/a0, a2 = (1 - K/Q + K²)/a0;
+   - high-pass: b0 = 1, b1 = -2, b2 = 1, a1 = 2(K² - 1)/(1 + K/Q + K²), a2 = (1 - K/Q + K²)/(1 + K/Q + K²).
+   At 48 kHz these are the coefficients of BS.1770-4, Tables 1 and 2, within 1e-12 (a test holds them).
+2. The weighted samples are taken in blocks of 400 ms (0.4 x *fs* sample frames, rounded) that start every 100 ms (0.1 x *fs*, rounded), from the first sample; a block that would run past the end is not taken. The power of a block is the sum over the channels of *G* times the mean square of the channel in the block, and its loudness is -0.691 + 10 log10(power). *G* is 1 for each channel; for six channels (left, right, centre, low-frequency effects, left surround, right surround) it is 1, 1, 1, 0, 1.41, 1.41.
+3. Blocks of loudness -70 LUFS or less are left out. Of the others, the mean power gives a loudness; blocks at 10 LU under it or less are left out too. The loudness of the sound is that of the mean power of the blocks left.
+4. A sound with no block left (silent, or shorter than one block) has no loudness: it is shown as `silent`.
+
+The check passes when the two loudnesses are no more than 0.5 LU apart, compared unrounded; two silent sounds pass, one silent and one not fails. The line gives both values to a hundredth and how far apart they are:
+
+```
+  loudness  fail  ours -17.86 LUFS, reference -17.26 LUFS; 0.60 LU apart (limit 0.5 LU)
+```
+
+The values the tests hold the measure to (section 12.7): a tone of 997 Hz at full scale in one channel of 48 kHz measures -3.01 LUFS (the figure BS.1770-4 gives for it); a tone of 1000 Hz at -23 dB under full scale in both channels measures -23.00 LUFS; each within 0.01 LU. Two seconds of that stereo tone followed by ten seconds of silence measure -23.34 LUFS within 0.01 LU: the blocks of silence alone are gated out, and the three blocks that hold part of the tone are kept (-23 + 10 log10(18.5/20) = -23.339; without the gates it would be near -30.8). A gain of g dB on a sound changes its loudness by g LU.
+
+### 12.4 Peak
+
+The sample peak of each sound: the largest magnitude of any sample of any channel, as dB under full scale (20 log10 of it; full scale is 1.0). A sound whose samples are all 0 has no peak and is shown as `silent`. This is the peak of the samples, not the true peak between them, which needs oversampling and is not what this check measures.
+
+The check passes when the two peaks are no more than 0.5 dB apart, compared unrounded; as with loudness, two silent sounds pass. The line gives both values to a hundredth and how far apart they are. The values the tests hold the measure to: a single sample of 0.5 in silence measures -6.02 dBFS (20 log10 0.5 = -6.0206); a tone of 997 Hz of amplitude 0.5 at 48 kHz, one second long, measures -6.02 dBFS within 0.001 dB; a gain of g dB changes the peak by g dB.
+
+### 12.5 Alignment
+
+How far ours is shifted against the reference's, in sample frames. The channels of each sound are averaged into one; from each, the first 10 s are taken (or all of it, when shorter). For every shift *s* from -20 ms to +20 ms (0.02 x *fs* sample frames, rounded, each way), the sum of ours[n + s] x reference[n] is taken over the samples both have; the shift is the *s* at which it is largest (a tie keeps the smaller shift). A positive shift means ours is later. The resolution is one sample frame (about 0.02 ms at 48 kHz).
+
+The check passes when the shift is no more than 1 ms either way. The line gives the measured shift in milliseconds to a thousandth and in sample frames:
+
+```
+  alignment  fail  measured shift +2.000 ms (+96 sample frames at 48000 Hz): ours is later than the reference; limit 1 ms
+```
+
+A shift at the edge of the search (20 ms) fails and says that the shift may be larger. A real shift beyond the search is not measured: the largest sum inside it is then at some other shift (a sound of 50 ms later was measured at +18.188 ms), which fails as well unless it falls within 1 ms; the measure is meant for sounds that are close, as a render and its reference are. Two sounds at different rates fail (they cannot be aligned sample by sample). A sound that is silent in its first 10 s gives nothing to align: the line is `not run`.
+
+### 12.6 No sound, or sound in one
+
+When neither render has a sound track, `loudness`, `peak` and `alignment` are **`not applicable`** ("neither render has sound"), and so is `sound length` ("ours has no sound track"): a render without sound has no sound to be as long as its picture. The length of the two renders is still checked by the structural check `length` (section 3), which runs as always. When only one render has sound, the other three checks fail, saying which one has none; `sound length` is judged when ours has sound and fails when ours has none.
+
+The JSON report has a member `sound` with the rate, channels, sample frames, loudness and peak of each, and the shift in sample frames and milliseconds.
+
+### 12.7 Held to this section
+
+The tests are `crates/parity/tests/sound_measures.rs` (the measures on made signals, section 12.3 and 12.4), `crates/parity/tests/sound_checks.rs` (the four checks on made sounds with a known length, gain and shift) and `crates/parity/tests/sound_comparison.rs` (`parity compare` on MP4 files whose sound is written by `measure::write_video_with_sound`, AAC through the system's encoder). The made sound (`measure::made_sound`) is four tones that swell and fade, ours, of no recording. `cargo run -p parity --example made_sound_pairs -- <new folder>` writes such pairs for trying the tool by hand.
+
+Through the system's AAC encoder at 256,000 bits a second and its decoder, the made sound at 48 kHz in two channels kept its length to the sample (48,000 and 47,999 sample frames read back as written), its shift to the sample (24 and 96 sample frames), its loudness within 0.003 LU and its sample peak within 0.006 dB of the samples before coding (measured on 2026-10-14). The tests of files keep the asked differences (0.4 and 0.6 LU or dB, 0.5 and 2 ms) far enough from the limits that this loss does not decide them.
+

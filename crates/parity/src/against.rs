@@ -8,7 +8,19 @@ use crate::report::{Report, Verdict};
 use std::path::Path;
 
 /// The checks that need the reference's render, in the order of the report.
-const NEEDING_THE_RENDER: [&str; 7] = ["frame count", "frame rate", "size", "length", "picture", "events", "tracking"];
+const NEEDING_THE_RENDER: [&str; 11] = [
+    "frame count",
+    "frame rate",
+    "size",
+    "length",
+    "picture",
+    "events",
+    "tracking",
+    "sound length",
+    "loudness",
+    "peak",
+    "alignment",
+];
 
 fn without_a_render(title: String, render: Verdict, detail: String) -> Report {
     let mut report = Report::new(title);

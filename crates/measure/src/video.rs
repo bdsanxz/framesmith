@@ -9,6 +9,7 @@
 //!
 //! The interface uses types of this crate; none of frx7's appears in it.
 
+use crate::sound::EncodedTrack;
 use crate::Frame;
 use base::{Codec, Color, Error, Frame as Decoded, Picture, PixelFormat, Rational};
 use codec::{Hardware, Pictures, RateControl, VideoEncoder, VideoEncoderSetup};
@@ -175,6 +176,11 @@ fn bit_rate(frame: &Frame, (num, den): (u32, u32)) -> u32 {
 /// pictures a second, and writes an MP4 file. Decoding may start at every twelfth picture;
 /// pictures are not reordered. Test-only: nothing that ships writes a video this way.
 pub fn write_video(path: &Path, rate: (u32, u32), frames: &[Frame]) -> Result<(), String> {
+    write_video_and(path, rate, frames, Vec::new())
+}
+
+/// [`write_video`], with more tracks already encoded written beside the pictures.
+pub(crate) fn write_video_and(path: &Path, rate: (u32, u32), frames: &[Frame], extra: Vec<EncodedTrack>) -> Result<(), String> {
     let Some(first) = frames.first() else {
         return Err("a video needs at least one picture".to_string());
     };
@@ -234,6 +240,11 @@ pub fn write_video(path: &Path, rate: (u32, u32), frames: &[Frame]) -> Result<()
             expected_packets: Some(frames.len() as u64),
         })
         .map_err(named)?;
+    // Every track is added before the first packet is written.
+    let mut others = Vec::with_capacity(extra.len());
+    for encoded in &extra {
+        others.push(muxer.add_track(encoded.setup.clone()).map_err(named)?);
+    }
     let mut configured = false;
     for (number, frame) in frames.iter().enumerate() {
         let planes = pixel::convert(&with_alpha(frame), None, PixelFormat::Nv12, Some(Color::BT709)).map_err(named)?;
@@ -251,6 +262,13 @@ pub fn write_video(path: &Path, rate: (u32, u32), frames: &[Frame]) -> Result<()
     encoder.finish().map_err(named)?;
     take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
     muxer.end_track(track).map_err(named)?;
+    for (number, encoded) in others.into_iter().zip(extra) {
+        muxer.set_config(number, encoded.config).map_err(named)?;
+        for packet in encoded.packets {
+            muxer.write(number, packet).map_err(named)?;
+        }
+        muxer.end_track(number).map_err(named)?;
+    }
     muxer.finish().map_err(named)?;
     if !configured {
         return Err(format!("{}: the encoder gave no picture", path.display()));
