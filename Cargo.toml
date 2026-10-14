@@ -1,6 +1,18 @@
 [workspace]
 resolver = "2"
-members = ["crates/timebase", "crates/motion", "crates/notation", "crates/project", "crates/cli", "crates/measure", "crates/parity"]
+members = [
+    "crates/timebase",
+    "crates/motion",
+    "crates/notation",
+    "crates/project",
+    "crates/layout",
+    "crates/draw",
+    "crates/draw-cpu",
+    "crates/render",
+    "crates/cli",
+    "crates/measure",
+    "crates/parity",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,6 +34,10 @@ timebase = { path = "crates/timebase" }
 motion = { path = "crates/motion" }
 notation = { path = "crates/notation" }
 project = { path = "crates/project" }
+layout = { path = "crates/layout" }
+draw = { path = "crates/draw" }
+draw-cpu = { path = "crates/draw-cpu" }
+render = { path = "crates/render" }
 measure = { path = "crates/measure" }
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
