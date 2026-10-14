@@ -1,0 +1,54 @@
+# A first check on other systems (decision D29 of PLAN.md; ticket T118): on hosted Linux and Windows
+# runners, the Framesmith crates that touch no system interface are built and their tests run.
+# The crates are the ones recorded in scripts/gates/system-free.txt; each job first holds that record
+# to the workspace (scripts/gates/system-free.sh check) and fails, naming the crate, when they disagree.
+# Hosted jobs run on `main` and on pull requests only (decision A7).
+# These jobs build the tests in the debug profile and nothing else: no release build, no package, no
+# uploaded file. Nothing is offered for Linux or Windows (CLAUDE.md, section 2).
+name: other systems
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: other-systems-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_NET_RETRY: 5
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+
+jobs:
+  system-free:
+    name: system-free crates on ${{ matrix.system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: Linux
+            runner: ubuntu-latest
+          - system: Windows
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (the one rust-toolchain.toml names)
+        run: rustup toolchain install stable --profile minimal
+      # The workspace names frx7 by a git revision; cargo reads its manifests to resolve the workspace
+      # even though no system-free crate is built with it.
+      - name: frx7 (private remote, read-only deploy key)
+        env:
+          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
+        run: scripts/gates/frx7.sh deploy-key
+      - name: the system-free crates, built and tested
+        run: scripts/gates/system-free.sh test

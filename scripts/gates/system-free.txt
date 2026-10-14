@@ -1,0 +1,13 @@
+# The Framesmith parts that touch no system interface (decision D29 of PLAN.md; ticket T118).
+# A part touches a system interface when it, or anything it is built with for its tests (its normal,
+# build and development dependencies, all the way down), is one of frx7's system crates: backend-os,
+# gpu, device. Every other workspace crate is system-free and is listed here, one name a line.
+# The hosted Windows and Linux jobs (.github/workflows/other-systems.yml) build and test exactly
+# these crates, and fail when this list and the workspace disagree (scripts/gates/system-free.sh check).
+timebase
+motion
+notation
+project
+layout
+draw
+draw-cpu
