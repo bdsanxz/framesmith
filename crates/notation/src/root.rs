@@ -275,8 +275,10 @@ fn trimmed(value: &str) -> &str {
     value.trim_matches([' ', '\t', '\n', '\r'])
 }
 
-/// A written value as a message shows it: one line, whatever the value holds.
-fn shown(value: &str) -> String {
+/// A written value as a message shows it: one line, whatever the value holds. A control character
+/// is shown as `\u{...}` with its code in hexadecimal, and a value longer than 80 characters as its
+/// first 80 followed by `...` (`docs/spec/check-command.md` section 4).
+pub fn shown(value: &str) -> String {
     let mut shown = String::new();
     for (index, character) in value.chars().enumerate() {
         if index == SHOWN_CHARACTERS {

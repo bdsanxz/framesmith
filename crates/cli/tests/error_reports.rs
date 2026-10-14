@@ -75,6 +75,14 @@ fn project(name: &str, bytes: &[u8]) -> (PathBuf, PathBuf) {
     (project, cwd)
 }
 
+/// A project folder `demo` whose `framesmith.yaml` holds `yaml` and whose `composition.xml` is a
+/// valid root, and an empty folder to run from.
+fn project_with_file(name: &str, yaml: &[u8]) -> (PathBuf, PathBuf) {
+    let (project, cwd) = project(name, br#"<composition version="1" width="640" height="360" duration="2"/>"#);
+    fs::write(project.join("framesmith.yaml"), yaml).unwrap();
+    (project, cwd)
+}
+
 /// The text of `docs/spec/error-catalogue.md`.
 fn catalogue() -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -143,6 +151,39 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
     ]
 }
 
+/// Project files that each have one wrong key: the name, the bytes, the code the command must
+/// report for the file and the line it must report it on.
+fn wrong_project_files() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
+    vec![
+        ("project-not-utf-8", b"name: demo\n\xff\n".to_vec(), Code::ProjectFileNotUtf8, 2),
+        (
+            "project-not-yaml",
+            b"name: demo\nname: other\n".to_vec(),
+            Code::ProjectFileNotYaml,
+            2,
+        ),
+        (
+            "project-not-a-mapping",
+            b"- name\n- demo\n".to_vec(),
+            Code::ProjectFileNotAMapping,
+            1,
+        ),
+        ("project-unknown-key", b"name: demo\nspeed: fast\n".to_vec(), Code::KeyNotListed, 2),
+        (
+            "project-unsupported-key",
+            b"name: demo\ntimeline: []\n".to_vec(),
+            Code::KeyNotSupported,
+            2,
+        ),
+        (
+            "project-wrong-value",
+            b"render:\n  codec: vp9\n".to_vec(),
+            Code::ValueNotAccepted,
+            2,
+        ),
+    ]
+}
+
 /// The parts of one report line: `file, line N: code: kind: sentence. remedy`.
 struct Parts {
     file: String,
@@ -206,6 +247,45 @@ fn every_problem_of_a_wrong_root_shows_code_kind_file_line_what_is_wrong_and_wha
 }
 
 #[test]
+fn every_problem_of_a_wrong_project_file_shows_code_kind_file_line_what_is_wrong_and_what_to_change() {
+    let catalogue = catalogue();
+    for (name, bytes, code, line) in wrong_project_files() {
+        let (project, cwd) = project_with_file(name, &bytes);
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        // Invalid ends with 1; a project that is right except for what is not supported yet, with 2.
+        let (exit, closing) = match code.kind() {
+            Kind::Unsupported => (2, "Unsupported:"),
+            _ => (1, "Invalid:"),
+        };
+        assert_eq!(output.status.code(), Some(exit), "{name}");
+        assert_eq!(text(&output.stderr), "", "{name}");
+        let printed = text(&output.stdout);
+        let reports: Vec<&str> = printed.lines().filter(|line| !line.starts_with(closing)).collect();
+        assert_eq!(reports.len(), 1, "{name}: {printed}");
+        assert_eq!(printed.lines().count(), 2, "{name}: {printed}");
+
+        let parts = split(reports[0], code.remedy());
+        assert_eq!(parts.file, "framesmith.yaml", "{name}");
+        assert_eq!(parts.line, line, "{name}");
+        assert_eq!(parts.code, code.as_str(), "{name}");
+        assert_eq!(parts.kind, code.kind().as_str(), "{name}");
+        assert!(
+            parts.sentence.ends_with('.') && !parts.sentence.contains(". "),
+            "{name}: {}",
+            parts.sentence
+        );
+        assert!(parts.sentence.len() > 10, "{name}: {}", parts.sentence);
+        assert!(catalogue.contains(&format!("| {} |", parts.remedy)), "{name}: {}", parts.remedy);
+        assert!(
+            catalogue.contains(&format!("| `{}` | {} |", parts.code, code.kind().as_str())),
+            "{name}: {} is not listed as {}",
+            parts.code,
+            code.kind().as_str()
+        );
+    }
+}
+
+#[test]
 fn a_report_without_colour_still_shows_the_code_the_kind_and_the_remedy() {
     for terminal in [Terminal::AsksForNone, Terminal::AsksForColour, Terminal::Unset] {
         for (name, bytes, code, _) in wrong_roots() {
@@ -223,6 +303,24 @@ fn a_report_without_colour_still_shows_the_code_the_kind_and_the_remedy() {
             assert!(report.contains(&format!(": {code}: invalid: ")), "{name} {terminal:?}: {report}");
             assert!(report.ends_with(code.remedy()), "{name} {terminal:?}: {report}");
         }
+        for (name, bytes, code, _) in wrong_project_files() {
+            let (project, cwd) = project_with_file(&format!("{name}-{terminal:?}"), &bytes);
+            let output = framesmith(&cwd, terminal, [OsStr::new("check"), project.as_os_str()]);
+            for stream in [&output.stdout, &output.stderr] {
+                assert!(!stream.contains(&0x1b), "{name} {terminal:?}: an escape byte");
+                assert!(
+                    stream.iter().all(|&byte| byte == b'\n' || (0x20..0x7f).contains(&byte)),
+                    "{name} {terminal:?}: {stream:?}"
+                );
+            }
+            let printed = text(&output.stdout);
+            let report = printed.lines().next().unwrap();
+            assert!(
+                report.contains(&format!(": {code}: {}: ", code.kind().as_str())),
+                "{name} {terminal:?}: {report}"
+            );
+            assert!(report.ends_with(code.remedy()), "{name} {terminal:?}: {report}");
+        }
     }
 }
 
@@ -235,6 +333,14 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
     fs::create_dir_all(base.join("empty")).unwrap();
     fs::write(base.join("a-file"), "<composition/>").unwrap();
     fs::create_dir_all(base.join("unreadable").join("composition.xml")).unwrap();
+    let valid_root = r#"<composition version="1" width="640" height="360" duration="2"/>"#;
+    // A project file that is a folder, a composition named and not there, and one named that is a folder.
+    fs::create_dir_all(base.join("project-file-unreadable").join("framesmith.yaml")).unwrap();
+    fs::write(base.join("project-file-unreadable").join("composition.xml"), valid_root).unwrap();
+    fs::create_dir_all(base.join("named-missing")).unwrap();
+    fs::write(base.join("named-missing").join("framesmith.yaml"), "composition: nope.xml\n").unwrap();
+    fs::create_dir_all(base.join("named-unreadable").join("scenes")).unwrap();
+    fs::write(base.join("named-unreadable").join("framesmith.yaml"), "composition: scenes\n").unwrap();
     let run = |args: Vec<&str>| {
         let shown = format!("{args:?}");
         let output = framesmith(&cwd, Terminal::AsksForNone, args);
@@ -247,6 +353,13 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
         ("not-a-folder", "../a-file", Code::NotAFolder),
         ("no-composition", "../empty", Code::NoComposition),
         ("composition-unreadable", "../unreadable", Code::CompositionUnreadable),
+        ("project-file-unreadable", "../project-file-unreadable", Code::ProjectFileUnreadable),
+        ("named-composition-missing", "../named-missing", Code::NamedCompositionMissing),
+        (
+            "named-composition-unreadable",
+            "../named-unreadable",
+            Code::NamedCompositionUnreadable,
+        ),
     ] {
         let (out, err) = run(vec!["check", folder]);
         runs.push((name, out, err, code));
@@ -285,6 +398,13 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     let mut emitted = BTreeSet::new();
     for (name, bytes, code, _) in wrong_roots() {
         let (project, cwd) = project(&format!("emit-{name}"), &bytes);
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert!(printed.contains(&format!(": {code}: ")), "{name}: {printed}");
+        emitted.insert(code.as_str());
+    }
+    for (name, bytes, code, _) in wrong_project_files() {
+        let (project, cwd) = project_with_file(&format!("emit-{name}"), &bytes);
         let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
         let printed = text(&output.stdout);
         assert!(printed.contains(&format!(": {code}: ")), "{name}: {printed}");
