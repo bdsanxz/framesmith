@@ -32,3 +32,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0024` | A value in the project file is of the wrong kind or outside the values its key takes. |
 | `FS-0025` | The composition named by the project file does not exist. |
 | `FS-0026` | The composition named by the project file exists and could not be read. |
+| `FS-0027` | The path given to the command does not exist. |
+| `FS-0028` | The path given to the command exists and could not be read. |

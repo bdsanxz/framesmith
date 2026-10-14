@@ -44,6 +44,7 @@ Rows are in the order they are written. Everything else in the table of section 
 |---|---|---|---|---|
 | info | `cli` | `command started` | `version` (the program's version), `args` (the words of the command line after the program's name, each as section 6 allows) | First line of every run, also when the command line cannot be read |
 | warn | `cli::runlog` | `the level in FRAMESMITH_LOG is not one of error, warn, info, debug, trace; info is used` | none | Only when the variable is set to a value that is not a level (section 5); the value is not written |
+| debug | `project` | `project located` | `form` (`folder`, `project file` or `composition file`), `folders_searched` (how many folders were looked in for a `framesmith.yaml`: 0 for the first two forms) | The path given has been examined and the project folder found (`project-location.md` section 7); before any file of the project is read |
 | debug | `project` | `project file read` | `bytes` (its size) | The folder has a `framesmith.yaml` and it was read |
 | debug | `project` | `project file judged` | `problems` (how many) | The project file was read as text and judged |
 | debug | `project` | `composition file read` | `bytes` (its size) | The composition the project names (`composition.xml` when it names none) exists and was read |
@@ -58,7 +59,7 @@ The outcome and the level of the last line:
 | `ready` | info | 0 | `check` found the project valid |
 | `invalid` | warn | 1 | The project file or the root has problems; the reports were printed |
 | `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`); they were printed |
-| `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025`, `FS-0026`) |
+| `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028`) |
 | `command line not read` | warn | 1 | The words after the program's name are not a command (`FS-0017`) |
 
 So a maintainer finds, for a `check`, a line for the command with its inputs and a line for its result under one run id, at the default level; the steps in between are there at `debug` and `trace`. A line states a code and a count, never a message: the messages of a report quote the file's values and are printed to the author, not kept (section 6).
