@@ -17,7 +17,7 @@ pub const EXIT_FAILED: u8 = 1;
 /// The exit code of a project that is valid, except that it uses what this version does not support.
 pub const EXIT_UNSUPPORTED: u8 = 2;
 
-const USAGE: &str = "usage: framesmith check <folder>";
+const USAGE: &str = "usage: framesmith check <path>";
 
 /// Runs the command with the arguments after its name. Results go to `out`, a command line that
 /// cannot be read to `err`. Returns the exit code.
@@ -48,10 +48,10 @@ fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
                 Reply::Unreadable(format!("`check` takes no option, and {} is one", option.to_string_lossy()))
             } else {
                 match rest {
-                    [] => Reply::Unreadable("`check` needs the folder of a project".to_string()),
-                    [folder] => check(PathBuf::from(folder)),
+                    [] => Reply::Unreadable("`check` needs the path of a project".to_string()),
+                    [path] => check(PathBuf::from(path)),
                     [_, extra, ..] => Reply::Unreadable(format!(
-                        "`check` takes the folder of one project, and {} is one word too many",
+                        "`check` takes the path of one project, and {} is one word too many",
                         extra.to_string_lossy()
                     )),
                 }
@@ -139,10 +139,11 @@ enum Reply {
     Unreadable(String),
 }
 
-/// `framesmith check <folder>`: opens the project and says whether its project file and its
-/// composition are valid, or every problem they have.
-fn check(folder: PathBuf) -> Reply {
-    match Project::open(&folder) {
+/// `framesmith check <path>`: opens the project that the path names (a folder, a project file or a
+/// composition file) and says whether its project file and its composition are valid, or every
+/// problem they have.
+fn check(path: PathBuf) -> Reply {
+    match Project::open(&path) {
         Ok(project) => {
             let root = project.root();
             let frames = if root.frames == 1 {

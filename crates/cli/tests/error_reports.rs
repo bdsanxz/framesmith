@@ -5,6 +5,7 @@
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -333,6 +334,9 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
     fs::create_dir_all(base.join("empty")).unwrap();
     fs::write(base.join("a-file"), "<composition/>").unwrap();
     fs::create_dir_all(base.join("unreadable").join("composition.xml")).unwrap();
+    // A composition file given on the command line that this user may not read.
+    fs::write(base.join("no-access.xml"), "<composition/>").unwrap();
+    fs::set_permissions(base.join("no-access.xml"), fs::Permissions::from_mode(0o000)).unwrap();
     let valid_root = r#"<composition version="1" width="640" height="360" duration="2"/>"#;
     // A project file that is a folder, a composition named and not there, and one named that is a folder.
     fs::create_dir_all(base.join("project-file-unreadable").join("framesmith.yaml")).unwrap();
@@ -349,10 +353,12 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
     };
     let mut runs = Vec::new();
     for (name, folder, code) in [
-        ("folder-missing", "../nothing-here", Code::FolderMissing),
-        ("not-a-folder", "../a-file", Code::NotAFolder),
+        ("folder-missing", "../nothing-here/", Code::FolderMissing),
+        ("not-a-folder", "../a-file/", Code::NotAFolder),
+        ("path-missing", "../nothing-here", Code::PathMissing),
         ("no-composition", "../empty", Code::NoComposition),
         ("composition-unreadable", "../unreadable", Code::CompositionUnreadable),
+        ("path-unreadable", "../no-access.xml", Code::PathUnreadable),
         ("project-file-unreadable", "../project-file-unreadable", Code::ProjectFileUnreadable),
         ("named-composition-missing", "../named-missing", Code::NamedCompositionMissing),
         (
@@ -366,6 +372,8 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
     }
     let (out, err) = run(vec!["check"]);
     runs.push(("command-line", out, err, Code::CommandLineNotRead));
+    // Give the file back its owner's permissions, so that the folder can be removed.
+    fs::set_permissions(base.join("no-access.xml"), fs::Permissions::from_mode(0o644)).unwrap();
     runs
 }
 

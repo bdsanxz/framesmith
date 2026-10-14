@@ -59,10 +59,10 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0011` | invalid | The root's `duration` is 0. | Write `duration` as a number of seconds above 0. |
 | `FS-0012` | invalid | The root's `background` is not one colour. | Write `background` as one colour, #rrggbb or #rrggbbaa, or leave it out for black. |
 | `FS-0013` | invalid | The folder given to the command does not exist. | Give the path of a folder that exists. |
-| `FS-0014` | invalid | The path given to the command is not a folder. | Give the folder that holds `composition.xml`, not a file. |
+| `FS-0014` | invalid | The path given to the command is not a folder. | Give the path of a folder, or of a `framesmith.yaml` or a composition file; the path of a file has no closing `/`. |
 | `FS-0015` | invalid | The folder given to the command holds no `composition.xml`. | Put a `composition.xml` in the folder, or give the folder that holds one. |
 | `FS-0016` | failure | The `composition.xml` of the folder exists and could not be read. | Make `composition.xml` a file this user may read, then run the command again. |
-| `FS-0017` | invalid | The command line cannot be read. | Run `framesmith check <folder>` with the folder of one project. |
+| `FS-0017` | invalid | The command line cannot be read. | Run `framesmith check <path>` with the folder, the project file or the composition file of one project. |
 | `FS-0018` | invalid | The project file is not valid UTF-8 text. | Save the project file as UTF-8 text. |
 | `FS-0019` | invalid | The project file is not well-formed YAML. | Correct the YAML at the line given: indent with spaces and write each key as `key: value`. |
 | `FS-0020` | failure | The `framesmith.yaml` of the folder exists and could not be read. | Make `framesmith.yaml` a file this user may read, then run the command again. |
@@ -72,12 +72,15 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0024` | invalid | A value in the project file is of the wrong kind or outside the values its key takes. | Write the value in the form the message gives. |
 | `FS-0025` | invalid | The composition named by the project file does not exist. | Set `composition` to the path of a composition file that exists, or put the file there. |
 | `FS-0026` | failure | The composition named by the project file exists and could not be read. | Make the composition file one this user may read, then run the command again. |
+| `FS-0027` | invalid | The path given to the command does not exist. | Give the path of a folder, a `framesmith.yaml` or a composition file that exists. |
+| `FS-0028` | failure | The path given to the command exists and could not be read. | Make the path one this user may read, then run the command again. |
 
 Notes on the rows:
 
-- `FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` and `FS-0026` are the reasons of a `No project` line (`check-command.md` section 5); the line gets its code from the reason. A folder that cannot be read for a reason of the machine is a failure (`FS-0016`, `FS-0020`, `FS-0026`); a path that is wrong is invalid.
+- `FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028` are the reasons of a `No project` line (`check-command.md` section 5); the line gets its code from the reason. A folder or a file that cannot be read for a reason of the machine is a failure (`FS-0016`, `FS-0020`, `FS-0026`, `FS-0028`); a path that is wrong is invalid. When each of `FS-0013`, `FS-0014`, `FS-0015`, `FS-0027` and `FS-0028` is used is in `project-location.md` section 5: a path written with a closing `/` names a folder, so a missing one is `FS-0013` and a file is `FS-0014`; any other missing path is `FS-0027`.
 - `FS-0018` to `FS-0024` are the codes of the project file (`project-file.md` section 5): `FS-0018`, `FS-0019` and `FS-0021` stand for the whole file, `FS-0022` to `FS-0024` for one key.
 - `FS-0017` is for every command line that cannot be read. Its message says which way the line is wrong (`check-command.md` section 1).
+- `FS-0027` and `FS-0028` were added with the three forms of the argument (`project-location.md`). `FS-0014` and `FS-0017` kept their meanings and had their remedies improved to name the three forms.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

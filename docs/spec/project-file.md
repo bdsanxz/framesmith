@@ -14,7 +14,7 @@ The project file is how an author keeps the settings of a project instead of rep
 
 ## 2. Which file is read
 
-`framesmith check <folder>` reads `framesmith.yaml` directly in `<folder>`, opened for reading only. Nothing is searched upward and no path other than a folder is taken; both come with the tickets that give a path of a composition to `render`. A project folder with no `framesmith.yaml` is a project whose every key has its default (section 6).
+`framesmith check <path>` reads `framesmith.yaml` directly in the project folder, opened for reading only. The project folder is the folder given, the folder of a `framesmith.yaml` given, or, for a composition file given, the nearest folder at or above it that holds a `framesmith.yaml` (`project-location.md`). A folder given is never searched upward. A project folder with no `framesmith.yaml` is a project whose every key has its default (section 6).
 
 The file is read as text and must be valid UTF-8. A byte order mark at the very start (`U+FEFF`) is allowed and is not part of the first key; it does not change a line number.
 
@@ -72,7 +72,7 @@ A key given a value of another kind is reported with the form the key takes (sec
 
 ## 4. The project folder and the composition
 
-- **The composition** is the file named by `composition`, or `composition.xml` when the key is not written. The path is relative to the project folder, so a composition may sit in a sub-folder (`scenes/main.xml`); the `src` of its media remain relative to the project folder, not to the composition (`notation.md` section 3).
+- **The composition** is the file named by `composition`, or `composition.xml` when the key is not written. The path is relative to the project folder, so a composition may sit in a sub-folder (`scenes/main.xml`); the `src` of its media remain relative to the project folder, not to the composition (`notation.md` section 3; `project-location.md` section 4). When the command line gives a composition file, that file is the composition and `composition` is not used to choose it (`project-location.md` section 1).
 - **The name of a file in a report** is its path as it is written: `framesmith.yaml`, `composition.xml` or `scenes/main.xml`. The reports of the project file are printed before those of the composition.
 - **The composition is read whenever it can be known.** That is the case for a project file that is absent, empty, or whose `composition` key is right or is not written, even when other keys of the file are wrong. It is not the case when the file could not be read as YAML or is not one mapping (sections 5.1 and 5.2), or when the value of `composition` is itself wrong: nothing says which file the author means, so none is read and the one report stands for the whole. The default `composition.xml` is never read in place of a composition that was named wrongly.
 - **A composition that is named and is not there** is a reason of `No project`, like a folder without a `composition.xml` (`check-command.md` section 5): `FS-0025` when the path does not exist, `FS-0026` when it exists and could not be read, which includes a folder at that path. Their lines name the path and the line of the `composition` key. The default `composition.xml` keeps `FS-0015` and `FS-0016`. When the project file also has reports, they are printed first, then the `No project` line.

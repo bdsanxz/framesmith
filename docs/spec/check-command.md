@@ -1,22 +1,22 @@
 # The `check` command: the root of a composition
 
-Status: in force from Sprint 1, for the first form of `framesmith check`. Sources: `notation.md` (section 2 for the version, section 3 for the project folder, the root and the rule that every problem is reported at once, section 4 for the value forms, section 5.1 for the frame count, section 6.1 for the root's table, N6 for the size, N8 for times, N9 for numbers, section 7.4 and Q5 for the root's `background`, section 13 for the wording of the messages); `frame-time.md` (the frame grid rule, done by the `timebase` crate); decisions P1 and P2 of `DECISIONS.md` (the version rule, the exit codes) and A29 (the root's name is `id`); `PLAN.md` section 3 (which crate holds what); `CLAUDE.md` rules 1 and 5. `error-catalogue.md` (the codes, their kinds and remedies, and the form of a report); `project-file.md` (the project file, its keys and what is reported for it). Where this file and `notation.md` say the same thing, `notation.md` is the text and this file only points to it.
+Status: in force from Sprint 1, for the first form of `framesmith check`. Sources: `notation.md` (section 2 for the version, section 3 for the project folder, the root and the rule that every problem is reported at once, section 4 for the value forms, section 5.1 for the frame count, section 6.1 for the root's table, N6 for the size, N8 for times, N9 for numbers, section 7.4 and Q5 for the root's `background`, section 13 for the wording of the messages); `frame-time.md` (the frame grid rule, done by the `timebase` crate); decisions P1 and P2 of `DECISIONS.md` (the version rule, the exit codes) and A29 (the root's name is `id`); `PLAN.md` section 3 (which crate holds what); `CLAUDE.md` rules 1 and 5. `error-catalogue.md` (the codes, their kinds and remedies, and the form of a report); `project-file.md` (the project file, its keys and what is reported for it); `project-location.md` (the three forms of the argument and the project folder). Where this file and `notation.md` say the same thing, `notation.md` is the text and this file only points to it.
 
-This version of `check` reads the project file `framesmith.yaml`, when the folder has one, and the root of the one composition file the project names (`composition.xml` unless the project file names another), and nothing else. It is the first step of the author's journey: a folder with a `composition.xml` is a project, and the command says whether its settings and its root are ones a render could use. When they have problems it reports all of them in one run, each with a code, its file and its line (sections 4 and 5).
+This version of `check` reads the project file `framesmith.yaml`, when the project folder has one, and the root of the one composition file the project names (`composition.xml` unless the project file names another, or the composition file the command line gives), and nothing else. It is the first step of the author's journey: a folder with a `composition.xml` is a project, and the command says whether its settings and its root are ones a render could use. When they have problems it reports all of them in one run, each with a code, its file and its line (sections 4 and 5).
 
 ## 1. The command line
 
 ```
-framesmith check <folder>
+framesmith check <path>
 ```
 
-- **One argument, the project folder.** A folder that holds a `composition.xml` and no project file is a complete project. The project file (`framesmith.yaml`) directly in the folder is read when there is one, and `project-file.md` says what it holds and what is reported for it. A path that is a composition file, and a folder found by searching upward, come with the tickets that give `render` such a path.
-- **Anything else is a command line that cannot be read**: no word at all, a word other than `check`, `check` with no folder, `check` with more than one word after it, or an option. The command prints `framesmith: ` and a statement of the code `FS-0017` (section 4: the code, its kind, one sentence saying what is wrong and the remedy), then the line `usage: framesmith check <folder>`, both on standard error, prints nothing on standard output, and exits with code 1. No option is taken yet (`--json` is Sprint 6).
+- **One argument, the path of the project**: a folder, a `framesmith.yaml`, or a composition file. `project-location.md` says how the project folder is found from each (a folder is the project folder; a project file makes its folder the project folder; a composition file belongs to the nearest folder at or above it that holds a `framesmith.yaml`, or to its own folder when none does) and that every path written in the project is relative to the project folder. A folder that holds a `composition.xml` and no project file is a complete project. The project file (`framesmith.yaml`) directly in the project folder is read when there is one, and `project-file.md` says what it holds and what is reported for it.
+- **Anything else is a command line that cannot be read**: no word at all, a word other than `check`, `check` with no path, `check` with more than one word after it, or an option. The command prints `framesmith: ` and a statement of the code `FS-0017` (section 4: the code, its kind, one sentence saying what is wrong and the remedy), then the line `usage: framesmith check <path>`, both on standard error, prints nothing on standard output, and exits with code 1. No option is taken yet (`--json` is Sprint 6).
 
 ## 2. What is read
 
-- The file `framesmith.yaml` directly in the folder, when there is one, opened for reading only (`project-file.md` sections 2 and 5).
-- The composition file the project names with the key `composition`, as a path from the folder (`project-file.md` section 4), or `composition.xml` directly in the folder when the project file does not name one; opened for reading only.
+- The file `framesmith.yaml` directly in the project folder, when there is one, opened for reading only (`project-file.md` sections 2 and 5; `project-location.md` sections 1 and 3 for the project folder).
+- The composition file the command line gives, or else the one the project names with the key `composition`, as a path from the project folder (`project-file.md` section 4), or else `composition.xml` directly in the project folder; opened for reading only.
 - Its text must be UTF-8. The first byte that is not is reported with its line (section 4).
 - Of the XML only the root element and its attributes are judged. The children of the root (`<style>`, `<font>`, `<audio>`, the drawn elements) are not read, not counted and not reported in this version: each is judged by the part of the product that draws it. A root attribute the table of section 3 does not list (including `class`) is neither judged nor reported here; `class` names shared styles, whose attributes the root takes, and that is read with the styles.
 
@@ -74,7 +74,7 @@ The wording of a time that is not a time, and of a missing `width` or `height`, 
 
 **A file that is not well-formed XML** has one report (`FS-0001` or `FS-0002`) and nothing else is reported for the file.
 
-**A `No project` line** is not a report of a file's problem: there is no file to name. It begins with its outcome, `No project: `, and goes on with the code of its reason, the kind, the sentence of the reason (section 5) and the remedy: ``No project: FS-0013: invalid: the folder `demo` does not exist. Give the path of a folder that exists.`` The codes are `FS-0013` to `FS-0016`.
+**A `No project` line** is not a report of a file's problem: there is no file to name. It begins with its outcome, `No project: `, and goes on with the code of its reason, the kind, the sentence of the reason (section 5) and the remedy: ``No project: FS-0013: invalid: the folder `demo` does not exist. Give the path of a folder that exists.`` The codes are `FS-0013` to `FS-0016`, `FS-0020` and `FS-0025` to `FS-0028`.
 
 ## 5. What is printed and how it ends
 
@@ -90,12 +90,14 @@ Everything the command reports is plain text: no colour, no control character ot
 
 After the author has corrected every line a run reported, the next run of `check` on the project is the first row: the same attributes, judged again, give no report, and the exit code is 0. A value is reported and never corrected: the file is not changed (section 6).
 
-The reasons of `No project` name the path as it was written on the command line. Each has its code and kind (`error-catalogue.md` section 4):
+The reasons of `No project` name the path as it was written on the command line (the project folder found above a composition file is named by its absolute path). Each has its code and kind (`error-catalogue.md` section 4):
 
-- ``the folder `demo` does not exist`` (`FS-0013`, invalid)
-- ```demo` is not a folder`` (`FS-0014`, invalid)
-- ``there is no composition.xml in `demo` `` (`FS-0015`, invalid)
-- ``composition.xml in `demo` could not be read: `` and the reason the system gives (`FS-0016`, failure).
+- ``the folder `demo/` does not exist`` (`FS-0013`, invalid): a path written with a closing `/` names a folder (`project-location.md` section 5)
+- ```demo/intro.xml/` is not a folder`` (`FS-0014`, invalid): a closing `/` on a file, or a path that is neither a folder nor a file
+- ``there is no composition.xml in `demo`, and no framesmith.yaml there names a composition`` (`FS-0015`, invalid): the folder and both files that were looked for
+- ```demo/intro.xml` does not exist`` (`FS-0027`, invalid): any other path that is not there
+- ```demo/intro.xml` could not be read: `` and the reason the system gives (`FS-0028`, failure): a path that exists and could not be examined, or a composition file given on the command line that could not be read
+- ``composition.xml in `demo` could not be read: `` and the reason the system gives (`FS-0016`, failure): the `composition.xml` of a project folder.
 - ``framesmith.yaml in `demo` could not be read: `` and the reason the system gives (`FS-0020`, failure).
 - ``the composition `scenes/main.xml`, named by `composition` on line 2 of framesmith.yaml, does not exist in `demo` `` (`FS-0025`, invalid), and the same with ``in `demo` could not be read: `` and the reason (`FS-0026`, failure) (`project-file.md` section 4).
 
@@ -113,7 +115,7 @@ Apart from the lines added to the log (and the folder `logs` when it is missing)
 ## 7. Where the code lives
 
 - `notation` reads the XML and judges the root; it knows nothing of folders or of the command (`PLAN.md` section 3). It holds the value forms (a whole number, a time, a colour), the root's rules, the wording of the messages of section 4, and the codes: the type `Code` is the one place where a code is named, with the list of all of them, so that the catalogue of codes (`error-catalogue.md`) extends it and nothing else: each code has its kind and its remedy there. It gives back every problem of a file, as `Problem`s in the order of section 4; a `Problem` has a code, a line and a message, gives the kind and the remedy of its code, and knows no file.
-- `project` knows the project folder: it reads `framesmith.yaml` when there is one (`project-file.md` section 8), finds the composition it names (`composition.xml` by default), reads it, and gives the root and the settings or the reasons there is no project, or the reports of the files: a `Report` is a `Problem` with the name of the file it is in, and prints as the line of section 4. Its wording is that of the `No project` lines, each with the code of its reason.
+- `project` knows the project folder: it finds it from the path given (`project-location.md` section 8), reads `framesmith.yaml` when there is one (`project-file.md` section 8), finds the composition it names (`composition.xml` by default), reads it, and gives the root and the settings or the reasons there is no project, or the reports of the files: a `Report` is a `Problem` with the name of the file it is in, and prints as the line of section 4. Its wording is that of the `No project` lines, each with the code of its reason.
 - `cli` is the `framesmith` command: it reads the arguments, calls `project`, prints, and sets the exit code.
 - The XML reader is the outside crate `roxmltree` (MIT OR Apache-2.0), named in `PLAN.md` section 3. No type of it appears in a public interface of `notation`. The YAML reader is `saphyr` (`project-file.md` section 8).
 - The rule for showing a written value in a message (section 4) is one function of `notation`, `shown`, which `project` uses for the project file too.

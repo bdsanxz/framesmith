@@ -373,10 +373,7 @@ fn a_folder_without_a_composition_is_no_project_and_exits_1() {
     assert_eq!(output.status.code(), Some(1));
     assert_eq!(
         out(&output),
-        format!(
-            "No project: {}\n",
-            statement(Code::FolderMissing, "the folder `empty` does not exist")
-        )
+        format!("No project: {}\n", statement(Code::PathMissing, "`empty` does not exist"))
     );
 
     fs::create_dir(base.join("empty")).unwrap();
@@ -386,7 +383,10 @@ fn a_folder_without_a_composition_is_no_project_and_exits_1() {
         out(&output),
         format!(
             "No project: {}\n",
-            statement(Code::NoComposition, "there is no composition.xml in `empty`")
+            statement(
+                Code::NoComposition,
+                "there is no composition.xml in `empty`, and no framesmith.yaml there names a composition"
+            )
         )
     );
     assert_eq!(err(&output), "");
@@ -398,11 +398,11 @@ fn a_command_line_that_cannot_be_read_is_told_on_standard_error_and_exits_1() {
     let cases: [(&[&str], &str); 6] = [
         (&[], "no command is given"),
         (&["render", "demo"], "`render` is not a command"),
-        (&["check"], "`check` needs the folder of a project"),
+        (&["check"], "`check` needs the path of a project"),
         (&["check", "--json", "demo"], "`check` takes no option, and --json is one"),
         (
             &["check", "demo", "other"],
-            "`check` takes the folder of one project, and other is one word too many",
+            "`check` takes the path of one project, and other is one word too many",
         ),
         (&["check", "-x"], "`check` takes no option, and -x is one"),
     ];
@@ -413,7 +413,7 @@ fn a_command_line_that_cannot_be_read_is_told_on_standard_error_and_exits_1() {
         assert_eq!(
             err(&output),
             format!(
-                "framesmith: {}\nusage: framesmith check <folder>\n",
+                "framesmith: {}\nusage: framesmith check <path>\n",
                 statement(Code::CommandLineNotRead, message)
             ),
             "{args:?}"

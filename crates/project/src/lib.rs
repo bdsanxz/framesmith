@@ -1,10 +1,13 @@
 //! The project folder: the project file and the composition it names, read and judged.
 //!
-//! Behaviour is specified in `docs/spec/check-command.md` (sections 2, 5 and 6) and
-//! `docs/spec/project-file.md`. A folder that holds a `composition.xml` is a complete project; a
-//! `framesmith.yaml` beside it may name another composition and set how the project is rendered.
+//! Behaviour is specified in `docs/spec/check-command.md` (sections 2, 5 and 6),
+//! `docs/spec/project-file.md` and `docs/spec/project-location.md`. A project is named by a folder,
+//! a `framesmith.yaml` or a composition file. A folder that holds a `composition.xml` is a complete
+//! project; a `framesmith.yaml` beside it may name another composition and set how the project is
+//! rendered. Every path written in a project is relative to the project folder.
 
 mod file;
+mod locate;
 mod settings;
 
 use std::fmt;
@@ -24,6 +27,8 @@ pub const COMPOSITION_FILE: &str = "composition.xml";
 #[derive(Clone, Debug)]
 pub struct Project {
     folder: PathBuf,
+    /// The composition read, as a path from the project folder written with `/`.
+    composition: String,
     settings: Settings,
     root: Root,
 }
@@ -70,14 +75,20 @@ impl fmt::Display for Report {
     }
 }
 
-/// The reasons there is no composition to read in a folder.
+/// The reasons there is no composition to read.
 #[derive(Debug)]
 pub enum NoProject {
-    /// Nothing exists at the path.
+    /// Nothing exists at the path, which was written with a closing `/` and so names a folder.
     FolderMissing(PathBuf),
-    /// The path is not a folder.
+    /// The path was written with a closing `/` and is a file, or it is neither a folder nor a file.
     NotAFolder(PathBuf),
-    /// The folder holds no `composition.xml`.
+    /// Nothing exists at the path.
+    PathMissing(PathBuf),
+    /// The path exists and could not be examined, or it is the composition file given and could
+    /// not be read: the path as written, and the reason the system gave.
+    PathUnreadable(PathBuf, String),
+    /// The project folder holds no `composition.xml`, and its project file, if it has one, names
+    /// no other composition.
     NoComposition(PathBuf),
     /// The folder holds a `composition.xml` that could not be read, with the reason the system gave.
     Unreadable(PathBuf, String),
@@ -97,6 +108,8 @@ impl NoProject {
         match self {
             NoProject::FolderMissing(_) => Code::FolderMissing,
             NoProject::NotAFolder(_) => Code::NotAFolder,
+            NoProject::PathMissing(_) => Code::PathMissing,
+            NoProject::PathUnreadable(..) => Code::PathUnreadable,
             NoProject::NoComposition(_) => Code::NoComposition,
             NoProject::Unreadable(..) => Code::CompositionUnreadable,
             NoProject::ProjectFileUnreadable(..) => Code::ProjectFileUnreadable,
@@ -117,19 +130,20 @@ impl NoProject {
 }
 
 impl Project {
-    /// Opens the project in `folder`: reads its `framesmith.yaml` when it has one, then the
-    /// composition that file names (`composition.xml` when it names none), for reading only, and
-    /// judges the project file's keys and the composition's root, reporting every problem they
-    /// have. Nothing is created, changed or removed.
-    pub fn open(folder: &Path) -> Result<Project, OpenError> {
-        match fs::metadata(folder) {
-            Err(error) if error.kind() == ErrorKind::NotFound => {
-                return Err(OpenError::NoProject(NoProject::FolderMissing(folder.to_path_buf())))
-            }
-            Err(error) => return Err(OpenError::NoProject(NoProject::Unreadable(folder.to_path_buf(), reason(&error)))),
-            Ok(metadata) if !metadata.is_dir() => return Err(OpenError::NoProject(NoProject::NotAFolder(folder.to_path_buf()))),
-            Ok(_) => {}
-        }
+    /// Opens the project that `path` names: a folder, a `framesmith.yaml` or a composition file
+    /// (`docs/spec/project-location.md`). It finds the project folder, reads the folder's
+    /// `framesmith.yaml` when it has one, then the composition (the file given, else the one that
+    /// project file names, else `composition.xml`), for reading only, and judges the project
+    /// file's keys and the composition's root, reporting every problem they have. Nothing is
+    /// created, changed or removed.
+    pub fn open(path: &Path) -> Result<Project, OpenError> {
+        let located = locate::locate(path).map_err(OpenError::NoProject)?;
+        tracing::debug!(
+            form = located.form.as_str(),
+            folders_searched = located.folders_searched,
+            "project located"
+        );
+        let folder = located.folder.as_path();
 
         let judged = match fs::read(folder.join(PROJECT_FILE)) {
             Ok(source) => {
@@ -161,16 +175,21 @@ impl Project {
 
         // The composition: the file the project file names, the default one, or none when nothing
         // says which file is meant.
-        let (path, line) = match &judged.composition {
-            CompositionChoice::Default => (COMPOSITION_FILE.to_string(), None),
-            CompositionChoice::Named { path, line } => (path.clone(), Some(*line)),
-            CompositionChoice::Unknown => return Err(OpenError::Invalid(reports)),
+        let (path, line) = match (&located.composition, &judged.composition) {
+            // The composition file the command was given is the one rendered, whatever the project
+            // file names (`project-location.md` section 1).
+            (Some(given), _) => (given.clone(), None),
+            (None, CompositionChoice::Default) => (COMPOSITION_FILE.to_string(), None),
+            (None, CompositionChoice::Named { path, line }) => (path.clone(), Some(*line)),
+            (None, CompositionChoice::Unknown) => return Err(OpenError::Invalid(reports)),
         };
         let source = match fs::read(folder.join(&path)) {
             Ok(source) => source,
             Err(error) => {
                 let missing = error.kind() == ErrorKind::NotFound;
                 let no_project = match (line, missing) {
+                    (None, true) if located.composition.is_some() => NoProject::PathMissing(located.given.clone()),
+                    (None, false) if located.composition.is_some() => NoProject::PathUnreadable(located.given.clone(), reason(&error)),
                     (None, true) => NoProject::NoComposition(folder.to_path_buf()),
                     (None, false) => NoProject::Unreadable(folder.to_path_buf(), reason(&error)),
                     (Some(line), true) => NoProject::NamedCompositionMissing(path, line, folder.to_path_buf()),
@@ -199,6 +218,7 @@ impl Project {
         match root {
             Some(root) if reports.is_empty() => Ok(Project {
                 folder: folder.to_path_buf(),
+                composition: path,
                 settings: judged.settings,
                 root,
             }),
@@ -206,9 +226,29 @@ impl Project {
         }
     }
 
-    /// The project folder, as it was given to [`Project::open`].
+    /// The project folder: the folder given to [`Project::open`], the folder of the project file
+    /// given, or the folder found for the composition file given (`docs/spec/project-location.md`).
     pub fn folder(&self) -> &Path {
         &self.folder
+    }
+
+    /// The composition that is read, as a path from the project folder written with `/`.
+    pub fn composition(&self) -> &str {
+        &self.composition
+    }
+
+    /// The path of the composition file that is read.
+    pub fn composition_path(&self) -> PathBuf {
+        self.resolve(&self.composition)
+    }
+
+    /// The path of a file written in the project, as it is written: `src` of a composition,
+    /// `composition`, `paths.renders` and `render.output` of the project file. It is relative to
+    /// the project folder, never to the folder the command is run from or to the folder of the
+    /// composition that holds it. A written path that begins with `/` is a path of the machine and
+    /// is taken as it is (`docs/spec/project-location.md` section 4).
+    pub fn resolve(&self, written: &str) -> PathBuf {
+        self.folder.join(written)
     }
 
     /// The settings of the project file, with the defaults of the keys it does not write.
@@ -250,7 +290,13 @@ impl fmt::Display for NoProject {
         match self {
             NoProject::FolderMissing(path) => write!(f, "the folder `{}` does not exist", path.display()),
             NoProject::NotAFolder(path) => write!(f, "`{}` is not a folder", path.display()),
-            NoProject::NoComposition(path) => write!(f, "there is no {COMPOSITION_FILE} in `{}`", path.display()),
+            NoProject::PathMissing(path) => write!(f, "`{}` does not exist", path.display()),
+            NoProject::PathUnreadable(path, why) => write!(f, "`{}` could not be read: {why}", path.display()),
+            NoProject::NoComposition(path) => write!(
+                f,
+                "there is no {COMPOSITION_FILE} in `{}`, and no {PROJECT_FILE} there names a composition",
+                path.display()
+            ),
             NoProject::Unreadable(path, why) => {
                 write!(f, "{COMPOSITION_FILE} in `{}` could not be read: {why}", path.display())
             }
