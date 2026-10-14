@@ -12,6 +12,10 @@ rust-version = "1.85"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 roxmltree = "0.21"
+# The run log (docs/spec/run-log.md): the fewest features the work needs.
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
+tracing-appender = "0.2"
 timebase = { path = "crates/timebase" }
 motion = { path = "crates/motion" }
 notation = { path = "crates/notation" }

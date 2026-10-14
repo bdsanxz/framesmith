@@ -10,3 +10,4 @@ workspace = true
 
 [dependencies]
 notation = { workspace = true }
+tracing = { workspace = true }
