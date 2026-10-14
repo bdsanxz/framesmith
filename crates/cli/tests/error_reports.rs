@@ -93,7 +93,12 @@ fn catalogue() -> String {
     fs::read_to_string(path).unwrap()
 }
 
-/// Composition files that each have one wrong root value: the name, the bytes, the code the
+/// A valid root with `body` inside it, starting on line 2.
+fn inside_root(body: &str) -> Vec<u8> {
+    format!("<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n{body}\n</composition>\n").into_bytes()
+}
+
+/// Composition files that each have one wrong value (of the root or of what is in it): the name, the bytes, the code the
 /// command must report and the line it must report it on.
 fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
     let mut not_utf8 = b"<composition version=\"1\"\n id=\"".to_vec();
@@ -147,6 +152,26 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             "background-name",
             root(&format!("version=\"1\" background=\"red\" {good}")),
             Code::BackgroundNotAColour,
+            3,
+        ),
+        ("unknown-element", inside_root("<circle/>"), Code::ElementNotKnown, 2),
+        (
+            "attribute-not-taken",
+            inside_root("<rect colour=\"red\"/>"),
+            Code::AttributeNotTaken,
+            2,
+        ),
+        (
+            "element-in-the-wrong-place",
+            inside_root("<text>\n<box/>\n</text>"),
+            Code::ElementNotHere,
+            3,
+        ),
+        ("x-is-not-a-number", inside_root("<box x=\"12px\"/>"), Code::NotANumber, 2),
+        (
+            "at-is-not-a-time",
+            inside_root("<box>\n<set at=\"5.\" x=\"1\"/>\n</box>"),
+            Code::NotATime,
             3,
         ),
     ]
