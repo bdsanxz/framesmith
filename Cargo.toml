@@ -12,6 +12,8 @@ rust-version = "1.85"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 roxmltree = "0.21"
+# The project file (docs/spec/project-file.md): the YAML reader, without the reader of other encodings.
+saphyr = { version = "0.2", default-features = false }
 # The run log (docs/spec/run-log.md): the fewest features the work needs.
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }

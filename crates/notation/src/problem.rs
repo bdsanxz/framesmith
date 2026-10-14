@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::code::{Code, Kind};
 
-/// One thing wrong in a composition file, with its code and the line it is on.
+/// One thing wrong in a file of a project, with its code and the line it is on.
 ///
 /// It prints as `line N: ` and the code's statement: the code, its kind, the message as one
 /// sentence and the code's remedy (`docs/spec/error-catalogue.md` section 3). It does not know the
@@ -15,7 +15,8 @@ pub struct Problem {
 }
 
 impl Problem {
-    pub(crate) fn new(code: Code, line: u32, message: String) -> Problem {
+    /// A problem of the kind `code`, on `line` (counted from 1), with the sentence on what is wrong.
+    pub fn new(code: Code, line: u32, message: String) -> Problem {
         Problem { code, line, message }
     }
 

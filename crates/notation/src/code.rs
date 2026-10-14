@@ -75,11 +75,29 @@ pub enum Code {
     CompositionUnreadable,
     /// The command line cannot be read.
     CommandLineNotRead,
+    /// The project file is not valid UTF-8 text.
+    ProjectFileNotUtf8,
+    /// The project file is not well-formed YAML.
+    ProjectFileNotYaml,
+    /// The `framesmith.yaml` of the folder exists and could not be read.
+    ProjectFileUnreadable,
+    /// The project file is not one mapping of keys.
+    ProjectFileNotAMapping,
+    /// A key of the project file is not one that the project file has.
+    KeyNotListed,
+    /// A key of the project file is known and is not supported in this version.
+    KeyNotSupported,
+    /// A value in the project file is of the wrong kind or outside the values its key takes.
+    ValueNotAccepted,
+    /// The composition named by the project file does not exist.
+    NamedCompositionMissing,
+    /// The composition named by the project file exists and could not be read.
+    NamedCompositionUnreadable,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 17] = [
+    pub const ALL: [Code; 26] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -97,6 +115,15 @@ impl Code {
         Code::NoComposition,
         Code::CompositionUnreadable,
         Code::CommandLineNotRead,
+        Code::ProjectFileNotUtf8,
+        Code::ProjectFileNotYaml,
+        Code::ProjectFileUnreadable,
+        Code::ProjectFileNotAMapping,
+        Code::KeyNotListed,
+        Code::KeyNotSupported,
+        Code::ValueNotAccepted,
+        Code::NamedCompositionMissing,
+        Code::NamedCompositionUnreadable,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -119,13 +146,23 @@ impl Code {
             Code::NoComposition => "FS-0015",
             Code::CompositionUnreadable => "FS-0016",
             Code::CommandLineNotRead => "FS-0017",
+            Code::ProjectFileNotUtf8 => "FS-0018",
+            Code::ProjectFileNotYaml => "FS-0019",
+            Code::ProjectFileUnreadable => "FS-0020",
+            Code::ProjectFileNotAMapping => "FS-0021",
+            Code::KeyNotListed => "FS-0022",
+            Code::KeyNotSupported => "FS-0023",
+            Code::ValueNotAccepted => "FS-0024",
+            Code::NamedCompositionMissing => "FS-0025",
+            Code::NamedCompositionUnreadable => "FS-0026",
         }
     }
 
     /// The kind of the code.
     pub fn kind(self) -> Kind {
         match self {
-            Code::CompositionUnreadable => Kind::Failure,
+            Code::CompositionUnreadable | Code::ProjectFileUnreadable | Code::NamedCompositionUnreadable => Kind::Failure,
+            Code::KeyNotSupported => Kind::Unsupported,
             _ => Kind::Invalid,
         }
     }
@@ -150,6 +187,15 @@ impl Code {
             Code::NoComposition => "Put a `composition.xml` in the folder, or give the folder that holds one.",
             Code::CompositionUnreadable => "Make `composition.xml` a file this user may read, then run the command again.",
             Code::CommandLineNotRead => "Run `framesmith check <folder>` with the folder of one project.",
+            Code::ProjectFileNotUtf8 => "Save the project file as UTF-8 text.",
+            Code::ProjectFileNotYaml => "Correct the YAML at the line given: indent with spaces and write each key as `key: value`.",
+            Code::ProjectFileUnreadable => "Make `framesmith.yaml` a file this user may read, then run the command again.",
+            Code::ProjectFileNotAMapping => "Make the file one mapping of keys, such as `name: launch-film`, or leave it empty.",
+            Code::KeyNotListed => "Remove the key, or write it as one of the keys the message lists.",
+            Code::KeyNotSupported => "Remove the key, or wait for the sprint that brings it.",
+            Code::ValueNotAccepted => "Write the value in the form the message gives.",
+            Code::NamedCompositionMissing => "Set `composition` to the path of a composition file that exists, or put the file there.",
+            Code::NamedCompositionUnreadable => "Make the composition file one this user may read, then run the command again.",
         }
     }
 

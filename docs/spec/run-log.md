@@ -9,7 +9,7 @@ The run log is how a maintainer confirms that the expected events happened in th
 - **The file is `logs/framesmith.log` under the folder the command is run from** (decision A2): the working folder at the moment the command starts. The project does not choose it: it is the same place whether the project is in that folder, in another place of the machine or on another disk. From the workspace's root the log is `logs/framesmith.log` of the workspace, which is not under version control.
 - **Two cases, for a project folder:**
   1. *The command is run from another folder* (the usual case: the workspace's root, a work folder, a script's folder). The log is under that folder, and nothing in the project folder is created or changed: its files keep their names and bytes and it holds no new file or folder (`check-command.md` section 6).
-  2. *The command is run from the project folder itself, or from a folder inside it* (`cd demo && framesmith check .`). The log is `logs/framesmith.log` under that folder, by decision A2, so the project folder (or the folder inside it) comes to hold a folder `logs` with the file `framesmith.log`. That is the one thing added: every other file of the project keeps its name and bytes, `check` reads `composition.xml` only, and its result (what it prints and its exit code) is the same as from outside. A project that is to stay without a `logs` folder is checked from another folder.
+  2. *The command is run from the project folder itself, or from a folder inside it* (`cd demo && framesmith check .`). The log is `logs/framesmith.log` under that folder, by decision A2, so the project folder (or the folder inside it) comes to hold a folder `logs` with the file `framesmith.log`. That is the one thing added: every other file of the project keeps its name and bytes, `check` reads `framesmith.yaml` and the composition only, and its result (what it prints and its exit code) is the same as from outside. A project that is to stay without a `logs` folder is checked from another folder.
 - The folder `logs` is made when it is missing. The file is opened for appending: a run adds lines at the end and changes none that is there. Each line is one write, so that two runs at the same time leave whole lines.
 - **The log is opened when the command starts**, before the command line is read, so that a command line that cannot be read is logged as well. A run that writes no line at its level (section 5) still opens the file, which is then empty.
 - **Rotation.** When the file is larger than 5 MiB (5,242,880 bytes) at the start of a run, it is renamed `framesmith.log.1` first, `framesmith.log.1` becomes `framesmith.log.2`, `.2` becomes `.3`, and a `framesmith.log.3` that is there is removed; the run then starts a new `framesmith.log`. Three older files are kept, so the log never grows beyond about 20 MiB. A rename that fails does not stop the run: the log goes on in the file that is there.
@@ -44,18 +44,21 @@ Rows are in the order they are written. Everything else in the table of section 
 |---|---|---|---|---|
 | info | `cli` | `command started` | `version` (the program's version), `args` (the words of the command line after the program's name, each as section 6 allows) | First line of every run, also when the command line cannot be read |
 | warn | `cli::runlog` | `the level in FRAMESMITH_LOG is not one of error, warn, info, debug, trace; info is used` | none | Only when the variable is set to a value that is not a level (section 5); the value is not written |
-| debug | `project` | `composition file read` | `bytes` (its size) | The folder has a `composition.xml` and it was read |
+| debug | `project` | `project file read` | `bytes` (its size) | The folder has a `framesmith.yaml` and it was read |
+| debug | `project` | `project file judged` | `problems` (how many) | The project file was read as text and judged |
+| debug | `project` | `composition file read` | `bytes` (its size) | The composition the project names (`composition.xml` when it names none) exists and was read |
 | debug | `project` | `root judged` | `problems` (how many) | The root of the composition was judged |
-| trace | `cli` | `report` | `file` (the name of the file, as the report prints it), `code`, `line` | Once for each report of an invalid project, in the order printed |
-| info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid`, and `code` for `no project` | Last line of every run |
+| trace | `cli` | `report` | `file` (the name of the file, as the report prints it), `code`, `line` | Once for each report of an invalid or unsupported project, in the order printed |
+| info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it | Last line of every run |
 
 The outcome and the level of the last line:
 
 | `outcome` | Level | `exit` | Meaning |
 |---|---|---|---|
 | `ready` | info | 0 | `check` found the project valid |
-| `invalid` | warn | 1 | The root has problems; the reports were printed |
-| `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`) |
+| `invalid` | warn | 1 | The project file or the root has problems; the reports were printed |
+| `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`); they were printed |
+| `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025`, `FS-0026`) |
 | `command line not read` | warn | 1 | The words after the program's name are not a command (`FS-0017`) |
 
 So a maintainer finds, for a `check`, a line for the command with its inputs and a line for its result under one run id, at the default level; the steps in between are there at `debug` and `trace`. A line states a code and a count, never a message: the messages of a report quote the file's values and are printed to the author, not kept (section 6).

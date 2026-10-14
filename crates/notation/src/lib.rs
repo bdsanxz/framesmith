@@ -12,4 +12,4 @@ mod value;
 
 pub use code::{Code, Kind};
 pub use problem::Problem;
-pub use root::{read_root, Colour, Root};
+pub use root::{read_root, shown, Colour, Root};

@@ -6,7 +6,7 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::PathBuf;
 
-use project::{Code, Kind, OpenError, Project, COMPOSITION_FILE};
+use project::{Code, Kind, OpenError, Project, Report};
 
 pub mod runlog;
 
@@ -14,6 +14,8 @@ pub mod runlog;
 pub const EXIT_OK: u8 = 0;
 /// The exit code of a command line that cannot be read, an invalid project, or no project.
 pub const EXIT_FAILED: u8 = 1;
+/// The exit code of a project that is valid, except that it uses what this version does not support.
+pub const EXIT_UNSUPPORTED: u8 = 2;
 
 const USAGE: &str = "usage: framesmith check <folder>";
 
@@ -75,8 +77,17 @@ fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 /// How a command ended, for the log (`docs/spec/run-log.md` section 4).
 enum Outcome {
     Ready,
-    Invalid { problems: usize },
-    NoProject(Code),
+    Invalid {
+        problems: usize,
+    },
+    Unsupported {
+        problems: usize,
+    },
+    /// No composition to read; `problems` counts the reports of the project file before it.
+    NoProject {
+        code: Code,
+        problems: usize,
+    },
     NotRead,
 }
 
@@ -88,11 +99,32 @@ impl Outcome {
             Outcome::Invalid { problems } => {
                 tracing::warn!(outcome = "invalid", exit, problems = *problems, "command finished")
             }
-            Outcome::NoProject(code) if code.kind() == Kind::Failure => {
+            Outcome::Unsupported { problems } => {
+                tracing::warn!(outcome = "unsupported", exit, problems = *problems, "command finished")
+            }
+            Outcome::NoProject { code, problems: 0 } if code.kind() == Kind::Failure => {
                 tracing::error!(outcome = "no project", exit, code = code.as_str(), "command finished")
             }
-            Outcome::NoProject(code) => {
+            Outcome::NoProject { code, problems: 0 } => {
                 tracing::warn!(outcome = "no project", exit, code = code.as_str(), "command finished")
+            }
+            Outcome::NoProject { code, problems } if code.kind() == Kind::Failure => {
+                tracing::error!(
+                    outcome = "no project",
+                    exit,
+                    code = code.as_str(),
+                    problems = *problems,
+                    "command finished"
+                )
+            }
+            Outcome::NoProject { code, problems } => {
+                tracing::warn!(
+                    outcome = "no project",
+                    exit,
+                    code = code.as_str(),
+                    problems = *problems,
+                    "command finished"
+                )
             }
             Outcome::NotRead => tracing::warn!(outcome = "command line not read", exit, "command finished"),
         }
@@ -107,8 +139,8 @@ enum Reply {
     Unreadable(String),
 }
 
-/// `framesmith check <folder>`: opens the project and says whether its root is valid, or every
-/// problem it has.
+/// `framesmith check <folder>`: opens the project and says whether its project file and its
+/// composition are valid, or every problem they have.
 fn check(folder: PathBuf) -> Reply {
     match Project::open(&folder) {
         Ok(project) => {
@@ -132,21 +164,54 @@ fn check(folder: PathBuf) -> Reply {
             Reply::Printed(
                 vec![OpenError::NoProject(no_project).to_string()],
                 EXIT_FAILED,
-                Outcome::NoProject(code),
+                Outcome::NoProject { code, problems: 0 },
             )
         }
-        Err(OpenError::Invalid(reports)) => {
-            for report in &reports {
-                tracing::trace!(
-                    file = report.file(),
-                    code = report.problem().code().as_str(),
-                    line = report.problem().line(),
-                    "report"
-                );
-            }
+        Err(OpenError::InvalidAndNoProject(reports, no_project)) => {
+            log_reports(&reports);
+            let code = no_project.code();
+            let problems = reports.len();
             let mut lines: Vec<String> = reports.iter().map(ToString::to_string).collect();
-            lines.push(format!("Invalid: the project is not valid ({COMPOSITION_FILE})"));
-            Reply::Printed(lines, EXIT_FAILED, Outcome::Invalid { problems: reports.len() })
+            lines.push(OpenError::NoProject(no_project).to_string());
+            Reply::Printed(lines, EXIT_FAILED, Outcome::NoProject { code, problems })
+        }
+        Err(OpenError::Invalid(reports)) => {
+            log_reports(&reports);
+            let files = files_of(&reports);
+            let mut lines: Vec<String> = reports.iter().map(ToString::to_string).collect();
+            // Only what is not supported yet is wrong: the rest of the project is valid.
+            if reports.iter().all(|report| report.problem().kind() == Kind::Unsupported) {
+                lines.push(format!(
+                    "Unsupported: the project uses what this version does not support ({files})"
+                ));
+                Reply::Printed(lines, EXIT_UNSUPPORTED, Outcome::Unsupported { problems: reports.len() })
+            } else {
+                lines.push(format!("Invalid: the project is not valid ({files})"));
+                Reply::Printed(lines, EXIT_FAILED, Outcome::Invalid { problems: reports.len() })
+            }
         }
     }
+}
+
+/// Logs each report of a run at the most detailed level: where it is and its code, never its words.
+fn log_reports(reports: &[Report]) {
+    for report in reports {
+        tracing::trace!(
+            file = report.file(),
+            code = report.problem().code().as_str(),
+            line = report.problem().line(),
+            "report"
+        );
+    }
+}
+
+/// The files that have a report, each once, in the order the reports are printed.
+fn files_of(reports: &[Report]) -> String {
+    let mut files: Vec<&str> = Vec::new();
+    for report in reports {
+        if !files.contains(&report.file()) {
+            files.push(report.file());
+        }
+    }
+    files.join(", ")
 }
