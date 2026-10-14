@@ -1,11 +1,12 @@
-//! The comparison of two videos: the four structural checks, the picture check, the event check and
-//! the tracking check, as one report (`docs/dev/comparison.md`, sections 1 to 7). Both videos are read with frx7; no program is
+//! The comparison of two videos: the four structural checks, the picture check, the event check,
+//! the tracking check and the four sound checks, as one report (`docs/dev/comparison.md`, sections 1 to 7). Both videos are read with frx7; no program is
 //! started.
 
 use crate::difference;
 use crate::picture::{self, Excuse, Judgement, Scene, State};
 use crate::report::{Report, Verdict};
 use crate::sheet::{self, SheetEntry};
+use crate::sound;
 use crate::structure;
 use crate::tracking::{self, Marks, Seen};
 use measure::{Frame, VideoFacts};
@@ -28,9 +29,10 @@ pub struct Options {
     pub marks: Marks,
 }
 
-/// The lines of the report that name what was not compared here.
+/// The lines of the report that name what was not compared here: how a mix sounds is not judged,
+/// only the four measured sound checks.
 pub fn not_compared() -> Vec<String> {
-    vec!["the sound (a check of its own)".to_string()]
+    vec!["how the sound sounds (only its length, loudness, peak and alignment are measured)".to_string()]
 }
 
 /// One low frame kept for the sheet.
@@ -47,8 +49,15 @@ fn facts_of(path: &Path) -> Result<VideoFacts, String> {
     measure::video_facts(path)
 }
 
-/// Compares the video `ours` with the reference's `theirs`.
+/// Compares the video `ours` with the reference's `theirs`: the checks of the pictures, then the
+/// four checks of the sound.
 pub fn compare(ours: &Path, theirs: &Path, options: &Options) -> Result<Report, String> {
+    let mut report = compare_pictures(ours, theirs, options)?;
+    sound::checks(&mut report, ours, theirs, &facts_of(ours)?)?;
+    Ok(report)
+}
+
+fn compare_pictures(ours: &Path, theirs: &Path, options: &Options) -> Result<Report, String> {
     let a = facts_of(ours)?;
     let b = facts_of(theirs)?;
     let mut report = Report::new(format!(

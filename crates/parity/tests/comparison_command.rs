@@ -135,7 +135,11 @@ fn the_json_report_has_the_checks_the_scenes_and_every_frame() {
             "picture",
             "scene all (frames 0-11)",
             "events",
-            "tracking"
+            "tracking",
+            "sound length",
+            "loudness",
+            "peak",
+            "alignment"
         ]
     );
     // No element is marked: neither line may read as a pass.

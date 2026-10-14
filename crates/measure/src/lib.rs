@@ -11,6 +11,7 @@ mod frame;
 mod pictures;
 mod shape;
 mod similarity;
+mod sound;
 mod video;
 pub mod yardstick;
 
@@ -22,4 +23,5 @@ pub use frame::{first_difference, frames_from_pngs, frames_from_video, png_size,
 pub use pictures::{moving_pictures, with_green_rows};
 pub use shape::{corner_distance, expected_corners, shape, Shape};
 pub use similarity::similarity;
+pub use sound::{has_sound, made_sound, read_sound, write_video_with_sound, Sound};
 pub use video::{open_pictures, video_facts, write_video, PictureReader, VideoFacts};
