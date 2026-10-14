@@ -79,11 +79,13 @@ do_test() {
     for crate in $(recorded); do scope+=(-p "$crate"); done
     log="$ROOT/target/system-free-test.log"
     mkdir -p "$ROOT/target"
-    echo "\$ cargo test --locked ${scope[*]} --no-fail-fast"
-    ( cargo test --locked "${scope[@]}" --no-fail-fast 2>&1; echo $? >"$ROOT/target/system-free-test.code" ) | tee "$log"
+    echo "\$ cargo test --locked ${scope[*]} --no-fail-fast -- --nocapture"
+    ( cargo test --locked "${scope[@]}" --no-fail-fast -- --nocapture 2>&1; echo $? >"$ROOT/target/system-free-test.code" ) | tee "$log"
     code=$(cat "$ROOT/target/system-free-test.code")
     summary "### System-free crates on $(uname -s)"
     summary "Crates: $(recorded | tr '\n' ' ')"
+    # What the picture check within one level printed (docs/spec/timeline.md, section 3).
+    grep -E '^(checked-in pictures compared|largest difference found): ' "$log" | while read -r line; do echo "$line"; summary "$line"; done
     if [ "$code" -eq 0 ]; then
         echo "PASS: the system-free crates built and their tests passed"
         summary "PASS: built, and every test passed"

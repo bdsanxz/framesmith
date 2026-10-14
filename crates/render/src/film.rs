@@ -12,7 +12,7 @@ use codec::{Hardware, RateControl, VideoEncoder, VideoEncoderSetup};
 use draw::Renderer;
 use format::{Media, Muxer, TrackSetup, Video};
 
-use crate::scene::Scene;
+use timeline::Scene;
 
 /// The quality `render.quality: standard` asks the encoder for, from 0 to 1 (decision D22).
 const STANDARD_QUALITY: f32 = 0.65;

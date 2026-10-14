@@ -7,7 +7,6 @@
 //! reports of everything it refuses, before the first frame.
 
 mod film;
-mod scene;
 
 pub use film::{write_film, Failure, Written};
-pub use scene::{PictureError, Scene};
+pub use timeline::{PictureError, Scene};

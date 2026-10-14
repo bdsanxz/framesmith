@@ -1,0 +1,18 @@
+[package]
+name = "timeline"
+description = "What is shown at a frame: a project made into a scene, and any frame of it drawn on request."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+project = { workspace = true }
+layout = { workspace = true }
+draw = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+draw-cpu = { workspace = true }
