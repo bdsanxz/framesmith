@@ -23,3 +23,12 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0015` | The folder given to the command holds no `composition.xml`. |
 | `FS-0016` | The `composition.xml` of the folder exists and could not be read. |
 | `FS-0017` | The command line cannot be read. |
+| `FS-0018` | The project file is not valid UTF-8 text. |
+| `FS-0019` | The project file is not well-formed YAML. |
+| `FS-0020` | The `framesmith.yaml` of the folder exists and could not be read. |
+| `FS-0021` | The project file is not one mapping of keys. |
+| `FS-0022` | A key of the project file is not one that the project file has. |
+| `FS-0023` | A key of the project file is known and is not supported in this version. |
+| `FS-0024` | A value in the project file is of the wrong kind or outside the values its key takes. |
+| `FS-0025` | The composition named by the project file does not exist. |
+| `FS-0026` | The composition named by the project file exists and could not be read. |

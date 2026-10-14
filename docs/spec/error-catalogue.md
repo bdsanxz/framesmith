@@ -22,7 +22,7 @@ A kind says who has to act, and it never changes with the command that found the
 | Unsupported | `unsupported` | What the author gave is known to Framesmith and is not supported in this version. It is named by the support table of `notation.md` section 14; anything else that is not accepted is invalid. The remedy is to remove it, to replace it, or to wait for the sprint that brings it. |
 | Failure | `failure` | What the author gave may be right, and Framesmith or the machine could not carry it out: a file that cannot be read, a device that does not answer. The remedy is to put the machine right and run the command again. |
 
-The exit code is derived from the kind and the command (decisions P2 and A19); this file does not state it again. The rule that tells unsupported from invalid is the support table, and the first code of the kind unsupported is added with the work that lists and refuses the table (`DECISIONS.md` A28). No code of that kind is on the list yet.
+The exit code is derived from the kind and the command (decisions P2 and A19); this file does not state it again. The rule that tells unsupported from invalid is the support table, and the codes of the kind unsupported for what the notation does not support yet are added with the work that lists and refuses the table (`DECISIONS.md` A28). The one code of that kind on the list so far is `FS-0023`, for the two keys of the project file that wait for Sprint 2 (`project-file.md` section 5.4).
 
 ## 3. A report
 
@@ -63,10 +63,20 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0015` | invalid | The folder given to the command holds no `composition.xml`. | Put a `composition.xml` in the folder, or give the folder that holds one. |
 | `FS-0016` | failure | The `composition.xml` of the folder exists and could not be read. | Make `composition.xml` a file this user may read, then run the command again. |
 | `FS-0017` | invalid | The command line cannot be read. | Run `framesmith check <folder>` with the folder of one project. |
+| `FS-0018` | invalid | The project file is not valid UTF-8 text. | Save the project file as UTF-8 text. |
+| `FS-0019` | invalid | The project file is not well-formed YAML. | Correct the YAML at the line given: indent with spaces and write each key as `key: value`. |
+| `FS-0020` | failure | The `framesmith.yaml` of the folder exists and could not be read. | Make `framesmith.yaml` a file this user may read, then run the command again. |
+| `FS-0021` | invalid | The project file is not one mapping of keys. | Make the file one mapping of keys, such as `name: launch-film`, or leave it empty. |
+| `FS-0022` | invalid | A key of the project file is not one that the project file has. | Remove the key, or write it as one of the keys the message lists. |
+| `FS-0023` | unsupported | A key of the project file is known and is not supported in this version. | Remove the key, or wait for the sprint that brings it. |
+| `FS-0024` | invalid | A value in the project file is of the wrong kind or outside the values its key takes. | Write the value in the form the message gives. |
+| `FS-0025` | invalid | The composition named by the project file does not exist. | Set `composition` to the path of a composition file that exists, or put the file there. |
+| `FS-0026` | failure | The composition named by the project file exists and could not be read. | Make the composition file one this user may read, then run the command again. |
 
 Notes on the rows:
 
-- `FS-0013` to `FS-0016` are the reasons of a `No project` line (`check-command.md` section 5); the line gets its code from the reason. A folder that cannot be read for a reason of the machine is a failure (`FS-0016`); a path that is wrong is invalid.
+- `FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` and `FS-0026` are the reasons of a `No project` line (`check-command.md` section 5); the line gets its code from the reason. A folder that cannot be read for a reason of the machine is a failure (`FS-0016`, `FS-0020`, `FS-0026`); a path that is wrong is invalid.
+- `FS-0018` to `FS-0024` are the codes of the project file (`project-file.md` section 5): `FS-0018`, `FS-0019` and `FS-0021` stand for the whole file, `FS-0022` to `FS-0024` for one key.
 - `FS-0017` is for every command line that cannot be read. Its message says which way the line is wrong (`check-command.md` section 1).
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
