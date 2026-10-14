@@ -48,7 +48,7 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `project` | `project file read` | `bytes` (its size) | The folder has a `framesmith.yaml` and it was read |
 | debug | `project` | `project file judged` | `problems` (how many) | The project file was read as text and judged |
 | debug | `project` | `composition file read` | `bytes` (its size) | The composition the project names (`composition.xml` when it names none) exists and was read |
-| debug | `project` | `root judged` | `problems` (how many) | The root of the composition was judged |
+| debug | `project` | `root judged` | `problems` (how many) | The composition file was judged: its root, and the form of everything under it |
 | trace | `cli` | `report` | `file` (the name of the file, as the report prints it), `code`, `line` | Once for each report of an invalid or unsupported project, in the order printed |
 | info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it | Last line of every run |
 

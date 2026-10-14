@@ -74,6 +74,11 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0026` | failure | The composition named by the project file exists and could not be read. | Make the composition file one this user may read, then run the command again. |
 | `FS-0027` | invalid | The path given to the command does not exist. | Give the path of a folder, a `framesmith.yaml` or a composition file that exists. |
 | `FS-0028` | failure | The path given to the command exists and could not be read. | Make the path one this user may read, then run the command again. |
+| `FS-0029` | invalid | An element of the composition file is not one that the notation has. | Remove the element, or write one of the elements the message names. |
+| `FS-0030` | invalid | An element of the composition file has an attribute that the element does not take. | Remove the attribute, or write one the element takes; section 6 of the notation spec lists them. |
+| `FS-0031` | invalid | An element of the composition file stands in a place where the notation does not allow it. | Move the element to a place the message names, or remove it. |
+| `FS-0032` | invalid | A value in the composition file that must be a number is not one. | Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign. |
+| `FS-0033` | invalid | A value in the composition file that must be a time in seconds is not one. | Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit. |
 
 Notes on the rows:
 
@@ -81,6 +86,7 @@ Notes on the rows:
 - `FS-0018` to `FS-0024` are the codes of the project file (`project-file.md` section 5): `FS-0018`, `FS-0019` and `FS-0021` stand for the whole file, `FS-0022` to `FS-0024` for one key.
 - `FS-0017` is for every command line that cannot be read. Its message says which way the line is wrong (`check-command.md` section 1).
 - `FS-0027` and `FS-0028` were added with the three forms of the argument (`project-location.md`). `FS-0014` and `FS-0017` kept their meanings and had their remedies improved to name the three forms.
+- `FS-0029` to `FS-0033` are the codes of the form of a composition file (`check-command.md` section 3a): `FS-0029` to `FS-0031` stand for an element or an attribute and its place, `FS-0032` and `FS-0033` for a number or a time anywhere in the file. A form that the support table of `notation.md` section 14 lists will get codes of the kind unsupported with the work that lists and refuses that table (decision A28).
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list
