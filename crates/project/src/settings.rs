@@ -45,6 +45,11 @@ macro_rules! words {
                     $($name::$variant => $word),+
                 }
             }
+
+            /// The value whose word is `word`, letter for letter.
+            pub fn from_word(word: &str) -> Option<$name> {
+                <$name as Word>::ALL.iter().copied().find(|value| value.as_str() == word)
+            }
         }
 
         impl Word for $name {
@@ -122,6 +127,8 @@ pub struct Settings {
     pub(crate) codec: Option<Codec>,
     pub(crate) workers: Option<Workers>,
     pub(crate) audio_bitrate: Option<u32>,
+    /// The keys (`render.quality` and the like) whose value an option of the command line gave.
+    pub(crate) from_options: Vec<&'static str>,
     /// The line of the value of each `render` key the file wrote and that was right, in the order
     /// the file wrote them.
     pub(crate) lines: Vec<(&'static str, u32)>,
@@ -190,6 +197,91 @@ impl Settings {
     /// The bit rate of the encoded sound in kbit/s: `render.audio-bitrate`, or 192.
     pub fn audio_bitrate(&self) -> u32 {
         self.audio_bitrate.unwrap_or(DEFAULT_AUDIO_BITRATE)
+    }
+}
+
+/// Where the value of a setting in use came from (`docs/spec/render-command.md` section 1.1).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    /// An option of the command line gave it.
+    Option,
+    /// The project file wrote it.
+    ProjectFile,
+    /// Neither: it is the default.
+    Default,
+}
+
+impl Source {
+    /// How the summary names it.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Source::Option => "option",
+            Source::ProjectFile => "project file",
+            Source::Default => "default",
+        }
+    }
+}
+
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl Settings {
+    /// Takes the options of the command line: each replaces the one setting it names, and the
+    /// others keep the project file's value or the default. The project file is not written.
+    pub fn apply(&mut self, options: &crate::Options) {
+        let mut took = |key: &'static str, given: bool| {
+            if given && !self.from_options.contains(&key) {
+                self.from_options.push(key);
+            }
+        };
+        took("render.output", options.output.is_some());
+        took("render.backend", options.backend.is_some());
+        took("render.quality", options.quality.is_some());
+        took("render.encoder", options.encoder.is_some());
+        took("render.codec", options.codec.is_some());
+        took("render.workers", options.workers.is_some());
+        if let Some(output) = &options.output {
+            self.output = Some(output.clone());
+        }
+        self.backend = options.backend.or(self.backend);
+        self.quality = options.quality.or(self.quality);
+        self.encoder = options.encoder.or(self.encoder);
+        self.codec = options.codec.or(self.codec);
+        self.workers = options.workers.or(self.workers);
+    }
+
+    /// Whether an option of the command line gave the value of `key` (`render.quality` and the like).
+    pub fn from_option(&self, key: &str) -> bool {
+        self.from_options.contains(&key)
+    }
+
+    /// Where the value in use of `key` came from. `render.output` is from the project file when the
+    /// file wrote it or a key it is made from (`paths.renders`, `name`).
+    pub fn source(&self, key: &str) -> Source {
+        if self.from_option(key) {
+            return Source::Option;
+        }
+        let written = match key {
+            "name" => self.name.is_some(),
+            "composition" => self.composition.is_some(),
+            "paths.renders" => self.renders.is_some(),
+            "render.output" => self.output.is_some() || self.renders.is_some() || self.name.is_some(),
+            "render.backend" => self.backend.is_some(),
+            "render.quality" => self.quality.is_some(),
+            "render.encoder" => self.encoder.is_some(),
+            "render.codec" => self.codec.is_some(),
+            "render.workers" => self.workers.is_some(),
+            "render.audio-bitrate" => self.audio_bitrate.is_some(),
+            _ => false,
+        };
+        if written {
+            Source::ProjectFile
+        } else {
+            Source::Default
+        }
     }
 }
 

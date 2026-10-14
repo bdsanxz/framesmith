@@ -33,7 +33,7 @@ const NEAR: u8 = 12;
 fn the_film_is_an_h264_mp4_with_the_size_the_frame_count_and_the_rate_of_the_composition() {
     let scene = scene_of("facts-out-in", "first-render");
     let output = scratch("film-written", "facts-out").join("first.mp4");
-    let written = write_film(&scene, &mut CpuRenderer, &output).unwrap();
+    let written = write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     assert_eq!(written.frames, 10);
     assert_eq!(written.bytes, fs::metadata(&output).unwrap().len());
     assert!(written.bytes > 0 && written.seconds >= 0.0);
@@ -51,7 +51,7 @@ fn the_film_is_an_h264_mp4_with_the_size_the_frame_count_and_the_rate_of_the_com
 fn the_pictures_at_three_times_show_the_canvas_and_the_box_where_they_were_written() {
     let scene = scene_of("first-out-in", "first-render");
     let output = scratch("film-written", "first-out").join("first.mp4");
-    write_film(&scene, &mut CpuRenderer, &output).unwrap();
+    write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     let frames = frames_of(&output);
     assert_eq!(frames.len(), 10);
     for number in [0usize, 4, 9] {
@@ -91,7 +91,7 @@ fn the_pictures_at_three_times_show_the_canvas_and_the_box_where_they_were_writt
 fn where_boxes_overlap_the_one_written_later_is_seen() {
     let scene = scene_of("overlap-out-in", "overlapping-boxes");
     let output = scratch("film-written", "overlap-out").join("overlap.mp4");
-    let written = write_film(&scene, &mut CpuRenderer, &output).unwrap();
+    let written = write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     assert_eq!(written.frames, 5);
     let frames = frames_of(&output);
     assert_eq!(frames.len(), 5);
@@ -128,7 +128,7 @@ fn the_folder_for_the_file_is_made_when_it_is_missing() {
     let scene = scene_of("folder-out-in", "first-render");
     let output = scratch("film-written", "folder-out").join("a/b/c/first.mp4");
     assert!(!output.parent().unwrap().exists());
-    write_film(&scene, &mut CpuRenderer, &output).unwrap();
+    write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     assert!(output.is_file());
 }
 
@@ -138,7 +138,7 @@ fn a_film_that_cannot_be_started_leaves_no_file() {
     let blocker = scratch("film-written", "blocked-out").join("not-a-folder");
     fs::write(&blocker, b"a file").unwrap();
     let output = blocker.join("first.mp4");
-    let failure = write_film(&scene, &mut CpuRenderer, &output).unwrap_err();
+    let failure = write_film(&scene, &mut CpuRenderer, &output, 192).unwrap_err();
     assert!(
         failure.to_string().starts_with("the folder for the file could not be made: "),
         "{failure}"
@@ -170,7 +170,7 @@ impl Renderer for FailsAt {
 fn a_film_that_fails_after_it_was_started_leaves_no_file_and_says_why() {
     let scene = scene_of("failed-out-in", "first-render");
     let output = scratch("film-written", "failed-out").join("first.mp4");
-    let failure = write_film(&scene, &mut FailsAt { drawn: 0, fail_at: 5 }, &output).unwrap_err();
+    let failure = write_film(&scene, &mut FailsAt { drawn: 0, fail_at: 5 }, &output, 192).unwrap_err();
     assert!(failure.to_string().contains("the picture could not be drawn"), "{failure}");
     assert!(!output.exists(), "a film that was not finished is removed");
     assert!(output.parent().unwrap().is_dir(), "the folder stays");
@@ -181,7 +181,7 @@ fn an_earlier_file_is_overwritten_by_a_film_that_succeeds() {
     let scene = scene_of("again-out-in", "first-render");
     let output = scratch("film-written", "again-out").join("first.mp4");
     fs::write(&output, b"old").unwrap();
-    write_film(&scene, &mut CpuRenderer, &output).unwrap();
+    write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     assert_eq!(video_facts(&output).unwrap().frames, 10);
 }
 
@@ -190,8 +190,8 @@ fn two_films_of_the_same_composition_show_the_same_pictures() {
     let scene = scene_of("twice-out-in", "first-render");
     let folder = scratch("film-written", "twice-out");
     let (one, two) = (folder.join("one.mp4"), folder.join("two.mp4"));
-    write_film(&scene, &mut CpuRenderer, &one).unwrap();
-    write_film(&scene, &mut CpuRenderer, &two).unwrap();
+    write_film(&scene, &mut CpuRenderer, &one, 192).unwrap();
+    write_film(&scene, &mut CpuRenderer, &two, 192).unwrap();
     let (a, b) = (frames_of(&one), frames_of(&two));
     assert_eq!(a.len(), b.len());
     assert!(

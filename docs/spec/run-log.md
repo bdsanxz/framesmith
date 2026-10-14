@@ -49,6 +49,7 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `project` | `project file judged` | `problems` (how many) | The project file was read as text and judged |
 | debug | `project` | `composition file read` | `bytes` (its size) | The composition the project names (`composition.xml` when it names none) exists and was read |
 | debug | `project` | `root judged` | `problems` (how many) | The composition file was judged: its root, and the form of everything under it |
+| debug | `cli` | `settings chosen` | `options` (how many settings an option gave) | `render` took the settings by the rule of `render-command.md` section 1.1, before the scene is made |
 | debug | `render::scene` | `scene made` | `boxes` (how many boxes the scene holds), `frames` | `render` made the scene of an opened project that this version draws (`render-command.md` section 3) |
 | info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor`) | The first frame is about to be drawn |
 | debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |

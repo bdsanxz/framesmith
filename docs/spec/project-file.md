@@ -9,7 +9,7 @@ The project file is how an author keeps the settings of a project instead of rep
 - A project is a folder. `framesmith.yaml` directly in that folder holds the settings that belong to the project and not to one composition: which composition is rendered, where finished files go, and how they are rendered and encoded.
 - **The file is optional, and so is every key in it.** A folder that holds a `composition.xml` and no project file is a complete project. An empty `framesmith.yaml` is a valid project file and means the same.
 - **The project file never changes what the video is.** The size, the frame rate, the length, the elements, the motion and the sound belong to the composition. A setting that would change the picture or the sound is not a key of this file; if it is written, it is an unknown key (section 4).
-- **An option on the command line wins over the project file, and the project file wins over the default.** The options are those of `render` (Sprint 1, later tickets); `check` has none.
+- **An option on the command line wins over the project file, and the project file wins over the default.** The options are those of `render` (`render-command.md` sections 1 and 1.1): `--output`, `--backend`, `--quality`, `--encoder`, `--codec` and `--workers`, each replacing the one key it names for one run; the file is never written by them. `check` has none.
 - **Nothing is ignored in silence.** A key that is not listed, a value of the wrong kind and a value outside the values of its key are each reported with their line (section 5). A key that is known and not yet supported is reported as such.
 
 ## 2. Which file is read

@@ -20,8 +20,6 @@ use timeline::Scene;
 const STANDARD_QUALITY: f32 = 0.65;
 /// The most seconds between two key pictures (decision D22).
 const KEY_SECONDS: f64 = 2.0;
-/// The bit rate of the sound track, in bits a second (section 5.2).
-const SOUND_BITRATE: u32 = 192_000;
 /// Sample frames of AAC in one packet (ISO/IEC 14496-3).
 const AAC_PACKET: u64 = 1024;
 
@@ -69,9 +67,10 @@ fn codecs() -> codec::Registry {
 }
 
 /// Draws every frame of `scene` with `renderer` and writes the film to `output`, making the
-/// folder it is in when that is missing. A film that cannot be finished leaves no file at
+/// folder it is in when that is missing, with the sound encoded at `audio_bitrate` kbit/s
+/// (`render.audio-bitrate`, section 5.2). A film that cannot be finished leaves no file at
 /// `output`.
-pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path) -> Result<Written, Failure> {
+pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32) -> Result<Written, Failure> {
     if let Some(folder) = output.parent().filter(|folder| !folder.as_os_str().is_empty()) {
         fs::create_dir_all(folder).map_err(|error| Failure::new(format!("the folder for the file could not be made: {error}")))?;
     }
@@ -84,7 +83,7 @@ pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path) -> 
         renderer = renderer.name(),
         "render started"
     );
-    let written = make(scene, renderer, output, began).inspect_err(|_| {
+    let written = make(scene, renderer, output, audio_bitrate, began).inspect_err(|_| {
         // A film that was not finished leaves no file that looks finished.
         let _ = fs::remove_file(output);
     })?;
@@ -92,8 +91,11 @@ pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path) -> 
     Ok(written)
 }
 
-fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, began: Instant) -> Result<Written, Failure> {
+fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32, began: Instant) -> Result<Written, Failure> {
     let named = |error: Error| Failure::new(error.to_string());
+    let sound_bitrate = audio_bitrate
+        .checked_mul(1000)
+        .ok_or_else(|| Failure::new(format!("a sound bit rate of {audio_bitrate} kbit/s is too large")))?;
     let rate = Rational::new(scene.fps(), 1);
     let setup = VideoEncoderSetup {
         codec: Codec::H264,
@@ -117,10 +119,10 @@ fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, began: Instan
             codec: Codec::Aac,
             sample_rate: mix::SAMPLE_RATE,
             channels: mix::CHANNELS,
-            bitrate: SOUND_BITRATE,
+            bitrate: sound_bitrate,
         })
         .map_err(named)?;
-    tracing::debug!(sample_frames = mix.length(), bitrate = SOUND_BITRATE, "sound encoder started");
+    tracing::debug!(sample_frames = mix.length(), bitrate = sound_bitrate, "sound encoder started");
     let timescale = encoder.timescale();
     let ticks = u64::from(timescale) / u64::from(scene.fps());
     if ticks == 0 || ticks * u64::from(scene.fps()) != u64::from(timescale) {
