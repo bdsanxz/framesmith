@@ -170,7 +170,10 @@ fn renders_with_no_sound_report_the_level_and_alignment_checks_as_not_applicable
     for name in ["loudness", "peak", "alignment", "sound length"] {
         assert_eq!(line(&report, name).verdict, Verdict::NotApplicable, "{}", report.text());
     }
-    assert_eq!(line(&report, "loudness").detail, "neither render has sound");
+    assert_eq!(
+        line(&report, "loudness").detail,
+        "neither render has sound (ours: no sound track, reference: no sound track)"
+    );
     assert_eq!(
         report.overall(),
         Verdict::NotRun,
@@ -191,14 +194,47 @@ fn sound_in_one_render_only_fails_the_level_and_alignment_checks() {
 }
 
 #[test]
-fn two_silent_sounds_pass_the_levels_and_give_nothing_to_align() {
+fn two_silent_tracks_are_no_sound_their_levels_are_not_applicable_and_their_length_is_checked() {
+    let silent = |frames: usize| Sound {
+        rate: RATE,
+        channels: 2,
+        samples: vec![0.0; 2 * frames],
+    };
+    let report = judged(Some(&silent(48_000)), Some(&silent(48_000)));
+    for name in ["loudness", "peak", "alignment"] {
+        let found = line(&report, name);
+        assert_eq!(found.verdict, Verdict::NotApplicable, "{}", report.text());
+        assert_eq!(
+            found.detail,
+            "neither render has sound (ours: a silent sound track, reference: a silent sound track)"
+        );
+    }
+    assert_eq!(line(&report, "sound length").verdict, Verdict::Pass, "{}", report.text());
+    let short = judged(Some(&silent(47_999)), Some(&silent(48_000)));
+    let length = line(&short, "sound length");
+    assert_eq!(length.verdict, Verdict::Fail);
+    assert_eq!(
+        length.detail,
+        "ours: sound 47999 sample frames, picture 48000 sample frames (1.000000 s at 48000 Hz)"
+    );
+    // A silent track and an absent one are both no sound.
+    let mixed = judged(None, Some(&silent(48_000)));
+    assert_eq!(line(&mixed, "loudness").verdict, Verdict::NotApplicable);
+    assert_eq!(line(&mixed, "sound length").verdict, Verdict::NotApplicable);
+}
+
+#[test]
+fn sound_against_a_silent_track_fails_the_level_and_alignment_checks() {
     let silent = Sound {
         rate: RATE,
         channels: 2,
         samples: vec![0.0; 96_000],
     };
-    let report = judged(Some(&silent), Some(&silent));
-    assert_eq!(line(&report, "loudness").verdict, Verdict::Pass);
-    assert_eq!(line(&report, "peak").verdict, Verdict::Pass);
-    assert_eq!(line(&report, "alignment").verdict, Verdict::NotRun);
+    let sound = made_sound(RATE, 2, 48_000, 0.5, 0);
+    let report = judged(Some(&silent), Some(&sound));
+    for name in ["loudness", "peak", "alignment"] {
+        let found = line(&report, name);
+        assert_eq!(found.verdict, Verdict::Fail, "{}", report.text());
+        assert_eq!(found.detail, "the reference's render has sound and ours has a silent sound track");
+    }
 }

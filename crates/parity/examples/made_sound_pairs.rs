@@ -12,6 +12,8 @@
 //! - `later-0.5ms.mp4` and `later-2ms.mp4`: the sound 24 or 96 sample frames later;
 //! - `silent-a.mp4` and `silent-b.mp4`: the pictures and no sound track;
 //! - `silent-short.mp4`: the first 29 pictures and no sound track;
+//! - `silent-track-a.mp4`, `silent-track-b.mp4`: a sound track of 48,000 sample frames of 0;
+//! - `silent-track-short-1.mp4`: a sound track of 47,999 sample frames of 0;
 //! - `tone-1000hz-minus-23db.mp4`: a steady tone of 1000 Hz at 23 dB under full scale in both
 //!   channels (loudness -23.00 LUFS by section 12.3, peak -23.00 dBFS);
 //! - `tone-997hz-half.mp4`: a steady tone of 997 Hz of amplitude 0.5 in both channels (peak
@@ -39,6 +41,15 @@ fn tone(hz: f64, amplitude: f64) -> Sound {
         rate: 48_000,
         channels: 2,
         samples,
+    }
+}
+
+/// A sound track of `frames` sample frames of 0, at 48 kHz in two channels.
+fn zeros(frames: usize) -> Sound {
+    Sound {
+        rate: 48_000,
+        channels: 2,
+        samples: vec![0.0; 2 * frames],
     }
 }
 
@@ -71,6 +82,9 @@ fn main() {
         ("later-2ms", Some(sound(48_000, 96))),
         ("silent-a", None),
         ("silent-b", None),
+        ("silent-track-a", Some(zeros(48_000))),
+        ("silent-track-b", Some(zeros(48_000))),
+        ("silent-track-short-1", Some(zeros(47_999))),
         ("tone-1000hz-minus-23db", Some(tone(1000.0, 10f64.powf(-23.0 / 20.0)))),
         ("tone-997hz-half", Some(tone(997.0, 0.5))),
     ];

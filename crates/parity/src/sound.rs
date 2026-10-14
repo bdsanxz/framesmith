@@ -199,7 +199,7 @@ pub fn shift(ours: &Sound, theirs: &Sound) -> Option<i64> {
 }
 
 fn lufs_text(value: Option<f64>) -> String {
-    value.map_or("silent (no block above the gates)".to_string(), |v| format!("{v:.2} LUFS"))
+    value.map_or("under the gates (no block above them)".to_string(), |v| format!("{v:.2} LUFS"))
 }
 
 fn db_text(value: Option<f64>) -> String {
@@ -215,15 +215,15 @@ fn verdict(passes: bool) -> Verdict {
 }
 
 /// Judges two levels in the same unit against a limit: both measured and no further apart than the
-/// limit, or both silent.
+/// limit, or both under the gates (a sound that is heard but too quiet or too short for a block).
 fn levels(ours: Option<f64>, theirs: Option<f64>, limit: f64, unit: &str) -> (Verdict, String) {
     match (ours, theirs) {
         (Some(a), Some(b)) => {
             let apart = (a - b).abs();
             (verdict(apart <= limit), format!("{apart:.2} {unit} apart (limit {limit} {unit})"))
         }
-        (None, None) => (Verdict::Pass, "both silent".to_string()),
-        _ => (Verdict::Fail, "one is silent and the other is not".to_string()),
+        (None, None) => (Verdict::Pass, "both under the gates".to_string()),
+        _ => (Verdict::Fail, "one is under the gates and the other is not".to_string()),
     }
 }
 
@@ -251,37 +251,62 @@ pub fn length_line(sound: &Sound, picture: &VideoFacts) -> (Verdict, String) {
     )
 }
 
+/// Whether a sound is there to judge: a track absent and a track silent from end to end (no
+/// sample other than 0) are both "no sound" (section 12.6).
+fn heard(sound: Option<&Sound>) -> Option<&Sound> {
+    sound.filter(|s| peak(s).is_some())
+}
+
+fn none_word(sound: Option<&Sound>) -> &'static str {
+    if sound.is_some() {
+        "a silent sound track"
+    } else {
+        "no sound track"
+    }
+}
+
 /// The four sound checks of a pair whose sounds are already read, put into the report with what
 /// was measured. `picture` is the facts of our picture track.
 pub fn judge(report: &mut Report, ours: Option<&Sound>, theirs: Option<&Sound>, picture: &VideoFacts) {
-    let not_applicable = "neither render has sound";
-    let (Some(a), Some(b)) = (ours, theirs) else {
-        match (ours, theirs) {
-            (None, None) => {
-                report.check("sound length", Verdict::NotApplicable, "ours has no sound track");
-                for name in ["loudness", "peak", "alignment"] {
-                    report.check(name, Verdict::NotApplicable, not_applicable);
-                }
-                report.data.push(("sound".to_string(), json!({"ours": null, "reference": null})));
-            }
-            (Some(a), None) => {
-                let (verdict, detail) = length_line(a, picture);
+    let (Some(a), Some(b)) = (heard(ours), heard(theirs)) else {
+        // The length of our track, silent or not, is judged whenever ours has one.
+        match ours {
+            Some(track) => {
+                let (verdict, detail) = length_line(track, picture);
                 report.check("sound length", verdict, detail);
-                for name in ["loudness", "peak", "alignment"] {
-                    report.check(name, Verdict::Fail, "ours has sound and the reference's render has none");
-                }
             }
-            _ => {
-                report.check(
-                    "sound length",
-                    Verdict::Fail,
-                    "ours has no sound track and the reference's render has one",
-                );
-                for name in ["loudness", "peak", "alignment"] {
-                    report.check(name, Verdict::Fail, "the reference's render has sound and ours has none");
-                }
+            None if heard(theirs).is_some() => report.check(
+                "sound length",
+                Verdict::Fail,
+                "ours has no sound track and the reference's render has sound",
+            ),
+            None => report.check("sound length", Verdict::NotApplicable, "ours has no sound track"),
+        }
+        let detail = match (heard(ours), heard(theirs)) {
+            (None, None) => None,
+            (Some(_), None) => Some(format!("ours has sound and the reference's render has {}", none_word(theirs))),
+            _ => Some(format!("the reference's render has sound and ours has {}", none_word(ours))),
+        };
+        for name in ["loudness", "peak", "alignment"] {
+            match &detail {
+                None => report.check(
+                    name,
+                    Verdict::NotApplicable,
+                    format!(
+                        "neither render has sound (ours: {}, reference: {})",
+                        none_word(ours),
+                        none_word(theirs)
+                    ),
+                ),
+                Some(text) => report.check(name, Verdict::Fail, text.clone()),
             }
         }
+        let facts = |s: Option<&Sound>| {
+            s.map(|s| json!({"rate": s.rate, "channels": s.channels, "frames": s.frames(), "silent": peak(s).is_none()}))
+        };
+        report
+            .data
+            .push(("sound".to_string(), json!({"ours": facts(ours), "reference": facts(theirs)})));
         return;
     };
     let (length_verdict, length_detail) = length_line(a, picture);

@@ -136,3 +136,32 @@ fn files_with_no_sound_report_the_sound_checks_as_not_applicable_and_still_check
     assert_eq!(line(&report, "length").verdict, Verdict::Fail, "{}", report.text());
     assert_eq!(line(&report, "loudness").verdict, Verdict::NotApplicable);
 }
+
+#[test]
+fn files_with_silent_tracks_are_no_sound_and_a_silent_track_one_sample_short_fails_the_length() {
+    let dir = folder("sound-silent-tracks");
+    let silent = |frames: usize| Sound {
+        rate: RATE,
+        channels: 2,
+        samples: vec![0.0; 2 * frames],
+    };
+    let a = written(&dir, "a", Some(&silent(48_000)));
+    let b = written(&dir, "b", Some(&silent(48_000)));
+    let short = written(&dir, "short", Some(&silent(47_999)));
+    let report = compared(&a, &b);
+    for name in ["loudness", "peak", "alignment"] {
+        assert_eq!(line(&report, name).verdict, Verdict::NotApplicable, "{}", report.text());
+    }
+    assert_eq!(line(&report, "sound length").verdict, Verdict::Pass, "{}", report.text());
+    assert_eq!(line(&report, "length").verdict, Verdict::Pass);
+    assert_eq!(report.exit_code(), 0, "{}", report.text());
+    let report = compared(&short, &b);
+    let length = line(&report, "sound length");
+    assert_eq!(length.verdict, Verdict::Fail, "{}", report.text());
+    assert_eq!(
+        length.detail,
+        "ours: sound 47999 sample frames, picture 48000 sample frames (1.000000 s at 48000 Hz)"
+    );
+    assert_eq!(line(&report, "loudness").verdict, Verdict::NotApplicable);
+    assert_eq!(report.exit_code(), 1);
+}

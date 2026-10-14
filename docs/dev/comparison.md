@@ -252,9 +252,9 @@ The integrated loudness of each sound, by BS.1770-4:
    At 48 kHz these are the coefficients of BS.1770-4, Tables 1 and 2, within 1e-12 (a test holds them).
 2. The weighted samples are taken in blocks of 400 ms (0.4 x *fs* sample frames, rounded) that start every 100 ms (0.1 x *fs*, rounded), from the first sample; a block that would run past the end is not taken. The power of a block is the sum over the channels of *G* times the mean square of the channel in the block, and its loudness is -0.691 + 10 log10(power). *G* is 1 for each channel; for six channels (left, right, centre, low-frequency effects, left surround, right surround) it is 1, 1, 1, 0, 1.41, 1.41.
 3. Blocks of loudness -70 LUFS or less are left out. Of the others, the mean power gives a loudness; blocks at 10 LU under it or less are left out too. The loudness of the sound is that of the mean power of the blocks left.
-4. A sound with no block left (silent, or shorter than one block) has no loudness: it is shown as `silent`.
+4. A sound with no block left (silent, or shorter than one block) has no loudness: it is shown as `under the gates`.
 
-The check passes when the two loudnesses are no more than 0.5 LU apart, compared unrounded; two silent sounds pass, one silent and one not fails. The line gives both values to a hundredth and how far apart they are:
+The check passes when the two loudnesses are no more than 0.5 LU apart, compared unrounded; two sounds under the gates pass, one under them and one not fails (section 12.6 says what counts as no sound). The line gives both values to a hundredth and how far apart they are:
 
 ```
   loudness  fail  ours -17.86 LUFS, reference -17.26 LUFS; 0.60 LU apart (limit 0.5 LU)
@@ -266,7 +266,7 @@ The values the tests hold the measure to (section 12.7): a tone of 997 Hz at ful
 
 The sample peak of each sound: the largest magnitude of any sample of any channel, as dB under full scale (20 log10 of it; full scale is 1.0). A sound whose samples are all 0 has no peak and is shown as `silent`. This is the peak of the samples, not the true peak between them, which needs oversampling and is not what this check measures.
 
-The check passes when the two peaks are no more than 0.5 dB apart, compared unrounded; as with loudness, two silent sounds pass. The line gives both values to a hundredth and how far apart they are. The values the tests hold the measure to: a single sample of 0.5 in silence measures -6.02 dBFS (20 log10 0.5 = -6.0206); a tone of 997 Hz of amplitude 0.5 at 48 kHz, one second long, measures -6.02 dBFS within 0.001 dB; a gain of g dB changes the peak by g dB.
+The check passes when the two peaks are no more than 0.5 dB apart, compared unrounded; a sound silent from end to end is no sound (section 12.6), so the check does not judge it. The line gives both values to a hundredth and how far apart they are. The values the tests hold the measure to: a single sample of 0.5 in silence measures -6.02 dBFS (20 log10 0.5 = -6.0206); a tone of 997 Hz of amplitude 0.5 at 48 kHz, one second long, measures -6.02 dBFS within 0.001 dB; a gain of g dB changes the peak by g dB.
 
 ### 12.5 Alignment
 
@@ -282,7 +282,12 @@ A shift at the edge of the search (20 ms) fails and says that the shift may be l
 
 ### 12.6 No sound, or sound in one
 
-When neither render has a sound track, `loudness`, `peak` and `alignment` are **`not applicable`** ("neither render has sound"), and so is `sound length` ("ours has no sound track"): a render without sound has no sound to be as long as its picture. The length of the two renders is still checked by the structural check `length` (section 3), which runs as always. When only one render has sound, the other three checks fail, saying which one has none; `sound length` is judged when ours has sound and fails when ours has none.
+A render has **no sound** when it has no sound track, or when its sound track is silent from end to end: no sample other than 0, so that it has no peak (section 12.4) and no loudness (section 12.3). Since every film `framesmith render` writes has a sound track, silent where nothing plays, a render of a composition without sound is of the second kind. The two kinds are judged alike:
+
+- When neither render has sound, `loudness`, `peak` and `alignment` are **`not applicable`** ("neither render has sound", with what each render has): never `pass`. The length is still checked: `sound length` judges our track, silent or not, against our picture (section 12.2), and the structural check `length` (section 3) runs as always. A silent track one sample short of its picture fails `sound length`. Only when ours has no sound track at all is `sound length` `not applicable` ("ours has no sound track").
+- When one render has sound and the other has none, `loudness`, `peak` and `alignment` fail, saying which has sound and what the other has. `sound length` is judged when ours has a track, and fails when ours has none and the reference's has sound.
+
+A sound that has samples other than 0 but no block above the gates (too quiet, or shorter than 400 ms) is sound: its loudness is shown as `under the gates`, two such sounds pass `loudness`, and one such against one with a loudness fails it.
 
 The JSON report has a member `sound` with the rate, channels, sample frames, loudness and peak of each, and the shift in sample frames and milliseconds.
 
