@@ -344,36 +344,47 @@ impl Judge {
             "backend" => {
                 if let Some(word) = self.word_value("render.backend", value) {
                     self.settings.backend = Some(word);
+                    self.note_line("render.backend", value);
                 }
             }
             "quality" => {
                 if let Some(word) = self.word_value("render.quality", value) {
                     self.settings.quality = Some(word);
+                    self.note_line("render.quality", value);
                 }
             }
             "encoder" => {
                 if let Some(word) = self.word_value("render.encoder", value) {
                     self.settings.encoder = Some(word);
+                    self.note_line("render.encoder", value);
                 }
             }
             "codec" => {
                 if let Some(word) = self.word_value("render.codec", value) {
                     self.settings.codec = Some(word);
+                    self.note_line("render.codec", value);
                 }
             }
             "workers" => {
                 if let Some(workers) = self.workers_value(value) {
                     self.settings.workers = Some(workers);
+                    self.note_line("render.workers", value);
                 }
             }
             "audio-bitrate" => {
                 if let Some(rate) = self.bitrate_value(value) {
                     self.settings.audio_bitrate = Some(rate);
+                    self.note_line("render.audio-bitrate", value);
                 }
             }
             _ => return false,
         }
         true
+    }
+
+    /// Notes the line of the value of a key that was written and was right.
+    fn note_line(&mut self, key: &'static str, value: &MarkedYaml) {
+        self.settings.lines.push((key, line_of(value)));
     }
 
     /// `name`: text that is not empty and has no `/`.

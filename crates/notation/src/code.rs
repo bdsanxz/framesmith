@@ -107,11 +107,17 @@ pub enum Code {
     NotANumber,
     /// A value that must be a time in seconds is not one.
     NotATime,
+    /// A length is not a number of pixels or a percentage, or is below 0 where 0 or more is taken.
+    LengthNotAccepted,
+    /// The project uses a form that is known and that this version does not draw or apply.
+    FormNotSupported,
+    /// The video could not be made.
+    VideoNotMade,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 33] = [
+    pub const ALL: [Code; 36] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -145,6 +151,9 @@ impl Code {
         Code::ElementNotHere,
         Code::NotANumber,
         Code::NotATime,
+        Code::LengthNotAccepted,
+        Code::FormNotSupported,
+        Code::VideoNotMade,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -183,16 +192,21 @@ impl Code {
             Code::ElementNotHere => "FS-0031",
             Code::NotANumber => "FS-0032",
             Code::NotATime => "FS-0033",
+            Code::LengthNotAccepted => "FS-0034",
+            Code::FormNotSupported => "FS-0035",
+            Code::VideoNotMade => "FS-0036",
         }
     }
 
     /// The kind of the code.
     pub fn kind(self) -> Kind {
         match self {
-            Code::CompositionUnreadable | Code::ProjectFileUnreadable | Code::NamedCompositionUnreadable | Code::PathUnreadable => {
-                Kind::Failure
-            }
-            Code::KeyNotSupported => Kind::Unsupported,
+            Code::CompositionUnreadable
+            | Code::ProjectFileUnreadable
+            | Code::NamedCompositionUnreadable
+            | Code::PathUnreadable
+            | Code::VideoNotMade => Kind::Failure,
+            Code::KeyNotSupported | Code::FormNotSupported => Kind::Unsupported,
             _ => Kind::Invalid,
         }
     }
@@ -219,7 +233,7 @@ impl Code {
             Code::NoComposition => "Put a `composition.xml` in the folder, or give the folder that holds one.",
             Code::CompositionUnreadable => "Make `composition.xml` a file this user may read, then run the command again.",
             Code::CommandLineNotRead => {
-                "Run `framesmith check <path>` with the folder, the project file or the composition file of one project."
+                "Run `framesmith check <path>` or `framesmith render <path>` with the folder, the project file or the composition file of one project."
             }
             Code::ProjectFileNotUtf8 => "Save the project file as UTF-8 text.",
             Code::ProjectFileNotYaml => "Correct the YAML at the line given: indent with spaces and write each key as `key: value`.",
@@ -237,6 +251,11 @@ impl Code {
             Code::ElementNotHere => "Move the element to a place the message names, or remove it.",
             Code::NotANumber => "Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign.",
             Code::NotATime => "Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit.",
+            Code::LengthNotAccepted => {
+                "Write the length as a number of pixels, such as 40, or as a percentage, such as 50%, and not below 0 where the message says 0 or more."
+            }
+            Code::FormNotSupported => "Remove what the message names, or wait for the sprint that brings it.",
+            Code::VideoNotMade => "Put right what the message names (the folder, the disk or the system's video encoder), then run the command again.",
         }
     }
 

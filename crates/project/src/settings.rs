@@ -122,6 +122,9 @@ pub struct Settings {
     pub(crate) codec: Option<Codec>,
     pub(crate) workers: Option<Workers>,
     pub(crate) audio_bitrate: Option<u32>,
+    /// The line of the value of each `render` key the file wrote and that was right, in the order
+    /// the file wrote them.
+    pub(crate) lines: Vec<(&'static str, u32)>,
 }
 
 impl Settings {
@@ -151,6 +154,12 @@ impl Settings {
             Some(output) => output.clone(),
             None => format!("{}/{}.mp4", self.renders().trim_end_matches('/'), self.name(folder_name)),
         }
+    }
+
+    /// The line of the value of `key` (`render.quality` and the like) in the project file, when the
+    /// file writes the key with a value that is right.
+    pub fn line_of(&self, key: &str) -> Option<u32> {
+        self.lines.iter().find(|(name, _)| *name == key).map(|(_, line)| *line)
     }
 
     /// The renderer: `render.backend`, or `auto`.

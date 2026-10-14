@@ -4,6 +4,7 @@
 use crate::code::Code;
 use crate::problem::Problem;
 use crate::structure;
+use crate::tree::{self, Tree};
 use crate::value;
 use timebase::{frame_count, Time, DEFAULT_FPS, MAX_FPS, MIN_FPS};
 
@@ -32,6 +33,15 @@ impl Colour {
         blue: 0,
         alpha: 255,
     };
+}
+
+/// A valid composition file: its root, and the elements under it as they are written.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Composition {
+    /// The root with the defaults filled in.
+    pub root: Root,
+    /// Every element with its attributes and lines (`docs/spec/notation.md` section 6).
+    pub tree: Tree,
 }
 
 /// The root of a valid composition file, with the defaults filled in.
@@ -87,6 +97,11 @@ type Written<'a> = Option<(&'a str, Spot)>;
 /// a place it may not stand, and a number or a time written in a form the notation does not list.
 /// What an attribute means and the range it takes are the business of the part that draws it.
 pub fn read_root(source: &[u8]) -> Result<Root, Vec<Problem>> {
+    read(source).map(|composition| composition.root)
+}
+
+/// Reads a composition file as [`read_root`] does, and gives the elements under the root too.
+pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
     let text = match std::str::from_utf8(source) {
         Ok(text) => text,
         Err(error) => {
@@ -142,14 +157,17 @@ pub fn read_root(source: &[u8]) -> Result<Root, Vec<Problem>> {
     structure::judge(&document, text, &mut problems);
 
     match (version, width, height, fps, duration, background) {
-        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if problems.is_empty() => Ok(Root {
-            id: attribute("id").map(|(written, _)| written.to_string()),
-            width,
-            height,
-            fps,
-            duration,
-            frames: frame_count(duration, fps),
-            background,
+        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if problems.is_empty() => Ok(Composition {
+            root: Root {
+                id: attribute("id").map(|(written, _)| written.to_string()),
+                width,
+                height,
+                fps,
+                duration,
+                frames: frame_count(duration, fps),
+                background,
+            },
+            tree: tree::build(&document),
         }),
         _ => {
             // Stable: two problems at one place stay in the order the attributes were judged.

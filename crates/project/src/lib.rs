@@ -15,7 +15,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
-pub use notation::{Code, Colour, Kind, Problem, Root};
+pub use notation::{shown, Attribute, Code, Colour, Element, Kind, Length, Node, Problem, Root, Tree};
 pub use settings::{Backend, Codec, Encoder, Quality, Settings, Workers, MAX_WORKERS, PROJECT_FILE};
 
 use file::CompositionChoice;
@@ -31,6 +31,7 @@ pub struct Project {
     composition: String,
     settings: Settings,
     root: Root,
+    tree: Tree,
 }
 
 /// Why a folder did not open as a project.
@@ -58,6 +59,14 @@ pub struct Report {
 }
 
 impl Report {
+    /// A report of `problem` in `file`, a path from the project folder written with `/`.
+    pub fn new(file: impl Into<String>, problem: Problem) -> Report {
+        Report {
+            file: file.into(),
+            problem,
+        }
+    }
+
     /// The file the problem is in, as the path from the project folder written with `/`.
     pub fn file(&self) -> &str {
         &self.file
@@ -203,10 +212,10 @@ impl Project {
             }
         };
         tracing::debug!(bytes = source.len(), "composition file read");
-        let judged_root = notation::read_root(&source);
+        let judged_root = notation::read(&source);
         tracing::debug!(problems = judged_root.as_ref().err().map_or(0, Vec::len), "root judged");
         let root = match judged_root {
-            Ok(root) => Some(root),
+            Ok(composition) => Some(composition),
             Err(problems) => {
                 reports.extend(problems.into_iter().map(|problem| Report {
                     file: path.clone(),
@@ -216,11 +225,12 @@ impl Project {
             }
         };
         match root {
-            Some(root) if reports.is_empty() => Ok(Project {
+            Some(composition) if reports.is_empty() => Ok(Project {
                 folder: folder.to_path_buf(),
                 composition: path,
                 settings: judged.settings,
-                root,
+                root: composition.root,
+                tree: composition.tree,
             }),
             _ => Err(OpenError::Invalid(reports)),
         }
@@ -273,6 +283,12 @@ impl Project {
     /// The composition's root.
     pub fn root(&self) -> &Root {
         &self.root
+    }
+
+    /// The elements of the composition as they are written: the root first, then the others in
+    /// document order.
+    pub fn tree(&self) -> &Tree {
+        &self.tree
     }
 }
 
