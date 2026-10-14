@@ -175,10 +175,17 @@ fn an_unknown_option_and_a_value_outside_its_list_are_told_with_the_values_taken
         assert_eq!(out(&output), "", "{options:?}");
         let told = err(&output);
         assert!(
-            told.starts_with(&format!("framesmith: FS-0017: invalid: {message} ")),
+            told.starts_with(&format!(
+                "framesmith: FS-0037: invalid: {message} Give one of the options the message lists, \
+                 with one of the values it names, or leave the option out.\n"
+            )),
             "{options:?}: {told}"
         );
-        assert!(told.ends_with("\nusage: framesmith render <path>\n"), "{options:?}: {told}");
+        assert!(
+            !told.contains("framesmith check <path>` or"),
+            "{options:?}: the remedy is not about the path: {told}"
+        );
+        assert!(told.ends_with("\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n"), "{options:?}: {told}");
         assert_eq!(files(&project), ["composition.xml"], "{options:?}: no file is written");
     }
 }

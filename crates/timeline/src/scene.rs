@@ -312,11 +312,11 @@ fn settings(project: &Project) -> Vec<Report> {
     let settings = project.settings();
     let mut from_options: Vec<String> = Vec::new();
     let mut found: Vec<(u32, String)> = Vec::new();
-    let mut check = |key: &str, option: &str, accepted: bool, value: String, takes: &str| {
+    let mut check = |key: &str, option: Option<&str>, accepted: bool, value: String, takes: &str| {
         if accepted {
             return;
         }
-        if settings.from_option(key) {
+        if let (true, Some(option)) = (settings.from_option(key), option) {
             from_options.push(format!("`{option} {value}` is not supported by this version, which takes {takes}"));
         } else if let Some(line) = settings.line_of(key) {
             found.push((
@@ -327,42 +327,43 @@ fn settings(project: &Project) -> Vec<Report> {
     };
     check(
         "render.backend",
-        "--backend",
+        Some("--backend"),
         matches!(settings.backend(), Backend::Auto | Backend::Cpu),
         settings.backend().to_string(),
         "auto or cpu",
     );
     check(
         "render.quality",
-        "--quality",
+        Some("--quality"),
         settings.quality() == Quality::Standard,
         settings.quality().to_string(),
         "standard",
     );
     check(
         "render.encoder",
-        "--encoder",
+        Some("--encoder"),
         settings.encoder() == Encoder::Hardware,
         settings.encoder().to_string(),
         "hardware",
     );
     check(
         "render.codec",
-        "--codec",
+        Some("--codec"),
         settings.codec() == Codec::H264,
         settings.codec().to_string(),
         "h264",
     );
     check(
         "render.workers",
-        "--workers",
+        Some("--workers"),
         matches!(settings.workers(), Workers::Auto | Workers::Count(1)),
         settings.workers().to_string(),
         "auto or 1",
     );
     check(
         "render.audio-bitrate",
-        "--audio-bitrate",
+        // No option sets the sound's bit rate: only the project file does.
+        None,
         (SOUND_KBITS_LOWEST..=SOUND_KBITS_HIGHEST).contains(&settings.audio_bitrate()),
         settings.audio_bitrate().to_string(),
         "64 to 320",

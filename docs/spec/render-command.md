@@ -23,7 +23,8 @@ framesmith render <path> [--output <file>] [--backend <word>] [--quality <word>]
 | `--workers <value>` | `render.workers` | `auto`, or a whole number from 1 to 16 written in digits |
 
   The values are those of the project file's keys (`project-file.md` section 3), letter for letter. What `--backend`, `--codec`, `--encoder`, `--quality` and `--workers` do to the film is stated by their own tickets (T040, T084, T085, T096); a value this version does not apply is refused before the first frame (section 3). `--json`, `--strict`, `--debug` and settings by environment variable are not taken in this version. `render.audio-bitrate` has no option in this version (`ROADMAP.md` line 1.48 lists none): it is set in the project file.
-- **Anything else is a command line that cannot be read** (`FS-0017`): no path, more than one path, an option that is not in the table, an option with no value after it, an option given twice, and a value outside the values of its option. The message names what was written and the values taken:
+- **A command line that cannot be read** (`FS-0017`): no path, or more than one path. Its remedy is about the path of the project.
+- **An option that is not taken** (`FS-0037`, of the kind invalid): an option that is not in the table, an option with no value after it, an option given twice, and a value outside the values of its option. Its remedy is ``Give one of the options the message lists, with one of the values it names, or leave the option out.``, so that the author is sent to the option, not to the path. The message names what was written and the options or values taken:
   - ``--colour` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers``;
   - ``--quality` must be one of draft, standard, high, not ultra``;
   - ``--workers` must be auto or a whole number from 1 to 16, not 17``;
@@ -31,7 +32,13 @@ framesmith render <path> [--output <file>] [--backend <word>] [--quality <word>]
   - ``--quality` needs a value: one of draft, standard, high``;
   - ``--quality` is given twice; give it once``.
 
-  It is told on standard error as `check` tells it, with the usage line `usage: framesmith render <path>`; nothing is printed on standard output, the project is not opened, nothing is written, and the exit code is 1 (decision A19: a value outside its list is invalid and ends with 1). A command line with no command, or with a word that is not a command, is told with both usage lines, `usage: framesmith check <path>` and `usage: framesmith render <path>`, in that order.
+  Both are told on standard error as `check` tells a command line it cannot read (`framesmith: ` and the statement of the code), followed by the usage line of `render`, which names every option and its values:
+
+  ```
+  usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]
+  ```
+
+  then nothing is printed on standard output, the project is not opened, nothing is written, and the exit code is 1 (decision A19: a value outside its list is invalid and ends with 1). A command line with no command, or with a word that is not a command, is told with both usage lines, `usage: framesmith check <path>` and the usage line of `render` above, in that order.
 
 ### 1.1 Which value is used
 
