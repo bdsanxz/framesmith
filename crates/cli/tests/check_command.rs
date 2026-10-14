@@ -326,12 +326,13 @@ fn the_messages_carry_no_colour_and_no_control_character() {
 }
 
 #[test]
-fn check_leaves_the_project_folder_and_the_working_folder_as_they_were() {
+fn check_leaves_the_project_folder_as_it_was_and_adds_only_its_log_to_the_working_folder() {
     let (project, cwd) = project("writes-nothing", VALID);
     fs::create_dir(project.join("media")).unwrap();
     fs::write(project.join("media").join("clip.bin"), [9u8, 8, 7]).unwrap();
     fs::write(project.join("framesmith.yaml"), "name: demo\n").unwrap();
-    let (before_project, before_cwd) = (snapshot(&project), snapshot(&cwd));
+    let before_project = snapshot(&project);
+    assert!(snapshot(&cwd).is_empty());
 
     // Valid, and invalid.
     for text in [VALID, "<composition/>"] {
@@ -339,10 +340,15 @@ fn check_leaves_the_project_folder_and_the_working_folder_as_they_were() {
         let before_project = snapshot(&project);
         framesmith(&cwd, [OsStr::new("check"), project.as_os_str()]);
         assert_eq!(snapshot(&project), before_project);
-        assert_eq!(snapshot(&cwd), before_cwd);
+        // The one thing written is the run log, under the folder the command is run from
+        // (docs/spec/run-log.md section 1).
+        let now: Vec<PathBuf> = snapshot(&cwd)
+            .into_iter()
+            .map(|(path, ..)| path.strip_prefix(&cwd).unwrap().to_path_buf())
+            .collect();
+        assert_eq!(now, [PathBuf::from("logs"), PathBuf::from("logs/framesmith.log")]);
     }
     assert_eq!(before_project.len(), 4);
-    assert!(before_cwd.is_empty());
 }
 
 #[test]
