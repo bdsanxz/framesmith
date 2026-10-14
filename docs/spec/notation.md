@@ -63,6 +63,7 @@ The footage fills the frame, darkened; a rounded orange panel slides up and fade
 - **The root** is `<composition>`. Its children, in any order, are `<style>`, `<font>`, `<audio>` and the drawn elements `<box>`, `<rect>`, `<text>`, `<image>`, `<video>`, `<shape>` and `<composition src>`. `<style>`, `<font>` and `<audio>` stand directly in the root and nowhere else.
 - **Drawing order.** Drawn elements are drawn in document order: a later element is over an earlier one. There is no stacking order apart from it (section 14, S05). Within one element the order is: box shadows, the background layers (the last listed first), the picture, footage or shape, the border, the text shadows, the text, then the children in document order.
 - **The frame** is `width` by `height` pixels. Whatever lies outside it is not seen.
+- **The notation is closed.** The reader refuses every form this document does not list, for every element at once: an element that is not on the tables of section 6 (`<circle>`, `<html>`), an attribute that the table of its element does not list (`<rect colour="...">`, `<tween to-width="...">`, `<set duration="...">`), and an element in a place its parent does not hold (a `<box>` inside a `<text>`, a `<style>` inside a `<box>`, a `<span>` outside a text, a `<composition>` without `src` inside a composition). Each is reported with the line of the element or of the attribute, and the message names what is taken in its place (section 13). A number and a time are read by the forms of section 4 and the rules N8 and N9, whatever the attribute; what an attribute means, and the range of values it takes, are for the section that describes it. Nothing is skipped, repaired or taken to mean something near; an element that is reported is not read further, since what is inside it has no table to be judged by. A `class` or an `id` is a name and is judged by nothing but its form (N7, section 9).
 - **Every problem at once.** The reader collects every problem it finds and reports all of them, each with its file and line; a composition with one problem does not render. A file that is not well-formed XML is reported once, with the reader's reason and line, since nothing else can be read from it. A problem in a file shown from another file names that file and its own line.
 
 ## 4. Value forms
@@ -70,7 +71,7 @@ The footage fills the frame, darkened; a rounded orange panel slides up and fade
 | Form | What it is |
 |---|---|
 | text | Any characters. |
-| number | A decimal number, with an optional sign and an optional exponent: `12`, `-4`, `+0.5`, `.5`, `1e3`, `2.5E-1`. No unit: `12px` and `50%` are not numbers. The value must be finite; `inf` and `nan` are not numbers. See N9. |
+| number | A decimal number, with an optional sign and an optional exponent: `12`, `-4`, `+0.5`, `.5`, `1e3`, `2.5E-1`. No unit: `12px` and `50%` are not numbers. The value must be finite; `inf` and `nan` are not numbers, and neither is a value too large to be finite (`1e999`). See N9. |
 | whole number | A number whose value has no fraction: `1280`, `1.28e3`. |
 | length | A number of pixels (`40`), or a percentage of the parent's size (`50%`). Where an attribute says "length, 0 or more", a negative one is invalid (N6). |
 | time | Seconds as decimal digits: `0`, `0.5`, `.5`, `2.25`. At most nine digits after the point and nine before. No sign, no exponent, no unit, never negative. See N8 and `frame-time.md`. |
@@ -123,6 +124,19 @@ A time may be written with any number of decimals up to nine and is read exactly
 One table for every element. The columns are the attribute, its value form (section 4), its default, and the section that says what it does. A form that has a word list names the words. An element takes the attributes of its table and no others; an attribute it does not take is reported (section 13). Where a default says "none", the attribute has no effect when it is not written. Where it says "required", the element is reported without it.
 
 Every drawn element (`box`, `rect`, `text`, `span`, `image`, `video`, `shape`, `composition src`) takes the movement attributes `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `opacity`, `blur`, `brightness`, `rotate-x`, `rotate-y` and `reveal` (section 8.1), as the starting values its own tweens and sets move away from.
+
+**Where an element may stand.** Each element's section names its children, and an element is read only where its parent holds it. The same, in one table (words are not elements, and any number of each child is allowed):
+
+| Parent | Holds |
+|---|---|
+| `<composition>` (the root) | `<style>`, `<font>`, `<audio>`, `<box>`, `<rect>`, `<text>`, `<image>`, `<video>`, `<shape>`, `<composition src>` |
+| `<box>`, `<rect>` | `<box>`, `<rect>`, `<text>`, `<image>`, `<video>`, `<shape>`, `<composition src>`, `<tween>`, `<set>` |
+| `<text>`, `<span>` | `<span>`, `<tween>`, `<set>` |
+| `<image>`, `<video>`, `<shape>`, `<composition src>` | `<tween>`, `<set>` |
+| `<audio>` | `<volume>` |
+| `<style>`, `<font>`, `<volume>`, `<tween>`, `<set>` | nothing |
+
+A `<composition>` without `src` is a root and stands in no other place; with `src` it stands where the table says `<composition src>`. A `<span>` stands only in a `<text>` or a `<span>`.
 
 ### 6.1 `<composition>` (the root)
 
@@ -1113,7 +1127,7 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 ### N9. A number written with an exponent or a sign
 
-**Rule.** A number may carry a leading `+` or `-` and an exponent: `+5` is 5, `-4` is -4, `1e3` is 1000, `2.5E-1` is 0.25. A number must be finite: `inf`, `infinity` and `nan`, in any case, are reported as not numbers. A time never takes a sign or an exponent (N8, section 4). A whole number may be written with an exponent when its value has no fraction (`1.28e3`).
+**Rule.** A number may carry a leading `+` or `-` and an exponent: `+5` is 5, `-4` is -4, `1e3` is 1000, `2.5E-1` is 0.25. A point with digits on one side only is allowed: `.5` and `5.` are the numbers 0.5 and 5. A number must be finite: `inf`, `infinity` and `nan`, in any case, are reported as not numbers, and so is a number too large to be finite (`1e999`), which is reported as too large. An exponent with no digits (`1e`, `1e+`), a number with a unit (`12px`), with a percent sign or with a thousands separator, and a value that is empty are not numbers. A time never takes a sign or an exponent (N8, section 4). A whole number may be written with an exponent when its value has no fraction (`1.28e3`).
 
 **Settled by.** Maintainer draft: the proofs read numbers with the standard decimal reader, which also let non-finite words through; those are now refused so that no unknown form changes a picture.
 
@@ -1163,15 +1177,15 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Root is not `<composition>` | `the root element is <html>, not <composition>` |
 | No `version` | `<composition> needs the attribute `version`; the versions read are: 1` |
 | A version not read | `` `version="2"` is not a version this program reads; the versions read are: 1 `` |
-| Unknown element | `<circle> is not a known element` |
+| Unknown element | `<circle> is not a known element; inside <box> the elements taken are <box>, <rect>, <text>, <image>, <video>, <shape>, <composition src>, <tween> and <set>` (the elements taken where it stands; `no element is taken inside <tween>` where none is) |
 | Unknown attribute | `<rect> has no attribute `colour`` |
 | Unknown attribute on a tween | `<tween> has no attribute `to-width``; on a set: `<set> has no attribute `duration`` |
-| Other element in a text | `<box> is not known inside a text; only <span> is` |
-| `<span>` outside a text | `<span> is not a known element` |
+| Other element in a text | `<box> is not known inside <text>; only <span>, <tween> and <set> are; a <box> stands directly in <composition>, <box> or <rect>` (the same form for every element in a place it may not stand: what the place holds, then where the element may stand; `<font> holds no element` where it holds none) |
+| `<span>` outside a text | `<span> is not a known element here; a <span> stands directly in <text> or <span>` |
 | `<style>`, `<font>` or `<audio>` inside an element | `a <style> stands directly in the <composition>, not inside an element` |
-| Not a number | `` `x="a"` is not a number `` |
+| Not a number | `` `x="a"` is not a number: an optional sign, digits with an optional point and an optional exponent, such as 12, -4, .5 or 2.5e-1 ``; `` `x="1e999"` is too large: a number must be finite ``; `` `width="10.5"` is not a whole number `` (the `width` and `height` of a `<video>`) |
 | Not a length | `` `width="ten"` is not a number or a percentage `` |
-| Not a time | `` `at="-1"` is not a time in seconds `` |
+| Not a time | `` `at="-1"` is not a time in seconds: digits with an optional point, such as 5 or 1.25 `` |
 | Not a colour | `` `color="red"` is not a colour written as #rrggbb or #rrggbbaa `` |
 | Value not in the list | `` `text-align="justify"` is not one of: left, center, right `` (the same for `flex-direction`, `justify-content`, `align-items`, `align-self`, `position`, `overflow`, `font-style`, `text-transform`, `white-space`, `object-fit`) |
 | Below the range | `` `font-size="0"` must be above 0 ``; `` `width="-5"` must be 0 or more ``; `` `gap="-2"` must be 0 or more `` (N6) |
@@ -1206,7 +1220,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Sound with other channels | `` `bed.wav` has 4 channels; sounds of 1, 2 or 6 are read `` |
 | Audio without duration | `<audio> needs a `duration`` |
 | Sound points out of order | `the <volume> points of an <audio> must be in order of time` |
-| Anything but `<volume>` in an audio | `<tween> is not known inside <audio>` (with the name found) |
+| Anything but `<volume>` in an audio | `<tween> is not known inside <audio>; only <volume> is; a <tween> stands directly in <box>, <rect>, <text>, <span>, <image>, <video>, <shape> or <composition src>` (with the name found) |
 | Missing attribute | `<composition> needs the attribute `width`` |
 | Bad frame size | `` `width` must be an even whole number from 2 to 8192, not 641 `` |
 | Bad frame rate | `` `fps` must be a whole number from 1 to 240, not 0 `` |
@@ -1221,7 +1235,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Two styles, one id | `two <style> elements have the id `label`` |
 | Unknown class | `` `class` names the style `big`, and this file has no <style> with that id `` |
 | Style with class or children | `the style `x` has `class`; a style cannot take another style`; `the style `x` holds an element; a style holds attributes only` |
-| Composition file | `a <composition> inside a composition needs the attribute `src``; `the composition `...` could not be read: ...`; `` `a.xml` shows itself, directly or through the files it shows ``; `` `a.xml` is more than 16 compositions deep ``; `<box> is not known in a <composition> that names a file; only <tween> and <set> are`; `` `a.xml` has 24 frames a second and the composition that shows it has 30; they must be the same `` |
+| Composition file | `a <composition> inside a composition needs the attribute `src`; without one it stands only as the root of a file`; `the composition `...` could not be read: ...`; `` `a.xml` shows itself, directly or through the files it shows ``; `` `a.xml` is more than 16 compositions deep ``; `<box> is not known inside <composition src>; only <tween> and <set> are; a <box> stands directly in <composition>, <box> or <rect>`; `` `a.xml` has 24 frames a second and the composition that shows it has 30; they must be the same `` |
 | A form on the support table | `` `z-index` is not supported in version 1: a stacking order apart from document order; it comes in Sprint 2 `` (section 14; `check` exits with 2 and `render` refuses) |
 
 The text of a file that cannot be read when the project is loaded (fonts, pictures, footage, sound) is `line N: ` followed by the element's own words and the reason from the system.

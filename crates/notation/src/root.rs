@@ -1,8 +1,9 @@
-//! The root `<composition>` of a composition file: `docs/spec/notation.md` section 6.1, with the
-//! wording of `docs/spec/check-command.md` section 4.
+//! A composition file: the root `<composition>` (`docs/spec/notation.md` section 6.1) and the form of
+//! everything under it (`structure`), with the wording of `docs/spec/check-command.md` section 4.
 
 use crate::code::Code;
 use crate::problem::Problem;
+use crate::structure;
 use crate::value;
 use timebase::{frame_count, Time, DEFAULT_FPS, MAX_FPS, MIN_FPS};
 
@@ -54,18 +55,18 @@ pub struct Root {
 
 /// Where something is in the file: its line and its column, both counted from 1.
 #[derive(Clone, Copy)]
-struct Spot {
-    line: u32,
-    column: u32,
+pub(crate) struct Spot {
+    pub(crate) line: u32,
+    pub(crate) column: u32,
 }
 
 /// A problem with the place it points at, so that the problems of a file can be put in order.
-struct Found {
+pub(crate) struct Found {
     spot: Spot,
     problem: Problem,
 }
 
-fn found(code: Code, spot: Spot, message: String) -> Found {
+pub(crate) fn found(code: Code, spot: Spot, message: String) -> Found {
     Found {
         spot,
         problem: Problem::new(code, spot.line, message),
@@ -75,13 +76,16 @@ fn found(code: Code, spot: Spot, message: String) -> Found {
 /// An attribute as it is written: its value without the surrounding white space, and where it is.
 type Written<'a> = Option<(&'a str, Spot)>;
 
-/// Reads the root of a composition file from its bytes, and judges it.
+/// Reads the root of a composition file from its bytes, and judges the file.
 ///
-/// Every problem of the root is returned, in the order of their places in the file (a line, then a
+/// Every problem of the file is returned, in the order of their places in the file (a line, then a
 /// column; a missing attribute is at the root's opening `<`). A text that is not UTF-8, a text that
 /// is not XML, and a root that is not `<composition>` each give that one problem and no other, since
 /// nothing more can be judged. Otherwise `version`, `width`, `height`, `fps`, `duration` and
-/// `background` are each judged, whatever the others hold. The children of the root are not read.
+/// `background` are each judged, whatever the others hold; and so is the form of everything in the
+/// file: an element the notation does not have, an attribute an element does not take, an element in
+/// a place it may not stand, and a number or a time written in a form the notation does not list.
+/// What an attribute means and the range it takes are the business of the part that draws it.
 pub fn read_root(source: &[u8]) -> Result<Root, Vec<Problem>> {
     let text = match std::str::from_utf8(source) {
         Ok(text) => text,
@@ -135,9 +139,10 @@ pub fn read_root(source: &[u8]) -> Result<Root, Vec<Problem>> {
     let fps = keep(fps(attribute("fps")), &mut problems);
     let duration = keep(duration(attribute("duration"), root_spot), &mut problems);
     let background = keep(background(attribute("background")), &mut problems);
+    structure::judge(&document, text, &mut problems);
 
     match (version, width, height, fps, duration, background) {
-        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) => Ok(Root {
+        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if problems.is_empty() => Ok(Root {
             id: attribute("id").map(|(written, _)| written.to_string()),
             width,
             height,
@@ -271,7 +276,7 @@ fn background(written: Written) -> Result<Colour, Found> {
 }
 
 /// A written value without its surrounding white space.
-fn trimmed(value: &str) -> &str {
+pub(crate) fn trimmed(value: &str) -> &str {
     value.trim_matches([' ', '\t', '\n', '\r'])
 }
 

@@ -34,3 +34,8 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0026` | The composition named by the project file exists and could not be read. |
 | `FS-0027` | The path given to the command does not exist. |
 | `FS-0028` | The path given to the command exists and could not be read. |
+| `FS-0029` | An element of the composition file is not one that the notation has. |
+| `FS-0030` | An element of the composition file has an attribute that the element does not take. |
+| `FS-0031` | An element of the composition file stands in a place where the notation does not allow it. |
+| `FS-0032` | A value in the composition file that must be a number is not one. |
+| `FS-0033` | A value in the composition file that must be a time in seconds is not one. |

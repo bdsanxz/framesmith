@@ -97,11 +97,21 @@ pub enum Code {
     PathMissing,
     /// The path given to the command exists and could not be read.
     PathUnreadable,
+    /// An element is not one the notation has.
+    ElementNotKnown,
+    /// An element has an attribute that it does not take.
+    AttributeNotTaken,
+    /// An element stands where the notation does not allow it.
+    ElementNotHere,
+    /// A value that must be a number is not one.
+    NotANumber,
+    /// A value that must be a time in seconds is not one.
+    NotATime,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 28] = [
+    pub const ALL: [Code; 33] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -130,6 +140,11 @@ impl Code {
         Code::NamedCompositionUnreadable,
         Code::PathMissing,
         Code::PathUnreadable,
+        Code::ElementNotKnown,
+        Code::AttributeNotTaken,
+        Code::ElementNotHere,
+        Code::NotANumber,
+        Code::NotATime,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -163,6 +178,11 @@ impl Code {
             Code::NamedCompositionUnreadable => "FS-0026",
             Code::PathMissing => "FS-0027",
             Code::PathUnreadable => "FS-0028",
+            Code::ElementNotKnown => "FS-0029",
+            Code::AttributeNotTaken => "FS-0030",
+            Code::ElementNotHere => "FS-0031",
+            Code::NotANumber => "FS-0032",
+            Code::NotATime => "FS-0033",
         }
     }
 
@@ -212,6 +232,11 @@ impl Code {
             Code::NamedCompositionUnreadable => "Make the composition file one this user may read, then run the command again.",
             Code::PathMissing => "Give the path of a folder, a `framesmith.yaml` or a composition file that exists.",
             Code::PathUnreadable => "Make the path one this user may read, then run the command again.",
+            Code::ElementNotKnown => "Remove the element, or write one of the elements the message names.",
+            Code::AttributeNotTaken => "Remove the attribute, or write one the element takes; section 6 of the notation spec lists them.",
+            Code::ElementNotHere => "Move the element to a place the message names, or remove it.",
+            Code::NotANumber => "Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign.",
+            Code::NotATime => "Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit.",
         }
     }
 
