@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The quality gates of the Framesmith repository: formatting, static analysis, the tests, the
-# licence gate and the frx7 pin. The same script runs them before a push (.githooks/pre-push) and
+# The quality gates of the Framesmith repository: formatting, static analysis, the tests, the core
+# suite with only the system on the search path, the licence gate and the frx7 pin. The same script runs them before a push (.githooks/pre-push) and
 # on the hosted runner (.github/workflows/gates.yml). The behaviour is specified in docs/dev/gates.md.
 #
 # Written for the bash 3.2 that macOS ships.
@@ -11,8 +11,9 @@ usage() {
     cat <<'EOF'
 usage: scripts/gates.sh [--hosted] [--gate NAME]... [-p CRATE]...
 
-  With no option it runs the five gates, then the tests marked "reference machine only" and the
-  yardstick tests (which start ffmpeg and ffprobe from outside, to compare, where they are installed).
+  With no option it runs the six gates, then the tests marked "reference machine only" and the
+  yardstick tests (which start ffmpeg and ffprobe, or the reference, from outside, to compare; where
+  the program is not installed each is reported as skipped, by name, and never as passed).
   Each gate reports PASS, or FAIL with what failed. All of them run; the exit code is
   0 when every gate passed, 1 when any failed.
 
@@ -20,6 +21,9 @@ gates (NAME):
   format    formatting         cargo fmt --all -- --check
   lint      static analysis    cargo clippy --workspace --all-targets -- -D warnings
   test      tests              cargo test --workspace --no-fail-fast
+  core      core suite         the tests again with only the system on the search path and no program
+                               started but those of docs/dev/gates.md, section 10
+                               (scripts/gates/core-selftest.sh, then scripts/gates/core-suite.sh)
   licence   licence gate       cargo deny check licenses
   pin       frx7 pin           scripts/gates/frx7.sh check (no path override committed, one pinned revision, the pin moved with its record)
 
@@ -28,7 +32,8 @@ options:
   -p CRATE      narrow format, lint and test to this crate (may be given more than once).
                 The licence gate and the frx7 pin gate always look at the whole workspace. NARROWED.
   --hosted      the hosted runner's form: the tests marked "reference machine only" and the
-                yardstick tests are listed as not run and never run. The hosted workflow runs
+                yardstick tests are listed as not run and never run (in the core gate, the tests
+                marked "reference machine only" are not run). The hosted workflow runs
                 one job for each gate, so --hosted with --gate is not narrowed.
   -h, --help    this text
 
@@ -50,8 +55,8 @@ while [ $# -gt 0 ]; do
         --gate)
             [ $# -ge 2 ] || { echo "--gate needs a name" >&2; usage >&2; exit 2; }
             case "$2" in
-                format | lint | test | licence | pin) WANTED="$WANTED $2" ;;
-                *) echo "unknown gate: $2 (there are format, lint, test, licence, pin)" >&2; usage >&2; exit 2 ;;
+                format | lint | test | core | licence | pin) WANTED="$WANTED $2" ;;
+                *) echo "unknown gate: $2 (there are format, lint, test, core, licence, pin)" >&2; usage >&2; exit 2 ;;
             esac
             shift
             ;;
@@ -71,7 +76,7 @@ done
 NARROWED=0
 [ -n "$CRATES" ] && NARROWED=1
 [ -n "$WANTED" ] && [ "$HOSTED" -eq 0 ] && NARROWED=1
-[ -z "$WANTED" ] && WANTED=" format lint test licence pin"
+[ -z "$WANTED" ] && WANTED=" format lint test core licence pin"
 
 # The scope of the cargo commands: the whole workspace, or the crates named with -p.
 if [ -z "$CRATES" ]; then
@@ -161,6 +166,21 @@ gate_test() {
     run test cargo test "${SCOPE[@]}" --no-fail-fast
 }
 
+# The core suite with only the system on the search path. First the control: a workspace of tests
+# that misbehave on purpose must be failed by name, or the trap is not closed. Then the real suite.
+# The control's deliberate failures are printed here and reach no runner (docs/dev/gates.md, section 12).
+gate_core() {
+    NAME="core suite without FFmpeg"
+    local suite=(bash "$ROOT/scripts/gates/core-suite.sh")
+    [ "$HOSTED" -eq 1 ] && suite+=(--hosted)
+    for crate in $CRATES; do suite+=(-p "$crate"); done
+    run core-selftest bash "$ROOT/scripts/gates/core-selftest.sh"
+    local control=$RUN_CODE
+    run core "${suite[@]}"
+    [ "$control" -ne 0 ] && RUN_CODE=1
+    return 0
+}
+
 gate_licence() {
     NAME="licence gate"
     if ! cargo deny --version >/dev/null 2>&1; then
@@ -188,6 +208,7 @@ named_lint() { compiler_problems "$LOGS/lint.log"; }
 
 named_test() {
     # A failing test is named with the place of its panic; where the panic names none, with the test file.
+    # The log is $1, or the log of the tests.
     awk '
         /^ *Running / { context = $0; sub(/^ *Running /, "", context); sub(/ \(.*$/, "", context) }
         /^ *Doc-tests / { context = $0; sub(/^ */, "", context) }
@@ -203,8 +224,14 @@ named_test() {
                 print "test " name " failed (" ((name in place) ? place[name] : seen[name]) ")"
             }
         }
-    ' "$LOGS/test.log"
-    compiler_problems "$LOGS/test.log"
+    ' "${1:-$LOGS/test.log}"
+    compiler_problems "${1:-$LOGS/test.log}"
+}
+
+named_core() {
+    grep -h '^core self-test problem: ' "$LOGS/core-selftest.log" | sed 's/^core self-test problem: /the control of this gate failed: /'
+    grep -h '^core problem: ' "$LOGS/core.log" | sed 's/^core problem: //'
+    named_test "$LOGS/core.log"
 }
 
 named_pin() { grep '^refused: ' "$LOGS/pin.log" | sed 's/^refused: //'; }
@@ -253,19 +280,17 @@ reference_machine_run() {
     REF_FAILED=$(grep '^test .* \.\.\. FAILED$' "$LOGS/reference.log" | sed -e 's/^test //' -e 's/ \.\.\. FAILED$//')
 }
 
-# The programs a yardstick test starts from outside: found by looking in the folders of the search
-# path, which starts nothing.
-yardstick_programs_present() {
-    command -v ffmpeg >/dev/null 2>&1 && command -v ffprobe >/dev/null 2>&1
-}
-
 yardstick_run() {
-    # Runs every yardstick test where ffmpeg and ffprobe are installed, and counts them.
+    # Asks every yardstick test to run (docs/dev/gates.md, section 5). Where the program a test
+    # compares with is installed it runs; where it is not, the runner reports the test as skipped,
+    # by name. Counts both.
     echo
-    echo "-- yardstick: $Y_MARKED marked test(s), run here because ffmpeg and ffprobe are installed here"
+    echo "-- yardstick: $Y_MARKED marked test(s), asked to run here; each is run if its program is installed, and reported as skipped, by name, if it is not"
     run yardstick cargo test "${SCOPE[@]}" --no-fail-fast -- --ignored yardstick_
     Y_CODE=$RUN_CODE
     Y_RAN=$(grep -c '^test .* \.\.\. ok$' "$LOGS/yardstick.log")
+    Y_SKIPPED=$(grep -c '^test .* \.\.\. skipped, ' "$LOGS/yardstick.log")
+    Y_SKIPPED_LIST=$(grep '^test .* \.\.\. skipped, ' "$LOGS/yardstick.log" | sed -e 's/^test //' -e 's/ \.\.\. skipped, / : /')
     Y_FAILED=$(grep '^test .* \.\.\. FAILED$' "$LOGS/yardstick.log" | sed -e 's/^test //' -e 's/ \.\.\. FAILED$//')
 }
 
@@ -282,6 +307,7 @@ for gate in $WANTED; do
         format) gate_format ;;
         lint) gate_lint ;;
         test) gate_test ;;
+        core) gate_core ;;
         licence) gate_licence ;;
         pin) gate_pin ;;
     esac
@@ -291,6 +317,7 @@ for gate in $WANTED; do
             format) problems=$(named_format) ;;
             lint) problems=$(named_lint) ;;
             test) problems=$(named_test) ;;
+            core) problems=$(named_core) ;;
             licence) problems=$(named_licence) ;;
             pin) problems=$(named_pin) ;;
         esac
@@ -323,7 +350,7 @@ for gate in $WANTED; do
             if [ -n "$NOT_RUN_LIST" ]; then
                 echo "$NOT_RUN_LIST" | sed 's/^/   not run: /'
             fi
-            echo "-- not run (yardstick, needs ffmpeg and ffprobe): ${Y_MARKED} test(s)"
+            echo "-- not run (yardstick, needs ffmpeg and ffprobe, or the reference): ${Y_MARKED} test(s)"
             if [ -n "$Y_NOT_RUN_LIST" ]; then
                 echo "$Y_NOT_RUN_LIST" | sed 's/^/   not run: /'
             fi
@@ -347,7 +374,9 @@ for gate in $WANTED; do
                 problems="$problems"$'\n'"$MARKED test(s) are marked reference machine only and $RAN ran passing"
             fi
             echo "reference machine only: $MARKED marked, $RAN ran and passed"
-            if yardstick_programs_present; then
+            if [ "$Y_MARKED" -eq 0 ]; then
+                echo "yardstick: 0 marked"
+            else
                 yardstick_run
                 if [ -n "$Y_FAILED" ]; then
                     RUN_CODE=1
@@ -356,20 +385,17 @@ for gate in $WANTED; do
                     RUN_CODE=1
                     problems="$problems"$'\n'"the yardstick run ended with exit code $Y_CODE"
                 fi
-                if [ "$Y_RAN" -ne "$Y_MARKED" ]; then
+                if [ $((Y_RAN + Y_SKIPPED)) -ne "$Y_MARKED" ]; then
                     RUN_CODE=1
-                    problems="$problems"$'\n'"$Y_MARKED test(s) are marked yardstick and $Y_RAN ran passing"
+                    problems="$problems"$'\n'"$Y_MARKED test(s) are marked yardstick and $Y_RAN ran passing and $Y_SKIPPED were skipped"
                 fi
-                echo "yardstick: $Y_MARKED marked, $Y_RAN ran and passed"
-            elif [ "$Y_MARKED" -eq 0 ]; then
-                echo "yardstick: 0 marked"
-            else
-                echo
-                echo "-- not run (yardstick): $Y_MARKED test(s); ffmpeg and ffprobe were not found in any folder of the search path, so nothing was compared"
-                if [ -n "$Y_NOT_RUN_LIST" ]; then
-                    echo "$Y_NOT_RUN_LIST" | sed 's/^/   not run: /'
+                echo "yardstick: $Y_MARKED marked, $Y_RAN ran and passed, $Y_SKIPPED skipped"
+                if [ "$Y_SKIPPED" -gt 0 ]; then
+                    echo
+                    echo "-- skipped (yardstick): $Y_SKIPPED test(s); the program they compare with was not found, so nothing was compared and none of them passed"
+                    echo "$Y_SKIPPED_LIST" | sed 's/^/   skipped: /'
+                    add_note "$Y_SKIPPED yardstick test(s) were skipped: the program they compare with was not found, so nothing was compared (they are not passed, and no line of ROADMAP.md may rest on them)"
                 fi
-                add_note "$Y_MARKED yardstick test(s) were not run: ffmpeg and ffprobe were not found on the search path, so nothing was compared (they are not passed)"
             fi
         fi
     fi

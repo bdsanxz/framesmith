@@ -15,6 +15,24 @@ path = "src/lib.rs"
 name = "parity"
 path = "src/main.rs"
 
+# The yardstick tests (they start ffmpeg and ffprobe, or the reference, from outside) are run by the
+# runner of `measure::yardstick`, not by the Rust test harness: docs/dev/gates.md, section 5.
+[[test]]
+name = "yardstick_container_facts"
+harness = false
+
+[[test]]
+name = "yardstick_picture_similarity"
+harness = false
+
+[[test]]
+name = "yardstick_clip_timing"
+harness = false
+
+[[test]]
+name = "yardstick_reference_version"
+harness = false
+
 [dependencies]
 measure = { workspace = true }
 serde_json = { workspace = true }

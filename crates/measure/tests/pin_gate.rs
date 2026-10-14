@@ -123,6 +123,44 @@ fn a_lock_file_that_takes_frx7_from_another_revision_is_refused() {
 }
 
 #[test]
+fn an_entry_with_a_tag_and_no_rev_is_refused_saying_that_it_has_no_rev() {
+    let repo = Repo::pinned("pins-tag-without-rev");
+    let wrong = format!(
+        "[workspace]\nresolver = \"2\"\nmembers = [\"crates/a\"]\n\n[workspace.dependencies]\na = {{ path = \"crates/a\" }}\n\
+         base = {{ git = \"{REMOTE}\", rev = \"{PIN_A}\" }}\n\
+         format = {{ git = \"{REMOTE}\", tag = \"v1\" }}\n"
+    );
+    repo.write("Cargo.toml", &wrong);
+    repo.commit("Pin by a tag");
+    let run = repo.script(&["check"]);
+    assert_eq!(run.code, 1, "{}", run.text);
+    assert!(
+        run.text
+            .contains("refused: Cargo.toml line 8 pins frx7 without a full revision (rev = \"<40 hex digits>\"): it has no rev"),
+        "{}",
+        run.text
+    );
+    assert!(
+        run.text.contains("Cargo.toml line 8 names a branch or a tag of frx7"),
+        "{}",
+        run.text
+    );
+    // The value in the refusal is the rev that is not there, and never the word that came after it.
+    assert!(!run.text.contains("`yes`") && !run.text.contains("`no`"), "{}", run.text);
+    // An entry whose rev is there but short is still named by its value.
+    let short = wrong.replace("tag = \"v1\"", "rev = \"23b07bc\"");
+    repo.write("Cargo.toml", &short);
+    repo.commit("Pin by a short name");
+    let run = repo.script(&["check"]);
+    assert!(
+        run.text
+            .contains("Cargo.toml line 8 pins frx7 without a full revision (rev = \"<40 hex digits>\"): `23b07bc`"),
+        "{}",
+        run.text
+    );
+}
+
+#[test]
 fn two_revisions_a_branch_a_short_name_and_another_remote_are_refused() {
     let repo = Repo::pinned("pins-wrong");
     let wrong = format!(
@@ -379,7 +417,7 @@ fn a_clone_without_the_whole_history_is_refused_rather_than_passed() {
         &format!("file://{}", repo.dir.display()),
         clone.to_str().expect("a path"),
     ]);
-    let output = std::process::Command::new("bash")
+    let output = common::isolate_from_runner(&mut std::process::Command::new("bash"))
         .arg("scripts/gates/frx7.sh")
         .arg("check")
         .current_dir(&clone)

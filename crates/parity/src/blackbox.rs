@@ -12,7 +12,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// The command the reference installs.
-const COMMAND: &str = "hyperframes";
+pub const COMMAND: &str = "hyperframes";
+/// The program its command is a script of; the reference cannot start without it.
+const RUNTIME: &str = "node";
 /// The quality preset used when nothing else is asked.
 pub const QUALITY: &str = "standard";
 /// The frame rate used when nothing else is asked.
@@ -127,6 +129,57 @@ fn absolute(path: &Path) -> PathBuf {
     std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
+/// The version the installed reference gives when asked, in the environment of a run (usage data and
+/// update checks off). `Err` says why not: it is not installed, could not be started, or failed.
+pub fn version(blackbox: &Path) -> Result<String, String> {
+    let blackbox = absolute(blackbox);
+    let program = installed(&blackbox).ok_or_else(|| format!("not installed under {}", blackbox.display()))?;
+    let job = Job {
+        blackbox,
+        counterpart: PathBuf::new(),
+        output: PathBuf::new(),
+        fps: None,
+        quality: QUALITY.to_string(),
+        browser: None,
+    };
+    match command(&program, &job).arg("--version").output() {
+        Ok(out) if out.status.success() => Ok(String::from_utf8_lossy(&out.stdout).trim().to_string()),
+        Ok(out) => Err(format!("its version could not be read (exit {:?})", out.status.code())),
+        Err(e) => Err(format!("it could not be started ({e})")),
+    }
+}
+
+/// Why the reference cannot be started from `folder` with `path` as the search path, or `Ok` when it
+/// can: its command is installed in the folder and its runtime is a file in a folder of the path.
+/// Looking starts nothing.
+pub fn absence(folder: &Path, path: &std::ffi::OsStr) -> Result<(), String> {
+    if installed(&absolute(folder)).is_none() {
+        return Err(format!("the reference is not installed under {}", folder.display()));
+    }
+    // Its command is a script of its own runtime, which has to be on the search path to start it.
+    if measure::yardstick::missing_on(path, &[RUNTIME]).is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "the reference is installed under {} but its runtime, {RUNTIME}, was not found in any folder of the search path",
+            folder.display()
+        ))
+    }
+}
+
+/// The reference as a yardstick program: present when [`absence`] finds nothing against it, for the
+/// folder a run from here would use (`default_folder`) and the search path of the run.
+pub fn needs() -> measure::yardstick::Needs {
+    fn present() -> Result<(), String> {
+        let folder = default_folder(&std::env::current_dir().unwrap_or_default());
+        absence(&folder, &std::env::var_os("PATH").unwrap_or_default())
+    }
+    measure::yardstick::Needs {
+        program: "the reference",
+        check: present,
+    }
+}
+
 /// Runs the reference on the counterpart, or says that it cannot.
 pub fn run(job: &Job) -> Outcome {
     let blackbox = absolute(&job.blackbox);
@@ -148,10 +201,9 @@ pub fn run(job: &Job) -> Outcome {
         }
     }
     let _ = std::fs::remove_file(&job.output);
-    let version = match command(&program, &job).arg("--version").output() {
-        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_string(),
-        Ok(out) => return Outcome::Failed(format!("its version could not be read (exit {:?})", out.status.code())),
-        Err(e) => return Outcome::Failed(format!("it could not be started ({e})")),
+    let version = match version(&job.blackbox) {
+        Ok(version) => version,
+        Err(why) => return Outcome::Failed(why),
     };
     match command(&program, &job).args(arguments(&job)).output() {
         Ok(out) if out.status.success() && job.output.is_file() => Outcome::Rendered { version },

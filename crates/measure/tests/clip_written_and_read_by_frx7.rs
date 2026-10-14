@@ -1,4 +1,4 @@
-//! A short clip written with frx7's own writer and read back with frx7: no `ffmpeg`, no `ffprobe`.
+//! A short clip written with frx7's own writer and read back with frx7, with no program from outside.
 
 use measure::{clip_facts, write_clip, ClipSpec};
 use std::path::PathBuf;
