@@ -1,6 +1,6 @@
 //! The comparison against a render the reference makes: it runs the reference on a counterpart
 //! composition, then compares its video with ours. With the reference absent nothing is run and the
-//! report says so, check by check (`docs/dev/comparison.md`, sections 7 and 8).
+//! report says so, check by check (`docs/dev/comparison.md`, sections 8 and 9).
 
 use crate::blackbox::{self, Job, Outcome};
 use crate::compare::{compare, Options};
@@ -8,7 +8,7 @@ use crate::report::{Report, Verdict};
 use std::path::Path;
 
 /// The checks that need the reference's render, in the order of the report.
-const NEEDING_THE_RENDER: [&str; 5] = ["frame count", "frame rate", "size", "length", "picture"];
+const NEEDING_THE_RENDER: [&str; 7] = ["frame count", "frame rate", "size", "length", "picture", "events", "tracking"];
 
 fn without_a_render(title: String, render: Verdict, detail: String) -> Report {
     let mut report = Report::new(title);

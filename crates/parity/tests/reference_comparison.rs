@@ -1,6 +1,6 @@
 //! `parity against`: the reference is run and its video is compared with ours; with the reference
 //! absent every check says "not run" and the exit code is never 0; nothing of the reference is
-//! written into a git repository (`docs/dev/comparison.md`, sections 8 and 9). The reference is a
+//! written into a git repository (`docs/dev/comparison.md`, sections 9 and 10). The reference is a
 //! stand-in script in a folder of the test's own.
 
 mod common;

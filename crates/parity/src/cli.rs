@@ -3,16 +3,20 @@
 use crate::compare::Options;
 use crate::report::{Report, EXIT_USAGE};
 use crate::tools::Tools;
-use crate::{against, blackbox, compare, frames, picture, place, timing};
+use crate::{against, blackbox, compare, frames, picture, place, timing, tracking};
 use std::path::{Path, PathBuf};
 
 const USAGE: &str = "\
 parity: compare a Framesmith video with the reference's, one fact at a time (development only)
 
   parity compare <ours.mp4> <reference.mp4> [--scene NAME=FIRST-LAST]... [--excuse FIRST-LAST=CAUSE]...
-                 [--per-frame] [--sheet FILE.png] [--json]
+                 [--per-frame] [--sheet FILE.png] [--background RRGGBB [--element NAME=RRGGBB]...
+                 [--track NAME=RRGGBB]] [--json]
       frame count, frame rate, size and length, and the picture frame by frame (99 % of pixels the same,
-      on average and in every scene); a frame under 99 % is listed, and passes only with a cause
+      on average and in every scene); a frame under 99 % is listed, and passes only with a cause;
+      the frames on which each marked element appears, disappears, starts and stops moving (within 1
+      frame), and the place of the tracked element on every frame (within 1 pixel); an element is marked
+      by a flat colour of its own on a flat background
   parity against <counterpart-folder> <ours.mp4> --reference-video FILE.mp4 [--fps N] [--quality Q]
                  [--blackbox DIR] [--browser PATH] [the options of compare]
       run the reference on a counterpart composition, write its video to FILE.mp4 (a place outside a git
@@ -127,6 +131,19 @@ fn comparison_options(args: &Args) -> Result<Options, String> {
             .collect::<Result<_, _>>()?,
         per_frame: args.flag("--per-frame"),
         sheet: args.value("--sheet").map(PathBuf::from),
+        marks: tracking::Marks {
+            background: args.value("--background").map(frames::parse_colour).transpose()?,
+            elements: args
+                .values("--element")
+                .into_iter()
+                .map(tracking::parse_element)
+                .collect::<Result<_, _>>()?,
+            tracked: match args.values("--track").as_slice() {
+                [] => None,
+                [one] => Some(tracking::parse_element(one)?),
+                _ => return Err("--track is given once: a fixture marks one tracked element".into()),
+            },
+        },
     })
 }
 
@@ -166,7 +183,16 @@ fn run_inner(args: &[String]) -> Result<(String, i32), String> {
             Ok((outcome.text(), outcome.exit_code()))
         }
         "compare" => {
-            args.known(&["--scene", "--excuse", "--per-frame", "--sheet", "--json"])?;
+            args.known(&[
+                "--scene",
+                "--excuse",
+                "--per-frame",
+                "--sheet",
+                "--json",
+                "--background",
+                "--element",
+                "--track",
+            ])?;
             let (ours, theirs) = args.two_videos()?;
             let options = comparison_options(&args)?;
             if let Some(sheet) = &options.sheet {
@@ -186,6 +212,9 @@ fn run_inner(args: &[String]) -> Result<(String, i32), String> {
                 "--per-frame",
                 "--sheet",
                 "--json",
+                "--background",
+                "--element",
+                "--track",
             ])?;
             let [counterpart, ours] = args.positional.as_slice() else {
                 return Err("give the counterpart folder and our video".into());

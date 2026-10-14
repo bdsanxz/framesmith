@@ -1,6 +1,6 @@
 //! Development only. Runs the reference as a black box and compares the
 //! video it makes with ours: frame count, frame rate, size, length and the pictures
-//! (`docs/dev/comparison.md`), the timing of events and the position of a moving element.
+//! (`docs/dev/comparison.md`), the timing of events and the position of a tracked element.
 //! The product, its build and its tests never depend on this crate, nor on the reference.
 
 pub mod against;
@@ -17,5 +17,6 @@ pub mod sheet;
 pub mod structure;
 pub mod timing;
 pub mod tools;
+pub mod tracking;
 
 pub use report::{Line, Report, Verdict};

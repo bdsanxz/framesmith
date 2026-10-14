@@ -15,12 +15,14 @@ Two videos of one fixture, "ours" and "the reference's". Both are MP4 files whos
 | size | the pictures of the two are the same width and the same height |
 | length | the two picture tracks play for the same time |
 | picture | the average over all frames, and the result of every scene, are at 99 % or better (section 4) |
+| events | every visible event of every marked element (it appears, disappears, starts or stops moving) happens in ours within 1 frame of the same event in the reference's (section 5) |
+| tracking | the tracked element is within 1 pixel of the reference's on every frame; *not applicable* when the fixture marks none (section 5) |
 
-Timing of visible events and the tracked position of a moving element are the next ticket's; sound is the one after. The report names them as not compared (section 6). The commands of the tool for timing (`parity timing`) and for starting the reference alone (`parity reference`) go on as they were; `parity timing` still reads its pictures with an outside program until its own ticket moves it to frx7. The two older commands that read videos with an outside program, `parity facts` (the facts of the streams, compared one by one) and `parity pictures` (a similarity score on eight sampled frames), are replaced by `parity compare` and `parity against`: the sampled score is not the agreed check, which is 99 % of pixels on every frame.
+Sound is the next slice's. The report names it as not compared (section 7). The commands of the tool for starting the reference alone (`parity reference`) and the older `parity timing` (which reads its pictures with an outside program and is not the agreed check; the checks `events` and `tracking` of `parity compare` are) go on as they were. The two older commands that read videos with an outside program, `parity facts` (the facts of the streams, compared one by one) and `parity pictures` (a similarity score on eight sampled frames), are replaced by `parity compare` and `parity against`: the sampled score is not the agreed check, which is 99 % of pixels on every frame.
 
 ## 2. Reading the two videos
 
-**Without FFmpeg.** Both videos are read with frx7, through its public traits: the container reader and the probe for the facts, the picture decoder of the system (`codec::Pictures`) for the pictures, and frx7's conversion of pictures for the colours. No program is started to read a video: not `ffmpeg`, not `ffprobe`, not any other. This is the rule of `CLAUDE.md` rule 11 for this tool and a test holds the tool to it (section 9).
+**Without FFmpeg.** Both videos are read with frx7, through its public traits: the container reader and the probe for the facts, the picture decoder of the system (`codec::Pictures`) for the pictures, and frx7's conversion of pictures for the colours. No program is started to read a video: not `ffmpeg`, not `ffprobe`, not any other. This is the rule of `CLAUDE.md` rule 11 for this tool and a test holds the tool to it (section 11).
 
 **The facts** are read without decoding a picture:
 
@@ -31,7 +33,7 @@ Timing of visible events and the tracked position of a moving element are the ne
 
 **The pictures** are decoded one after the other in the order they are shown (picture 0, 1, 2, and so on), and each is brought to red, green and blue of 8 bits a sample with the colour description the track gives (BT.709 in the narrow range when it gives none, the standard form of frx7's `pixel.md`). The same conversion is used for both videos, so that two videos with the same pictures give the same numbers. Only one picture of each video is in memory at a time besides the one being compared, so that a long video never has to sit in memory whole.
 
-A file that is not a video, that is damaged, or whose pictures the system does not decode is a mistake in how the tool was called, not a failed check: the report is not made, the message names the file, and the exit code is 2 (section 7).
+A file that is not a video, that is damaged, or whose pictures the system does not decode is a mistake in how the tool was called, not a failed check: the report is not made, the message names the file, and the exit code is 2 (section 6).
 
 ## 3. The four structural checks
 
@@ -98,9 +100,55 @@ For every frame the report knows its score and its state: `ok` (not low), `excus
 
 With `--sheet FILE.png` the tool writes one picture (a PNG file, written by the tool itself: no program is started and no library is used) with a row for each of the first 12 frames of the list of low frames: ours, the reference's, and a third picture that marks in red every pixel that differs (a marked pixel of the third picture stands for any differing pixel under it, so that a small difference does not fade) over a pale grey of ours. Each row is labelled with the frame number, the score and `fail` or `excused`. When no frame is low, no sheet is written and a note says so.
 
-## 5. The report
+## 5. Timing and position
 
-The report is plain text, one line for each check and scene, then the lists, then `result:` and one word: `passed`, `failed` or `not run`. With `--json` it is one JSON document with the same content, the scores of every frame included. The exit code:
+Sources: `PLAN.md`, section 5.1 (timing: visible events within 1 frame; position: a tracked element within 1 pixel on every frame); decision A29 of `DECISIONS.md` (the values this section states); `CLAUDE.md` rule 2 (a check that did not judge is never shown as passed). The tool reads both videos as section 2 says; it knows nothing of a composition, so the fixture tells it what to look for.
+
+### 5.1 How a fixture marks an element
+
+An element is marked by **a flat colour of its own**: in both compositions of the pair the element is drawn in one opaque colour that nothing else on the frame uses, over a flat background colour, and the fixture's record names the colour. The tool takes the marks on the command line:
+
+- `--background RRGGBB`: the colour behind the marked elements (needed whenever an element is marked);
+- `--element NAME=RRGGBB`, once for each element whose events are compared;
+- `--track NAME=RRGGBB`, at most once: the **tracked element**, which is followed frame by frame; its events are compared too.
+
+A name is a word without spaces. Two elements with one name or one colour, or an element with the colour of the background, are a mistake in how the tool was called (exit code 2). Only the marked elements are looked at.
+
+### 5.2 Seeing an element on a frame
+
+On every frame of each video, for each marked element:
+
+- the element is **there** when at least **20** pixels are within **24** of its colour on each of red, green and blue (8-bit values after the conversion of section 2);
+- its **place** is its centre, to a fraction of a pixel: the pixels near its colour give its box; in that box widened by 3 pixels on each side, every pixel counts by the share of the element it holds between the background and the element's colour (by brightness when the two differ in brightness by 24 or more, since video keeps colour at half the resolution; otherwise along the line between the two colours, a pixel more than 40 from that line counting nothing), shares under 0.05 not counted; the centre is the mean of the pixels' centres weighed by their shares.
+
+### 5.3 The event check
+
+From what is seen on each frame, the events of an element are, counting frames from 0:
+
+| Event | On the frame on which |
+|---|---|
+| `appears` | it is there and was not there on the frame before (frame 0 when it is there from the start) |
+| `disappears` | it is not there and was there on the frame before |
+| `starts moving` | its centre is more than **0.25** pixel from the one of the frame before, and it was not moving: the first frame it is seen elsewhere |
+| `stops moving` | its centre is 0.25 pixel or less from the one of the frame before, and it was moving; or it disappears while moving |
+
+The events of each element and kind are paired in order: the first `appears` of ours with the first of the reference's, the second with the second (named `appears (time 2)`), and so on. An event passes when the two frames are at most **1** frame apart, and fails otherwise; an event that happens in one video and not in the other fails. The line `events` passes when every event passes; its detail gives the count, or, when it fails, how many failed and the first of them with the event and both frames (`clip appears: ours frame 12, reference frame 10, 2 frame(s) apart`). The list "events" shows every event with both frames and `pass` or `fail`. When marked elements are seen in neither video, the line fails: nothing was compared. When no element is marked, the line is `not applicable`.
+
+### 5.4 The tracking check
+
+On every frame on which the tracked element is there in either video, the distance between its two centres is measured and **rounded to the nearest tenth of a pixel**, the precision the measure is judged at. A frame passes when the distance is at most **1** pixel; a frame on which the element is there in one video and not in the other fails. The line `tracking` passes when every such frame passes, and shows the largest distance and its frame; when it fails, it shows how many frames are over the limit and the first of them with its frame number, its distance and both centres (`frame 14: 2.0 px apart, ours (41.00, 30.00) reference (40.00, 30.00)`). The list "tracked frames over 1 px" shows every frame over the limit, or `none`; with `--per-frame` the place of every frame is listed too, and the JSON always holds it. When the tracked element is seen in neither video, the line fails.
+
+When the fixture marks no tracked element, the line `tracking` is **`not applicable`**, never `pass`.
+
+When the frames cannot be paired (section 4.1), both lines are `not run`.
+
+### 5.5 The values
+
+The limits 1 frame and 1 pixel are `PLAN.md` 5.1's. The rest are fixed here under decision A29 and are the owner's to change: a pixel near a colour within 24 on each channel, an element there with 20 such pixels, moving above 0.25 pixel a frame, a distance judged at a tenth of a pixel. On the pairs the tests write (flat squares of 20 by 20 pixels at 160 by 90, through the system's H.264 encoder), the centre was measured at the drawn centre to two decimals on every frame, and shifts of 1 and 2 pixels measured 1.0 and 2.0.
+
+## 6. The report
+
+The report is plain text, one line for each check and scene, each with the word `pass`, `fail`, `not run` or `not applicable`, then the lists, then `result:` and one word: `passed`, `failed` or `not run`. A check that is `not applicable` had nothing to judge in this fixture: it is neither a pass nor a fail and does not change the result, which the other checks decide. With `--json` it is one JSON document with the same content, the scores of every frame included. The exit code:
 
 | Exit code | When |
 |---|---|
@@ -111,37 +159,40 @@ The report is plain text, one line for each check and scene, then the lists, the
 
 An exit code of 3 or 2 is never 0. The word `passed` is printed only when every check ran and passed.
 
-## 6. Not compared
+## 7. Not compared
 
-The report ends its checks with the lines of what it did not compare, so that a pass is never read wider than it is: the timing of visible events and the tracked position of a moving element (the next ticket's), and the sound (the one after). They are not checks and do not change the result.
+The report ends its checks with the lines of what it did not compare, so that a pass is never read wider than it is: the sound (the next slice's). It is not a check and does not change the result.
 
-## 7. Calls
+## 8. Calls
 
 ```
 parity compare <ours.mp4> <reference.mp4> [--scene NAME=FIRST-LAST]... [--excuse FIRST-LAST=CAUSE]...
-               [--per-frame] [--sheet FILE.png] [--json]
+               [--per-frame] [--sheet FILE.png] [--background RRGGBB [--element NAME=RRGGBB]... [--track NAME=RRGGBB]]
+               [--json]
     the checks of section 1, on two videos that exist; exit code 0, 1 or 2
 
 parity against <counterpart-folder> <ours.mp4> --reference-video FILE.mp4 [--fps N] [--quality Q]
                [--blackbox DIR] [--browser PATH] [--scene ...] [--excuse ...] [--per-frame] [--sheet ...] [--json]
-    runs the reference on a counterpart composition, writes its video to FILE.mp4 (a place section 9 allows),
+    runs the reference on a counterpart composition, writes its video to FILE.mp4 (a place section 10 allows),
     and compares it with ours as `compare` does; exit code 0, 1, 2 or 3
 ```
 
 `parity reference` runs the reference alone, as it did, and ends with 0 when the video was made, 1 when the reference failed, 3 when it is not installed.
 
-## 8. When the reference is not installed
+## 9. When the reference is not installed
 
 `parity against` needs the reference. When it is not installed in the folder (`tools/blackbox/` of the workspace root, or the folder `--blackbox` names), or the runtime its command needs is missing, nothing is run and nothing is compared. The report names the reference as not run, with the reason and the folder, and every check of the report is a line of its own with the word `not run`:
 
 ```
 parity: ours (ours.mp4) against the reference's render of counterpart
-  reference render  not run  the reference is not installed under tools/blackbox (nothing was run)
-  frame count       not run  needs the reference's render
-  frame rate        not run  needs the reference's render
-  size              not run  needs the reference's render
-  length            not run  needs the reference's render
-  picture           not run  needs the reference's render
+  reference render  not run         the reference is not installed under tools/blackbox (nothing was run)
+  frame count       not run         needs the reference's render
+  frame rate        not run         needs the reference's render
+  size              not run         needs the reference's render
+  length            not run         needs the reference's render
+  picture           not run         needs the reference's render
+  events            not run         needs the reference's render
+  tracking          not run         needs the reference's render
 result: not run
 ```
 
@@ -149,7 +200,7 @@ The exit code is 3. The words `pass` and `passed` do not appear anywhere in this
 
 When the reference is installed and fails to render, the line `reference render` is a `fail` with the reason and the other lines are `not run`; the exit code is 1.
 
-## 9. Nothing of the reference enters the repository
+## 10. Nothing of the reference enters the repository
 
 - The counterpart composition is read, never copied. It lives in `tools/blackbox/pairs/` outside both repositories.
 - The reference runs with the folder it is installed in as its working folder, and it keeps its own state (a cache of frames, a home folder) in `state/` of that folder (`crates/parity/src/blackbox.rs`).
@@ -157,10 +208,10 @@ When the reference is installed and fails to render, the line `reference render`
 - The tool writes no other file of the reference's. It writes the sheet (section 4.7) only where `--sheet` says, and the same refusal applies to it, for `compare` as for `against`.
 - The tests start a stand-in for the reference in a repository of their own and require `git status` to show nothing after the run.
 
-## 10. Held to this document
+## 11. Held to this document
 
 The tests of `crates/parity` and `crates/measure` are the link from each rule above to the code; their names say what they cover. Two classes are not core tests and are named as yardstick tests: those that start `bun` with `pixelmatch` (section 4.2), and those that start the reference. The core tests start no program of the reference's kind and no `ffmpeg` or `ffprobe`: the videos they use are written by `measure::write_video`, which encodes with the operating system's own encoder through frx7, and the picture check is the tool's own.
 
-The test videos are small: 160 x 90 pixels, 12 to 40 frames. A video encoded for lossy storage is not the same to the bit as the pictures that were encoded; the tests that need "equal frames" give the tool a file and a copy of it and require 100 % on every frame, and one more test gives it two files written separately from the same pictures and requires the check to pass (the system's encoder gave 100.000 % on every frame in each run measured), and the tests that need a difference give frames that differ by a large block of pixels, far above the loss of the coding.
+The test videos are small: 160 x 90 pixels, 12 to 40 frames. The pairs of the event and tracking checks (`crates/parity/tests/event_and_tracking_checks.rs`) are written from pictures with a known shift in time (an element that appears 1 or 2 frames later, a motion that starts 2 frames later) or in place (1 pixel on every frame, 2 pixels on one frame); `cargo run -p parity --example made_pairs -- <new folder>` writes such pairs for trying the tool by hand. A video encoded for lossy storage is not the same to the bit as the pictures that were encoded; the tests that need "equal frames" give the tool a file and a copy of it and require 100 % on every frame, and one more test gives it two files written separately from the same pictures and requires the check to pass (the system's encoder gave 100.000 % on every frame in each run measured), and the tests that need a difference give frames that differ by a large block of pixels, far above the loss of the coding.
 
 The yardstick tests are `crates/parity/tests/yardstick_pixelmatch_counts.rs` (section 4.2) and `crates/parity/tests/yardstick_video_reading.rs`, which holds the facts frx7 reads to `ffprobe`'s and the pictures it decodes to FFmpeg's (the count of pixels that differ by the measure of section 4.2 is at most half a percent of the picture; 0.2 % was the most measured, on hard-edged squares where the two converters round the chroma differently).

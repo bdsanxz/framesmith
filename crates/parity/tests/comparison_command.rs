@@ -127,8 +127,20 @@ fn the_json_report_has_the_checks_the_scenes_and_every_frame() {
         .collect();
     assert_eq!(
         names,
-        ["frame count", "frame rate", "size", "length", "picture", "scene all (frames 0-11)"]
+        [
+            "frame count",
+            "frame rate",
+            "size",
+            "length",
+            "picture",
+            "scene all (frames 0-11)",
+            "events",
+            "tracking"
+        ]
     );
+    // No element is marked: neither line may read as a pass.
+    assert_eq!(json["checks"][6]["verdict"], "not applicable");
+    assert_eq!(json["checks"][7]["verdict"], "not applicable");
     assert_eq!(json["picture"]["frame_scores"].as_array().unwrap().len(), 12);
     assert_eq!(json["picture"]["frame_scores"][7]["state"], "fail");
     assert_eq!(json["picture"]["scenes"][0]["name"], "all");
