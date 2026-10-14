@@ -9,6 +9,7 @@ members = [
     "crates/timeline",
     "crates/draw",
     "crates/draw-cpu",
+    "crates/mix",
     "crates/render",
     "crates/cli",
     "crates/measure",
@@ -38,6 +39,7 @@ project = { path = "crates/project" }
 layout = { path = "crates/layout" }
 draw = { path = "crates/draw" }
 draw-cpu = { path = "crates/draw-cpu" }
+mix = { path = "crates/mix" }
 render = { path = "crates/render" }
 timeline = { path = "crates/timeline" }
 measure = { path = "crates/measure" }
