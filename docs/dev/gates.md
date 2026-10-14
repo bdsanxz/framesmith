@@ -38,6 +38,8 @@ Two lines of `deny.toml` make the gate reach every dependency:
 
 A narrowed run says on its first line and on its last that it is narrowed, and that the gates have not passed. It never exits 0, so that no script and no hook can take it for a pass. The licence gate and the frx7 pin gate always look at the whole workspace; `-p` does not narrow them.
 
+**The verdict of the tests gate** is the verdict of three runs, and the gate fails when any of them failed: the plain test run (`cargo test`), the run of the tests marked "reference machine only" (section 4) and the run of the yardstick tests (section 5). Each failure is named: a failing test with the place of its panic, a failing marked test as `reference machine only test failed: <name>`, a failing yardstick test as `yardstick test failed: <name>`. A later run never wipes out the failure of an earlier one: a broken plain test gives `FAIL tests` also when the marked tests and the yardstick tests pass, in the whole run and in a run narrowed to the gate (`--gate test`, which then ends with 1 and not with 3). The tests of this are in `crates/measure/tests/tests_gate_verdict.rs`; each starts a copy of the script in a small workspace of its own, cut off from the real runner (section 12).
+
 A failure the script itself finds, such as a missing tool, is a failure of the gate that needed it and is named as such. Nothing is skipped silently. The script needs the Rust toolchain and `cargo-deny` (`cargo install --locked cargo-deny --version 0.20.2`); it needs nothing else, and in particular no browser and no FFmpeg.
 
 ## 3. Before a push, and after
@@ -45,6 +47,8 @@ A failure the script itself finds, such as a missing tool, is a failure of the g
 **Before the push.** `.githooks/pre-push` is a git hook kept in the repository. One command installs it for a clone: `scripts/gates/install-hooks.sh`, which sets `core.hooksPath` to `.githooks`. The hook runs `scripts/gates.sh` whole and exits with its code, so a failing gate stops the push. A push that only deletes branches runs nothing. The gates look at the working tree, not at the commits pushed; the hook says so when the tree has uncommitted changes. `git push --no-verify` passes the hook; the hosted run is the check that cannot be passed that way for `main` and for pull requests.
 
 **After the push.** `.github/workflows/gates.yml` runs on a macOS runner on a push to `main` and on a pull request, and on nothing else (decision A7): work branches rely on the local gates. It has one job for each gate, named `formatting`, `static analysis`, `tests`, `core suite without FFmpeg`, `licence gate` and `frx7 pin`, so that the hosted run reports each by name. Each job calls `scripts/gates.sh --hosted --gate NAME`. On a failure the job prints an annotation that names what failed, and writes the same lines to the job summary.
+
+**What the job summary holds is printed into the job's log** (section 13), so that it can be read where the summary page cannot be: the page of a private repository is shown to a person who is signed in and to nobody else, while the log of the job can be read with the hosting service's command line.
 
 The workflow installs the Rust toolchain named by `rust-toolchain.toml` and, for the licence job, `cargo-deny` at the version named in the workflow. It installs no browser, no FFmpeg and nothing else, and every gate passes without them. Every job that builds (static analysis, tests, core suite, licence gate) first runs `scripts/gates/frx7.sh deploy-key` with the Actions secret `FRX7_DEPLOY_KEY`, so that Cargo can fetch frx7 from its private remote (`docs/dev/frx7.md`, section 2); formatting reads no dependency, and the `frx7 pin` job reads git only, fetching all of its history (`fetch-depth: 0`). The hosted tests job does not start the programs of section 5 even where the image has them.
 
@@ -160,3 +164,30 @@ A line of `ROADMAP.md` is marked `[x]` only for a comparison that ran and passed
 ## 12. A script a test starts reports to no runner
 
 Some tests start `scripts/gates.sh` (a copy, in a scratch folder, that is made to fail on purpose) or the machinery of the core gate. On a hosted runner such a script finds `GITHUB_ACTIONS=true` and the files `GITHUB_STEP_SUMMARY`, `GITHUB_OUTPUT`, `GITHUB_ENV` and `GITHUB_PATH` in its environment, and would write its deliberate failure into the summary of a job that passed. So **every helper of the tests that starts a script or a program of the repository removes these five variables from the child's environment** (`isolate_from_runner` in `crates/measure/tests/common/mod.rs`), and the core gate's control and its scratch workspace do the same. The test `a_gate_started_by_a_test_leaves_the_runners_summary_as_it_was` runs the gate test again with those variables set, to a file of its own, and requires the file to be as it was.
+
+## 13. The job summary, printed into the log
+
+A hosted job has a summary page, written to the file named by `GITHUB_STEP_SUMMARY`. The gates script writes its verdict lines and its notes there (`- PASS <gate>`, `- FAIL <gate>` with what failed under it, the tests not run), and so can any program the script starts: that is how a false line once reached the page of a job whose gates had all passed (section 12). The page of a private repository cannot be read through the hosting service's command line or its programming interface, so nobody who is not signed in could check what a job's page holds. The script therefore prints the file into the log of the job, where `gh run view --log` reads it.
+
+**When.** At the very end of a run, after its last line (`HOSTED GATE PASSED`, `GATES FAILED`, `NARROWED RUN ...`), whatever the exit code, when `GITHUB_ACTIONS` is `true` and `GITHUB_STEP_SUMMARY` is set. A run that is not on a runner prints nothing of the kind, nor does one on a runner that has no summary file variable. A run that ends on wrong usage or on a folder it cannot make prints nothing either; it has not reached the gates.
+
+**What.** The content of the file as it is at that moment, whatever wrote it, between two marker lines, each on a line of its own (no text before it):
+
+```
+==== framesmith gates: job summary, begin ====
+| <line 1 of the file>
+| <line 2 of the file>
+==== framesmith gates: job summary, end (<n> line(s)) ====
+```
+
+Every line of the content is printed after the two characters `| `; `<n>` is the number of lines printed between the markers. When the file cannot be read (it is not a file, or not readable) the end marker says `end (the file cannot be read) ====` and nothing stands between the markers. An empty file gives `end (0 line(s)) ====`. The last line of the output of a run on a runner is the end marker. In the log the hosting service puts its own timestamp before each line; a reader takes a marker as the text after it.
+
+**A line of the content is never a command of the runner.** The runner reads a line of the output as a command when, after leading spaces, it begins with `::` (an annotation, `::add-mask::`, `::stop-commands::` and the like) or with `##[`; it cuts the output into lines at a line feed and also at a carriage return. A summary line could begin with either: a program that wrote `::error::...` to the file would, printed as it is, annotate the job, mask text or stop the runner's reading of commands. Three things prevent it, and a test holds each (`crates/measure/tests/job_summary_in_the_log.rs`):
+
+1. every printed line begins with `| `, so that no line begins with `::` or `##[`, with or without leading spaces;
+2. a carriage return in the content is turned into a line feed before the lines are given their prefix, so that the text after it is a line of its own that begins with the prefix as well, and a null byte is turned the same way;
+3. the markers are fixed text of the script and the content cannot take their place, because a printed line always begins with `| `.
+
+The script's own annotations (`::error title=...::...`, one for each failed gate) are printed earlier, where they are meant to act; they are not repeated in the printed part.
+
+**Reading it.** `evidence/T003/hosted-run.sh` of the workspace reads this part from the log of each job of a hosted run: for each job the lines of its summary, a finding when a line says a gate failed in a job whose conclusion is success, and a finding when a line names a gate the job did not run. A run made before this part existed has none, and the reader says so and does not fail. The part cannot be shown by a test of a hosted run; the tests start the script with the runner's variables set to files of their own, and the hosted part is read from the first real run after it.
