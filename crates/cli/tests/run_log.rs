@@ -48,7 +48,9 @@ fn an_invalid_project_logs_the_exit_code_and_how_many_problems_without_their_mes
     assert_eq!(lines.len(), 2, "{}", log_text(&base));
     assert_eq!(lines[1].level, "WARN");
     assert!(lines[1].text.contains(r#"outcome="invalid" exit=1 problems=2"#), "{}", lines[1].raw);
-    assert!(!log_text(&base).contains("641") && !log_text(&base).contains("soon"));
+    // Only the messages and fields are searched: a time or a run id can hold 641 by chance.
+    let written = after_run_id(&log_text(&base));
+    assert!(!written.contains("641") && !written.contains("soon"), "{written}");
 }
 
 #[test]
@@ -245,7 +247,7 @@ fn a_value_that_is_not_a_level_gives_the_default_level_and_one_warning_that_does
 }
 
 #[test]
-fn the_log_is_kept_under_the_folder_the_command_is_run_from_and_never_in_the_project_folder() {
+fn the_log_is_kept_under_the_folder_the_command_is_run_from_and_not_in_a_project_folder_it_is_run_away_from() {
     let (project, cwd) = project(GROUP, "where", VALID);
     // The project is given by its full path and lies beside the folder the command is run from.
     let output = framesmith(&cwd, [std::ffi::OsStr::new("check"), project.as_os_str()], &[]);

@@ -101,7 +101,8 @@ fn the_log_of_a_run_holds_no_home_folder_name_of_another_user() {
     // The user's own home folder and name are not in it either.
     assert!(!log.contains(&real_home), "{log}");
     if real_user.len() > 2 && real_home.contains(&real_user) {
-        assert!(!log.contains(&real_user), "{log}");
+        // A short name can be in a time or a run id by chance, so only the messages and fields are searched.
+        assert!(!after_run_id(&log).contains(&real_user), "{log}");
     }
 }
 

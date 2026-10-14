@@ -117,6 +117,14 @@ pub fn parse(text: &str) -> Vec<Line> {
         .collect()
 }
 
+/// The messages and fields of every line of the log, one after the other, without the time, the
+/// level, the component and the run id. A word that must be absent from the log is looked for here:
+/// the time and the run id are digits that differ in every run, and a word made of digits or of the
+/// letters a to f can be in them by chance.
+pub fn after_run_id(text: &str) -> String {
+    parse(text).iter().map(|line| line.text.as_str()).collect::<Vec<_>>().join("\n")
+}
+
 pub fn lines(cwd: &Path) -> Vec<Line> {
     parse(&log_text(cwd))
 }

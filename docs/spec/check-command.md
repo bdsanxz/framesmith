@@ -99,7 +99,12 @@ The exit code 2 (a project that is valid and uses something unsupported) is not 
 
 ## 6. It changes nothing of the project
 
-`check` draws nothing. It opens `composition.xml` for reading, and creates, changes, renames and deletes nothing in the project folder or beside it. The one thing a run writes is its run log, `logs/framesmith.log` under the folder the command is run from, which is never the project folder (`run-log.md` section 1); apart from the lines added to the log (and the folder `logs` when it is missing), the folder the command is run from is left as it was too. After a run, every file of the project folder has the same name and the same bytes as before, and no file or folder is new. A project folder that cannot be written to, and one on a read-only disk, are checked like any other.
+`check` draws nothing. It opens `composition.xml` for reading, and changes, renames and deletes no file of the project. The one thing a run writes is its run log, `logs/framesmith.log` under the folder the command is run from (`run-log.md` section 1, decision A2). Two cases:
+
+- **Run from another folder** (the usual case): the log is under that folder, and the project folder is left exactly as it was: every file has the same name and the same bytes as before, and no file or folder is new.
+- **Run from the project folder itself, or from a folder inside it** (`cd demo && framesmith check .`): the log is under that folder, so the project folder (or the folder inside it) comes to hold a folder `logs` with the file `framesmith.log`, and those two entries are the only ones new. Every other file of the project has the same name and the same bytes as before, `check` reads `composition.xml` only, and its output and exit code are those of a run from outside. A second run adds lines to the log and changes nothing else.
+
+Apart from the lines added to the log (and the folder `logs` when it is missing), the folder the command is run from is left as it was. A project folder that cannot be written to, and one on a read-only disk, are checked like any other.
 
 ## 7. Where the code lives
 
