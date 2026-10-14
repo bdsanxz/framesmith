@@ -105,20 +105,11 @@ placement() {
 }
 
 # The programs the sandbox refused to start since the run began, read from the system log when it
-# can be read. The log belongs to the whole machine, so a refusal is kept only when the process
-# that was refused is one of the test programs of this run (named in $1, the log of the run; the
-# system keeps the first 32 characters of a program's name): a run of another worktree at the same
-# time is not this run's.
+# can be read, as scripts/gates/core-refused.sh does ($1 is the log of the run). The system writes
+# its record of a refusal some time after it refuses the start, so that script reads the log for a
+# short, bounded time and not once (docs/dev/gates.md, section 10, "Reading the refused starts").
 refused_starts() {
-    local programs
-    programs=$(sed -n 's/^ *Running .* (.*\/deps\/\([^/)]*\))$/\1/p' "$1" | sort -u)
-    perl -e 'alarm 30; exec @ARGV' log show --start "$STARTED" --predicate 'eventMessage CONTAINS "deny(1) process-exec"' --style compact |
-        sed -n 's/^.*Sandbox: \([^ (]*\)([0-9]*) deny(1) process-exec\*\{0,1\} \(.*\)$/\1 \2/p' |
-        while read -r process path; do
-            if printf '%s\n' "$programs" | awk -v process="$process" 'index($0, process) == 1 { found = 1 } END { exit !found }'; then
-                echo "core problem: the system refused to start $path"
-            fi
-        done | sort -u
+    bash "$REPO/scripts/gates/core-refused.sh" --since "$STARTED" --run-log "$1"
 }
 
 # Runs the tests through the runner, with the output streamed and kept in $LOGS/$1.log.
