@@ -1,0 +1,11 @@
+[package]
+name = "mix"
+description = "The sound mix of a composition: 48,000 samples a second in two channels, as long as the picture."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]

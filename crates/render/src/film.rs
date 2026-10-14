@@ -1,16 +1,18 @@
 //! The film: the frames of a scene, drawn in order, brought to the planes the encoder takes, encoded
-//! by the system's H.264 encoder and written as an MP4 file, all through frx7's public traits
-//! (`docs/spec/render-command.md` section 5).
+//! by the system's H.264 encoder, and written as an MP4 file with the scene's mix as its one sound
+//! track, encoded by the system's AAC encoder, all through frx7's public traits
+//! (`docs/spec/render-command.md` sections 5 and 5.2).
 
 use std::fmt;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
 
-use base::{Codec, Color, Error, Frame, Hdr, Picture, PixelFormat, Rational};
-use codec::{Hardware, RateControl, VideoEncoder, VideoEncoderSetup};
+use base::{Codec, Color, Error, Frame, Hdr, Packet, Picture, PixelFormat, Rational};
+use codec::{AudioEncoder, AudioEncoderSetup, Hardware, RateControl, VideoEncoder, VideoEncoderSetup};
 use draw::Renderer;
-use format::{Media, Muxer, TrackSetup, Video};
+use format::{Audio, Media, Muxer, TrackSetup, Video};
+use mix::Mix;
 
 use timeline::Scene;
 
@@ -18,6 +20,10 @@ use timeline::Scene;
 const STANDARD_QUALITY: f32 = 0.65;
 /// The most seconds between two key pictures (decision D22).
 const KEY_SECONDS: f64 = 2.0;
+/// The bit rate of the sound track, in bits a second (section 5.2).
+const SOUND_BITRATE: u32 = 192_000;
+/// Sample frames of AAC in one packet (ISO/IEC 14496-3).
+const AAC_PACKET: u64 = 1024;
 
 /// What was written.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -102,8 +108,19 @@ fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, began: Instan
         hdr: Hdr::default(),
         hardware: Hardware::Any,
     };
-    let mut encoder = codecs().video_encoder(&setup).map_err(named)?;
+    let codecs = codecs();
+    let mut encoder = codecs.video_encoder(&setup).map_err(named)?;
     tracing::debug!(hardware = encoder.hardware(), "encoder started");
+    let mut mix = Mix::for_picture(scene.frames(), scene.fps());
+    let mut sound = codecs
+        .audio_encoder(&AudioEncoderSetup {
+            codec: Codec::Aac,
+            sample_rate: mix::SAMPLE_RATE,
+            channels: mix::CHANNELS,
+            bitrate: SOUND_BITRATE,
+        })
+        .map_err(named)?;
+    tracing::debug!(sample_frames = mix.length(), bitrate = SOUND_BITRATE, "sound encoder started");
     let timescale = encoder.timescale();
     let ticks = u64::from(timescale) / u64::from(scene.fps());
     if ticks == 0 || ticks * u64::from(scene.fps()) != u64::from(timescale) {
@@ -130,6 +147,22 @@ fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, began: Instan
             expected_packets: Some(scene.frames()),
         })
         .map_err(named)?;
+    let sound_track = muxer
+        .add_track(TrackSetup {
+            codec: Codec::Aac,
+            config: sound.config(),
+            timescale: mix::SAMPLE_RATE,
+            media: Media::Audio(Audio {
+                sample_rate: mix::SAMPLE_RATE,
+                channels: mix::CHANNELS,
+                lead_in: sound.lead_in(),
+            }),
+            // The lead-in and the last, part-filled packet are a few packets more.
+            expected_packets: Some(mix.length() / AAC_PACKET + 8),
+        })
+        .map_err(named)?;
+    let mut samples = Vec::new();
+    let mut sound_packets = Vec::new();
 
     let mut configured = false;
     for number in 0..scene.frames() {
@@ -149,14 +182,26 @@ fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, began: Instan
             })
             .map_err(named)?;
         take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
+        // The mix up to the end of this frame goes with it, so that picture and sound lie side by
+        // side in the file.
+        let until = mix::length_for_picture(number + 1, scene.fps());
+        let due = until - (mix.length() - mix.left());
+        samples.resize(due as usize * usize::from(mix::CHANNELS), 0.0);
+        let given = mix.read(&mut samples);
+        sound
+            .send(&samples[..given * usize::from(mix::CHANNELS)], &mut sound_packets)
+            .map_err(named)?;
+        write_sound(&mut sound_packets, muxer.as_mut(), sound_track).map_err(named)?;
     }
     encoder.finish().map_err(named)?;
     take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
+    finish_sound(sound.as_mut(), muxer.as_mut(), sound_track, &mut sound_packets).map_err(named)?;
     if !configured {
         return Err(Failure::new("the encoder gave no picture"));
     }
     let hardware = encoder.hardware();
     muxer.end_track(track).map_err(named)?;
+    muxer.end_track(sound_track).map_err(named)?;
     let finished = muxer.finish().map_err(named)?;
     Ok(Written {
         frames: scene.frames(),
@@ -180,4 +225,19 @@ fn take_packets(encoder: &mut dyn VideoEncoder, muxer: &mut dyn Muxer, track: us
         muxer.write(track, packet)?;
     }
     Ok(())
+}
+
+/// Moves the sound packets that are ready into the file.
+fn write_sound(packets: &mut Vec<Packet>, muxer: &mut dyn Muxer, track: usize) -> base::Result<()> {
+    for packet in packets.drain(..) {
+        muxer.write(track, packet)?;
+    }
+    Ok(())
+}
+
+/// Ends the sound: the encoder's last packets go into the file.
+fn finish_sound(sound: &mut dyn AudioEncoder, muxer: &mut dyn Muxer, track: usize, packets: &mut Vec<Packet>) -> base::Result<()> {
+    sound.finish(packets)?;
+    tracing::debug!("sound encoder finished");
+    write_sound(packets, muxer, track)
 }
