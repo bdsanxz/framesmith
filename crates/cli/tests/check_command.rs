@@ -395,27 +395,31 @@ fn a_folder_without_a_composition_is_no_project_and_exits_1() {
 #[test]
 fn a_command_line_that_cannot_be_read_is_told_on_standard_error_and_exits_1() {
     let base = folder("bad-command-lines");
-    let cases: [(&[&str], &str); 6] = [
-        (&[], "no command is given"),
-        (&["render", "demo"], "`render` is not a command"),
-        (&["check"], "`check` needs the path of a project"),
-        (&["check", "--json", "demo"], "`check` takes no option, and --json is one"),
+    let check_usage = "usage: framesmith check <path>\n";
+    let both_usages = "usage: framesmith check <path>\nusage: framesmith render <path>\n";
+    let cases: [(&[&str], &str, &str); 6] = [
+        (&[], "no command is given", both_usages),
+        (&["play", "demo"], "`play` is not a command", both_usages),
+        (&["check"], "`check` needs the path of a project", check_usage),
+        (
+            &["check", "--json", "demo"],
+            "`check` takes no option, and --json is one",
+            check_usage,
+        ),
         (
             &["check", "demo", "other"],
             "`check` takes the path of one project, and other is one word too many",
+            check_usage,
         ),
-        (&["check", "-x"], "`check` takes no option, and -x is one"),
+        (&["check", "-x"], "`check` takes no option, and -x is one", check_usage),
     ];
-    for (args, message) in cases {
+    for (args, message, usage) in cases {
         let output = framesmith(&base, args);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert_eq!(out(&output), "", "{args:?}");
         assert_eq!(
             err(&output),
-            format!(
-                "framesmith: {}\nusage: framesmith check <path>\n",
-                statement(Code::CommandLineNotRead, message)
-            ),
+            format!("framesmith: {}\n{usage}", statement(Code::CommandLineNotRead, message)),
             "{args:?}"
         );
     }

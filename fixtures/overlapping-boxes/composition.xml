@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The second fixture of the render command: two boxes that overlap. The one written later
+     covers the one written earlier where they meet. 96 by 54 pixels, five frames. -->
+<composition version="1" id="overlapping-boxes" width="96" height="54" fps="10" duration="0.5" background="#000000">
+  <box id="back" left="8" top="6" width="50" height="34" background="#cc2222"/>
+  <box id="front" left="30" top="20" width="50" height="28" background="#2266dd"/>
+</composition>

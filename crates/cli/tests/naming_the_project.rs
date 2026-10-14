@@ -246,7 +246,9 @@ fn the_command_line_names_a_path_in_its_usage() {
     assert!(printed.contains("`check` needs the path of a project"), "{printed}");
     assert!(printed.ends_with("usage: framesmith check <path>\n"), "{printed}");
     assert!(
-        printed.contains("Run `framesmith check <path>` with the folder, the project file or the composition file of one project."),
+        printed.contains(
+            "Run `framesmith check <path>` or `framesmith render <path>` with the folder, the project file or the composition file of one project."
+        ),
         "{printed}"
     );
 }

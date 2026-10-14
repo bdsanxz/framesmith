@@ -46,7 +46,11 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 name = "cli"
 version = "0.1.0"
 dependencies = [
+ "draw",
+ "draw-cpu",
+ "measure",
  "project",
+ "render",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -81,6 +85,21 @@ name = "deranged"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e9de72ce2ad1f90dc62fa25f0f430ef85eb4b0d8fa0be4f30373bc40a21d28e"
+
+[[package]]
+name = "draw"
+version = "0.1.0"
+dependencies = [
+ "layout",
+]
+
+[[package]]
+name = "draw-cpu"
+version = "0.1.0"
+dependencies = [
+ "draw",
+ "layout",
+]
 
 [[package]]
 name = "foldhash"
@@ -119,6 +138,10 @@ name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "layout"
+version = "0.1.0"
 
 [[package]]
 name = "lazy_static"
@@ -264,6 +287,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "render"
+version = "0.1.0"
+dependencies = [
+ "backend-os",
+ "base",
+ "codec",
+ "draw",
+ "draw-cpu",
+ "format",
+ "layout",
+ "measure",
+ "mp4",
+ "pixel",
+ "project",
+ "tracing",
 ]
 
 [[package]]

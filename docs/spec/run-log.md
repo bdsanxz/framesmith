@@ -49,16 +49,22 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `project` | `project file judged` | `problems` (how many) | The project file was read as text and judged |
 | debug | `project` | `composition file read` | `bytes` (its size) | The composition the project names (`composition.xml` when it names none) exists and was read |
 | debug | `project` | `root judged` | `problems` (how many) | The composition file was judged: its root, and the form of everything under it |
+| debug | `render::scene` | `scene made` | `boxes` (how many boxes the scene holds), `frames` | `render` made the scene of an opened project that this version draws (`render-command.md` section 3) |
+| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor`) | The first frame is about to be drawn |
+| debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |
+| info | `render::film` | `render finished` | `frames`, `bytes` | The file is complete |
 | trace | `cli` | `report` | `file` (the name of the file, as the report prints it), `code`, `line` | Once for each report of an invalid or unsupported project, in the order printed |
-| info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it | Last line of every run |
+| info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it, `frames` for `rendered`, `code` for `video not made` | Last line of every run |
 
 The outcome and the level of the last line:
 
 | `outcome` | Level | `exit` | Meaning |
 |---|---|---|---|
 | `ready` | info | 0 | `check` found the project valid |
-| `invalid` | warn | 1 | The project file or the root has problems; the reports were printed |
-| `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`); they were printed |
+| `rendered` | info | 0 | `render` wrote the film; `frames` is how many frames it holds |
+| `video not made` | error | 1 | `render` could not make the film; `code` is `FS-0036` |
+| `invalid` | warn | 1 | The project file or the composition has problems (for `render` also `FS-0034`); the reports were printed |
+| `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`, and `FS-0035` for `render`); they were printed |
 | `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028`) |
 | `command line not read` | warn | 1 | The words after the program's name are not a command (`FS-0017`) |
 

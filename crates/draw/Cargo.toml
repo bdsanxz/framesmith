@@ -1,0 +1,12 @@
+[package]
+name = "draw"
+description = "The list of drawing steps and the trait both renderers implement."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+layout = { workspace = true }

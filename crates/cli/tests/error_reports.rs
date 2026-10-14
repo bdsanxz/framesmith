@@ -402,6 +402,24 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
     runs
 }
 
+/// Compositions and project files that `render` refuses or cannot carry out, with the code each
+/// must carry and the exit code: a length that is wrong, a form that is not drawn, a film that
+/// cannot be written (the place of the file is inside a file).
+fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i32)> {
+    let root = |inside: &str| format!(r#"<composition version="1" width="640" height="360" duration="2">{inside}</composition>"#);
+    vec![
+        ("length-wrong", root(r#"<box width="abc"/>"#), None, Code::LengthNotAccepted, 1),
+        ("form-not-drawn", root("<text/>"), None, Code::FormNotSupported, 2),
+        (
+            "video-not-made",
+            root(r##"<box background="#ff0000"/>"##),
+            Some("render:\n  output: composition.xml/film.mp4\n"),
+            Code::VideoNotMade,
+            1,
+        ),
+    ]
+}
+
 #[test]
 fn a_refusal_with_no_file_to_name_shows_its_code_its_kind_and_its_remedy() {
     let catalogue = catalogue();
@@ -445,6 +463,18 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     }
     for (name, out, err, code) in refusals() {
         assert!(out.contains(code.as_str()) || err.contains(code.as_str()), "{name}");
+        emitted.insert(code.as_str());
+    }
+    for (name, composition, yaml, code, exit) in render_refusals() {
+        let (project, cwd) = project(&format!("emit-{name}"), composition.as_bytes());
+        if let Some(yaml) = yaml {
+            fs::write(project.join("framesmith.yaml"), yaml).unwrap();
+        }
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("render"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert_eq!(output.status.code(), Some(exit), "{name}: {printed}");
+        // A failure has no place in a file: its report begins with the code.
+        assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
     let all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
