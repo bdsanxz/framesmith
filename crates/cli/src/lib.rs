@@ -1,12 +1,16 @@
 //! The `framesmith` command.
 //!
-//! Behaviour is specified in `docs/spec/check-command.md`. This version has one command, `check`.
+//! Behaviour is specified in `docs/spec/check-command.md` and `docs/spec/render-command.md`. This
+//! version has two commands, `check` and `render`.
 
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::PathBuf;
 
+use draw::Renderer;
+use draw_cpu::CpuRenderer;
 use project::{Code, Kind, OpenError, Project, Report};
+use render::Scene;
 
 pub mod runlog;
 
@@ -17,7 +21,8 @@ pub const EXIT_FAILED: u8 = 1;
 /// The exit code of a project that is valid, except that it uses what this version does not support.
 pub const EXIT_UNSUPPORTED: u8 = 2;
 
-const USAGE: &str = "usage: framesmith check <path>";
+const CHECK_USAGE: &str = "usage: framesmith check <path>";
+const RENDER_USAGE: &str = "usage: framesmith render <path>";
 
 /// Runs the command with the arguments after its name. Results go to `out`, a command line that
 /// cannot be read to `err`. Returns the exit code.
@@ -42,36 +47,45 @@ pub fn run(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 /// Reads the command line, runs the command, prints its reply and logs its result.
 fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let reply = match args.split_first() {
-        None => Reply::Unreadable("no command is given".to_string()),
-        Some((command, rest)) if command == "check" => {
-            if let Some(option) = rest.iter().find(|word| word.to_string_lossy().starts_with('-')) {
-                Reply::Unreadable(format!("`check` takes no option, and {} is one", option.to_string_lossy()))
-            } else {
-                match rest {
-                    [] => Reply::Unreadable("`check` needs the path of a project".to_string()),
-                    [path] => check(PathBuf::from(path)),
-                    [_, extra, ..] => Reply::Unreadable(format!(
-                        "`check` takes the path of one project, and {} is one word too many",
-                        extra.to_string_lossy()
-                    )),
-                }
-            }
-        }
-        Some((command, _)) => Reply::Unreadable(format!("`{}` is not a command", command.to_string_lossy())),
+        None => Reply::Unreadable("no command is given".to_string(), BOTH_USAGES),
+        Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, check),
+        Some((command, rest)) if command == "render" => with_path("render", &[RENDER_USAGE], rest, render),
+        Some((command, _)) => Reply::Unreadable(format!("`{}` is not a command", command.to_string_lossy()), BOTH_USAGES),
     };
     let written = match &reply {
         Reply::Printed(lines, ..) => lines.iter().try_for_each(|line| writeln!(out, "{line}")),
-        Reply::Unreadable(why) => {
-            writeln!(err, "framesmith: {}", Code::CommandLineNotRead.statement(why)).and_then(|()| writeln!(err, "{USAGE}"))
-        }
+        Reply::Unreadable(why, usages) => writeln!(err, "framesmith: {}", Code::CommandLineNotRead.statement(why))
+            .and_then(|()| usages.iter().try_for_each(|usage| writeln!(err, "{usage}"))),
     };
     let (code, outcome) = match (written, reply) {
         (Ok(()), Reply::Printed(_, code, outcome)) => (code, outcome),
         (Err(_), Reply::Printed(_, _, outcome)) => (EXIT_FAILED, outcome),
-        (_, Reply::Unreadable(_)) => (EXIT_FAILED, Outcome::NotRead),
+        (_, Reply::Unreadable(..)) => (EXIT_FAILED, Outcome::NotRead),
     };
     outcome.log(code);
     code
+}
+
+/// The usage lines of a command line that names no command of the program.
+const BOTH_USAGES: &[&str] = &[CHECK_USAGE, RENDER_USAGE];
+
+/// A command that takes the path of one project and no option: reads the words after its name and
+/// runs it.
+fn with_path(name: &str, usages: &'static [&'static str], rest: &[OsString], run: fn(PathBuf) -> Reply) -> Reply {
+    if let Some(option) = rest.iter().find(|word| word.to_string_lossy().starts_with('-')) {
+        return Reply::Unreadable(format!("`{name}` takes no option, and {} is one", option.to_string_lossy()), usages);
+    }
+    match rest {
+        [] => Reply::Unreadable(format!("`{name}` needs the path of a project"), usages),
+        [path] => run(PathBuf::from(path)),
+        [_, extra, ..] => Reply::Unreadable(
+            format!(
+                "`{name}` takes the path of one project, and {} is one word too many",
+                extra.to_string_lossy()
+            ),
+            usages,
+        ),
+    }
 }
 
 /// How a command ended, for the log (`docs/spec/run-log.md` section 4).
@@ -89,6 +103,14 @@ enum Outcome {
         problems: usize,
     },
     NotRead,
+    /// `render` wrote the film.
+    Rendered {
+        frames: u64,
+    },
+    /// `render` could not make the film.
+    VideoNotMade {
+        code: Code,
+    },
 }
 
 impl Outcome {
@@ -127,6 +149,10 @@ impl Outcome {
                 )
             }
             Outcome::NotRead => tracing::warn!(outcome = "command line not read", exit, "command finished"),
+            Outcome::Rendered { frames } => tracing::info!(outcome = "rendered", exit, frames = *frames, "command finished"),
+            Outcome::VideoNotMade { code } => {
+                tracing::error!(outcome = "video not made", exit, code = code.as_str(), "command finished")
+            }
         }
     }
 }
@@ -135,8 +161,8 @@ impl Outcome {
 enum Reply {
     /// Lines for standard output, the exit code, and how it ended.
     Printed(Vec<String>, u8, Outcome),
-    /// A command line that cannot be read, with what is wrong with it.
-    Unreadable(String),
+    /// A command line that cannot be read, with what is wrong with it and the usage lines to print.
+    Unreadable(String, &'static [&'static str]),
 }
 
 /// `framesmith check <path>`: opens the project that the path names (a folder, a project file or a
@@ -160,7 +186,57 @@ fn check(path: PathBuf) -> Reply {
                 Outcome::Ready,
             )
         }
-        Err(OpenError::NoProject(no_project)) => {
+        Err(error) => not_opened(error),
+    }
+}
+
+/// `framesmith render <path>`: opens the project as `check` does, makes the scene this version
+/// draws, draws every frame on the processor and writes the film to the project's output path. A
+/// project that does not open, or that uses what this version does not draw, is told as `check` tells
+/// it and nothing is written (`docs/spec/render-command.md`).
+fn render(path: PathBuf) -> Reply {
+    let project = match Project::open(&path) {
+        Ok(project) => project,
+        Err(error) => return not_opened(error),
+    };
+    let scene = match Scene::from_project(&project) {
+        Ok(scene) => scene,
+        Err(reports) => return reports_reply(&reports),
+    };
+    let output = project.resolve(&project.output());
+    let mut renderer = CpuRenderer;
+    match render::write_film(&scene, &mut renderer, &output) {
+        Ok(written) => Reply::Printed(
+            vec![
+                format!("Rendered {}", output.display()),
+                format!("frames: {}", written.frames),
+                format!("size: {}x{}", scene.width(), scene.height()),
+                format!("frame rate: {} fps", scene.fps()),
+                format!("length: {:.3} s", written.frames as f64 / f64::from(scene.fps())),
+                format!("renderer: {}", renderer.name()),
+                format!("elapsed: {:.3} s", written.seconds),
+            ],
+            EXIT_OK,
+            Outcome::Rendered { frames: written.frames },
+        ),
+        Err(failure) => {
+            let code = Code::VideoNotMade;
+            Reply::Printed(
+                vec![
+                    code.statement(&format!("the video could not be made: {failure}")),
+                    "Failed: the video could not be made".to_string(),
+                ],
+                EXIT_FAILED,
+                Outcome::VideoNotMade { code },
+            )
+        }
+    }
+}
+
+/// What a command prints when the project did not open: the same for `check` and `render`.
+fn not_opened(error: OpenError) -> Reply {
+    match error {
+        OpenError::NoProject(no_project) => {
             let code = no_project.code();
             Reply::Printed(
                 vec![OpenError::NoProject(no_project).to_string()],
@@ -168,7 +244,7 @@ fn check(path: PathBuf) -> Reply {
                 Outcome::NoProject { code, problems: 0 },
             )
         }
-        Err(OpenError::InvalidAndNoProject(reports, no_project)) => {
+        OpenError::InvalidAndNoProject(reports, no_project) => {
             log_reports(&reports);
             let code = no_project.code();
             let problems = reports.len();
@@ -176,21 +252,25 @@ fn check(path: PathBuf) -> Reply {
             lines.push(OpenError::NoProject(no_project).to_string());
             Reply::Printed(lines, EXIT_FAILED, Outcome::NoProject { code, problems })
         }
-        Err(OpenError::Invalid(reports)) => {
-            log_reports(&reports);
-            let files = files_of(&reports);
-            let mut lines: Vec<String> = reports.iter().map(ToString::to_string).collect();
-            // Only what is not supported yet is wrong: the rest of the project is valid.
-            if reports.iter().all(|report| report.problem().kind() == Kind::Unsupported) {
-                lines.push(format!(
-                    "Unsupported: the project uses what this version does not support ({files})"
-                ));
-                Reply::Printed(lines, EXIT_UNSUPPORTED, Outcome::Unsupported { problems: reports.len() })
-            } else {
-                lines.push(format!("Invalid: the project is not valid ({files})"));
-                Reply::Printed(lines, EXIT_FAILED, Outcome::Invalid { problems: reports.len() })
-            }
-        }
+        OpenError::Invalid(reports) => reports_reply(&reports),
+    }
+}
+
+/// The reports of a project that has some, and the closing line: `Unsupported` and the exit code 2
+/// when every report is of the kind unsupported, `Invalid` and 1 otherwise.
+fn reports_reply(reports: &[Report]) -> Reply {
+    log_reports(reports);
+    let files = files_of(reports);
+    let mut lines: Vec<String> = reports.iter().map(ToString::to_string).collect();
+    // Only what is not supported yet is wrong: the rest of the project is valid.
+    if reports.iter().all(|report| report.problem().kind() == Kind::Unsupported) {
+        lines.push(format!(
+            "Unsupported: the project uses what this version does not support ({files})"
+        ));
+        Reply::Printed(lines, EXIT_UNSUPPORTED, Outcome::Unsupported { problems: reports.len() })
+    } else {
+        lines.push(format!("Invalid: the project is not valid ({files})"));
+        Reply::Printed(lines, EXIT_FAILED, Outcome::Invalid { problems: reports.len() })
     }
 }
 

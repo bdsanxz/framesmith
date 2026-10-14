@@ -1,0 +1,25 @@
+[package]
+name = "render"
+description = "The render job: a project made into a scene, drawn frame by frame and written as a film through frx7."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+project = { workspace = true }
+layout = { workspace = true }
+draw = { workspace = true }
+tracing = { workspace = true }
+base = { workspace = true }
+format = { workspace = true }
+mp4 = { workspace = true }
+codec = { workspace = true }
+backend-os = { workspace = true }
+pixel = { workspace = true }
+
+[dev-dependencies]
+draw-cpu = { workspace = true }
+measure = { workspace = true }

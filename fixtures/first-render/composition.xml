@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The first fixture of the render command: one box on a coloured canvas, nothing else.
+     96 by 54 pixels, 10 frames a second for one second: ten frames, all alike. -->
+<composition version="1" id="first-render" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="panel" left="12" top="8" width="40" height="30" background="#e0a030"/>
+</composition>
