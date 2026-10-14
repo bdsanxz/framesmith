@@ -112,7 +112,10 @@ impl Project {
             }
             Err(error) => return Err(OpenError::NoProject(NoProject::Unreadable(folder.to_path_buf(), reason(&error)))),
         };
-        let root = notation::read_root(&source).map_err(|problems| {
+        tracing::debug!(bytes = source.len(), "composition file read");
+        let judged = notation::read_root(&source);
+        tracing::debug!(problems = judged.as_ref().err().map_or(0, Vec::len), "root judged");
+        let root = judged.map_err(|problems| {
             OpenError::Invalid(
                 problems
                     .into_iter()
