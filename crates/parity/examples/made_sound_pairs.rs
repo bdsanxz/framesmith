@@ -10,7 +10,12 @@
 //! - `quieter-0.4.mp4` and `quieter-0.6.mp4`: the sound 0.4 or 0.6 dB lower;
 //! - `louder-0.4.mp4` and `louder-0.6.mp4`: the sound 0.4 or 0.6 dB higher;
 //! - `later-0.5ms.mp4` and `later-2ms.mp4`: the sound 24 or 96 sample frames later;
-//! - `silent-a.mp4` and `silent-b.mp4`: the pictures and no sound track.
+//! - `silent-a.mp4` and `silent-b.mp4`: the pictures and no sound track;
+//! - `silent-short.mp4`: the first 29 pictures and no sound track;
+//! - `tone-1000hz-minus-23db.mp4`: a steady tone of 1000 Hz at 23 dB under full scale in both
+//!   channels (loudness -23.00 LUFS by section 12.3, peak -23.00 dBFS);
+//! - `tone-997hz-half.mp4`: a steady tone of 997 Hz of amplitude 0.5 in both channels (peak
+//!   -6.02 dBFS by section 12.4, loudness -6.02 LUFS).
 
 use measure::Sound;
 use std::path::Path;
@@ -19,6 +24,21 @@ fn gained(sound: &Sound, db: f32) -> Sound {
     Sound {
         samples: sound.samples.iter().map(|v| v * 10f32.powf(db / 20.0)).collect(),
         ..sound.clone()
+    }
+}
+
+/// A steady tone, the same in both channels, 48,000 sample frames at 48 kHz.
+fn tone(hz: f64, amplitude: f64) -> Sound {
+    let samples = (0..48_000)
+        .flat_map(|n| {
+            let v = (amplitude * (2.0 * std::f64::consts::PI * hz * f64::from(n) / 48_000.0).sin()) as f32;
+            [v, v]
+        })
+        .collect();
+    Sound {
+        rate: 48_000,
+        channels: 2,
+        samples,
     }
 }
 
@@ -51,7 +71,14 @@ fn main() {
         ("later-2ms", Some(sound(48_000, 96))),
         ("silent-a", None),
         ("silent-b", None),
+        ("tone-1000hz-minus-23db", Some(tone(1000.0, 10f64.powf(-23.0 / 20.0)))),
+        ("tone-997hz-half", Some(tone(997.0, 0.5))),
     ];
+    let short = folder.join("silent-short.mp4");
+    if let Err(error) = measure::write_video(&short, (30, 1), &pictures[..29]) {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
     for (name, made) in files {
         let path = folder.join(format!("{name}.mp4"));
         if let Err(error) = measure::write_video_with_sound(&path, (30, 1), &pictures, made.as_ref()) {

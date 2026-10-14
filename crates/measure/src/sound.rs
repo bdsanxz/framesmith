@@ -129,7 +129,7 @@ pub(crate) struct EncodedTrack {
 }
 
 fn sound_track(path: &Path, sound: &Sound) -> Result<EncodedTrack, String> {
-    if sound.rate == 0 || sound.channels == 0 || sound.samples.len() % usize::from(sound.channels) != 0 {
+    if sound.rate == 0 || sound.channels == 0 || !sound.samples.len().is_multiple_of(usize::from(sound.channels)) {
         return Err(format!(
             "a sound needs a rate, channels and whole sample frames; given {} Hz, {} channels, {} numbers",
             sound.rate,
