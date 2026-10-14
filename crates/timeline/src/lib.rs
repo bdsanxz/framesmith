@@ -1,0 +1,7 @@
+//! What is shown at a frame (`docs/spec/timeline.md`): a project is made into a [`Scene`] that this
+//! version can draw, and any frame of the scene is made into a display list or drawn on request.
+//! The crate touches no system interface.
+
+mod scene;
+
+pub use scene::{PictureError, Scene};

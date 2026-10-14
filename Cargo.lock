@@ -305,6 +305,7 @@ dependencies = [
  "pixel",
  "probe",
  "project",
+ "timeline",
  "tracing",
 ]
 
@@ -472,6 +473,17 @@ name = "timebase"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "timeline"
+version = "0.1.0"
+dependencies = [
+ "draw",
+ "draw-cpu",
+ "layout",
+ "project",
+ "tracing",
 ]
 
 [[package]]

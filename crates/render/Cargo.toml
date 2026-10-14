@@ -9,6 +9,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+timeline = { workspace = true }
 project = { workspace = true }
 layout = { workspace = true }
 draw = { workspace = true }

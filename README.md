@@ -31,6 +31,8 @@ scripts/gates.sh                  # the six gates, then the tests marked "refere
 
 `scripts/gates.sh --gate lint`, `-p CRATE` and the like run a part and say they are narrowed; a narrowed run exits 3 at best and is never a pass of the gates. The hosted run (`.github/workflows/gates.yml`) runs on `main` and on pull requests only and reports the six gates each by name; its jobs that build fetch frx7 with a read-only deploy key kept in the Actions secret `FRX7_DEPLOY_KEY`. Work branches rely on the local gates.
 
+The hosted run `.github/workflows/other-systems.yml` builds and tests, on a Linux and a Windows runner, exactly the crates that touch no system interface, as recorded in `scripts/gates/system-free.txt` (`scripts/gates/system-free.sh list` works them out, `check` holds the record to the workspace, `test` runs them). A crate added later that touches no system interface fails both jobs, by name, until it is in the record. These jobs build nothing for a user: Framesmith is offered for macOS only.
+
 ### Tests that need the hardware encoder or a graphics card
 
 A test that needs the hardware encoder or a card cannot be judged on a hosted runner. Mark it in one way: its name starts with `reference_machine_only_` and it carries `#[ignore = "reference machine only: <the reason>"]`. The hosted run lists it as not run, by name, and never as passed; `scripts/gates.sh` runs it before every push.
