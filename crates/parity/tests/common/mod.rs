@@ -16,3 +16,22 @@ pub fn folder(name: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
+
+/// Small pictures for the videos the comparison tests write with frx7 (`measure::write_video`).
+pub mod pictures {
+    use measure::Frame;
+
+    pub const WIDTH: u32 = 160;
+    pub const HEIGHT: u32 = 90;
+
+    /// `count` pictures of `width` x `height`: a dark ground, a square that moves right and a still box.
+    pub fn moving(count: usize, width: u32, height: u32) -> Vec<Frame> {
+        measure::moving_pictures(count, width, height)
+    }
+
+    /// The same pictures, except that picture `number` has a green block that covers `percent` of its
+    /// pixels, from the top left, over whole rows.
+    pub fn with_block(frames: &[Frame], number: usize, percent: u32) -> Vec<Frame> {
+        measure::with_green_rows(frames, number, (frames[number].height * percent).div_ceil(100).max(1))
+    }
+}

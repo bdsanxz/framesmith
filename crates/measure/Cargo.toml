@@ -14,3 +14,6 @@ base = { workspace = true }
 format = { workspace = true }
 mp4 = { workspace = true }
 probe = { workspace = true }
+codec = { workspace = true }
+backend-os = { workspace = true }
+pixel = { workspace = true }

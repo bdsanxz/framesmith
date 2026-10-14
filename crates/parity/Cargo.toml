@@ -18,11 +18,11 @@ path = "src/main.rs"
 # The yardstick tests (they start ffmpeg and ffprobe, or the reference, from outside) are run by the
 # runner of `measure::yardstick`, not by the Rust test harness: docs/dev/gates.md, section 5.
 [[test]]
-name = "yardstick_container_facts"
+name = "yardstick_video_reading"
 harness = false
 
 [[test]]
-name = "yardstick_picture_similarity"
+name = "yardstick_pixelmatch_counts"
 harness = false
 
 [[test]]

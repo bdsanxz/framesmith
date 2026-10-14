@@ -26,10 +26,13 @@ measure = { path = "crates/measure" }
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
 # docs/dev/frx7.md says how, and how the pin is moved.
-base = { git = "https://github.com/bdsanxz/frx7", rev = "23b07bc0c72771c9406461fedbe2ae89ffcf2816" }
-format = { git = "https://github.com/bdsanxz/frx7", rev = "23b07bc0c72771c9406461fedbe2ae89ffcf2816" }
-mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "23b07bc0c72771c9406461fedbe2ae89ffcf2816" }
-probe = { git = "https://github.com/bdsanxz/frx7", rev = "23b07bc0c72771c9406461fedbe2ae89ffcf2816" }
+base = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+format = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+probe = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+codec = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
+pixel = { git = "https://github.com/bdsanxz/frx7", rev = "d866734668a6ceefd694a72d60db413f17ca6c66" }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
