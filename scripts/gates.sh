@@ -37,6 +37,9 @@ options:
                 one job for each gate, so --hosted with --gate is not narrowed.
   -h, --help    this text
 
+On a hosted runner that has a job summary file (GITHUB_STEP_SUMMARY), the run ends by printing the
+content of that file into the log, between two marker lines (docs/dev/gates.md, section 13).
+
 A NARROWED run says so on its first and last lines, and exits 3 when its part passed: it is
 never a pass of the gates. Exit codes: 0 all gates passed, 1 a gate failed, 2 wrong usage,
 3 narrowed run whose part passed.
@@ -121,6 +124,36 @@ github_error() {
 github_summary() {
     [ "$ON_GITHUB" -eq 1 ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ] && printf '%s\n' "$1" >>"$GITHUB_STEP_SUMMARY"
     return 0
+}
+
+# At its very end a run on a hosted runner prints the job summary file as it then is, between two marker
+# lines, so that the log of the job holds what the summary page of the job shows: the page of a private
+# repository can be read by nobody who is not signed in, the log can be read by the hosting service's
+# command line (docs/dev/gates.md, section 3). Whatever wrote the content is shown, the script or any
+# program it started. Every line is printed after "| ", so that a line of the content never begins with
+# "::" or "##[" and the runner takes none for a command of its own; a carriage return, which the runner
+# reads as the end of a line, and a null byte are turned into line ends first. A local run prints nothing.
+JOB_SUMMARY_BEGIN="==== framesmith gates: job summary, begin ===="
+print_job_summary() {
+    [ "$ON_GITHUB" -eq 1 ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ] || return 0
+    local body="" count=0
+    echo "$JOB_SUMMARY_BEGIN"
+    if [ -f "$GITHUB_STEP_SUMMARY" ] && [ -r "$GITHUB_STEP_SUMMARY" ]; then
+        body=$(tr '\r\000' '\n\n' <"$GITHUB_STEP_SUMMARY" | sed 's/^/| /')
+        if [ -n "$body" ]; then
+            count=$(printf '%s\n' "$body" | wc -l | tr -d ' ')
+            printf '%s\n' "$body"
+        fi
+        echo "==== framesmith gates: job summary, end ($count line(s)) ===="
+    else
+        echo "==== framesmith gates: job summary, end (the file cannot be read) ===="
+    fi
+}
+
+# Ends the run with the exit code $1, after the job summary was printed.
+finish() {
+    print_job_summary
+    exit "$1"
 }
 
 # Prints the command, runs it with its output streamed and kept in $LOGS/$1.log; the exit code is
@@ -377,7 +410,12 @@ for gate in $WANTED; do
             if [ "$Y_MARKED" -eq 0 ]; then
                 echo "yardstick: 0 marked"
             else
+                # The run sets RUN_CODE to its own exit code. What the plain run and the run of the
+                # reference machine only tests decided stays the verdict of the gate: put it back, or
+                # a passing yardstick run would wipe out a failure of the earlier runs.
+                VERDICT_SO_FAR=$RUN_CODE
                 yardstick_run
+                RUN_CODE=$VERDICT_SO_FAR
                 if [ -n "$Y_FAILED" ]; then
                     RUN_CODE=1
                     problems="$problems"$'\n'"yardstick test failed: $(echo "$Y_FAILED" | tr '\n' ' ' | sed 's/ *$//')"
@@ -432,15 +470,15 @@ if [ "$FAILED" -ne 0 ]; then
     else
         echo "GATES FAILED"
     fi
-    exit 1
+    finish 1
 fi
 if [ "$NARROWED" -eq 1 ]; then
     echo "NARROWED RUN ($NARROWED_WHAT): its part passed. This is NOT a pass of the gates; run scripts/gates.sh with no option."
-    exit 3
+    finish 3
 fi
 if [ "$HOSTED" -eq 1 ]; then
     echo "HOSTED GATE PASSED"
 else
     echo "GATES PASSED"
 fi
-exit 0
+finish 0

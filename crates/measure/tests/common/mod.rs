@@ -3,6 +3,8 @@
 //! a way to run `scripts/gates/frx7.sh` in it.
 #![allow(dead_code)]
 
+pub mod scratch;
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
