@@ -8,6 +8,9 @@ pub enum Verdict {
     Pass,
     Fail,
     NotRun,
+    /// The check has nothing to judge in this fixture (for example no tracked element is marked).
+    /// It is neither a pass nor a fail and does not change the result.
+    NotApplicable,
 }
 
 impl Verdict {
@@ -16,6 +19,7 @@ impl Verdict {
             Verdict::Pass => "pass",
             Verdict::Fail => "fail",
             Verdict::NotRun => "not run",
+            Verdict::NotApplicable => "not applicable",
         }
     }
 }
@@ -71,10 +75,12 @@ impl Report {
     }
 
     /// The verdict of the whole report: pass only when there is at least one check and all of them pass.
+    /// A check that is not applicable is left out: it is neither a pass nor a fail.
     pub fn overall(&self) -> Verdict {
-        if self.checks.iter().any(|c| c.verdict == Verdict::Fail) {
+        let judged: Vec<&Line> = self.checks.iter().filter(|c| c.verdict != Verdict::NotApplicable).collect();
+        if judged.iter().any(|c| c.verdict == Verdict::Fail) {
             Verdict::Fail
-        } else if self.checks.is_empty() || self.checks.iter().any(|c| c.verdict == Verdict::NotRun) {
+        } else if judged.is_empty() || judged.iter().any(|c| c.verdict == Verdict::NotRun) {
             Verdict::NotRun
         } else {
             Verdict::Pass
@@ -85,7 +91,7 @@ impl Report {
         match self.overall() {
             Verdict::Pass => EXIT_PASS,
             Verdict::Fail => EXIT_FAIL,
-            Verdict::NotRun => EXIT_NOT_RUN,
+            Verdict::NotRun | Verdict::NotApplicable => EXIT_NOT_RUN,
         }
     }
 
@@ -93,12 +99,21 @@ impl Report {
         self.sections.push((heading.into(), lines));
     }
 
+    /// The one word of the whole result.
+    pub fn result(&self) -> &'static str {
+        match self.overall() {
+            Verdict::Pass => "passed",
+            Verdict::Fail => "failed",
+            Verdict::NotRun | Verdict::NotApplicable => "not run",
+        }
+    }
+
     /// The report as plain text, one check per line.
     pub fn text(&self) -> String {
         let mut out = format!("{}\n", self.title);
         let width = self.checks.iter().map(|c| c.name.len()).max().unwrap_or(0);
         for c in &self.checks {
-            out.push_str(&format!("  {:<width$}  {:<7}  {}\n", c.name, c.verdict.word(), c.detail));
+            out.push_str(&format!("  {:<width$}  {:<14}  {}\n", c.name, c.verdict.word(), c.detail));
         }
         let mut lists: Vec<(&str, &Vec<String>)> = self.sections.iter().map(|(h, l)| (h.as_str(), l)).collect();
         lists.push(("information only (never fails the comparison)", &self.info));
@@ -112,12 +127,7 @@ impl Report {
                 }
             }
         }
-        let result = match self.overall() {
-            Verdict::Pass => "passed",
-            Verdict::Fail => "failed",
-            Verdict::NotRun => "not run",
-        };
-        out.push_str(&format!("result: {result}\n"));
+        out.push_str(&format!("result: {}\n", self.result()));
         out
     }
 
@@ -128,7 +138,7 @@ impl Report {
             "information": self.info,
             "not_compared": self.not_compared,
             "notes": self.notes,
-            "result": match self.overall() { Verdict::Pass => "passed", Verdict::Fail => "failed", Verdict::NotRun => "not run" },
+            "result": self.result(),
         });
         if let Some(members) = report.as_object_mut() {
             for (name, value) in &self.data {

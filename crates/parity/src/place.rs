@@ -1,5 +1,5 @@
 //! Where the tool may write: never a place that would add a file of the reference to a git
-//! repository (`docs/dev/comparison.md`, section 9).
+//! repository (`docs/dev/comparison.md`, section 10).
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};

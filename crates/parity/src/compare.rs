@@ -1,5 +1,5 @@
-//! The comparison of two videos: the four structural checks and the picture check, as one report
-//! (`docs/dev/comparison.md`, sections 1 to 6). Both videos are read with frx7; no program is
+//! The comparison of two videos: the four structural checks, the picture check, the event check and
+//! the tracking check, as one report (`docs/dev/comparison.md`, sections 1 to 7). Both videos are read with frx7; no program is
 //! started.
 
 use crate::difference;
@@ -7,6 +7,7 @@ use crate::picture::{self, Excuse, Judgement, Scene, State};
 use crate::report::{Report, Verdict};
 use crate::sheet::{self, SheetEntry};
 use crate::structure;
+use crate::tracking::{self, Marks, Seen};
 use measure::{Frame, VideoFacts};
 use serde_json::json;
 use std::path::{Path, PathBuf};
@@ -23,14 +24,13 @@ pub struct Options {
     pub per_frame: bool,
     /// Where to write the sheet of the low frames, if wanted.
     pub sheet: Option<PathBuf>,
+    /// The elements the fixture marks for the event check and the tracking check.
+    pub marks: Marks,
 }
 
 /// The lines of the report that name what was not compared here.
 pub fn not_compared() -> Vec<String> {
-    vec![
-        "the timing of visible events and the tracked position of a moving element (a check of its own)".to_string(),
-        "the sound (a check of its own)".to_string(),
-    ]
+    vec!["the sound (a check of its own)".to_string()]
 }
 
 /// One low frame kept for the sheet.
@@ -59,13 +59,20 @@ pub fn compare(ours: &Path, theirs: &Path, options: &Options) -> Result<Report, 
     report.checks.extend(structure::checks(&a, &b));
     report.not_compared = not_compared();
 
+    options.marks.check()?;
     // Pairing needs the same number of pictures and the same size.
+    let unpaired = |report: &mut Report| {
+        for name in ["events", "tracking"] {
+            report.check(name, Verdict::NotRun, "needs frames that can be paired");
+        }
+    };
     if a.frames != b.frames {
         report.check(
             "picture",
             Verdict::Fail,
             format!("frames cannot be paired: ours has {} frames, reference has {}", a.frames, b.frames),
         );
+        unpaired(&mut report);
         return Ok(report);
     }
     if (a.width, a.height) != (b.width, b.height) {
@@ -77,10 +84,12 @@ pub fn compare(ours: &Path, theirs: &Path, options: &Options) -> Result<Report, 
                 a.width, a.height, b.width, b.height
             ),
         );
+        unpaired(&mut report);
         return Ok(report);
     }
     if a.frames == 0 {
         report.check("picture", Verdict::Fail, "the videos have no frames to compare");
+        unpaired(&mut report);
         return Ok(report);
     }
 
@@ -102,10 +111,13 @@ pub fn compare(ours: &Path, theirs: &Path, options: &Options) -> Result<Report, 
     let sheet_wanted = options.sheet.is_some();
     let mut counts: Vec<(u64, u64)> = Vec::with_capacity(a.frames as usize);
     let mut shown: Vec<Kept> = Vec::new();
+    let (mut seen_ours, mut seen_theirs): (Vec<Seen>, Vec<Seen>) = (Vec::new(), Vec::new());
     for number in 0..a.frames {
         let (Some(x), Some(y)) = (first.next_frame()?, second.next_frame()?) else {
             return Err(format!("a video ended at frame {number} of {}", a.frames));
         };
+        tracking::observe(&options.marks, &x, &mut seen_ours);
+        tracking::observe(&options.marks, &y, &mut seen_theirs);
         let found = difference::compare(&x, &y)?;
         counts.push((found.pixels, found.differing));
         if sheet_wanted && shown.len() < SHEET_FRAMES && picture::is_low(found.pixels, found.differing) {
@@ -122,6 +134,8 @@ pub fn compare(ours: &Path, theirs: &Path, options: &Options) -> Result<Report, 
     }
     let judgement = picture::judge(&counts, &scenes, &options.excuses);
     describe(&mut report, &judgement, options);
+    tracking::event_check(&mut report, &options.marks, &seen_ours, &seen_theirs);
+    tracking::tracking_check(&mut report, &options.marks, &seen_ours, &seen_theirs, options.per_frame);
     if let Some(path) = &options.sheet {
         if shown.is_empty() {
             report.notes.push("no sheet was written: no frame is under 99 %".to_string());
