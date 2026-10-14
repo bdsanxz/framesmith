@@ -3,8 +3,9 @@
 //! (`docs/dev/gates.md`, section 5). Where `bun` is not on the search path, or `pixelmatch` is not in
 //! the modules folder, the test is skipped by name and nothing was compared.
 //!
-//! The modules folder is `node_modules` of the comparison tool's own folder (where `blackbox::default_folder` finds it), or the folder
-//! the variable FRAMESMITH_COMPARISON_MODULES names.
+//! The modules folder is the folder the variable FRAMESMITH_COMPARISON_MODULES names, or else
+//! `pixelmatch/node_modules` of the comparison folder (where `blackbox::default_folder` finds it;
+//! decision B8), or else that folder's own `node_modules`.
 
 mod common;
 
@@ -15,9 +16,15 @@ use parity::difference;
 use std::path::PathBuf;
 
 fn modules() -> PathBuf {
-    match std::env::var_os("FRAMESMITH_COMPARISON_MODULES") {
-        Some(folder) => PathBuf::from(folder),
-        None => blackbox::default_folder(&std::env::current_dir().unwrap_or_default()).join("node_modules"),
+    if let Some(folder) = std::env::var_os("FRAMESMITH_COMPARISON_MODULES") {
+        return PathBuf::from(folder);
+    }
+    let comparison = blackbox::default_folder(&std::env::current_dir().unwrap_or_default());
+    let own = comparison.join("pixelmatch").join("node_modules");
+    if own.join("pixelmatch").is_dir() {
+        own
+    } else {
+        comparison.join("node_modules")
     }
 }
 
