@@ -10,4 +10,5 @@ workspace = true
 
 [dependencies]
 notation = { workspace = true }
+saphyr = { workspace = true }
 tracing = { workspace = true }
