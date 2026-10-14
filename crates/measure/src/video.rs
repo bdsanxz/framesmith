@@ -136,7 +136,7 @@ fn without_alpha(rgba: &Picture) -> Frame {
     let mut rgb = Vec::with_capacity(width * height * 3);
     for row in 0..height {
         let line = &plane.data[row * plane.stride..row * plane.stride + width * 4];
-        for pixel in line.chunks_exact(4) {
+        for pixel in line.as_chunks::<4>().0 {
             rgb.extend_from_slice(&pixel[..3]);
         }
     }
@@ -150,7 +150,13 @@ fn without_alpha(rgba: &Picture) -> Frame {
 /// A picture of red, green, blue and full alpha from 8-bit red, green and blue.
 fn with_alpha(frame: &Frame) -> Picture {
     let mut picture = Picture::new(PixelFormat::Rgba8, frame.width, frame.height);
-    for (rgba, rgb) in picture.planes[0].data.chunks_exact_mut(4).zip(frame.rgb.chunks_exact(3)) {
+    for (rgba, rgb) in picture.planes[0]
+        .data
+        .as_chunks_mut::<4>()
+        .0
+        .iter_mut()
+        .zip(frame.rgb.as_chunks::<3>().0)
+    {
         rgba[..3].copy_from_slice(rgb);
         rgba[3] = 255;
     }
@@ -179,7 +185,10 @@ pub fn write_video(path: &Path, rate: (u32, u32), frames: &[Frame]) -> Result<()
             first.width, first.height
         ));
     }
-    if let Some(other) = frames.iter().find(|frame| (frame.width, frame.height) != (first.width, first.height)) {
+    if let Some(other) = frames
+        .iter()
+        .find(|frame| (frame.width, frame.height) != (first.width, first.height))
+    {
         return Err(format!(
             "a video has one size, and its pictures are {}x{} and {}x{}",
             first.width, first.height, other.width, other.height

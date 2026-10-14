@@ -1,29 +1,36 @@
 //! The command line of the comparison tool.
 
+use crate::compare::Options;
 use crate::report::{Report, EXIT_USAGE};
 use crate::tools::Tools;
-use crate::{blackbox, container, frames, pictures, timing};
-use std::path::PathBuf;
+use crate::{against, blackbox, compare, frames, picture, place, timing};
+use std::path::{Path, PathBuf};
 
 const USAGE: &str = "\
 parity: compare a Framesmith video with the reference's, one fact at a time (development only)
 
+  parity compare <ours.mp4> <reference.mp4> [--scene NAME=FIRST-LAST]... [--excuse FIRST-LAST=CAUSE]...
+                 [--per-frame] [--sheet FILE.png] [--json]
+      frame count, frame rate, size and length, and the picture frame by frame (99 % of pixels the same,
+      on average and in every scene); a frame under 99 % is listed, and passes only with a cause
+  parity against <counterpart-folder> <ours.mp4> --reference-video FILE.mp4 [--fps N] [--quality Q]
+                 [--blackbox DIR] [--browser PATH] [the options of compare]
+      run the reference on a counterpart composition, write its video to FILE.mp4 (a place outside a git
+      repository, or one it ignores), and compare it with ours as compare does; with the reference not
+      installed, every check says not run
   parity reference <counterpart-folder> <output.mp4> [--fps N] [--quality Q] [--blackbox DIR] [--browser PATH]
       run the reference on a counterpart composition (single worker, usage-data and update checks off);
       --fps none passes no frame rate, so the reference fills in its own;
       --blackbox names the folder the reference is installed in; without it, the nearest
       tools/blackbox folder at or above the current folder is used (the workspace's)
-  parity facts <ours.mp4> <reference.mp4> [--json]
-      frame count, frame rate, size, codec and pixel format of the video streams
-  parity pictures <ours.mp4> <reference.mp4> [--samples N] [--threshold X] [--sheet out.png] [--json]
-      SSIM on sampled frames and one side-by-side sheet
   parity timing <ours.mp4> <reference.mp4> --background RRGGBB [--clip RRGGBB] [--mover RRGGBB]
                 [--tolerance N] [--min-pixels N] [--region X,Y,W,H] [--per-frame] [--json]
       frames on which a clip appears and disappears, and the tracked position of one moving element;
       --region looks only inside that rectangle of the picture (positions stay those of the whole picture)
 
 Every report says pass, fail or not run for each check. Exit codes: 0 all passed, 1 a check failed,
-2 the tool was called wrongly, 3 something could not be run (for example the reference is not installed).
+2 the tool was called wrongly or a file could not be read, 3 something could not be run (for example
+the reference is not installed): never 0.
 ";
 
 struct Args {
@@ -54,6 +61,15 @@ fn parse(args: &[String]) -> Result<Args, String> {
 impl Args {
     fn value(&self, name: &str) -> Option<&str> {
         self.options.iter().find(|(n, _)| n == name).and_then(|(_, v)| v.as_deref())
+    }
+
+    /// Every value given for an option that may be repeated, in the order given.
+    fn values(&self, name: &str) -> Vec<&str> {
+        self.options
+            .iter()
+            .filter(|(n, _)| n == name)
+            .filter_map(|(_, v)| v.as_deref())
+            .collect()
     }
 
     fn flag(&self, name: &str) -> bool {
@@ -96,6 +112,24 @@ fn default_blackbox() -> PathBuf {
     blackbox::default_folder(&here)
 }
 
+/// The scenes, the causes and the sheet the maintainer asked for.
+fn comparison_options(args: &Args) -> Result<Options, String> {
+    Ok(Options {
+        scenes: args
+            .values("--scene")
+            .into_iter()
+            .map(picture::parse_scene)
+            .collect::<Result<_, _>>()?,
+        excuses: args
+            .values("--excuse")
+            .into_iter()
+            .map(picture::parse_excuse)
+            .collect::<Result<_, _>>()?,
+        per_frame: args.flag("--per-frame"),
+        sheet: args.value("--sheet").map(PathBuf::from),
+    })
+}
+
 fn show(report: &Report, json: bool) -> (String, i32) {
     let text = if json {
         format!("{}\n", serde_json::to_string_pretty(&report.json()).unwrap_or_default())
@@ -131,21 +165,52 @@ fn run_inner(args: &[String]) -> Result<(String, i32), String> {
             let outcome = blackbox::run(&job);
             Ok((outcome.text(), outcome.exit_code()))
         }
-        "facts" => {
-            args.known(&["--json"])?;
+        "compare" => {
+            args.known(&["--scene", "--excuse", "--per-frame", "--sheet", "--json"])?;
             let (ours, theirs) = args.two_videos()?;
-            let tools = Tools::find()?;
-            Ok(show(&container::compare_files(&tools.ffprobe, &ours, &theirs)?, json))
+            let options = comparison_options(&args)?;
+            if let Some(sheet) = &options.sheet {
+                place::keep_out_of_repositories(sheet, "the sheet")?;
+            }
+            Ok(show(&compare::compare(&ours, &theirs, &options)?, json))
         }
-        "pictures" => {
-            args.known(&["--samples", "--threshold", "--sheet", "--json"])?;
-            let (ours, theirs) = args.two_videos()?;
-            let tools = Tools::find()?;
-            let mut options = pictures::Options::default();
-            options.samples = args.number("--samples")?.unwrap_or(options.samples);
-            options.threshold = args.number("--threshold")?.unwrap_or(options.threshold);
-            options.sheet = args.value("--sheet").map(PathBuf::from);
-            Ok(show(&pictures::compare(&tools, &ours, &theirs, &options)?, json))
+        "against" => {
+            args.known(&[
+                "--reference-video",
+                "--fps",
+                "--quality",
+                "--blackbox",
+                "--browser",
+                "--scene",
+                "--excuse",
+                "--per-frame",
+                "--sheet",
+                "--json",
+            ])?;
+            let [counterpart, ours] = args.positional.as_slice() else {
+                return Err("give the counterpart folder and our video".into());
+            };
+            let output = args
+                .value("--reference-video")
+                .ok_or("--reference-video FILE.mp4 is needed: where the reference's video is written")?;
+            let options = comparison_options(&args)?;
+            // Before the reference is started: nothing of it may land in a repository.
+            place::keep_out_of_repositories(Path::new(output), "the reference's video")?;
+            if let Some(sheet) = &options.sheet {
+                place::keep_out_of_repositories(sheet, "the sheet")?;
+            }
+            let job = blackbox::Job {
+                blackbox: args.value("--blackbox").map_or_else(default_blackbox, PathBuf::from),
+                counterpart: PathBuf::from(counterpart),
+                output: PathBuf::from(output),
+                fps: match args.value("--fps") {
+                    Some("none") => None,
+                    _ => Some(args.number("--fps")?.unwrap_or(blackbox::FPS)),
+                },
+                quality: args.value("--quality").unwrap_or(blackbox::QUALITY).to_string(),
+                browser: args.value("--browser").map(PathBuf::from),
+            };
+            Ok(show(&against::against(&job, Path::new(ours), &options)?, json))
         }
         "timing" => {
             args.known(&[

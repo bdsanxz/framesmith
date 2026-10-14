@@ -33,6 +33,10 @@ pub struct Line {
 pub struct Report {
     pub title: String,
     pub checks: Vec<Line>,
+    /// Lists the maintainer reads after the checks (for example the frames under 99 %): a heading and its lines.
+    pub sections: Vec<(String, Vec<String>)>,
+    /// More members of the JSON report, for what the text shows as lists.
+    pub data: Vec<(String, Value)>,
     /// Facts that differ but are not on the agreed list; they never fail a comparison.
     pub info: Vec<String>,
     /// Things that were deliberately not compared.
@@ -85,6 +89,10 @@ impl Report {
         }
     }
 
+    pub fn section(&mut self, heading: impl Into<String>, lines: Vec<String>) {
+        self.sections.push((heading.into(), lines));
+    }
+
     /// The report as plain text, one check per line.
     pub fn text(&self) -> String {
         let mut out = format!("{}\n", self.title);
@@ -92,11 +100,11 @@ impl Report {
         for c in &self.checks {
             out.push_str(&format!("  {:<width$}  {:<7}  {}\n", c.name, c.verdict.word(), c.detail));
         }
-        for (heading, lines) in [
-            ("information only (never fails the comparison)", &self.info),
-            ("not compared in this sprint", &self.not_compared),
-            ("notes", &self.notes),
-        ] {
+        let mut lists: Vec<(&str, &Vec<String>)> = self.sections.iter().map(|(h, l)| (h.as_str(), l)).collect();
+        lists.push(("information only (never fails the comparison)", &self.info));
+        lists.push(("not compared in this sprint", &self.not_compared));
+        lists.push(("notes", &self.notes));
+        for (heading, lines) in lists {
             if !lines.is_empty() {
                 out.push_str(&format!("{heading}:\n"));
                 for line in lines {
@@ -114,13 +122,19 @@ impl Report {
     }
 
     pub fn json(&self) -> Value {
-        json!({
+        let mut report = json!({
             "title": self.title,
             "checks": self.checks.iter().map(|c| json!({"name": c.name, "verdict": c.verdict.word(), "detail": c.detail})).collect::<Vec<_>>(),
             "information": self.info,
             "not_compared": self.not_compared,
             "notes": self.notes,
             "result": match self.overall() { Verdict::Pass => "passed", Verdict::Fail => "failed", Verdict::NotRun => "not run" },
-        })
+        });
+        if let Some(members) = report.as_object_mut() {
+            for (name, value) in &self.data {
+                members.insert(name.clone(), value.clone());
+            }
+        }
+        report
     }
 }

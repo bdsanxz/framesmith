@@ -1,30 +1,35 @@
-//! The side-by-side sheet: every sampled frame from both videos, with its frame number.
+//! The sheet: for each frame listed as low, ours, the reference's and the pixels that differ, side
+//! by side, with the frame number and the score.
 //!
-//! The installed `ffmpeg` may lack `drawtext`, so the numbers are drawn here with a small built-in
-//! bitmap font, and `ffmpeg` encodes the finished picture as a PNG file.
+//! The numbers are drawn here with a small built-in bitmap font and the picture is saved as a PNG
+//! file by [`crate::png`], so that no program is started to make the sheet.
 
 use measure::Frame;
-use std::io::Write;
 use std::path::Path;
-use std::process::{Command, Stdio};
 
-/// One pair of frames and what to print above it.
+/// One frame to put on the sheet.
 pub struct SheetEntry<'a> {
-    pub frame: usize,
-    pub ssim: f64,
+    pub frame: u64,
+    /// The score written as `87.500`.
+    pub score: String,
+    /// `fail` or `excused`.
+    pub state: &'a str,
     pub ours: &'a Frame,
     pub theirs: &'a Frame,
+    /// Where the two differ, row by row.
+    pub mask: &'a [bool],
 }
 
 /// Width of each thumbnail on the sheet.
-pub const THUMB_WIDTH: u32 = 480;
+pub const THUMB_WIDTH: u32 = 256;
 const GAP: u32 = 6;
 const MARGIN: u32 = 10;
-const LABEL_SCALE: u32 = 3;
+const LABEL_SCALE: u32 = 2;
 const LABEL_HEIGHT: u32 = 7 * LABEL_SCALE + 8;
-const COLUMNS: u32 = 2;
 const BACKGROUND: [u8; 3] = [0x30, 0x30, 0x34];
 const TEXT: [u8; 3] = [0xf0, 0xf0, 0xf0];
+/// The colour of a pixel that differs on the third picture.
+pub const MARK: [u8; 3] = [0xff, 0x20, 0x20];
 
 /// A drawing surface of 8-bit RGB.
 pub struct Canvas {
@@ -70,21 +75,29 @@ fn glyph(c: char) -> Option<[&'static str; 7]> {
         '7' => ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
         '8' => ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
         '9' => ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+        '%' => ["11001", "11010", "00010", "00100", "01000", "01011", "10011"],
+        '-' => ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+        ':' => ["00000", "00100", "00100", "00000", "00100", "00100", "00000"],
         'A' => ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
         'C' => ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+        'D' => ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
         'E' => ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
         'F' => ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
         'G' => ["01110", "10001", "10000", "10111", "10001", "10001", "01111"],
         'H' => ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
         'I' => ["01110", "00100", "00100", "00100", "00100", "00100", "01110"],
+        'K' => ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
         'L' => ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
         'M' => ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
         'N' => ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
         'O' => ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+        'P' => ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
         'R' => ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
         'S' => ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
         'T' => ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
         'U' => ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+        'V' => ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+        'X' => ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
         _ => return None,
     })
 }
@@ -149,26 +162,54 @@ fn blit(target: &mut Canvas, source: &Canvas, left: u32, top: u32) {
 
 /// Where everything goes on the sheet.
 pub struct Layout {
-    /// The `(left, top)` of each pair's cell.
+    /// The `(left, top)` of each entry's row, label included.
     pub spots: Vec<(u32, u32)>,
-    /// The size of one cell.
-    pub cell: (u32, u32),
     /// The size of the whole sheet.
     pub size: (u32, u32),
 }
 
-/// The layout for `count` pairs whose thumbnails are `thumb_height` tall. The first row is a legend.
+/// The width of one row: three thumbnails with a gap between.
+const ROW_WIDTH: u32 = THUMB_WIDTH * 3 + GAP * 2;
+
+/// The layout for `count` entries whose thumbnails are `thumb_height` tall, one row each under a
+/// row that names the three pictures.
 pub fn layout(count: usize, thumb_height: u32) -> Layout {
-    let cell = (THUMB_WIDTH * 2 + GAP, LABEL_HEIGHT + thumb_height);
-    let rows = (count as u32).div_ceil(COLUMNS);
-    let legend = LABEL_HEIGHT + 4;
-    let mut spots = Vec::new();
-    for i in 0..count as u32 {
-        let (col, row) = (i % COLUMNS, i / COLUMNS);
-        spots.push((MARGIN + col * (cell.0 + MARGIN), legend + MARGIN + row * (cell.1 + MARGIN)));
+    let legend = LABEL_HEIGHT;
+    let row = LABEL_HEIGHT + thumb_height + MARGIN;
+    let spots = (0..count as u32).map(|i| (MARGIN, MARGIN + legend + MARGIN + i * row)).collect();
+    Layout {
+        spots,
+        size: (ROW_WIDTH + 2 * MARGIN, MARGIN + legend + MARGIN + count as u32 * row),
     }
-    let size = (MARGIN + COLUMNS * (cell.0 + MARGIN), legend + MARGIN + rows * (cell.1 + MARGIN));
-    Layout { spots, cell, size }
+}
+
+/// Shrinks the third picture: a thumbnail pixel is marked when any pixel under it differs, so that a
+/// small difference does not fade away; the others show ours in pale grey.
+fn shrink_marked(frame: &Frame, mask: &[bool], width: u32) -> Canvas {
+    let height = (frame.height * width).div_ceil(frame.width).max(1);
+    let mut out = Canvas::new(width, height, [0, 0, 0]);
+    for y in 0..height {
+        let (y0, y1) = (
+            y * frame.height / height,
+            (((y + 1) * frame.height).div_ceil(height)).min(frame.height),
+        );
+        for x in 0..width {
+            let (x0, x1) = (x * frame.width / width, (((x + 1) * frame.width).div_ceil(width)).min(frame.width));
+            let (mut marked, mut luma, mut n) = (false, 0u32, 0u32);
+            for sy in y0..y1.max(y0 + 1) {
+                for sx in x0..x1.max(x0 + 1) {
+                    let (sx, sy) = (sx.min(frame.width - 1), sy.min(frame.height - 1));
+                    marked |= mask.get((sy * frame.width + sx) as usize).copied().unwrap_or(false);
+                    let p = frame.pixel(sx, sy);
+                    luma += (u32::from(p[0]) * 3 + u32::from(p[1]) * 6 + u32::from(p[2])) / 10;
+                    n += 1;
+                }
+            }
+            let pale = 200 + (luma / n.max(1)) / 5;
+            out.put(x, y, if marked { MARK } else { [pale as u8; 3] });
+        }
+    }
+    out
 }
 
 /// Draws the sheet without saving it.
@@ -177,53 +218,43 @@ pub fn draw(entries: &[SheetEntry]) -> Canvas {
     let Layout {
         spots,
         size: (width, height),
-        ..
     } = layout(entries.len(), thumb_height);
     let mut canvas = Canvas::new(width, height, BACKGROUND);
-    draw_text(&mut canvas, MARGIN, MARGIN, "LEFT OURS   RIGHT REFERENCE", LABEL_SCALE, TEXT);
+    for (at, name) in ["OURS", "REFERENCE", "DIFFERENT PIXELS"].iter().enumerate() {
+        draw_text(
+            &mut canvas,
+            MARGIN + at as u32 * (THUMB_WIDTH + GAP),
+            MARGIN + 4,
+            name,
+            LABEL_SCALE,
+            TEXT,
+        );
+    }
     for (entry, &(left, top)) in entries.iter().zip(&spots) {
-        let label = format!("FRAME {}   SSIM {:.4}", entry.frame, entry.ssim);
+        let label = format!("FRAME {}  SCORE {} %  {}", entry.frame, entry.score, entry.state);
         draw_text(&mut canvas, left, top + 4, &label, LABEL_SCALE, TEXT);
         let y = top + LABEL_HEIGHT;
         blit(&mut canvas, &shrink(entry.ours, THUMB_WIDTH), left, y);
         blit(&mut canvas, &shrink(entry.theirs, THUMB_WIDTH), left + THUMB_WIDTH + GAP, y);
+        blit(
+            &mut canvas,
+            &shrink_marked(entry.ours, entry.mask, THUMB_WIDTH),
+            left + 2 * (THUMB_WIDTH + GAP),
+            y,
+        );
     }
     canvas
 }
 
-/// Writes one PNG sheet; `ffmpeg` does the encoding.
-pub fn write(ffmpeg: &Path, entries: &[SheetEntry], path: &Path) -> Result<(), String> {
+/// Writes one PNG sheet, making the folder it goes in.
+pub fn write(entries: &[SheetEntry], path: &Path) -> Result<(), String> {
     if entries.is_empty() {
         return Err("there is nothing to put on the sheet".into());
     }
     let canvas = draw(entries);
+    let bytes = crate::png::encode(canvas.width, canvas.height, &canvas.rgb)?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("{} could not be made ({e})", parent.display()))?;
     }
-    let mut child = Command::new(ffmpeg)
-        .args(["-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s"])
-        .arg(format!("{}x{}", canvas.width, canvas.height))
-        .args(["-i", "-", "-frames:v", "1"])
-        .arg(path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("{} could not be run: {e}", ffmpeg.display()))?;
-    child
-        .stdin
-        .take()
-        .ok_or("ffmpeg gave no input channel")?
-        .write_all(&canvas.rgb)
-        .map_err(|e| format!("the sheet could not be sent to ffmpeg ({e})"))?;
-    let output = child
-        .wait_with_output()
-        .map_err(|e| format!("ffmpeg could not be waited for ({e})"))?;
-    if !output.status.success() {
-        return Err(format!(
-            "ffmpeg could not write the sheet: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
-    }
-    Ok(())
+    std::fs::write(path, bytes).map_err(|e| format!("the sheet {} could not be written ({e})", path.display()))
 }
