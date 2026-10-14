@@ -1,7 +1,52 @@
-//! The value forms the root uses (`docs/spec/notation.md` section 4): a number that is whole, a
-//! time, a colour. Each reads a written value that has already lost its surrounding white space.
+//! The value forms (`docs/spec/notation.md` section 4): a number, a number that is whole, a time, a
+//! colour. Each reads a written value that has already lost its surrounding white space.
 
 use timebase::Time;
+
+/// Why a written value is not a number.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum NotANumber {
+    /// It is not written as an optional sign, digits with an optional point, and an optional
+    /// exponent: a word, a unit, a percent sign, `inf`, `nan`, an empty value.
+    Form,
+    /// It is written as a number and is too large to be one: a number must be finite (N9).
+    TooLarge,
+}
+
+/// The value of a number (N9): an optional `+` or `-`, digits with an optional point (`.5` and `5.`
+/// are numbers), and an optional exponent. `inf`, `infinity` and `nan` are not numbers, and neither
+/// is a value that is too large to be finite.
+pub(crate) fn number(text: &str) -> Result<f64, NotANumber> {
+    let bytes = text.as_bytes();
+    let mut at = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
+    let integer = take_digits(bytes, &mut at).len();
+    let mut fraction = 0;
+    if bytes.get(at) == Some(&b'.') {
+        at += 1;
+        fraction = take_digits(bytes, &mut at).len();
+    }
+    if integer == 0 && fraction == 0 {
+        return Err(NotANumber::Form);
+    }
+    if matches!(bytes.get(at), Some(b'e' | b'E')) {
+        at += 1;
+        if matches!(bytes.get(at), Some(b'+' | b'-')) {
+            at += 1;
+        }
+        if take_digits(bytes, &mut at).is_empty() {
+            return Err(NotANumber::Form);
+        }
+    }
+    if at != bytes.len() {
+        return Err(NotANumber::Form);
+    }
+    // The text has the form of a decimal number, which the standard reader takes whole.
+    match text.parse::<f64>() {
+        Ok(value) if value.is_finite() => Ok(value),
+        Ok(_) => Err(NotANumber::TooLarge),
+        Err(_) => Err(NotANumber::Form),
+    }
+}
 
 /// The value of a whole number, or `None` when the text is not a number or has a fraction.
 ///
