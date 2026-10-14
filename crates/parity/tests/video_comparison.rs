@@ -314,3 +314,15 @@ fn a_file_that_is_not_a_video_is_an_error_that_names_it_and_no_report_is_made() 
     let why = compare(&missing, &ours, &Options::default()).unwrap_err();
     assert!(why.contains("missing.mp4"), "{why}");
 }
+
+#[test]
+fn two_files_written_separately_from_the_same_pictures_pass_the_picture_check() {
+    let dir = folder("video_comparison_written_twice");
+    let pictures = moving(24, WIDTH, HEIGHT);
+    let ours = write(&dir, "ours.mp4", (30, 1), &pictures);
+    let theirs = write(&dir, "theirs.mp4", (30, 1), &pictures);
+    let report = compare(&ours, &theirs, &Options::default()).unwrap();
+    // The encoder is the system's; two files of the same pictures are the same to the measure.
+    assert_eq!(report.overall(), Verdict::Pass, "{}", report.text());
+    assert!(line(&report, "picture").detail.ends_with("no frame under 99 %"));
+}

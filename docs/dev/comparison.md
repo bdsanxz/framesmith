@@ -16,7 +16,7 @@ Two videos of one fixture, "ours" and "the reference's". Both are MP4 files whos
 | length | the two picture tracks play for the same time |
 | picture | the average over all frames, and the result of every scene, are at 99 % or better (section 4) |
 
-Timing of visible events and the tracked position of a moving element are the next ticket's; sound is the one after. The report names them as not compared (section 6). The older commands of the tool for timing (`parity timing`) and for starting the reference (`parity reference`) go on as they were; `parity timing` still reads its pictures with an outside program until its own ticket moves it to frx7.
+Timing of visible events and the tracked position of a moving element are the next ticket's; sound is the one after. The report names them as not compared (section 6). The commands of the tool for timing (`parity timing`) and for starting the reference alone (`parity reference`) go on as they were; `parity timing` still reads its pictures with an outside program until its own ticket moves it to frx7. The two older commands that read videos with an outside program, `parity facts` (the facts of the streams, compared one by one) and `parity pictures` (a similarity score on eight sampled frames), are replaced by `parity compare` and `parity against`: the sampled score is not the agreed check, which is 99 % of pixels on every frame.
 
 ## 2. Reading the two videos
 
@@ -66,7 +66,7 @@ Every other setting of `pixelmatch` is at its default, and none of them touches 
 
 The values 0.1 and "anti-aliasing not counted" are `pixelmatch`'s own defaults; `PLAN.md` 5.1 says "at the settings recorded in E9", and the record of E9 (`POC_PLAN.md`) names no other. They are fixed here under decision A29 and are the owner's to change.
 
-**Held to the real `pixelmatch`.** The count of this tool is the count of `pixelmatch` 8.0.0 on the same two pictures: a yardstick test (`crates/parity/tests/yardstick_pixelmatch_counts.rs`) runs the real `pixelmatch` with `bun` on the same pairs, among them 100,000 pairs of colours, pictures of shapes with anti-aliased edges, and pictures of noise, and requires the two counts to be equal on every pair. Where `bun` or the packages `pixelmatch` and `pngjs` are not installed in `tools/blackbox/node_modules/` (decision A18) the yardstick test is skipped, by name, and counts as nothing compared (`docs/dev/gates.md`, section 5).
+**Held to the real `pixelmatch`.** The count of this tool is the count of `pixelmatch` 8.0.0 on the same two pictures: a yardstick test (`crates/parity/tests/yardstick_pixelmatch_counts.rs`) runs the real `pixelmatch` with `bun` on the same pairs, among them 100,000 pairs of colours, pictures of shapes with anti-aliased edges, and pictures of noise, and requires the two counts to be equal on every pair. The test needs `bun` on the search path and the package `pixelmatch` in `node_modules` of the comparison folder (`tools/blackbox/`, decision A18), or in the folder the variable `FRAMESMITH_COMPARISON_MODULES` names; the test hands the pictures to `bun` as raw bytes, so `pngjs` is not needed. Where either is missing the yardstick test is skipped, by name, and counts as nothing compared (`docs/dev/gates.md`, section 5). Where two neighbours are equally dark (or equally light), the detector keeps the one it meets first, going down each column from the left, as `pixelmatch` does; the first run of this tool's code that went along the rows gave 111 against `pixelmatch`'s 109 on one of the pictures of shapes, and the yardstick test is what found it.
 
 ### 4.3 The score of a frame
 
@@ -74,13 +74,13 @@ The **score** of a frame is the share of its pixels that are the same, as a perc
 
 ### 4.4 Scenes
 
-A scene is a range of frames with a name, written in the fixture's record. The tool takes them on the command line, `--scene NAME=FIRST-LAST`, once for each scene; FIRST and LAST are frame numbers from 0, both included (`intro=0-29`; a scene of one frame is `hold=30-30`). When none is given, there is one scene, called `all`, with every frame.
+A scene is a range of frames with a name, written in the fixture's record. The tool takes them on the command line, `--scene NAME=FIRST-LAST`, once for each scene; FIRST and LAST are frame numbers from 0, both included (`intro=0-29`; a scene of one frame is `hold=30-30` or `hold=30`). Scene names are not used twice. When none is given, there is one scene, called `all`, with every frame.
 
 The scenes must cover the frames exactly: no frame in two scenes, no frame in none, none past the last frame. A set of scenes that does not is a mistake in how the tool was called (exit code 2), and the message names the first frame it found wrong. The tool does not guess a scene for a frame the record leaves out, because a frame that belongs to no scene would be judged by nothing.
 
 ### 4.5 A cause for a low frame
 
-A low frame is allowed only with a **named cause**, recorded by the maintainer for that frame: `--excuse FIRST-LAST=CAUSE` (or `--excuse N=CAUSE` for one frame), once for each cause. The cause is a sentence in the maintainer's words and it is shown in the report. An empty cause is a mistake (exit code 2). A low frame with a cause is **excused**; a low frame without one **fails**. An excuse never changes a score: the frame keeps the score that was measured, it is counted with that score in every average, and it is shown as excused and never as passed. A cause recorded for a frame that is not low is not used, and the report says so in a note, naming the frame.
+A low frame is allowed only with a **named cause**, recorded by the maintainer for that frame: `--excuse FIRST-LAST=CAUSE` (or `--excuse N=CAUSE` for one frame), once for each cause. The cause is a sentence in the maintainer's words and it is shown in the report. An empty cause is a mistake (exit code 2). A low frame with a cause is **excused**; a low frame without one **fails**. An excuse never changes a score: the frame keeps the score that was measured, it is counted with that score in every average, and it is shown as excused and never as passed. A cause recorded for a frame that is not low is not used, and the report says so in a note, naming the frames. A cause for a frame past the last, or two causes for one frame, is a mistake in how the tool was called (exit code 2); the message names the frame and, for two, both causes.
 
 ### 4.6 The results
 
@@ -93,10 +93,10 @@ For every frame the report knows its score and its state: `ok` (not low), `excus
 
 - the `picture` line: pass or fail, the average over all frames (to three decimals), the number of frames compared, the lowest score with its frame number, and how many frames are under 99 % (and how many of them are excused);
 - one line for every scene: `scene NAME (frames FIRST-LAST)`, pass or fail, the scene's average, and the lowest frame of it;
-- the list "frames under 99 %": every low frame, in the order of their numbers, with the frame number, the score, `fail` or `excused`, and the cause of an excused one. A frame at 100 % is in no list, and the list is empty when no frame is low;
+- the list "frames under 99 %": every low frame, in the order of their numbers, with the frame number, the score, `fail` or `excused (not passed): CAUSE`. A frame at 100 % is in no list, and the list holds the one word `none` when no frame is low;
 - with `--per-frame`, the score of every frame as well, so that "100 % on every frame" can be read frame by frame; the JSON always holds every frame.
 
-With `--sheet FILE` the tool writes one picture (a PNG file) that shows, for up to the first 12 frames of the list of low frames, ours, the reference's and the pixels that differ, each labelled with the frame number and the score.
+With `--sheet FILE.png` the tool writes one picture (a PNG file, written by the tool itself: no program is started and no library is used) with a row for each of the first 12 frames of the list of low frames: ours, the reference's, and a third picture that marks in red every pixel that differs (a marked pixel of the third picture stands for any differing pixel under it, so that a small difference does not fade) over a pale grey of ours. Each row is labelled with the frame number, the score and `fail` or `excused`. When no frame is low, no sheet is written and a note says so.
 
 ## 5. The report
 
@@ -120,12 +120,12 @@ The report ends its checks with the lines of what it did not compare, so that a 
 ```
 parity compare <ours.mp4> <reference.mp4> [--scene NAME=FIRST-LAST]... [--excuse FIRST-LAST=CAUSE]...
                [--per-frame] [--sheet FILE.png] [--json]
-    the five checks of section 1, on two videos that exist
+    the checks of section 1, on two videos that exist; exit code 0, 1 or 2
 
 parity against <counterpart-folder> <ours.mp4> --reference-video FILE.mp4 [--fps N] [--quality Q]
                [--blackbox DIR] [--browser PATH] [--scene ...] [--excuse ...] [--per-frame] [--sheet ...] [--json]
-    runs the reference on a counterpart composition, writes its video to FILE.mp4, and compares it
-    with ours as `compare` does
+    runs the reference on a counterpart composition, writes its video to FILE.mp4 (a place section 9 allows),
+    and compares it with ours as `compare` does; exit code 0, 1, 2 or 3
 ```
 
 `parity reference` runs the reference alone, as it did, and ends with 0 when the video was made, 1 when the reference failed, 3 when it is not installed.
@@ -135,7 +135,7 @@ parity against <counterpart-folder> <ours.mp4> --reference-video FILE.mp4 [--fps
 `parity against` needs the reference. When it is not installed in the folder (`tools/blackbox/` of the workspace root, or the folder `--blackbox` names), or the runtime its command needs is missing, nothing is run and nothing is compared. The report names the reference as not run, with the reason and the folder, and every check of the report is a line of its own with the word `not run`:
 
 ```
-parity: ours (ours.mp4) against the reference's render
+parity: ours (ours.mp4) against the reference's render of counterpart
   reference render  not run  the reference is not installed under tools/blackbox (nothing was run)
   frame count       not run  needs the reference's render
   frame rate        not run  needs the reference's render
@@ -153,12 +153,14 @@ When the reference is installed and fails to render, the line `reference render`
 
 - The counterpart composition is read, never copied. It lives in `tools/blackbox/pairs/` outside both repositories.
 - The reference runs with the folder it is installed in as its working folder, and it keeps its own state (a cache of frames, a home folder) in `state/` of that folder (`crates/parity/src/blackbox.rs`).
-- The reference's video is written only where `--reference-video` says. The tool **refuses** a place that would add the file to a git repository: a place inside a work tree of git that git would not ignore. The refusal is made before the reference is started, names the place and the repository, and ends with exit code 2. A place inside a work tree that its `.gitignore` covers is allowed, and so is any place outside a repository.
-- The tool writes no other file of the reference's. It writes the sheet (section 4.7) only where `--sheet` says, and the same refusal applies to it.
+- The reference's video is written only where `--reference-video` says. The tool **refuses** a place that would add the file to a git repository: a place inside a work tree of git that git would not ignore. The tool finds the repository by the nearest folder at or above the place (a link such as `/var` followed) that holds a `.git`, and asks `git check-ignore` whether git would ignore the place; where git cannot be started or cannot say, the place is refused, never guessed. The refusal is made before the reference is started (and before the absence of the reference is looked at), names the place and the repository, and ends with exit code 2. A place inside a work tree that its `.gitignore` covers is allowed, and so is any place outside a repository. Looking at the place starts `git` and nothing else, and only for a place inside a repository.
+- The tool writes no other file of the reference's. It writes the sheet (section 4.7) only where `--sheet` says, and the same refusal applies to it, for `compare` as for `against`.
 - The tests start a stand-in for the reference in a repository of their own and require `git status` to show nothing after the run.
 
 ## 10. Held to this document
 
 The tests of `crates/parity` and `crates/measure` are the link from each rule above to the code; their names say what they cover. Two classes are not core tests and are named as yardstick tests: those that start `bun` with `pixelmatch` (section 4.2), and those that start the reference. The core tests start no program of the reference's kind and no `ffmpeg` or `ffprobe`: the videos they use are written by `measure::write_video`, which encodes with the operating system's own encoder through frx7, and the picture check is the tool's own.
 
-The test videos are small: 320 x 180 pixels, 24 to 60 frames. A video encoded for lossy storage is not the same to the bit as the pictures that were encoded; the tests that need "equal frames" give the tool two files with the same pictures and require 100 % on every frame, which the encoder gives for the same pictures with the same settings, and the tests that need a difference give frames that differ by a large block of pixels, far above the loss of the coding.
+The test videos are small: 160 x 90 pixels, 12 to 40 frames. A video encoded for lossy storage is not the same to the bit as the pictures that were encoded; the tests that need "equal frames" give the tool a file and a copy of it and require 100 % on every frame, and one more test gives it two files written separately from the same pictures and requires the check to pass (the system's encoder gave 100.000 % on every frame in each run measured), and the tests that need a difference give frames that differ by a large block of pixels, far above the loss of the coding.
+
+The yardstick tests are `crates/parity/tests/yardstick_pixelmatch_counts.rs` (section 4.2) and `crates/parity/tests/yardstick_video_reading.rs`, which holds the facts frx7 reads to `ffprobe`'s and the pictures it decodes to FFmpeg's (the count of pixels that differ by the measure of section 4.2 is at most half a percent of the picture; 0.2 % was the most measured, on hard-edged squares where the two converters round the chroma differently).

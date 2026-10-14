@@ -3,7 +3,7 @@
 //! (`docs/dev/gates.md`, section 5). Where `bun` is not on the search path, or `pixelmatch` is not in
 //! the modules folder, the test is skipped by name and nothing was compared.
 //!
-//! The modules folder is `node_modules` of the comparison folder (`tools/blackbox`), or the folder
+//! The modules folder is `node_modules` of the comparison tool's own folder (where `blackbox::default_folder` finds it), or the folder
 //! the variable FRAMESMITH_COMPARISON_MODULES names.
 
 mod common;
