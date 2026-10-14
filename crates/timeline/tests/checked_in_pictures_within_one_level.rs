@@ -2,7 +2,6 @@
 //! every value, and the largest difference found is printed (`docs/spec/timeline.md` section 3).
 
 #[path = "../../render/tests/common/png.rs"]
-#[allow(dead_code)]
 mod png;
 
 use draw_cpu::CpuRenderer;

@@ -115,7 +115,8 @@ impl Scene {
             green: root.background.green,
             blue: root.background.blue,
         };
-        tracing::debug!(boxes = boxes.len(), frames = root.frames, "scene made");
+        // The component stays the one `docs/spec/run-log.md` section 4 names for this line.
+        tracing::debug!(target: "render::scene", boxes = boxes.len(), frames = root.frames, "scene made");
         Ok(Scene {
             width: root.width,
             height: root.height,
