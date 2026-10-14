@@ -17,21 +17,23 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "backend-os"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
  "codec",
+ "format",
+ "mp4",
 ]
 
 [[package]]
 name = "base"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 
 [[package]]
 name = "bitstream"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
 ]
@@ -59,7 +61,7 @@ dependencies = [
 [[package]]
 name = "codec"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
  "format",
@@ -110,7 +112,7 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 [[package]]
 name = "format"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
 ]
@@ -170,6 +172,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "mix"
+version = "0.1.0"
+
+[[package]]
 name = "motion"
 version = "0.1.0"
 dependencies = [
@@ -180,7 +186,7 @@ dependencies = [
 [[package]]
 name = "mp4"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
  "format",
@@ -241,7 +247,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 [[package]]
 name = "pixel"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
 ]
@@ -255,11 +261,12 @@ checksum = "4a6394b9e965e73d0a289ee54f589087e2c676aedf60885baf52c76b771e4958"
 [[package]]
 name = "probe"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=d866734668a6ceefd694a72d60db413f17ca6c66#d866734668a6ceefd694a72d60db413f17ca6c66"
+source = "git+https://github.com/bdsanxz/frx7?rev=495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e#495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e"
 dependencies = [
  "base",
  "bitstream",
  "format",
+ "mp4",
 ]
 
 [[package]]
@@ -301,6 +308,7 @@ dependencies = [
  "format",
  "layout",
  "measure",
+ "mix",
  "mp4",
  "pixel",
  "probe",

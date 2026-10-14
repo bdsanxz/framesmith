@@ -74,6 +74,7 @@ Oldest row first. A row's old revision is the previous row's new one; the first 
 |---|---|---|---|
 | 2026-10-14 | `none` | `23b07bc0c72771c9406461fedbe2ae89ffcf2816` | First pin: the head of frx7's `main` on the day Framesmith was first built against it; it passed frx7's local gates and its hosted run 38476900117, and it holds the container reader and writer and the probe the first use needs (section 8). |
 | 2026-10-14 | `23b07bc0c72771c9406461fedbe2ae89ffcf2816` | `d866734668a6ceefd694a72d60db413f17ca6c66` | The head of frx7's `main` on 2026-10-14; it passed frx7's local gates and the five jobs of its hosted run 38495049627, and it holds the encoding and decoding of H.264 through the system's codecs behind `codec`'s interfaces and the reading of H.264 and HEVC headers by `probe`, which the comparison of a render with the reference's render needs. |
+| 2026-10-14 | `d866734668a6ceefd694a72d60db413f17ca6c66` | `495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e` | The head of frx7's `main` on 2026-10-14 after its T016 was merged; it holds AAC written through the system's encoder at a constant bit rate and read back to the sample by its edit list, which the sound track of every render needs. |
 
 ## 6. The gate "frx7 pin"
 
