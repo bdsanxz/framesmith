@@ -49,6 +49,7 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `project` | `project file judged` | `problems` (how many) | The project file was read as text and judged |
 | debug | `project` | `composition file read` | `bytes` (its size) | The composition the project names (`composition.xml` when it names none) exists and was read |
 | debug | `project` | `root judged` | `problems` (how many) | The composition file was judged: its root, and the form of everything under it |
+| debug | `cli` | `settings chosen` | `options` (how many settings an option gave) | `render` took the settings by the rule of `render-command.md` section 1.1, before the scene is made |
 | debug | `render::scene` | `scene made` | `boxes` (how many boxes the scene holds), `frames` | `render` made the scene of an opened project that this version draws (`render-command.md` section 3) |
 | info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor`) | The first frame is about to be drawn |
 | debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |
@@ -68,7 +69,7 @@ The outcome and the level of the last line:
 | `invalid` | warn | 1 | The project file or the composition has problems (for `render` also `FS-0034`); the reports were printed |
 | `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`, and `FS-0035` for `render`); they were printed |
 | `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028`) |
-| `command line not read` | warn | 1 | The words after the program's name are not a command (`FS-0017`) |
+| `command line not read` | warn | 1 | The words after the program's name are not a command (`FS-0017`), or an option of `render` or its value is not taken (`FS-0037`) |
 
 So a maintainer finds, for a `check`, a line for the command with its inputs and a line for its result under one run id, at the default level; the steps in between are there at `debug` and `trace`. A line states a code and a count, never a message: the messages of a report quote the file's values and are printed to the author, not kept (section 6).
 

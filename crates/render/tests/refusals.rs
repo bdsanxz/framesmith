@@ -276,7 +276,7 @@ fn with_project_file(name: &str, yaml: &str) -> Result<Scene, Vec<String>> {
 #[test]
 fn a_render_setting_this_version_does_not_apply_is_unsupported_with_the_line_of_its_value() {
     let yaml =
-        "name: demo\nrender:\n  backend: gpu\n  quality: high\n  encoder: software\n  codec: hevc\n  workers: 4\n  audio-bitrate: 128\n";
+        "name: demo\nrender:\n  backend: gpu\n  quality: high\n  encoder: software\n  codec: hevc\n  workers: 4\n  audio-bitrate: 32\n";
     let reports = with_project_file("settings", yaml).unwrap_err();
     assert_eq!(
         reports,
@@ -286,7 +286,7 @@ fn a_render_setting_this_version_does_not_apply_is_unsupported_with_the_line_of_
             "framesmith.yaml 5 FS-0035 `render.encoder: software` is not supported by this version, which takes hardware",
             "framesmith.yaml 6 FS-0035 `render.codec: hevc` is not supported by this version, which takes h264",
             "framesmith.yaml 7 FS-0035 `render.workers: 4` is not supported by this version, which takes auto or 1",
-            "framesmith.yaml 8 FS-0035 `render.audio-bitrate: 128` is not supported by this version, which takes 192",
+            "framesmith.yaml 8 FS-0035 `render.audio-bitrate: 32` is not supported by this version, which takes 64 to 320",
         ]
     );
 }
@@ -321,4 +321,47 @@ fn the_composition_that_is_read_is_the_one_the_project_names() {
         shown(&reports[0]),
         "scenes/main.xml 2 FS-0035 <text> is not supported by this version, which draws <box> only"
     );
+}
+
+#[test]
+fn a_setting_an_option_gives_that_this_version_does_not_apply_is_unsupported_on_the_command_line() {
+    let folder = project_with("refusals", "options", &composition("<box background=\"#ff0000\"/>"));
+    fs::write(folder.join(PROJECT_FILE), "render:\n  quality: high\n  codec: hevc\n").unwrap();
+    let mut project = Project::open(&folder).unwrap();
+    let mut options = project::Options::default();
+    // The option replaces the file's `quality: high`, which is then not in use and not refused.
+    options.set("--quality", "standard").unwrap();
+    options.set("--workers", "4").unwrap();
+    project.apply(&options);
+    let reports = Scene::from_project(&project).unwrap_err();
+    assert_eq!(
+        reports.iter().map(shown).collect::<Vec<_>>(),
+        vec![
+            "command line 0 FS-0035 `--workers 4` is not supported by this version, which takes auto or 1",
+            "framesmith.yaml 3 FS-0035 `render.codec: hevc` is not supported by this version, which takes h264",
+        ]
+    );
+    assert_eq!(
+        reports[0].to_string(),
+        "command line: FS-0035: unsupported: `--workers 4` is not supported by this version, which takes auto or 1. \
+         Remove what the message names, or wait for the sprint that brings it."
+    );
+}
+
+#[test]
+fn a_sound_bit_rate_the_system_encoder_takes_is_accepted_and_one_it_does_not_is_unsupported() {
+    for (name, rate) in [("rate-64", 64), ("rate-128", 128), ("rate-320", 320)] {
+        assert!(
+            with_project_file(name, &format!("render:\n  audio-bitrate: {rate}\n")).is_ok(),
+            "{rate}"
+        );
+    }
+    for (name, rate) in [("rate-63", 63), ("rate-321", 321)] {
+        assert_eq!(
+            with_project_file(name, &format!("render:\n  audio-bitrate: {rate}\n")).unwrap_err(),
+            vec![format!(
+                "framesmith.yaml 2 FS-0035 `render.audio-bitrate: {rate}` is not supported by this version, which takes 64 to 320"
+            )]
+        );
+    }
 }

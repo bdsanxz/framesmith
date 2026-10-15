@@ -397,6 +397,8 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
     }
     let (out, err) = run(vec!["check"]);
     runs.push(("command-line", out, err, Code::CommandLineNotRead));
+    let (out, err) = run(vec!["render", "../empty", "--quality", "ultra"]);
+    runs.push(("option-not-taken", out, err, Code::OptionNotTaken));
     // Give the file back its owner's permissions, so that the folder can be removed.
     fs::set_permissions(base.join("no-access.xml"), fs::Permissions::from_mode(0o644)).unwrap();
     runs
@@ -424,7 +426,7 @@ fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i
 fn a_refusal_with_no_file_to_name_shows_its_code_its_kind_and_its_remedy() {
     let catalogue = catalogue();
     for (name, out, err, code) in refusals() {
-        let report = if code == Code::CommandLineNotRead {
+        let report = if matches!(code, Code::CommandLineNotRead | Code::OptionNotTaken) {
             assert_eq!(out, "", "{name}");
             err.lines().next().unwrap().strip_prefix("framesmith: ").unwrap().to_string()
         } else {

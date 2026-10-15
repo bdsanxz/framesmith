@@ -43,7 +43,7 @@ fn rendered(name: &str, fps: u32, duration: &str) -> PathBuf {
     let folder = project_with("standard-mp4", &format!("{name}-in"), &three_boxes(fps, duration));
     let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let output = scratch("standard-mp4", &format!("{name}-out")).join("film.mp4");
-    write_film(&scene, &mut CpuRenderer, &output).unwrap();
+    write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     output
 }
 

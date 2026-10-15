@@ -42,3 +42,4 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0034` | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. |
 | `FS-0035` | The project uses a form that is known and that this version does not draw or apply. |
 | `FS-0036` | The video could not be made. |
+| `FS-0037` | An option of `render`, or its value, is not one the command takes. |

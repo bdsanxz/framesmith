@@ -5,6 +5,11 @@ use draw::{Colour, DisplayList, Picture, Renderer, Step};
 use layout::{Written, LIMIT};
 use project::{Backend, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 
+/// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
+/// at 48 kHz in stereo (`frx7/docs/spec/os-codecs.md` section 3.1, measured).
+const SOUND_KBITS_LOWEST: u32 = 64;
+const SOUND_KBITS_HIGHEST: u32 = 320;
+
 /// What the root takes.
 const ROOT_TAKES: [&str; 7] = ["id", "version", "width", "height", "fps", "duration", "background"];
 /// What a `<box>` takes.
@@ -299,13 +304,21 @@ fn unsupported_value(node: &Node, name: &str, value: &str, takes: &str) -> Strin
     )
 }
 
-/// Settings of the project file that this version does not apply: the renderer is the processor's,
-/// the encoder the system's hardware encoder at `standard`, one thread draws and encodes.
+/// Settings in use that this version does not apply: the renderer is the processor's, the encoder
+/// the system's hardware encoder at `standard`, one thread draws and encodes, and the system's AAC
+/// encoder takes 64 to 320 kbit/s. A value an option gave is reported on the command line; a value
+/// of the project file on the line of the value.
 fn settings(project: &Project) -> Vec<Report> {
     let settings = project.settings();
+    let mut from_options: Vec<String> = Vec::new();
     let mut found: Vec<(u32, String)> = Vec::new();
-    let mut check = |key: &str, line: Option<u32>, accepted: bool, value: String, takes: &str| {
-        if let (Some(line), false) = (line, accepted) {
+    let mut check = |key: &str, option: Option<&str>, accepted: bool, value: String, takes: &str| {
+        if accepted {
+            return;
+        }
+        if let (true, Some(option)) = (settings.from_option(key), option) {
+            from_options.push(format!("`{option} {value}` is not supported by this version, which takes {takes}"));
+        } else if let Some(line) = settings.line_of(key) {
             found.push((
                 line,
                 format!("`{key}: {value}` is not supported by this version, which takes {takes}"),
@@ -314,49 +327,56 @@ fn settings(project: &Project) -> Vec<Report> {
     };
     check(
         "render.backend",
-        settings.line_of("render.backend"),
+        Some("--backend"),
         matches!(settings.backend(), Backend::Auto | Backend::Cpu),
         settings.backend().to_string(),
         "auto or cpu",
     );
     check(
         "render.quality",
-        settings.line_of("render.quality"),
+        Some("--quality"),
         settings.quality() == Quality::Standard,
         settings.quality().to_string(),
         "standard",
     );
     check(
         "render.encoder",
-        settings.line_of("render.encoder"),
+        Some("--encoder"),
         settings.encoder() == Encoder::Hardware,
         settings.encoder().to_string(),
         "hardware",
     );
     check(
         "render.codec",
-        settings.line_of("render.codec"),
+        Some("--codec"),
         settings.codec() == Codec::H264,
         settings.codec().to_string(),
         "h264",
     );
     check(
         "render.workers",
-        settings.line_of("render.workers"),
+        Some("--workers"),
         matches!(settings.workers(), Workers::Auto | Workers::Count(1)),
         settings.workers().to_string(),
         "auto or 1",
     );
     check(
         "render.audio-bitrate",
-        settings.line_of("render.audio-bitrate"),
-        settings.audio_bitrate() == 192,
+        // No option sets the sound's bit rate: only the project file does.
+        None,
+        (SOUND_KBITS_LOWEST..=SOUND_KBITS_HIGHEST).contains(&settings.audio_bitrate()),
         settings.audio_bitrate().to_string(),
-        "192",
+        "64 to 320",
     );
     found.sort_by_key(|(line, _)| *line);
-    found
+    // The command line is read before the project file, so its reports come first.
+    from_options
         .into_iter()
-        .map(|(line, message)| Report::new(project::PROJECT_FILE, Problem::new(Code::FormNotSupported, line, message)))
+        .map(|message| Report::new(project::COMMAND_LINE, Problem::new(Code::FormNotSupported, 0, message)))
+        .chain(
+            found
+                .into_iter()
+                .map(|(line, message)| Report::new(project::PROJECT_FILE, Problem::new(Code::FormNotSupported, line, message))),
+        )
         .collect()
 }

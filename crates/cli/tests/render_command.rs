@@ -50,7 +50,7 @@ fn a_render_writes_the_film_at_renders_name_mp4_and_prints_the_summary_in_order(
 
     let printed = out(&output);
     let lines: Vec<&str> = printed.lines().collect();
-    assert_eq!(lines.len(), 7, "{printed}");
+    assert_eq!(lines.len(), 14, "{printed}");
     assert_eq!(lines[0], format!("Rendered {}", project.join("renders/demo.mp4").display()));
     assert_eq!(
         &lines[1..6],
@@ -62,10 +62,22 @@ fn a_render_writes_the_film_at_renders_name_mp4_and_prints_the_summary_in_order(
             "renderer: processor"
         ]
     );
-    let elapsed = lines[6]
+    assert_eq!(
+        &lines[6..13],
+        [
+            "output: renders/demo.mp4 (default)",
+            "backend: auto (default)",
+            "quality: standard (default)",
+            "encoder: hardware (default)",
+            "codec: h264 (default)",
+            "workers: auto (default)",
+            "audio bitrate: 192 kbit/s (default)",
+        ]
+    );
+    let elapsed = lines[13]
         .strip_prefix("elapsed: ")
         .and_then(|time| time.strip_suffix(" s"))
-        .unwrap_or_else(|| panic!("{}", lines[6]));
+        .unwrap_or_else(|| panic!("{}", lines[13]));
     assert!(
         elapsed.parse::<f64>().is_ok() && elapsed.split_once('.').unwrap().1.len() == 3,
         "{elapsed}"
@@ -272,23 +284,28 @@ fn a_film_that_cannot_be_written_is_a_failure_with_fs_0036_and_exit_1_and_no_fil
 #[test]
 fn a_command_line_that_cannot_be_read_is_told_on_standard_error_with_the_usage_line() {
     let base = scratch(GROUP, "command-line");
-    for (args, message) in [
-        (vec!["render"], "`render` needs the path of a project."),
+    for (args, code, message) in [
+        (vec!["render"], "FS-0017", "`render` needs the path of a project."),
         (
             vec!["render", "a", "b"],
+            "FS-0017",
             "`render` takes the path of one project, and b is one word too many.",
         ),
-        (vec!["render", "--fast", "a"], "`render` takes no option, and --fast is one."),
+        (
+            vec!["render", "--fast", "a"],
+            "FS-0037",
+            "`--fast` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers.",
+        ),
     ] {
         let output = framesmith(&base, args.clone(), &[]);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert_eq!(out(&output), "", "{args:?}");
         let told = err(&output);
         assert!(
-            told.starts_with(&format!("framesmith: FS-0017: invalid: {message} ")),
+            told.starts_with(&format!("framesmith: {code}: invalid: {message} ")),
             "{args:?}: {told}"
         );
-        assert!(told.ends_with("\nusage: framesmith render <path>\n"), "{args:?}: {told}");
+        assert!(told.ends_with("\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n"), "{args:?}: {told}");
     }
     assert!(!base.join("renders").exists());
 }
@@ -300,7 +317,7 @@ fn no_command_and_an_unknown_command_are_told_with_both_usage_lines() {
         let output = framesmith(&base, args.clone(), &[]);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert!(
-            err(&output).ends_with("\nusage: framesmith check <path>\nusage: framesmith render <path>\n"),
+            err(&output).ends_with("\nusage: framesmith check <path>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n"),
             "{args:?}: {}",
             err(&output)
         );

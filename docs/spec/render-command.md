@@ -1,22 +1,53 @@
 # The `render` command: a first composition to an MP4, drawn on the processor
 
-Status: in force from Sprint 1, for the first form of `framesmith render`. Sources: `notation.md` (section 3 for the project and the drawing order, section 4 for the value forms, section 5.1 for the frame count, sections 6.1 and 6.2 for the root and the box, section 7.1 for place and size, section 7.4 for the root's background, N6 for a size below 0, N9 for numbers); `check-command.md` and `project-location.md` (a project is opened as `check` opens it); `project-file.md` (the name and the place of the finished file, and the settings); `error-catalogue.md` (the codes, the kinds and the form of a report); `run-log.md`; decisions P2 and A19 of `DECISIONS.md` (the exit codes), P5 (a file that exists is replaced only when a new render succeeds) and D22 (the encoder choices); `PLAN.md` section 3 (a frame is a pure function of the composition and the frame's number; the processor's renderer defines the picture; which crate holds what) and section 5.2 (the processor's renderer against its checked-in pictures: equal to the byte); `CLAUDE.md` rules 1, 2 and 5; ITU-T H.264 for the stream and ITU-R BT.709 for its colour marks (both through frx7: `frx7/docs/spec/pixel.md` and `frx7/docs/spec/os-codecs.md`). The proofs of concept's `native-render-pipeline.md` (a record read under decision B4) is the origin of the stages and their order, taken as behaviour and not as text.
+Status: in force from Sprint 1, for the first form of `framesmith render`. Sources: `notation.md` (section 3 for the project and the drawing order, section 4 for the value forms, section 5.1 for the frame count, sections 6.1 and 6.2 for the root and the box, section 7.1 for place and size, section 7.4 for the root's background, N6 for a size below 0, N9 for numbers); `check-command.md` and `project-location.md` (a project is opened as `check` opens it); `project-file.md` (the name and the place of the finished file, and the settings); `error-catalogue.md` (the codes, the kinds and the form of a report); `run-log.md`; decisions P2 and A19 of `DECISIONS.md` (the exit codes; A19 also for an option value outside its list), the ticket T038 of Sprint 1 (the options, the rule that an option wins over the project file and the file over the default, the summary of the settings used) and `ROADMAP.md` line 1.48 (the option names), P5 (a file that exists is replaced only when a new render succeeds) and D22 (the encoder choices); `PLAN.md` section 3 (a frame is a pure function of the composition and the frame's number; the processor's renderer defines the picture; which crate holds what) and section 5.2 (the processor's renderer against its checked-in pictures: equal to the byte); `CLAUDE.md` rules 1, 2 and 5; ITU-T H.264 for the stream and ITU-R BT.709 for its colour marks (both through frx7: `frx7/docs/spec/pixel.md` and `frx7/docs/spec/os-codecs.md`). The proofs of concept's `native-render-pipeline.md` (a record read under decision B4) is the origin of the stages and their order, taken as behaviour and not as text.
 
 This is the tracer through the whole product: the project is read, drawn on the processor, handed to frx7 and written as a file. It draws the root's background and `<box>` elements with a background colour, placed in pixels. Everything else is named and refused before the first frame (section 3), so that no wrong video is made in silence.
 
 ## 1. The command line
 
 ```
-framesmith render <path>
+framesmith render <path> [--output <file>] [--backend <word>] [--quality <word>] [--encoder <word>] [--codec <word>] [--workers <value>]
 ```
 
-- **One argument, the path of the project**, in the three forms `project-location.md` gives (a folder, a `framesmith.yaml`, a composition file). No option is taken in this version: the options of `render` come with the tickets for the settings.
-- **Anything else is a command line that cannot be read** (`FS-0017`): no path, more than one word, an option. It is told on standard error as `check` tells it, with the usage line `usage: framesmith render <path>`; nothing is printed on standard output, nothing is written, and the exit code is 1. A command line with no command, or with a word that is not a command, is told with both usage lines, `usage: framesmith check <path>` and `usage: framesmith render <path>`, in that order.
+- **One argument, the path of the project**, in the three forms `project-location.md` gives (a folder, a `framesmith.yaml`, a composition file), and any of the options below, before or after it, in any order.
+- **The options.** Each sets the one setting of the project file it names, for this run only (section 1.1). An option is written as `--quality high` or as `--quality=high`; the word after an option that takes a value is its value, even when it begins with `-`.
+
+| Option | The setting it replaces | Values taken |
+|---|---|---|
+| `--output <file>` | `render.output` | A path that is not empty |
+| `--backend <word>` | `render.backend` | `auto`, `cpu`, `gpu` |
+| `--quality <word>` | `render.quality` | `draft`, `standard`, `high` |
+| `--encoder <word>` | `render.encoder` | `hardware`, `software` |
+| `--codec <word>` | `render.codec` | `h264`, `hevc` |
+| `--workers <value>` | `render.workers` | `auto`, or a whole number from 1 to 16 written in digits |
+
+  The values are those of the project file's keys (`project-file.md` section 3), letter for letter. What `--backend`, `--codec`, `--encoder`, `--quality` and `--workers` do to the film is stated by their own tickets (T040, T084, T085, T096); a value this version does not apply is refused before the first frame (section 3). `--json`, `--strict`, `--debug` and settings by environment variable are not taken in this version. `render.audio-bitrate` has no option in this version (`ROADMAP.md` line 1.48 lists none): it is set in the project file.
+- **A command line that cannot be read** (`FS-0017`): no path, or more than one path. Its remedy is about the path of the project.
+- **An option that is not taken** (`FS-0037`, of the kind invalid): an option that is not in the table, an option with no value after it, an option given twice, and a value outside the values of its option. Its remedy is ``Give one of the options the message lists, with one of the values it names, or leave the option out.``, so that the author is sent to the option, not to the path. The message names what was written and the options or values taken:
+  - ``--colour` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers``;
+  - ``--quality` must be one of draft, standard, high, not ultra``;
+  - ``--workers` must be auto or a whole number from 1 to 16, not 17``;
+  - ``--output` must be a path that is not empty``;
+  - ``--quality` needs a value: one of draft, standard, high``;
+  - ``--quality` is given twice; give it once``.
+
+  Both are told on standard error as `check` tells a command line it cannot read (`framesmith: ` and the statement of the code), followed by the usage line of `render`, which names every option and its values:
+
+  ```
+  usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]
+  ```
+
+  then nothing is printed on standard output, the project is not opened, nothing is written, and the exit code is 1 (decision A19: a value outside its list is invalid and ends with 1). A command line with no command, or with a word that is not a command, is told with both usage lines, `usage: framesmith check <path>` and the usage line of `render` above, in that order.
+
+### 1.1 Which value is used
+
+Every setting is taken by one rule: **an option on the command line wins over the project file, and the project file wins over the default** (`project-file.md` section 1). An option replaces only the setting it names; every other setting keeps the value of the project file, or its default. The setting in use is what the rest of this spec means by the setting: what is refused (section 3), the place of the finished file (section 6), the sound's bit rate (section 5.2) and the summary (section 7). `framesmith.yaml` is read and never written: an option changes the run, not the file.
 
 ## 2. What is read, and what is written when it is not drawn
 
 - The project is opened by `Project::open`, the one reading `check` uses. When it has any report, or there is no project, the command prints exactly what `check` prints for it (the reports and the closing line, or the `No project` line), writes no file and makes no folder, and ends as `check` ends: with 1, or with 2 when every report is of the kind unsupported (decision P2).
-- A project that opens is then looked at for what this version draws and applies (section 3). When anything in it is refused, every refusal is printed as a report, in the order of the files (the project file first) and of their lines, then the closing line `Invalid: the project is not valid (composition.xml)` or, when every report is of the kind unsupported, `Unsupported: the project uses what this version does not support (composition.xml)`, with the files that have a report in the brackets. Nothing is written, no folder is made, and the exit code is 1 or 2 by the same rule. The refusals are listed by `render` and not by `check` in this version: the table of what is not supported (`notation.md` section 14) is built later and `check` lists from it, so a project that `check` calls ready can be refused by `render` until then.
+- A project that opens is then looked at for what this version draws and applies (section 3). When anything in it is refused, every refusal is printed as a report, in the order of the files (the command line first, then the project file) and of their lines, then the closing line `Invalid: the project is not valid (composition.xml)` or, when every report is of the kind unsupported, `Unsupported: the project uses what this version does not support (composition.xml)`, with the files that have a report in the brackets. Nothing is written, no folder is made, and the exit code is 1 or 2 by the same rule. The refusals are listed by `render` and not by `check` in this version: the table of what is not supported (`notation.md` section 14) is built later and `check` lists from it, so a project that `check` calls ready can be refused by `render` until then.
 - Only after both, the first frame is drawn. A failure after that point (section 5) leaves no file at the place of the finished file.
 
 ## 3. What is drawn
@@ -34,7 +65,7 @@ The judgement of the form of the whole file (`notation.md` section 3) has been p
 
 The attributes `left`, `top`, `width` and `height` are lengths (`notation.md` section 4: a number of pixels, or a percentage, with a number read by N9). A value that is not a length (`abc`, `10px`), and a `width` or `height` below 0 (a percentage included), are not unsupported but wrong (N6) and are reported as invalid with `FS-0034`. A length that is a length and is not a whole number of pixels within the limit is unsupported.
 
-A project file (`project-file.md`) that writes a setting this version does not apply is refused the same way, with the line of the value: `render.backend` other than `auto` or `cpu`; `render.quality` other than `standard`; `render.encoder` other than `hardware`; `render.codec` other than `h264`; `render.workers` other than `auto` or `1`; `render.audio-bitrate` other than `192`; since the renderer is the processor's, the encoder the system's own at `standard`, one thread draws and encodes and there is no sound, and a value that differs would be ignored in silence. A key written with a value this version applies is accepted. `name`, `composition`, `paths.renders` and `render.output` are applied: they choose the project's name, the composition and the place of the finished file (section 6).
+A setting in use (section 1.1) that this version does not apply is refused the same way: `render.backend` other than `auto` or `cpu`; `render.quality` other than `standard`; `render.encoder` other than `hardware`; `render.codec` other than `h264`; `render.workers` other than `auto` or `1`; `render.audio-bitrate` outside 64 to 320; since the renderer is the processor's, the encoder the system's own at `standard`, one thread draws and encodes, and the system's AAC encoder takes 64 to 320 kbit/s at 48 kHz in stereo (`frx7/docs/spec/os-codecs.md` section 3.1, measured), and a value that differs would be ignored in silence or fail after the drawing began. A value the project file writes is reported on the line of the value in `framesmith.yaml`. A value an option gives is reported with the place `command line` and no line: ``command line: FS-0035: unsupported: `--quality high` is not supported by this version, which takes standard. <remedy>``, and the closing line names `command line` among the files. A value of the project file that an option replaces is not in use and is not refused. A setting written with a value this version applies is accepted. `name`, `composition`, `paths.renders` and `render.output` are applied: they choose the project's name, the composition and the place of the finished file (section 6).
 
 The message of a report of `FS-0035` is one of:
 
@@ -42,7 +73,7 @@ The message of a report of `FS-0035` is one of:
 - ``<text> inside a <box> is not supported by this version, which draws a <box> with no element inside it`` for an element in a box;
 - ``<text> has an attribute this version does not support: `border-radius` `` for an attribute, with `<text>` the element it is written on (`<composition>` for the root);
 - ``` `left="10.5"` on <box> is not a form this version supports: a whole number of pixels from -1000000 to 1000000 ``` for a value, with `a whole number of pixels from 0 to 1000000` for a size and `one opaque colour, #rrggbb` for a colour;
-- ``` `render.quality: high` is not supported by this version, which takes standard ``` for a setting, with what it takes after `takes`.
+- ``` `render.quality: high` is not supported by this version, which takes standard ``` for a setting of the project file, and ``` `--quality high` is not supported by this version, which takes standard ``` for an option, with what it takes after `takes` (`64 to 320` for the sound's bit rate).
 
 The message of a report of `FS-0034` is ``` `left="abc"` is not a length: a number of pixels or a percentage, such as 40 or 50% ``` or ``` `width="-5"` is below 0; a size is 0 or more ```.
 
@@ -89,16 +120,16 @@ Every film holds exactly one sound track, whether the composition has sound or n
 - **The mix.** The `mix` crate makes the sound of the film: 48,000 sample frames a second, two channels (left, then right), 32-bit floating point. This version places no sound (placing sounds is a later ticket), so every sample of the mix is 0, silence.
 - **Its length.** The picture's length in seconds, the frame count over the frame rate (section 5), times 48,000, rounded to the nearest sample frame, a half up. At a frame rate that divides 48,000 (24, 30, 60 and the like) it is exact: 5 seconds at 24, 30 and 60 frames a second are 240,000 sample frames; 31 frames at 30 are 49,600.
 - **Handed over with the frames.** After each frame is handed to the picture encoder, the mix up to the end of that frame (the length of frames 0 to that one, by the rule above) is handed to the system's AAC encoder through frx7's `codec` interface, and its packets are written into the same file, so that picture and sound lie side by side in it.
-- **The form.** AAC-LC, 48 kHz, two channels, at a constant **192 kbit/s**. The track's timescale is 48,000; frx7's writer marks the encoder's lead-in in the edit list, so that the track's length, and the sound read back from it, is the mix's length to the sample. `frx7 probe` shows it as a `sound, aac, 48000 Hz, 2 channels` track with the sample entry `mp4a`.
+- **The form.** AAC-LC, 48 kHz, two channels, at a constant bit rate: `render.audio-bitrate` in kbit/s (1 kbit/s is 1,000 bits a second), **192 kbit/s** when it is not written (section 1.1; values outside 64 to 320 are refused before the first frame, section 3). The track's timescale is 48,000; frx7's writer marks the encoder's lead-in in the edit list, so that the track's length, and the sound read back from it, is the mix's length to the sample. `frx7 probe` shows it as a `sound, aac, 48000 Hz, 2 channels` track with the sample entry `mp4a`.
 - **Silence read back.** Every sample of a silent mix that is read back from the track through frx7's sound reader is 0.
-- **The bit rate (stated, decision A29).** The track's bit rate, the bytes of all its packets over its length (as `frx7 probe` gives it), is **within 10 % of 192 kbit/s**: from 172,800 to 211,200 bits a second. Measured on a silent track of renders at 30 frames a second: about 196 kbit/s for 2 seconds and within the margin for 1 and 10 seconds (`crates/render/tests/silent_sound_track.rs`); frx7 measured about 193 kbit/s over ten seconds and about 200 kbit/s over one, where the packets of the lead-in weigh more.
+- **The bit rate (stated, decision A29).** The track's bit rate, the bytes of all its packets over its length (as `frx7 probe` gives it), is **within 10 % of the rate asked for**: from 172,800 to 211,200 bits a second at the default 192 kbit/s, from 115,200 to 140,800 at 128 kbit/s. Measured on a silent track of renders at 30 frames a second: about 196 kbit/s for 2 seconds and within the margin for 1 and 10 seconds (`crates/render/tests/silent_sound_track.rs`); frx7 measured about 193 kbit/s over ten seconds and about 200 kbit/s over one, where the packets of the lead-in weigh more.
 - **Plays.** The system's media framework opens the file as playable, decodes every picture to the end and reads the sound track to its end (decision A10).
 - **A refusal.** The AAC encoder is started before the file is made; an encoder that refuses ends the run with `FS-0036` as below, and no file is left.
 
 ## 6. The place of the finished file, and what the author's files are
 
-- The finished file is `render.output` of the project file, or `<paths.renders>/<name>.mp4`, as `project-file.md` section 3 says; the path is taken from the project folder (`project-location.md` section 4). The folder it is to be in is made when it is missing, and is left in place when the render then fails.
-- **The author's files are not touched.** The composition, the project file and every other file of the project have the same bytes after the run as before. The things a run adds are the finished file, its folder when it was missing, and the run log under the folder the command is run from (`run-log.md` section 1).
+- The finished file is, by the rule of section 1.1: the path of `--output`; else `render.output` of the project file; else `<paths.renders>/<name>.mp4`, with `paths.renders` (default `renders`) and `name` (default the folder's name) as `project-file.md` sections 3 and 6 say. A relative path, the option's included, is taken from the project folder, never from the folder the command is run from (`project-location.md` section 4); a path that begins with `/` is taken as it is. The folder it is to be in is made when it is missing, with every folder above it that is missing, and is left in place when the render then fails.
+- **The author's files are not touched.** The composition, the project file and every other file of the project have the same bytes after the run as before. Options change nothing in them: `framesmith.yaml` is never written. The things a run adds are the finished file, its folder when it was missing, and the run log under the folder the command is run from (`run-log.md` section 1).
 
 ## 7. The summary
 
@@ -111,11 +142,19 @@ size: 1280x720
 frame rate: 30 fps
 length: 5.000 s
 renderer: processor
+output: renders/demo.mp4 (default)
+backend: cpu (option)
+quality: standard (project file)
+encoder: hardware (default)
+codec: h264 (default)
+workers: auto (default)
+audio bitrate: 128 kbit/s (project file)
 elapsed: 1.234 s
 ```
 
 - The first line is the word `Rendered` and the path of the finished file: the project folder as it was written on the command line (or the folder found from the file written there), joined with the path of the file. `framesmith render demo` prints `demo/renders/demo.mp4`.
 - `frames` is the number of frames written; `size` is `width` by `height`; `frame rate` is `fps` of the root; `length` is the frames divided by the frame rate, in seconds with three decimals; `renderer` is `processor`; `elapsed` is the seconds the run took from the start of the drawing to the end of the file, with three decimals.
+- **The settings used**, one line each, between `renderer` and `elapsed`, in the order above: `output` (the path of the finished file as it is written, before it is taken from the project folder), `backend`, `quality`, `encoder`, `codec`, `workers` and `audio bitrate` (in kbit/s). Each shows the value in use (section 1.1) and, in brackets, where it came from: `option` when an option gave it, `project file` when `framesmith.yaml` wrote it, `default` otherwise. A setting an option changed shows the option's value. `output` is `project file` when the project file wrote `render.output`, `paths.renders` or `name`, the keys it is made from.
 - Nothing is printed on standard error.
 
 | Outcome | Standard output | Exit code |
@@ -147,4 +186,5 @@ The lines of a `render` are in `run-log.md` section 4. They hold counts, names o
 - `draw` holds the list of drawing steps and the trait both renderers will implement; `draw-cpu` is the renderer on the processor.
 - `mix` makes the sound of the film (section 5.2): its rate, its channels, its length and, in this version, its silence.
 - `timeline` makes the scene from a project (and refuses what is not drawn) and draws any frame of it on request (`timeline.md`); `render` takes that scene and writes the film through frx7.
-- `cli` is the command: it reads the arguments, calls `project` and `render`, prints, and sets the exit code.
+- `project` also judges the value of each option (`Options`) and takes the settings by the rule of section 1.1 (`Project::apply`, `Settings::source`).
+- `cli` is the command: it reads the arguments (the path and the words of the options), calls `project` and `render`, prints, and sets the exit code.

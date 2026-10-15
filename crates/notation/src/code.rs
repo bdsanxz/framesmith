@@ -113,11 +113,13 @@ pub enum Code {
     FormNotSupported,
     /// The video could not be made.
     VideoNotMade,
+    /// An option of `render`, or its value, is not one the command takes.
+    OptionNotTaken,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 36] = [
+    pub const ALL: [Code; 37] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -154,6 +156,7 @@ impl Code {
         Code::LengthNotAccepted,
         Code::FormNotSupported,
         Code::VideoNotMade,
+        Code::OptionNotTaken,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -195,6 +198,7 @@ impl Code {
             Code::LengthNotAccepted => "FS-0034",
             Code::FormNotSupported => "FS-0035",
             Code::VideoNotMade => "FS-0036",
+            Code::OptionNotTaken => "FS-0037",
         }
     }
 
@@ -256,6 +260,7 @@ impl Code {
             }
             Code::FormNotSupported => "Remove what the message names, or wait for the sprint that brings it.",
             Code::VideoNotMade => "Put right what the message names (the folder, the disk or the system's video encoder), then run the command again.",
+            Code::OptionNotTaken => "Give one of the options the message lists, with one of the values it names, or leave the option out.",
         }
     }
 

@@ -8,6 +8,7 @@
 
 mod file;
 mod locate;
+mod options;
 mod settings;
 
 use std::fmt;
@@ -16,9 +17,14 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 pub use notation::{shown, Attribute, Code, Colour, Element, Kind, Length, Node, Problem, Root, Tree};
-pub use settings::{Backend, Codec, Encoder, Quality, Settings, Workers, MAX_WORKERS, PROJECT_FILE};
+pub use options::{Options, OPTION_NAMES};
+pub use settings::{Backend, Codec, Encoder, Quality, Settings, Source, Workers, MAX_WORKERS, PROJECT_FILE};
 
 use file::CompositionChoice;
+
+/// The place a report of an option names in place of a file: it has no line
+/// (`docs/spec/render-command.md` section 3).
+pub const COMMAND_LINE: &str = "command line";
 
 /// The name of the composition file in a project folder whose project file does not name another.
 pub const COMPOSITION_FILE: &str = "composition.xml";
@@ -80,7 +86,12 @@ impl Report {
 
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}, {}", self.file, self.problem)
+        if self.file == COMMAND_LINE {
+            // An option has no line.
+            write!(f, "{COMMAND_LINE}: {}", self.problem.code().statement(self.problem.message()))
+        } else {
+            write!(f, "{}, {}", self.file, self.problem)
+        }
     }
 }
 
@@ -261,9 +272,16 @@ impl Project {
         self.folder.join(written)
     }
 
-    /// The settings of the project file, with the defaults of the keys it does not write.
+    /// The settings in use: the options given to [`Project::apply`], then the project file, then
+    /// the defaults of the keys it does not write.
     pub fn settings(&self) -> &Settings {
         &self.settings
+    }
+
+    /// Takes the options of the command line: each replaces the one setting it names for this run
+    /// (`docs/spec/render-command.md` section 1.1). Nothing is written to the project file.
+    pub fn apply(&mut self, options: &Options) {
+        self.settings.apply(options);
     }
 
     /// The name of the project: `name` of the project file, or the name of the project folder.
@@ -274,7 +292,7 @@ impl Project {
         }
     }
 
-    /// The finished file, as a path from the project folder: `render.output`, or
+    /// The finished file, as a path from the project folder: `--output`, `render.output`, or
     /// `<paths.renders>/<name>.mp4`.
     pub fn output(&self) -> String {
         self.settings.output(&settings::folder_name(&self.folder))

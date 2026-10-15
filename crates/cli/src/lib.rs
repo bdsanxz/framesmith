@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use draw::Renderer;
 use draw_cpu::CpuRenderer;
-use project::{Code, Kind, OpenError, Project, Report};
+use project::{Code, Kind, OpenError, Options, Project, Report, Settings};
 use render::Scene;
 
 pub mod runlog;
@@ -22,7 +22,7 @@ pub const EXIT_FAILED: u8 = 1;
 pub const EXIT_UNSUPPORTED: u8 = 2;
 
 const CHECK_USAGE: &str = "usage: framesmith check <path>";
-const RENDER_USAGE: &str = "usage: framesmith render <path>";
+const RENDER_USAGE: &str = "usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]";
 
 /// Runs the command with the arguments after its name. Results go to `out`, a command line that
 /// cannot be read to `err`. Returns the exit code.
@@ -47,15 +47,23 @@ pub fn run(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 /// Reads the command line, runs the command, prints its reply and logs its result.
 fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let reply = match args.split_first() {
-        None => Reply::Unreadable("no command is given".to_string(), BOTH_USAGES),
+        None => Reply::Unreadable(Code::CommandLineNotRead, "no command is given".to_string(), BOTH_USAGES),
         Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, check),
-        Some((command, rest)) if command == "render" => with_path("render", &[RENDER_USAGE], rest, render),
-        Some((command, _)) => Reply::Unreadable(format!("`{}` is not a command", command.to_string_lossy()), BOTH_USAGES),
+        Some((command, rest)) if command == "render" => match render_line(rest) {
+            Ok((path, options)) => render(path, &options),
+            Err((code, why)) => Reply::Unreadable(code, why, &[RENDER_USAGE]),
+        },
+        Some((command, _)) => Reply::Unreadable(
+            Code::CommandLineNotRead,
+            format!("`{}` is not a command", command.to_string_lossy()),
+            BOTH_USAGES,
+        ),
     };
     let written = match &reply {
         Reply::Printed(lines, ..) => lines.iter().try_for_each(|line| writeln!(out, "{line}")),
-        Reply::Unreadable(why, usages) => writeln!(err, "framesmith: {}", Code::CommandLineNotRead.statement(why))
-            .and_then(|()| usages.iter().try_for_each(|usage| writeln!(err, "{usage}"))),
+        Reply::Unreadable(code, why, usages) => {
+            writeln!(err, "framesmith: {}", code.statement(why)).and_then(|()| usages.iter().try_for_each(|usage| writeln!(err, "{usage}")))
+        }
     };
     let (code, outcome) = match (written, reply) {
         (Ok(()), Reply::Printed(_, code, outcome)) => (code, outcome),
@@ -73,18 +81,64 @@ const BOTH_USAGES: &[&str] = &[CHECK_USAGE, RENDER_USAGE];
 /// runs it.
 fn with_path(name: &str, usages: &'static [&'static str], rest: &[OsString], run: fn(PathBuf) -> Reply) -> Reply {
     if let Some(option) = rest.iter().find(|word| word.to_string_lossy().starts_with('-')) {
-        return Reply::Unreadable(format!("`{name}` takes no option, and {} is one", option.to_string_lossy()), usages);
+        return Reply::Unreadable(
+            Code::CommandLineNotRead,
+            format!("`{name}` takes no option, and {} is one", option.to_string_lossy()),
+            usages,
+        );
     }
     match rest {
-        [] => Reply::Unreadable(format!("`{name}` needs the path of a project"), usages),
+        [] => Reply::Unreadable(Code::CommandLineNotRead, format!("`{name}` needs the path of a project"), usages),
         [path] => run(PathBuf::from(path)),
         [_, extra, ..] => Reply::Unreadable(
+            Code::CommandLineNotRead,
             format!(
                 "`{name}` takes the path of one project, and {} is one word too many",
                 extra.to_string_lossy()
             ),
             usages,
         ),
+    }
+}
+
+/// Reads the words after `render`: the path of one project and the options, in any order
+/// (`docs/spec/render-command.md` section 1). Gives the sentence that says what is wrong otherwise.
+fn render_line(rest: &[OsString]) -> Result<(PathBuf, Options), (Code, String)> {
+    let not_read = |why: String| (Code::CommandLineNotRead, why);
+    let not_taken = |why: String| (Code::OptionNotTaken, why);
+    let mut options = Options::default();
+    let mut path: Option<&OsString> = None;
+    let mut words = rest.iter();
+    while let Some(word) = words.next() {
+        let text = word.to_string_lossy();
+        if !text.starts_with('-') {
+            if path.is_some() {
+                return Err(not_read(format!(
+                    "`render` takes the path of one project, and {text} is one word too many"
+                )));
+            }
+            path = Some(word);
+            continue;
+        }
+        let (name, written) = match text.split_once('=') {
+            Some((name, value)) => (name.to_string(), Some(value.to_string())),
+            None => (text.to_string(), None),
+        };
+        if !Options::is_option(&name) {
+            return Err(not_taken(Options::unknown(&name)));
+        }
+        let value = match written {
+            Some(value) => value,
+            None => match words.next() {
+                Some(value) => value.to_string_lossy().into_owned(),
+                None => return Err(not_taken(Options::no_value(&name))),
+            },
+        };
+        options.set(&name, &value).map_err(not_taken)?;
+    }
+    match path {
+        Some(path) => Ok((PathBuf::from(path), options)),
+        None => Err(not_read("`render` needs the path of a project".to_string())),
     }
 }
 
@@ -162,7 +216,7 @@ enum Reply {
     /// Lines for standard output, the exit code, and how it ended.
     Printed(Vec<String>, u8, Outcome),
     /// A command line that cannot be read, with what is wrong with it and the usage lines to print.
-    Unreadable(String, &'static [&'static str]),
+    Unreadable(Code, String, &'static [&'static str]),
 }
 
 /// `framesmith check <path>`: opens the project that the path names (a folder, a project file or a
@@ -194,31 +248,35 @@ fn check(path: PathBuf) -> Reply {
 /// draws, draws every frame on the processor and writes the film to the project's output path. A
 /// project that does not open, or that uses what this version does not draw, is told as `check` tells
 /// it and nothing is written (`docs/spec/render-command.md`).
-fn render(path: PathBuf) -> Reply {
-    let project = match Project::open(&path) {
+fn render(path: PathBuf, options: &Options) -> Reply {
+    let mut project = match Project::open(&path) {
         Ok(project) => project,
         Err(error) => return not_opened(error),
     };
+    project.apply(options);
+    tracing::debug!(options = options.count(), "settings chosen");
     let scene = match Scene::from_project(&project) {
         Ok(scene) => scene,
         Err(reports) => return reports_reply(&reports),
     };
-    let output = project.resolve(&project.output());
+    let written_output = project.output();
+    let output = project.resolve(&written_output);
+    let settings = project.settings();
     let mut renderer = CpuRenderer;
-    match render::write_film(&scene, &mut renderer, &output) {
-        Ok(written) => Reply::Printed(
-            vec![
+    match render::write_film(&scene, &mut renderer, &output, settings.audio_bitrate()) {
+        Ok(written) => {
+            let mut lines = vec![
                 format!("Rendered {}", output.display()),
                 format!("frames: {}", written.frames),
                 format!("size: {}x{}", scene.width(), scene.height()),
                 format!("frame rate: {} fps", scene.fps()),
                 format!("length: {:.3} s", written.frames as f64 / f64::from(scene.fps())),
                 format!("renderer: {}", renderer.name()),
-                format!("elapsed: {:.3} s", written.seconds),
-            ],
-            EXIT_OK,
-            Outcome::Rendered { frames: written.frames },
-        ),
+            ];
+            lines.extend(settings_used(settings, &written_output));
+            lines.push(format!("elapsed: {:.3} s", written.seconds));
+            Reply::Printed(lines, EXIT_OK, Outcome::Rendered { frames: written.frames })
+        }
         Err(failure) => {
             let code = Code::VideoNotMade;
             Reply::Printed(
@@ -231,6 +289,25 @@ fn render(path: PathBuf) -> Reply {
             )
         }
     }
+}
+
+/// The lines of the summary that name each setting used, with where its value came from
+/// (`docs/spec/render-command.md` section 7).
+fn settings_used(settings: &Settings, output: &str) -> Vec<String> {
+    let line = |label: &str, value: String, key: &str| format!("{label}: {value} ({})", settings.source(key));
+    vec![
+        line("output", output.to_string(), "render.output"),
+        line("backend", settings.backend().to_string(), "render.backend"),
+        line("quality", settings.quality().to_string(), "render.quality"),
+        line("encoder", settings.encoder().to_string(), "render.encoder"),
+        line("codec", settings.codec().to_string(), "render.codec"),
+        line("workers", settings.workers().to_string(), "render.workers"),
+        line(
+            "audio bitrate",
+            format!("{} kbit/s", settings.audio_bitrate()),
+            "render.audio-bitrate",
+        ),
+    ]
 }
 
 /// What a command prints when the project did not open: the same for `check` and `render`.
