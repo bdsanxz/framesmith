@@ -9,6 +9,7 @@ members = [
     "crates/timeline",
     "crates/draw",
     "crates/draw-cpu",
+    "crates/draw-gpu",
     "crates/mix",
     "crates/render",
     "crates/cli",
@@ -39,6 +40,7 @@ project = { path = "crates/project" }
 layout = { path = "crates/layout" }
 draw = { path = "crates/draw" }
 draw-cpu = { path = "crates/draw-cpu" }
+draw-gpu = { path = "crates/draw-gpu" }
 mix = { path = "crates/mix" }
 render = { path = "crates/render" }
 timeline = { path = "crates/timeline" }
@@ -53,6 +55,8 @@ probe = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad
 codec = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
 backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
 pixel = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
+# The graphics card, as frx7's system crate hands it to us: wgpu is reached through it, not named here.
+gpu = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
