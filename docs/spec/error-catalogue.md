@@ -22,7 +22,7 @@ A kind says who has to act, and it never changes with the command that found the
 | Unsupported | `unsupported` | What the author gave is known to Framesmith and is not supported in this version. It is named by the support table of `notation.md` section 14; anything else that is not accepted is invalid. The remedy is to remove it, to replace it, or to wait for the sprint that brings it. |
 | Failure | `failure` | What the author gave may be right, and Framesmith or the machine could not carry it out: a file that cannot be read, a device that does not answer. The remedy is to put the machine right and run the command again. |
 
-The exit code is derived from the kind and the command (decisions P2 and A19); this file does not state it again. The rule that tells unsupported from invalid is the support table, and the codes of the kind unsupported for what the notation does not support yet are added with the work that lists and refuses the table (`DECISIONS.md` A28). The codes of that kind on the list so far are `FS-0023`, for the two keys of the project file that wait for Sprint 2 (`project-file.md` section 5.4), and `FS-0035`, for what `render` does not draw or apply yet (`render-command.md` section 3).
+The exit code is derived from the kind and the command (decisions P2 and A19); this file does not state it again. The rule that tells unsupported from invalid is the support table, and the codes of the kind unsupported for what the notation does not support yet are added with the work that lists and refuses the table (`DECISIONS.md` A28). The codes of that kind on the list so far are `FS-0023`, for the two keys of the project file that wait for Sprint 2 (`project-file.md` section 5.4), `FS-0035`, for what `render` does not draw or apply yet (`render-command.md` section 3), and `FS-0038`, for a card that `render` is asked for and this machine does not have (`render-command.md` section 1.2).
 
 ## 3. A report
 
@@ -83,6 +83,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0035` | unsupported | The project uses a form that is known and that this version does not draw or apply. | Remove what the message names, or wait for the sprint that brings it. |
 | `FS-0036` | failure | The video could not be made. | Put right what the message names (the folder, the disk or the system's video encoder), then run the command again. |
 | `FS-0037` | invalid | An option of `render`, or its value, is not one the command takes. | Give one of the options the message lists, with one of the values it names, or leave the option out. |
+| `FS-0038` | unsupported | The author asked for the graphics card (`gpu`), and this machine has no card that frx7 can draw with. | Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there. |
 
 Notes on the rows:
 
@@ -93,6 +94,7 @@ Notes on the rows:
 - `FS-0029` to `FS-0033` are the codes of the form of a composition file (`check-command.md` section 3a): `FS-0029` to `FS-0031` stand for an element or an attribute and its place, `FS-0032` and `FS-0033` for a number or a time anywhere in the file. A form that the support table of `notation.md` section 14 lists will get codes of the kind unsupported with the work that lists and refuses that table (decision A28).
 - `FS-0034` to `FS-0036` are the codes of `render` (`render-command.md`): `FS-0034` for a length that is wrong, `FS-0035` for a form that is known and is not drawn or applied by this version (it is listed by `render` and, with the support table of `notation.md` section 14, will be listed by `check`), `FS-0036` for a film that could not be made. `FS-0017` kept its meaning and had its remedy improved to name both commands.
 - `FS-0037` was added with the options of `render` (`render-command.md` section 1): an option that is not one of them, an option with no value, an option given twice, or a value outside the values of its option. It is not `FS-0017`, whose remedy is about the path of the project and would send the author the wrong way.
+- `FS-0038` was added with the choice of the renderer (`render-command.md` section 1.2): `gpu`, from the project file or the command line, on a machine with no card that frx7 can draw with. It is of the kind unsupported, as the card refusals of the support table are (ticket T086), and it is the one code of that kind that is not a form of the composition or of the project file: this machine lacks what the author asked for, and the file is right. `render` refuses it before the first frame and exits with 2, with the last line `Refused:` (`render-command.md` section 7). `auto` never gives it: with no card it draws on the processor and says so.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

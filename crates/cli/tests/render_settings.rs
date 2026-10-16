@@ -158,6 +158,11 @@ fn an_unknown_option_and_a_value_outside_its_list_are_told_with_the_values_taken
         ),
         ("codec", vec!["--codec=vp9"], "`--codec` must be one of h264, hevc, not vp9."),
         (
+            "backend",
+            vec!["--backend", "vulkan"],
+            "`--backend` must be one of auto, cpu, gpu, not vulkan.",
+        ),
+        (
             "workers",
             vec!["--workers", "17"],
             "`--workers` must be auto or a whole number from 1 to 16, not 17.",
@@ -254,4 +259,14 @@ fn after_a_render_with_options_the_project_file_and_the_composition_have_the_sam
     );
     assert_eq!(before, after);
     assert_eq!(files(&project), ["composition.xml", "framesmith.yaml", "option.mp4"]);
+}
+
+#[test]
+fn a_backend_option_wins_over_the_project_file_and_the_summary_names_the_option() {
+    let (project, cwd) = make(GROUP, "backend-option-over-file", FILM);
+    fs::write(project.join("framesmith.yaml"), "render:\n  backend: gpu\n").unwrap();
+    let output = render(&cwd, &project, &["--backend", "cpu"]);
+    assert_rendered(&output);
+    assert_eq!(summary_line(&output, "renderer"), "renderer: processor");
+    assert_eq!(summary_line(&output, "backend"), "backend: cpu (option)");
 }
