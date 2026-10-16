@@ -245,6 +245,17 @@ fn check(path: PathBuf) -> Reply {
     }
 }
 
+/// The renderer that the settings of `render` choose: the processor for `cpu`, and for `auto` until
+/// ticket T040 chooses by the card's presence, and the card for `gpu`. The card is started here, so
+/// a card that cannot be started is the error.
+pub fn renderer_for(settings: &Settings) -> Result<Box<dyn Renderer>, draw::Error> {
+    let renderer: Box<dyn Renderer> = match settings.backend() {
+        Backend::Auto | Backend::Cpu => Box::new(CpuRenderer),
+        Backend::Gpu => Box::new(CardRenderer::new()?),
+    };
+    Ok(renderer)
+}
+
 /// `framesmith render <path>`: opens the project as `check` does, makes the scene this version
 /// draws, draws every frame on the processor and writes the film to the project's output path. A
 /// project that does not open, or that uses what this version does not draw, is told as `check` tells
@@ -264,16 +275,13 @@ fn render(path: PathBuf, options: &Options) -> Reply {
     let output = project.resolve(&written_output);
     let settings = project.settings();
     // The renderer is started before the film is opened, so that a card that cannot be started
-    // writes no file. `auto` takes the processor until ticket T040 chooses by the card's presence.
-    let mut renderer: Box<dyn Renderer> = match settings.backend() {
-        Backend::Auto | Backend::Cpu => Box::new(CpuRenderer),
-        Backend::Gpu => match CardRenderer::new() {
-            Ok(card) => Box::new(card),
-            Err(error) => {
-                tracing::error!(reason = %error, "the card could not be started, so no video is made");
-                return video_not_made(&format!("the video could not be made: {error}"));
-            }
-        },
+    // writes no file.
+    let mut renderer = match renderer_for(settings) {
+        Ok(renderer) => renderer,
+        Err(error) => {
+            tracing::error!(reason = %error, "the card could not be started, so no video is made");
+            return video_not_made(&format!("the video could not be made: {error}"));
+        }
     };
     let renderer_name = renderer.name();
     match render::write_film(&scene, renderer.as_mut(), &output, settings.audio_bitrate()) {
