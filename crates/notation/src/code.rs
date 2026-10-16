@@ -119,11 +119,13 @@ pub enum Code {
     RendererNotAvailable,
     /// A value that must be one of a list of words (`position`) is not one of them.
     WordNotTaken,
+    /// An element that takes `start` and `duration` as a clip has one of them without the other.
+    ClipNotPaired,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 39] = [
+    pub const ALL: [Code; 40] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -163,6 +165,7 @@ impl Code {
         Code::OptionNotTaken,
         Code::RendererNotAvailable,
         Code::WordNotTaken,
+        Code::ClipNotPaired,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -207,6 +210,7 @@ impl Code {
             Code::OptionNotTaken => "FS-0037",
             Code::RendererNotAvailable => "FS-0038",
             Code::WordNotTaken => "FS-0039",
+            Code::ClipNotPaired => "FS-0040",
         }
     }
 
@@ -270,6 +274,7 @@ impl Code {
             Code::VideoNotMade => "Put right what the message names (the folder, the disk or the system's video encoder), then run the command again.",
             Code::OptionNotTaken => "Give one of the options the message lists, with one of the values it names, or leave the option out.",
             Code::WordNotTaken => "Write one of the words the message names, in lower case, or leave the attribute out.",
+            Code::ClipNotPaired => "Write both `start` and `duration` on the element, or neither.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }
