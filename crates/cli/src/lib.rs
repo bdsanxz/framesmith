@@ -25,12 +25,21 @@ pub const EXIT_UNSUPPORTED: u8 = 2;
 const CHECK_USAGE: &str = "usage: framesmith check <path>";
 const RENDER_USAGE: &str = "usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]";
 
+/// The starter of the renderer on the graphics card: `CardRenderer::new`, boxed as a renderer. It is
+/// a parameter of `run_with`, so that a test can run the command on a machine with no card.
+pub type StartCard = dyn Fn() -> Result<Box<dyn Renderer>, draw::Error>;
+
 /// Runs the command with the arguments after its name. Results go to `out`, a command line that
 /// cannot be read to `err`. Returns the exit code.
 ///
 /// The run is logged under one run id (`docs/spec/run-log.md`); a log that cannot be written adds
 /// one line to `err` and changes nothing else.
 pub fn run(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    run_with(args, out, err, &card_renderer)
+}
+
+/// Runs the command as `run` does, with the starter of the graphics card given by the caller.
+pub fn run_with(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_card: &StartCard) -> u8 {
     let log = runlog::Log::start();
     let code = log.scope(|| {
         tracing::info!(
@@ -39,19 +48,24 @@ pub fn run(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
             "command started"
         );
         log.note_unreadable_level();
-        command(args, out, err)
+        command(args, out, err, start_card)
     });
     log.finish(err);
     code
 }
 
+/// Starts the renderer on the graphics card, or says why it cannot.
+fn card_renderer() -> Result<Box<dyn Renderer>, draw::Error> {
+    Ok(Box::new(CardRenderer::new()?))
+}
+
 /// Reads the command line, runs the command, prints its reply and logs its result.
-fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_card: &StartCard) -> u8 {
     let reply = match args.split_first() {
         None => Reply::Unreadable(Code::CommandLineNotRead, "no command is given".to_string(), BOTH_USAGES),
         Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, check),
         Some((command, rest)) if command == "render" => match render_line(rest) {
-            Ok((path, options)) => render(path, &options),
+            Ok((path, options)) => render(path, &options, start_card),
             Err((code, why)) => Reply::Unreadable(code, why, &[RENDER_USAGE]),
         },
         Some((command, _)) => Reply::Unreadable(
@@ -166,6 +180,11 @@ enum Outcome {
     VideoNotMade {
         code: Code,
     },
+    /// `render` refused the film before its first frame, because the renderer it was asked for is
+    /// not there.
+    Refused {
+        code: Code,
+    },
 }
 
 impl Outcome {
@@ -208,6 +227,9 @@ impl Outcome {
             Outcome::VideoNotMade { code } => {
                 tracing::error!(outcome = "video not made", exit, code = code.as_str(), "command finished")
             }
+            Outcome::Refused { code } => {
+                tracing::warn!(outcome = "refused", exit, code = code.as_str(), "command finished")
+            }
         }
     }
 }
@@ -245,22 +267,94 @@ fn check(path: PathBuf) -> Reply {
     }
 }
 
-/// The renderer that the settings of `render` choose: the processor for `cpu`, and for `auto` until
-/// ticket T040 chooses by the card's presence, and the card for `gpu`. The card is started here, so
-/// a card that cannot be started is the error.
-pub fn renderer_for(settings: &Settings) -> Result<Box<dyn Renderer>, draw::Error> {
-    let renderer: Box<dyn Renderer> = match settings.backend() {
-        Backend::Auto | Backend::Cpu => Box::new(CpuRenderer),
-        Backend::Gpu => Box::new(CardRenderer::new()?),
-    };
-    Ok(renderer)
+/// How the renderer of `render` came to be chosen (`docs/spec/render-command.md` section 1.2).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Chosen {
+    /// The author named the renderer, with `cpu` or `gpu`.
+    Setting,
+    /// `auto` found a card that starts, and takes it.
+    AutoCard,
+    /// `auto` found no card that starts, and takes the processor, and the summary says so.
+    AutoProcessor,
+}
+
+impl Chosen {
+    /// The word of the `renderer chosen` line of the log (`docs/spec/run-log.md`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Chosen::Setting => "setting",
+            Chosen::AutoCard => "auto card",
+            Chosen::AutoProcessor => "auto no card",
+        }
+    }
+}
+
+/// The renderer that `render` draws with, and how it was chosen.
+pub struct Choice {
+    renderer: Box<dyn Renderer>,
+    chosen: Chosen,
+}
+
+impl Choice {
+    /// The renderer's name: `processor` or `card`.
+    pub fn name(&self) -> &'static str {
+        self.renderer.name()
+    }
+
+    /// The renderer, to draw the frames of the film with.
+    pub fn renderer_mut(&mut self) -> &mut dyn Renderer {
+        self.renderer.as_mut()
+    }
+
+    /// How the renderer was chosen.
+    pub fn chosen(&self) -> Chosen {
+        self.chosen
+    }
+
+    /// The line of the summary that names the renderer and how it was chosen.
+    pub fn summary_line(&self) -> String {
+        match self.chosen {
+            Chosen::Setting => format!("renderer: {}", self.name()),
+            Chosen::AutoCard => format!("renderer: {} (chosen by auto)", self.name()),
+            Chosen::AutoProcessor => format!("renderer: {} (chosen by auto: no suitable card)", self.name()),
+        }
+    }
+}
+
+/// Chooses the renderer for the settings. This is the one place where the choice is made.
+///
+/// `cpu` takes the processor and never starts the card. `gpu` starts the card, and a card that does
+/// not start is the error: nothing falls back to the processor. `auto` starts the card, and takes the
+/// processor when the card does not start, so it never refuses for want of a card. The card is
+/// started here, before the film is opened.
+pub fn renderer_for(settings: &Settings, start_card: &StartCard) -> Result<Choice, draw::Error> {
+    match settings.backend() {
+        Backend::Cpu => Ok(Choice {
+            renderer: Box::new(CpuRenderer),
+            chosen: Chosen::Setting,
+        }),
+        Backend::Gpu => Ok(Choice {
+            renderer: start_card()?,
+            chosen: Chosen::Setting,
+        }),
+        Backend::Auto => Ok(match start_card() {
+            Ok(renderer) => Choice {
+                renderer,
+                chosen: Chosen::AutoCard,
+            },
+            Err(_) => Choice {
+                renderer: Box::new(CpuRenderer),
+                chosen: Chosen::AutoProcessor,
+            },
+        }),
+    }
 }
 
 /// `framesmith render <path>`: opens the project as `check` does, makes the scene this version
-/// draws, draws every frame on the processor and writes the film to the project's output path. A
-/// project that does not open, or that uses what this version does not draw, is told as `check` tells
-/// it and nothing is written (`docs/spec/render-command.md`).
-fn render(path: PathBuf, options: &Options) -> Reply {
+/// draws, draws every frame on the renderer that the settings choose and writes the film to the
+/// project's output path. A project that does not open, or that uses what this version does not
+/// draw, is told as `check` tells it and nothing is written (`docs/spec/render-command.md`).
+fn render(path: PathBuf, options: &Options, start_card: &StartCard) -> Reply {
     let mut project = match Project::open(&path) {
         Ok(project) => project,
         Err(error) => return not_opened(error),
@@ -274,17 +368,14 @@ fn render(path: PathBuf, options: &Options) -> Reply {
     let written_output = project.output();
     let output = project.resolve(&written_output);
     let settings = project.settings();
-    // The renderer is started before the film is opened, so that a card that cannot be started
-    // writes no file.
-    let mut renderer = match renderer_for(settings) {
-        Ok(renderer) => renderer,
-        Err(error) => {
-            tracing::error!(reason = %error, "the card could not be started, so no video is made");
-            return video_not_made(&format!("the video could not be made: {error}"));
-        }
+    // The renderer is chosen and started before the film is opened, so that a card that cannot be
+    // started writes no file (`docs/spec/render-command.md` section 1.2).
+    let mut choice = match renderer_for(settings, start_card) {
+        Ok(choice) => choice,
+        Err(error) => return renderer_refused(&error),
     };
-    let renderer_name = renderer.name();
-    match render::write_film(&scene, renderer.as_mut(), &output, settings.audio_bitrate()) {
+    tracing::debug!(renderer = choice.name(), chosen_by = choice.chosen().as_str(), "renderer chosen");
+    match render::write_film(&scene, choice.renderer_mut(), &output, settings.audio_bitrate()) {
         Ok(written) => {
             let mut lines = vec![
                 format!("Rendered {}", output.display()),
@@ -292,7 +383,7 @@ fn render(path: PathBuf, options: &Options) -> Reply {
                 format!("size: {}x{}", scene.width(), scene.height()),
                 format!("frame rate: {} fps", scene.fps()),
                 format!("length: {:.3} s", written.frames as f64 / f64::from(scene.fps())),
-                format!("renderer: {renderer_name}"),
+                choice.summary_line(),
             ];
             lines.extend(settings_used(settings, &written_output));
             lines.push(format!("elapsed: {:.3} s", written.seconds));
@@ -310,6 +401,22 @@ fn video_not_made(reason: &str) -> Reply {
         vec![code.statement(reason), "Failed: the video could not be made".to_string()],
         EXIT_FAILED,
         Outcome::VideoNotMade { code },
+    )
+}
+
+/// The reply of a `render` that refuses the film before its first frame, because the author asked for
+/// the card (`gpu`) and no card can be started: the report of `FS-0038` with the card's reason, then
+/// the closing line, and exit code 2. No file is written (`docs/spec/render-command.md` sections 1.2
+/// and 7).
+fn renderer_refused(error: &draw::Error) -> Reply {
+    let code = Code::RendererNotAvailable;
+    Reply::Printed(
+        vec![
+            code.statement(&error.to_string()),
+            "Refused: the video was not made, because the graphics card that `gpu` needs is not available".to_string(),
+        ],
+        EXIT_UNSUPPORTED,
+        Outcome::Refused { code },
     )
 }
 

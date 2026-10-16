@@ -14,7 +14,7 @@ mod png;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use cli::renderer_for;
+use cli::{renderer_for, Chosen};
 use draw::Picture;
 use project::{Backend, Options, Project};
 use render::Scene;
@@ -89,8 +89,12 @@ fn the_cpu_backend_draws_every_frame_to_its_checked_in_picture() {
     project.apply(&options);
     assert!(matches!(project.settings().backend(), Backend::Cpu));
 
-    let mut renderer = renderer_for(project.settings()).unwrap_or_else(|error| panic!("{error}"));
-    assert_eq!(renderer.name(), "processor");
+    // `cpu` never starts the card: the starter panics if it is asked to start one.
+    let card_must_not_start =
+        || -> Result<Box<dyn draw::Renderer>, draw::Error> { panic!("`--backend cpu` must not start the graphics card") };
+    let mut choice = renderer_for(project.settings(), &card_must_not_start).unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(choice.name(), "processor");
+    assert_eq!(choice.chosen(), Chosen::Setting);
 
     let Ok(scene) = Scene::from_project(&project) else {
         panic!("{}: the composition is not a valid scene", folder.display());
@@ -98,7 +102,7 @@ fn the_cpu_backend_draws_every_frame_to_its_checked_in_picture() {
     assert_eq!(scene.frames(), 10);
     for number in 0..scene.frames() {
         let drawn = scene
-            .picture(number, renderer.as_mut())
+            .picture(number, choice.renderer_mut())
             .unwrap_or_else(|error| panic!("frame {number}: {error:?}"));
         if let Err(message) = compare(number, &drawn, &read_picture(&held_to(number))) {
             panic!("{message}");

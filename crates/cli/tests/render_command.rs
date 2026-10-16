@@ -41,6 +41,30 @@ fn render(cwd: &Path, project: &Path) -> std::process::Output {
     framesmith(cwd, [std::ffi::OsStr::new("render"), project.as_os_str()], &[])
 }
 
+/// What `auto` chooses on this machine: the card when a card starts, the processor otherwise. It is
+/// named the way the summary and the log name it (`docs/spec/render-command.md` sections 1.2 and 7).
+struct AutoChoice {
+    renderer: &'static str,
+    chosen_by: &'static str,
+    summary: &'static str,
+}
+
+fn auto_choice() -> AutoChoice {
+    if draw_gpu::CardRenderer::new().is_ok() {
+        AutoChoice {
+            renderer: "card",
+            chosen_by: "auto card",
+            summary: "renderer: card (chosen by auto)",
+        }
+    } else {
+        AutoChoice {
+            renderer: "processor",
+            chosen_by: "auto no card",
+            summary: "renderer: processor (chosen by auto: no suitable card)",
+        }
+    }
+}
+
 #[test]
 fn a_render_writes_the_film_at_renders_name_mp4_and_prints_the_summary_in_order() {
     let (project, cwd) = make(GROUP, "summary", FIRST);
@@ -52,15 +76,10 @@ fn a_render_writes_the_film_at_renders_name_mp4_and_prints_the_summary_in_order(
     let lines: Vec<&str> = printed.lines().collect();
     assert_eq!(lines.len(), 14, "{printed}");
     assert_eq!(lines[0], format!("Rendered {}", project.join("renders/demo.mp4").display()));
+    let auto = auto_choice();
     assert_eq!(
         &lines[1..6],
-        [
-            "frames: 10",
-            "size: 96x54",
-            "frame rate: 10 fps",
-            "length: 1.000 s",
-            "renderer: processor"
-        ]
+        ["frames: 10", "size: 96x54", "frame rate: 10 fps", "length: 1.000 s", auto.summary]
     );
     assert_eq!(
         &lines[6..13],
@@ -388,9 +407,21 @@ fn a_render_logs_its_stages_in_order_under_one_run_id_with_counts_and_codes_only
         started.contains("frames=10") && started.contains("width=96") && started.contains("height=54") && started.contains("fps=10"),
         "{started}"
     );
+    let auto = auto_choice();
     assert!(
-        started.contains("renderer=\"processor\"") || started.contains("renderer=processor"),
+        started.contains(&format!("renderer=\"{}\"", auto.renderer)) || started.contains(&format!("renderer={}", auto.renderer)),
         "{started}"
+    );
+    let chosen = lines
+        .iter()
+        .find(|line| line.component == "cli" && line.text.starts_with("renderer chosen"))
+        .unwrap_or_else(|| panic!("renderer chosen: {}", log_text(&cwd)));
+    assert_eq!(chosen.level, "DEBUG", "{}", log_text(&cwd));
+    assert!(
+        chosen.text.contains(&format!("chosen_by=\"{}\"", auto.chosen_by))
+            || chosen.text.contains(&format!("chosen_by={}", auto.chosen_by)),
+        "{}",
+        chosen.text
     );
     let finished = &lines[order[6]].text;
     assert!(finished.contains("frames=10") && finished.contains("bytes="), "{finished}");

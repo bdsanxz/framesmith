@@ -1,7 +1,7 @@
-//! `framesmith render --backend gpu` on the first fixture: the summary names the card's renderer and
-//! the option that chose it, and the film has the checked-in colours in every frame
-//! (`docs/spec/render-command.md` sections 4 and 7). The card needs a graphics card that frx7 can
-//! draw with, so the test is reference machine only (`docs/dev/gates.md` section 4).
+//! `framesmith render` on the first fixture with the card: the summary names the card's renderer and
+//! how it was chosen, and the film has the checked-in colours in every frame
+//! (`docs/spec/render-command.md` sections 1.2, 4 and 7). The card needs a graphics card that frx7 can
+//! draw with, so the tests are reference machine only (`docs/dev/gates.md` section 4).
 
 mod common;
 
@@ -32,6 +32,23 @@ fn near(pixel: [u8; 3], want: [u8; 3]) -> bool {
     pixel.iter().zip(want).all(|(a, b)| a.abs_diff(b) <= 12)
 }
 
+/// The film at `film` has ten frames of 96 by 54 pixels, and the checked-in colours at the sample
+/// points of every frame.
+fn assert_checked_in_colours(film: &Path) {
+    let facts = video_facts(film).unwrap();
+    assert_eq!((facts.width, facts.height, facts.frames), (96, 54, 10));
+    let mut pictures = open_pictures(film).unwrap();
+    let mut seen = 0;
+    while let Some(frame) = pictures.next_frame().unwrap() {
+        for ((x, y), want) in SAMPLES {
+            let got = frame.pixel(x, y);
+            assert!(near(got, want), "frame {seen} at ({x}, {y}): {got:?} against {want:?}");
+        }
+        seen += 1;
+    }
+    assert_eq!(seen, 10);
+}
+
 #[test]
 #[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
 fn reference_machine_only_the_card_backend_names_the_card_and_its_film_shows_the_checked_in_colours() {
@@ -47,17 +64,23 @@ fn reference_machine_only_the_card_backend_names_the_card_and_its_film_shows_the
     assert_eq!(lines[5], "renderer: card", "{printed}");
     assert_eq!(lines[7], "backend: gpu (option)", "{printed}");
 
-    let film = project.join("renders").join("demo.mp4");
-    let facts = video_facts(&film).unwrap();
-    assert_eq!((facts.width, facts.height, facts.frames), (96, 54, 10));
-    let mut pictures = open_pictures(&film).unwrap();
-    let mut seen = 0;
-    while let Some(frame) = pictures.next_frame().unwrap() {
-        for ((x, y), want) in SAMPLES {
-            let got = frame.pixel(x, y);
-            assert!(near(got, want), "frame {seen} at ({x}, {y}): {got:?} against {want:?}");
-        }
-        seen += 1;
-    }
-    assert_eq!(seen, 10);
+    assert_checked_in_colours(&project.join("renders").join("demo.mp4"));
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_auto_takes_the_card_when_no_backend_is_set_and_says_so() {
+    let (project, cwd) = make(GROUP, "auto", &first_fixture());
+    let project_text = project.display().to_string();
+    let output = framesmith(&cwd, ["render", project_text.as_str()], &[]);
+    assert_eq!(output.status.code(), Some(0), "{}{}", out(&output), err(&output));
+    assert_eq!(err(&output), "");
+
+    let printed = out(&output);
+    let lines: Vec<&str> = printed.lines().collect();
+    assert_eq!(lines.len(), 14, "{printed}");
+    assert_eq!(lines[5], "renderer: card (chosen by auto)", "{printed}");
+    assert_eq!(lines[7], "backend: auto (default)", "{printed}");
+
+    assert_checked_in_colours(&project.join("renders").join("demo.mp4"));
 }

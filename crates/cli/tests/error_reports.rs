@@ -3,7 +3,7 @@
 //! (`docs/spec/error-catalogue.md`), with or without a terminal that asks for colour.
 
 use std::collections::BTreeSet;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -479,6 +479,39 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
+    // The card's refusal is what a machine with no graphics card gives, and such a machine is not
+    // needed to see it: the command runs in this process, through the same entry the binary runs, with
+    // the starter of a card that does not start (`cli::run_with`). Every other run here names its
+    // folder for its own child process, so the working folder of this process is free to change.
+    let (gpu_project, gpu_cwd) = project(
+        "emit-gpu-without-a-card",
+        r#"<composition version="1" width="640" height="360" duration="2"/>"#.as_bytes(),
+    );
+    std::env::set_current_dir(&gpu_cwd).unwrap();
+    let args = vec![
+        OsString::from("render"),
+        gpu_project.as_os_str().to_owned(),
+        OsString::from("--backend"),
+        OsString::from("gpu"),
+    ];
+    let mut out: Vec<u8> = Vec::new();
+    let mut err: Vec<u8> = Vec::new();
+    let code = cli::run_with(&args, &mut out, &mut err, &card_does_not_start);
+    let printed = text(&out);
+    assert_eq!(code, 2, "{printed}");
+    assert!(
+        printed.starts_with(&format!("{}: ", Code::RendererNotAvailable.as_str())),
+        "{printed}"
+    );
+    emitted.insert(Code::RendererNotAvailable.as_str());
+
     let all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
     assert_eq!(emitted, all);
+}
+
+/// The starter of a machine with no graphics card: the card cannot be started, and the reason says so.
+fn card_does_not_start() -> Result<Box<dyn draw::Renderer>, draw::Error> {
+    Err(draw::Error::new(
+        "this machine has no graphics card frx7 can draw with: no adapter was found",
+    ))
 }
