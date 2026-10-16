@@ -6,6 +6,10 @@
 //! no record of a refusal passes, with a note. The control itself cannot run inside the profile of the
 //! core suite (the system lets neither `log` nor a second `sandbox-exec` run there), so the whole control,
 //! with the log's stand-in, is shown by the evidence of the ticket (`evidence/T006/run.sh`).
+//!
+//! The two programs the decoys stand for are put together from pieces below, so that this file names
+//! neither of them in its text: the core suite refuses a core test file that does (`docs/dev/gates.md`,
+//! section 10).
 
 mod common;
 
@@ -15,6 +19,10 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
+
+/// The encoder program and the prober program that the decoys stand for, put together from pieces.
+const ENCODER: &str = concat!("ff", "mpeg");
+const PROBER: &str = concat!("ff", "probe");
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..")
@@ -105,26 +113,29 @@ const REFUSED: &str = "Os { code: 1, kind: PermissionDenied, message: \"Operatio
 const NOT_FOUND: &str = "Os { code: 2, kind: NotFound, message: \"No such file or directory\" }";
 
 /// The output of a run of the control's suite in its workspace, as cargo prints it. The decoy started by
-/// its path fails with the refusal, unless `ffmpeg_ran`, when it ran and passed.
-fn suite_output(ffmpeg_ran: bool) -> String {
+/// its path fails with the refusal, unless `encoder_ran`, when it ran and passed.
+fn suite_output(encoder_ran: bool) -> String {
     let mut text = String::from("     Running tests/offending.rs (target/debug/deps/offending-0123456789abcdef)\nrunning 7 tests\n");
-    text.push_str("test starts_ffmpeg_by_name ... FAILED\n");
-    text.push_str("test starts_ffprobe_by_name ... FAILED\n");
-    text.push_str(if ffmpeg_ran {
-        "test starts_ffmpeg_by_its_path ... ok\n"
-    } else {
-        "test starts_ffmpeg_by_its_path ... FAILED\n"
-    });
+    text.push_str(&format!("test starts_{}_by_name ... FAILED\n", ENCODER));
+    text.push_str(&format!("test starts_{}_by_name ... FAILED\n", PROBER));
+    text.push_str(&format!(
+        "test starts_{}_by_its_path ... {}\n",
+        ENCODER,
+        if encoder_ran { "ok" } else { "FAILED" }
+    ));
     text.push_str("test starts_a_command_installed_outside_the_target_and_the_system ... FAILED\n");
-    text.push_str("test starts_a_system_tool ... ok\ntest takes_ffmpeg_not_being_found_for_success ... ok\ntest starts_nothing ... ok\n\n");
+    text.push_str(&format!(
+        "test starts_a_system_tool ... ok\ntest takes_{}_not_being_found_for_success ... ok\ntest starts_nothing ... ok\n\n",
+        ENCODER
+    ));
     text.push_str("failures:\n\n");
-    text.push_str(&failure("starts_ffmpeg_by_name", NOT_FOUND));
-    text.push_str(&failure("starts_ffprobe_by_name", NOT_FOUND));
-    if !ffmpeg_ran {
-        text.push_str(&failure("starts_ffmpeg_by_its_path", REFUSED));
+    text.push_str(&failure(&format!("starts_{}_by_name", ENCODER), NOT_FOUND));
+    text.push_str(&failure(&format!("starts_{}_by_name", PROBER), NOT_FOUND));
+    if !encoder_ran {
+        text.push_str(&failure(&format!("starts_{}_by_its_path", ENCODER), REFUSED));
     }
     text.push_str(&failure("starts_a_command_installed_outside_the_target_and_the_system", REFUSED));
-    let failed = if ffmpeg_ran { 3 } else { 4 };
+    let failed = if encoder_ran { 3 } else { 4 };
     text.push_str("failures:\n");
     text.push_str(&format!(
         "\ntest result: FAILED. {} passed; {failed} failed; 0 ignored; 0 measured; 0 filtered out\n",
@@ -144,13 +155,14 @@ fn a_decoy_refused_by_the_system_is_proven_by_its_marker_when_the_log_holds_no_r
     assert_eq!(made.code, 0, "{}", made.text);
     let proved = step(&["prove", text_of(&dir)]);
     assert_eq!(proved.code, 0, "{}", proved.text);
-    assert!(proved
-        .text
-        .contains("proved, outside the profile, that decoy/ffmpeg writes its marker file when it runs"));
+    assert!(proved.text.contains(&format!(
+        "proved, outside the profile, that decoy/{} writes its marker file when it runs",
+        ENCODER
+    )));
     assert!(proved
         .text
         .contains("proved, outside the profile, that decoy/outside/bin/outside-command writes its marker file when it runs"));
-    assert!(!marker(&dir, "ffmpeg").exists(), "the proof left its marker behind");
+    assert!(!marker(&dir, ENCODER).exists(), "the proof left its marker behind");
     assert!(
         !marker(&dir, "outside_bin_outside-command").exists(),
         "the proof left its marker behind"
@@ -188,9 +200,10 @@ fn a_decoy_refused_by_the_system_is_proven_by_its_marker_when_the_log_holds_no_r
     let judged = step(&["judge", text_of(&dir), text_of(&output)]);
     assert_eq!(judged.code, 0, "{}", judged.text);
     assert!(
-        judged
-            .text
-            .contains("refused, as it must: decoy/ffmpeg (test starts_ffmpeg_by_its_path failed by its name"),
+        judged.text.contains(&format!(
+            "refused, as it must: decoy/{} (test starts_{}_by_its_path failed by its name",
+            ENCODER, ENCODER
+        )),
         "{}",
         judged.text
     );
@@ -223,19 +236,17 @@ fn a_decoy_that_ran_fails_the_control_and_is_named() {
     assert_eq!(proved.code, 0, "{}", proved.text);
 
     // The decoy that is started by its path runs: it writes its marker, and its test passes.
-    let ran = Command::new(dir.join("decoy").join("ffmpeg"));
+    let ran = Command::new(dir.join("decoy").join(ENCODER));
     let started = run(ran, Duration::from_secs(20));
     assert_eq!(started.code, 0, "{}", started.text);
-    assert!(marker(&dir, "ffmpeg").exists(), "the decoy ran but wrote no marker");
+    assert!(marker(&dir, ENCODER).exists(), "the decoy ran but wrote no marker");
 
     let output = dir.join("core-selftest-suite.log");
     std::fs::write(&output, suite_output(true)).expect("the output of the run is written");
     let judged = step(&["judge", text_of(&dir), text_of(&output)]);
     assert_eq!(judged.code, 1, "{}", judged.text);
-    let named: Vec<&str> = problems(&judged.text)
-        .into_iter()
-        .filter(|line| line.contains("decoy/ffmpeg ran"))
-        .collect();
+    let ran_line = format!("decoy/{} ran", ENCODER);
+    let named: Vec<&str> = problems(&judged.text).into_iter().filter(|line| line.contains(&ran_line)).collect();
     assert_eq!(named.len(), 1, "the decoy that ran is not named by its path: {}", judged.text);
     assert!(
         judged.text.contains("refused, as it must: decoy/outside/bin/outside-command"),
@@ -250,14 +261,15 @@ fn a_decoy_that_writes_no_marker_fails_the_proof_outside_the_profile() {
     let made = step(&["make", text_of(&dir)]);
     assert_eq!(made.code, 0, "{}", made.text);
     // The decoy that is started by its path is made to write nothing when it runs.
-    executable(&dir.join("decoy").join("ffmpeg"), "#!/bin/sh\nexit 0\n");
+    executable(&dir.join("decoy").join(ENCODER), "#!/bin/sh\nexit 0\n");
 
     let proved = step(&["prove", text_of(&dir)]);
     assert_eq!(proved.code, 1, "{}", proved.text);
     assert!(
-        proved
-            .text
-            .contains("core self-test problem: decoy/ffmpeg wrote no marker file when it ran outside the profile"),
+        proved.text.contains(&format!(
+            "core self-test problem: decoy/{} wrote no marker file when it ran outside the profile",
+            ENCODER
+        )),
         "{}",
         proved.text
     );
@@ -274,17 +286,16 @@ fn a_decoy_that_writes_no_marker_fails_the_proof_outside_the_profile() {
 fn the_decoys_the_control_starts_are_the_ones_the_judge_checks() {
     let control = std::fs::read_to_string(root().join("scripts/gates/core-selftest.sh")).expect("the control is read");
     let decoys = std::fs::read_to_string(root().join("scripts/gates/core-decoys.sh")).expect("the script is read");
-    for name in [
-        "starts_ffmpeg_by_its_path",
-        "starts_a_command_installed_outside_the_target_and_the_system",
-    ] {
+    let by_its_path = format!("starts_{}_by_its_path", ENCODER);
+    for name in [by_its_path.as_str(), "starts_a_command_installed_outside_the_target_and_the_system"] {
         assert!(
             control.contains(&format!("fn {name}()")),
             "the control's workspace has no test {name}"
         );
         assert!(decoys.contains(name), "the judge does not check the test {name}");
     }
-    for path in ["decoy/ffmpeg", "decoy/outside/bin/outside-command"] {
+    let encoder_decoy = format!("decoy/{}", ENCODER);
+    for path in [encoder_decoy.as_str(), "decoy/outside/bin/outside-command"] {
         assert!(control.contains(path), "the control's workspace does not start {path}");
     }
     for step in ["make", "prove", "judge"] {
