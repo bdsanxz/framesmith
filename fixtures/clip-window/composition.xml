@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The window of a box in frames, at 30 frames a second for four seconds: 120 frames, numbered from 0.
+     always: no window, so every frame. timed: start 1 for 2 seconds, frames 30 to 89.
+     third, third-plus, third-late: starts 0.33333, 0.33334 and 0.34 for one second, frames 10 to 39,
+     frames 10 to 39 and frames 11 to 40. clip: start 1 for one second, frames 30 to 59. later, inside the
+     clip, starts 0.5 second into it and lasts 3 seconds, so it shows from frame 45 and no later than frame 59.
+     inside, also in the clip, has no window and shows in every frame of the clip. -->
+<composition version="1" id="clip-window" width="96" height="54" fps="30" duration="4" background="#102040">
+  <box id="always" left="0" top="0" width="16" height="16" background="#ffffff"/>
+  <box id="timed" left="16" top="0" width="16" height="16" start="1" duration="2" background="#e0a030"/>
+  <box id="third" left="32" top="0" width="8" height="8" start="0.33333" duration="1" background="#ff0000"/>
+  <box id="third-plus" left="40" top="0" width="8" height="8" start="0.33334" duration="1" background="#00ff00"/>
+  <box id="third-late" left="48" top="0" width="8" height="8" start="0.34" duration="1" background="#0000ff"/>
+  <box id="clip" left="0" top="16" width="96" height="38" start="1" duration="1" background="#202020">
+    <box id="later" left="0" top="0" width="20" height="20" start="0.5" duration="3" background="#40c0ff"/>
+    <box id="inside" left="30" top="10" width="20" height="10" background="#ff40ff"/>
+  </box>
+</composition>

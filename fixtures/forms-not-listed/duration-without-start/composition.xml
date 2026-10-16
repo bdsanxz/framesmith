@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A clip with a duration and no start: a box with a duration is a clip only with its start written too, and this box has none. -->
+<composition version="1" id="duration-without-start" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <box duration="1" width="40" height="30" background="#e0a030"/>
+</composition>
