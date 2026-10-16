@@ -1,41 +1,59 @@
 //! Where a box that stands directly in the frame lies, and which of its pixels are seen
 //! (`docs/spec/render-command.md` section 4, `docs/spec/notation.md` section 7.1).
 
-use layout::{place, Rect, Visible, Written};
+use layout::{frame, place, Amount, Rect, Visible, Written};
 
 #[test]
 fn a_box_with_nothing_written_is_as_large_as_the_frame_at_its_corner() {
     assert_eq!(
-        place(640, 360, Written::default()),
-        Rect {
+        place(frame(640, 360), Written::default()),
+        Ok(Rect {
             left: 0,
             top: 0,
             width: 640,
             height: 360
-        }
+        })
     );
 }
 
 #[test]
 fn what_is_written_is_taken_and_what_is_not_is_the_default() {
     let rect = place(
-        640,
-        360,
+        frame(640, 360),
         Written {
-            left: Some(-5),
-            top: Some(12),
-            width: None,
-            height: Some(0),
+            left: Some(Amount::Pixels(-5.0)),
+            top: Some(Amount::Pixels(12.0)),
+            height: Some(Amount::Pixels(0.0)),
+            ..Written::default()
         },
     );
     assert_eq!(
         rect,
-        Rect {
+        Ok(Rect {
             left: -5,
             top: 12,
             width: 640,
             height: 0
-        }
+        })
+    );
+}
+
+#[test]
+fn a_box_with_its_four_edges_in_pixels_has_them_where_they_are_written() {
+    let rect = place(
+        frame(96, 54),
+        Written {
+            left: Some(Amount::Pixels(12.0)),
+            top: Some(Amount::Pixels(8.0)),
+            width: Some(Amount::Pixels(40.0)),
+            height: Some(Amount::Pixels(30.0)),
+            ..Written::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        (rect.left, rect.top, rect.left + rect.width as i32, rect.top + rect.height as i32),
+        (12, 8, 52, 38)
     );
 }
 
