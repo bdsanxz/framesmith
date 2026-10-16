@@ -75,19 +75,22 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
         only("in-box", "<box>\n<tween at=\"0\" duration=\"1\" to-x=\"5\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box> with no element inside it"
+        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box> inside a <box> and no other element"
     );
-    assert_eq!(
-        only("box-in-box", "<box>\n<box/>\n</box>"),
-        "composition.xml 3 FS-0035 <box> inside a <box> is not supported by this version, which draws a <box> with no element inside it"
-    );
+    // A box inside a box is drawn (section 4.1), so it is not refused.
+    assert_eq!(refused("box-in-box", "<box>\n<box/>\n</box>"), Vec::<String>::new());
     // The text is reported once; the span inside it is not reported, nor the box inside the box in it.
     assert_eq!(
         only("inside-reported", "<text>words <span color=\"#ffffff\">x</span></text>"),
         "composition.xml 2 FS-0035 <text> is not supported by this version, which draws <box> only"
     );
-    let reports = refused("inside-inside", "<box>\n<box>\n<box/>\n</box>\n</box>");
+    // A rect inside a box is reported once; the box inside that rect is not looked into.
+    let reports = refused("inside-inside", "<box>\n<rect>\n<box/>\n</rect>\n</box>");
     assert_eq!(reports.len(), 1, "{reports:#?}");
+    assert_eq!(
+        reports[0],
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box> inside a <box> and no other element"
+    );
 }
 
 #[test]
@@ -121,19 +124,16 @@ fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
 
 #[test]
 fn a_length_that_is_a_length_and_is_not_a_whole_number_of_pixels_in_range_is_unsupported() {
+    let edge = "a whole number of pixels from -1000000 to 1000000, or a percentage such as 50%";
+    let size = "a whole number of pixels from 0 to 1000000, or a percentage such as 50%";
     for (name, attribute, written, takes) in [
-        ("left-fraction", "left", "10.5", "a whole number of pixels from -1000000 to 1000000"),
-        ("top-percent", "top", "50%", "a whole number of pixels from -1000000 to 1000000"),
-        ("left-large", "left", "1000001", "a whole number of pixels from -1000000 to 1000000"),
-        (
-            "top-negative-large",
-            "top",
-            "-1e7",
-            "a whole number of pixels from -1000000 to 1000000",
-        ),
-        ("width-fraction", "width", "0.5", "a whole number of pixels from 0 to 1000000"),
-        ("width-percent", "width", "50%", "a whole number of pixels from 0 to 1000000"),
-        ("height-large", "height", "2e6", "a whole number of pixels from 0 to 1000000"),
+        ("left-fraction", "left", "10.5", edge),
+        ("left-large", "left", "1000001", edge),
+        ("top-negative-large", "top", "-1e7", edge),
+        ("right-fraction", "right", "-0.5", edge),
+        ("bottom-large", "bottom", "1e7", edge),
+        ("width-fraction", "width", "0.5", size),
+        ("height-large", "height", "2e6", size),
     ] {
         assert_eq!(
             only(name, &format!("<box {attribute}=\"{written}\"/>")),
@@ -145,12 +145,26 @@ fn a_length_that_is_a_length_and_is_not_a_whole_number_of_pixels_in_range_is_uns
 #[test]
 fn the_limits_themselves_are_drawn() {
     for inside in [
-        "<box left=\"-1000000\" top=\"1000000\"/>",
+        "<box left=\"-1000000\" top=\"-1000000\" width=\"1000000\" height=\"0\"/>",
         "<box width=\"1000000\" height=\"0\"/>",
         "<box left=\"-0\" width=\"-0\"/>",
     ] {
         assert_eq!(refused("limit", inside), Vec::<String>::new(), "{inside}");
     }
+}
+
+#[test]
+fn a_place_that_works_out_beyond_the_limit_is_reported_with_its_line() {
+    // The default size of a box at top 1000000 lies beyond the limit at its bottom edge.
+    assert_eq!(
+        only("beyond-default-size", "<box top=\"1000000\"/>"),
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, which this version does not place"
+    );
+    // A near edge at the limit and a size that runs past it.
+    assert_eq!(
+        only("beyond-far-edge", "<box left=\"1000000\" width=\"1\"/>"),
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, which this version does not place"
+    );
 }
 
 #[test]
@@ -188,11 +202,11 @@ fn a_value_that_is_no_length_and_a_size_below_zero_are_invalid_and_not_unsupport
             format!("composition.xml 2 FS-0034 `{attribute}=\"{written}\"` {message}")
         );
     }
-    // A negative edge is not wrong: a box may lie partly outside.
+    // A negative edge is not wrong: a box may lie partly outside, and a percentage is a length.
     assert_eq!(
-        refused("negative-edge", "<box left=\"-5\" top=\"-5%\"/>").len(),
-        1,
-        "a percentage is unsupported, not invalid"
+        refused("negative-edge", "<box left=\"-5\" top=\"-5%\"/>"),
+        Vec::<String>::new(),
+        "a negative distance and a percentage are both taken"
     );
     assert_eq!(Code::LengthNotAccepted.kind(), Kind::Invalid);
     assert_eq!(Code::FormNotSupported.kind(), Kind::Unsupported);

@@ -80,3 +80,56 @@ fn reference_machine_only_a_doctored_card_fails_the_comparison_and_names_the_fra
         "the comparison failed: 1 of 10 frames are outside the tolerance"
     );
 }
+
+fn every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor(fixture: &str) {
+    let scene = scene_of(fixture);
+    let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card(), None);
+    let report = comparison.report();
+    assert!(comparison.passed(), "{}", report.join("\n"));
+    assert_eq!(
+        report.last().unwrap(),
+        &format!("the comparison passed: all {} frames are within the tolerance", scene.frames())
+    );
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_box_placed_in_pixels_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-in-pixels");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_boxes_placed_in_percentages_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-in-percentages");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_boxes_placed_between_two_edges_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-between-edges");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_box_placed_inside_a_box_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-inside-a-box");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_boxes_placed_from_the_bottom_and_right_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-from-the-bottom-and-right");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_boxes_with_a_margin_and_a_position_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-margin-and-position");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_boxes_of_zero_size_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-zero-sizes");
+}
