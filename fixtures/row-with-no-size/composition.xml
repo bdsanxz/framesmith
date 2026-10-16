@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row at 10, 30 with no width and no height of its own, a gap of 6 pixels, and two children 12 by 8. The row is
+     as large as its items and gap: 30 by 8, at {10,30,30,8}. The children lie at {10,30,12,8} and {28,30,12,8}. The
+     row's background, drawn first, shows its size. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="row-with-no-size" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="sized-by-children" left="10" top="30" flex-direction="row" gap="6" background="#305050">
+    <box width="12" height="8" background="#ff8060"/>
+    <box width="12" height="8" background="#80ff80"/>
+  </box>
+</composition>

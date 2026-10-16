@@ -78,6 +78,17 @@ fn check_is_ready_for_every_placement_fixture_that_render_draws() {
         "placement-inside-a-box",
         "placement-margin-and-position",
         "placement-zero-sizes",
+        "absolute-child-in-a-row",
+        "column-align-across",
+        "columns-with-gaps",
+        "gap-of-zero",
+        "padding-inside-a-row",
+        "row-align-across",
+        "row-along-center-and-end",
+        "row-inside-a-row-with-no-size",
+        "row-with-no-size",
+        "rows-with-gaps",
+        "stretch-across-with-no-size",
     ];
     for name in names {
         let project = fixtures().join(name);

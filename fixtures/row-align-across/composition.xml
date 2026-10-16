@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row 88 wide and 50 tall at 4, 2, with a gap of 8 pixels. Its first three children are 16 by 16, aligned across
+     at the start, the centre and the end: {4,2,16,16}, {28,19,16,16} and {52,36,16,16}. The fourth has no height and
+     stretches to the full 50 pixels of the row: {76,2,16,50}. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="row-align-across" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="across" left="4" top="2" width="88" height="50" flex-direction="row" gap="8">
+    <box width="16" height="16" align-self="flex-start" background="#ff8060"/>
+    <box width="16" height="16" align-self="center" background="#80ff80"/>
+    <box width="16" height="16" align-self="flex-end" background="#ffd080"/>
+    <box width="16" align-self="stretch" background="#80d0ff"/>
+  </box>
+</composition>
