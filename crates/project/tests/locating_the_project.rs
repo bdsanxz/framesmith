@@ -4,6 +4,7 @@
 
 use project::{Code, Kind, NoProject, OpenError, Project};
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
@@ -33,6 +34,7 @@ fn scratch(name: &str) -> PathBuf {
 }
 
 /// Gives every folder under `dir` back its owner's permissions, so that it can be removed.
+#[cfg(unix)]
 fn make_writable(dir: &Path) {
     let _ = fs::set_permissions(dir, fs::Permissions::from_mode(0o755));
     if let Ok(entries) = fs::read_dir(dir) {
@@ -40,6 +42,22 @@ fn make_writable(dir: &Path) {
             if entry.path().is_dir() {
                 make_writable(&entry.path());
             }
+        }
+    }
+}
+
+/// Clears the read-only mark of every file and folder under `dir`, so that it can be removed: the
+/// form of giving back permissions on a system without Unix permission bits.
+#[cfg(not(unix))]
+fn make_writable(dir: &Path) {
+    if let Ok(metadata) = fs::metadata(dir) {
+        let mut permissions = metadata.permissions();
+        permissions.set_readonly(false);
+        let _ = fs::set_permissions(dir, permissions);
+    }
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            make_writable(&entry.path());
         }
     }
 }
@@ -389,6 +407,7 @@ fn a_folder_with_no_composition_names_the_folder_and_both_files_that_were_looked
     assert!(!empty.join("composition.xml").exists(), "something was written");
 }
 
+#[cfg(unix)]
 #[test]
 fn a_composition_file_that_cannot_be_read_is_a_failure_that_names_the_path() {
     let dir = scratch("no-access");
@@ -433,6 +452,7 @@ fn a_project_file_above_a_composition_file_that_cannot_be_read_is_reported_with_
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn something_that_is_neither_a_folder_nor_a_file_is_not_read() {
     let dir = scratch("named-pipe");
@@ -452,6 +472,7 @@ fn something_that_is_neither_a_folder_nor_a_file_is_not_read() {
     assert!(matches!(error, OpenError::NoProject(NoProject::NotAFolder(_))), "{error:?}");
 }
 
+#[cfg(unix)]
 #[test]
 fn a_link_to_a_folder_is_followed_to_the_real_folder_when_the_project_file_is_looked_for() {
     let dir = scratch("link");
