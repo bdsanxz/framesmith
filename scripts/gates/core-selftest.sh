@@ -110,7 +110,7 @@ for name in starts_a_system_tool takes_ffmpeg_not_being_found_for_success starts
     fi
 done
 FAILING=$(grep -c '^test .* \.\.\. FAILED$' "$OUT")
-[ "$FAILING" -eq 4 ] || problem "$FAILING tests failed and 4 were to"
+[ "$FAILING" -eq 4 ] || problem "$FAILING tests failed and 4 were to fail"
 
 # The failures name the test with the place of its panic.
 if grep -q "panicked at crates/offenders/tests/offending.rs" "$OUT"; then
