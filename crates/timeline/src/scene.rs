@@ -74,68 +74,12 @@ impl Scene {
     /// of the file.
     pub fn from_project(project: &Project) -> Result<Scene, Vec<Report>> {
         let mut reports = settings(project);
-        let root = project.root();
-        let tree = project.tree().nodes();
-        let file = project.composition();
-        let mut refuse = |code: Code, line: u32, message: String| reports.push(Report::new(file, Problem::new(code, line, message)));
-
-        let frame = layout::frame(root.width, root.height);
-        let mut boxes: Vec<Placed> = Vec::new();
-        // For each element, in document order: the rectangle its box is placed at. The root's is the
-        // frame. `None` is for an element that is reported and for one inside it, which is not looked
-        // into. An element comes after its parent in the tree, so the parent's entry is already known.
-        let mut places: Vec<Option<Rect>> = Vec::with_capacity(tree.len());
-
-        for node in tree {
-            let Some(parent) = node.parent() else {
-                // The root.
-                for attribute in node.attributes() {
-                    if !ROOT_TAKES.contains(&attribute.name()) {
-                        refuse(
-                            Code::FormNotSupported,
-                            attribute.line(),
-                            unsupported_attribute(node, attribute.name()),
-                        );
-                    }
-                }
-                if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
-                    refuse(
-                        Code::FormNotSupported,
-                        attribute.line(),
-                        unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
-                    );
-                }
-                places.push(Some(frame));
-                continue;
-            };
-            let Some(parent_place) = places[parent] else {
-                // Inside an element that is reported: nothing more is said of it.
-                places.push(None);
-                continue;
-            };
-            if node.element() != Element::Box {
-                let message = if parent == 0 {
-                    unsupported_element(node.element())
-                } else {
-                    unsupported_inside_box(node.element())
-                };
-                refuse(Code::FormNotSupported, node.line(), message);
-                places.push(None);
-                continue;
-            }
-            let (placed, refusals) = place_box(node, parent_place);
-            for (code, line, message) in refusals {
-                refuse(code, line, message);
-            }
-            places.push(placed.map(|placed| {
-                boxes.push(placed);
-                placed.rect
-            }));
-        }
-
+        let (boxes, found) = walk(project, false);
+        reports.extend(found);
         if !reports.is_empty() {
             return Err(reports);
         }
+        let root = project.root();
         let background = Colour {
             red: root.background.red,
             green: root.background.green,
@@ -207,7 +151,116 @@ impl Scene {
     }
 }
 
-type Refusal = (Code, u32, String);
+/// The reports of the forms of a place, a size, a margin and a position that this version does not
+/// list, in the order of the file. They are the reports `Scene::from_project` makes of those forms,
+/// by the same code, without the settings of the project file and without the refusals of what is
+/// drawn: `check` judges the forms of a place and does not judge the rest (`docs/spec/check-command.md`,
+/// section 3a).
+pub fn place_reports(project: &Project) -> Vec<Report> {
+    walk(project, true).1
+}
+
+/// Walks the project's tree in document order: the root, then each element after its parent. A box
+/// is placed (`place_box`) unless it, or an element it stands in, is refused. Gives the boxes that are
+/// placed, in document order, and the reports of the refusals. With `place_only`, the reports are those
+/// of a place form alone.
+fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
+    let root = project.root();
+    let tree = project.tree().nodes();
+    let file = project.composition();
+    let mut reports: Vec<Report> = Vec::new();
+    let mut refuse = |refusal: Refusal| {
+        if refusal.place || !place_only {
+            reports.push(Report::new(file, Problem::new(refusal.code, refusal.line, refusal.message)));
+        }
+    };
+
+    let frame = layout::frame(root.width, root.height);
+    let mut boxes: Vec<Placed> = Vec::new();
+    // For each element, in document order: the rectangle its box is placed at. The root's is the
+    // frame. `None` is for an element that is reported and for one inside it, which is not looked
+    // into. An element comes after its parent in the tree, so the parent's entry is already known.
+    let mut places: Vec<Option<Rect>> = Vec::with_capacity(tree.len());
+
+    for node in tree {
+        let Some(parent) = node.parent() else {
+            // The root.
+            for attribute in node.attributes() {
+                if !ROOT_TAKES.contains(&attribute.name()) {
+                    refuse(Refusal::of_drawing(
+                        Code::FormNotSupported,
+                        attribute.line(),
+                        unsupported_attribute(node, attribute.name()),
+                    ));
+                }
+            }
+            if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
+                refuse(Refusal::of_drawing(
+                    Code::FormNotSupported,
+                    attribute.line(),
+                    unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
+                ));
+            }
+            places.push(Some(frame));
+            continue;
+        };
+        let Some(parent_place) = places[parent] else {
+            // Inside an element that is reported: nothing more is said of it.
+            places.push(None);
+            continue;
+        };
+        if node.element() != Element::Box {
+            let message = if parent == 0 {
+                unsupported_element(node.element())
+            } else {
+                unsupported_inside_box(node.element())
+            };
+            refuse(Refusal::of_drawing(Code::FormNotSupported, node.line(), message));
+            places.push(None);
+            continue;
+        }
+        let (placed, refusals) = place_box(node, parent_place);
+        for refusal in refusals {
+            refuse(refusal);
+        }
+        places.push(placed.map(|placed| {
+            boxes.push(placed);
+            placed.rect
+        }));
+    }
+    (boxes, reports)
+}
+
+/// A refusal of the root or of a box: its code, its line, its message, and whether it is of a form
+/// of a place (`place`: a length, a size, a margin or a position), which `check` judges as well.
+struct Refusal {
+    code: Code,
+    line: u32,
+    message: String,
+    place: bool,
+}
+
+impl Refusal {
+    /// A refusal of a form of a place, a size, a margin or a position.
+    fn of_place(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+        }
+    }
+
+    /// A refusal of anything else that this version does not draw or apply.
+    fn of_drawing(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: false,
+        }
+    }
+}
 
 /// A `<box>` in its parent's rectangle: the place it is drawn at, its colour, and every refusal of
 /// its attributes. A box with a refusal, or whose place cannot be worked out within the limit, has
@@ -219,7 +272,11 @@ fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
     for attribute in node.attributes() {
         let name = attribute.name();
         if !BOX_TAKES.contains(&name) {
-            refusals.push((Code::FormNotSupported, attribute.line(), unsupported_attribute(node, name)));
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                attribute.line(),
+                unsupported_attribute(node, name),
+            ));
             continue;
         }
         let value = attribute.shown();
@@ -234,12 +291,12 @@ fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
                         "width" => written.width = Some(found),
                         _ => written.height = Some(found),
                     },
-                    Err((code, message)) => refusals.push((code, attribute.line(), message)),
+                    Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
                 }
             }
             "position" => {
                 if !matches!(attribute.value(), "static" | "absolute") {
-                    refusals.push((
+                    refusals.push(Refusal::of_place(
                         Code::WordNotTaken,
                         attribute.line(),
                         format!("`position=\"{value}\"` is not one of: static, absolute"),
@@ -249,7 +306,7 @@ fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
             "margin" => {
                 // The sides are read and their values held; no margin moves a box (N10).
                 if attribute.sides().is_none() {
-                    refusals.push((
+                    refusals.push(Refusal::of_place(
                         Code::NotANumber,
                         attribute.line(),
                         format!("`margin=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
@@ -264,7 +321,7 @@ fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
                         blue: found.blue,
                     })
                 }
-                _ => refusals.push((
+                _ => refusals.push(Refusal::of_drawing(
                     Code::FormNotSupported,
                     attribute.line(),
                     unsupported_value(node, name, &value, "one opaque colour, #rrggbb"),
@@ -283,7 +340,7 @@ fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
                 "a place or a size of {} works out beyond {LIMIT} pixels, which this version does not place",
                 node.element().tag()
             );
-            (None, vec![(Code::FormNotSupported, node.line(), message)])
+            (None, vec![Refusal::of_place(Code::FormNotSupported, node.line(), message)])
         }
     }
 }

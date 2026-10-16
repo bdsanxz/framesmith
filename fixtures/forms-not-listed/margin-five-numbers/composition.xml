@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A margin with five numbers: margin="1 2 3 4 5" is not one to four numbers, so this version refuses it. -->
+<composition version="1" id="margin-five-numbers" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <box margin="1 2 3 4 5" background="#e0a030"/>
+</composition>

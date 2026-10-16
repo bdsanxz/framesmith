@@ -218,6 +218,6 @@ The lines of a `render` are in `run-log.md` section 4. They hold counts, names o
 - `layout` places a box: its rectangle in its parent's rectangle (the frame, for a box of the root) from the written `left`, `top`, `right`, `bottom`, `width` and `height` (section 4.1).
 - `draw` holds the list of drawing steps and the trait both renderers implement; `draw-cpu` is the renderer on the processor and `draw-gpu` the renderer on the card (`card-renderer.md`), which the command starts for `--backend gpu`, and for `--backend auto` to see whether a card is there (section 1.2).
 - `mix` makes the sound of the film (section 5.2): its rate, its channels, its length and, in this version, its silence.
-- `timeline` makes the scene from a project (and refuses what is not drawn) and draws any frame of it on request (`timeline.md`); `render` takes that scene and writes the film through frx7.
+- `timeline` makes the scene from a project (and refuses what is not drawn) and draws any frame of it on request (`timeline.md`); `render` takes that scene and writes the film through frx7. For the forms of a box's place, size, margin and position, `timeline` also gives `check` its reports (`place_reports`, `check-command.md` section 3b), so the two commands judge them by one code.
 - `project` also judges the value of each option (`Options`) and takes the settings by the rule of section 1.1 (`Project::apply`, `Settings::source`).
 - `cli` is the command: it reads the arguments (the path and the words of the options), calls `project` and `render`, prints, and sets the exit code.

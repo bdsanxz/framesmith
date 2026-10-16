@@ -244,10 +244,15 @@ enum Reply {
 
 /// `framesmith check <path>`: opens the project that the path names (a folder, a project file or a
 /// composition file) and says whether its project file and its composition are valid, or every
-/// problem they have.
+/// problem they have. The forms of a place, a size, a margin and a position are judged by the code
+/// `render` uses, so that `check` names each one `render` refuses (`docs/spec/check-command.md`).
 fn check(path: PathBuf) -> Reply {
     match Project::open(&path) {
         Ok(project) => {
+            let reports = render::place_reports(&project);
+            if !reports.is_empty() {
+                return reports_reply(&reports);
+            }
             let root = project.root();
             let frames = if root.frames == 1 {
                 "1 frame".to_string()
