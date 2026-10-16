@@ -317,9 +317,17 @@ fn the_suite_reads_the_refused_starts_through_the_reader_after_each_run_that_fai
 }
 
 #[test]
-fn the_control_requires_both_decoys_to_be_named_by_the_suite() {
+fn the_control_proves_each_refusal_by_its_marker_and_reads_the_log_only_as_a_note() {
     let control = text("scripts/gates/core-selftest.sh");
-    assert!(control.contains("grep -q \"^core problem: the system refused to start .*decoy/"));
-    assert!(control.contains("decoy/outside/bin/outside-command\""));
+    for step in ["make", "prove", "judge"] {
+        assert!(
+            control.contains(&format!("\"$DECOYS_SH\" {step}")),
+            "the control does not run the decoys' {step} step"
+        );
+    }
     assert!(control.contains("scripts/gates/core-suite.sh\" --hosted --root \"$SELF\""));
+    assert!(
+        !control.contains("grep -q \"^core problem: the system refused to start"),
+        "the control still requires the system log to name the decoys"
+    );
 }
