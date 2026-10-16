@@ -155,7 +155,7 @@ impl Scene {
 /// list, in the order of the file. They are the reports `Scene::from_project` makes of those forms,
 /// by the same code, without the settings of the project file and without the refusals of what is
 /// drawn: `check` judges the forms of a place and does not judge the rest (`docs/spec/check-command.md`,
-/// section 3a).
+/// section 3b).
 pub fn place_reports(project: &Project) -> Vec<Report> {
     walk(project, true).1
 }
