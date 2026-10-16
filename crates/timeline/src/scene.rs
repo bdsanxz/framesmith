@@ -190,7 +190,12 @@ impl Scene {
             .boxes
             .iter()
             .filter(|placed| placed.slot.window.contains(number))
-            .filter_map(|placed| placed.colour.map(|colour| Step::Fill { rect: placed.slot.rect, colour }))
+            .filter_map(|placed| {
+                placed.colour.map(|colour| Step::Fill {
+                    rect: placed.slot.rect,
+                    colour,
+                })
+            })
             .collect();
         Ok(DisplayList {
             width: self.width,

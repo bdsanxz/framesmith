@@ -146,7 +146,10 @@ fn clip_pair(node: roxmltree::Node, element: Element, spot_at: &dyn Fn(usize) ->
     if !element.clip_pair() {
         return;
     }
-    let written = |name: &str| node.attributes().any(|attribute| attribute.namespace().is_none() && attribute.name() == name);
+    let written = |name: &str| {
+        node.attributes()
+            .any(|attribute| attribute.namespace().is_none() && attribute.name() == name)
+    };
     if written("start") != written("duration") {
         problems.push(found(
             Code::ClipNotPaired,

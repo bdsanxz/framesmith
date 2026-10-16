@@ -19,7 +19,11 @@ fn the_frames_of_the_clip_window_fixture_equal_their_checked_in_pictures() {
     let folder = project_from_fixture("clip-window-checked-in", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
     let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
-    assert_eq!(numbers_with_a_picture(FIXTURE), CHECKED.to_vec(), "{FIXTURE}: the frames with a picture");
+    assert_eq!(
+        numbers_with_a_picture(FIXTURE),
+        CHECKED.to_vec(),
+        "{FIXTURE}: the frames with a picture"
+    );
     for number in CHECKED {
         let drawn = scene.picture(number, &mut CpuRenderer).unwrap();
         if let Err(difference) = compare(number, &drawn, &expected(FIXTURE, number)) {
