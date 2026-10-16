@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The four edges of a box in pixels: left 12, top 8, width 40 and height 30. The box covers the columns
+     12 to 51 and the rows 8 to 37. 96 by 54 pixels, 10 frames a second for one second: ten frames, all alike. -->
+<composition version="1" id="placement-in-pixels" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="pixels" left="12" top="8" width="40" height="30" background="#e0a030"/>
+</composition>

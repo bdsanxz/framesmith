@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sizes of 0 draw nothing of their box, and the children of such a box are still placed and drawn. The red,
+     green, cyan and magenta boxes have a width or a height of 0, or a size that two edges leave at 0 or
+     below; none of them is drawn. The blue box is 0 wide, and the white box inside it is 10 by 10 from its
+     left and top edges: the columns 45 to 54 and the rows 15 to 24. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="placement-zero-sizes" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="no-width" left="10" top="10" width="0" height="20" background="#ff0000"/>
+  <box id="no-height" left="20" top="10" width="30" height="0" background="#00ff00"/>
+  <box id="no-width-in-percent" left="0" top="40" width="0%" height="10" background="#00ffff"/>
+  <box id="edges-leave-no-room" left="60" right="60" top="0" height="5" background="#ff00ff"/>
+  <box id="empty-with-a-child" left="40" top="10" width="0" height="30" background="#0000ff">
+    <box id="child" left="5" top="5" width="10" height="10" background="#ffffff"/>
+  </box>
+</composition>

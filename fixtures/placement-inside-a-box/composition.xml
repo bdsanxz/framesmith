@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A box inside a box is placed from its parent's edges. The outer box is at 20, 10 and is 60 by 30, so it
+     covers the columns 20 to 79 and the rows 10 to 39. The inner box starts 10 right and 5 down from it: the
+     columns 30 to 49 and the rows 15 to 24. The last starts 5 from the outer box's right and bottom edges and
+     is 10 by 5: the columns 65 to 74 and the rows 30 to 34. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="placement-inside-a-box" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="outer" left="20" top="10" width="60" height="30" background="#304080">
+    <box id="inner" left="10" top="5" width="20" height="10" background="#ffd080"/>
+    <box id="far" right="5" bottom="5" width="10" height="5" background="#80ff80"/>
+  </box>
+</composition>

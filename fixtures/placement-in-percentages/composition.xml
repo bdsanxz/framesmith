@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Shares of the frame: the first box starts at 10% of its 96 pixels and is 50% wide, so its edges lie at
+     9.6 and 57.6 and cover the columns 10 to 57; down, it starts at 20% of 54 and is 50% high. The second
+     box starts at 50% across and at 75% down (40.5, which rounds half up to 41). 10 frames a second. -->
+<composition version="1" id="placement-in-percentages" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="share" left="10%" width="50%" top="20%" height="50%" background="#e0a030"/>
+  <box id="rounded" left="50%" width="25%" top="75%" height="20%" background="#30c0a0"/>
+</composition>
