@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row of three boxes with a gap of 20 pixels. The row is at 4, 4 and is 88 by 20. Its children are 12, 16 and
+     12 wide and 20 tall, and lie left to right in document order: the first in the columns 4 to 15, the second in
+     the columns 36 to 51, the third in the columns 72 to 83. Each is 20 pixels from the next. Rectangles (left, top,
+     width, height): {4,4,12,20}, {36,4,16,20}, {72,4,12,20}. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="rows-with-gaps" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="row" left="4" top="4" width="88" height="20" flex-direction="row" gap="20">
+    <box width="12" height="20" background="#ff8060"/>
+    <box width="16" height="20" background="#80ff80"/>
+    <box width="12" height="20" background="#ffd080"/>
+  </box>
+</composition>

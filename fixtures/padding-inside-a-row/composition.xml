@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row 80 wide and 40 tall at 8, 6, with padding of 4 pixels top and bottom and 8 pixels left and right (padding
+     "4 8"), and a gap of 4 pixels. The two children are 12 by 10. The padding moves them in from the edges of the box:
+     they lie at {16,10,12,10} and {32,10,12,10}. The box's background shows the padding round them. 96 by 54 pixels,
+     10 frames a second. -->
+<composition version="1" id="padding-inside-a-row" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="padded" left="8" top="6" width="80" height="40" flex-direction="row" padding="4 8" gap="4" background="#305050">
+    <box width="12" height="10" background="#ff8060"/>
+    <box width="12" height="10" background="#80ff80"/>
+  </box>
+</composition>

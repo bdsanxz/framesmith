@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A column of three boxes with a gap of 6 pixels, at 10, 2, and 40 wide. It has no height of its own, so it is as
+     tall as its items and gaps: 40 pixels. Its children are 20 wide, and 8, 12 and 8 tall, and lie top to bottom in
+     document order. Rectangles (left, top, width, height): {10,2,20,8}, {10,16,20,12}, {10,34,20,8}. 96 by 54
+     pixels, 10 frames a second. -->
+<composition version="1" id="columns-with-gaps" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="column" left="10" top="2" width="40" flex-direction="column" gap="6">
+    <box width="20" height="8" background="#ff8060"/>
+    <box width="20" height="12" background="#80ff80"/>
+    <box width="20" height="8" background="#ffd080"/>
+  </box>
+</composition>

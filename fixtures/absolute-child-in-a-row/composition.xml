@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row 88 wide and 20 tall at 4, 4. Its children are 20 by 20, and the middle one is absolutely placed, 6 by 6, at
+     0, 0 counted from the row's edge. The absolute child leaves the row, so the two others close up: they lie at
+     {4,4,20,20} and {24,4,20,20}, and the absolute child is at {4,4,6,6}, drawn over the first child's corner.
+     96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="absolute-child-in-a-row" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="row" left="4" top="4" width="88" height="20" flex-direction="row">
+    <box width="20" height="20" background="#ff8060"/>
+    <box position="absolute" left="0" top="0" width="6" height="6" background="#ffffff"/>
+    <box width="20" height="20" background="#80ff80"/>
+  </box>
+</composition>

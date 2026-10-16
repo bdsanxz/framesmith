@@ -2,7 +2,7 @@
 //! draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
-use layout::{Amount, Beyond, Rect, Written, LIMIT};
+use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Rect, Sides, Written, LIMIT};
 use project::{Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use timebase::Time;
 
@@ -13,8 +13,9 @@ const SOUND_KBITS_HIGHEST: u32 = 320;
 
 /// What the root takes.
 const ROOT_TAKES: [&str; 7] = ["id", "version", "width", "height", "fps", "duration", "background"];
-/// What a `<box>` takes.
-const BOX_TAKES: [&str; 12] = [
+/// What a `<box>` takes: its place, its margin and its position, what it draws and its window, and
+/// the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3).
+const BOX_TAKES: [&str; 18] = [
     "id",
     "left",
     "top",
@@ -27,6 +28,12 @@ const BOX_TAKES: [&str; 12] = [
     "background",
     "start",
     "duration",
+    "flex-direction",
+    "justify-content",
+    "align-items",
+    "align-self",
+    "gap",
+    "padding",
 ];
 
 /// The frames a box is shown in: from `first` up to `end`, not counting `end`, numbered from 0. A
@@ -211,44 +218,51 @@ impl Scene {
     }
 }
 
-/// The reports of the forms of a place, a size, a margin and a position that this version does not
-/// list, in the order of the file. They are the reports `Scene::from_project` makes of those forms,
-/// by the same code, without the settings of the project file and without the refusals of what is
-/// drawn: `check` judges the forms of a place and does not judge the rest (`docs/spec/check-command.md`,
-/// section 3b).
+/// The reports of the forms of a place, a size, a margin, a position and the words and numbers of a
+/// row or column that this version does not list, in the order of the file. They are the reports
+/// `Scene::from_project` makes of those forms, by the same code, without the settings of the project
+/// file and without the refusals of what is drawn: `check` judges the forms of a place and does not
+/// judge the rest (`docs/spec/check-command.md`, section 3b).
 pub fn place_reports(project: &Project) -> Vec<Report> {
     walk(project, true).1
 }
 
 /// Walks the project's tree in document order: the root, then each element after its parent. A box
-/// is placed (`place_box`) unless it, or an element it stands in, is refused. Gives the boxes that are
-/// placed, in document order, and the reports of the refusals. With `place_only`, the reports are those
-/// of a place form alone.
+/// is placed unless it, or an element it stands in, is refused. A row or column reads the boxes inside
+/// it ahead, since its flow places them (`docs/spec/render-command.md` section 4.3). Gives the boxes
+/// that are placed, in document order, and the reports of the refusals in the order of the file. With
+/// `place_only`, the reports are those of a place form alone.
 fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
     let root = project.root();
     let tree = project.tree().nodes();
     let file = project.composition();
-    let mut reports: Vec<Report> = Vec::new();
-    let mut refuse = |refusal: Refusal| {
-        if refusal.place || !place_only {
-            reports.push(Report::new(file, Problem::new(refusal.code, refusal.line, refusal.message)));
-        }
-    };
-
     let frame = layout::frame(root.width, root.height);
+    // The elements inside each element, in document order.
+    let mut inside: Vec<Vec<usize>> = vec![Vec::new(); tree.len()];
+    for (index, node) in tree.iter().enumerate() {
+        if let Some(parent) = node.parent() {
+            inside[parent].push(index);
+        }
+    }
+
+    let mut refusals: Vec<Refusal> = Vec::new();
     let mut boxes: Vec<Placed> = Vec::new();
     // For each element, in document order: the slot its box is placed in. The root's is the frame,
     // shown in every frame. `None` is for an element that is reported and for one inside it, which
     // is not looked into. An element comes after its parent in the tree, so the parent's entry is
     // already known.
     let mut places: Vec<Option<Slot>> = Vec::with_capacity(tree.len());
+    // A box that its row or column has read ahead, and the rectangle that row or column gave it: a box
+    // inside a row or column is placed by the flow of its parent, not by its own edges.
+    let mut reads: Vec<Option<Read>> = vec![None; tree.len()];
+    let mut assigned: Vec<Option<Rect>> = vec![None; tree.len()];
 
-    for node in tree {
+    for (index, node) in tree.iter().enumerate() {
         let Some(parent) = node.parent() else {
             // The root.
             for attribute in node.attributes() {
                 if !ROOT_TAKES.contains(&attribute.name()) {
-                    refuse(Refusal::of_drawing(
+                    refusals.push(Refusal::of_drawing(
                         Code::FormNotSupported,
                         attribute.line(),
                         unsupported_attribute(node, attribute.name()),
@@ -256,7 +270,7 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
                 }
             }
             if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
-                refuse(Refusal::of_drawing(
+                refusals.push(Refusal::of_drawing(
                     Code::FormNotSupported,
                     attribute.line(),
                     unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
@@ -280,24 +294,103 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             } else {
                 unsupported_inside_box(node.element())
             };
-            refuse(Refusal::of_drawing(Code::FormNotSupported, node.line(), message));
+            refusals.push(Refusal::of_drawing(Code::FormNotSupported, node.line(), message));
             places.push(None);
             continue;
         }
-        let (placed, refusals) = place_box(node, parent_place, root.fps);
-        for refusal in refusals {
-            refuse(refusal);
+        let read = match reads[index].take() {
+            Some(read) => read,
+            None => {
+                let (read, found) = read_box(node);
+                refusals.extend(found);
+                read
+            }
+        };
+        let Read::Valid(form) = read else {
+            places.push(None);
+            continue;
+        };
+
+        // The boxes inside a row or column are read now: they are its items, and their places come from
+        // its flow. Their refusals are kept until this box is placed.
+        let mut pending: Vec<Refusal> = Vec::new();
+        let mut items: Vec<Item> = Vec::new();
+        let mut item_nodes: Vec<usize> = Vec::new();
+        if form.flex.is_some() {
+            for &inner in &inside[index] {
+                let inner_node = &tree[inner];
+                if inner_node.element() != Element::Box {
+                    continue;
+                }
+                let (read, found) = read_box(inner_node);
+                pending.extend(found);
+                if let Read::Valid(inner_form) = &read {
+                    items.push(inner_form.item());
+                    item_nodes.push(inner);
+                }
+                reads[inner] = Some(read);
+            }
         }
-        places.push(placed.map(|placed| {
-            boxes.push(placed);
-            placed.slot
-        }));
+        let laid = match (assigned[index], form.flex) {
+            // An item of a row or column: its own place is the flow's, and its items are laid out in it.
+            (Some(rect), Some(flex)) => layout::flow(rect, known(rect), &flex, &items).map(|flowed| (rect, flowed.items)),
+            (Some(rect), None) => Ok((rect, Vec::new())),
+            // A row or column with no place of its own: its size is worked out with its items.
+            (None, Some(flex)) => {
+                layout::flow(parent_place.rect, form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
+            }
+            (None, None) => layout::place(parent_place.rect, form.written).map(|rect| (rect, Vec::new())),
+        };
+        let (rect, item_rects) = match laid {
+            Ok(laid) => laid,
+            Err(Beyond) => {
+                let message = format!(
+                    "a place or a size of {} works out beyond {LIMIT} pixels, which this version does not place",
+                    node.element().tag()
+                );
+                refusals.push(Refusal::of_place(Code::FormNotSupported, node.line(), message));
+                places.push(None);
+                continue;
+            }
+        };
+        refusals.append(&mut pending);
+        for (inner, inner_rect) in item_nodes.into_iter().zip(item_rects) {
+            assigned[inner] = Some(inner_rect);
+        }
+
+        let slot = match form.clip {
+            Some((start, duration)) => {
+                let begin = parent_place.origin + start;
+                Slot {
+                    rect,
+                    origin: begin,
+                    window: Window::of_clip(begin, begin + duration, root.fps).within(parent_place.window),
+                }
+            }
+            None => Slot {
+                rect,
+                origin: parent_place.origin,
+                window: parent_place.window,
+            },
+        };
+        boxes.push(Placed { slot, colour: form.colour });
+        places.push(Some(slot));
     }
+
+    // A row or column reads the boxes inside it ahead, so the reports are put in the order of the file
+    // by their lines; a stable sort keeps the order of the reports of one line.
+    refusals.sort_by_key(|refusal| refusal.line);
+    let reports = refusals
+        .into_iter()
+        .filter(|refusal| refusal.place || !place_only)
+        .map(|refusal| Report::new(file, Problem::new(refusal.code, refusal.line, refusal.message)))
+        .collect();
     (boxes, reports)
 }
 
 /// A refusal of the root or of a box: its code, its line, its message, and whether it is of a form
-/// of a place (`place`: a length, a size, a margin or a position), which `check` judges as well.
+/// of a place (`place`: a length, a size, a margin, a position or a word of a row or column), which
+/// `check` judges as well.
 struct Refusal {
     code: Code,
     line: u32,
@@ -306,7 +399,7 @@ struct Refusal {
 }
 
 impl Refusal {
-    /// A refusal of a form of a place, a size, a margin or a position.
+    /// A refusal of a form of a place, a size, a margin, a position or a row or column.
     fn of_place(code: Code, line: u32, message: String) -> Refusal {
         Refusal {
             code,
@@ -327,15 +420,55 @@ impl Refusal {
     }
 }
 
-/// A `<box>` in its parent's slot: the place it is drawn at, its colour, the frames it is shown in,
-/// and every refusal of its attributes. A box with a refusal, or whose place cannot be worked out
-/// within the limit, has no place; what is inside it is not looked into.
-fn place_box(node: &Node, parent: Slot, fps: u32) -> (Option<Placed>, Vec<Refusal>) {
+/// What a `<box>` writes, read once from its attributes: its place as written, its margin, its own
+/// `align-self`, whether it is `position="absolute"`, the row or column it lays out, its colour, and its
+/// clip (`start` and `duration` as written; the origin of its parent is added when it is placed).
+#[derive(Clone, Debug, PartialEq)]
+struct Form {
+    written: Written,
+    margin: Sides,
+    across: Option<Across>,
+    absolute: bool,
+    flex: Option<Flex>,
+    colour: Option<Colour>,
+    clip: Option<(Time, Time)>,
+}
+
+impl Form {
+    /// The form as an item of a row or column: what its flow works with.
+    fn item(&self) -> Item {
+        Item {
+            written: self.written,
+            margin: self.margin,
+            across: self.across,
+            absolute: self.absolute,
+        }
+    }
+}
+
+/// The reading of a `<box>`: its form, or a refusal of one of its attributes or of its clip.
+#[derive(Clone, Debug, PartialEq)]
+enum Read {
+    Valid(Box<Form>),
+    Refused,
+}
+
+/// Reads a `<box>`'s attributes (`docs/spec/render-command.md` sections 3, 4.2 and 4.3). Gives its form,
+/// or every refusal of its attributes and of its clip; a box with a refusal has no form and no place.
+fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     let mut refusals: Vec<Refusal> = Vec::new();
     let mut written = Written::default();
     let mut colour = None;
     let mut start: Option<Time> = None;
     let mut duration: Option<Time> = None;
+    let mut margin = Sides::default();
+    let mut absolute = false;
+    let mut own_across: Option<Across> = None;
+    let mut direction: Option<Direction> = None;
+    let mut along = Along::default();
+    let mut items_across = Across::default();
+    let mut gap: f64 = 0.0;
+    let mut padding = Sides::default();
     for attribute in node.attributes() {
         let name = attribute.name();
         if !BOX_TAKES.contains(&name) {
@@ -361,25 +494,112 @@ fn place_box(node: &Node, parent: Slot, fps: u32) -> (Option<Placed>, Vec<Refusa
                     Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
                 }
             }
-            "position" => {
-                if !matches!(attribute.value(), "static" | "absolute") {
-                    refusals.push(Refusal::of_place(
-                        Code::WordNotTaken,
-                        attribute.line(),
-                        format!("`position=\"{value}\"` is not one of: static, absolute"),
-                    ));
+            "position" => match attribute.value() {
+                "static" => {}
+                "absolute" => absolute = true,
+                _ => refusals.push(Refusal::of_place(
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!("`position=\"{value}\"` is not one of: static, absolute"),
+                )),
+            },
+            "margin" => match attribute.sides().and_then(|values| Sides::from_values(&values)) {
+                // The sides are held: a margin moves an item of a row or column, and no other box (N10).
+                Some(sides) => margin = sides,
+                None => refusals.push(Refusal::of_place(
+                    Code::NotANumber,
+                    attribute.line(),
+                    format!("`margin=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
+                )),
+            },
+            "flex-direction" => match attribute.value() {
+                "row" => direction = Some(Direction::Row),
+                "column" => direction = Some(Direction::Column),
+                _ => refusals.push(Refusal::of_place(
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!("`flex-direction=\"{value}\"` is not one of: row, column"),
+                )),
+            },
+            "justify-content" => match attribute.value() {
+                "flex-start" => along = Along::Start,
+                "center" => along = Along::Center,
+                "flex-end" => along = Along::End,
+                "space-between" => refusals.push(Refusal::of_place(
+                    Code::FormNotSupported,
+                    attribute.line(),
+                    unsupported_value(node, name, &value, "flex-start, center or flex-end"),
+                )),
+                _ => refusals.push(Refusal::of_place(
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!("`justify-content=\"{value}\"` is not one of: flex-start, center, flex-end, space-between"),
+                )),
+            },
+            "align-items" | "align-self" => {
+                let found = match attribute.value() {
+                    "flex-start" => Some(Across::Start),
+                    "center" => Some(Across::Center),
+                    "flex-end" => Some(Across::End),
+                    "stretch" => Some(Across::Stretch),
+                    "baseline" => {
+                        refusals.push(Refusal::of_place(
+                            Code::FormNotSupported,
+                            attribute.line(),
+                            unsupported_value(node, name, &value, "flex-start, center, flex-end or stretch"),
+                        ));
+                        None
+                    }
+                    _ => {
+                        refusals.push(Refusal::of_place(
+                            Code::WordNotTaken,
+                            attribute.line(),
+                            format!("`{name}=\"{value}\"` is not one of: flex-start, center, flex-end, stretch, baseline"),
+                        ));
+                        None
+                    }
+                };
+                if let Some(found) = found {
+                    if name == "align-items" {
+                        items_across = found;
+                    } else {
+                        own_across = Some(found);
+                    }
                 }
             }
-            "margin" => {
-                // The sides are read and their values held; no margin moves a box (N10).
-                if attribute.sides().is_none() {
+            "gap" => match attribute.length() {
+                Some(Length::Pixels(pixels)) if pixels < 0.0 => refusals.push(Refusal::of_place(
+                    Code::LengthNotAccepted,
+                    attribute.line(),
+                    format!("`gap=\"{value}\"` must be 0 or more"),
+                )),
+                Some(Length::Pixels(pixels)) => gap = pixels,
+                Some(Length::Percent(_)) => refusals.push(Refusal::of_place(
+                    Code::FormNotSupported,
+                    attribute.line(),
+                    unsupported_value(node, name, &value, "a number of pixels, 0 or more"),
+                )),
+                None => refusals.push(Refusal::of_place(
+                    Code::LengthNotAccepted,
+                    attribute.line(),
+                    format!("`gap=\"{value}\"` is not a length: a number of pixels, such as 8"),
+                )),
+            },
+            "padding" => match attribute.sides().and_then(|values| Sides::from_values(&values)) {
+                None => refusals.push(Refusal::of_place(
+                    Code::NotANumber,
+                    attribute.line(),
+                    format!("`padding=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
+                )),
+                Some(sides) if [sides.top, sides.right, sides.bottom, sides.left].iter().any(|side| *side < 0.0) => {
                     refusals.push(Refusal::of_place(
-                        Code::NotANumber,
+                        Code::LengthNotAccepted,
                         attribute.line(),
-                        format!("`margin=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
-                    ));
+                        format!("`padding=\"{value}\"` must be 0 or more"),
+                    ))
                 }
-            }
+                Some(sides) => padding = sides,
+            },
             "background" => match attribute.colour() {
                 Some(found) if found.alpha == 255 => {
                     colour = Some(Colour {
@@ -407,41 +627,44 @@ fn place_box(node: &Node, parent: Slot, fps: u32) -> (Option<Placed>, Vec<Refusa
         }
     }
     if !refusals.is_empty() {
-        return (None, refusals);
+        return (Read::Refused, refusals);
     }
     // The notation judges the pair (FS-0040): a box has both or neither. One without the other is
     // refused here as well, so that no window is made of it.
     let clip = match (start, duration) {
-        (Some(start), Some(duration)) => Some((parent.origin + start, duration)),
+        (Some(start), Some(duration)) => Some((start, duration)),
         (None, None) => None,
         _ => {
             let message = format!("{} needs both start and duration, or neither", node.element().tag());
-            return (None, vec![Refusal::of_drawing(Code::ClipNotPaired, node.line(), message)]);
+            return (Read::Refused, vec![Refusal::of_drawing(Code::ClipNotPaired, node.line(), message)]);
         }
     };
-    match layout::place(parent.rect, written) {
-        Ok(rect) => {
-            let slot = match clip {
-                Some((begin, duration)) => Slot {
-                    rect,
-                    origin: begin,
-                    window: Window::of_clip(begin, begin + duration, fps).within(parent.window),
-                },
-                None => Slot {
-                    rect,
-                    origin: parent.origin,
-                    window: parent.window,
-                },
-            };
-            (Some(Placed { slot, colour }), refusals)
-        }
-        Err(Beyond) => {
-            let message = format!(
-                "a place or a size of {} works out beyond {LIMIT} pixels, which this version does not place",
-                node.element().tag()
-            );
-            (None, vec![Refusal::of_place(Code::FormNotSupported, node.line(), message)])
-        }
+    let flex = direction.map(|direction| Flex {
+        direction,
+        along,
+        across: items_across,
+        gap,
+        padding,
+    });
+    let form = Form {
+        written,
+        margin,
+        across: own_across,
+        absolute,
+        flex,
+        colour,
+        clip,
+    };
+    (Read::Valid(Box::new(form)), Vec::new())
+}
+
+/// What a row or column placed in a rectangle writes of its own size: the rectangle as pixels, so that
+/// its flow lays its items out inside exactly that rectangle.
+fn known(rect: Rect) -> Written {
+    Written {
+        width: Some(Amount::Pixels(f64::from(rect.width))),
+        height: Some(Amount::Pixels(f64::from(rect.height))),
+        ..Written::default()
     }
 }
 

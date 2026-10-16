@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row at 4, 4, 30 wide and 10 tall, with a gap of 0 pixels between three children 10 by 10. A gap of 0 is drawn
+     as no space at all: the children touch. They lie at {4,4,10,10}, {14,4,10,10} and {24,4,10,10}. 96 by 54
+     pixels, 10 frames a second. -->
+<composition version="1" id="gap-of-zero" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="row" left="4" top="4" width="30" height="10" flex-direction="row" gap="0">
+    <box width="10" height="10" background="#ff8060"/>
+    <box width="10" height="10" background="#80ff80"/>
+    <box width="10" height="10" background="#ffd080"/>
+  </box>
+</composition>

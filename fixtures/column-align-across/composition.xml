@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A column 60 wide and 50 tall at 2, 2, with its children aligned across at the centre and a gap of 4 pixels. The
+     children are 10 by 8, 20 by 8 and 30 by 8, and lie at {27,2,10,8}, {22,14,20,8} and {17,26,30,8}: each is centred
+     in the 60 pixels of the column. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="column-align-across" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="column" left="2" top="2" width="60" height="50" flex-direction="column" align-items="center" gap="4">
+    <box width="10" height="8" background="#ff8060"/>
+    <box width="20" height="8" background="#80ff80"/>
+    <box width="30" height="8" background="#ffd080"/>
+  </box>
+</composition>
