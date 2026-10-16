@@ -68,7 +68,7 @@ The judgement of the form of the whole file (`notation.md` section 3) has been p
 |---|---|---|
 | The root `<composition>` | `id`, `version`, `width`, `height`, `fps`, `duration`, and `background` when it is one opaque colour: `#rrggbb`, or `#rrggbbaa` with `aa` equal to `ff` | every other attribute (`class`); a `background` with an alpha below `ff` |
 | Elements in the root | `<box>` | every other element: `<style>`, `<font>`, `<audio>`, `<rect>`, `<text>`, `<image>`, `<video>`, `<shape>`, `<composition src>` |
-| `<box>` | `id` (a name, not used), `left`, `top`, `right`, `bottom`, `width`, `height`, `position`, `margin`, `background`; a `<box>` inside a `<box>` (section 4.1) | every other attribute (`max-width`, `flex-direction`, `start` and the rest); every element inside a box other than a `<box>` (`<tween>`, `<set>`, `<rect>` and the rest) |
+| `<box>` | `id` (a name, not used), `left`, `top`, `right`, `bottom`, `width`, `height`, `position`, `margin`, `background`, `start` and `duration` (the window of section 4.2, written both or neither); a `<box>` inside a `<box>` (section 4.1) | every other attribute (`max-width`, `flex-direction` and the rest); every element inside a box other than a `<box>` (`<tween>`, `<set>`, `<rect>` and the rest) |
 | `position` | `static` or `absolute`. Accepted: a box is placed by its edges whether or not it is written (`notation.md` section 7.1, Q2) | any other word, reported as FS-0039 |
 | `margin` | one to four numbers, as the sides of `notation.md` section 4 (`4`, `4 8`, `4 8 4 8`). Accepted; no effect on a box, absolutely placed or not (N10) | a value that is not one to four numbers, reported as FS-0032 |
 | `left`, `top`, `right`, `bottom` | a whole number of pixels from -1000000 to 1000000, or a percentage of the parent's width (`left`, `right`) or height (`top`, `bottom`), worked out as section 4.1 says. A negative distance is taken. The box may lie partly or wholly outside its parent or the frame: the part inside the frame is seen. Not written: no edge; where `left` and `top` are both not written, the box starts at its parent's edge | a number with a fraction, such as `10.5`; a value beyond the limit (FS-0035, section 4.1) |
@@ -97,11 +97,11 @@ A report is on the line of the element, of the attribute or of the value it name
 A frame is a picture of `width` by `height` pixels, each pixel four bytes in the order red, green, blue, alpha, rows from the top, no padding between rows. It is drawn as follows, and the result is the correct picture of this version:
 
 1. Every pixel is the root's background (black, `#000000`, when it is not written) with alpha 255.
-2. The boxes are drawn in document order, a parent before its children, each over what is there: a box with a `background` replaces every pixel with `left <= x < left + width` and `top <= y < top + height`, the rectangle of section 4.1, that lies inside the frame by the box's colour, alpha 255. A box written later covers one written earlier where they overlap, and a box inside a box is drawn over the box that holds it (`notation.md` section 3, drawing order; Q2). A box with no `background`, or with a size of 0, changes nothing.
+2. The boxes are drawn in document order, a parent before its children, each over what is there: a box with a `background` replaces every pixel with `left <= x < left + width` and `top <= y < top + height`, the rectangle of section 4.1, that lies inside the frame by the box's colour, alpha 255. A box written later covers one written earlier where they overlap, and a box inside a box is drawn over the box that holds it (`notation.md` section 3, drawing order; Q2). A box with no `background`, or with a size of 0, changes nothing. A box is drawn in the frames of its window (section 4.2) and in no other frame; in a frame outside its window it is not drawn at all, and its children with it.
 
 There is no smoothing: a box's edge is a whole pixel boundary, since every edge is worked out to whole pixels (section 4.1).
 
-**A frame is a pure function of the composition and the frame's number.** In this version nothing moves or appears: every frame of a composition is the same picture. The picture of a frame never depends on the frames drawn before it, on the order they are asked for, on the clock, or on the number of workers. A frame number at or past the frame count is not a frame; it is refused when asked for.
+**A frame is a pure function of the composition and the frame's number.** In this version nothing moves: a box appears and disappears only with its window (section 4.2), and every other part of the picture is the same in every frame. The picture of a frame never depends on the frames drawn before it, on the order they are asked for, on the clock, or on the number of workers. A frame number at or past the frame count is not a frame; it is refused when asked for.
 
 The renderer on the card (`--backend gpu`, and `--backend auto` when a card is there: section 1.2) draws the same display list, and its picture must agree with this one within the tolerance of `card-renderer.md` section 4. The picture of the processor is the correct one; the card's is checked against it on every frame of the fixture, and is not checked in.
 
@@ -119,6 +119,19 @@ Each axis is worked out on its own: across, from `left`, `right` and `width`, wi
 6. **Limit.** When a rounded edge, or the size, lies beyond 1000000 pixels, or an amount cannot be worked out as a finite number, the box is not placed and is reported with `FS-0035` (section 3).
 
 **Settled by.** T041 of Sprint 1 (brigade order t041): the whole-pixel rule of 3, the size of 0 for a size below 0 that comes from two distances (1) and the limit of 6 are not in `notation.md`. They are a draft for the owner to confirm; the report of the order says so.
+
+### 4.2 The window of a box
+
+A `<box>` written with `start` and `duration` (both, or neither: `notation.md` section 5.2) is drawn only in the frames of its window. A `<box>` written with neither is drawn in every frame of its parent's life. The window is worked out once, before the first frame, by the frame-grid rule of `frame-time.md`:
+
+1. **Origin.** A `start` counts from the start of the nearest clip around the element: the nearest parent that has both `start` and `duration`. With no clip around it, it counts from the start of the composition, which is time 0. An element between the clip and the box that has neither `start` nor `duration` passes the origin on unchanged. The start of a clip is its origin plus its written `start`, added exactly; the origin of everything inside that clip is that start.
+2. **Window.** For a box with `start` and `duration`, let `s` be its start (its origin plus its `start`) and `e` be `s` plus its `duration`, both exact. Its window is the frames `i` with `F(s) <= i < F(e)`, where `F` is the frame-grid rule. A `duration` of 0 gives an empty window: the box is not drawn.
+3. **Within the parent.** A box's window is its own window cut to its parent's: a frame is in the window only when it is in both. A box with neither `start` nor `duration` has its parent's window. The root's window is every frame of the composition. So a child is never drawn outside its parent's window, whatever its own window says.
+4. **Place.** A window changes no place: the place of section 4.1 is the same in every frame, and a box outside its window keeps its place.
+
+At 30 frames a second, a clip from 1 s for 2 s is drawn on frames 30 to 89. A box inside it with `start="0.5"` begins at 1.5 s and first shows on frame 45. A box inside it with neither `start` nor `duration` shows on frames 30 to 89 as well. A box with `start="0.33333"` and one with `start="0.33334"` both first show on frame 10; one with `start="0.34"` first shows on frame 11.
+
+**Settled by.** T042 of Sprint 1 (brigade order t042): the origin of rule 1 (the nearest clip, passed through an element that has neither), the cut of rule 3 to the parent's window, and the empty window of a duration of 0 are not in `notation.md` in these words; section 5.2 names only the parent clip. They are a draft for the owner to confirm; the report of the order says so.
 
 ## 5. The film
 
