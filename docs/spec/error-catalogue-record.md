@@ -44,3 +44,4 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0036` | The video could not be made. |
 | `FS-0037` | An option of `render`, or its value, is not one the command takes. |
 | `FS-0038` | The author asked for the graphics card (`gpu`), and this machine has no card that frx7 can draw with. |
+| `FS-0039` | A value that must be one of a list of words is not one of them. |
