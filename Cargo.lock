@@ -142,6 +142,7 @@ version = "0.1.0"
 dependencies = [
  "draw",
  "draw-cpu",
+ "draw-gpu",
  "measure",
  "project",
  "render",
@@ -245,6 +246,7 @@ name = "draw-gpu"
 version = "0.1.0"
 dependencies = [
  "draw",
+ "draw-cpu",
  "gpu",
  "layout",
 ]
@@ -902,6 +904,7 @@ dependencies = [
  "codec",
  "draw",
  "draw-cpu",
+ "draw-gpu",
  "format",
  "layout",
  "measure",

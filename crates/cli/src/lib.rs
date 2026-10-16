@@ -9,7 +9,8 @@ use std::path::PathBuf;
 
 use draw::Renderer;
 use draw_cpu::CpuRenderer;
-use project::{Code, Kind, OpenError, Options, Project, Report, Settings};
+use draw_gpu::CardRenderer;
+use project::{Backend, Code, Kind, OpenError, Options, Project, Report, Settings};
 use render::Scene;
 
 pub mod runlog;
@@ -262,8 +263,20 @@ fn render(path: PathBuf, options: &Options) -> Reply {
     let written_output = project.output();
     let output = project.resolve(&written_output);
     let settings = project.settings();
-    let mut renderer = CpuRenderer;
-    match render::write_film(&scene, &mut renderer, &output, settings.audio_bitrate()) {
+    // The renderer is started before the film is opened, so that a card that cannot be started
+    // writes no file. `auto` takes the processor until ticket T040 chooses by the card's presence.
+    let mut renderer: Box<dyn Renderer> = match settings.backend() {
+        Backend::Auto | Backend::Cpu => Box::new(CpuRenderer),
+        Backend::Gpu => match CardRenderer::new() {
+            Ok(card) => Box::new(card),
+            Err(error) => {
+                tracing::error!(reason = %error, "the card could not be started, so no video is made");
+                return video_not_made(&format!("the video could not be made: {error}"));
+            }
+        },
+    };
+    let renderer_name = renderer.name();
+    match render::write_film(&scene, renderer.as_mut(), &output, settings.audio_bitrate()) {
         Ok(written) => {
             let mut lines = vec![
                 format!("Rendered {}", output.display()),
@@ -271,24 +284,25 @@ fn render(path: PathBuf, options: &Options) -> Reply {
                 format!("size: {}x{}", scene.width(), scene.height()),
                 format!("frame rate: {} fps", scene.fps()),
                 format!("length: {:.3} s", written.frames as f64 / f64::from(scene.fps())),
-                format!("renderer: {}", renderer.name()),
+                format!("renderer: {renderer_name}"),
             ];
             lines.extend(settings_used(settings, &written_output));
             lines.push(format!("elapsed: {:.3} s", written.seconds));
             Reply::Printed(lines, EXIT_OK, Outcome::Rendered { frames: written.frames })
         }
-        Err(failure) => {
-            let code = Code::VideoNotMade;
-            Reply::Printed(
-                vec![
-                    code.statement(&format!("the video could not be made: {failure}")),
-                    "Failed: the video could not be made".to_string(),
-                ],
-                EXIT_FAILED,
-                Outcome::VideoNotMade { code },
-            )
-        }
+        Err(failure) => video_not_made(&format!("the video could not be made: {failure}")),
     }
+}
+
+/// The reply of a `render` whose video could not be made: the report of `FS-0036` with its reason,
+/// then the closing line, and exit code 1 (`docs/spec/render-command.md` sections 5.1 and 7).
+fn video_not_made(reason: &str) -> Reply {
+    let code = Code::VideoNotMade;
+    Reply::Printed(
+        vec![code.statement(reason), "Failed: the video could not be made".to_string()],
+        EXIT_FAILED,
+        Outcome::VideoNotMade { code },
+    )
 }
 
 /// The lines of the summary that name each setting used, with where its value came from

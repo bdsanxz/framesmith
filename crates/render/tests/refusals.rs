@@ -275,18 +275,16 @@ fn with_project_file(name: &str, yaml: &str) -> Result<Scene, Vec<String>> {
 
 #[test]
 fn a_render_setting_this_version_does_not_apply_is_unsupported_with_the_line_of_its_value() {
-    let yaml =
-        "name: demo\nrender:\n  backend: gpu\n  quality: high\n  encoder: software\n  codec: hevc\n  workers: 4\n  audio-bitrate: 32\n";
+    let yaml = "name: demo\nrender:\n  quality: high\n  encoder: software\n  codec: hevc\n  workers: 4\n  audio-bitrate: 32\n";
     let reports = with_project_file("settings", yaml).unwrap_err();
     assert_eq!(
         reports,
         vec![
-            "framesmith.yaml 3 FS-0035 `render.backend: gpu` is not supported by this version, which takes auto or cpu",
-            "framesmith.yaml 4 FS-0035 `render.quality: high` is not supported by this version, which takes standard",
-            "framesmith.yaml 5 FS-0035 `render.encoder: software` is not supported by this version, which takes hardware",
-            "framesmith.yaml 6 FS-0035 `render.codec: hevc` is not supported by this version, which takes h264",
-            "framesmith.yaml 7 FS-0035 `render.workers: 4` is not supported by this version, which takes auto or 1",
-            "framesmith.yaml 8 FS-0035 `render.audio-bitrate: 32` is not supported by this version, which takes 64 to 320",
+            "framesmith.yaml 3 FS-0035 `render.quality: high` is not supported by this version, which takes standard",
+            "framesmith.yaml 4 FS-0035 `render.encoder: software` is not supported by this version, which takes hardware",
+            "framesmith.yaml 5 FS-0035 `render.codec: hevc` is not supported by this version, which takes h264",
+            "framesmith.yaml 6 FS-0035 `render.workers: 4` is not supported by this version, which takes auto or 1",
+            "framesmith.yaml 7 FS-0035 `render.audio-bitrate: 32` is not supported by this version, which takes 64 to 320",
         ]
     );
 }
@@ -296,6 +294,7 @@ fn a_render_setting_this_version_applies_is_accepted_whether_written_or_not() {
     let yaml = "name: demo\nrender:\n  backend: cpu\n  quality: standard\n  encoder: hardware\n  codec: h264\n  workers: 1\n  audio-bitrate: 192\n";
     assert!(with_project_file("settings-applied", yaml).is_ok());
     assert!(with_project_file("settings-auto", "render:\n  backend: auto\n  workers: auto\n").is_ok());
+    assert!(with_project_file("settings-card", "render:\n  backend: gpu\n").is_ok());
     assert!(with_project_file("settings-none", "name: demo\n").is_ok());
 }
 

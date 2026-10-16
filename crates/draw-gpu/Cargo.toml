@@ -16,3 +16,6 @@ path = "src/lib.rs"
 draw = { workspace = true }
 layout = { workspace = true }
 gpu = { workspace = true }
+
+[dev-dependencies]
+draw-cpu = { workspace = true }
