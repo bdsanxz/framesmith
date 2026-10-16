@@ -203,7 +203,7 @@ impl Project {
             (None, CompositionChoice::Named { path, line }) => (path.clone(), Some(*line)),
             (None, CompositionChoice::Unknown) => return Err(OpenError::Invalid(reports)),
         };
-        let source = match fs::read(folder.join(&path)) {
+        let source = match fs::read(written_path(folder, &path)) {
             Ok(source) => source,
             Err(error) => {
                 let missing = error.kind() == ErrorKind::NotFound;
@@ -269,7 +269,7 @@ impl Project {
     /// composition that holds it. A written path that begins with `/` is a path of the machine and
     /// is taken as it is (`docs/spec/project-location.md` section 4).
     pub fn resolve(&self, written: &str) -> PathBuf {
-        self.folder.join(written)
+        written_path(&self.folder, written)
     }
 
     /// The settings in use: the options given to [`Project::apply`], then the project file, then
@@ -307,6 +307,18 @@ impl Project {
     /// document order.
     pub fn tree(&self) -> &Tree {
         &self.tree
+    }
+}
+
+/// The path of a file written in a project folder (`docs/spec/project-location.md` section 4). A
+/// written path that begins with `/` is taken as it is, on every system. Any other is joined to
+/// the folder. The rule is not left to the join: on Windows a join keeps the drive of a folder
+/// that has one, so a joined `/` path would not be the path that was written.
+fn written_path(folder: &Path, written: &str) -> PathBuf {
+    if written.starts_with('/') {
+        PathBuf::from(written)
+    } else {
+        folder.join(written)
     }
 }
 
