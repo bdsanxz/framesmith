@@ -11,7 +11,7 @@ use draw_gpu::CardRenderer;
 use project::Project;
 use render::Scene;
 
-const FIXTURES: [&str; 11] = [
+const FIXTURES: [&str; 12] = [
     "rows-with-gaps",
     "columns-with-gaps",
     "row-along-center-and-end",
@@ -23,6 +23,7 @@ const FIXTURES: [&str; 11] = [
     "gap-of-zero",
     "row-inside-a-row-with-no-size",
     "stretch-across-with-no-size",
+    "stretched-nested-with-no-size",
 ];
 
 #[test]

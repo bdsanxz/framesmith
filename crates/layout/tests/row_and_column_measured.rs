@@ -160,3 +160,64 @@ fn a_stretched_child_in_a_row_with_no_height_is_not_counted_in_the_height() {
     assert_eq!(flowed.container, rect(0, 0, 10, 0));
     assert_eq!(flowed.items, vec![rect(0, 0, 10, 0)]);
 }
+
+/// A row with no size, padded by 2, whose only child is a row with no size across, padded by 3 and holding a
+/// box of 10 by 10. The inner row is 16 by 16 (its items and padding), so the outer row is 20 by 20, and the
+/// inner row stretches to fill the outer row's content box across: 16 by 16 at 2 by 2 inside the outer row.
+#[test]
+fn a_stretched_row_with_no_size_across_counts_the_size_its_items_give_it() {
+    let outer = Flex {
+        padding: Sides::from_values(&[2.0]).unwrap(),
+        ..Flex::default()
+    };
+    let inner_flex = Flex {
+        padding: Sides::from_values(&[3.0]).unwrap(),
+        ..Flex::default()
+    };
+    let inner_size = measure(&inner_flex, &[sized(10.0, 10.0)]).expect("measured");
+    assert_eq!(inner_size, Size { width: 16.0, height: 16.0 });
+    let inner = || Item {
+        written: Written {
+            width: Some(Amount::Pixels(inner_size.width)),
+            ..Written::default()
+        },
+        across: Some(Across::Stretch),
+        measured_across: Some(inner_size.height),
+        ..Item::default()
+    };
+    assert_eq!(measure(&outer, &[inner()]).expect("measured"), Size { width: 20.0, height: 20.0 });
+    let flowed = flow(frame(400, 300), Written::default(), &outer, &[inner()]).expect("placed");
+    assert_eq!(flowed.container, rect(0, 0, 20, 20));
+    assert_eq!(flowed.items, vec![rect(2, 2, 16, 16)]);
+}
+
+/// The column form of the case above: a column with no width holds a column with no width across, which
+/// stretches to fill the outer column's content box across, 16 by 16 at 2 by 2 inside the outer column.
+#[test]
+fn a_stretched_column_with_no_size_across_counts_the_size_its_items_give_it() {
+    let outer = Flex {
+        direction: Direction::Column,
+        padding: Sides::from_values(&[2.0]).unwrap(),
+        ..Flex::default()
+    };
+    let inner_flex = Flex {
+        direction: Direction::Column,
+        padding: Sides::from_values(&[3.0]).unwrap(),
+        ..Flex::default()
+    };
+    let inner_size = measure(&inner_flex, &[sized(10.0, 10.0)]).expect("measured");
+    assert_eq!(inner_size, Size { width: 16.0, height: 16.0 });
+    let inner = || Item {
+        written: Written {
+            height: Some(Amount::Pixels(inner_size.height)),
+            ..Written::default()
+        },
+        across: Some(Across::Stretch),
+        measured_across: Some(inner_size.width),
+        ..Item::default()
+    };
+    assert_eq!(measure(&outer, &[inner()]).expect("measured"), Size { width: 20.0, height: 20.0 });
+    let flowed = flow(frame(400, 300), Written::default(), &outer, &[inner()]).expect("placed");
+    assert_eq!(flowed.container, rect(0, 0, 20, 20));
+    assert_eq!(flowed.items, vec![rect(2, 2, 16, 16)]);
+}

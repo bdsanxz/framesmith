@@ -81,3 +81,8 @@ fn the_frames_of_the_row_inside_a_row_with_no_size_equal_their_checked_in_pictur
 fn the_frames_of_the_stretched_children_of_rows_and_columns_with_no_size_equal_their_checked_in_pictures() {
     drawn_frames_equal_their_checked_in_pictures("stretch-across-with-no-size");
 }
+
+#[test]
+fn the_frames_of_the_stretched_row_and_column_with_no_size_equal_their_checked_in_pictures() {
+    drawn_frames_equal_their_checked_in_pictures("stretched-nested-with-no-size");
+}

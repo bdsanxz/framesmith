@@ -681,9 +681,11 @@ fn measures(tree: &[Node], inside: &[Vec<usize>]) -> Vec<Option<layout::Size>> {
 /// What a box writes as an item of its row or column's flow. Where it writes no size on an axis, and the
 /// row or column measured it (`measured`), the size its own items give it (section 4.3, rule 2) is written
 /// for it. An absolute box takes the measured size only where its edges do not give one. A flowed box that
-/// stretches across writes no size across: its row or column gives it one.
+/// stretches across writes no size across: its row or column gives it one. Its size across, as its own items
+/// give it, is kept for its row or column's size across (rule 1), whether it stretches or not.
 fn item_in(form: &Form, measured: Option<layout::Size>, parent: &Flex) -> Item {
     let mut written = form.written;
+    let mut measured_across = None;
     if let Some(size) = measured {
         if form.absolute {
             fill(&mut written.width, size.width, both(written.left, written.right));
@@ -696,12 +698,14 @@ fn item_in(form: &Form, measured: Option<layout::Size>, parent: &Flex) -> Item {
                     if !stretched {
                         fill(&mut written.height, size.height, false);
                     }
+                    measured_across = Some(size.height);
                 }
                 Direction::Column => {
                     fill(&mut written.height, size.height, false);
                     if !stretched {
                         fill(&mut written.width, size.width, false);
                     }
+                    measured_across = Some(size.width);
                 }
             }
         }
@@ -711,6 +715,7 @@ fn item_in(form: &Form, measured: Option<layout::Size>, parent: &Flex) -> Item {
         margin: form.margin,
         across: form.across,
         absolute: form.absolute,
+        measured_across,
     }
 }
 

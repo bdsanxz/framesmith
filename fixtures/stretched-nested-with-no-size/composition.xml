@@ -1,0 +1,18 @@
+<!-- Two rows and columns with no size of their own, each holding a child that is a row or column with no size of its
+     own too. The child stretches across, so the size its own items give it counts in the size of its parent. The row
+     at 4, 4 has padding 2 and holds a row with padding 3 and a white background: that row is 16 by 16 at {6,6,16,16},
+     its box lies at {9,9,10,10}, and the row is 20 by 20 at {4,4,20,20}. The column at 50, 4 has the same rule across:
+     its inner column is 16 by 16 at {52,6,16,16}, its box lies at {55,9,10,10}, and the column is 20 by 20 at
+     {50,4,20,20}. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="stretched-nested-with-no-size" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="row" left="4" top="4" flex-direction="row" padding="2" background="#305050">
+    <box id="inner-row" flex-direction="row" padding="3" background="#ffffff">
+      <box width="10" height="10" background="#ff8060"/>
+    </box>
+  </box>
+  <box id="column" left="50" top="4" flex-direction="column" padding="2" background="#806020">
+    <box id="inner-column" flex-direction="column" padding="3" background="#ffd080">
+      <box width="10" height="10" background="#80ff80"/>
+    </box>
+  </box>
+</composition>

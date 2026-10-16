@@ -224,3 +224,23 @@ fn a_percentage_width_in_a_row_with_no_size_is_0_wide_inside_it() {
         vec![(10, 10, 50, 30), (10, 10, 0, 10), (14, 10, 10, 10)]
     );
 }
+
+/// A row with no size, padded by 2, holds a row with no size across that stretches: it has the size its box
+/// gives it plus its padding, 16 by 16, so the outer row is 20 by 20 at 4,4 and the inner row 16 by 16 at 6,6.
+/// The box is 10 by 10 at 9,9. The column with no width beside it is the same at 50,4 (`render-command.md`
+/// section 4.3, rules 1 and 7).
+#[test]
+fn a_stretched_row_and_column_with_no_size_across_are_as_large_as_their_items_give_them() {
+    let scene = scene_of_fixture("stretched-nested-with-no-size");
+    assert_eq!(
+        filled_in_frame(&scene, 0),
+        vec![
+            (4, 4, 20, 20),
+            (6, 6, 16, 16),
+            (9, 9, 10, 10),
+            (50, 4, 20, 20),
+            (52, 6, 16, 16),
+            (55, 9, 10, 10),
+        ]
+    );
+}

@@ -205,6 +205,11 @@ pub struct Item {
     /// Whether the child is `position="absolute"`: it takes no room, is not counted in the gaps, and
     /// is placed against the container's outer rectangle.
     pub absolute: bool,
+    /// The size across that the child's own items give it, when it is a row or column with no size of its
+    /// own across (`render-command.md` section 4.3, rules 1 and 3), or `None`. Where the child writes no size
+    /// across and does not stretch, it is placed at this size; where it stretches, it fills the content box
+    /// and this size counts in its container's size across.
+    pub measured_across: Option<f64>,
 }
 
 /// The rectangles of a row or column and of its children, the children in the order they were given.
@@ -242,9 +247,10 @@ pub struct Measured {
 /// The row or column is placed as a box is (section 4.1), except that an axis on which it has no size
 /// of its own (no written size, and not both edges) is as large as its children there: along the main
 /// axis, the children's outer sizes with the gaps between them and the padding; across, the largest
-/// child's outer size with the padding. A child that stretches across and writes no size there counts
-/// its margins only. Percentages of a child are of the row or column's own size on that axis, and are 0
-/// on an axis with none.
+/// child's outer size with the padding. A child that writes no size across counts its margins only, or,
+/// when it is a row or column with no size of its own across, the size its own items give it, with its
+/// margins (see [`measure`]). Percentages of a child are of the row or column's own size on that axis, and
+/// are 0 on an axis with none.
 ///
 /// The children that are not absolute follow each other along the main axis with `flex.gap` between
 /// neighbours, the group placed as `flex.along` says inside the padded content box. Across, each sits
@@ -285,9 +291,11 @@ pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Resu
 
 /// The size of a row or a column with no size of its own, worked out from its children (section 4.3,
 /// rule 2). Along the main axis, the group of children with the gaps between them and the padding; across,
-/// the largest outer size of a child with the padding, a child that stretches across counting its margins
-/// only. A child that is itself a row or column is given its own size first, from the inside out. A
-/// percentage of a child is 0 on each axis, the row or column having no size there to be a percentage of.
+/// the largest outer size of a child with the padding. A child that writes no size across counts its margins
+/// only, unless it is a row or column with no size of its own across: it then counts the size its own items
+/// give it there (rule 1), whether or not it stretches across. A child that is itself a row or column is
+/// given its own size first, from the inside out. A percentage of a child is 0 on each axis, the row or
+/// column having no size there to be a percentage of.
 pub fn measure(flex: &Flex, items: &[Item]) -> Result<Size, Beyond> {
     let children = children(flex, items, None, None)?;
     let (main, cross) = measured_sizes(flex, &children);
@@ -392,6 +400,9 @@ struct Child {
     main: f64,
     /// The size across the cross axis, when the child writes one.
     cross: Option<f64>,
+    /// The size across that the child's own items give it, when it is a row or column with no size of its
+    /// own across and writes none.
+    measured_across: Option<f64>,
     /// The margin before and after on the main axis.
     main_margin: (f64, f64),
     /// The margin before and after on the cross axis.
@@ -410,6 +421,7 @@ impl Child {
         Ok(Child {
             main: written_size(main_amount, main_base)?.unwrap_or(0.0),
             cross: written_size(cross_amount, cross_base)?,
+            measured_across: item.measured_across,
             main_margin,
             cross_margin,
             across: item.across.unwrap_or(flex.across),
@@ -421,9 +433,10 @@ impl Child {
         self.main + self.main_margin.0 + self.main_margin.1
     }
 
-    /// The size across with its margins on both sides, a child with no size there counting as 0.
+    /// The size across with its margins on both sides: the size written there, else the size the child's
+    /// own items give it, else 0.
     fn outer_cross(&self) -> f64 {
-        self.cross.unwrap_or(0.0) + self.cross_margin.0 + self.cross_margin.1
+        self.cross.or(self.measured_across).unwrap_or(0.0) + self.cross_margin.0 + self.cross_margin.1
     }
 }
 
@@ -440,11 +453,12 @@ fn written_size(amount: Option<Amount>, base: Option<f64>) -> Result<Option<f64>
 
 /// The start and size across the content box of a child, where `align-items` or `align-self` puts it
 /// (section 4.3 rule 7). A child that writes no size across stretches to fill the content box less its
-/// margins; the content box of a row or column with no size of its own across is as large as its
-/// children (section 4.3 rule 2).
+/// margins, whatever size its own items give it; the content box of a row or column with no size of its
+/// own across is as large as its children (section 4.3 rule 2). A child that does not stretch is placed at
+/// the size it writes there, or the size its own items give it.
 fn across_place(child: &Child, start: f64, length: f64) -> (f64, f64) {
     let (before, after) = child.cross_margin;
-    let size = child.cross.unwrap_or(0.0);
+    let size = child.cross.or(child.measured_across).unwrap_or(0.0);
     match child.across {
         Across::Start => (start + before, size),
         Across::End => (start + length - after - size, size),
