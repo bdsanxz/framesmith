@@ -24,11 +24,11 @@ How the card does this, in words:
 
 ## 2. When the card is not there
 
-The card's renderer is started by `CardRenderer::new()`. A machine with no graphics card that frx7 can draw with, or a card that could not be started, gives an error with the reason, and no picture is drawn. In this version `render --backend gpu` on such a machine reports the failure of the film (`FS-0036`, `render-command.md` section 5.1) and writes no file. The choice of the card when a machine has none, which `auto` makes, is not made in this version: `auto` keeps the processor's renderer until ticket T040.
+The card's renderer is started by `CardRenderer::new()`. A machine with no graphics card that frx7 can draw with, or a card that could not be started, gives an error with the reason, and no picture is drawn. `render --backend gpu` on such a machine refuses the film before the first frame: the report of `FS-0038` with the reason, which names the setting to change, the closing line `Refused:`, exit code 2, and no file (`render-command.md` sections 1.2 and 7). `render --backend auto` (the default) takes the processor on such a machine, and says so in its summary; it never refuses for want of a card (`render-command.md` section 1.2). Nothing falls back from `gpu` to `cpu`.
 
 ## 3. The name of each renderer
 
-The renderer's name is what the summary of `render` prints on the line `renderer:` and what the log of the run names (`run-log.md`). The name of the renderer on the processor is `processor`; the name of the renderer on the card is `card`.
+The renderer's name is what the summary of `render` prints on the line `renderer:` and what the log of the run names (`run-log.md`). The name of the renderer on the processor is `processor`; the name of the renderer on the card is `card`. The summary adds how `auto` came to its choice, in brackets (`render-command.md` section 7).
 
 ## 4. The agreement of the two renderers
 

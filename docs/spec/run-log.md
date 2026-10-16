@@ -51,13 +51,14 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `project` | `root judged` | `problems` (how many) | The composition file was judged: its root, and the form of everything under it |
 | debug | `cli` | `settings chosen` | `options` (how many settings an option gave) | `render` took the settings by the rule of `render-command.md` section 1.1, before the scene is made |
 | debug | `render::scene` | `scene made` | `boxes` (how many boxes the scene holds), `frames` | `render` made the scene of an opened project that this version draws (`render-command.md` section 3) |
-| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor`, or `card` for `--backend gpu`) | The first frame is about to be drawn |
+| debug | `cli` | `renderer chosen` | `renderer` (`processor` or `card`, the one that draws), `chosen_by` (`setting` for `cpu` or `gpu`, `auto card` when `auto` took the card, `auto no card` when `auto` took the processor because no card started) | `render` chose its renderer by the rule of `render-command.md` section 1.2, after the card was started when the choice needs it and before the film is opened |
+| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor` or `card`, the one that draws: `render-command.md` section 1.2) | The first frame is about to be drawn |
 | debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |
 | debug | `render::film` | `sound encoder started` | `sample_frames` (the length of the mix), `bitrate` (bits a second) | The system's AAC encoder was started for the sound track (`render-command.md` section 5.2) |
 | debug | `render::film` | `sound encoder finished` | none | The AAC encoder gave its last packets |
 | info | `render::film` | `render finished` | `frames`, `bytes` | The file is complete |
 | trace | `cli` | `report` | `file` (the name of the file, as the report prints it), `code`, `line` | Once for each report of an invalid or unsupported project, in the order printed |
-| info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it, `frames` for `rendered`, `code` for `video not made` | Last line of every run |
+| info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it, `frames` for `rendered`, `code` for `video not made` and `refused` | Last line of every run |
 
 The outcome and the level of the last line:
 
@@ -66,6 +67,7 @@ The outcome and the level of the last line:
 | `ready` | info | 0 | `check` found the project valid |
 | `rendered` | info | 0 | `render` wrote the film; `frames` is how many frames it holds |
 | `video not made` | error | 1 | `render` could not make the film; `code` is `FS-0036` |
+| `refused` | warn | 2 | `render` refused the film before the first frame because the card that `--backend gpu` asks for is not there; `code` is `FS-0038`; no file was written |
 | `invalid` | warn | 1 | The project file or the composition has problems (for `render` also `FS-0034`); the reports were printed |
 | `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`, and `FS-0035` for `render`); they were printed |
 | `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028`) |

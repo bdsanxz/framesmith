@@ -115,11 +115,13 @@ pub enum Code {
     VideoNotMade,
     /// An option of `render`, or its value, is not one the command takes.
     OptionNotTaken,
+    /// The author asked for the graphics card (`gpu`), and this machine has no card that frx7 can draw with.
+    RendererNotAvailable,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 37] = [
+    pub const ALL: [Code; 38] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -157,6 +159,7 @@ impl Code {
         Code::FormNotSupported,
         Code::VideoNotMade,
         Code::OptionNotTaken,
+        Code::RendererNotAvailable,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -199,6 +202,7 @@ impl Code {
             Code::FormNotSupported => "FS-0035",
             Code::VideoNotMade => "FS-0036",
             Code::OptionNotTaken => "FS-0037",
+            Code::RendererNotAvailable => "FS-0038",
         }
     }
 
@@ -210,7 +214,7 @@ impl Code {
             | Code::NamedCompositionUnreadable
             | Code::PathUnreadable
             | Code::VideoNotMade => Kind::Failure,
-            Code::KeyNotSupported | Code::FormNotSupported => Kind::Unsupported,
+            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable => Kind::Unsupported,
             _ => Kind::Invalid,
         }
     }
@@ -261,6 +265,9 @@ impl Code {
             Code::FormNotSupported => "Remove what the message names, or wait for the sprint that brings it.",
             Code::VideoNotMade => "Put right what the message names (the folder, the disk or the system's video encoder), then run the command again.",
             Code::OptionNotTaken => "Give one of the options the message lists, with one of the values it names, or leave the option out.",
+            Code::RendererNotAvailable => {
+                "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
+            }
         }
     }
 
