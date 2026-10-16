@@ -9,4 +9,4 @@
 mod film;
 
 pub use film::{write_film, Failure, Written};
-pub use timeline::{PictureError, Scene};
+pub use timeline::{place_reports, PictureError, Scene};

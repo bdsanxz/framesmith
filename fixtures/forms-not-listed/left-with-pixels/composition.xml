@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A place written with a unit: left="10px" is not a length, so this version refuses it. -->
+<composition version="1" id="left-with-pixels" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <box left="10px" background="#e0a030"/>
+</composition>

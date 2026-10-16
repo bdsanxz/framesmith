@@ -2,7 +2,7 @@
 //! draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
-use layout::{Written, LIMIT};
+use layout::{Amount, Beyond, Rect, Written, LIMIT};
 use project::{Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
@@ -13,12 +13,24 @@ const SOUND_KBITS_HIGHEST: u32 = 320;
 /// What the root takes.
 const ROOT_TAKES: [&str; 7] = ["id", "version", "width", "height", "fps", "duration", "background"];
 /// What a `<box>` takes.
-const BOX_TAKES: [&str; 6] = ["id", "left", "top", "width", "height", "background"];
+const BOX_TAKES: [&str; 10] = [
+    "id",
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "width",
+    "height",
+    "position",
+    "margin",
+    "background",
+];
 
-/// A box that draws something, or nothing: where it lies and the colour it fills with.
+/// A box that is placed and drawn, or placed and drawn as nothing: its rectangle in the frame and the
+/// colour it fills with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Placed {
-    written: Written,
+    rect: Rect,
     colour: Option<Colour>,
 }
 
@@ -57,64 +69,17 @@ impl std::error::Error for PictureError {}
 
 impl Scene {
     /// Makes the scene of an opened project, or gives every report of what this version does not
-    /// draw or apply (`FS-0035`) and of the lengths that are wrong (`FS-0034`): first those of the
-    /// project file, then those of the composition, each in the order of the file.
+    /// draw or apply (`FS-0035`), of the lengths and the words that are wrong (`FS-0032`, `FS-0034`,
+    /// `FS-0039`): first those of the project file, then those of the composition, each in the order
+    /// of the file.
     pub fn from_project(project: &Project) -> Result<Scene, Vec<Report>> {
         let mut reports = settings(project);
-        let root = project.root();
-        let tree = project.tree().nodes();
-        let file = project.composition();
-        let mut refuse = |code: Code, line: u32, message: String| reports.push(Report::new(file, Problem::new(code, line, message)));
-
-        let mut boxes: Vec<Placed> = Vec::new();
-        // For each element: the place of its box in `boxes` when it is a box that is drawn.
-        let mut drawn: Vec<Option<usize>> = Vec::with_capacity(tree.len());
-
-        for (index, node) in tree.iter().enumerate() {
-            let Some(parent) = node.parent() else {
-                // The root.
-                for attribute in node.attributes() {
-                    if !ROOT_TAKES.contains(&attribute.name()) {
-                        refuse(
-                            Code::FormNotSupported,
-                            attribute.line(),
-                            unsupported_attribute(node, attribute.name()),
-                        );
-                    }
-                }
-                if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
-                    refuse(
-                        Code::FormNotSupported,
-                        attribute.line(),
-                        unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
-                    );
-                }
-                drawn.push(None);
-                continue;
-            };
-            if parent == 0 && node.element() == Element::Box {
-                let (placed, problems) = place_box(node);
-                for (code, line, message) in problems {
-                    refuse(code, line, message);
-                }
-                drawn.push(Some(boxes.len()));
-                boxes.push(placed);
-            } else if parent == 0 {
-                refuse(Code::FormNotSupported, node.line(), unsupported_element(node.element()));
-                drawn.push(None);
-            } else if drawn[parent].is_some() {
-                refuse(Code::FormNotSupported, node.line(), unsupported_inside_box(node.element()));
-                drawn.push(None);
-            } else {
-                // Inside an element that is already reported: nothing more is said of it.
-                drawn.push(None);
-            }
-            debug_assert_eq!(drawn.len(), index + 1);
-        }
-
+        let (boxes, found) = walk(project, false);
+        reports.extend(found);
         if !reports.is_empty() {
             return Err(reports);
         }
+        let root = project.root();
         let background = Colour {
             red: root.background.red,
             green: root.background.green,
@@ -166,16 +131,11 @@ impl Scene {
                 frames: self.frames,
             });
         }
-        // Nothing in this version moves or appears: every frame has the same steps.
+        // Nothing in this version moves or appears: every frame has the same steps, in document order.
         let steps = self
             .boxes
             .iter()
-            .filter_map(|placed| {
-                placed.colour.map(|colour| Step::Fill {
-                    rect: layout::place(self.width, self.height, placed.written),
-                    colour,
-                })
-            })
+            .filter_map(|placed| placed.colour.map(|colour| Step::Fill { rect: placed.rect, colour }))
             .collect();
         Ok(DisplayList {
             width: self.width,
@@ -191,41 +151,168 @@ impl Scene {
     }
 }
 
-type Refusal = (Code, u32, String);
+/// The reports of the forms of a place, a size, a margin and a position that this version does not
+/// list, in the order of the file. They are the reports `Scene::from_project` makes of those forms,
+/// by the same code, without the settings of the project file and without the refusals of what is
+/// drawn: `check` judges the forms of a place and does not judge the rest (`docs/spec/check-command.md`,
+/// section 3b).
+pub fn place_reports(project: &Project) -> Vec<Report> {
+    walk(project, true).1
+}
 
-/// A `<box>` that stands in the frame: its place and colour, and every refusal of its attributes.
-fn place_box(node: &Node) -> (Placed, Vec<Refusal>) {
+/// Walks the project's tree in document order: the root, then each element after its parent. A box
+/// is placed (`place_box`) unless it, or an element it stands in, is refused. Gives the boxes that are
+/// placed, in document order, and the reports of the refusals. With `place_only`, the reports are those
+/// of a place form alone.
+fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
+    let root = project.root();
+    let tree = project.tree().nodes();
+    let file = project.composition();
+    let mut reports: Vec<Report> = Vec::new();
+    let mut refuse = |refusal: Refusal| {
+        if refusal.place || !place_only {
+            reports.push(Report::new(file, Problem::new(refusal.code, refusal.line, refusal.message)));
+        }
+    };
+
+    let frame = layout::frame(root.width, root.height);
+    let mut boxes: Vec<Placed> = Vec::new();
+    // For each element, in document order: the rectangle its box is placed at. The root's is the
+    // frame. `None` is for an element that is reported and for one inside it, which is not looked
+    // into. An element comes after its parent in the tree, so the parent's entry is already known.
+    let mut places: Vec<Option<Rect>> = Vec::with_capacity(tree.len());
+
+    for node in tree {
+        let Some(parent) = node.parent() else {
+            // The root.
+            for attribute in node.attributes() {
+                if !ROOT_TAKES.contains(&attribute.name()) {
+                    refuse(Refusal::of_drawing(
+                        Code::FormNotSupported,
+                        attribute.line(),
+                        unsupported_attribute(node, attribute.name()),
+                    ));
+                }
+            }
+            if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
+                refuse(Refusal::of_drawing(
+                    Code::FormNotSupported,
+                    attribute.line(),
+                    unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
+                ));
+            }
+            places.push(Some(frame));
+            continue;
+        };
+        let Some(parent_place) = places[parent] else {
+            // Inside an element that is reported: nothing more is said of it.
+            places.push(None);
+            continue;
+        };
+        if node.element() != Element::Box {
+            let message = if parent == 0 {
+                unsupported_element(node.element())
+            } else {
+                unsupported_inside_box(node.element())
+            };
+            refuse(Refusal::of_drawing(Code::FormNotSupported, node.line(), message));
+            places.push(None);
+            continue;
+        }
+        let (placed, refusals) = place_box(node, parent_place);
+        for refusal in refusals {
+            refuse(refusal);
+        }
+        places.push(placed.map(|placed| {
+            boxes.push(placed);
+            placed.rect
+        }));
+    }
+    (boxes, reports)
+}
+
+/// A refusal of the root or of a box: its code, its line, its message, and whether it is of a form
+/// of a place (`place`: a length, a size, a margin or a position), which `check` judges as well.
+struct Refusal {
+    code: Code,
+    line: u32,
+    message: String,
+    place: bool,
+}
+
+impl Refusal {
+    /// A refusal of a form of a place, a size, a margin or a position.
+    fn of_place(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+        }
+    }
+
+    /// A refusal of anything else that this version does not draw or apply.
+    fn of_drawing(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: false,
+        }
+    }
+}
+
+/// A `<box>` in its parent's rectangle: the place it is drawn at, its colour, and every refusal of
+/// its attributes. A box with a refusal, or whose place cannot be worked out within the limit, has
+/// no place; what is inside it is not looked into.
+fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
     let mut refusals: Vec<Refusal> = Vec::new();
     let mut written = Written::default();
     let mut colour = None;
     for attribute in node.attributes() {
         let name = attribute.name();
         if !BOX_TAKES.contains(&name) {
-            refusals.push((Code::FormNotSupported, attribute.line(), unsupported_attribute(node, name)));
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                attribute.line(),
+                unsupported_attribute(node, name),
+            ));
             continue;
         }
         let value = attribute.shown();
         match name {
-            "left" | "top" => match edge(attribute.length(), &value, name, node.element().tag()) {
-                Ok(pixels) => {
-                    if name == "left" {
-                        written.left = Some(pixels);
-                    } else {
-                        written.top = Some(pixels);
-                    }
+            "left" | "top" | "right" | "bottom" | "width" | "height" => {
+                match amount(attribute.length(), &value, name, node.element().tag()) {
+                    Ok(found) => match name {
+                        "left" => written.left = Some(found),
+                        "top" => written.top = Some(found),
+                        "right" => written.right = Some(found),
+                        "bottom" => written.bottom = Some(found),
+                        "width" => written.width = Some(found),
+                        _ => written.height = Some(found),
+                    },
+                    Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
                 }
-                Err((code, message)) => refusals.push((code, attribute.line(), message)),
-            },
-            "width" | "height" => match size(attribute.length(), &value, name, node.element().tag()) {
-                Ok(pixels) => {
-                    if name == "width" {
-                        written.width = Some(pixels);
-                    } else {
-                        written.height = Some(pixels);
-                    }
+            }
+            "position" => {
+                if !matches!(attribute.value(), "static" | "absolute") {
+                    refusals.push(Refusal::of_place(
+                        Code::WordNotTaken,
+                        attribute.line(),
+                        format!("`position=\"{value}\"` is not one of: static, absolute"),
+                    ));
                 }
-                Err((code, message)) => refusals.push((code, attribute.line(), message)),
-            },
+            }
+            "margin" => {
+                // The sides are read and their values held; no margin moves a box (N10).
+                if attribute.sides().is_none() {
+                    refusals.push(Refusal::of_place(
+                        Code::NotANumber,
+                        attribute.line(),
+                        format!("`margin=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
+                    ));
+                }
+            }
             "background" => match attribute.colour() {
                 Some(found) if found.alpha == 255 => {
                     colour = Some(Colour {
@@ -234,7 +321,7 @@ fn place_box(node: &Node) -> (Placed, Vec<Refusal>) {
                         blue: found.blue,
                     })
                 }
-                _ => refusals.push((
+                _ => refusals.push(Refusal::of_drawing(
                     Code::FormNotSupported,
                     attribute.line(),
                     unsupported_value(node, name, &value, "one opaque colour, #rrggbb"),
@@ -243,33 +330,44 @@ fn place_box(node: &Node) -> (Placed, Vec<Refusal>) {
             _ => {}
         }
     }
-    (Placed { written, colour }, refusals)
-}
-
-/// `left` or `top`: a whole number of pixels within the limit.
-fn edge(length: Option<Length>, value: &str, name: &str, tag: &str) -> Result<i32, (Code, String)> {
-    match length {
-        None => Err((Code::LengthNotAccepted, not_a_length(name, value))),
-        Some(Length::Pixels(pixels)) if pixels.fract() == 0.0 && pixels.abs() <= LIMIT as f64 => Ok(pixels as i32),
-        Some(_) => Err((
-            Code::FormNotSupported,
-            format!("`{name}=\"{value}\"` on {tag} is not a form this version supports: a whole number of pixels from -{LIMIT} to {LIMIT}"),
-        )),
+    if !refusals.is_empty() {
+        return (None, refusals);
+    }
+    match layout::place(parent, written) {
+        Ok(rect) => (Some(Placed { rect, colour }), refusals),
+        Err(Beyond) => {
+            let message = format!(
+                "a place or a size of {} works out beyond {LIMIT} pixels, which this version does not place",
+                node.element().tag()
+            );
+            (None, vec![Refusal::of_place(Code::FormNotSupported, node.line(), message)])
+        }
     }
 }
 
-/// `width` or `height`: a whole number of pixels, 0 or more, within the limit.
-fn size(length: Option<Length>, value: &str, name: &str, tag: &str) -> Result<u32, (Code, String)> {
+/// A place or a size as written (`notation.md` section 4): a length. A length in pixels is a whole
+/// number within the limit (from -1000000 to 1000000 for an edge, from 0 to 1000000 for a size); a
+/// percentage is any value of its kind; a size below 0 is wrong (N6), whatever its form.
+fn amount(length: Option<Length>, value: &str, name: &str, tag: &str) -> Result<Amount, (Code, String)> {
+    let sized = matches!(name, "width" | "height");
     match length {
         None => Err((Code::LengthNotAccepted, not_a_length(name, value))),
-        Some(Length::Pixels(pixels) | Length::Percent(pixels)) if pixels < 0.0 => Err((
+        Some(Length::Pixels(pixels) | Length::Percent(pixels)) if sized && pixels < 0.0 => Err((
             Code::LengthNotAccepted,
             format!("`{name}=\"{value}\"` is below 0; a size is 0 or more"),
         )),
-        Some(Length::Pixels(pixels)) if pixels.fract() == 0.0 && pixels <= LIMIT as f64 => Ok(pixels as u32),
+        Some(Length::Pixels(pixels)) if pixels.fract() == 0.0 && pixels.abs() <= LIMIT as f64 => Ok(Amount::Pixels(pixels)),
+        Some(Length::Percent(percent)) => Ok(Amount::Percent(percent)),
         Some(_) => Err((
             Code::FormNotSupported,
-            format!("`{name}=\"{value}\"` on {tag} is not a form this version supports: a whole number of pixels from 0 to {LIMIT}"),
+            format!(
+                "`{name}=\"{value}\"` on {tag} is not a form this version supports: {}",
+                if sized {
+                    "a whole number of pixels from 0 to 1000000, or a percentage such as 50%"
+                } else {
+                    "a whole number of pixels from -1000000 to 1000000, or a percentage such as 50%"
+                }
+            ),
         )),
     }
 }
@@ -284,7 +382,7 @@ fn unsupported_element(element: Element) -> String {
 
 fn unsupported_inside_box(element: Element) -> String {
     format!(
-        "{} inside a <box> is not supported by this version, which draws a <box> with no element inside it",
+        "{} inside a <box> is not supported by this version, which draws a <box> inside a <box> and no other element",
         element.tag()
     )
 }

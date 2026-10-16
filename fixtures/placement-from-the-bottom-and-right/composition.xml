@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placed from the far edges: the first box is 6 from the right and 4 from the bottom, 30 by 20, so it covers
+     the columns 60 to 89 and the rows 30 to 49. The second has its top and bottom and a height: its top
+     edge is taken and the bottom is not, so it covers the rows 2 to 11. The third has a bottom and a height
+     and no top: the columns 2 to 21 and the rows 42 to 51. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="placement-from-the-bottom-and-right" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="corner" right="6" bottom="4" width="30" height="20" background="#e0a030"/>
+  <box id="from-the-top" left="2" width="20" top="2" bottom="2" height="10" background="#30c0a0"/>
+  <box id="from-the-bottom" left="2" width="20" bottom="2" height="10" background="#a050e0"/>
+</composition>

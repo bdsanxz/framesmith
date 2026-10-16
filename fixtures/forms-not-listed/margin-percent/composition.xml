@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A margin in percent: margin="10%" is not one to four numbers, so this version refuses it. -->
+<composition version="1" id="margin-percent" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <box margin="10%" background="#e0a030"/>
+</composition>

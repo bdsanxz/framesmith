@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Boxes with two edges and no size span the space between them: the first from 8 to 88 across and from
+     6 to 48 down, the second from 19.2 to 76.8 across (20% from each side) and rows 40 to 45 down, where it
+     is drawn over the first. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="placement-between-edges" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="across" left="8" right="8" top="6" bottom="6" background="#e0a030"/>
+  <box id="strip" left="20%" right="20%" top="40" height="6" background="#30c0a0"/>
+</composition>

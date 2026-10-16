@@ -411,6 +411,13 @@ fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i
     let root = |inside: &str| format!(r#"<composition version="1" width="640" height="360" duration="2">{inside}</composition>"#);
     vec![
         ("length-wrong", root(r#"<box width="abc"/>"#), None, Code::LengthNotAccepted, 1),
+        (
+            "position-not-a-word",
+            root(r#"<box position="fixed"/>"#),
+            None,
+            Code::WordNotTaken,
+            1,
+        ),
         ("form-not-drawn", root("<text/>"), None, Code::FormNotSupported, 2),
         (
             "video-not-made",

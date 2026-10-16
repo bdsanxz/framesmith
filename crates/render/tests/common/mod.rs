@@ -114,3 +114,29 @@ pub fn with_pixel(picture: &Picture, x: u32, y: u32, value: [u8; 4]) -> Picture 
     pixels[at..at + 4].copy_from_slice(&value);
     Picture::new(picture.width(), picture.height(), pixels).unwrap()
 }
+
+/// The smallest rectangle, as (left, top, right, bottom) with right and bottom not included, that
+/// holds every pixel of `colour`; None when no pixel has that colour.
+pub fn extent_of(picture: &Picture, colour: [u8; 4]) -> Option<(u32, u32, u32, u32)> {
+    let mut found: Option<(u32, u32, u32, u32)> = None;
+    for y in 0..picture.height() {
+        for x in 0..picture.width() {
+            if picture.pixel(x, y) != Some(colour) {
+                continue;
+            }
+            found = Some(match found {
+                None => (x, y, x + 1, y + 1),
+                Some((left, top, right, bottom)) => (left.min(x), top.min(y), right.max(x + 1), bottom.max(y + 1)),
+            });
+        }
+    }
+    found
+}
+
+/// The number of pixels of `colour` in a picture.
+pub fn count_of(picture: &Picture, colour: [u8; 4]) -> usize {
+    (0..picture.height())
+        .flat_map(|y| (0..picture.width()).map(move |x| (x, y)))
+        .filter(|&(x, y)| picture.pixel(x, y) == Some(colour))
+        .count()
+}

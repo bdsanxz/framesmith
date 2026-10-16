@@ -62,6 +62,17 @@ impl Attribute {
     pub fn colour(&self) -> Option<Colour> {
         value::colour(&self.value).map(|[red, green, blue, alpha]| Colour { red, green, blue, alpha })
     }
+
+    /// The value as sides (`docs/spec/notation.md` section 4): one to four numbers, each read as a
+    /// number (N9), separated by white space, in the order the value gives them. `None` when the
+    /// value is not that: a percentage, a unit, a word, or five or more numbers.
+    pub fn sides(&self) -> Option<Vec<f64>> {
+        let parts: Vec<&str> = self.value.split_whitespace().collect();
+        if !(1..=4).contains(&parts.len()) {
+            return None;
+        }
+        parts.into_iter().map(|part| value::number(part).ok()).collect()
+    }
 }
 
 /// One element of the file.

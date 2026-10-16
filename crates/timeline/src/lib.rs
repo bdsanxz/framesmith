@@ -4,4 +4,4 @@
 
 mod scene;
 
-pub use scene::{PictureError, Scene};
+pub use scene::{place_reports, PictureError, Scene};

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A size written with a unit: width="5em" is not a length, so this version refuses it. -->
+<composition version="1" id="width-with-em" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <box width="5em" background="#e0a030"/>
+</composition>
