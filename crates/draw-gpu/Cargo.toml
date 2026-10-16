@@ -1,0 +1,21 @@
+[package]
+name = "draw-gpu"
+description = "The renderer on the graphics card: it draws a display list the way the processor does."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+name = "draw_gpu"
+path = "src/lib.rs"
+
+[dependencies]
+draw = { workspace = true }
+layout = { workspace = true }
+gpu = { workspace = true }
+
+[dev-dependencies]
+draw-cpu = { workspace = true }

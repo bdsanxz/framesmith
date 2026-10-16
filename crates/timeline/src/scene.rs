@@ -3,7 +3,7 @@
 
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
 use layout::{Written, LIMIT};
-use project::{Backend, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
+use project::{Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
 /// at 48 kHz in stereo (`frx7/docs/spec/os-codecs.md` section 3.1, measured).
@@ -325,13 +325,6 @@ fn settings(project: &Project) -> Vec<Report> {
             ));
         }
     };
-    check(
-        "render.backend",
-        Some("--backend"),
-        matches!(settings.backend(), Backend::Auto | Backend::Cpu),
-        settings.backend().to_string(),
-        "auto or cpu",
-    );
     check(
         "render.quality",
         Some("--quality"),

@@ -24,5 +24,6 @@ pixel = { workspace = true }
 
 [dev-dependencies]
 draw-cpu = { workspace = true }
+draw-gpu = { workspace = true }
 measure = { workspace = true }
 probe = { workspace = true }

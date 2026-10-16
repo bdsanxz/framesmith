@@ -3,6 +3,7 @@
 
 #![allow(dead_code)]
 
+pub mod agreement;
 pub mod png;
 
 use draw::Picture;
