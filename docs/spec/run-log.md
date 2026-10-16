@@ -51,7 +51,7 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `project` | `root judged` | `problems` (how many) | The composition file was judged: its root, and the form of everything under it |
 | debug | `cli` | `settings chosen` | `options` (how many settings an option gave) | `render` took the settings by the rule of `render-command.md` section 1.1, before the scene is made |
 | debug | `render::scene` | `scene made` | `boxes` (how many boxes the scene holds), `frames` | `render` made the scene of an opened project that this version draws (`render-command.md` section 3) |
-| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor`) | The first frame is about to be drawn |
+| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor`, or `card` for `--backend gpu`) | The first frame is about to be drawn |
 | debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |
 | debug | `render::film` | `sound encoder started` | `sample_frames` (the length of the mix), `bitrate` (bits a second) | The system's AAC encoder was started for the sound track (`render-command.md` section 5.2) |
 | debug | `render::film` | `sound encoder finished` | none | The AAC encoder gave its last packets |
