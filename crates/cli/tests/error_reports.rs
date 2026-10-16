@@ -174,6 +174,7 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             Code::NotATime,
             3,
         ),
+        ("start-without-duration", inside_root("<box start=\"1\"/>"), Code::ClipNotPaired, 2),
     ]
 }
 

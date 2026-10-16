@@ -45,3 +45,4 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0037` | An option of `render`, or its value, is not one the command takes. |
 | `FS-0038` | The author asked for the graphics card (`gpu`), and this machine has no card that frx7 can draw with. |
 | `FS-0039` | A value that must be one of a list of words is not one of them. |
+| `FS-0040` | An element of the composition file has `start` without `duration`, or `duration` without `start`, where the notation writes both or neither. |

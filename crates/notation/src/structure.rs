@@ -33,6 +33,7 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, problems: &mut V
     let mut pending: Vec<(roxmltree::Node, Element)> = vec![(root, Element::Composition)];
     while let Some((node, element)) = pending.pop() {
         attributes(node, element, text, &spot_at, problems);
+        clip_pair(node, element, &spot_at, problems);
 
         for child in node.children().filter(roxmltree::Node::is_element) {
             let spot = spot_at(child.range().start);
@@ -135,6 +136,26 @@ fn attributes(node: roxmltree::Node, element: Element, text: &str, spot_at: &dyn
                 }
             }
         }
+    }
+}
+
+/// The pair of a clip: an element that takes `start` and `duration` as a clip has both or neither
+/// (`docs/spec/notation.md` section 5.2). One report, on the line of the element, for an element
+/// with one of them and not the other.
+fn clip_pair(node: roxmltree::Node, element: Element, spot_at: &dyn Fn(usize) -> Spot, problems: &mut Vec<Found>) {
+    if !element.clip_pair() {
+        return;
+    }
+    let written = |name: &str| {
+        node.attributes()
+            .any(|attribute| attribute.namespace().is_none() && attribute.name() == name)
+    };
+    if written("start") != written("duration") {
+        problems.push(found(
+            Code::ClipNotPaired,
+            spot_at(node.range().start),
+            format!("{} needs both start and duration, or neither", element.tag()),
+        ));
     }
 }
 

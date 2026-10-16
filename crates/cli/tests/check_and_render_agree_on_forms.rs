@@ -12,13 +12,15 @@ use common::{err, framesmith, out, scratch};
 
 /// Each invalid form of `fixtures/forms-not-listed`, with the line of its report, its code, and the
 /// exit status that `check` and `render` both give: 1 invalid, 2 unsupported.
-const INVALID_FORMS: [(&str, u32, &str, i32); 6] = [
+const INVALID_FORMS: [(&str, u32, &str, i32); 8] = [
     ("left-with-pixels", 5, "FS-0034", 1),
     ("width-with-em", 5, "FS-0034", 1),
     ("position-fixed", 5, "FS-0039", 1),
     ("margin-percent", 5, "FS-0032", 1),
     ("margin-five-numbers", 5, "FS-0032", 1),
     ("left-fraction", 5, "FS-0035", 2),
+    ("start-without-duration", 5, "FS-0040", 1),
+    ("duration-without-start", 5, "FS-0040", 1),
 ];
 
 /// The folder of the fixtures in the repository.
@@ -66,6 +68,7 @@ fn check_and_render_print_the_same_report_and_exit_the_same_for_each_invalid_for
 #[test]
 fn check_is_ready_for_every_placement_fixture_that_render_draws() {
     let names = [
+        "clip-window",
         "first-render",
         "overlapping-boxes",
         "placement-between-edges",

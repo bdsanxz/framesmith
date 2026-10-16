@@ -377,6 +377,16 @@ impl Element {
         self.groups_have(name)
     }
 
+    /// Whether `start` and `duration` are written both or neither on the element (`notation.md`
+    /// section 5.2). A `<composition src>` and an `<audio>` take `start` with a default, and are not
+    /// judged for the pair.
+    pub(crate) fn clip_pair(self) -> bool {
+        matches!(
+            self,
+            Element::Box | Element::Rect | Element::Text | Element::Span | Element::Image | Element::Video | Element::Shape
+        )
+    }
+
     /// Every attribute the element takes, each once, in the order of the spec's table.
     pub fn attributes(self) -> Vec<&'static str> {
         let mut names: Vec<&'static str> = Vec::new();

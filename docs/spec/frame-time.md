@@ -40,6 +40,8 @@ Why a tolerance: an author cannot write a time such as 7/60 of a second exactly 
 - A clip with start `s` and duration `d` has first frame `F(s)` and end frame `F(s + d)`, where `F` is the frame grid rule.
 - Frame `i` shows the clip when `F(s) ≤ i < F(s + d)`. The start is included; the end is not.
 - For times that are not within the tolerance of a frame time this is the same as: the clip shows when `s ≤ i ÷ fps < s + d`.
+- The `s` of an element inside a clip is counted from the start of the nearest clip around it, which is added to `s` exactly before the rule is applied, once. Without a clip around it, the count is from time 0 (`render-command.md` section 4.2).
+- An element inside another clip shows only in the frames that both windows hold: its own window is cut to its parent's window.
 
 ## Tween times
 

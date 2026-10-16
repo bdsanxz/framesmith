@@ -106,7 +106,7 @@ A time may be written with any number of decimals up to nine and is read exactly
 
 ### 5.2 A clip's window
 
-`start` and `duration` are written both or neither. One without the other is reported: `<box> needs both start and duration, or neither`.
+`start` and `duration` are written both or neither, on each element that takes them (section 6). One without the other is reported as `FS-0040`, on the line of the element: `<box> needs both start and duration, or neither`.
 
 - With both, the element and everything in it is drawn from its start frame up to, but not including, its end frame: frame `i` shows it when `F(start) <= i < F(end)`, with `F` the rule of 5.1, `start` and `end = start + duration` each counted on the timeline of the whole composition. The starts of the clips around it are added exactly as written and the rule is applied once to the sum. At 30 frames a second a clip from 1 s for 2 s shows on frames 30 to 89.
 - Without them the element is drawn throughout its parent's life.
@@ -1211,6 +1211,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Shader opening | `` the transition `wave.wgsl` could not be read: ... ``; `` the transition `wave.wgsl` is not a shader the card takes: ... `` (with the compiler's words); `` the transition `wave.wgsl` is a shader, which only the GPU renderer draws; render with `--backend gpu` `` |
 | Colour table | `` the colour table `grade.cube`: it has 100 rows of colours; a table of size 33 has 35937 `` (other reasons: the file could not be read, a table of one dimension, a range other than 0 to 1, a keyword that is not known, a row that is not three numbers) |
 | Start without duration | `<box> needs both `start` and `duration`, or neither` |
+| Duration without start | `<box> needs both `start` and `duration`, or neither`; the same message, on the line of the element (section 5.2) |
 | Missing file name | `<image> needs the attribute `src``; the same for `<video>`, `<audio>`, `<font>` |
 | Picture, footage or sound not read | `` the picture `logo.bmp` is of a kind that is not read; the kinds read are: png, jpeg ``; the same for footage and sound, with their kinds (N3) |
 | Source missing or damaged | `` the picture `logo.png` could not be read: ... `` (the file, the reason) |

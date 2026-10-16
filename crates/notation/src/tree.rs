@@ -10,6 +10,7 @@ use crate::root::{shown, trimmed};
 use crate::schema::Element;
 use crate::value;
 use crate::Colour;
+use timebase::Time;
 
 /// A written length (`docs/spec/notation.md` section 4): a number of pixels, or a percentage.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -56,6 +57,12 @@ impl Attribute {
             Some(number) => value::number(number).ok().map(Length::Percent),
             None => value::number(&self.value).ok().map(Length::Pixels),
         }
+    }
+
+    /// The value as a time in seconds, read exactly (`docs/spec/notation.md` section 5 and N8), or
+    /// `None` when it is not one.
+    pub fn time(&self) -> Option<Time> {
+        value::time(&self.value)
     }
 
     /// The value as a colour written `#rrggbb` or `#rrggbbaa`, or `None` when it is not one.
