@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row at 4, 4 with no size of its own and a gap of 4 pixels. Its first child is a row with no size of its own, a
+     gap of 2 pixels and a white background, holding two 10 by 10 boxes. That inner row is as large as its boxes and the
+     gap between them, 22 by 10, at {4,4,22,10}, and its boxes lie at {4,4,10,10} and {16,4,10,10}. The outer row is as
+     large as its two children and the gap, 36 by 10, at {4,4,36,10}. Its second child, a 10 by 10 box, lies at
+     {30,4,10,10}: it is placed after the inner row's 22 pixels and the gap, not over them. 96 by 54 pixels, 10 frames a
+     second. -->
+<composition version="1" id="row-inside-a-row-with-no-size" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="outer" left="4" top="4" flex-direction="row" gap="4" background="#305050">
+    <box id="inner" flex-direction="row" gap="2" background="#ffffff">
+      <box width="10" height="10" background="#ff8060"/>
+      <box width="10" height="10" background="#80ff80"/>
+    </box>
+    <box width="10" height="10" background="#ffd080"/>
+  </box>
+</composition>

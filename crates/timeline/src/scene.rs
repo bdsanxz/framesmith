@@ -2,7 +2,7 @@
 //! draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
-use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Rect, Sides, Written, LIMIT};
+use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Measured, Rect, Sides, Written, LIMIT};
 use project::{Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use timebase::Time;
 
@@ -255,7 +255,10 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
     // A box that its row or column has read ahead, and the rectangle that row or column gave it: a box
     // inside a row or column is placed by the flow of its parent, not by its own edges.
     let mut reads: Vec<Option<Read>> = vec![None; tree.len()];
-    let mut assigned: Vec<Option<Rect>> = vec![None; tree.len()];
+    // Each box's place is given by its row or column's flow, with the axes that flow measures for it.
+    let mut assigned: Vec<Option<(Rect, Measured)>> = vec![None; tree.len()];
+    // The size of each row or column measured from its items, from the inside out.
+    let sizes = measures(tree, &inside);
 
     for (index, node) in tree.iter().enumerate() {
         let Some(parent) = node.parent() else {
@@ -315,8 +318,8 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
         // its flow. Their refusals are kept until this box is placed.
         let mut pending: Vec<Refusal> = Vec::new();
         let mut items: Vec<Item> = Vec::new();
-        let mut item_nodes: Vec<usize> = Vec::new();
-        if form.flex.is_some() {
+        let mut item_nodes: Vec<(usize, Measured)> = Vec::new();
+        if let Some(flex) = form.flex {
             for &inner in &inside[index] {
                 let inner_node = &tree[inner];
                 if inner_node.element() != Element::Box {
@@ -325,16 +328,16 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
                 let (read, found) = read_box(inner_node);
                 pending.extend(found);
                 if let Read::Valid(inner_form) = &read {
-                    items.push(inner_form.item());
-                    item_nodes.push(inner);
+                    items.push(item_in(inner_form, sizes[inner], &flex));
+                    item_nodes.push((inner, measured_axes(inner_form, &flex)));
                 }
                 reads[inner] = Some(read);
             }
         }
         let laid = match (assigned[index], form.flex) {
             // An item of a row or column: its own place is the flow's, and its items are laid out in it.
-            (Some(rect), Some(flex)) => layout::flow(rect, known(rect), &flex, &items).map(|flowed| (rect, flowed.items)),
-            (Some(rect), None) => Ok((rect, Vec::new())),
+            (Some((rect, measured)), Some(flex)) => layout::inside(rect, measured, &flex, &items).map(|flowed| (rect, flowed.items)),
+            (Some((rect, _)), None) => Ok((rect, Vec::new())),
             // A row or column with no place of its own: its size is worked out with its items.
             (None, Some(flex)) => {
                 layout::flow(parent_place.rect, form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
@@ -354,8 +357,8 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             }
         };
         refusals.append(&mut pending);
-        for (inner, inner_rect) in item_nodes.into_iter().zip(item_rects) {
-            assigned[inner] = Some(inner_rect);
+        for ((inner, measured), inner_rect) in item_nodes.into_iter().zip(item_rects) {
+            assigned[inner] = Some((inner_rect, measured));
         }
 
         let slot = match form.clip {
@@ -432,18 +435,6 @@ struct Form {
     flex: Option<Flex>,
     colour: Option<Colour>,
     clip: Option<(Time, Time)>,
-}
-
-impl Form {
-    /// The form as an item of a row or column: what its flow works with.
-    fn item(&self) -> Item {
-        Item {
-            written: self.written,
-            margin: self.margin,
-            across: self.across,
-            absolute: self.absolute,
-        }
-    }
 }
 
 /// The reading of a `<box>`: its form, or a refusal of one of its attributes or of its clip.
@@ -658,13 +649,94 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     (Read::Valid(Box::new(form)), Vec::new())
 }
 
-/// What a row or column placed in a rectangle writes of its own size: the rectangle as pixels, so that
-/// its flow lays its items out inside exactly that rectangle.
-fn known(rect: Rect) -> Written {
-    Written {
-        width: Some(Amount::Pixels(f64::from(rect.width))),
-        height: Some(Amount::Pixels(f64::from(rect.height))),
-        ..Written::default()
+/// The size of each row or column that is a box, measured from its items (`docs/spec/render-command.md`
+/// section 4.3, rule 2). An item that is itself a row or column is measured first: an element comes after
+/// its parent, so the elements are worked through from the last to the first. `None` for an element that
+/// is not a box or is refused, and for a row or column whose size does not work out.
+fn measures(tree: &[Node], inside: &[Vec<usize>]) -> Vec<Option<layout::Size>> {
+    let forms: Vec<Option<Form>> = tree
+        .iter()
+        .map(|node| match node.element() {
+            Element::Box => match read_box(node).0 {
+                Read::Valid(form) => Some(*form),
+                Read::Refused => None,
+            },
+            _ => None,
+        })
+        .collect();
+    let mut sizes: Vec<Option<layout::Size>> = vec![None; tree.len()];
+    for index in (0..tree.len()).rev() {
+        let Some(flex) = forms[index].as_ref().and_then(|form| form.flex) else {
+            continue;
+        };
+        let items: Vec<Item> = inside[index]
+            .iter()
+            .filter_map(|&inner| forms[inner].as_ref().map(|form| item_in(form, sizes[inner], &flex)))
+            .collect();
+        sizes[index] = layout::measure(&flex, &items).ok();
+    }
+    sizes
+}
+
+/// What a box writes as an item of its row or column's flow. Where it writes no size on an axis, and the
+/// row or column measured it (`measured`), the size its own items give it (section 4.3, rule 2) is written
+/// for it. An absolute box takes the measured size only where its edges do not give one. A flowed box that
+/// stretches across writes no size across: its row or column gives it one.
+fn item_in(form: &Form, measured: Option<layout::Size>, parent: &Flex) -> Item {
+    let mut written = form.written;
+    if let Some(size) = measured {
+        if form.absolute {
+            fill(&mut written.width, size.width, both(written.left, written.right));
+            fill(&mut written.height, size.height, both(written.top, written.bottom));
+        } else {
+            let stretched = form.across.unwrap_or(parent.across) == Across::Stretch;
+            match parent.direction {
+                Direction::Row => {
+                    fill(&mut written.width, size.width, false);
+                    if !stretched {
+                        fill(&mut written.height, size.height, false);
+                    }
+                }
+                Direction::Column => {
+                    fill(&mut written.height, size.height, false);
+                    if !stretched {
+                        fill(&mut written.width, size.width, false);
+                    }
+                }
+            }
+        }
+    }
+    Item {
+        written,
+        margin: form.margin,
+        across: form.across,
+        absolute: form.absolute,
+    }
+}
+
+/// Gives an unwritten size the measured value, unless the edges of the box give it one.
+fn fill(size: &mut Option<Amount>, measured: f64, edged: bool) {
+    if size.is_none() && !edged {
+        *size = Some(Amount::Pixels(measured));
+    }
+}
+
+/// Whether both of two written edges are there.
+fn both(near: Option<Amount>, far: Option<Amount>) -> bool {
+    near.is_some() && far.is_some()
+}
+
+/// Which axes of a box that its row or column's flow places have no size of their own, so that the flow
+/// measures them from the box's items (section 4.3, rule 2). An axis the box stretches across is the row or
+/// column's size, not its own, and an absolute box's axis with both edges is given by them.
+fn measured_axes(form: &Form, parent: &Flex) -> Measured {
+    let stretched = !form.absolute && form.across.unwrap_or(parent.across) == Across::Stretch;
+    let across_edged = form.absolute && both(form.written.left, form.written.right);
+    let down_edged = form.absolute && both(form.written.top, form.written.bottom);
+    let column = parent.direction == Direction::Column;
+    Measured {
+        width: form.written.width.is_none() && !across_edged && !(stretched && column),
+        height: form.written.height.is_none() && !down_edged && !(stretched && !column),
     }
 }
 

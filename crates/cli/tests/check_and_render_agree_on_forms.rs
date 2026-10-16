@@ -85,8 +85,10 @@ fn check_is_ready_for_every_placement_fixture_that_render_draws() {
         "padding-inside-a-row",
         "row-align-across",
         "row-along-center-and-end",
+        "row-inside-a-row-with-no-size",
         "row-with-no-size",
         "rows-with-gaps",
+        "stretch-across-with-no-size",
     ];
     for name in names {
         let project = fixtures().join(name);

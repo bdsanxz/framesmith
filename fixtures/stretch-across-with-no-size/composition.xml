@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two rows and columns with no size of their own, each with a gap of 4 pixels and a child that stretches across.
+     The row at 4, 4 has a first child 10 by 20 and a second that writes a width of 10 and no height: the row is as high
+     as its tallest child, 20, so it is at {4,4,24,20}, and its children lie at {4,4,10,20} and {18,4,10,20}; the second
+     stretches to the row's height. The column at 50, 4 has a first child 20 by 10 and a second that writes a height of
+     10 and no width: the column is as wide as its widest child, 20, so it is at {50,4,20,24}, and its children lie at
+     {50,4,20,10} and {50,18,20,10}; the second stretches to the column's width. 96 by 54 pixels, 10 frames a second. -->
+<composition version="1" id="stretch-across-with-no-size" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="row" left="4" top="4" flex-direction="row" gap="4" background="#305050">
+    <box width="10" height="20" background="#ff8060"/>
+    <box width="10" background="#80ff80"/>
+  </box>
+  <box id="column" left="50" top="4" flex-direction="column" gap="4" background="#305050">
+    <box width="20" height="10" background="#ffd080"/>
+    <box height="10" background="#8080ff"/>
+  </box>
+</composition>

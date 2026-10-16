@@ -101,7 +101,7 @@ fn a_stretched_child_keeps_the_height_it_writes_and_sits_at_the_start() {
 }
 
 #[test]
-fn stretch_gives_no_height_when_the_row_has_no_size_of_its_own_across() {
+fn a_row_of_stretched_children_alone_has_no_height_across() {
     let item = Item {
         written: Written {
             width: Some(Amount::Pixels(20.0)),
@@ -172,4 +172,24 @@ fn a_column_stretches_a_child_with_no_width_across_its_width() {
     };
     let flowed = flow(frame(400, 300), known(100.0, 50.0), &flex, &[item]).expect("placed");
     assert_eq!(flowed.items, vec![rect(0, 0, 100, 10)]);
+}
+
+#[test]
+fn a_column_with_no_width_is_as_wide_as_its_widest_child_and_stretches_the_others() {
+    // The second child writes no width, so it stretches to the 20 of the first across the column.
+    let second = Item {
+        written: Written {
+            height: Some(Amount::Pixels(10.0)),
+            ..Written::default()
+        },
+        ..Item::default()
+    };
+    let flex = Flex {
+        direction: Direction::Column,
+        gap: 4.0,
+        ..Flex::default()
+    };
+    let flowed = flow(frame(400, 300), Written::default(), &flex, &[sized(20.0, 10.0), second]).expect("placed");
+    assert_eq!(flowed.container, rect(0, 0, 20, 24));
+    assert_eq!(flowed.items, vec![rect(0, 0, 20, 10), rect(0, 14, 20, 10)]);
 }

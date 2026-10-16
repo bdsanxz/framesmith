@@ -145,3 +145,82 @@ fn a_clip_child_keeps_its_room_in_the_row_in_every_frame() {
     assert_eq!(filled_in_frame(&scene, 0), vec![(4, 4, 10, 10), (44, 4, 10, 10)]);
     assert_eq!(filled_in_frame(&scene, 5), vec![(4, 4, 10, 10), (24, 4, 10, 10), (44, 4, 10, 10)]);
 }
+
+#[test]
+fn a_row_with_no_size_inside_a_row_with_no_size_is_as_large_as_its_boxes_and_the_next_box_follows_it() {
+    let scene = scene_of_fixture("row-inside-a-row-with-no-size");
+    // The inner row is 22 wide, its boxes and their gap, so the box after it lies at 4 + 22 + 4 = 30.
+    assert_eq!(
+        filled_in_frame(&scene, 0),
+        vec![(4, 4, 36, 10), (4, 4, 22, 10), (4, 4, 10, 10), (16, 4, 10, 10), (30, 4, 10, 10)]
+    );
+}
+
+#[test]
+fn a_child_that_stretches_fills_the_size_across_that_its_row_or_column_has() {
+    let scene = scene_of_fixture("stretch-across-with-no-size");
+    // The row is as high as its 20 pixel child, so its second child stretches to 20; the column is as wide as
+    // its 20 pixel child, so its second child stretches to 20.
+    assert_eq!(
+        filled_in_frame(&scene, 0),
+        vec![
+            (4, 4, 24, 20),
+            (4, 4, 10, 20),
+            (18, 4, 10, 20),
+            (50, 4, 20, 24),
+            (50, 4, 20, 10),
+            (50, 18, 20, 10)
+        ]
+    );
+}
+
+#[test]
+fn a_row_inside_a_column_inside_a_row_with_no_size_is_as_large_as_its_boxes_to_any_depth() {
+    // The outer row is 36 wide, its column is 22 wide and 22 high, the column's row is 22 by 10. The column
+    // and its row are placed at their own start, so each is as large as what is in it.
+    let scene = scene_with(
+        "row-in-a-column-in-a-row",
+        "<box id=\"outer\" left=\"4\" top=\"4\" flex-direction=\"row\" gap=\"4\" background=\"#305050\">\n\
+         <box id=\"column\" flex-direction=\"column\" gap=\"2\" align-self=\"flex-start\" background=\"#405060\">\n\
+         <box id=\"row\" flex-direction=\"row\" gap=\"2\" align-self=\"flex-start\" background=\"#ffffff\">\n\
+         <box width=\"10\" height=\"10\" background=\"#ff8060\"/>\n\
+         <box width=\"10\" height=\"10\" background=\"#80ff80\"/>\n\
+         </box>\n\
+         <box width=\"10\" height=\"10\" background=\"#ffd080\"/>\n\
+         </box>\n\
+         <box width=\"10\" height=\"10\" background=\"#8080ff\"/>\n\
+         </box>",
+    );
+    assert_eq!(
+        filled_in_frame(&scene, 0),
+        vec![
+            (4, 4, 36, 22),
+            (4, 4, 22, 22),
+            (4, 4, 22, 10),
+            (4, 4, 10, 10),
+            (16, 4, 10, 10),
+            (4, 16, 10, 10),
+            (30, 4, 10, 10)
+        ]
+    );
+}
+
+#[test]
+fn a_percentage_width_in_a_row_with_no_size_is_0_wide_inside_it() {
+    // The row has no size of its own, so a child's share of its width is 0: the row is 14 wide, the gap of 4
+    // and the 10 pixel box, and the second child lies at 10 + 0 + 4. The row has no background, so it draws no
+    // box of its own: the 0-wide child is listed at the row's start.
+    let scene = scene_with(
+        "percentage-in-a-row-with-no-size",
+        "<box id=\"parent\" left=\"10\" top=\"10\" width=\"50\" height=\"30\" background=\"#304080\">\n\
+         <box flex-direction=\"row\" gap=\"4\">\n\
+         <box width=\"50%\" height=\"10\" background=\"#ff8060\"/>\n\
+         <box width=\"10\" height=\"10\" background=\"#80ff80\"/>\n\
+         </box>\n\
+         </box>",
+    );
+    assert_eq!(
+        filled_in_frame(&scene, 0),
+        vec![(10, 10, 50, 30), (10, 10, 0, 10), (14, 10, 10, 10)]
+    );
+}

@@ -131,8 +131,8 @@ pub enum Across {
     Center,
     /// At the end edge of the content box.
     End,
-    /// Filling the content box across, when the row or column has a size of its own across and the
-    /// child writes no size there.
+    /// Filling the content box across, when the child writes no size there. The content box is the one
+    /// of the row or column's own size across, or of its measured size when it has none.
     #[default]
     Stretch,
 }
@@ -216,18 +216,41 @@ pub struct Flowed {
     pub items: Vec<Rect>,
 }
 
+/// The size of a row or column worked out from its children on each axis (section 4.3, rule 2): the
+/// width and the height it takes when it has no size of its own there.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Size {
+    /// The width in pixels.
+    pub width: f64,
+    /// The height in pixels.
+    pub height: f64,
+}
+
+/// The axes on which a row or column has no size of its own, so that its children give it one. A row or
+/// column placed by [`inside`] says so for each axis: a percentage of a child is 0 on an axis it is
+/// measured on, as [`measure`] works it out.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Measured {
+    /// Whether the width is measured from the children.
+    pub width: bool,
+    /// Whether the height is measured from the children.
+    pub height: bool,
+}
+
 /// Places a row or a column in `parent` and its children in it (`render-command.md` section 4.3).
 ///
 /// The row or column is placed as a box is (section 4.1), except that an axis on which it has no size
 /// of its own (no written size, and not both edges) is as large as its children there: along the main
 /// axis, the children's outer sizes with the gaps between them and the padding; across, the largest
-/// child's outer size with the padding. Percentages of a child are of the row or column's own size on
-/// that axis, and are 0 on an axis with none.
+/// child's outer size with the padding. A child that stretches across and writes no size there counts
+/// its margins only. Percentages of a child are of the row or column's own size on that axis, and are 0
+/// on an axis with none.
 ///
 /// The children that are not absolute follow each other along the main axis with `flex.gap` between
 /// neighbours, the group placed as `flex.along` says inside the padded content box. Across, each sits
-/// as its `across` says. An absolute child is placed as [`place`] places a box, in the row or column's
-/// outer rectangle, and takes no room.
+/// as its `across` says, and one that writes no size there stretches to fill the content box less its
+/// margins. An absolute child is placed as [`place`] places a box, in the row or column's outer
+/// rectangle, and takes no room.
 pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Result<Flowed, Beyond> {
     let across = Span::across(parent, written);
     let down = Span::down(parent, written);
@@ -242,18 +265,8 @@ pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Resu
     let main_base = main_known.map(|(_, length)| f64::from(length));
     let cross_base = cross_known.map(|(_, length)| f64::from(length));
 
-    let children = items
-        .iter()
-        .filter(|item| !item.absolute)
-        .map(|item| Child::new(item, flex, main_base, cross_base))
-        .collect::<Result<Vec<Child>, Beyond>>()?;
-
-    // The container's size on an axis it has none of its own: the children, the gaps and the padding.
-    let (pad_main, pad_cross) = flex.padding.split(flex.direction);
-    let gaps = flex.gap * children.len().saturating_sub(1) as f64;
-    let group = children.iter().map(Child::outer_main).sum::<f64>() + gaps;
-    let main_measured = group + pad_main.0 + pad_main.1;
-    let cross_measured = children.iter().map(Child::outer_cross).fold(0.0, f64::max) + pad_cross.0 + pad_cross.1;
+    let children = children(flex, items, main_base, cross_base)?;
+    let (main_measured, cross_measured) = measured_sizes(flex, &children);
     let main_placed = match main_known {
         Some(placed) => placed,
         None => main.place(main_measured)?,
@@ -266,24 +279,95 @@ pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Resu
         Direction::Row => rect(main_placed, cross_placed),
         Direction::Column => rect(cross_placed, main_placed),
     };
+    let items = place_items(container, flex, &children, items)?;
+    Ok(Flowed { container, items })
+}
 
+/// The size of a row or a column with no size of its own, worked out from its children (section 4.3,
+/// rule 2). Along the main axis, the group of children with the gaps between them and the padding; across,
+/// the largest outer size of a child with the padding, a child that stretches across counting its margins
+/// only. A child that is itself a row or column is given its own size first, from the inside out. A
+/// percentage of a child is 0 on each axis, the row or column having no size there to be a percentage of.
+pub fn measure(flex: &Flex, items: &[Item]) -> Result<Size, Beyond> {
+    let children = children(flex, items, None, None)?;
+    let (main, cross) = measured_sizes(flex, &children);
+    Ok(match flex.direction {
+        Direction::Row => Size {
+            width: main,
+            height: cross,
+        },
+        Direction::Column => Size {
+            width: cross,
+            height: main,
+        },
+    })
+}
+
+/// The children of a row or a column placed in the rectangle `rect` (section 4.3). An axis on which it is
+/// `measured` has no size of its own for the percentages of its children, which are then 0 as [`measure`]
+/// has them. The children are laid out inside `rect` as [`flow`] lays them out in the container it places.
+pub fn inside(rect: Rect, measured: Measured, flex: &Flex, items: &[Item]) -> Result<Flowed, Beyond> {
+    let (main_length, cross_length, main_measured, cross_measured) = match flex.direction {
+        Direction::Row => (rect.width, rect.height, measured.width, measured.height),
+        Direction::Column => (rect.height, rect.width, measured.height, measured.width),
+    };
+    let main_base = (!main_measured).then(|| f64::from(main_length));
+    let cross_base = (!cross_measured).then(|| f64::from(cross_length));
+    let children = children(flex, items, main_base, cross_base)?;
+    let rects = place_items(rect, flex, &children, items)?;
+    Ok(Flowed {
+        container: rect,
+        items: rects,
+    })
+}
+
+/// The children that are not absolute, each with its sizes and margins worked out for its row or column.
+fn children(flex: &Flex, items: &[Item], main_base: Option<f64>, cross_base: Option<f64>) -> Result<Vec<Child>, Beyond> {
+    items
+        .iter()
+        .filter(|item| !item.absolute)
+        .map(|item| Child::new(item, flex, main_base, cross_base))
+        .collect()
+}
+
+/// The main and the cross size of a row or column worked out from its children, padding included.
+fn measured_sizes(flex: &Flex, children: &[Child]) -> (f64, f64) {
+    let (pad_main, pad_cross) = flex.padding.split(flex.direction);
+    let main = group(flex, children) + pad_main.0 + pad_main.1;
+    let cross = children.iter().map(Child::outer_cross).fold(0.0, f64::max) + pad_cross.0 + pad_cross.1;
+    (main, cross)
+}
+
+/// The length of the group of children along the main axis: their outer sizes, and a gap between each two.
+fn group(flex: &Flex, children: &[Child]) -> f64 {
+    children.iter().map(Child::outer_main).sum::<f64>() + flex.gap * children.len().saturating_sub(1) as f64
+}
+
+/// The rectangles of the items of a row or column placed in `container`, in the order of `items`: the
+/// children that are not absolute, placed in the content box of the container, and each absolute item,
+/// placed as [`place`] places a box in the container.
+fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item]) -> Result<Vec<Rect>, Beyond> {
+    let (pad_main, pad_cross) = flex.padding.split(flex.direction);
+    let (main_start, main_size, cross_start, cross_size) = match flex.direction {
+        Direction::Row => (container.left, container.width, container.top, container.height),
+        Direction::Column => (container.top, container.height, container.left, container.width),
+    };
     // The content box: the container less its padding.
-    let main_start = f64::from(main_placed.0) + pad_main.0;
-    let main_length = f64::from(main_placed.1) - pad_main.0 - pad_main.1;
-    let cross_start = f64::from(cross_placed.0) + pad_cross.0;
-    let cross_length = f64::from(cross_placed.1) - pad_cross.0 - pad_cross.1;
+    let main_from = f64::from(main_start) + pad_main.0;
+    let main_length = f64::from(main_size) - pad_main.0 - pad_main.1;
+    let cross_from = f64::from(cross_start) + pad_cross.0;
+    let cross_length = f64::from(cross_size) - pad_cross.0 - pad_cross.1;
     let offset = match flex.along {
         Along::Start => 0.0,
-        Along::Center => (main_length - group) / 2.0,
-        Along::End => main_length - group,
+        Along::Center => (main_length - group(flex, children)) / 2.0,
+        Along::End => main_length - group(flex, children),
     };
 
-    let stretch = cross_known.is_some();
-    let mut cursor = main_start + offset;
+    let mut cursor = main_from + offset;
     let mut flowed = Vec::with_capacity(children.len());
-    for child in &children {
+    for child in children {
         let start = cursor + child.main_margin.0;
-        let (across_start, across_size) = across_place(child, cross_start, cross_length, stretch);
+        let (across_start, across_size) = across_place(child, cross_from, cross_length);
         flowed.push(to_rect(flex.direction, (start, child.main), (across_start, across_size))?);
         cursor = start + child.main + child.main_margin.1 + flex.gap;
     }
@@ -298,13 +382,13 @@ pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Resu
         };
         out.push(rect);
     }
-    Ok(Flowed { container, items: out })
+    Ok(out)
 }
 
 /// A child that is not absolute, with its sizes and margins worked out for its row or column.
 #[derive(Clone, Copy, Debug)]
 struct Child {
-    /// The size on the main axis: as written, or 0.
+    /// The size on the main axis: as written, or 0 when none is written.
     main: f64,
     /// The size across the cross axis, when the child writes one.
     cross: Option<f64>,
@@ -355,9 +439,10 @@ fn written_size(amount: Option<Amount>, base: Option<f64>) -> Result<Option<f64>
 }
 
 /// The start and size across the content box of a child, where `align-items` or `align-self` puts it
-/// (section 4.3 rule 7). `stretch` says whether the row or column has a size of its own across; only
-/// then does a child that writes no size fill the content box less its margins.
-fn across_place(child: &Child, start: f64, length: f64, stretch: bool) -> (f64, f64) {
+/// (section 4.3 rule 7). A child that writes no size across stretches to fill the content box less its
+/// margins; the content box of a row or column with no size of its own across is as large as its
+/// children (section 4.3 rule 2).
+fn across_place(child: &Child, start: f64, length: f64) -> (f64, f64) {
     let (before, after) = child.cross_margin;
     let size = child.cross.unwrap_or(0.0);
     match child.across {
@@ -365,8 +450,8 @@ fn across_place(child: &Child, start: f64, length: f64, stretch: bool) -> (f64, 
         Across::End => (start + length - after - size, size),
         Across::Center => (start + (length - (size + before + after)) / 2.0 + before, size),
         Across::Stretch => match child.cross {
-            None if stretch => (start + before, (length - before - after).max(0.0)),
-            _ => (start + before, size),
+            Some(size) => (start + before, size),
+            None => (start + before, (length - before - after).max(0.0)),
         },
     }
 }
