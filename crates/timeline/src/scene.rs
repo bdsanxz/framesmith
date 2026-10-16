@@ -4,6 +4,7 @@
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
 use layout::{Amount, Beyond, Rect, Written, LIMIT};
 use project::{Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
+use timebase::Time;
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
 /// at 48 kHz in stereo (`frx7/docs/spec/os-codecs.md` section 3.1, measured).
@@ -13,7 +14,7 @@ const SOUND_KBITS_HIGHEST: u32 = 320;
 /// What the root takes.
 const ROOT_TAKES: [&str; 7] = ["id", "version", "width", "height", "fps", "duration", "background"];
 /// What a `<box>` takes.
-const BOX_TAKES: [&str; 10] = [
+const BOX_TAKES: [&str; 12] = [
     "id",
     "left",
     "top",
@@ -24,13 +25,64 @@ const BOX_TAKES: [&str; 10] = [
     "position",
     "margin",
     "background",
+    "start",
+    "duration",
 ];
 
-/// A box that is placed and drawn, or placed and drawn as nothing: its rectangle in the frame and the
-/// colour it fills with.
+/// The frames a box is shown in: from `first` up to `end`, not counting `end`, numbered from 0. A
+/// window whose `end` is not after its `first` holds no frame.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Window {
+    first: u64,
+    end: u64,
+}
+
+impl Window {
+    /// Every frame of a scene of `frames` frames.
+    fn all(frames: u64) -> Window {
+        Window { first: 0, end: frames }
+    }
+
+    /// The frames of a clip from `begin` to `finish`, both on the timeline, at `fps` frames a second.
+    /// Frame `i` is in the clip when the grid frame of `begin` is at most `i` and the grid frame of
+    /// `finish` is above `i` (`docs/spec/frame-time.md`).
+    fn of_clip(begin: Time, finish: Time, fps: u32) -> Window {
+        Window {
+            first: begin.grid_frame(fps).max(0) as u64,
+            end: finish.grid_frame(fps).max(0) as u64,
+        }
+    }
+
+    /// The frames that both windows hold.
+    fn within(self, outer: Window) -> Window {
+        let first = self.first.max(outer.first);
+        Window {
+            first,
+            end: self.end.min(outer.end).max(first),
+        }
+    }
+
+    /// Whether frame `number` is in the window.
+    fn contains(self, number: u64) -> bool {
+        self.first <= number && number < self.end
+    }
+}
+
+/// Where a box is placed and when it is shown: its rectangle in the frame, the origin its children
+/// count their `start` from (the exact start of the box when it is a clip, otherwise the origin of
+/// its parent), and the frames it is shown in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Slot {
+    rect: Rect,
+    origin: Time,
+    window: Window,
+}
+
+/// A box that is placed and drawn, or placed and drawn as nothing: its slot and the colour it fills
+/// with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Placed {
-    rect: Rect,
+    slot: Slot,
     colour: Option<Colour>,
 }
 
@@ -131,11 +183,14 @@ impl Scene {
                 frames: self.frames,
             });
         }
-        // Nothing in this version moves or appears: every frame has the same steps, in document order.
+        // A box is drawn in the frames of its window and in no other, so it appears and disappears only
+        // with its window; the steps of a frame are in document order (`docs/spec/render-command.md`,
+        // section 4.2).
         let steps = self
             .boxes
             .iter()
-            .filter_map(|placed| placed.colour.map(|colour| Step::Fill { rect: placed.rect, colour }))
+            .filter(|placed| placed.slot.window.contains(number))
+            .filter_map(|placed| placed.colour.map(|colour| Step::Fill { rect: placed.slot.rect, colour }))
             .collect();
         Ok(DisplayList {
             width: self.width,
@@ -177,10 +232,11 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
 
     let frame = layout::frame(root.width, root.height);
     let mut boxes: Vec<Placed> = Vec::new();
-    // For each element, in document order: the rectangle its box is placed at. The root's is the
-    // frame. `None` is for an element that is reported and for one inside it, which is not looked
-    // into. An element comes after its parent in the tree, so the parent's entry is already known.
-    let mut places: Vec<Option<Rect>> = Vec::with_capacity(tree.len());
+    // For each element, in document order: the slot its box is placed in. The root's is the frame,
+    // shown in every frame. `None` is for an element that is reported and for one inside it, which
+    // is not looked into. An element comes after its parent in the tree, so the parent's entry is
+    // already known.
+    let mut places: Vec<Option<Slot>> = Vec::with_capacity(tree.len());
 
     for node in tree {
         let Some(parent) = node.parent() else {
@@ -201,7 +257,11 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
                     unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
                 ));
             }
-            places.push(Some(frame));
+            places.push(Some(Slot {
+                rect: frame,
+                origin: Time::ZERO,
+                window: Window::all(root.frames),
+            }));
             continue;
         };
         let Some(parent_place) = places[parent] else {
@@ -219,13 +279,13 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             places.push(None);
             continue;
         }
-        let (placed, refusals) = place_box(node, parent_place);
+        let (placed, refusals) = place_box(node, parent_place, root.fps);
         for refusal in refusals {
             refuse(refusal);
         }
         places.push(placed.map(|placed| {
             boxes.push(placed);
-            placed.rect
+            placed.slot
         }));
     }
     (boxes, reports)
@@ -262,13 +322,15 @@ impl Refusal {
     }
 }
 
-/// A `<box>` in its parent's rectangle: the place it is drawn at, its colour, and every refusal of
-/// its attributes. A box with a refusal, or whose place cannot be worked out within the limit, has
-/// no place; what is inside it is not looked into.
-fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
+/// A `<box>` in its parent's slot: the place it is drawn at, its colour, the frames it is shown in,
+/// and every refusal of its attributes. A box with a refusal, or whose place cannot be worked out
+/// within the limit, has no place; what is inside it is not looked into.
+fn place_box(node: &Node, parent: Slot, fps: u32) -> (Option<Placed>, Vec<Refusal>) {
     let mut refusals: Vec<Refusal> = Vec::new();
     let mut written = Written::default();
     let mut colour = None;
+    let mut start: Option<Time> = None;
+    let mut duration: Option<Time> = None;
     for attribute in node.attributes() {
         let name = attribute.name();
         if !BOX_TAKES.contains(&name) {
@@ -327,14 +389,47 @@ fn place_box(node: &Node, parent: Rect) -> (Option<Placed>, Vec<Refusal>) {
                     unsupported_value(node, name, &value, "one opaque colour, #rrggbb"),
                 )),
             },
+            "start" | "duration" => match attribute.time() {
+                Some(time) if name == "start" => start = Some(time),
+                Some(time) => duration = Some(time),
+                None => refusals.push(Refusal::of_drawing(
+                    Code::NotATime,
+                    attribute.line(),
+                    format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
+                )),
+            },
             _ => {}
         }
     }
     if !refusals.is_empty() {
         return (None, refusals);
     }
-    match layout::place(parent, written) {
-        Ok(rect) => (Some(Placed { rect, colour }), refusals),
+    // The notation judges the pair (FS-0040): a box has both or neither. One without the other is
+    // refused here as well, so that no window is made of it.
+    let clip = match (start, duration) {
+        (Some(start), Some(duration)) => Some((parent.origin + start, duration)),
+        (None, None) => None,
+        _ => {
+            let message = format!("{} needs both start and duration, or neither", node.element().tag());
+            return (None, vec![Refusal::of_drawing(Code::ClipNotPaired, node.line(), message)]);
+        }
+    };
+    match layout::place(parent.rect, written) {
+        Ok(rect) => {
+            let slot = match clip {
+                Some((begin, duration)) => Slot {
+                    rect,
+                    origin: begin,
+                    window: Window::of_clip(begin, begin + duration, fps).within(parent.window),
+                },
+                None => Slot {
+                    rect,
+                    origin: parent.origin,
+                    window: parent.window,
+                },
+            };
+            (Some(Placed { slot, colour }), refusals)
+        }
         Err(Beyond) => {
             let message = format!(
                 "a place or a size of {} works out beyond {LIMIT} pixels, which this version does not place",
