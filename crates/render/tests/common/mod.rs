@@ -31,11 +31,40 @@ pub fn scratch(group: &str, name: &str) -> PathBuf {
 /// A project folder in a scratch folder, holding a copy of the composition of the fixture.
 /// Each call gets a folder of its own, so that tests that run at the same time do not share one.
 pub fn project_from_fixture(group: &str, name: &str, fixture: &str) -> PathBuf {
-    static CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let call = CALLS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let dir = scratch(group, &format!("{name}-{call}"));
+    let dir = numbered_scratch(group, name);
     fs::copy(fixtures().join(fixture).join("composition.xml"), dir.join("composition.xml")).unwrap();
     dir
+}
+
+/// A project folder in a scratch folder, holding a copy of every file of the fixture except its `expected`
+/// pictures: the composition and the files it shows (`docs/spec/notation.md` section 10).
+pub fn project_copied_from_fixture(group: &str, name: &str, fixture: &str) -> PathBuf {
+    let dir = numbered_scratch(group, name);
+    copy_files(&fixtures().join(fixture), &dir);
+    dir
+}
+
+/// A new folder for one call of a test, named after `name` and the number of the call.
+fn numbered_scratch(group: &str, name: &str) -> PathBuf {
+    static CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let call = CALLS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    scratch(group, &format!("{name}-{call}"))
+}
+
+/// Copies the files and folders of `from` into `to`, leaving out the folder of checked-in pictures.
+fn copy_files(from: &Path, to: &Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            if entry.file_name() != "expected" {
+                copy_files(&entry.path(), &target);
+            }
+        } else {
+            fs::copy(entry.path(), target).unwrap();
+        }
+    }
 }
 
 /// A project folder in a scratch folder, holding a composition with the text given.

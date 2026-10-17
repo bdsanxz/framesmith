@@ -181,6 +181,82 @@ pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
     }
 }
 
+/// What a composition file shows with `<composition src>`, read without judging the file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Shows {
+    /// The frame rate the file is made at: 30 when it writes none, and `None` when what it writes is not a frame rate the notation takes.
+    pub fps: Option<u32>,
+    /// Each `<composition src>` the file holds where the notation lets one stand, in document order.
+    pub elements: Vec<Show>,
+}
+
+/// A `<composition src>` of a file: the line of the element, and the file it names as written.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Show {
+    pub line: u32,
+    pub src: String,
+}
+
+/// Reads what a composition file shows, from its bytes, without judging the file.
+///
+/// The problems of the file are not returned here: [`read`] judges them. A text that is not UTF-8,
+/// a text that is not XML and a root that is not `<composition>` show nothing and have no frame rate.
+/// A chain of files is walked with this, so that a file with problems of its own still names the
+/// files it shows, and every problem of the chain is reported in one run.
+pub fn shows(source: &[u8]) -> Shows {
+    let nothing = Shows {
+        fps: None,
+        elements: Vec::new(),
+    };
+    let Ok(text) = std::str::from_utf8(source) else {
+        return nothing;
+    };
+    let Ok(document) = roxmltree::Document::parse(text) else {
+        return nothing;
+    };
+    let element = document.root_element();
+    if element.tag_name().name() != "composition" {
+        return nothing;
+    }
+    let spot_at = |offset: usize| {
+        let position = document.text_pos_at(offset);
+        Spot {
+            line: position.row,
+            column: position.col,
+        }
+    };
+    // The problems of the styles and of the root are judged by `read`; the values are all this needs.
+    let mut ignored = Vec::new();
+    let table = styles::styles(element, &spot_at, &mut ignored);
+    let read = styles::effective(element, text, Element::Composition, &table, &spot_at);
+    let attribute = |name: &str| -> Written {
+        read.iter()
+            .find(|entry| !entry.prefixed && entry.name == name)
+            .map(|entry| (entry.value.as_str(), entry.spot))
+    };
+    let fps = fps(attribute("fps")).ok();
+
+    let namespace = element.tag_name().namespace();
+    let elements = document
+        .descendants()
+        .filter(|node| node.is_element() && *node != element)
+        .filter(|node| node.tag_name().namespace() == namespace && node.tag_name().name() == "composition")
+        .filter(|node| {
+            // The notation lets the element stand in the root, in a `<box>` or in a `<rect>` (`schema.rs`).
+            node.parent_element()
+                .is_some_and(|parent| parent == element || matches!(parent.tag_name().name(), "box" | "rect"))
+        })
+        .filter_map(|node| {
+            let src = node.attribute("src")?;
+            Some(Show {
+                line: document.text_pos_at(node.range().start).row,
+                src: src.to_string(),
+            })
+        })
+        .collect();
+    Shows { fps, elements }
+}
+
 /// The value of a judgement, or `None` after the problem has been put on the list.
 fn keep<T>(judged: Result<T, Found>, problems: &mut Vec<Found>) -> Option<T> {
     match judged {

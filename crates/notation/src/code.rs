@@ -127,11 +127,16 @@ pub enum Code {
     StyleIdTwice,
     /// An element's `class` names a style that the file does not have.
     ClassNamesNoStyle,
+    ShownLoop,
+    ShownTooDeep,
+    ShownFpsDiffers,
+    ShownMissing,
+    ShownUnreadable,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 43] = [
+    pub const ALL: [Code; 48] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -175,6 +180,11 @@ impl Code {
         Code::StyleWithoutId,
         Code::StyleIdTwice,
         Code::ClassNamesNoStyle,
+        Code::ShownLoop,
+        Code::ShownTooDeep,
+        Code::ShownFpsDiffers,
+        Code::ShownMissing,
+        Code::ShownUnreadable,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -223,6 +233,11 @@ impl Code {
             Code::StyleWithoutId => "FS-0041",
             Code::StyleIdTwice => "FS-0042",
             Code::ClassNamesNoStyle => "FS-0043",
+            Code::ShownLoop => "FS-0044",
+            Code::ShownTooDeep => "FS-0045",
+            Code::ShownFpsDiffers => "FS-0046",
+            Code::ShownMissing => "FS-0047",
+            Code::ShownUnreadable => "FS-0048",
         }
     }
 
@@ -233,7 +248,8 @@ impl Code {
             | Code::ProjectFileUnreadable
             | Code::NamedCompositionUnreadable
             | Code::PathUnreadable
-            | Code::VideoNotMade => Kind::Failure,
+            | Code::VideoNotMade
+            | Code::ShownUnreadable => Kind::Failure,
             Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable => Kind::Unsupported,
             _ => Kind::Invalid,
         }
@@ -290,6 +306,11 @@ impl Code {
             Code::StyleWithoutId => "Write an `id` on each `<style>`, the name that elements take it by.",
             Code::StyleIdTwice => "Give each `<style>` of the file its own `id`.",
             Code::ClassNamesNoStyle => "Name a `<style>` of this file in `class`, or write its attributes on the element.",
+            Code::ShownLoop => "Take out the `<composition src>` that closes the loop, so that no composition shows itself.",
+            Code::ShownTooDeep => "Show fewer compositions in one chain: at most 16 with the root, each shown by the one before it.",
+            Code::ShownFpsDiffers => "Write in the shown composition the same `fps` as in the one that shows it, a missing `fps` counting as 30.",
+            Code::ShownMissing => "Give the path of a composition file in the project folder, or put the file there.",
+            Code::ShownUnreadable => "Make the shown composition file readable by this user, then run the command again.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

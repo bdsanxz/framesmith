@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A composition shown inside the inset file: 12 by 8 pixels, 30 frames a second, 1 second long. -->
+<composition version="1" id="badge" width="12" height="8" fps="30" duration="1" background="#000000">
+  <box id="mark" left="0" top="0" width="12" height="8" background="#ff0000"/>
+</composition>

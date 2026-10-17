@@ -8,6 +8,7 @@
 
 mod file;
 mod locate;
+mod nesting;
 mod options;
 mod settings;
 
@@ -16,6 +17,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
+pub use nesting::{ShownFile, MAX_CHAIN_DEPTH};
 pub use notation::{shown, Attribute, Code, Colour, Element, Kind, Length, Node, Problem, Root, Tree};
 pub use options::{Options, OPTION_NAMES};
 pub use settings::{Backend, Codec, Encoder, Quality, Settings, Source, Workers, MAX_WORKERS, PROJECT_FILE};
@@ -38,6 +40,8 @@ pub struct Project {
     settings: Settings,
     root: Root,
     tree: Tree,
+    /// The compositions the root shows with `<composition src>`, read and judged, in the order they are reached.
+    shown: Vec<ShownFile>,
 }
 
 /// Why a folder did not open as a project.
@@ -235,6 +239,10 @@ impl Project {
                 None
             }
         };
+        // The compositions the root shows are walked whatever the root's own problems are, so that
+        // one run reports every problem of the chain (`docs/spec/notation.md` section 10).
+        let walked = nesting::walk(folder, &path, &notation::shows(&source));
+        reports.extend(walked.reports);
         match root {
             Some(composition) if reports.is_empty() => Ok(Project {
                 folder: folder.to_path_buf(),
@@ -242,6 +250,7 @@ impl Project {
                 settings: judged.settings,
                 root: composition.root,
                 tree: composition.tree,
+                shown: walked.files,
             }),
             _ => Err(OpenError::Invalid(reports)),
         }
@@ -307,6 +316,19 @@ impl Project {
     /// document order.
     pub fn tree(&self) -> &Tree {
         &self.tree
+    }
+
+    /// The compositions the root shows with `<composition src>`, read and judged, in the order they
+    /// are reached (`docs/spec/notation.md` section 10).
+    pub fn shown_files(&self) -> &[ShownFile] {
+        &self.shown
+    }
+
+    /// The composition that the element `<composition src>` names with `src` as written shows: the
+    /// file found from the project folder. `None` when no element of the root names that file.
+    pub fn shown_file(&self, written: &str) -> Option<&ShownFile> {
+        let path = self.resolve(written);
+        self.shown.iter().find(|file| file.path() == path.as_path())
     }
 }
 

@@ -49,3 +49,8 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0041` | A `<style>` of the composition file has no `id`, so no element can take it. |
 | `FS-0042` | Two `<style>` elements of the composition file have the same `id`. |
 | `FS-0043` | An element's `class` names a style that the composition file does not have. |
+| `FS-0044` | A composition shows itself, directly or through the compositions it shows. |
+| `FS-0045` | A chain of compositions shown by `<composition src>` is more than 16 compositions deep, the root counted. |
+| `FS-0046` | A composition shown by `<composition src>` has another frame rate from the composition that shows it. |
+| `FS-0047` | A composition shown by `<composition src>` does not exist in the project folder. |
+| `FS-0048` | A composition shown by `<composition src>` is in the project folder and could not be read. |

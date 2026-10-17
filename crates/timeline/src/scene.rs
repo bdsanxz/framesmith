@@ -1,5 +1,5 @@
-//! The scene: the root's canvas and the boxes that stand directly in it, as far as this version
-//! draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
+//! The scene: the root's canvas, the boxes in it and the compositions shown from other files, as far
+//! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
 use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Measured, Rect, Sides, Written, LIMIT};
@@ -35,6 +35,12 @@ const BOX_TAKES: [&str; 19] = [
     "align-self",
     "gap",
     "padding",
+];
+
+/// What a `<composition src>` takes: its id and class, its file, its clip and its place (`docs/spec/render-command.md`
+/// section 3). Its size is its file's, so `width` and `height` are not taken.
+const NESTED_TAKES: [&str; 11] = [
+    "id", "class", "src", "start", "duration", "left", "top", "right", "bottom", "position", "margin",
 ];
 
 /// The frames a box is shown in: from `first` up to `end`, not counting `end`, numbered from 0. A
@@ -86,12 +92,13 @@ struct Slot {
     window: Window,
 }
 
-/// A box that is placed and drawn, or placed and drawn as nothing: its slot and the colour it fills
-/// with.
+/// A box that is placed and drawn, or placed and drawn as nothing: its slot, the colour it fills with, and the
+/// rectangle it is cut to when it stands on a canvas shown from another file (`None` on the root's canvas).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Placed {
     slot: Slot,
     colour: Option<Colour>,
+    clip: Option<Rect>,
 }
 
 /// A composition ready to draw.
@@ -199,10 +206,19 @@ impl Scene {
             .iter()
             .filter(|placed| placed.slot.window.contains(number))
             .filter_map(|placed| {
-                placed.colour.map(|colour| Step::Fill {
-                    rect: placed.slot.rect,
-                    colour,
-                })
+                // A box on a canvas shown from another file is drawn in the part of its rectangle that the canvas
+                // holds, and not at all where that part is empty (`docs/spec/timeline.md` section 4).
+                let rect = match placed.clip {
+                    None => placed.slot.rect,
+                    Some(clip) => {
+                        let held = intersect(placed.slot.rect, clip);
+                        if held.width == 0 || held.height == 0 {
+                            return None;
+                        }
+                        held
+                    }
+                };
+                placed.colour.map(|colour| Step::Fill { rect, colour })
             })
             .collect();
         Ok(DisplayList {
@@ -229,16 +245,51 @@ pub fn place_reports(project: &Project) -> Vec<Report> {
     walk(project, true).1
 }
 
-/// Walks the project's tree in document order: the root, then each element after its parent. A box
-/// is placed unless it, or an element it stands in, is refused. A row or column reads the boxes inside
-/// it ahead, since its flow places them (`docs/spec/render-command.md` section 4.3). Gives the boxes
-/// that are placed, in document order, and the reports of the refusals in the order of the file. With
-/// `place_only`, the reports are those of a place form alone.
+/// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
+/// order. Gives the boxes that are placed, in document order, and the reports of the refusals. With `place_only`,
+/// the reports are those of a place form alone.
 fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
     let root = project.root();
-    let tree = project.tree().nodes();
-    let file = project.composition();
-    let frame = layout::frame(root.width, root.height);
+    walk_canvas(
+        project,
+        Canvas {
+            file: project.composition(),
+            tree: project.tree().nodes(),
+            slot: Slot {
+                rect: layout::frame(root.width, root.height),
+                origin: Time::ZERO,
+                window: Window::all(root.frames),
+            },
+            clip: None,
+            translucent: root.background.alpha != 255,
+        },
+        root.fps,
+        place_only,
+    )
+}
+
+/// A canvas to draw: the file its elements are read from, the elements of that file, the slot of its root (the
+/// frame, or the place and window of the element that shows it), the rectangle its boxes are cut to (none on the
+/// root's canvas), and whether the root's background is not opaque, which is refused. The background of a file
+/// shown from another file is not drawn, so it is not judged there (`docs/spec/notation.md` section 10).
+#[derive(Clone, Copy)]
+struct Canvas<'a> {
+    file: &'a str,
+    tree: &'a [Node],
+    slot: Slot,
+    clip: Option<Rect>,
+    translucent: bool,
+}
+
+/// Walks one canvas: its root, then each element after its parent (`docs/spec/timeline.md` section 4). A box or a
+/// composition shown from another file is placed unless it, or an element it stands in, is refused. A row or
+/// column reads the boxes and the compositions inside it ahead, since its flow places them
+/// (`docs/spec/render-command.md` section 4.3). A composition shown from another file is walked on a canvas of
+/// its own, at its place, in its window and cut to its rectangle. Gives the boxes that are placed, in document
+/// order, and the reports: those of this file in the order of their lines, then those of the files it shows, each
+/// report once, in the order the files are reached.
+fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
+    let tree = canvas.tree;
     // The elements inside each element, in document order.
     let mut inside: Vec<Vec<usize>> = vec![Vec::new(); tree.len()];
     for (index, node) in tree.iter().enumerate() {
@@ -248,23 +299,23 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
     }
 
     let mut refusals: Vec<Refusal> = Vec::new();
+    // The reports of the files shown from this one, each once.
+    let mut shown: Vec<Report> = Vec::new();
     let mut boxes: Vec<Placed> = Vec::new();
-    // For each element, in document order: the slot its box is placed in. The root's is the frame,
-    // shown in every frame. `None` is for an element that is reported and for one inside it, which
-    // is not looked into. An element comes after its parent in the tree, so the parent's entry is
-    // already known.
+    // For each element, in document order: the slot its box is placed in, and `None` for an element that is
+    // reported and for one inside it, which is not looked into. An element comes after its parent in the tree,
+    // so the parent's entry is already known.
     let mut places: Vec<Option<Slot>> = Vec::with_capacity(tree.len());
-    // A box that its row or column has read ahead, and the rectangle that row or column gave it: a box
-    // inside a row or column is placed by the flow of its parent, not by its own edges.
+    // A box or a composition that its row or column has read ahead, in the form it was read in.
     let mut reads: Vec<Option<Read>> = vec![None; tree.len()];
-    // Each box's place is given by its row or column's flow, with the axes that flow measures for it.
+    // The rectangle and the measured axes that the flow of a row or column gives each of its items.
     let mut assigned: Vec<Option<(Rect, Measured)>> = vec![None; tree.len()];
     // The size of each row or column measured from its items, from the inside out.
-    let sizes = measures(tree, &inside);
+    let sizes = measures(project, tree, &inside);
 
     for (index, node) in tree.iter().enumerate() {
         let Some(parent) = node.parent() else {
-            // The root.
+            // The root of the canvas.
             for attribute in node.attributes() {
                 if !ROOT_TAKES.contains(&attribute.name()) {
                     refusals.push(Refusal::of_attribute(
@@ -274,18 +325,14 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
                     ));
                 }
             }
-            if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
+            if let (Some(attribute), true) = (node.attribute("background"), canvas.translucent) {
                 refusals.push(Refusal::of_attribute(
                     Code::FormNotSupported,
                     attribute,
                     unsupported_colour(node, attribute),
                 ));
             }
-            places.push(Some(Slot {
-                rect: frame,
-                origin: Time::ZERO,
-                window: Window::all(root.frames),
-            }));
+            places.push(Some(canvas.slot));
             continue;
         };
         let Some(parent_place) = places[parent] else {
@@ -298,7 +345,17 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             places.push(None);
             continue;
         }
-        if node.element() != Element::Box {
+        if tree[parent].element() == Element::Nested {
+            // A composition shown from another file takes no element of its own: its file is drawn in its place.
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                node.line(),
+                unsupported_inside_nested(node.element()),
+            ));
+            places.push(None);
+            continue;
+        }
+        if !matches!(node.element(), Element::Box | Element::Nested) {
             let message = if parent == 0 {
                 unsupported_element(node.element())
             } else {
@@ -311,7 +368,7 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
         let read = match reads[index].take() {
             Some(read) => read,
             None => {
-                let (read, found) = read_box(node);
+                let (read, found) = read_element(project, node);
                 refusals.extend(found);
                 read
             }
@@ -321,18 +378,18 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             continue;
         };
 
-        // The boxes inside a row or column are read now: they are its items, and their places come from
-        // its flow. Their refusals are kept until this box is placed.
+        // The boxes and compositions inside a row or column are read now: they are its items, and their places
+        // come from its flow. Their refusals are kept until this element is placed.
         let mut pending: Vec<Refusal> = Vec::new();
         let mut items: Vec<Item> = Vec::new();
         let mut item_nodes: Vec<(usize, Measured)> = Vec::new();
         if let Some(flex) = form.flex {
             for &inner in &inside[index] {
                 let inner_node = &tree[inner];
-                if inner_node.element() != Element::Box {
+                if !matches!(inner_node.element(), Element::Box | Element::Nested) {
                     continue;
                 }
-                let (read, found) = read_box(inner_node);
+                let (read, found) = read_element(project, inner_node);
                 pending.extend(found);
                 if let Read::Valid(inner_form) = &read {
                     items.push(item_in(inner_form, sizes[inner], &flex));
@@ -374,7 +431,7 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
                 Slot {
                     rect,
                     origin: begin,
-                    window: Window::of_clip(begin, begin + duration, root.fps).within(parent_place.window),
+                    window: Window::of_clip(begin, begin + duration, fps).within(parent_place.window),
                 }
             }
             None => Slot {
@@ -383,19 +440,194 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
                 window: parent_place.window,
             },
         };
-        boxes.push(Placed { slot, colour: form.colour });
+
+        let Some(name) = &form.shown else {
+            boxes.push(Placed {
+                slot,
+                colour: form.colour,
+                clip: canvas.clip,
+            });
+            places.push(Some(slot));
+            continue;
+        };
+        let Some(file) = project.shown_file(name) else {
+            // The project's open reports a file that is not there or cannot be read, so the run does not get here.
+            places.push(None);
+            continue;
+        };
+        // The file is cut to the clip of the element and to its own length (`docs/spec/notation.md` section 10).
+        let file_window = Window::of_clip(slot.origin, slot.origin + file.root().duration, fps);
+        let clip = match canvas.clip {
+            Some(outer) => intersect(rect, outer),
+            None => rect,
+        };
+        let (placed, found) = walk_canvas(
+            project,
+            Canvas {
+                file: file.name(),
+                tree: file.tree().nodes(),
+                slot: Slot {
+                    rect,
+                    origin: slot.origin,
+                    window: slot.window.within(file_window),
+                },
+                clip: Some(clip),
+                translucent: false,
+            },
+            fps,
+            place_only,
+        );
+        boxes.extend(placed);
+        for report in found {
+            if !shown.contains(&report) {
+                shown.push(report);
+            }
+        }
         places.push(Some(slot));
     }
 
-    // A row or column reads the boxes inside it ahead, so the reports are put in the order of the file
-    // by their lines; a stable sort keeps the order of the reports of one line.
+    // A row or column reads its items ahead, so the reports are put in the order of the file by their lines; a
+    // stable sort keeps the order of the reports of one line.
     refusals.sort_by_key(|refusal| refusal.line);
-    let reports = refusals
+    let mut reports: Vec<Report> = refusals
         .into_iter()
         .filter(|refusal| refusal.place || refusal.style || !place_only)
-        .map(|refusal| Report::new(file, Problem::new(refusal.code, refusal.line, refusal.message)))
+        .map(|refusal| Report::new(canvas.file, Problem::new(refusal.code, refusal.line, refusal.message)))
         .collect();
+    reports.extend(shown);
     (boxes, reports)
+}
+
+/// The rectangle that both `a` and `b` cover. Where they do not overlap, it has no area.
+fn intersect(a: Rect, b: Rect) -> Rect {
+    let left = a.left.max(b.left);
+    let top = a.top.max(b.top);
+    let right = (i64::from(a.left) + i64::from(a.width)).min(i64::from(b.left) + i64::from(b.width));
+    let bottom = (i64::from(a.top) + i64::from(a.height)).min(i64::from(b.top) + i64::from(b.height));
+    Rect {
+        left,
+        top,
+        width: (right - i64::from(left)).max(0) as u32,
+        height: (bottom - i64::from(top)).max(0) as u32,
+    }
+}
+
+/// Reads a box or a composition shown from another file: its form, or its refusals.
+fn read_element(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
+    match node.element() {
+        Element::Nested => read_nested(project, node),
+        _ => read_box(node),
+    }
+}
+
+/// Reads a `<composition src>` (`docs/spec/render-command.md` section 3): the places a box has, and its clip, which
+/// is written both or neither. Its size is the size of its file, and an unwritten clip is the whole file: a `start`
+/// of 0 and a `duration` of the file's length (`docs/spec/notation.md` section 10).
+fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
+    let mut refusals: Vec<Refusal> = Vec::new();
+    let mut written = Written::default();
+    let mut absolute = false;
+    let mut margin = Sides::default();
+    let mut start: Option<Time> = None;
+    let mut duration: Option<Time> = None;
+    let mut src: Option<&str> = None;
+    for attribute in node.attributes() {
+        let name = attribute.name();
+        if !NESTED_TAKES.contains(&name) {
+            refusals.push(Refusal::of_attribute(
+                Code::FormNotSupported,
+                attribute,
+                unsupported_attribute(node, attribute),
+            ));
+            continue;
+        }
+        match name {
+            "id" | "class" => {}
+            "src" => src = Some(attribute.value()),
+            "start" | "duration" => match attribute.time() {
+                Some(time) if name == "start" => start = Some(time),
+                Some(time) => duration = Some(time),
+                None => refusals.push(Refusal::of_attribute(
+                    Code::NotATime,
+                    attribute,
+                    format!(
+                        "`{name}=\"{}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
+                        attribute.shown()
+                    ),
+                )),
+            },
+            _ => read_place(node, attribute, &mut written, &mut absolute, &mut margin, &mut refusals),
+        }
+    }
+    if !refusals.is_empty() {
+        return (Read::Refused, refusals);
+    }
+    let Some(name) = src else {
+        return (Read::Refused, Vec::new());
+    };
+    // The project's open reads the file and reports one that is not there or cannot be read (`FS-0047`, `FS-0048`),
+    // so a file is found here.
+    let Some(shown) = project.shown_file(name) else {
+        return (Read::Refused, Vec::new());
+    };
+    let file = shown.root();
+    written.width = Some(Amount::Pixels(f64::from(file.width)));
+    written.height = Some(Amount::Pixels(f64::from(file.height)));
+    let form = Form {
+        written,
+        margin,
+        across: None,
+        absolute,
+        flex: None,
+        colour: None,
+        clip: Some((start.unwrap_or(Time::ZERO), duration.unwrap_or(file.duration))),
+        shown: Some(name.to_string()),
+    };
+    (Read::Valid(Box::new(form)), Vec::new())
+}
+
+/// Reads one attribute that a `<box>` and a `<composition src>` both take as a place: `left`, `top`, `right`,
+/// `bottom`, `position` and `margin`. A refusal is kept on the attribute's line; any other attribute is left alone.
+fn read_place(
+    node: &Node,
+    attribute: &Attribute,
+    written: &mut Written,
+    absolute: &mut bool,
+    margin: &mut Sides,
+    refusals: &mut Vec<Refusal>,
+) {
+    let name = attribute.name();
+    let value = attribute.shown();
+    match name {
+        "left" | "top" | "right" | "bottom" => match amount(attribute.length(), &value, name, node.element().tag()) {
+            Ok(found) => match name {
+                "left" => written.left = Some(found),
+                "top" => written.top = Some(found),
+                "right" => written.right = Some(found),
+                _ => written.bottom = Some(found),
+            },
+            Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
+        },
+        "position" => match attribute.value() {
+            "static" => {}
+            "absolute" => *absolute = true,
+            _ => refusals.push(Refusal::of_place(
+                Code::WordNotTaken,
+                attribute.line(),
+                format!("`position=\"{value}\"` is not one of: static, absolute"),
+            )),
+        },
+        "margin" => match attribute.sides().and_then(|values| Sides::from_values(&values)) {
+            // The sides are held: a margin moves an item of a row or column, and no other box (N10).
+            Some(sides) => *margin = sides,
+            None => refusals.push(Refusal::of_place(
+                Code::NotANumber,
+                attribute.line(),
+                format!("`margin=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
+            )),
+        },
+        _ => {}
+    }
 }
 
 /// A refusal of the root or of a box: its code, its line, its message, whether it is of a form of a
@@ -458,6 +690,8 @@ struct Form {
     flex: Option<Flex>,
     colour: Option<Colour>,
     clip: Option<(Time, Time)>,
+    /// The file a `<composition src>` shows, as written; `None` for a box.
+    shown: Option<String>,
 }
 
 /// The reading of a `<box>`: its form, or a refusal of one of its attributes or of its clip.
@@ -495,37 +729,16 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         }
         let value = attribute.shown();
         match name {
-            "left" | "top" | "right" | "bottom" | "width" | "height" => {
-                match amount(attribute.length(), &value, name, node.element().tag()) {
-                    Ok(found) => match name {
-                        "left" => written.left = Some(found),
-                        "top" => written.top = Some(found),
-                        "right" => written.right = Some(found),
-                        "bottom" => written.bottom = Some(found),
-                        "width" => written.width = Some(found),
-                        _ => written.height = Some(found),
-                    },
-                    Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
-                }
+            "width" | "height" => match amount(attribute.length(), &value, name, node.element().tag()) {
+                Ok(found) => match name {
+                    "width" => written.width = Some(found),
+                    _ => written.height = Some(found),
+                },
+                Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
+            },
+            "left" | "top" | "right" | "bottom" | "position" | "margin" => {
+                read_place(node, attribute, &mut written, &mut absolute, &mut margin, &mut refusals)
             }
-            "position" => match attribute.value() {
-                "static" => {}
-                "absolute" => absolute = true,
-                _ => refusals.push(Refusal::of_place(
-                    Code::WordNotTaken,
-                    attribute.line(),
-                    format!("`position=\"{value}\"` is not one of: static, absolute"),
-                )),
-            },
-            "margin" => match attribute.sides().and_then(|values| Sides::from_values(&values)) {
-                // The sides are held: a margin moves an item of a row or column, and no other box (N10).
-                Some(sides) => margin = sides,
-                None => refusals.push(Refusal::of_place(
-                    Code::NotANumber,
-                    attribute.line(),
-                    format!("`margin=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
-                )),
-            },
             "flex-direction" => match attribute.value() {
                 "row" => direction = Some(Direction::Row),
                 "column" => direction = Some(Direction::Column),
@@ -668,6 +881,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         flex,
         colour,
         clip,
+        shown: None,
     };
     (Read::Valid(Box::new(form)), Vec::new())
 }
@@ -676,11 +890,11 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
 /// section 4.3, rule 2). An item that is itself a row or column is measured first: an element comes after
 /// its parent, so the elements are worked through from the last to the first. `None` for an element that
 /// is not a box or is refused, and for a row or column whose size does not work out.
-fn measures(tree: &[Node], inside: &[Vec<usize>]) -> Vec<Option<layout::Size>> {
+fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>]) -> Vec<Option<layout::Size>> {
     let forms: Vec<Option<Form>> = tree
         .iter()
         .map(|node| match node.element() {
-            Element::Box => match read_box(node).0 {
+            Element::Box | Element::Nested => match read_element(project, node).0 {
                 Read::Valid(form) => Some(*form),
                 Read::Refused => None,
             },
@@ -800,12 +1014,23 @@ fn not_a_length(name: &str, value: &str) -> String {
 }
 
 fn unsupported_element(element: Element) -> String {
-    format!("{} is not supported by this version, which draws <box> only", element.tag())
+    format!(
+        "{} is not supported by this version, which draws <box> and <composition src> only",
+        element.tag()
+    )
+}
+
+/// The message for an element written inside a composition shown from another file, which takes none.
+fn unsupported_inside_nested(element: Element) -> String {
+    format!(
+        "{} inside <composition src> is not supported by this version, which draws a <composition src> with no element inside it",
+        element.tag()
+    )
 }
 
 fn unsupported_inside_box(element: Element) -> String {
     format!(
-        "{} inside a <box> is not supported by this version, which draws a <box> inside a <box> and no other element",
+        "{} inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element",
         element.tag()
     )
 }

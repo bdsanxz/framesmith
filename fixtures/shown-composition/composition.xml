@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A composition that shows two other files, at 30 frames a second for four seconds: 120 frames, numbered from 0.
+     back: a box over the whole frame, in every frame.
+     strip: scenes/strip.xml at the foot, from 0 for 3 seconds; that file lasts 1 second, so it is shown in frames 0 to 29.
+     inset: scenes/inset.xml at 8, 6, from 1 second for 1.5 seconds: frames 30 to 74. The file lasts 2 seconds, so
+     its clip cuts it at frame 75.
+     corner: a box at the top right, from 0.5 seconds for 1 second: frames 15 to 44. -->
+<composition version="1" id="shown-composition" width="96" height="54" fps="30" duration="4" background="#102040">
+  <box id="back" left="0" top="0" width="96" height="54" background="#304060"/>
+  <composition src="scenes/strip.xml" left="0" top="40" start="0" duration="3"/>
+  <composition src="scenes/inset.xml" left="8" top="6" start="1" duration="1.5"/>
+  <box id="corner" left="80" top="0" width="16" height="8" start="0.5" duration="1" background="#ffff00"/>
+</composition>

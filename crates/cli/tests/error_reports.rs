@@ -84,6 +84,82 @@ fn project_with_file(name: &str, yaml: &[u8]) -> (PathBuf, PathBuf) {
     (project, cwd)
 }
 
+/// A project folder `demo` holding each of `files` (a path from the folder and its bytes), and an empty folder
+/// to run from.
+fn project_with_files(name: &str, files: &[(String, Vec<u8>)]) -> (PathBuf, PathBuf) {
+    let (project, cwd) = project(name, br#"<composition version="1" width="640" height="360" duration="2"/>"#);
+    for (path, bytes) in files {
+        let target = project.join(path);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, bytes).unwrap();
+    }
+    (project, cwd)
+}
+
+/// A `<composition src>` on its own line, showing `src`.
+fn shows(src: &str) -> String {
+    format!(r#"<composition src="{src}" left="0" top="0"/>"#)
+}
+
+/// A composition that shows a file of a chain of `last` files: each of `f2.xml` to `f{last-1}.xml` shows the next,
+/// and `f{last}.xml` is a valid root with a box. The root shows `f2.xml`.
+fn chain_files(last: u32) -> Vec<(String, Vec<u8>)> {
+    let mut files = vec![("composition.xml".to_string(), inside_root(&shows("f2.xml")))];
+    for number in 2..last {
+        files.push((format!("f{number}.xml"), inside_root(&shows(&format!("f{}.xml", number + 1)))));
+    }
+    files.push((
+        format!("f{last}.xml"),
+        inside_root(r#"<box left="0" top="0" width="4" height="4"/>"#),
+    ));
+    files
+}
+
+/// One project for `shown_problems`: its name, its files, and the code `check` must print.
+type ShownProblem = (&'static str, Vec<(String, Vec<u8>)>, Code);
+
+/// Projects whose composition shows another file and gives a problem of that. Each is run as a project of its own.
+fn shown_problems() -> Vec<ShownProblem> {
+    let at_30 = |src: &str| inside_root(&shows(src));
+    let twenty_four = br#"<composition version="1" width="640" height="360" fps="24" duration="2"/>"#.to_vec();
+    vec![
+        (
+            "shown-loop",
+            vec![
+                ("composition.xml".to_string(), at_30("b.xml")),
+                ("b.xml".to_string(), at_30("composition.xml")),
+            ],
+            Code::ShownLoop,
+        ),
+        ("shown-too-deep", chain_files(17), Code::ShownTooDeep),
+        (
+            "shown-frame-rate",
+            vec![
+                ("composition.xml".to_string(), at_30("inner.xml")),
+                ("inner.xml".to_string(), twenty_four),
+            ],
+            Code::ShownFpsDiffers,
+        ),
+        (
+            "shown-missing",
+            vec![("composition.xml".to_string(), at_30("gone.xml"))],
+            Code::ShownMissing,
+        ),
+        (
+            // A path that names a folder cannot be read as a file, on every system.
+            "shown-unreadable",
+            vec![
+                ("composition.xml".to_string(), at_30("scenes")),
+                (
+                    "scenes/keep.xml".to_string(),
+                    inside_root(r#"<box left="0" top="0" width="4" height="4"/>"#),
+                ),
+            ],
+            Code::ShownUnreadable,
+        ),
+    ]
+}
+
 /// The text of `docs/spec/error-catalogue.md`.
 fn catalogue() -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -498,6 +574,14 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert_eq!(output.status.code(), Some(exit), "{name}: {printed}");
         // A failure has no place in a file: its report begins with the code.
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
+        emitted.insert(code.as_str());
+    }
+    for (name, files, code) in shown_problems() {
+        let (project, cwd) = project_with_files(&format!("emit-{name}"), &files);
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert_eq!(output.status.code(), Some(1), "{name}: {printed}");
+        assert!(printed.contains(&format!(": {code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
     // The card's refusal is what a machine with no graphics card gives, and such a machine is not

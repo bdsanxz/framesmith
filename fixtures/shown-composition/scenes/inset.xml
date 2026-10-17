@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A composition shown from the composition of the fixture: 32 by 24 pixels, 30 frames a second, 2 seconds.
+     frame: the whole file, orange. inner: from 0.5 seconds of the file for 3 seconds, which the length of the file
+     cuts at 2 seconds. overhang: 16 pixels beyond the right edge and 12 below the foot of the file; only what the file
+     holds is drawn. badge: scenes/badge.xml at 20, 0 of the file, from 0 for 1 second. -->
+<composition version="1" id="inset" width="32" height="24" fps="30" duration="2" background="#000000">
+  <box id="frame" left="0" top="0" width="32" height="24" background="#ff8000"/>
+  <box id="inner" left="4" top="4" width="8" height="8" start="0.5" duration="3" background="#00ff00"/>
+  <box id="overhang" left="24" top="16" width="16" height="12" background="#ff00ff"/>
+  <composition src="scenes/badge.xml" left="20" top="0" start="0" duration="1"/>
+</composition>
