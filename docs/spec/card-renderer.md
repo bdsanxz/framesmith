@@ -110,9 +110,11 @@ The box of a mask comes from the font's `head` table, which gives the box of all
 
 The origin of the mask is `ox = ceil(bx) + 2` pixels from its left edge and `oy = ceil(by) + 2` pixels from its top edge; the mask is `2 * ox + 2` pixels wide and `2 * oy + 2` high. The margin of two pixels absorbs the rounding of the box, and the last pixel holds the fraction of the origin.
 
-Three checks guard the picture, and each stops the draw with an error that gives its reason and draws no picture:
+Several checks guard the picture, and each stops the draw with an error that gives its reason and draws no picture:
 
-- a font that is a collection, or whose table directory does not begin at byte 0, or whose `head` table is missing or cannot be read;
+- a font that is a collection (its first four bytes are not the tag of one face: `0x00010000`, `true` or `OTTO`), or whose `head` table is missing or cannot be read, or whose `unitsPerEm` is 0;
+- a glyph of a face other than the first face of its file, which the card does not draw;
+- a size that is not a finite number of zero or more, or an origin that is not finite;
 - a mask whose outermost ring of pixels holds any coverage, which means that the outline lies outside its box, so that a glyph is never drawn clipped in silence;
 - a mask larger than the card's limit on the sides of a texture.
 

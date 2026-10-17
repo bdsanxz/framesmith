@@ -1,0 +1,32 @@
+// The glyphs of a frame on the graphics card (docs/spec/card-renderer.md, section 9.4). A glyph is a quad of whole
+// pixels. Each of its pixels takes the coverage of the glyph's mask at the same place, read without filtering, and
+// the colour of the run is blended over the picture by that coverage.
+
+@group(0) @binding(0) var mask: texture_2d<f32>;
+
+struct Glyph {
+    @builtin(position) place: vec4<f32>,
+    @location(1) @interpolate(flat) origin: vec2<f32>,
+    @location(2) @interpolate(flat) colour: vec4<f32>,
+}
+
+@vertex
+fn place_glyph_corner(
+    @location(0) corner: vec2<f32>,
+    @location(1) origin: vec2<f32>,
+    @location(2) colour: vec4<f32>,
+) -> Glyph {
+    var glyph: Glyph;
+    glyph.place = vec4<f32>(corner, 0.0, 1.0);
+    glyph.origin = origin;
+    glyph.colour = colour;
+    return glyph;
+}
+
+// The colour is premultiplied by the coverage, so that the blend keeps the picture where the glyph is clear.
+@fragment
+fn paint_glyph(glyph: Glyph) -> @location(0) vec4<f32> {
+    let texel = vec2<i32>(floor(glyph.place.xy - glyph.origin));
+    let coverage = textureLoad(mask, texel, 0).r;
+    return vec4<f32>(glyph.colour.rgb * coverage, coverage);
+}

@@ -1,27 +1,36 @@
-//! The renderer on the graphics card (`docs/spec/card-renderer.md`). It draws the steps of a display
-//! list in their order, each visible rectangle as two triangles whose corners lie on the whole pixel
-//! boundaries of the frame, with no blending and no depth test. Its picture must agree with the
-//! processor's within the tolerance of `card-renderer.md` section 4.
+//! The renderer on the graphics card (`docs/spec/card-renderer.md`). It draws the marks of a frame in their order:
+//! each visible fill as two triangles whose corners lie on the whole pixel boundaries of the frame, and each glyph
+//! of a paragraph of text as a quad of whole pixels whose coverage is a mask made by the processor's rasteriser
+//! (section 9). Its picture must agree with the processor's within the tolerance of section 4.
 //!
-//! The card and the calls to it are frx7's `gpu` crate, the system boundary of `CLAUDE.md` rule 10;
-//! this crate uses the graphics API only through the safe types that crate hands out.
+//! The card and the calls to it are frx7's `gpu` crate, the system boundary of `CLAUDE.md` rule 10; this crate uses
+//! the graphics API only through the safe types that crate hands out.
 
 use std::ops::Range;
 use std::sync::mpsc;
 
-use draw::{Colour, DisplayList, Error, Picture, Renderer, Step};
+use draw::{Colour, DisplayList, Error, Frame, Mark, Picture, Renderer, Step, TextMark};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
+mod head;
+mod mask;
+
+use mask::{MaskKey, Masks};
+
 /// The shader of the fills: `place_corner` for a corner, `paint` for its colour.
 const SHADER: &str = include_str!("fill.wgsl");
+
+/// The shader of the glyphs: `place_glyph_corner` for a corner, `paint_glyph` for its colour and coverage.
+const GLYPH_SHADER: &str = include_str!("glyph.wgsl");
 
 /// The format of the picture: 8 bits a channel, with no conversion between colour spaces, so that
 /// the colour value `v` is drawn as `v / 255` and stored as `v`.
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 
-/// The numbers of one vertex: a corner in clip space (two), then its colour (four).
-const VERTEX_FLOATS: usize = 6;
+/// The numbers of one vertex: a corner in clip space (two), the whole pixel of a glyph's mask at its top left (two;
+/// zero for a fill), then the colour (four).
+const VERTEX_FLOATS: usize = 8;
 
 /// Two triangles make one rectangle.
 const CORNERS: u32 = 6;
@@ -30,11 +39,48 @@ const CORNERS: u32 = 6;
 /// renderers refuse the same frames.
 const MOST_PIXELS: u64 = 8192 * 8192;
 
+/// The attributes of a vertex, in the layout of `VERTEX_FLOATS`: the corner, the origin, and the colour.
+const ATTRIBUTES: [wgpu::VertexAttribute; 3] = [
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x2,
+        offset: 0,
+        shader_location: 0,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x2,
+        offset: 8,
+        shader_location: 1,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x4,
+        offset: 16,
+        shader_location: 2,
+    },
+];
+
+/// A glyph's colour is blended over the picture by its coverage: the colour is premultiplied by it, and the
+/// picture keeps what the coverage leaves clear. The alpha of the picture stays as it is (section 9.4).
+const GLYPH_BLEND: wgpu::BlendState = wgpu::BlendState {
+    color: wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::One,
+        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+        operation: wgpu::BlendOperation::Add,
+    },
+    alpha: wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::Zero,
+        dst_factor: wgpu::BlendFactor::One,
+        operation: wgpu::BlendOperation::Add,
+    },
+};
+
 /// The renderer on the graphics card. It is started once, and draws any number of frames with the
 /// card it was started on.
 pub struct CardRenderer {
     card: Card,
     pipeline: wgpu::RenderPipeline,
+    glyph_pipeline: wgpu::RenderPipeline,
+    glyph_layout: wgpu::BindGroupLayout,
+    masks: Masks,
 }
 
 impl CardRenderer {
@@ -43,6 +89,12 @@ impl CardRenderer {
     pub fn new() -> Result<CardRenderer, Error> {
         let card = Card::new().map_err(|error| Error::new(error.to_string()))?;
         let device = card.device();
+        let buffers = [Some(wgpu::VertexBufferLayout {
+            array_stride: (VERTEX_FLOATS * 4) as u64,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &ATTRIBUTES,
+        })];
+
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("fill"),
             source: wgpu::ShaderSource::Wgsl(SHADER.into()),
@@ -59,22 +111,7 @@ impl CardRenderer {
                 module: &shader,
                 entry_point: Some("place_corner"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[Some(wgpu::VertexBufferLayout {
-                    array_stride: (VERTEX_FLOATS * 4) as u64,
-                    step_mode: wgpu::VertexStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x2,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32x4,
-                            offset: 8,
-                            shader_location: 1,
-                        },
-                    ],
-                })],
+                buffers: &buffers,
             },
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
@@ -88,30 +125,80 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
-        Ok(CardRenderer { card, pipeline })
-    }
-}
 
-impl Renderer for CardRenderer {
-    fn name(&self) -> &'static str {
-        "card"
+        let glyph_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("glyph"),
+            source: wgpu::ShaderSource::Wgsl(GLYPH_SHADER.into()),
+        });
+        let glyph_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("glyph mask"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            }],
+        });
+        let glyph_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("glyph"),
+            bind_group_layouts: &[Some(&glyph_layout)],
+            immediate_size: 0,
+        });
+        let glyph_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("glyph"),
+            layout: Some(&glyph_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &glyph_shader,
+                entry_point: Some("place_glyph_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &glyph_shader,
+                entry_point: Some("paint_glyph"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: Some(GLYPH_BLEND),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
+        Ok(CardRenderer {
+            card,
+            pipeline,
+            glyph_pipeline,
+            glyph_layout,
+            masks: Masks::new(),
+        })
     }
 
-    fn draw(&mut self, list: &DisplayList) -> Result<Picture, Error> {
-        let pixels = u64::from(list.width) * u64::from(list.height);
-        let device = self.card.device();
-        let limit = device.limits().max_texture_dimension_2d;
-        if pixels == 0 || pixels > MOST_PIXELS || list.width > limit || list.height > limit {
+    /// Draws the marks of a frame: the background over the whole frame first, then each mark in order, each over
+    /// what is there. One render pass carries all of them.
+    fn draw_marks(&mut self, frame: &Frame) -> Result<Picture, Error> {
+        let (width, height) = (frame.width, frame.height);
+        let pixels = u64::from(width) * u64::from(height);
+        let limit = self.card.device().limits().max_texture_dimension_2d;
+        if pixels == 0 || pixels > MOST_PIXELS || width > limit || height > limit {
             return Err(Error::new(format!(
-                "a frame of {}x{} pixels cannot be drawn on the card: it has none, more than {MOST_PIXELS}, or a side above {limit}",
-                list.width, list.height
+                "a frame of {width}x{height} pixels cannot be drawn on the card: it has none, more than {MOST_PIXELS}, or a side above {limit}"
             )));
         }
 
-        let (floats, quads) = quads(list);
+        let (floats, draws) = self.plan(frame)?;
+        let device = self.card.device();
         let bytes: Vec<u8> = floats.iter().flat_map(|value| value.to_ne_bytes()).collect();
         let vertices = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("fill vertices"),
+            label: Some("frame vertices"),
             size: bytes.len() as u64,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
@@ -121,8 +208,8 @@ impl Renderer for CardRenderer {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("picture"),
             size: wgpu::Extent3d {
-                width: list.width,
-                height: list.height,
+                width,
+                height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -136,7 +223,7 @@ impl Renderer for CardRenderer {
         let mut encoder = device.create_command_encoder(&Default::default());
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("fill"),
+                label: Some("frame"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     depth_slice: None,
@@ -151,19 +238,33 @@ impl Renderer for CardRenderer {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
-            pass.set_pipeline(&self.pipeline);
             pass.set_vertex_buffer(0, vertices.slice(..));
-            // One draw call for each quad, in the order of the list: a later quad covers an earlier one.
-            for quad in quads {
-                pass.draw(quad, 0..1);
+            // One draw call for each quad, in the order of the frame: a later quad covers an earlier one.
+            for draw in &draws {
+                let [x, y, w, h] = draw.scissor;
+                pass.set_scissor_rect(x, y, w, h);
+                match &draw.mask {
+                    None => {
+                        pass.set_pipeline(&self.pipeline);
+                        pass.draw(draw.vertices.clone(), 0..1);
+                    }
+                    Some(key) => {
+                        let Some(placed) = self.masks.placed(key) else {
+                            return Err(Error::new("a glyph mask was not kept for its draw"));
+                        };
+                        pass.set_pipeline(&self.glyph_pipeline);
+                        pass.set_bind_group(0, &placed.bind_group, &[]);
+                        pass.draw(draw.vertices.clone(), 0..1);
+                    }
+                }
             }
         }
 
         // The rows of a texture copy are padded to a multiple of 256 bytes; the padding is left out.
-        let row = (list.width * 4).next_multiple_of(256);
+        let row = (width * 4).next_multiple_of(256);
         let read = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("picture read back"),
-            size: u64::from(row) * u64::from(list.height),
+            size: u64::from(row) * u64::from(height),
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -198,64 +299,158 @@ impl Renderer for CardRenderer {
             .slice(..)
             .get_mapped_range()
             .map_err(|error| Error::new(format!("the picture could not be read back from the card: {error}")))?;
-        let line = list.width as usize * 4;
+        let line = width as usize * 4;
         let mut bytes = Vec::with_capacity(pixels as usize * 4);
-        for padded in mapped.chunks(row as usize).take(list.height as usize) {
+        for padded in mapped.chunks(row as usize).take(height as usize) {
             bytes.extend_from_slice(&padded[..line]);
         }
         drop(mapped);
         read.unmap();
-        Picture::new(list.width, list.height, bytes).ok_or_else(|| Error::new("the picture does not have the bytes of its size"))
+        Picture::new(width, height, bytes).ok_or_else(|| Error::new("the picture does not have the bytes of its size"))
+    }
+
+    /// The vertices of a frame and its draw calls, in the order they are drawn: the background over the whole frame
+    /// first, then each mark. A fill that lies outside the frame makes no quad, and so does a paragraph whose clip
+    /// has no visible pixel.
+    fn plan(&mut self, frame: &Frame) -> Result<(Vec<f32>, Vec<Draw>), Error> {
+        let (width, height) = (frame.width, frame.height);
+        let mut floats = Vec::new();
+        let mut draws = Vec::new();
+        let whole = Rect {
+            left: 0,
+            top: 0,
+            width,
+            height,
+        };
+        push_fill(&mut floats, &mut draws, width, height, whole, frame.background);
+        for mark in &frame.marks {
+            match mark {
+                Mark::Step(Step::Fill { rect, colour }) => {
+                    push_fill(&mut floats, &mut draws, width, height, *rect, *colour);
+                }
+                Mark::Text(text) => self.plan_text(&mut floats, &mut draws, width, height, text)?,
+            }
+        }
+        Ok((floats, draws))
+    }
+
+    /// The quads of a paragraph of text: one for each glyph that has coverage, in the order of the runs and of the
+    /// glyphs in them, each clipped to the paragraph's clip.
+    fn plan_text(&mut self, floats: &mut Vec<f32>, draws: &mut Vec<Draw>, width: u32, height: u32, text: &TextMark) -> Result<(), Error> {
+        let scissor = match &text.clip {
+            None => [0, 0, width, height],
+            Some(clip) => match clip.visible(width, height) {
+                Some(visible) => [
+                    visible.left,
+                    visible.top,
+                    visible.right - visible.left,
+                    visible.bottom - visible.top,
+                ],
+                None => return Ok(()),
+            },
+        };
+        for run in &text.runs {
+            let colour = colour_floats(run.colour);
+            for glyph in &run.glyphs {
+                let key = self
+                    .masks
+                    .prepare(self.card.device(), self.card.queue(), &self.glyph_layout, run, glyph)?;
+                let Some(placed) = self.masks.placed(&key) else {
+                    continue;
+                };
+                // The mask's pixel of the origin lies on the whole pixel of the origin: the mask's top left is
+                // the whole pixel of the origin less the mask's origin inside the mask.
+                let left = glyph.x.floor() - placed.origin_x as f32;
+                let top = glyph.y.floor() - placed.origin_y as f32;
+                let right = left + placed.width as f32;
+                let bottom = top + placed.height as f32;
+                let first = (floats.len() / VERTEX_FLOATS) as u32;
+                push_quad(floats, width, height, (left, top, right, bottom), [left, top], colour);
+                draws.push(Draw {
+                    scissor,
+                    vertices: first..first + CORNERS,
+                    mask: Some(key),
+                });
+            }
+        }
+        Ok(())
     }
 }
 
-/// The vertices of the quads of a list, in the order they are drawn: the background over the whole
-/// frame first, then each `Fill` step. A step that lies outside the frame makes no quad. Returns the
-/// numbers of the vertices, as they go into the vertex buffer, and the range of vertices of each quad.
-fn quads(list: &DisplayList) -> (Vec<f32>, Vec<Range<u32>>) {
-    let whole = Rect {
-        left: 0,
-        top: 0,
-        width: list.width,
-        height: list.height,
-    };
-    let mut fills: Vec<(Rect, Colour)> = vec![(whole, list.background)];
-    for step in &list.steps {
-        let Step::Fill { rect, colour } = *step;
-        fills.push((rect, colour));
+impl Renderer for CardRenderer {
+    fn name(&self) -> &'static str {
+        "card"
     }
 
-    let (width, height) = (list.width as f32, list.height as f32);
-    let mut floats = Vec::new();
-    let mut quads = Vec::new();
-    for (rect, colour) in fills {
-        let Some(visible) = rect.visible(list.width, list.height) else {
-            continue;
-        };
-        let first = (floats.len() / VERTEX_FLOATS) as u32;
-        let (left, top) = (visible.left as f32, visible.top as f32);
-        let (right, bottom) = (visible.right as f32, visible.bottom as f32);
-        // A corner in pixels from the top left, as clip space: the left edge of the frame is -1, the
-        // right edge 1, the top 1 and the bottom -1. A pixel centre lies half a pixel inside its edges.
-        let place = |x: f32, y: f32| [x / width * 2.0 - 1.0, 1.0 - y / height * 2.0];
-        let colour = [
-            f32::from(colour.red) / 255.0,
-            f32::from(colour.green) / 255.0,
-            f32::from(colour.blue) / 255.0,
-            1.0,
-        ];
-        for (x, y) in [
-            (left, top),
-            (right, top),
-            (right, bottom),
-            (left, top),
-            (right, bottom),
-            (left, bottom),
-        ] {
-            floats.extend_from_slice(&place(x, y));
-            floats.extend_from_slice(&colour);
-        }
-        quads.push(first..first + CORNERS);
+    fn draw(&mut self, list: &DisplayList) -> Result<Picture, Error> {
+        self.draw_marks(&Frame::from_display_list(list))
     }
-    (floats, quads)
+
+    fn draws_text(&self) -> bool {
+        true
+    }
+
+    fn draw_frame(&mut self, frame: &Frame) -> Result<Picture, Error> {
+        self.draw_marks(frame)
+    }
+}
+
+/// One draw call of a frame: the rectangle it is clipped to (left, top, width, height), the vertices of its quad,
+/// and the key of its mask when it is a glyph (`None` for a fill).
+struct Draw {
+    scissor: [u32; 4],
+    vertices: Range<u32>,
+    mask: Option<MaskKey>,
+}
+
+/// Adds the quad of a fill, clipped to the frame, and its draw call. A fill is drawn over the whole frame.
+fn push_fill(floats: &mut Vec<f32>, draws: &mut Vec<Draw>, width: u32, height: u32, rect: Rect, colour: Colour) {
+    let Some(visible) = rect.visible(width, height) else {
+        return;
+    };
+    let first = (floats.len() / VERTEX_FLOATS) as u32;
+    let corners = (visible.left as f32, visible.top as f32, visible.right as f32, visible.bottom as f32);
+    push_quad(floats, width, height, corners, [0.0, 0.0], colour_floats(colour));
+    draws.push(Draw {
+        scissor: [0, 0, width, height],
+        vertices: first..first + CORNERS,
+        mask: None,
+    });
+}
+
+/// Adds the six vertices of a quad whose corners lie on the given pixel boundaries of the frame, each with its
+/// origin and its colour. A corner in pixels from the top left is placed in clip space: the left edge of the frame
+/// is -1, the right edge 1, the top 1 and the bottom -1.
+fn push_quad(
+    floats: &mut Vec<f32>,
+    width: u32,
+    height: u32,
+    (left, top, right, bottom): (f32, f32, f32, f32),
+    origin: [f32; 2],
+    colour: [f32; 4],
+) {
+    let (frame_width, frame_height) = (width as f32, height as f32);
+    let place = |x: f32, y: f32| [x / frame_width * 2.0 - 1.0, 1.0 - y / frame_height * 2.0];
+    for (x, y) in [
+        (left, top),
+        (right, top),
+        (right, bottom),
+        (left, top),
+        (right, bottom),
+        (left, bottom),
+    ] {
+        floats.extend_from_slice(&place(x, y));
+        floats.extend_from_slice(&origin);
+        floats.extend_from_slice(&colour);
+    }
+}
+
+/// A colour as the four numbers of a vertex, each from 0 to 1, with alpha 1.
+fn colour_floats(colour: Colour) -> [f32; 4] {
+    [
+        f32::from(colour.red) / 255.0,
+        f32::from(colour.green) / 255.0,
+        f32::from(colour.blue) / 255.0,
+        1.0,
+    ]
 }
