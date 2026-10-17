@@ -32,9 +32,10 @@ fn has_a_film(project: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-/// A project of the composition whose folder also holds the test font, as the text fixtures of the repository do.
-fn project_with_test_font() -> (std::path::PathBuf, std::path::PathBuf) {
-    let (project, cwd) = make(GROUP, "emoji", &composition());
+/// A project of the composition whose folder also holds the test font, as the text fixtures of the repository do. Each
+/// test names its own folder: the tests run in parallel, and a shared folder is removed under the other one.
+fn project_with_test_font(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let (project, cwd) = make(GROUP, name, &composition());
     fs::create_dir_all(project.join("fonts")).unwrap();
     let file = "framesmith-test-stroke-400.ttf";
     let from = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/fonts").join(file);
@@ -44,7 +45,7 @@ fn project_with_test_font() -> (std::path::PathBuf, std::path::PathBuf) {
 
 #[test]
 fn check_refuses_an_emoji_that_no_named_font_draws_with_its_line() {
-    let (project, cwd) = project_with_test_font();
+    let (project, cwd) = project_with_test_font("check");
     let checked = framesmith(&cwd, ["check", project.to_str().unwrap()], &[]);
     assert_eq!(checked.status.code(), Some(2), "{}{}", out(&checked), err(&checked));
     let printed = out(&checked);
@@ -54,7 +55,7 @@ fn check_refuses_an_emoji_that_no_named_font_draws_with_its_line() {
 
 #[test]
 fn render_refuses_an_emoji_that_no_named_font_draws_before_any_frame() {
-    let (project, cwd) = project_with_test_font();
+    let (project, cwd) = project_with_test_font("render");
     let rendered = framesmith(&cwd, ["render", project.to_str().unwrap(), "--backend", "cpu"], &[]);
     assert_eq!(rendered.status.code(), Some(2), "{}{}", out(&rendered), err(&rendered));
     let printed = out(&rendered);
