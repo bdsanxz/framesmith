@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text that names no colour, in the test font at 30 pixels: it is drawn in black. 200 by 60 pixels, 10 frames a
+     second. -->
+<composition version="1" id="text-default-colour" width="200" height="60" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" font-family="Framesmith Test Stroke" font-size="30">HIIH</text>
+</composition>

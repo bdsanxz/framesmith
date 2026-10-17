@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Three texts of two lines each, 120 pixels wide, aligned to the left, the centre and the right in turn. The words
+     break at the spaces, so no line is wider than the width. 240 by 130 pixels, 10 frames a second. -->
+<composition version="1" id="text-wrapping-and-alignment" width="240" height="130" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="8" top="8" width="120" font-family="Framesmith Test Stroke" font-size="16" color="#102040" text-align="left">AB CD EF GH IJ KL MN OP</text>
+  <text left="8" top="48" width="120" font-family="Framesmith Test Stroke" font-size="16" color="#102040" text-align="center">AB CD EF GH IJ KL MN OP</text>
+  <text left="8" top="88" width="120" font-family="Framesmith Test Stroke" font-size="16" color="#102040" text-align="right">AB CD EF GH IJ KL MN OP</text>
+</composition>

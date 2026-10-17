@@ -97,6 +97,7 @@ pub struct Node {
     line: u32,
     parent: Option<usize>,
     attributes: Vec<Attribute>,
+    words: String,
 }
 
 impl Node {
@@ -124,6 +125,12 @@ impl Node {
     pub fn attribute(&self, name: &str) -> Option<&Attribute> {
         self.attributes.iter().find(|attribute| attribute.name == name)
     }
+
+    /// The words a `<text>` writes: its direct text, as written, with its white space unchanged
+    /// (`docs/spec/text.md` section 5 collapses it). Empty for every other element.
+    pub fn words(&self) -> &str {
+        &self.words
+    }
 }
 
 /// The elements of a composition file, root first, each before the elements inside it and after
@@ -143,6 +150,14 @@ impl Tree {
     pub fn root(&self) -> &Node {
         &self.nodes[0]
     }
+}
+
+/// The text that the direct children of an element hold, joined in document order.
+fn direct_text(node: roxmltree::Node) -> String {
+    node.children()
+        .filter(roxmltree::Node::is_text)
+        .filter_map(|child| child.text())
+        .collect()
 }
 
 /// Makes the tree of a document that `structure::judge` found no problem in.
@@ -175,6 +190,11 @@ pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles)
                     given_by: entry.from,
                 })
                 .collect(),
+            words: if element == Element::Text {
+                direct_text(node)
+            } else {
+                String::new()
+            },
         });
         let children: Vec<roxmltree::Node> = node.children().filter(roxmltree::Node::is_element).collect();
         for child in children.into_iter().rev() {

@@ -240,13 +240,13 @@ fn a_length_that_is_wrong_is_invalid_with_fs_0034_and_a_form_that_is_not_drawn_i
     );
     assert!(!project.join("renders").exists());
 
-    let text = FIRST.replace("<box ", "<text/>\n<box ");
+    let text = FIRST.replace("<box ", "<rect/>\n<box ");
     let (project, cwd) = make(GROUP, "form-unsupported", &text);
     let output = render(&cwd, &project);
     assert_eq!(output.status.code(), Some(2));
     let printed = out(&output);
     assert!(
-        printed.starts_with("composition.xml, line 2: FS-0035: unsupported: <text> is not supported"),
+        printed.starts_with("composition.xml, line 2: FS-0035: unsupported: <rect> is not supported"),
         "{printed}"
     );
     assert!(
@@ -444,7 +444,7 @@ fn a_render_logs_its_stages_in_order_under_one_run_id_with_counts_and_codes_only
 
 #[test]
 fn a_render_that_is_refused_or_fails_logs_its_outcome_at_the_level_of_the_spec() {
-    let (project, cwd) = make(GROUP, "log-refused", &FIRST.replace("<box ", "<text/>\n<box "));
+    let (project, cwd) = make(GROUP, "log-refused", &FIRST.replace("<box ", "<rect/>\n<box "));
     assert_eq!(render(&cwd, &project).status.code(), Some(2));
     let last = lines(&cwd).pop().unwrap();
     assert_eq!(last.level, "WARN");

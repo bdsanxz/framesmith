@@ -3,12 +3,14 @@
 //! folder of them is given. Development only; nothing that ships uses it.
 //!
 //! ```text
-//! read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... <frame>...
+//! read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... [--lines] <frame>...
 //! ```
 //!
 //! For each frame asked for it prints the time it is shown at, the colour at every `--at` point, and,
 //! with the colours of `--palette`, how many pixels are nearest to each of them (an encoder blurs an
 //! edge by a pixel, so a pixel belongs to the colour it is nearest to) and the box round those pixels.
+//! With `--lines` it also prints, for each of those colours, each band of rows that holds such pixels:
+//! a line of text is one band, with the rows and columns it spans.
 //! The sheet has a row `A`
 //! for the pictures decoded from the file and, when `--checked-in` is given, a row `B` for the
 //! pictures of `DIR/frame-NNNN.png`; each picture has its number and time written above it.
@@ -25,7 +27,7 @@ const GAP: u32 = 8;
 const LABEL_HEIGHT: u32 = 5 * 3 + 6;
 
 fn usage() -> ! {
-    eprintln!("usage: read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... <frame>...");
+    eprintln!("usage: read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... [--lines] <frame>...");
     std::process::exit(2);
 }
 
@@ -46,6 +48,45 @@ fn nearest(palette: &[[u8; 3]], pixel: [u8; 3]) -> usize {
 
 fn hex(pixel: [u8; 3]) -> String {
     format!("{:02x}{:02x}{:02x}", pixel[0], pixel[1], pixel[2])
+}
+
+/// Prints each band of rows that holds pixels nearest to the colour `index` of `palette`: the rows the band
+/// spans, the columns its pixels span, its size and its pixel count.
+fn print_lines(frame: &Frame, palette: &[[u8; 3]], index: usize) {
+    let mut rows: Vec<Option<(u32, u32, u32)>> = Vec::new();
+    for y in 0..frame.height {
+        let (mut left, mut right, mut count) = (u32::MAX, 0, 0);
+        for x in 0..frame.width {
+            if nearest(palette, frame.pixel(x, y)) == index {
+                (left, right, count) = (left.min(x), right.max(x), count + 1);
+            }
+        }
+        rows.push((count > 0).then_some((left, right, count)));
+    }
+    let mut band = 0;
+    let mut y = 0;
+    while y < frame.height {
+        if rows[y as usize].is_none() {
+            y += 1;
+            continue;
+        }
+        let top = y;
+        let (mut left, mut right, mut pixels) = (u32::MAX, 0, 0);
+        while y < frame.height {
+            let Some((row_left, row_right, row_pixels)) = rows[y as usize] else {
+                break;
+            };
+            (left, right, pixels) = (left.min(row_left), right.max(row_right), pixels + row_pixels);
+            y += 1;
+        }
+        band += 1;
+        println!(
+            "    line {band}: rows {top}..{}, columns {left}..{right} ({}x{}), {pixels} pixels",
+            y - 1,
+            right - left + 1,
+            y - top
+        );
+    }
 }
 
 /// The glyphs the labels use, each 3 wide and 5 high, one row of three bits per line.
@@ -123,8 +164,10 @@ fn main() {
     let mut palette: Vec<[u8; 3]> = Vec::new();
     let mut at: Vec<(u32, u32)> = Vec::new();
     let mut numbers: Vec<usize> = Vec::new();
+    let mut lines = false;
     while let Some(word) = words.next() {
         match word.as_str() {
+            "--lines" => lines = true,
             "--checked-in" => checked_in = Some(PathBuf::from(words.next().unwrap_or_else(|| usage()))),
             "--palette" => palette.push(colour(&words.next().unwrap_or_else(|| usage()))),
             "--at" => {
@@ -186,6 +229,9 @@ fn main() {
                     right - left + 1,
                     bottom - top + 1
                 );
+                if lines {
+                    print_lines(frame, &palette, index);
+                }
             }
         }
         let left = GAP + column as u32 * cell.0;

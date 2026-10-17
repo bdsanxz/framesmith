@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use draw::Renderer;
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
-use project::{Backend, Code, Kind, OpenError, Options, Project, Report, Settings};
+use project::{Backend, Code, Kind, OpenError, Options, Problem, Project, Report, Settings};
 use render::Scene;
 
 pub mod runlog;
@@ -380,6 +380,13 @@ fn render(path: PathBuf, options: &Options, start_card: &StartCard) -> Reply {
         Err(error) => return renderer_refused(&error),
     };
     tracing::debug!(renderer = choice.name(), chosen_by = choice.chosen().as_str(), "renderer chosen");
+    // A renderer that draws no text refuses the film at its first `<text>`, before any frame and before the
+    // film is opened (`docs/spec/text.md`, section 9).
+    if !choice.renderer_mut().draws_text() {
+        if let Some((file, line)) = scene.first_text() {
+            return reports_reply(&[text_not_drawn(file, line, choice.name())]);
+        }
+    }
     match render::write_film(&scene, choice.renderer_mut(), &output, settings.audio_bitrate()) {
         Ok(written) => {
             let mut lines = vec![
@@ -396,6 +403,22 @@ fn render(path: PathBuf, options: &Options, start_card: &StartCard) -> Reply {
         }
         Err(failure) => video_not_made(&format!("the video could not be made: {failure}")),
     }
+}
+
+/// The report of the first `<text>` of a film that the chosen renderer does not draw: `FS-0035` on the
+/// `<text>`'s line, which names the renderer and the processor as the one that draws text in this version.
+fn text_not_drawn(file: &str, line: u32, renderer: &str) -> Report {
+    Report::new(
+        file,
+        Problem::new(
+            Code::FormNotSupported,
+            line,
+            format!(
+                "<text> is not drawn by the {renderer} renderer in this version, which draws no text; \
+                 the processor draws it: use `--backend cpu`"
+            ),
+        ),
+    )
 }
 
 /// The reply of a `render` whose video could not be made: the report of `FS-0036` with its reason,

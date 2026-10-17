@@ -50,10 +50,8 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
     for (index, (element, tag)) in [
-        ("<font src=\"f.ttf\" family=\"F\"/>", "<font>"),
         ("<audio src=\"a.wav\" duration=\"1\"/>", "<audio>"),
         ("<rect/>", "<rect>"),
-        ("<text/>", "<text>"),
         ("<image src=\"i.png\"/>", "<image>"),
         ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
         ("<shape src=\"s.svg\"/>", "<shape>"),
@@ -63,7 +61,9 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
     {
         assert_eq!(
             only(&format!("element-{index}"), element),
-            format!("composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box> and <composition src> only"),
+            format!(
+                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <text> and <composition src> only"
+            ),
             "{element}"
         );
     }
@@ -73,38 +73,39 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
         only("in-box", "<box>\n<tween at=\"0\" duration=\"1\" to-x=\"5\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
     );
     // A box inside a box is drawn (section 4.1), so it is not refused.
     assert_eq!(refused("box-in-box", "<box>\n<box/>\n</box>"), Vec::<String>::new());
-    // The text is reported once; the span inside it is not reported, nor the box inside the box in it.
+    // A text that names no font of the composition is refused for its family, once; the span inside it is not looked
+    // into, since the text is not drawn. A span inside a text that is drawn is refused in `text_frame_marks.rs`.
     assert_eq!(
         only("inside-reported", "<text>words <span color=\"#ffffff\">x</span></text>"),
-        "composition.xml 2 FS-0035 <text> is not supported by this version, which draws <box> and <composition src> only"
+        "composition.xml 2 FS-0035 <text> is not drawn by this version: no font of the composition is named sans-serif"
     );
     // A rect inside a box is reported once; the box inside that rect is not looked into.
     let reports = refused("inside-inside", "<box>\n<rect>\n<box/>\n</rect>\n</box>");
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         reports[0],
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
     );
 }
 
 #[test]
 fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
-    // The root draws a <box> and a <composition src>, and a message that names only the box is wrong.
-    let root = only("names-root", "<text/>");
+    // The root draws a <box>, a <text> and a <composition src>, and a message that names only the box is wrong.
+    let root = only("names-root", "<rect/>");
     assert_eq!(
         root,
-        "composition.xml 2 FS-0035 <text> is not supported by this version, which draws <box> and <composition src> only"
+        "composition.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
     );
     assert!(root.contains("<box>") && root.contains("<composition src>"), "{root}");
     // Inside a box it draws a <box> or a <composition src>, and no other element.
     let inside = only("names-box", "<box>\n<rect/>\n</box>");
     assert_eq!(
         inside,
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
     );
     assert!(inside.contains("<box>") && inside.contains("<composition src>"), "{inside}");
 }
@@ -278,7 +279,7 @@ fn a_project_the_notation_does_not_accept_is_not_opened_so_nothing_is_drawn_from
 fn the_refusals_of_a_composition_come_in_the_order_of_its_lines() {
     let reports = refused(
         "order",
-        "<text/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<tween at=\"0\" duration=\"1\"/>\n</box>\n<image src=\"i.png\"/>",
+        "<rect/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<tween at=\"0\" duration=\"1\"/>\n</box>\n<image src=\"i.png\"/>",
     );
     let places: Vec<(String, String)> = reports
         .iter()
@@ -333,7 +334,7 @@ fn a_render_setting_this_version_applies_is_accepted_whether_written_or_not() {
 
 #[test]
 fn the_reports_of_the_project_file_come_before_those_of_the_composition() {
-    let folder = project_with("refusals", "both-files", &composition("<text/>"));
+    let folder = project_with("refusals", "both-files", &composition("<rect/>"));
     fs::write(folder.join(PROJECT_FILE), "render:\n  quality: draft\n").unwrap();
     let project = Project::open(&folder).unwrap();
     let reports = Scene::from_project(&project).unwrap_err();
@@ -346,12 +347,12 @@ fn the_reports_of_the_project_file_come_before_those_of_the_composition() {
 fn the_composition_that_is_read_is_the_one_the_project_names() {
     let folder = scratch("refusals", "named-composition");
     fs::create_dir_all(folder.join("scenes")).unwrap();
-    fs::write(folder.join("scenes/main.xml"), composition("<text/>")).unwrap();
+    fs::write(folder.join("scenes/main.xml"), composition("<rect/>")).unwrap();
     fs::write(folder.join(PROJECT_FILE), "composition: scenes/main.xml\n").unwrap();
     let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
     assert_eq!(
         shown(&reports[0]),
-        "scenes/main.xml 2 FS-0035 <text> is not supported by this version, which draws <box> and <composition src> only"
+        "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
     );
 }
 

@@ -6,6 +6,7 @@ members = [
     "crates/notation",
     "crates/project",
     "crates/layout",
+    "crates/text",
     "crates/timeline",
     "crates/draw",
     "crates/draw-cpu",
@@ -38,6 +39,7 @@ motion = { path = "crates/motion" }
 notation = { path = "crates/notation" }
 project = { path = "crates/project" }
 layout = { path = "crates/layout" }
+text = { path = "crates/text" }
 draw = { path = "crates/draw" }
 draw-cpu = { path = "crates/draw-cpu" }
 draw-gpu = { path = "crates/draw-gpu" }
@@ -45,6 +47,12 @@ mix = { path = "crates/mix" }
 render = { path = "crates/render" }
 timeline = { path = "crates/timeline" }
 measure = { path = "crates/measure" }
+
+# The shaping and line-breaking engine of the text crate (docs/spec/text.md, section 10). Default features are off so that
+# its font collection reads no font of the machine: no system font interface is linked.
+parley = { version = "0.12.0", default-features = false, features = ["std"] }
+# The processor draws glyph outlines with it (draw-cpu). Multithreading stays off, so the picture does not depend on the workers.
+vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "u8_pipeline", "text"] }
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
 # docs/dev/frx7.md says how, and how the pin is moved.

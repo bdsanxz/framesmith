@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two lines of the test font's capitals at 30 pixels. The first is the Regular face in red; the second is the Bold
+     face in blue, at the same size, whose strokes are wider. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-colour-and-weight" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <font src="fonts/framesmith-test-stroke-700.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="8" font-family="Framesmith Test Stroke" font-size="30" font-weight="400" color="#c02020">HIIH</text>
+  <text left="10" top="48" font-family="Framesmith Test Stroke" font-size="30" font-weight="700" color="#2050c0">HIIH</text>
+</composition>
