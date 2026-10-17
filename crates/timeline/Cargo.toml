@@ -13,6 +13,7 @@ project = { workspace = true }
 layout = { workspace = true }
 draw = { workspace = true }
 timebase = { workspace = true }
+text = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]

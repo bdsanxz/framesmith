@@ -2,6 +2,7 @@
 //! version can draw, and any frame of the scene is made into a display list or drawn on request.
 //! The crate touches no system interface.
 
+mod paragraph;
 mod scene;
 
 pub use scene::{place_reports, PictureError, Scene};

@@ -160,6 +160,39 @@ fn shown_problems() -> Vec<ShownProblem> {
     ]
 }
 
+/// Projects whose `<font>` names a file that is missing, that cannot be read, or that is not a font. Each is run as a
+/// project of its own, like `shown_problems`.
+fn font_problems() -> Vec<ShownProblem> {
+    let font = |src: &str| inside_root(&format!("<font src=\"{src}\" family=\"Test\"/>"));
+    vec![
+        (
+            "font-missing",
+            vec![("composition.xml".to_string(), font("fonts/gone.ttf"))],
+            Code::FontMissing,
+        ),
+        (
+            // A path that names a folder names no file, on every system.
+            "font-names-a-folder",
+            vec![
+                ("composition.xml".to_string(), font("scenes")),
+                (
+                    "scenes/keep.xml".to_string(),
+                    inside_root(r#"<box left="0" top="0" width="4" height="4"/>"#),
+                ),
+            ],
+            Code::FontMissing,
+        ),
+        (
+            "font-not-a-font",
+            vec![
+                ("composition.xml".to_string(), font("fonts/notes.ttf")),
+                ("fonts/notes.ttf".to_string(), b"These bytes are not a font.\n".to_vec()),
+            ],
+            Code::FontNotAFont,
+        ),
+    ]
+}
+
 /// The text of `docs/spec/error-catalogue.md`.
 fn catalogue() -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -262,6 +295,18 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             "class-names-no-style",
             inside_root("<box class=\"a\"/>"),
             Code::ClassNamesNoStyle,
+            2,
+        ),
+        (
+            "letter-spacing-not-taken",
+            inside_root("<box letter-spacing=\"x\" width=\"4\" height=\"4\"/>"),
+            Code::ValueNotInForm,
+            2,
+        ),
+        (
+            "font-size-zero",
+            inside_root("<box font-size=\"0\" width=\"4\" height=\"4\"/>"),
+            Code::SizeNotAboveZero,
             2,
         ),
     ]
@@ -508,7 +553,7 @@ fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i
             Code::WordNotTaken,
             1,
         ),
-        ("form-not-drawn", root("<text/>"), None, Code::FormNotSupported, 2),
+        ("form-not-drawn", root("<rect/>"), None, Code::FormNotSupported, 2),
         (
             "video-not-made",
             root(r##"<box background="#ff0000"/>"##),
@@ -576,7 +621,7 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
-    for (name, files, code) in shown_problems() {
+    for (name, files, code) in shown_problems().into_iter().chain(font_problems()) {
         let (project, cwd) = project_with_files(&format!("emit-{name}"), &files);
         let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
         let printed = text(&output.stdout);
@@ -584,6 +629,25 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!(": {code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
+    // A font file that is there and cannot be read: its permissions take every read away, so the file is found and
+    // its read fails. Such a test runs as a user who is not root, as every hosted runner does.
+    let (locked, locked_cwd) = project_with_files(
+        "emit-font-unreadable",
+        &[
+            (
+                "composition.xml".to_string(),
+                inside_root(r#"<font src="fonts/locked.ttf" family="Test"/>"#),
+            ),
+            ("fonts/locked.ttf".to_string(), b"no one reads this font\n".to_vec()),
+        ],
+    );
+    fs::set_permissions(locked.join("fonts").join("locked.ttf"), fs::Permissions::from_mode(0o000)).unwrap();
+    let output = framesmith(&locked_cwd, Terminal::AsksForNone, [OsStr::new("check"), locked.as_os_str()]);
+    let printed = text(&output.stdout);
+    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::FontUnreadable.as_str())), "{printed}");
+    emitted.insert(Code::FontUnreadable.as_str());
+
     // The card's refusal is what a machine with no graphics card gives, and such a machine is not
     // needed to see it: the command runs in this process, through the same entry the binary runs, with
     // the starter of a card that does not start (`cli::run_with`). Every other run here names its

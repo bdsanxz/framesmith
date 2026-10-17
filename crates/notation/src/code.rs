@@ -132,11 +132,21 @@ pub enum Code {
     ShownFpsDiffers,
     ShownMissing,
     ShownUnreadable,
+    /// The font file that `<font src>` names is not in the project folder or does not exist.
+    FontMissing,
+    /// The font file exists and could not be read.
+    FontUnreadable,
+    /// The file is not a font of a kind this version reads (TrueType only).
+    FontNotAFont,
+    /// A text attribute's value is not in the form the notation gives for it.
+    ValueNotInForm,
+    /// A length or size that must be above 0 is 0 or below.
+    SizeNotAboveZero,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 48] = [
+    pub const ALL: [Code; 53] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -185,6 +195,11 @@ impl Code {
         Code::ShownFpsDiffers,
         Code::ShownMissing,
         Code::ShownUnreadable,
+        Code::FontMissing,
+        Code::FontUnreadable,
+        Code::FontNotAFont,
+        Code::ValueNotInForm,
+        Code::SizeNotAboveZero,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -238,6 +253,11 @@ impl Code {
             Code::ShownFpsDiffers => "FS-0046",
             Code::ShownMissing => "FS-0047",
             Code::ShownUnreadable => "FS-0048",
+            Code::FontMissing => "FS-0049",
+            Code::FontUnreadable => "FS-0050",
+            Code::FontNotAFont => "FS-0051",
+            Code::ValueNotInForm => "FS-0052",
+            Code::SizeNotAboveZero => "FS-0053",
         }
     }
 
@@ -249,7 +269,8 @@ impl Code {
             | Code::NamedCompositionUnreadable
             | Code::PathUnreadable
             | Code::VideoNotMade
-            | Code::ShownUnreadable => Kind::Failure,
+            | Code::ShownUnreadable
+            | Code::FontUnreadable => Kind::Failure,
             Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable => Kind::Unsupported,
             _ => Kind::Invalid,
         }
@@ -311,6 +332,11 @@ impl Code {
             Code::ShownFpsDiffers => "Write in the shown composition the same `fps` as in the one that shows it, a missing `fps` counting as 30.",
             Code::ShownMissing => "Give the path of a composition file in the project folder, or put the file there.",
             Code::ShownUnreadable => "Make the shown composition file readable by this user, then run the command again.",
+            Code::FontMissing => "Give the path of a font file in the project folder, or put the file there.",
+            Code::FontUnreadable => "Make the font file readable by this user, then run the command again.",
+            Code::FontNotAFont => "Give the path of a TrueType font file (`.ttf`) in `src`.",
+            Code::ValueNotInForm => "Write the value in the form the message names.",
+            Code::SizeNotAboveZero => "Write the value as a number above 0, or leave the attribute out for its default.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

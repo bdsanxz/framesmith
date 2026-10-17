@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two lines at 20 pixels with a line height of 1.5 times the size, and two more with a line height of 30 pixels;
+     then one word with letter spacing of 4 pixels, and one with 0.5 em, which is 10 pixels a letter at 20 pixels.
+     240 by 130 pixels, 10 frames a second. -->
+<composition version="1" id="text-line-height-and-spacing" width="240" height="130" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="8" top="8" width="40" font-family="Framesmith Test Stroke" font-size="20" line-height="1.5" color="#102040">AB CD</text>
+  <text left="64" top="8" width="40" font-family="Framesmith Test Stroke" font-size="20" line-height="30px" color="#102040">AB CD</text>
+  <text left="124" top="8" font-family="Framesmith Test Stroke" font-size="20" letter-spacing="4" color="#102040">AB</text>
+  <text left="124" top="60" font-family="Framesmith Test Stroke" font-size="20" letter-spacing="0.5em" color="#102040">AB</text>
+</composition>

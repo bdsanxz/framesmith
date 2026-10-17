@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A box that gives its texts the family, size, colour and letter spacing. The first text takes them all; the second
+     takes them, but names its own colour, which wins. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-attributes-inherited" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <box left="8" top="8" width="184" height="74" font-family="Framesmith Test Stroke" font-size="24" color="#c02020" letter-spacing="2">
+    <text left="4" top="4">HIIH</text>
+    <text left="4" top="40" color="#2050c0">HIIH</text>
+  </box>
+</composition>

@@ -1,10 +1,12 @@
 //! The scene: the root's canvas, the boxes in it and the compositions shown from other files, as far
 //! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
-use draw::{Colour, DisplayList, Picture, Renderer, Step};
+use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
 use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Measured, Rect, Sides, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use timebase::Time;
+
+use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
 /// at 48 kHz in stereo (`frx7/docs/spec/os-codecs.md` section 3.1, measured).
@@ -13,8 +15,9 @@ const SOUND_KBITS_HIGHEST: u32 = 320;
 
 /// What the root takes: its seven attributes, and `class`, the names of the styles it takes (`docs/spec/notation.md` section 9).
 const ROOT_TAKES: [&str; 8] = ["id", "class", "version", "width", "height", "fps", "duration", "background"];
-/// What a `<box>` takes: its place, its margin and its position, what it draws and its window, and
-/// the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3).
+/// What a `<box>` takes besides the text attributes: its place, its margin and its position, what it draws and its
+/// window, and the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3).
+/// The text attributes pass to the elements inside a box (`docs/spec/text.md` section 8).
 const BOX_TAKES: [&str; 19] = [
     "id",
     "class",
@@ -101,15 +104,43 @@ struct Placed {
     clip: Option<Rect>,
 }
 
+/// A `<text>` that is placed: its slot, the rectangle it is cut to (as a box is), its lines, the composition file
+/// it is written in and its line there.
+#[derive(Clone, Debug, PartialEq)]
+struct PlacedText {
+    slot: Slot,
+    clip: Option<Rect>,
+    paragraph: Paragraph,
+    file: String,
+    line: u32,
+}
+
+/// A box or a paragraph that is placed, in document order: the order its marks are drawn in.
+#[derive(Clone, Debug, PartialEq)]
+enum Entry {
+    Box(Placed),
+    Text(PlacedText),
+}
+
+impl Entry {
+    /// The frames the entry is shown in.
+    fn window(&self) -> Window {
+        match self {
+            Entry::Box(placed) => placed.slot.window,
+            Entry::Text(text) => text.slot.window,
+        }
+    }
+}
+
 /// A composition ready to draw.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Scene {
     width: u32,
     height: u32,
     fps: u32,
     frames: u64,
     background: Colour,
-    boxes: Vec<Placed>,
+    entries: Vec<Entry>,
 }
 
 /// Why a picture was not made.
@@ -141,7 +172,7 @@ impl Scene {
     /// of the file.
     pub fn from_project(project: &Project) -> Result<Scene, Vec<Report>> {
         let mut reports = settings(project);
-        let (boxes, found) = walk(project, false);
+        let (entries, found) = walk(project, false);
         reports.extend(found);
         if !reports.is_empty() {
             return Err(reports);
@@ -153,14 +184,15 @@ impl Scene {
             blue: root.background.blue,
         };
         // The component stays the one `docs/spec/run-log.md` section 4 names for this line.
-        tracing::debug!(target: "render::scene", boxes = boxes.len(), frames = root.frames, "scene made");
+        let boxes = entries.iter().filter(|entry| matches!(entry, Entry::Box(_))).count();
+        tracing::debug!(target: "render::scene", boxes, frames = root.frames, "scene made");
         Ok(Scene {
             width: root.width,
             height: root.height,
             fps: root.fps,
             frames: root.frames,
             background,
-            boxes,
+            entries,
         })
     }
 
@@ -186,52 +218,119 @@ impl Scene {
 
     /// How many boxes the scene has, drawn or not.
     pub fn boxes(&self) -> usize {
-        self.boxes.len()
+        self.entries.iter().filter(|entry| matches!(entry, Entry::Box(_))).count()
     }
 
-    /// The steps that draw frame `number`: the same list for the same number, whatever was asked
-    /// for before.
+    /// The composition file and the line of the first `<text>` of the scene, in document order; `None` for a scene with
+    /// no text. A renderer that draws no text refuses the scene at that line (`docs/spec/text.md`, section 9).
+    pub fn first_text(&self) -> Option<(&str, u32)> {
+        self.entries.iter().find_map(|entry| match entry {
+            Entry::Text(text) => Some((text.file.as_str(), text.line)),
+            Entry::Box(_) => None,
+        })
+    }
+
+    /// The steps that draw frame `number`, when the frame holds no text: the same list for the same number, whatever
+    /// was asked for before. A frame with text is drawn with [`Scene::frame`].
     pub fn list(&self, number: u64) -> Result<DisplayList, PictureError> {
+        match self.frame(number)?.display_list() {
+            Some(list) => Ok(list),
+            None => Err(PictureError::Renderer(draw::Error::new(
+                "the frame holds text, which a list of steps does not draw",
+            ))),
+        }
+    }
+
+    /// The marks that draw frame `number`, in document order: the same marks for the same number, whatever was asked
+    /// for before. A box is drawn in the frames of its window and in no other, so it appears and disappears only with
+    /// its window (`docs/spec/render-command.md`, section 4.2).
+    pub fn frame(&self, number: u64) -> Result<Frame, PictureError> {
         if number >= self.frames {
             return Err(PictureError::NoSuchFrame {
                 number,
                 frames: self.frames,
             });
         }
-        // A box is drawn in the frames of its window and in no other, so it appears and disappears only
-        // with its window; the steps of a frame are in document order (`docs/spec/render-command.md`,
-        // section 4.2).
-        let steps = self
-            .boxes
+        let marks = self
+            .entries
             .iter()
-            .filter(|placed| placed.slot.window.contains(number))
-            .filter_map(|placed| {
-                // A box on a canvas shown from another file is drawn in the part of its rectangle that the canvas
-                // holds, and not at all where that part is empty (`docs/spec/timeline.md` section 4).
-                let rect = match placed.clip {
-                    None => placed.slot.rect,
-                    Some(clip) => {
-                        let held = intersect(placed.slot.rect, clip);
-                        if held.width == 0 || held.height == 0 {
-                            return None;
-                        }
-                        held
-                    }
-                };
-                placed.colour.map(|colour| Step::Fill { rect, colour })
+            .filter(|entry| entry.window().contains(number))
+            .filter_map(|entry| match entry {
+                Entry::Box(placed) => fill_mark(placed),
+                Entry::Text(text) => text_mark(text),
             })
             .collect();
-        Ok(DisplayList {
+        Ok(Frame {
             width: self.width,
             height: self.height,
             background: self.background,
-            steps,
+            marks,
         })
     }
 
     /// Draws frame `number` with `renderer`.
     pub fn picture(&self, number: u64, renderer: &mut dyn Renderer) -> Result<Picture, PictureError> {
-        renderer.draw(&self.list(number)?).map_err(PictureError::Renderer)
+        renderer.draw_frame(&self.frame(number)?).map_err(PictureError::Renderer)
+    }
+}
+
+/// The fill of a box in its frame: the part of its rectangle that its canvas holds, when it has a colour and
+/// the part is not empty (`docs/spec/timeline.md` section 4).
+fn fill_mark(placed: &Placed) -> Option<Mark> {
+    // A box on a canvas shown from another file is drawn in the part of its rectangle that the canvas holds, and not
+    // at all where that part is empty (`docs/spec/timeline.md` section 4).
+    let rect = match placed.clip {
+        None => placed.slot.rect,
+        Some(clip) => {
+            let held = intersect(placed.slot.rect, clip);
+            if held.width == 0 || held.height == 0 {
+                return None;
+            }
+            held
+        }
+    };
+    placed.colour.map(|colour| Mark::Step(Step::Fill { rect, colour }))
+}
+
+/// The glyph runs of a paragraph, moved to its place in the frame, and the mark that draws them.
+fn text_mark(text: &PlacedText) -> Option<Mark> {
+    let paragraph = &text.paragraph;
+    if paragraph.block.runs.is_empty() {
+        return None;
+    }
+    let (left, top) = (paragraph.rect.left as f32, paragraph.rect.top as f32);
+    let runs = paragraph
+        .block
+        .runs
+        .iter()
+        .map(|run| GlyphRun {
+            font: Font {
+                data: run.font.clone(),
+                index: run.index,
+            },
+            size: run.size,
+            skew_degrees: run.skew_degrees,
+            colour: paragraph.colour,
+            glyphs: run
+                .glyphs
+                .iter()
+                .map(|glyph| Glyph {
+                    id: glyph.id,
+                    x: glyph.x + left,
+                    y: glyph.y + top,
+                })
+                .collect(),
+        })
+        .collect();
+    Some(Mark::Text(TextMark { runs, clip: text.clip }))
+}
+
+/// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, and a `<box>` what
+/// `BOX_TAKES` lists and the text attributes, which pass to the elements inside it (`docs/spec/text.md`, section 8).
+fn takes(node: &Node, name: &str) -> bool {
+    match node.element() {
+        Element::Text => TEXT_TAKES.contains(&name),
+        _ => BOX_TAKES.contains(&name) || TEXT_ATTRIBUTES.contains(&name),
     }
 }
 
@@ -248,7 +347,7 @@ pub fn place_reports(project: &Project) -> Vec<Report> {
 /// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
 /// order. Gives the boxes that are placed, in document order, and the reports of the refusals. With `place_only`,
 /// the reports are those of a place form alone.
-fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
+fn walk(project: &Project, place_only: bool) -> (Vec<Entry>, Vec<Report>) {
     let root = project.root();
     walk_canvas(
         project,
@@ -288,7 +387,7 @@ struct Canvas<'a> {
 /// its own, at its place, in its window and cut to its rectangle. Gives the boxes that are placed, in document
 /// order, and the reports: those of this file in the order of their lines, then those of the files it shows, each
 /// report once, in the order the files are reached.
-fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
+fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool) -> (Vec<Entry>, Vec<Report>) {
     let tree = canvas.tree;
     // The elements inside each element, in document order.
     let mut inside: Vec<Vec<usize>> = vec![Vec::new(); tree.len()];
@@ -299,9 +398,14 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     }
 
     let mut refusals: Vec<Refusal> = Vec::new();
+    // The fonts this file declares, and the faults of the font files that are not read.
+    let (mut fonts, font_faults) = paragraph::load_fonts(project, tree);
+    refusals.extend(font_faults.into_iter().map(Refusal::of_text));
     // The reports of the files shown from this one, each once.
     let mut shown: Vec<Report> = Vec::new();
-    let mut boxes: Vec<Placed> = Vec::new();
+    let mut entries: Vec<Entry> = Vec::new();
+    // Which elements are rows or columns: a text inside one is not placed in this version.
+    let mut flows: Vec<bool> = vec![false; tree.len()];
     // For each element, in document order: the slot its box is placed in, and `None` for an element that is
     // reported and for one inside it, which is not looked into. An element comes after its parent in the tree,
     // so the parent's entry is already known.
@@ -355,9 +459,35 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
-        if !matches!(node.element(), Element::Box | Element::Nested) {
+        if node.element() == Element::Font {
+            // A font stands in the root, where its file is read (`load_fonts`); inside an element it is refused.
+            if parent != 0 {
+                refusals.push(Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_font_place()));
+            }
+            places.push(None);
+            continue;
+        }
+        if node.element() == Element::Text {
+            if tree[parent].element() == Element::Text {
+                refusals.push(Refusal::of_drawing(
+                    Code::FormNotSupported,
+                    node.line(),
+                    unsupported_inside_text(node.element()),
+                ));
+                places.push(None);
+                continue;
+            }
+            if flows[parent] {
+                refusals.push(Refusal::of_place(Code::FormNotSupported, node.line(), unsupported_inside_flow()));
+                places.push(None);
+                continue;
+            }
+        }
+        if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
             let message = if parent == 0 {
                 unsupported_element(node.element())
+            } else if tree[parent].element() == Element::Text {
+                unsupported_inside_text(node.element())
             } else {
                 unsupported_inside_box(node.element())
             };
@@ -377,6 +507,27 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         };
+        if node.element() == Element::Text {
+            match paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect) {
+                Ok(paragraph) => {
+                    let slot = slot_of(form.clip, parent_place, paragraph.rect, fps);
+                    entries.push(Entry::Text(PlacedText {
+                        slot,
+                        clip: canvas.clip,
+                        paragraph,
+                        file: canvas.file.to_string(),
+                        line: node.line(),
+                    }));
+                    places.push(Some(slot));
+                }
+                Err(fault) => {
+                    refusals.push(Refusal::of_text(fault));
+                    places.push(None);
+                }
+            }
+            continue;
+        }
+        flows[index] = form.flex.is_some();
 
         // The boxes and compositions inside a row or column are read now: they are its items, and their places
         // come from its flow. Their refusals are kept until this element is placed.
@@ -425,28 +576,14 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             assigned[inner] = Some((inner_rect, measured));
         }
 
-        let slot = match form.clip {
-            Some((start, duration)) => {
-                let begin = parent_place.origin + start;
-                Slot {
-                    rect,
-                    origin: begin,
-                    window: Window::of_clip(begin, begin + duration, fps).within(parent_place.window),
-                }
-            }
-            None => Slot {
-                rect,
-                origin: parent_place.origin,
-                window: parent_place.window,
-            },
-        };
+        let slot = slot_of(form.clip, parent_place, rect, fps);
 
         let Some(name) = &form.shown else {
-            boxes.push(Placed {
+            entries.push(Entry::Box(Placed {
                 slot,
                 colour: form.colour,
                 clip: canvas.clip,
-            });
+            }));
             places.push(Some(slot));
             continue;
         };
@@ -477,7 +614,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             fps,
             place_only,
         );
-        boxes.extend(placed);
+        entries.extend(placed);
         for report in found {
             if !shown.contains(&report) {
                 shown.push(report);
@@ -495,7 +632,27 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         .map(|refusal| Report::new(canvas.file, Problem::new(refusal.code, refusal.line, refusal.message)))
         .collect();
     reports.extend(shown);
-    (boxes, reports)
+    (entries, reports)
+}
+
+/// The slot of an element placed in `rect` inside `parent`: the origin and the window that its clip gives, or the
+/// parent's when it has no clip (`docs/spec/render-command.md`, section 4.2).
+fn slot_of(clip: Option<(Time, Time)>, parent: Slot, rect: Rect, fps: u32) -> Slot {
+    match clip {
+        Some((start, duration)) => {
+            let begin = parent.origin + start;
+            Slot {
+                rect,
+                origin: begin,
+                window: Window::of_clip(begin, begin + duration, fps).within(parent.window),
+            }
+        }
+        None => Slot {
+            rect,
+            origin: parent.origin,
+            window: parent.window,
+        },
+    }
 }
 
 /// The rectangle that both `a` and `b` cover. Where they do not overlap, it has no area.
@@ -630,10 +787,10 @@ fn read_place(
     }
 }
 
-/// A refusal of the root or of a box: its code, its line, its message, whether it is of a form of a
-/// place (`place`: a length, a size, a margin, a position or a word of a row or column), which `check`
-/// judges as well, and whether a `<style>` gives the attribute it is about (`style`), which `check`
-/// judges too (`docs/spec/check-command.md`, section 3c).
+/// A refusal of the root, of a box or of a text: its code, its line, its message, whether it is of a form that
+/// `check` judges (`place`: a length, a size, a margin, a position, a word of a row or column, or a text or a font
+/// form, `docs/spec/text.md` section 9), and whether a `<style>` gives the attribute it is about (`style`), which
+/// `check` judges too (`docs/spec/check-command.md`, section 3c).
 struct Refusal {
     code: Code,
     line: u32,
@@ -651,6 +808,18 @@ impl Refusal {
             message,
             place: true,
             style: false,
+        }
+    }
+
+    /// A refusal of a text or a font. It is a form `check` judges as well as a place, so that `check` names what `render`
+    /// refuses (`docs/spec/text.md`, section 9).
+    fn of_text(fault: Fault) -> Refusal {
+        Refusal {
+            code: fault.code,
+            line: fault.line,
+            message: fault.message,
+            place: true,
+            style: fault.style,
         }
     }
 
@@ -717,9 +886,12 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     let mut items_across = Across::default();
     let mut gap: f64 = 0.0;
     let mut padding = Sides::default();
+    let mut text_faults: Vec<Fault> = Vec::new();
+    read_text_attributes(node, &mut text_faults);
+    refusals.extend(text_faults.into_iter().map(Refusal::of_text));
     for attribute in node.attributes() {
         let name = attribute.name();
-        if !BOX_TAKES.contains(&name) {
+        if !takes(node, name) {
             refusals.push(Refusal::of_attribute(
                 Code::FormNotSupported,
                 attribute,
@@ -850,6 +1022,16 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                     format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
                 )),
             },
+            "white-space" if attribute.value() != "normal" => refusals.push(Refusal::of_place(
+                Code::FormNotSupported,
+                attribute.line(),
+                unsupported_value(node, name, &value, "normal"),
+            )),
+            "text-transform" if attribute.value() != "none" => refusals.push(Refusal::of_place(
+                Code::FormNotSupported,
+                attribute.line(),
+                unsupported_value(node, name, &value, "none"),
+            )),
             _ => {}
         }
     }
@@ -1015,7 +1197,7 @@ fn not_a_length(name: &str, value: &str) -> String {
 
 fn unsupported_element(element: Element) -> String {
     format!(
-        "{} is not supported by this version, which draws <box> and <composition src> only",
+        "{} is not supported by this version, which draws <box>, <text> and <composition src> only",
         element.tag()
     )
 }
@@ -1026,6 +1208,24 @@ fn unsupported_inside_nested(element: Element) -> String {
         "{} inside <composition src> is not supported by this version, which draws a <composition src> with no element inside it",
         element.tag()
     )
+}
+
+/// The message for an element written inside a `<text>`: a `<span>` is not drawn in this version (`text.md`, section 1).
+fn unsupported_inside_text(element: Element) -> String {
+    format!(
+        "{} inside <text> is not supported by this version, which draws the words of a <text> and no element inside it",
+        element.tag()
+    )
+}
+
+/// The message for a `<text>` in a row or a column: the flow of such a row or column places its boxes only.
+fn unsupported_inside_flow() -> String {
+    "<text> inside a row or column is not supported by this version, which places a <box> or a <composition src> there only".to_string()
+}
+
+/// The message for a `<font>` written inside an element: a font stands directly in the composition.
+fn unsupported_font_place() -> String {
+    "<font> stands directly in <composition>, not inside an element, and this version reads it there only".to_string()
 }
 
 fn unsupported_inside_box(element: Element) -> String {

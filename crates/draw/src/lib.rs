@@ -5,6 +5,7 @@
 //! whole list of a frame and nothing else, and gives the same picture for the same list.
 
 use std::fmt;
+use std::sync::Arc;
 
 use layout::Rect;
 
@@ -31,6 +32,98 @@ pub struct DisplayList {
     /// The colour every pixel has before the first step.
     pub background: Colour,
     pub steps: Vec<Step>,
+}
+
+/// A font face a glyph run is drawn with: the bytes of a TrueType font file (`docs/spec/text.md`, section 2.1)
+/// and the index of the face in them.
+#[derive(Clone, Debug)]
+pub struct Font {
+    pub data: Arc<Vec<u8>>,
+    pub index: u32,
+}
+
+/// One glyph of a run: its index in the font, and the place of its origin on the frame, in pixels, with `y`
+/// the baseline.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Glyph {
+    pub id: u32,
+    pub x: f32,
+    pub y: f32,
+}
+
+/// A run of glyphs that share a font, a size, a skew and a colour. `skew_degrees` shears each glyph about its
+/// origin: a point `h` pixels above the baseline moves right by `h` times the tangent of the angle (0 for none).
+#[derive(Clone, Debug)]
+pub struct GlyphRun {
+    pub font: Font,
+    pub size: f32,
+    pub skew_degrees: f32,
+    pub colour: Colour,
+    pub glyphs: Vec<Glyph>,
+}
+
+/// The glyph runs of one paragraph, drawn together in the order they are listed. Only the pixels of `clip`
+/// change; `None` for the whole frame. A paragraph in a composition shown from another file is cut to the
+/// rectangle that file is shown in (`docs/spec/text.md`, section 8).
+#[derive(Clone, Debug)]
+pub struct TextMark {
+    pub runs: Vec<GlyphRun>,
+    pub clip: Option<Rect>,
+}
+
+/// One mark of a frame: a drawing step, or the glyph runs of a paragraph of text. The marks are carried out in
+/// order, each over what is there.
+#[derive(Clone, Debug)]
+pub enum Mark {
+    Step(Step),
+    Text(TextMark),
+}
+
+/// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
+/// picture, whatever was drawn before.
+#[derive(Clone, Debug)]
+pub struct Frame {
+    pub width: u32,
+    pub height: u32,
+    pub background: Colour,
+    pub marks: Vec<Mark>,
+}
+
+impl Frame {
+    /// The frame of a list of steps, with no text.
+    pub fn from_display_list(list: &DisplayList) -> Frame {
+        Frame {
+            width: list.width,
+            height: list.height,
+            background: list.background,
+            marks: list.steps.iter().map(|step| Mark::Step(*step)).collect(),
+        }
+    }
+
+    /// Whether the frame holds a paragraph of text.
+    pub fn has_text(&self) -> bool {
+        self.marks.iter().any(|mark| matches!(mark, Mark::Text(_)))
+    }
+
+    /// The steps of the frame, when it holds no text; `None` for a frame with text.
+    pub fn display_list(&self) -> Option<DisplayList> {
+        if self.has_text() {
+            return None;
+        }
+        Some(DisplayList {
+            width: self.width,
+            height: self.height,
+            background: self.background,
+            steps: self
+                .marks
+                .iter()
+                .filter_map(|mark| match mark {
+                    Mark::Step(step) => Some(*step),
+                    Mark::Text(_) => None,
+                })
+                .collect(),
+        })
+    }
 }
 
 /// A picture: `width` by `height` pixels of four bytes each, red, green, blue and alpha, row by row
@@ -96,4 +189,19 @@ pub trait Renderer {
 
     /// Draws a frame. The same list gives the same picture, whatever was drawn before.
     fn draw(&mut self, list: &DisplayList) -> Result<Picture, Error>;
+
+    /// Whether this renderer draws the glyph runs of text (`docs/spec/text.md`, section 9). A renderer that does not
+    /// refuses a frame with text, and `render` refuses such a composition before its first frame.
+    fn draws_text(&self) -> bool {
+        false
+    }
+
+    /// Draws a frame with its marks. A frame with no text is drawn by [`Renderer::draw`]; a frame with text
+    /// is refused by a renderer that does not draw text.
+    fn draw_frame(&mut self, frame: &Frame) -> Result<Picture, Error> {
+        match frame.display_list() {
+            Some(list) => self.draw(&list),
+            None => Err(Error::new(format!("the renderer {} does not draw text", self.name()))),
+        }
+    }
 }
