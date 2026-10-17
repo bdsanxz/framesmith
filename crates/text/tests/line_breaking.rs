@@ -67,3 +67,44 @@ fn a_text_without_a_width_is_one_line_as_wide_as_its_text() {
     assert_eq!(block.lines.len(), 1, "{:?}", block.lines);
     assert_eq!(block.width, block.lines[0].width);
 }
+
+#[test]
+fn the_space_that_ends_a_wrapped_line_is_not_counted_in_its_width() {
+    // The width holds "AB" and the space after it, and not the next word: the line ends at the space, and its width is
+    // that of "AB" alone (`docs/spec/text.md`, section 5.3).
+    let mut fonts = fonts();
+    let word = layout(&mut fonts, "AB", &style(40.0), None).unwrap().width;
+    let block = layout(&mut fonts, "AB CD", &style(40.0), Some(word + 1.0)).unwrap();
+    assert_eq!(block.lines.len(), 2, "{:?}", block.lines);
+    assert!(
+        (block.lines[0].width - word).abs() < 0.01,
+        "the first line is {} wide, the word alone is {word}",
+        block.lines[0].width
+    );
+}
+
+#[test]
+fn a_word_wider_than_its_line_stays_whole_on_a_line_of_its_own() {
+    // A word is not broken to fit (`docs/spec/text.md`, section 5.2; decision B19): its line runs past the width.
+    let mut fonts = fonts();
+    let word = "ABCDEFGHIJ";
+    let whole = layout(&mut fonts, word, &style(40.0), None).unwrap().width;
+    let width = whole / 2.0;
+    let alone = layout(&mut fonts, word, &style(40.0), Some(width)).unwrap();
+    assert_eq!(alone.lines.len(), 1, "{:?}", alone.lines);
+    assert!(
+        (alone.lines[0].width - whole).abs() < 0.01,
+        "the word is one line of its own width: {:?}",
+        alone.lines
+    );
+
+    let block = layout(&mut fonts, "AB ABCDEFGHIJ CD", &style(40.0), Some(width)).unwrap();
+    assert_eq!(block.lines.len(), 3, "{:?}", block.lines);
+    assert!(
+        (block.lines[1].width - whole).abs() < 0.01,
+        "the wide word stays whole on the middle line: {:?}",
+        block.lines
+    );
+    assert!(block.lines[0].width <= width + 0.01, "{:?}", block.lines);
+    assert!(block.lines[2].width <= width + 0.01, "{:?}", block.lines);
+}

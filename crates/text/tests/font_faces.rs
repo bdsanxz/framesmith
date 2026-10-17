@@ -3,8 +3,8 @@
 
 mod common;
 
-use common::{font_file, fonts, style};
-use text::layout;
+use common::{font_file, fonts, style, FAMILY};
+use text::{layout, Fonts};
 
 fn face_drawn_for(weight: f32) -> Vec<u8> {
     let mut fonts = fonts();
@@ -38,4 +38,33 @@ fn the_regular_and_the_bold_face_give_a_line_the_same_width() {
     bold.weight = 700.0;
     let heavy = layout(&mut fonts, "ABCDE", &bold, None).unwrap().width;
     assert!((regular - heavy).abs() < 0.01, "{regular} and {heavy}");
+}
+
+#[test]
+fn a_weight_of_300_draws_the_regular_face() {
+    let regular = font_file("framesmith-test-stroke-400.ttf");
+    assert_eq!(
+        face_drawn_for(300.0),
+        regular,
+        "300 is lighter than the Regular face, and no face is lighter than it"
+    );
+}
+
+#[test]
+fn a_weight_of_800_and_900_draw_the_bold_face() {
+    let bold = font_file("framesmith-test-stroke-700.ttf");
+    assert_eq!(face_drawn_for(800.0), bold, "800 draws the Bold face");
+    assert_eq!(face_drawn_for(900.0), bold, "900 draws the Bold face");
+}
+
+#[test]
+fn a_weight_heavier_than_every_face_draws_the_heaviest_face_of_the_family() {
+    // A family with its Regular face alone: no face is heavier than it, so a weight of 900 draws that face.
+    let regular = font_file("framesmith-test-stroke-400.ttf");
+    let mut fonts = Fonts::new();
+    fonts.register(regular.clone(), Some(FAMILY)).expect("the Regular face registers");
+    let mut heavy = style(40.0);
+    heavy.weight = 900.0;
+    let block = layout(&mut fonts, "AB", &heavy, None).unwrap();
+    assert_eq!(block.runs[0].font.as_ref().clone(), regular, "900 draws the heaviest face there is");
 }
