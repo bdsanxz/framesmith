@@ -20,3 +20,4 @@ vello_cpu = { workspace = true }
 
 [dev-dependencies]
 draw-cpu = { workspace = true }
+measure = { workspace = true }
