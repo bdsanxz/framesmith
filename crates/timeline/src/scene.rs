@@ -1014,7 +1014,10 @@ fn not_a_length(name: &str, value: &str) -> String {
 }
 
 fn unsupported_element(element: Element) -> String {
-    format!("{} is not supported by this version, which draws <box> only", element.tag())
+    format!(
+        "{} is not supported by this version, which draws <box> and <composition src> only",
+        element.tag()
+    )
 }
 
 /// The message for an element written inside a composition shown from another file, which takes none.
@@ -1027,7 +1030,7 @@ fn unsupported_inside_nested(element: Element) -> String {
 
 fn unsupported_inside_box(element: Element) -> String {
     format!(
-        "{} inside a <box> is not supported by this version, which draws a <box> inside a <box> and no other element",
+        "{} inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element",
         element.tag()
     )
 }
