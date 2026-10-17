@@ -143,11 +143,15 @@ pub enum Code {
     ValueNotInForm,
     /// A length or size that must be above 0 is 0 or below.
     SizeNotAboveZero,
+    /// A `columns` of a `<box>` is not a list of column widths.
+    ColumnsNotAList,
+    /// A `<box>` has both `columns` and `flex-direction`.
+    ColumnsWithDirection,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 53] = [
+    pub const ALL: [Code; 55] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -201,6 +205,8 @@ impl Code {
         Code::FontNotAFont,
         Code::ValueNotInForm,
         Code::SizeNotAboveZero,
+        Code::ColumnsNotAList,
+        Code::ColumnsWithDirection,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -259,6 +265,8 @@ impl Code {
             Code::FontNotAFont => "FS-0051",
             Code::ValueNotInForm => "FS-0052",
             Code::SizeNotAboveZero => "FS-0053",
+            Code::ColumnsNotAList => "FS-0054",
+            Code::ColumnsWithDirection => "FS-0055",
         }
     }
 
@@ -338,6 +346,8 @@ impl Code {
             Code::FontNotAFont => "Give the path of a TrueType font file (`.ttf`) in `src`.",
             Code::ValueNotInForm => "Write the value in the form the message names.",
             Code::SizeNotAboveZero => "Write the value as a number above 0, or leave the attribute out for its default.",
+            Code::ColumnsNotAList => "Write the widths as numbers of pixels, such as 640, or as shares, such as 1fr, separated by spaces.",
+            Code::ColumnsWithDirection => "Remove `columns` to lay the children out in a row or a column, or `flex-direction` to lay them out in columns.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

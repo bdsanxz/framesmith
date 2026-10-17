@@ -95,13 +95,45 @@ fn a_cross_axis_alignment_other_than_its_words_is_reported_with_the_words_it_tak
 }
 
 #[test]
-fn space_between_and_baseline_are_reported_as_not_drawn_in_this_version() {
-    let between = reports_of("justify-space-between", "flex-direction=\"row\" justify-content=\"space-between\"");
-    assert_eq!(between.len(), 1, "{between:?}");
-    assert!(between[0].starts_with("composition.xml 3 FS-0035 "), "{between:?}");
-    let baseline = reports_of("align-baseline", "flex-direction=\"row\" align-items=\"baseline\"");
-    assert_eq!(baseline.len(), 1, "{baseline:?}");
-    assert!(baseline[0].starts_with("composition.xml 3 FS-0035 "), "{baseline:?}");
+fn space_between_and_baseline_are_accepted_and_report_nothing() {
+    assert!(reports_of("justify-space-between", "flex-direction=\"row\" justify-content=\"space-between\"").is_empty());
+    assert!(reports_of("align-baseline", "flex-direction=\"row\" align-items=\"baseline\"").is_empty());
+}
+
+#[test]
+fn columns_with_a_direction_are_reported_on_the_line_of_the_columns() {
+    assert_eq!(
+        reports_of("columns-with-direction", "flex-direction=\"row\" columns=\"640 1fr\""),
+        vec!["composition.xml 3 FS-0055 a <box> has `columns` or `flex-direction`, not both"]
+    );
+}
+
+#[test]
+fn columns_that_are_not_a_list_of_widths_are_reported_with_the_form_they_take() {
+    assert_eq!(
+        reports_of("columns-words", "columns=\"wide 1fr\""),
+        vec!["composition.xml 3 FS-0054 `columns=\"wide 1fr\"` is not a list of column widths: pixels above 0, or shares such as 1fr"]
+    );
+}
+
+#[test]
+fn a_column_width_of_zero_is_reported_as_not_above_zero() {
+    assert_eq!(
+        reports_of("columns-zero", "columns=\"0 1fr\""),
+        vec!["composition.xml 3 FS-0053 `columns=\"0 1fr\"` has a column width that is not above 0"]
+    );
+}
+
+#[test]
+fn a_max_width_of_zero_and_a_flex_grow_below_zero_are_reported_as_wrong() {
+    assert_eq!(
+        reports_of("max-width-zero", "max-width=\"0\""),
+        vec!["composition.xml 3 FS-0034 `max-width=\"0\"` must be above 0"]
+    );
+    assert_eq!(
+        reports_of("flex-grow-negative", "flex-grow=\"-1\""),
+        vec!["composition.xml 3 FS-0034 `flex-grow=\"-1\"` must be 0 or more"]
+    );
 }
 
 #[test]

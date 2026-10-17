@@ -7,7 +7,8 @@ Status: v1, Sprint 1, T046 parts 2 (processor) and 3 (card, order t046g). Owner 
 A `<text>` is one paragraph. Its words are its text, and it is drawn on the processor's renderer (`draw-cpu`) with:
 
 - the family, size, weight, style, colour, alignment, line height and letter spacing of section 7.3 of the notation, for the characters of the Latin script (printable ASCII, see section 2.4);
-- a width that wraps its lines, or none, in which case it is one line as wide as its text;
+- a width that wraps its lines, or none, in which case it is one line as wide as its text; a `max-width` that wraps its lines and leaves it as wide as its widest line (section 5.3);
+- its place as an item of a row or a column (`render-command.md`, section 4.3, rule 14), with `align-items` and `align-self`, including `baseline`, which lines up the baselines of the first lines of the texts in a row (section 8);
 - the inheritance of the text attributes from the boxes that hold it (section 8).
 
 Not in this version, and reported by `framesmith check` and refused by `framesmith render` before the first frame, with the element's line (FS-0035):
@@ -16,7 +17,7 @@ Not in this version, and reported by `framesmith check` and refused by `framesmi
 - a character that none of the declared families of the list has (section 2.4);
 - a font file that is not a TrueType font, such as an OpenType font with PostScript outlines, a WOFF2 file or a collection (section 2.1);
 - a `<span>` (T049), a `direction` attribute (S21 of the notation), and a text attribute beyond those of section 6.4 that this version draws (section 6.4 below);
-- a `<text>` in a row or a column (`render-command.md`, section 4.3): the flow of a row or column places a `<box>` or a `<composition src>` in this version, and a `<text>` there is refused, by `framesmith check` and by `framesmith render`;
+- an absolute `<text>` with `left` and `right` and no `width`, in a row, a column or a set of columns (section 8);
 
 ## 2. Fonts
 
@@ -96,6 +97,8 @@ A width of 0 wraps at every place a line may end (notation N6): each word is the
 
 A line's width does not count the space it ends at, nor the letter spacing of that space (notation 7.3). The width of the text, when it has a `width`, is that width. Without one the text is as wide as its widest line. The line's position across the text is given by `text-align` (section 6.4).
 
+With a `max-width` (notation 7.1) and no `width` of its own, the text breaks its lines so that no line is wider than the `max-width`, at the places the line-breaking rules of section 5.2 allow, and it is as wide as its widest line: a text shorter than the `max-width` keeps its own width. A word that is wider than the `max-width` has no such place, so it is kept whole and its line is wider than the `max-width` (decision B19, `DECISIONS.md`). A `width` of the text's own makes the `max-width` have no effect. The alignment of section 6.2 is within the widest line.
+
 ### 5.4 Height of the text
 
 The height of the text is the sum of its line heights (section 4), unless a `height` is written; then the box is that high, and the lines start at its top.
@@ -128,7 +131,9 @@ A text takes no `<tween>` or `<set>` in this version. Animated colour and size o
 
 ## 8. Placement, and the inheritance of text attributes
 
-A `<text>` is placed by the rules of placement of section 7.1 of the notation (`left`, `top`, `right`, `bottom`, `position`, `margin`, `width`, `height`), exactly as a box is placed (T041). Its `start` and `duration` hold it to a window as for a box (T042).
+A `<text>` is placed by the rules of placement of section 7.1 of the notation (`left`, `top`, `right`, `bottom`, `position`, `margin`, `width`, `height`, `max-width`), exactly as a box is placed (T041). Its `start` and `duration` hold it to a window as for a box (T042).
+
+In a row or a column a `<text>` is an item of the flow (`render-command.md`, section 4.3, rule 14). Its size is that of its text: a text with no `width` is as wide as its widest line, and one with no `height` is as high as its lines (section 5.4), each rounded up to a whole pixel; its `max-width`, `margin`, `align-self` and `flex-grow` act as for a box. It is not stretched across: `stretch` leaves it at its own size and at the start edge. Its baseline, for `align-items="baseline"` in a row, is the baseline of its first line from its top (section 4), so two texts of different sizes in a row share the baseline of their first lines. A `<text>` that is `position="absolute"` is placed by its edges, as a box is. A percentage `width` or `height` of a `<text>` in a row or a column is not drawn in this version: it is reported by `framesmith check` and refused by `framesmith render` with FS-0035 on the line of the attribute, as an attribute this version does not draw. An absolute `<text>` in a row, a column or a set of columns that has `left` and `right` and no `width` is not drawn in this version either: `framesmith check` reports it and `framesmith render` refuses it with FS-0035 on the line of the `<text>`. The percentage case above is reported on the line of its attribute instead. Every other absolute `<text>` in them is placed by its edges as this section says.
 
 The text attributes of section 3 to 6 pass from a box to everything inside it, and from a text to its children, unless the child writes its own value. A child that writes one wins (criterion t046-c7). At the root the defaults of the table apply. A box takes no `overflow` in this version and `framesmith render` refuses it with FS-0035; `framesmith check` reports it only when a `<style>` gives it (`check-command.md`, section 3c). So no box clips a text: a text is drawn inside its canvas only. A `<text>` with a `background`, a `padding` or another attribute of section 6.4 that this version does not draw is unsupported: `framesmith check` and `framesmith render` both report it with FS-0035 on the line of the attribute, as they report an element inside a `<text>` (section 1).
 

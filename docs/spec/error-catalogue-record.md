@@ -59,3 +59,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0051` | A file that `<font src>` names is not a font of a kind this version reads, which is TrueType (`.ttf`). |
 | `FS-0052` | A text attribute's value is not in the form the notation gives for it. |
 | `FS-0053` | A length or size that must be above 0 is 0 or below. |
+| `FS-0054` | A `columns` of a `<box>` is not a list of column widths: each a number of pixels above 0, or a share such as `1fr`. |
+| `FS-0055` | A `<box>` has both `columns` and `flex-direction`. |

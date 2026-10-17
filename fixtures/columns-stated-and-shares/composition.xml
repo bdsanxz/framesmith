@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A box 120 pixels wide with columns="40 1fr": a first column 40 wide and a second that takes the rest, 80 wide. Its
+     four children, 10 tall each and with no width of their own, lie two to a row: the first and the second in the
+     first row, the third and the fourth in the second. The box has no height of its own, so each row is 10 tall.
+     Rectangles (left, top, width, height): {0,0,40,10}, {40,0,80,10}, {0,10,40,10}, {40,10,80,10}. 120 by 60
+     pixels, 10 frames a second. -->
+<composition version="1" id="columns-stated-and-shares" width="120" height="60" fps="10" duration="1" background="#102040">
+  <box id="grid" left="0" top="0" width="120" columns="40 1fr">
+    <box height="10" background="#ff8060"/>
+    <box height="10" background="#80ff80"/>
+    <box height="10" background="#ffd080"/>
+    <box height="10" background="#80c0ff"/>
+  </box>
+</composition>

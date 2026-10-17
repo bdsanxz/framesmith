@@ -21,7 +21,8 @@ pub(crate) const TEXT_ATTRIBUTES: [&str; 8] = [
 ];
 
 /// What a `<text>` takes: its id and class, its place and its clip, the text attributes, and `white-space` and
-/// `text-transform`, each in the one value this version draws (`text.md` section 6.4).
+/// `text-transform`, each in the one value this version draws (`text.md` section 6.4). In a row or a column it
+/// also takes its `align-self`, `flex-grow` and `max-width` (`render-command.md` section 4.3, rule 14).
 pub(crate) const TEXT_TAKES: &[&str] = &[
     "id",
     "class",
@@ -45,6 +46,9 @@ pub(crate) const TEXT_TAKES: &[&str] = &[
     "text-align",
     "white-space",
     "text-transform",
+    "align-self",
+    "flex-grow",
+    "max-width",
 ];
 
 /// A fault of a text or a font, as the timeline reports it: its code, the line it is on, its message, and whether
@@ -347,9 +351,9 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
 }
 
 /// Lays out the `<text>` at `index` in its place (`text.md` sections 4, 5 and 8). Its width is the one written, or the
-/// one that `left` and `right` leave in its container, and its lines wrap inside it; without either it is as wide as its
-/// widest line. Its height is the one written, or the height of
-/// its lines. Gives the rectangle and the lines, or the fault that stops it.
+/// one that `left` and `right` leave in its container, and its lines wrap inside it. Without either it is as wide as
+/// its widest line, or, with a `max-width`, its lines are broken so that none is wider than that (section 5.3). Its
+/// height is the one written, or the height of its lines. Gives the rectangle and the lines, or the fault that stops it.
 pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, parent: Rect) -> Result<Paragraph, Fault> {
     let node = &tree[index];
     let (style, colour) = style_of(tree, index);
@@ -376,12 +380,7 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
     } else {
         None
     };
-    let block = text::layout(fonts, node.words(), &style, wrap).map_err(|error| Fault {
-        code: Code::FormNotSupported,
-        line: node.line(),
-        message: format!("<text> is not drawn by this version: {error}"),
-        style: false,
-    })?;
+    let block = lay_block(fonts, node, &style, wrap, written.max_width)?;
     let mut sized = written;
     if sized.width.is_none() {
         sized.width = Some(Amount::Pixels(f64::from(block.width).ceil()));
@@ -393,9 +392,101 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
     Ok(Paragraph { rect, block, colour })
 }
 
+/// A `<text>` laid out as an item of a row, a column or a set (`render-command.md` section 4.3, rule 14; `text.md`
+/// section 8): its block, its colour, the size its text takes, and its first baseline from its top edge, or `None` for a
+/// text with no line. The first baseline lies on a whole pixel, so that the baselines of the texts in one row meet on one
+/// line; the glyphs and the lines of the block are moved by the same amount.
+pub(crate) struct ItemText {
+    pub(crate) block: Block,
+    pub(crate) colour: Colour,
+    pub(crate) width: f64,
+    pub(crate) height: f64,
+    pub(crate) baseline: Option<f64>,
+}
+
+/// Lays out the `<text>` at `index` as an item of a row, a column or a set. Its width is the one written, or that of its
+/// widest line, which a `max-width` breaks when it writes none (section 5.3); its height is the one written, or that of
+/// its lines. A percentage width or height is not drawn in a row or a column (`text.md` section 8). An absolute text with
+/// both edges and no width is not drawn either, since its width would need the container's. Gives the layout, or the
+/// fault that stops it.
+pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, absolute: bool) -> Result<ItemText, Fault> {
+    let node = &tree[index];
+    let (style, colour) = style_of(tree, index);
+    if absolute && written.width.is_none() && written.left.is_some() && written.right.is_some() {
+        return Err(Fault {
+            code: Code::FormNotSupported,
+            line: node.line(),
+            message:
+                "a <text> with `left` and `right` and no `width`, inside a row, a column or a set of columns, is not drawn by this version"
+                    .to_string(),
+            style: false,
+        });
+    }
+    let width = flow_pixels(written.width, "width", node)?;
+    let height = flow_pixels(written.height, "height", node)?;
+    let mut block = lay_block(fonts, node, &style, width.map(|pixels| pixels as f32), written.max_width)?;
+    let first = block.lines.first().map(|line| f64::from(line.baseline));
+    let baseline = first.map(|first| {
+        let whole = (first + 0.5).floor();
+        let shift = (whole - first) as f32;
+        for run in block.runs.iter_mut() {
+            for glyph in run.glyphs.iter_mut() {
+                glyph.y += shift;
+            }
+        }
+        for line in block.lines.iter_mut() {
+            line.baseline += shift;
+        }
+        whole
+    });
+    let width = width.unwrap_or_else(|| f64::from(block.width).ceil());
+    let height = height.unwrap_or_else(|| f64::from(block.height).ceil());
+    Ok(ItemText {
+        block,
+        colour,
+        width,
+        height,
+        baseline,
+    })
+}
+
+/// A `width` or `height` of a `<text>` in a row or a column as pixels: `None` where it is not written. A percentage is not
+/// drawn there (`text.md` section 8), and is reported on the element's line.
+fn flow_pixels(amount: Option<Amount>, name: &str, node: &Node) -> Result<Option<f64>, Fault> {
+    match amount {
+        None => Ok(None),
+        Some(Amount::Pixels(pixels)) => Ok(Some(pixels)),
+        Some(Amount::Percent(percent)) => Err(Fault {
+            code: Code::FormNotSupported,
+            line: node.line(),
+            message: format!(
+                "`{name}=\"{percent}%\"` on <text> inside a row or a column is not a form this version supports: a whole number of pixels"
+            ),
+            style: false,
+        }),
+    }
+}
+
+/// Lays out the words of the `<text>` at `node` in `style`: wrapped at `wrap` where a width is given, else broken so that
+/// no line is wider than `max` where a `max-width` is written (`text.md` section 5.3), else one line. Gives the block, or
+/// the fault of a character that no family has.
+fn lay_block(fonts: &mut Fonts, node: &Node, style: &Style, wrap: Option<f32>, max: Option<f64>) -> Result<Block, Fault> {
+    let laid = match (wrap, max) {
+        (Some(width), _) => text::layout(fonts, node.words(), style, Some(width)),
+        (None, Some(max)) => text::layout_fitted(fonts, node.words(), style, max as f32),
+        (None, None) => text::layout(fonts, node.words(), style, None),
+    };
+    laid.map_err(|error| Fault {
+        code: Code::FormNotSupported,
+        line: node.line(),
+        message: format!("<text> is not drawn by this version: {error}"),
+        style: false,
+    })
+}
+
 /// A number as the notation writes it: an optional sign, digits with an optional point, and an optional exponent,
 /// which is finite (`notation.md` section 13).
-fn number(text: &str) -> Option<f64> {
+pub(crate) fn number(text: &str) -> Option<f64> {
     let bytes = text.as_bytes();
     let mut at = 0;
     if matches!(bytes.first(), Some(b'+' | b'-')) {
