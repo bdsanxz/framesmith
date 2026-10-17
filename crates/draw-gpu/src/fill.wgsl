@@ -8,7 +8,7 @@ struct Painted {
 }
 
 @vertex
-fn place_corner(@location(0) corner: vec2<f32>, @location(1) colour: vec4<f32>) -> Painted {
+fn place_corner(@location(0) corner: vec2<f32>, @location(2) colour: vec4<f32>) -> Painted {
     var painted: Painted;
     painted.place = vec4<f32>(corner, 0.0, 1.0);
     painted.colour = colour;

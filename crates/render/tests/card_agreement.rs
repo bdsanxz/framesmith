@@ -6,14 +6,14 @@
 mod common;
 
 use common::agreement::compare_scene;
-use common::project_from_fixture;
+use common::project_copied_from_fixture;
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
 use project::Project;
 use render::Scene;
 
 fn scene_of(fixture: &str) -> Scene {
-    let folder = project_from_fixture("card-agreement", fixture, fixture);
+    let folder = project_copied_from_fixture("card-agreement", fixture, fixture);
     let project = Project::open(&folder).unwrap();
     Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
@@ -132,4 +132,34 @@ fn reference_machine_only_every_frame_of_the_boxes_with_a_margin_and_a_position_
 #[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
 fn reference_machine_only_every_frame_of_the_boxes_of_zero_size_is_within_the_tolerance_of_the_processor() {
     every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("placement-zero-sizes");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_text_of_colour_and_weight_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("text-colour-and-weight");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_text_in_the_default_colour_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("text-default-colour");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_text_wrapped_and_aligned_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("text-wrapping-and-alignment");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_text_with_line_height_and_spacing_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("text-line-height-and-spacing");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_text_that_takes_its_attributes_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("text-attributes-inherited");
 }

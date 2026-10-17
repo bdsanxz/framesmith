@@ -270,6 +270,8 @@ dependencies = [
  "draw-cpu",
  "gpu",
  "layout",
+ "measure",
+ "vello_cpu",
 ]
 
 [[package]]
