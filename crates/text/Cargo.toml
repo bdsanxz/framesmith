@@ -9,4 +9,6 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-parley = { workspace = true }
+# The dictionary segmenters of the engine (docs/spec/text.md, section 12.3): Thai and Japanese text breaks at word
+# boundaries. The feature adds no crate to the lock file.
+parley = { workspace = true, features = ["complex-scripts"] }

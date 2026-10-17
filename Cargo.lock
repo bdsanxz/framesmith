@@ -1273,6 +1273,7 @@ dependencies = [
  "pixel",
  "probe",
  "project",
+ "text",
  "timeline",
  "tracing",
 ]

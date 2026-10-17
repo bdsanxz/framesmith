@@ -27,3 +27,5 @@ draw-cpu = { workspace = true }
 draw-gpu = { workspace = true }
 measure = { workspace = true }
 probe = { workspace = true }
+# The shaping of a line, to judge the frames of the script fixtures against the same rules (docs/spec/text.md, section 12).
+text = { workspace = true }
