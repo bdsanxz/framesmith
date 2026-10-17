@@ -17,3 +17,6 @@ probe = { workspace = true }
 codec = { workspace = true }
 backend-os = { workspace = true }
 pixel = { workspace = true }
+
+[dev-dependencies]
+skrifa = "0.44.0"
