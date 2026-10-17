@@ -6,7 +6,7 @@
 mod clip;
 mod command;
 mod facts;
-mod font;
+pub mod font;
 mod frame;
 mod pictures;
 mod shape;
@@ -18,7 +18,6 @@ pub mod yardstick;
 pub use clip::{clip_facts, write_clip, ClipFacts, ClipSpec};
 pub use command::{run, tool, Ran};
 pub use facts::{facts, Facts};
-pub use font::block_font;
 pub use frame::{first_difference, frames_from_pngs, frames_from_video, png_size, same_frames, Bounds, Frame, Rgb};
 pub use pictures::{moving_pictures, with_green_rows};
 pub use shape::{corner_distance, expected_corners, shape, Shape};
