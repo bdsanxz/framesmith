@@ -2,8 +2,9 @@
 //! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
 use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
-use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Measured, Rect, Sides, Written, LIMIT};
+use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
+use text::Fonts;
 use timebase::Time;
 
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
@@ -16,9 +17,10 @@ const SOUND_KBITS_HIGHEST: u32 = 320;
 /// What the root takes: its seven attributes, and `class`, the names of the styles it takes (`docs/spec/notation.md` section 9).
 const ROOT_TAKES: [&str; 8] = ["id", "class", "version", "width", "height", "fps", "duration", "background"];
 /// What a `<box>` takes besides the text attributes: its place, its margin and its position, what it draws and its
-/// window, and the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3).
+/// window, the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3), its
+/// `columns` for a set of columns (section 4.4), and its `max-width` and `flex-grow` as an item (sections 4.1 and 4.3).
 /// The text attributes pass to the elements inside a box (`docs/spec/text.md` section 8).
-const BOX_TAKES: [&str; 19] = [
+const BOX_TAKES: [&str; 22] = [
     "id",
     "class",
     "left",
@@ -38,6 +40,9 @@ const BOX_TAKES: [&str; 19] = [
     "align-self",
     "gap",
     "padding",
+    "columns",
+    "max-width",
+    "flex-grow",
 ];
 
 /// What a `<composition src>` takes: its id and class, its file, its clip and its place (`docs/spec/render-command.md`
@@ -405,8 +410,6 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     // The reports of the files shown from this one, each once.
     let mut shown: Vec<Report> = Vec::new();
     let mut entries: Vec<Entry> = Vec::new();
-    // Which elements are rows or columns: a text inside one is not placed in this version.
-    let mut flows: Vec<bool> = vec![false; tree.len()];
     // For each element, in document order: the slot its box is placed in, and `None` for an element that is
     // reported and for one inside it, which is not looked into. An element comes after its parent in the tree,
     // so the parent's entry is already known.
@@ -415,8 +418,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     let mut reads: Vec<Option<Read>> = vec![None; tree.len()];
     // The rectangle and the measured axes that the flow of a row or column gives each of its items.
     let mut assigned: Vec<Option<(Rect, Measured)>> = vec![None; tree.len()];
-    // The size of each row or column measured from its items, from the inside out.
-    let sizes = measures(project, tree, &inside);
+    // The size and the first baseline of each row, column, set of columns and text that is an item, from the inside out.
+    let sizes = measures(project, tree, &inside, &mut fonts);
 
     for (index, node) in tree.iter().enumerate() {
         let Some(parent) = node.parent() else {
@@ -465,21 +468,14 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
-        if node.element() == Element::Text {
-            if tree[parent].element() == Element::Text {
-                refusals.push(Refusal::of_text_form(
-                    Code::FormNotSupported,
-                    node.line(),
-                    unsupported_inside_text(node.element()),
-                ));
-                places.push(None);
-                continue;
-            }
-            if flows[parent] {
-                refusals.push(Refusal::of_place(Code::FormNotSupported, node.line(), unsupported_inside_flow()));
-                places.push(None);
-                continue;
-            }
+        if node.element() == Element::Text && tree[parent].element() == Element::Text {
+            refusals.push(Refusal::of_text_form(
+                Code::FormNotSupported,
+                node.line(),
+                unsupported_inside_text(node.element()),
+            ));
+            places.push(None);
+            continue;
         }
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
             let refusal = if parent == 0 {
@@ -506,7 +502,17 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             continue;
         };
         if node.element() == Element::Text {
-            match paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect) {
+            // A text that is an item of a row, a column or a set takes the rectangle its flow gives it; any other is
+            // placed in its parent.
+            let placed = match assigned[index] {
+                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute).map(|item| Paragraph {
+                    rect,
+                    block: item.block,
+                    colour: item.colour,
+                }),
+                None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
+            };
+            match placed {
                 Ok(paragraph) => {
                     let slot = slot_of(form.clip, parent_place, paragraph.rect, fps);
                     entries.push(Entry::Text(PlacedText {
@@ -525,37 +531,52 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             }
             continue;
         }
-        flows[index] = form.flex.is_some();
-
-        // The boxes and compositions inside a row or column are read now: they are its items, and their places
-        // come from its flow. Their refusals are kept until this element is placed.
+        // The boxes, compositions and texts inside a row, a column or a set of columns are read now: they are its items
+        // or its cells, and their places come from its layout. Their refusals are kept until this element is placed.
         let mut pending: Vec<Refusal> = Vec::new();
         let mut items: Vec<Item> = Vec::new();
+        let mut cells: Vec<Cell> = Vec::new();
         let mut item_nodes: Vec<(usize, Measured)> = Vec::new();
-        if let Some(flex) = form.flex {
+        if form.flex.is_some() || form.columns.is_some() {
             for &inner in &inside[index] {
                 let inner_node = &tree[inner];
-                if !matches!(inner_node.element(), Element::Box | Element::Nested) {
+                if !matches!(inner_node.element(), Element::Box | Element::Nested | Element::Text) {
                     continue;
                 }
                 let (read, found) = read_element(project, inner_node);
                 pending.extend(found);
                 if let Read::Valid(inner_form) = &read {
-                    items.push(item_in(inner_form, sizes[inner], &flex));
-                    item_nodes.push((inner, measured_axes(inner_form, &flex)));
+                    let measure = sizes[inner];
+                    let measured = if let Some(flex) = form.flex {
+                        items.push(item_in(inner_form, measure, &flex));
+                        measured_axes(inner_form, &flex)
+                    } else {
+                        cells.push(cell_in(inner_form, measure));
+                        form.columns
+                            .as_ref()
+                            .map_or_else(Measured::default, |set| set_measured_axes(inner_form, set))
+                    };
+                    item_nodes.push((inner, measured));
                 }
                 reads[inner] = Some(read);
             }
         }
-        let laid = match (assigned[index], form.flex) {
-            // An item of a row or column: its own place is the flow's, and its items are laid out in it.
-            (Some((rect, measured)), Some(flex)) => layout::inside(rect, measured, &flex, &items).map(|flowed| (rect, flowed.items)),
-            (Some((rect, _)), None) => Ok((rect, Vec::new())),
-            // A row or column with no place of its own: its size is worked out with its items.
-            (None, Some(flex)) => {
+        let laid = match (assigned[index], form.flex, form.columns.as_ref()) {
+            // An item of a row or column, or a cell of a set: its own place is the flow's, and its children are laid out
+            // in it.
+            (Some((rect, measured)), Some(flex), _) => layout::inside(rect, measured, &flex, &items).map(|flowed| (rect, flowed.items)),
+            (Some((rect, measured)), None, Some(set)) => {
+                layout::inside_columns(rect, measured, set, &cells).map(|flowed| (rect, flowed.items))
+            }
+            (Some((rect, _)), None, None) => Ok((rect, Vec::new())),
+            // A row or column, or a set, with no place of its own: its size is worked out with its children.
+            (None, Some(flex), _) => {
                 layout::flow(parent_place.rect, form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
             }
-            (None, None) => layout::place(parent_place.rect, form.written).map(|rect| (rect, Vec::new())),
+            (None, None, Some(set)) => {
+                layout::columns(parent_place.rect, form.written, set, &cells).map(|flowed| (flowed.container, flowed.items))
+            }
+            (None, None, None) => layout::place(parent_place.rect, form.written).map(|rect| (rect, Vec::new())),
         };
         let (rect, item_rects) = match laid {
             Ok(laid) => laid,
@@ -734,6 +755,9 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         across: None,
         absolute,
         flex: None,
+        columns: None,
+        grow: 0.0,
+        text: false,
         colour: None,
         clip: Some((start.unwrap_or(Time::ZERO), duration.unwrap_or(file.duration))),
         shown: Some(name.to_string()),
@@ -857,9 +881,10 @@ impl Refusal {
     }
 }
 
-/// What a `<box>` writes, read once from its attributes: its place as written, its margin, its own
-/// `align-self`, whether it is `position="absolute"`, the row or column it lays out, its colour, and its
-/// clip (`start` and `duration` as written; the origin of its parent is added when it is placed).
+/// What a `<box>` or a `<text>` writes, read once from its attributes: its place as written (with its `max-width`), its
+/// margin, its own `align-self`, whether it is `position="absolute"`, the row or column it lays out, or the set of columns,
+/// its `flex-grow`, whether it is a `<text>`, its colour, and its clip (`start` and `duration` as written; the origin of
+/// its parent is added when it is placed).
 #[derive(Clone, Debug, PartialEq)]
 struct Form {
     written: Written,
@@ -867,6 +892,11 @@ struct Form {
     across: Option<Across>,
     absolute: bool,
     flex: Option<Flex>,
+    columns: Option<Columns>,
+    /// The share of the spare room of a row or a column (`flex-grow`), 0 for none.
+    grow: f64,
+    /// Whether the element is a `<text>`: a text is not stretched across, and is sized by its words.
+    text: bool,
     colour: Option<Colour>,
     clip: Option<(Time, Time)>,
     /// The file a `<composition src>` shows, as written; `None` for a box.
@@ -896,6 +926,9 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     let mut items_across = Across::default();
     let mut gap: f64 = 0.0;
     let mut padding = Sides::default();
+    let mut grow: f64 = 0.0;
+    let mut tracks: Option<Vec<Track>> = None;
+    let mut columns_line: u32 = 0;
     let mut text_faults: Vec<Fault> = Vec::new();
     read_text_attributes(node, &mut text_faults);
     refusals.extend(text_faults.into_iter().map(Refusal::of_text));
@@ -936,11 +969,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 "flex-start" => along = Along::Start,
                 "center" => along = Along::Center,
                 "flex-end" => along = Along::End,
-                "space-between" => refusals.push(Refusal::of_place(
-                    Code::FormNotSupported,
-                    attribute.line(),
-                    unsupported_value(node, name, &value, "flex-start, center or flex-end"),
-                )),
+                "space-between" => along = Along::SpaceBetween,
                 _ => refusals.push(Refusal::of_place(
                     Code::WordNotTaken,
                     attribute.line(),
@@ -953,14 +982,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                     "center" => Some(Across::Center),
                     "flex-end" => Some(Across::End),
                     "stretch" => Some(Across::Stretch),
-                    "baseline" => {
-                        refusals.push(Refusal::of_place(
-                            Code::FormNotSupported,
-                            attribute.line(),
-                            unsupported_value(node, name, &value, "flex-start, center, flex-end or stretch"),
-                        ));
-                        None
-                    }
+                    "baseline" => Some(Across::Baseline),
                     _ => {
                         refusals.push(Refusal::of_place(
                             Code::WordNotTaken,
@@ -978,6 +1000,39 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                     }
                 }
             }
+            "max-width" => match attribute.length() {
+                Some(Length::Pixels(pixels)) if pixels > 0.0 => written.max_width = Some(pixels),
+                Some(Length::Pixels(_)) => refusals.push(Refusal::of_place(
+                    Code::LengthNotAccepted,
+                    attribute.line(),
+                    format!("`max-width=\"{value}\"` must be above 0"),
+                )),
+                _ => refusals.push(Refusal::of_place(
+                    Code::NotANumber,
+                    attribute.line(),
+                    format!("`max-width=\"{value}\"` is not a number of pixels above 0, such as 240"),
+                )),
+            },
+            "flex-grow" => match attribute.length() {
+                Some(Length::Pixels(pixels)) if pixels >= 0.0 => grow = pixels,
+                Some(Length::Pixels(_)) => refusals.push(Refusal::of_place(
+                    Code::LengthNotAccepted,
+                    attribute.line(),
+                    format!("`flex-grow=\"{value}\"` must be 0 or more"),
+                )),
+                _ => refusals.push(Refusal::of_place(
+                    Code::NotANumber,
+                    attribute.line(),
+                    format!("`flex-grow=\"{value}\"` is not a number, such as 1 or 2.5"),
+                )),
+            },
+            "columns" => match columns_tracks(&value) {
+                Ok(found) => {
+                    tracks = Some(found);
+                    columns_line = attribute.line();
+                }
+                Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
+            },
             "gap" => match attribute.length() {
                 Some(Length::Pixels(pixels)) if pixels < 0.0 => refusals.push(Refusal::of_place(
                     Code::LengthNotAccepted,
@@ -1047,6 +1102,24 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
             _ => {}
         }
     }
+    // A `<box>` lays its children out in a row or a column, or in a set of columns, and not in both (`FS-0055`).
+    let columns = match tracks {
+        Some(_) if direction.is_some() => {
+            refusals.push(Refusal::of_place(
+                Code::ColumnsWithDirection,
+                columns_line,
+                "a <box> has `columns` or `flex-direction`, not both".to_string(),
+            ));
+            None
+        }
+        Some(found) => Some(Columns {
+            tracks: found,
+            gap,
+            padding,
+            across: items_across,
+        }),
+        None => None,
+    };
     if !refusals.is_empty() {
         return (Read::Refused, refusals);
     }
@@ -1073,6 +1146,9 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         across: own_across,
         absolute,
         flex,
+        columns,
+        grow,
+        text: node.element() == Element::Text,
         colour,
         clip,
         shown: None,
@@ -1080,33 +1156,117 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     (Read::Valid(Box::new(form)), Vec::new())
 }
 
-/// The size of each row or column that is a box, measured from its items (`docs/spec/render-command.md`
-/// section 4.3, rule 2). An item that is itself a row or column is measured first: an element comes after
-/// its parent, so the elements are worked through from the last to the first. `None` for an element that
-/// is not a box or is refused, and for a row or column whose size does not work out.
-fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>]) -> Vec<Option<layout::Size>> {
+/// The column widths of a `columns` attribute (`docs/spec/render-command.md` section 4.4, rule 1): numbers of pixels above
+/// 0, or shares such as `1fr` above 0, separated by spaces. A word that is not one of these is not a list (`FS-0054`); a
+/// width of 0 or below is reported as `FS-0053`.
+fn columns_tracks(value: &str) -> Result<Vec<Track>, (Code, String)> {
+    let not_a_list = || {
+        (
+            Code::ColumnsNotAList,
+            format!("`columns=\"{value}\"` is not a list of column widths: pixels above 0, or shares such as 1fr"),
+        )
+    };
+    let mut tracks = Vec::new();
+    for word in value.split_whitespace() {
+        let (text, share) = match word.strip_suffix("fr") {
+            Some(text) => (text, true),
+            None => (word, false),
+        };
+        let amount = paragraph::number(text).ok_or_else(not_a_list)?;
+        if amount <= 0.0 {
+            return Err((
+                Code::SizeNotAboveZero,
+                format!("`columns=\"{value}\"` has a column width that is not above 0"),
+            ));
+        }
+        tracks.push(if share { Track::Share(amount) } else { Track::Pixels(amount) });
+    }
+    if tracks.is_empty() {
+        return Err(not_a_list());
+    }
+    Ok(tracks)
+}
+
+/// The size and the first baseline of an item that is measured from its own children or its lines: a row, a column,
+/// a set of columns (`docs/spec/render-command.md` sections 4.3 and 4.4, rule 2) or a `<text>` (`text.md` section 8).
+/// The baseline is that of the first child, or of the first line, from the top; `None` for a bottom edge.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Measure {
+    size: Size,
+    baseline: Option<f64>,
+}
+
+/// The measures of each element that is an item of a flow: a row, a column, a set of columns, or a `<text>`. A row, a
+/// column or a set is measured from its children, which are measured first: an element comes after its parent, so the
+/// elements are worked through from the last to the first. `None` for an element that is not one of these or is refused,
+/// and for a row, a column or a set whose size does not work out.
+fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>], fonts: &mut Fonts) -> Vec<Option<Measure>> {
     let forms: Vec<Option<Form>> = tree
         .iter()
         .map(|node| match node.element() {
-            Element::Box | Element::Nested => match read_element(project, node).0 {
+            Element::Box | Element::Nested | Element::Text => match read_element(project, node).0 {
                 Read::Valid(form) => Some(*form),
                 Read::Refused => None,
             },
             _ => None,
         })
         .collect();
-    let mut sizes: Vec<Option<layout::Size>> = vec![None; tree.len()];
+    let mut measures: Vec<Option<Measure>> = vec![None; tree.len()];
     for index in (0..tree.len()).rev() {
-        let Some(flex) = forms[index].as_ref().and_then(|form| form.flex) else {
+        let Some(form) = forms[index].as_ref() else {
             continue;
         };
-        let items: Vec<Item> = inside[index]
-            .iter()
-            .filter_map(|&inner| forms[inner].as_ref().map(|form| item_in(form, sizes[inner], &flex)))
-            .collect();
-        sizes[index] = layout::measure(&flex, &items).ok();
+        if tree[index].element() == Element::Text {
+            measures[index] = paragraph::lay_out_item(fonts, tree, index, form.written, form.absolute)
+                .ok()
+                .map(|item| Measure {
+                    size: Size {
+                        width: item.width,
+                        height: item.height,
+                    },
+                    baseline: item.baseline,
+                });
+            continue;
+        }
+        if form.flex.is_none() && form.columns.is_none() {
+            continue;
+        }
+        if let Some(flex) = form.flex {
+            let items: Vec<Item> = inside[index]
+                .iter()
+                .filter_map(|&inner| forms[inner].as_ref().map(|found| item_in(found, measures[inner], &flex)))
+                .collect();
+            measures[index] = layout::measure(&flex, &items).ok().map(|size| Measure {
+                size,
+                baseline: layout::inside(whole_rect(size), Measured { width: true, height: true }, &flex, &items)
+                    .ok()
+                    .and_then(|flowed| flowed.baseline),
+            });
+        } else if let Some(set) = form.columns.as_ref() {
+            let cells: Vec<Cell> = inside[index]
+                .iter()
+                .filter_map(|&inner| forms[inner].as_ref().map(|found| cell_in(found, measures[inner])))
+                .collect();
+            measures[index] = layout::measure_columns(set, &cells).ok().map(|size| Measure {
+                size,
+                baseline: layout::inside_columns(whole_rect(size), Measured { width: true, height: true }, set, &cells)
+                    .ok()
+                    .and_then(|flowed| flowed.baseline),
+            });
+        }
     }
-    sizes
+    measures
+}
+
+/// The rectangle at the origin of a size measured from children, in whole pixels, for placing those children to find
+/// their baseline.
+fn whole_rect(size: Size) -> Rect {
+    Rect {
+        left: 0,
+        top: 0,
+        width: size.width.round().max(0.0) as u32,
+        height: size.height.round().max(0.0) as u32,
+    }
 }
 
 /// What a box writes as an item of its row or column's flow. Where it writes no size on an axis, and the
@@ -1114,13 +1274,17 @@ fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>]) -> Vec<Opti
 /// for it. An absolute box takes the measured size only where its edges do not give one. A flowed box that
 /// stretches across writes no size across: its row or column gives it one. Its size across, as its own items
 /// give it, is kept for its row or column's size across (rule 1), whether it stretches or not.
-fn item_in(form: &Form, measured: Option<layout::Size>, parent: &Flex) -> Item {
+fn item_in(form: &Form, measure: Option<Measure>, parent: &Flex) -> Item {
     let mut written = form.written;
     let mut measured_across = None;
-    if let Some(size) = measured {
+    if let Some(Measure { size, .. }) = measure {
         if form.absolute {
             fill(&mut written.width, size.width, both(written.left, written.right));
             fill(&mut written.height, size.height, both(written.top, written.bottom));
+        } else if form.text {
+            // A text is not stretched across: it takes its own size on both axes (`render-command.md` section 4.3, rule 14).
+            fill(&mut written.width, size.width, false);
+            fill(&mut written.height, size.height, false);
         } else {
             let stretched = form.across.unwrap_or(parent.across) == Across::Stretch;
             match parent.direction {
@@ -1147,6 +1311,39 @@ fn item_in(form: &Form, measured: Option<layout::Size>, parent: &Flex) -> Item {
         across: form.across,
         absolute: form.absolute,
         measured_across,
+        baseline: measure.and_then(|found| found.baseline),
+        grow: form.grow,
+        // The widest width caps an item that writes no width of its own, a box's from its items included (section 4.3,
+        // rule 13). A text is fitted to its `max-width` by its words, so it is not capped again.
+        max_width: if form.text || form.written.width.is_some() {
+            None
+        } else {
+            form.written.max_width
+        },
+    }
+}
+
+/// What a box or a `<text>` writes as a cell of a set of columns (`docs/spec/render-command.md` section 4.4). A text takes
+/// its own size on both axes, as an item does; a box keeps what it writes, with the size its own children give it.
+fn cell_in(form: &Form, measure: Option<Measure>) -> Cell {
+    let mut written = form.written;
+    let measured = measure.map(|found| found.size);
+    if let (true, Some(size)) = (form.text, measured) {
+        if form.absolute {
+            fill(&mut written.width, size.width, both(written.left, written.right));
+            fill(&mut written.height, size.height, both(written.top, written.bottom));
+        } else {
+            fill(&mut written.width, size.width, false);
+            fill(&mut written.height, size.height, false);
+        }
+    }
+    Cell {
+        written,
+        margin: form.margin,
+        across: form.across,
+        absolute: form.absolute,
+        measured,
+        baseline: measure.and_then(|found| found.baseline),
     }
 }
 
@@ -1173,6 +1370,20 @@ fn measured_axes(form: &Form, parent: &Flex) -> Measured {
     Measured {
         width: form.written.width.is_none() && !across_edged && !(stretched && column),
         height: form.written.height.is_none() && !down_edged && !(stretched && !column),
+    }
+}
+
+/// Which axes of a box or a text that is a cell of a set of columns have no size of their own (`render-command.md`
+/// section 4.4, rule 2). A cell that is not absolute is as wide as its column, which the set gives it, and is as high as
+/// its row unless it does not stretch across; an absolute cell takes the size its own children give it on an axis that
+/// its edges do not give.
+fn set_measured_axes(form: &Form, set: &Columns) -> Measured {
+    let stretched = !form.absolute && form.across.unwrap_or(set.across) == Across::Stretch;
+    let across_edged = form.absolute && both(form.written.left, form.written.right);
+    let down_edged = form.absolute && both(form.written.top, form.written.bottom);
+    Measured {
+        width: form.absolute && form.written.width.is_none() && !across_edged,
+        height: form.written.height.is_none() && !down_edged && !stretched,
     }
 }
 
@@ -1228,11 +1439,6 @@ fn unsupported_inside_text(element: Element) -> String {
         "{} inside <text> is not supported by this version, which draws the words of a <text> and no element inside it",
         element.tag()
     )
-}
-
-/// The message for a `<text>` in a row or a column: the flow of such a row or column places its boxes only.
-fn unsupported_inside_flow() -> String {
-    "<text> inside a row or column is not supported by this version, which places a <box> or a <composition src> there only".to_string()
 }
 
 /// The message for an element written inside a `<box>`: a `<box>`, a `<text>` or a `<composition src>` is drawn there.

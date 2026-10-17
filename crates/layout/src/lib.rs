@@ -1,4 +1,4 @@
-//! Places and sizes (`docs/spec/render-command.md` sections 3, 4.1 and 4.3, `docs/spec/notation.md`
+//! Places and sizes (`docs/spec/render-command.md` sections 3, 4.1, 4.3 and 4.4, `docs/spec/notation.md`
 //! section 7).
 //!
 //! A box is placed in its parent's rectangle. Across, its `left`, `right` and `width` are worked out
@@ -8,8 +8,14 @@
 //! whole pixels.
 //!
 //! The children of a row or a column are placed by [`flow`]: along the main axis they follow each
-//! other with a gap, and across the cross axis they are aligned. A row or column with no size of its
-//! own on an axis is as large as its children there.
+//! other with a gap, or share the room left over; across the cross axis they are aligned, and a row
+//! aligned by its baselines lines up their first lines. A row or column with no size of its own on an
+//! axis is as large as its children there. The cells of a set of columns are placed by [`columns`]
+//! (module `set`, `render-command.md` section 4.4).
+
+mod set;
+
+pub use set::{columns, inside_columns, measure_columns, Cell, Columns, Track};
 
 /// The most pixels an edge or a size may be in this version: beyond it a value is not placed.
 pub const LIMIT: i64 = 1_000_000;
@@ -73,6 +79,9 @@ pub struct Written {
     pub bottom: Option<Amount>,
     pub width: Option<Amount>,
     pub height: Option<Amount>,
+    /// The widest the box may be, in pixels above 0 (`max-width`, `render-command.md` section 4.1, rule 7).
+    /// It caps a width that does not come from the box's own written `width`.
+    pub max_width: Option<f64>,
 }
 
 /// A place that cannot be worked out within the limit: an edge or a size lies beyond [`LIMIT`]
@@ -120,6 +129,10 @@ pub enum Along {
     Center,
     /// At the end edge of the content box.
     End,
+    /// The first child at the start edge, the last at the end edge, and the room left over shared
+    /// equally between each two neighbours, on top of the gap. With one child, or with no room left
+    /// over, it is the same as `Start`.
+    SpaceBetween,
 }
 
 /// Where a child sits across the cross axis (`align-items`, `align-self`).
@@ -135,6 +148,9 @@ pub enum Across {
     /// of the row or column's own size across, or of its measured size when it has none.
     #[default]
     Stretch,
+    /// The baselines of the first lines of the children lie on one line, and the highest of them touches
+    /// the content box's top edge. In a column it is `Start` (`render-command.md` section 4.3, rule 7).
+    Baseline,
 }
 
 /// The four sides of a box in pixels: `top`, `right`, `bottom` and `left`.
@@ -210,6 +226,17 @@ pub struct Item {
     /// across and does not stretch, it is placed at this size; where it stretches, it fills the content box
     /// and this size counts in its container's size across.
     pub measured_across: Option<f64>,
+    /// The baseline of the child from its top edge, for `align-items="baseline"`: that of its first line when
+    /// it is a text, that of its first item when it is a row, a column or a set of columns. `None` for its
+    /// bottom edge, which is what a child of any other kind has.
+    pub baseline: Option<f64>,
+    /// The share of the spare room along the main axis (`flex-grow`), 0 for none (`render-command.md` section
+    /// 4.3, rule 12).
+    pub grow: f64,
+    /// The widest the child may be, in pixels, across a row (its width) or down a column (its height is not
+    /// capped; its width is, across a column). The caller gives it only for a child that writes no `width` of
+    /// its own (`render-command.md` section 4.3, rule 13). `None` for no cap.
+    pub max_width: Option<f64>,
 }
 
 /// The rectangles of a row or column and of its children, the children in the order they were given.
@@ -219,9 +246,13 @@ pub struct Flowed {
     pub container: Rect,
     /// The rectangle of each child, in the order of the children given to [`flow`].
     pub items: Vec<Rect>,
+    /// The baseline of the row or column from its top edge: that of its first child, counted from its top
+    /// (`render-command.md` section 4.3, rule 7), or `None` when it has no child, which leaves its bottom edge
+    /// as its baseline.
+    pub baseline: Option<f64>,
 }
 
-/// The size of a row or column worked out from its children on each axis (section 4.3, rule 2): the
+/// The size of a row or column worked out from its children on each axis (section 4.3, rule 1): the
 /// width and the height it takes when it has no size of its own there.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Size {
@@ -265,13 +296,17 @@ pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Resu
         Direction::Column => (down, across),
     };
     // An axis the container has a size of its own on is placed first: its length is the base of the
-    // children's percentages. An axis without one is measured from the children, below.
+    // children's percentages, and the room the children may grow into. An axis without one is measured
+    // from the children, below.
     let main_known = main.known().then(|| main.place(0.0)).transpose()?;
     let cross_known = cross.known().then(|| cross.place(0.0)).transpose()?;
     let main_base = main_known.map(|(_, length)| f64::from(length));
     let cross_base = cross_known.map(|(_, length)| f64::from(length));
 
-    let children = children(flex, items, main_base, cross_base)?;
+    let mut children = children(flex, items, main_base, cross_base)?;
+    let (pad_main, _) = flex.padding.split(flex.direction);
+    let content = main_known.map(|(_, length)| f64::from(length) - pad_main.0 - pad_main.1);
+    settle(flex, &mut children, content);
     let (main_measured, cross_measured) = measured_sizes(flex, &children);
     let main_placed = match main_known {
         Some(placed) => placed,
@@ -285,19 +320,24 @@ pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Resu
         Direction::Row => rect(main_placed, cross_placed),
         Direction::Column => rect(cross_placed, main_placed),
     };
-    let items = place_items(container, flex, &children, items)?;
-    Ok(Flowed { container, items })
+    let (rects, baseline) = place_items(container, flex, &children, items)?;
+    Ok(Flowed {
+        container,
+        items: rects,
+        baseline,
+    })
 }
 
 /// The size of a row or a column with no size of its own, worked out from its children (section 4.3,
-/// rule 2). Along the main axis, the group of children with the gaps between them and the padding; across,
+/// rule 1). Along the main axis, the group of children with the gaps between them and the padding; across,
 /// the largest outer size of a child with the padding. A child that writes no size across counts its margins
 /// only, unless it is a row or column with no size of its own across: it then counts the size its own items
-/// give it there (rule 1), whether or not it stretches across. A child that is itself a row or column is
-/// given its own size first, from the inside out. A percentage of a child is 0 on each axis, the row or
-/// column having no size there to be a percentage of.
+/// give it there, whether or not it stretches across. A child that is itself a row or column is given its own
+/// size first, from the inside out. A percentage of a child is 0 on each axis, the row or column having no size
+/// there to be a percentage of.
 pub fn measure(flex: &Flex, items: &[Item]) -> Result<Size, Beyond> {
-    let children = children(flex, items, None, None)?;
+    let mut children = children(flex, items, None, None)?;
+    settle(flex, &mut children, None);
     let (main, cross) = measured_sizes(flex, &children);
     Ok(match flex.direction {
         Direction::Row => Size {
@@ -321,11 +361,15 @@ pub fn inside(rect: Rect, measured: Measured, flex: &Flex, items: &[Item]) -> Re
     };
     let main_base = (!main_measured).then(|| f64::from(main_length));
     let cross_base = (!cross_measured).then(|| f64::from(cross_length));
-    let children = children(flex, items, main_base, cross_base)?;
-    let rects = place_items(rect, flex, &children, items)?;
+    let mut children = children(flex, items, main_base, cross_base)?;
+    let (pad_main, _) = flex.padding.split(flex.direction);
+    let content = (!main_measured).then(|| f64::from(main_length) - pad_main.0 - pad_main.1);
+    settle(flex, &mut children, content);
+    let (rects, baseline) = place_items(rect, flex, &children, items)?;
     Ok(Flowed {
         container: rect,
         items: rects,
+        baseline,
     })
 }
 
@@ -338,11 +382,38 @@ fn children(flex: &Flex, items: &[Item], main_base: Option<f64>, cross_base: Opt
         .collect()
 }
 
+/// Settles the main sizes of the children. When the content box along the main axis is known (`content`),
+/// the spare room, the content less the group of children, is shared among the children with a `flex-grow`
+/// above 0, in proportion to their values (rule 12). Then each child's size is capped by its `max-width`
+/// (rule 13). With `content` unknown no child grows, since the size of the row or column is their sum.
+fn settle(flex: &Flex, children: &mut [Child], content: Option<f64>) {
+    if let Some(content) = content {
+        let spare = content - group(flex, children);
+        let total: f64 = children.iter().map(|child| child.grow).sum();
+        if spare > 0.0 && total > 0.0 {
+            for child in children.iter_mut() {
+                child.main += spare * child.grow / total;
+            }
+        }
+    }
+    for child in children.iter_mut() {
+        if let Some(limit) = child.main_cap {
+            child.main = child.main.min(limit);
+        }
+    }
+}
+
 /// The main and the cross size of a row or column worked out from its children, padding included.
 fn measured_sizes(flex: &Flex, children: &[Child]) -> (f64, f64) {
     let (pad_main, pad_cross) = flex.padding.split(flex.direction);
     let main = group(flex, children) + pad_main.0 + pad_main.1;
-    let cross = children.iter().map(Child::outer_cross).fold(0.0, f64::max) + pad_cross.0 + pad_cross.1;
+    let outer = children
+        .iter()
+        .filter(|child| child.across != Across::Baseline)
+        .map(Child::outer_cross)
+        .fold(0.0, f64::max);
+    let block = baseline_block(children).map_or(0.0, |(above, below)| above + below);
+    let cross = outer.max(block) + pad_cross.0 + pad_cross.1;
     (main, cross)
 }
 
@@ -351,10 +422,27 @@ fn group(flex: &Flex, children: &[Child]) -> f64 {
     children.iter().map(Child::outer_main).sum::<f64>() + flex.gap * children.len().saturating_sub(1) as f64
 }
 
+/// The part of the cross axis above and below the common baseline of the children that lie on one
+/// (`align-items="baseline"`): the highest part above the baseline and the lowest part below it. `None`
+/// when no child is aligned by its baseline.
+fn baseline_block(children: &[Child]) -> Option<(f64, f64)> {
+    let mut found = false;
+    let (mut above_max, mut below_max) = (0.0_f64, 0.0_f64);
+    for child in children.iter().filter(|child| child.across == Across::Baseline) {
+        let above = child.above();
+        let below = child.outer_cross() - above;
+        found = true;
+        above_max = above_max.max(above);
+        below_max = below_max.max(below);
+    }
+    found.then_some((above_max, below_max))
+}
+
 /// The rectangles of the items of a row or column placed in `container`, in the order of `items`: the
 /// children that are not absolute, placed in the content box of the container, and each absolute item,
-/// placed as [`place`] places a box in the container.
-fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item]) -> Result<Vec<Rect>, Beyond> {
+/// placed as [`place`] places a box in the container. Also the baseline of the first child from the
+/// container's top, when it has one.
+fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item]) -> Result<(Vec<Rect>, Option<f64>), Beyond> {
     let (pad_main, pad_cross) = flex.padding.split(flex.direction);
     let (main_start, main_size, cross_start, cross_size) = match flex.direction {
         Direction::Row => (container.left, container.width, container.top, container.height),
@@ -365,21 +453,39 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
     let main_length = f64::from(main_size) - pad_main.0 - pad_main.1;
     let cross_from = f64::from(cross_start) + pad_cross.0;
     let cross_length = f64::from(cross_size) - pad_cross.0 - pad_cross.1;
-    let offset = match flex.along {
-        Along::Start => 0.0,
-        Along::Center => (main_length - group(flex, children)) / 2.0,
-        Along::End => main_length - group(flex, children),
+    let room = main_length - group(flex, children);
+    // The place of the first child along the main axis, and the space between two neighbours.
+    let (offset, spacing) = match flex.along {
+        Along::Start => (0.0, flex.gap),
+        Along::Center => (room / 2.0, flex.gap),
+        Along::End => (room, flex.gap),
+        Along::SpaceBetween => {
+            let extra = if children.len() > 1 && room > 0.0 {
+                room / (children.len() - 1) as f64
+            } else {
+                0.0
+            };
+            (0.0, flex.gap + extra)
+        }
     };
+    let line = baseline_block(children).map_or(0.0, |(above, _)| above);
 
     let mut cursor = main_from + offset;
     let mut flowed = Vec::with_capacity(children.len());
     for child in children {
         let start = cursor + child.main_margin.0;
-        let (across_start, across_size) = across_place(child, cross_from, cross_length);
+        let (across_start, across_size) = across_place(child, cross_from, cross_length, line);
         flowed.push(to_rect(flex.direction, (start, child.main), (across_start, across_size))?);
-        cursor = start + child.main + child.main_margin.1 + flex.gap;
+        cursor = start + child.main + child.main_margin.1 + spacing;
     }
 
+    let baseline = match (children.first(), flowed.first()) {
+        (Some(child), Some(first)) => {
+            let top = f64::from(first.top - container.top);
+            Some(top + child.baseline.unwrap_or(f64::from(first.height)))
+        }
+        _ => None,
+    };
     let mut flowed = flowed.into_iter();
     let mut out = Vec::with_capacity(items.len());
     for item in items {
@@ -390,7 +496,7 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
         };
         out.push(rect);
     }
-    Ok(out)
+    Ok((out, baseline))
 }
 
 /// A child that is not absolute, with its sizes and margins worked out for its row or column.
@@ -407,8 +513,17 @@ struct Child {
     main_margin: (f64, f64),
     /// The margin before and after on the cross axis.
     cross_margin: (f64, f64),
-    /// Where the child sits across: its `align-self`, or the container's `align-items`.
+    /// Where the child sits across: its `align-self`, or the container's `align-items`; `Start` for a
+    /// baseline in a column.
     across: Across,
+    /// The baseline of the child from its top edge, or `None` for its bottom edge.
+    baseline: Option<f64>,
+    /// The share of the spare room along the main axis.
+    grow: f64,
+    /// The widest the child may be on the main axis, in a row, when the caller gave one.
+    main_cap: Option<f64>,
+    /// The widest the child may be across, in a column, when the caller gave one.
+    cross_cap: Option<f64>,
 }
 
 impl Child {
@@ -418,13 +533,27 @@ impl Child {
             Direction::Column => (item.written.height, item.written.width),
         };
         let (main_margin, cross_margin) = item.margin.split(flex.direction);
+        // A baseline in a column is the start, since a column has no line of baselines (rule 7).
+        let across = match (flex.direction, item.across.unwrap_or(flex.across)) {
+            (Direction::Column, Across::Baseline) => Across::Start,
+            (_, across) => across,
+        };
+        // `max-width` caps the width: the main size of a row, the cross size of a column.
+        let (main_cap, cross_cap) = match flex.direction {
+            Direction::Row => (item.max_width, None),
+            Direction::Column => (None, item.max_width),
+        };
         Ok(Child {
             main: written_size(main_amount, main_base)?.unwrap_or(0.0),
             cross: written_size(cross_amount, cross_base)?,
-            measured_across: item.measured_across,
+            measured_across: item.measured_across.map(|size| cap(size, cross_cap)),
             main_margin,
             cross_margin,
-            across: item.across.unwrap_or(flex.across),
+            across,
+            baseline: item.baseline,
+            grow: item.grow.max(0.0),
+            main_cap,
+            cross_cap,
         })
     }
 
@@ -433,10 +562,29 @@ impl Child {
         self.main + self.main_margin.0 + self.main_margin.1
     }
 
-    /// The size across with its margins on both sides: the size written there, else the size the child's
-    /// own items give it, else 0.
+    /// The size across the cross axis: the size written there, else the size the child's own items give it,
+    /// else 0.
+    fn cross_size(&self) -> f64 {
+        self.cross.or(self.measured_across).unwrap_or(0.0)
+    }
+
+    /// The size across with its margins on both sides.
     fn outer_cross(&self) -> f64 {
-        self.cross.or(self.measured_across).unwrap_or(0.0) + self.cross_margin.0 + self.cross_margin.1
+        self.cross_size() + self.cross_margin.0 + self.cross_margin.1
+    }
+
+    /// The distance from the outer edge before the cross axis to the baseline: the margin before, and the
+    /// child's baseline from its top edge, or its size across when its baseline is its bottom edge.
+    fn above(&self) -> f64 {
+        self.cross_margin.0 + self.baseline.unwrap_or_else(|| self.cross_size())
+    }
+}
+
+/// A size capped at `limit` when there is one.
+fn cap(size: f64, limit: Option<f64>) -> f64 {
+    match limit {
+        Some(limit) => size.min(limit),
+        None => size,
     }
 }
 
@@ -452,20 +600,22 @@ fn written_size(amount: Option<Amount>, base: Option<f64>) -> Result<Option<f64>
 }
 
 /// The start and size across the content box of a child, where `align-items` or `align-self` puts it
-/// (section 4.3 rule 7). A child that writes no size across stretches to fill the content box less its
-/// margins, whatever size its own items give it; the content box of a row or column with no size of its
-/// own across is as large as its children (section 4.3 rule 2). A child that does not stretch is placed at
-/// the size it writes there, or the size its own items give it.
-fn across_place(child: &Child, start: f64, length: f64) -> (f64, f64) {
+/// (section 4.3, rule 7). A child that writes no size across stretches to fill the content box less its
+/// margins, whatever size its own items give it, and is capped by its `max-width` when it has one; the content
+/// box of a row or column with no size of its own across is as large as its children (rule 1). A child that
+/// does not stretch is placed at the size it writes there, or the size its own items give it. `line` is the
+/// highest part above the common baseline, for a child aligned by its baseline.
+fn across_place(child: &Child, start: f64, length: f64, line: f64) -> (f64, f64) {
     let (before, after) = child.cross_margin;
-    let size = child.cross.or(child.measured_across).unwrap_or(0.0);
+    let size = child.cross_size();
     match child.across {
         Across::Start => (start + before, size),
         Across::End => (start + length - after - size, size),
         Across::Center => (start + (length - (size + before + after)) / 2.0 + before, size),
+        Across::Baseline => (start + (line - child.above()) + before, size),
         Across::Stretch => match child.cross {
             Some(size) => (start + before, size),
-            None => (start + before, (length - before - after).max(0.0)),
+            None => (start + before, cap((length - before - after).max(0.0), child.cross_cap)),
         },
     }
 }
@@ -499,10 +649,12 @@ struct Span {
     near: Option<Amount>,
     far: Option<Amount>,
     size: Option<Amount>,
+    /// The widest the box may be on this axis, when it has no size of its own there (`max-width`).
+    max: Option<f64>,
 }
 
 impl Span {
-    /// The horizontal axis of a box in `parent`: `left`, `right` and `width`.
+    /// The horizontal axis of a box in `parent`: `left`, `right`, `width` and `max-width`.
     fn across(parent: Rect, written: Written) -> Self {
         Span {
             start: parent.left,
@@ -510,6 +662,7 @@ impl Span {
             near: written.left,
             far: written.right,
             size: written.width,
+            max: written.max_width,
         }
     }
 
@@ -521,6 +674,7 @@ impl Span {
             near: written.top,
             far: written.bottom,
             size: written.height,
+            max: None,
         }
     }
 
@@ -532,14 +686,15 @@ impl Span {
     /// The whole-pixel start and size on this axis, with `fallback` pixels when the box has no size of
     /// its own there.
     fn place(&self, fallback: f64) -> Result<(i32, u32), Beyond> {
-        axis(self.start, self.length, self.near, self.far, self.size, fallback)
+        axis(self.start, self.length, self.near, self.far, self.size, fallback, self.max)
     }
 }
 
 /// One axis of a box: its whole-pixel start and size, in a parent that starts at `start` and is
 /// `length` pixels long. `near` is the distance of the near edge (`left` or `top`), `far` that of
 /// the far edge (`right` or `bottom`). Without a size written, or two edges, the size is `fallback`
-/// pixels.
+/// pixels, or the space between the two edges, and `max` caps it (`max-width`, section 4.1, rule 7);
+/// a size written is kept as it is.
 fn axis(
     start: i32,
     length: u32,
@@ -547,16 +702,17 @@ fn axis(
     far: Option<Amount>,
     size: Option<Amount>,
     fallback: f64,
+    max: Option<f64>,
 ) -> Result<(i32, u32), Beyond> {
     let length = f64::from(length);
     let near = near.map(|amount| pixels(amount, length)).transpose()?;
     let far = far.map(|amount| pixels(amount, length)).transpose()?;
-    let size = size.map(|amount| pixels(amount, length)).transpose()?;
-    // The size: as written, or the space between two written edges, or the fallback.
-    let size = match (size, near, far) {
+    let written = size.map(|amount| pixels(amount, length)).transpose()?;
+    // The size: as written, or the space between two written edges, or the fallback; capped unless written.
+    let size = match (written, near, far) {
         (Some(size), _, _) => size,
-        (None, Some(near), Some(far)) => length - near - far,
-        _ => fallback,
+        (None, Some(near), Some(far)) => cap(length - near - far, max),
+        _ => cap(fallback, max),
     };
     if !size.is_finite() {
         return Err(Beyond);

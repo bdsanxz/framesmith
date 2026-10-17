@@ -104,9 +104,30 @@ impl fmt::Display for TextError {
 
 impl std::error::Error for TextError {}
 
+/// How the width of a block is found: the width given to it, or the widest of its lines.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Sizing {
+    /// The block is as wide as the width given, or the widest line when none is given.
+    Given,
+    /// The block is as wide as its widest line, whatever width the lines are broken at.
+    Widest,
+}
+
 /// Lays out the words of a paragraph in `style`, broken into lines within `width` where it is given. Without a
 /// width the text is one line. The white space is collapsed first (section 5.1).
 pub fn layout(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>) -> Result<Block, TextError> {
+    lay_out(fonts, words, style, width, Sizing::Given)
+}
+
+/// Lays out the words of a paragraph in `style` for a widest width `max` (`docs/spec/text.md`, section 5.3): the lines
+/// are broken so that none is wider than `max`, except a word that is wider than `max` on its own, which is kept whole.
+/// The block is as wide as its widest line, so a paragraph shorter than `max` keeps its own width, and its lines are
+/// aligned within that width.
+pub fn layout_fitted(fonts: &mut Fonts, words: &str, style: &Style, max: f32) -> Result<Block, TextError> {
+    lay_out(fonts, words, style, Some(max), Sizing::Widest)
+}
+
+fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, sizing: Sizing) -> Result<Block, TextError> {
     for family in &style.families {
         if !fonts.has_family(family) {
             return Err(TextError::UnknownFamily(family.clone()));
@@ -114,8 +135,12 @@ pub fn layout(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>)
     }
     let text = collapse(words);
     if text.is_empty() {
+        let width = match sizing {
+            Sizing::Given => width.unwrap_or(0.0),
+            Sizing::Widest => 0.0,
+        };
         return Ok(Block {
-            width: width.unwrap_or(0.0),
+            width,
             height: 0.0,
             runs: Vec::new(),
             lines: Vec::new(),
@@ -164,7 +189,11 @@ pub fn layout(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>)
     }
 
     // Second pass: the place of each line and of each glyph.
-    let block_width = width.unwrap_or_else(|| widths.iter().copied().fold(0.0, f32::max));
+    let widest = widths.iter().copied().fold(0.0, f32::max);
+    let block_width = match (sizing, width) {
+        (Sizing::Given, Some(width)) => width,
+        (Sizing::Given, None) | (Sizing::Widest, _) => widest,
+    };
     let mut runs: Vec<PositionedRun> = Vec::new();
     let mut lines: Vec<Line> = Vec::new();
     let mut height = 0.0_f32;

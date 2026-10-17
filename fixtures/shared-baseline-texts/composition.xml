@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row of two texts with align-items="baseline": "AB" at 12 pixels and "EH" at 24 pixels, with a gap of 8. The
+     first lines of both stand on one baseline, and the highest of them touches the row's top edge. The first text is
+     a small blue word, the second a large red one; the letters have flat feet, so each ends on the baseline. 96 by
+     54 pixels, 10 frames a second. -->
+<composition version="1" id="shared-baseline-texts" width="96" height="54" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <box id="row" left="4" top="4" width="88" height="30" flex-direction="row" align-items="baseline" gap="8">
+    <text font-family="Framesmith Test Stroke" font-size="12" color="#102040">AB</text>
+    <text font-family="Framesmith Test Stroke" font-size="24" color="#c03020">EH</text>
+  </box>
+</composition>

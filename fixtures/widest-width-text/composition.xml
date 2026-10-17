@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two texts at 16 pixels. The first, a blue one, has max-width="60" and so breaks its words into lines no wider
+     than 60 pixels. The second, a red one, is shorter than its widest width of 200 and keeps its own width, the width
+     of its one line. The words break at the spaces. 120 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="widest-width-text" width="120" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="8" top="8" max-width="60" font-family="Framesmith Test Stroke" font-size="16" color="#102040">AB CD EF GH IJ KL</text>
+  <text left="8" top="60" max-width="200" font-family="Framesmith Test Stroke" font-size="16" color="#c03020">AB CD</text>
+</composition>

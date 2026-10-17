@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A row of three boxes, 96 pixels wide, with justify-content="space-between". The boxes are 10, 12 and 10 wide and
+     20 tall. The first is at the start, the last at the end, and the room left over (64 pixels) is shared equally
+     between the two neighbours, 32 each. Rectangles (left, top, width, height): {0,10,10,20}, {42,10,12,20},
+     {86,10,10,20}. Each neighbour has 32 pixels of room on each side of the middle box. 96 by 54 pixels, 10 frames
+     a second. -->
+<composition version="1" id="space-between-row" width="96" height="54" fps="10" duration="1" background="#102040">
+  <box id="row" left="0" top="10" width="96" height="20" flex-direction="row" justify-content="space-between">
+    <box width="10" height="20" background="#ff8060"/>
+    <box width="12" height="20" background="#80ff80"/>
+    <box width="10" height="20" background="#ffd080"/>
+  </box>
+</composition>

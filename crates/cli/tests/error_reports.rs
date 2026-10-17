@@ -309,6 +309,18 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             Code::SizeNotAboveZero,
             2,
         ),
+        (
+            "columns-not-a-list",
+            inside_root("<box columns=\"wide 1fr\" width=\"4\" height=\"4\"/>"),
+            Code::ColumnsNotAList,
+            2,
+        ),
+        (
+            "columns-with-direction",
+            inside_root("<box columns=\"640 1fr\" flex-direction=\"row\" width=\"4\" height=\"4\"/>"),
+            Code::ColumnsWithDirection,
+            2,
+        ),
     ]
 }
 

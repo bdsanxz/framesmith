@@ -114,14 +114,14 @@ fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
 fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
     let reports = refused(
         "attributes",
-        "<box id=\"a\" border-radius=\"4\"\n     x=\"3\" flex-grow=\"1\" left=\"2\" opacity=\"0.5\"/>",
+        "<box id=\"a\" border-radius=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" opacity=\"0.5\"/>",
     );
     assert_eq!(
         reports,
         vec![
             "composition.xml 2 FS-0035 <box> has an attribute this version does not support: `border-radius`",
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `x`",
-            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `flex-grow`",
+            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `box-shadow`",
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `opacity`",
         ]
     );
