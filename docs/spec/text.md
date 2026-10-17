@@ -1,12 +1,12 @@
 # Text: paragraphs, fonts and their drawing
 
-Status: v1, Sprint 1, T046 parts 2 (processor) and 3 (card, order t046g). Owner of the rules: the maintainer, under `CLAUDE.md` section 1 (a composition is plain files; animation and drawing are ours) and `PLAN.md` section 3 (the crate `text`, and the two drawing renderers). The notation's rules for text are `docs/spec/notation.md`, sections 6.4, 6.5, 6.12, 7.3, N1, N2, N6, Q5 and the messages of section 13; where this file says a rule is ours, it is stated as such.
+Status: v1, Sprint 1, T046 parts 2 (processor) and 3 (card, order t046g), and T048 (the scripts of section 12, order t048). Owner of the rules: the maintainer, under `CLAUDE.md` section 1 (a composition is plain files; animation and drawing are ours) and `PLAN.md` section 3 (the crate `text`, and the two drawing renderers). The notation's rules for text are `docs/spec/notation.md`, sections 6.4, 6.5, 6.12, 7.3, N1, N2, N6, Q5 and the messages of section 13; where this file says a rule is ours, it is stated as such.
 
 ## 1. What this version draws
 
 A `<text>` is one paragraph. Its words are its text, and it is drawn on the processor's renderer (`draw-cpu`) with:
 
-- the family, size, weight, style, colour, alignment, line height and letter spacing of section 7.3 of the notation, for the characters of the Latin script (printable ASCII, see section 2.4);
+- the family, size, weight, style, colour, alignment, line height and letter spacing of section 7.3 of the notation, for the characters that the declared families map (section 2.4): Latin, Cyrillic, Arabic, Hebrew, Japanese and Thai, each shaped, ordered and broken as section 12 states;
 - a width that wraps its lines, or none, in which case it is one line as wide as its text; a `max-width` that wraps its lines and leaves it as wide as its widest line (section 5.3);
 - its place as an item of a row or a column (`render-command.md`, section 4.3, rule 14), with `align-items` and `align-self`, including `baseline`, which lines up the baselines of the first lines of the texts in a row (section 8);
 - the inheritance of the text attributes from the boxes that hold it (section 8).
@@ -14,7 +14,7 @@ A `<text>` is one paragraph. Its words are its text, and it is drawn on the proc
 Not in this version, and reported by `framesmith check` and refused by `framesmith render` before the first frame, with the element's line (FS-0035):
 
 - a family that no `<font>` of the composition declares, including the default `sans-serif`, `serif`, `monospace` and every family of the machine (section 2.3);
-- a character that none of the declared families of the list has (section 2.4);
+- a character that none of the declared families of the list has (section 2.4), including an emoji, which is drawn in no colour in this version (section 12.4);
 - a font file that is not a TrueType font, such as an OpenType font with PostScript outlines, a WOFF2 file or a collection (section 2.1);
 - a `<span>` (T049), a `direction` attribute (S21 of the notation), and a text attribute beyond those of section 6.4 that this version draws (section 6.4 below);
 - an absolute `<text>` with `left` and `right` and no `width`, in a row, a column or a set of columns (section 8);
@@ -41,7 +41,7 @@ The reason is not a taste. The rule that draws from the machine's fonts (N2, sec
 
 ### 2.4 Characters
 
-Each character of the text, after the white-space rule of section 5.1, is drawn by the first family of the list that has it (N1). A character that none of the listed families maps is unsupported in this version, for the same reason as section 2.3: N2 would draw it from a font of the machine. The test font maps the printable ASCII characters U+0020 to U+007E and no other (test-font.md, section 2); a text in a fixture uses those characters only.
+Each character of the text, after the white-space rule of section 5.1, is drawn by the first family of the list that has it (N1). A character that none of the listed families maps is unsupported in this version, for the same reason as section 2.3: N2 would draw it from a font of the machine. The test font maps the printable ASCII characters U+0020 to U+007E and no other (test-font.md, section 2); a text in a fixture that uses the test font uses those characters only. The scripts of section 12 are written in a font the composition declares that maps them, which for those fixtures is a font of the machine named by its path (section 12.1).
 
 ### 2.5 Glyphs and shaping
 
@@ -87,7 +87,7 @@ A run of spaces, tabs and line ends between words is one space; white space at t
 
 ### 5.2 Where a line may end
 
-A line may end where the Unicode line-breaking rules allow (UAX 14) and nowhere else. The data is the line-break data of Unicode 15.1.0, the version the segmenter of the shaping engine reads for the non-dictionary scripts (the segmenter's own documentation: the Unicode 15.1.0 data is the one used by `new_for_non_complex_scripts`). The options are the engine's defaults. For Latin text the line ends at a space, and after a hyphen, as UAX 14 gives.
+A line may end where the Unicode line-breaking rules allow (UAX 14) and nowhere else. The data is the line-break data of Unicode 15.1.0. The segmenter is the engine's dictionary segmenter (section 12.3, the `complex-scripts` feature of section 10), which uses a word dictionary for the scripts that have one and the rules of UAX 14 for the rest. The options are the engine's defaults. For Latin, Cyrillic, Hebrew and Arabic text the line ends at a space, and after a hyphen, as UAX 14 gives.
 
 A word wider than its line is not broken (notation 7.3), as CSS's `overflow-wrap: normal` gives it (decision B19 of `DECISIONS.md`, 2026-10-17). It stays whole on a line of its own, and that line runs past the width. Criterion t046-c3 is judged on a text that has places to break: there no line is wider than the width, except a line that holds one such word and nothing else.
 
@@ -147,7 +147,7 @@ With `--backend auto` the card is chosen when it starts (`render-command.md`, se
 
 ## 10. The shaping and line-breaking engine
 
-The text crate (`crates/text`) draws its paragraphs with the shaping engine parley, version 0.12.0, with its default features off (`Cargo.toml`, the `parley` line of the workspace). The build holds no platform font backend, since parley's `system` feature is left out, so no option of the font collection reads a font of the machine. The tests of `crates/text/tests/no_font_backend_of_the_system_is_built.rs` hold this: the lock file, which lists the dependencies of every system, has no font interface of a system, and the engine's font library depends on none of them; with the `system` feature turned on they fail. The test `a_new_collection_lists_no_family_and_resolves_no_family_of_the_machine` (`crates/text/tests/unknown_families_and_characters.rs`) asks the engine's own collection, which a new context leaves with no family. The engine's own font library, the shaper and the segmenter are its dependencies and are named in section 11. The card's glyph masks use the same rasteriser as the processor, vello_cpu 0.3.0, through the calls of `card-renderer.md` section 9; no other engine draws text on the card. No type of the engine is in a public interface of our crates.
+The text crate (`crates/text`) draws its paragraphs with the shaping engine parley, version 0.12.0, with its default features off (`Cargo.toml`, the `parley` line of the workspace) and with its feature `complex-scripts` on, which the crate's own `Cargo.toml` turns on: the engine then breaks lines and words with its dictionary segmenters (section 12.3). The feature adds no crate to the lock file. The build holds no platform font backend, since parley's `system` feature is left out, so no option of the font collection reads a font of the machine. The tests of `crates/text/tests/no_font_backend_of_the_system_is_built.rs` hold this: the lock file, which lists the dependencies of every system, has no font interface of a system, and the engine's font library depends on none of them; with the `system` feature turned on they fail. The test `a_new_collection_lists_no_family_and_resolves_no_family_of_the_machine` (`crates/text/tests/unknown_families_and_characters.rs`) asks the engine's own collection, which a new context leaves with no family. The engine's own font library, the shaper and the segmenter are its dependencies and are named in section 11. The card's glyph masks use the same rasteriser as the processor, vello_cpu 0.3.0, through the calls of `card-renderer.md` section 9; no other engine draws text on the card. No type of the engine is in a public interface of our crates.
 
 The engine's behaviour this spec relies on was read from the source of the libraries named in section 11 and measured by a scratch program outside the repository (not kept): the weight matching of section 3.2, the oblique of section 3.3, the line height of section 4, the spacing of section 6.1 and the hanging space of section 5.3. The values measured for the test font at 100 pixels were: `normal` line height 110, so baselines 110 apart at `normal` (the rule of section 4 and the test `the_normal_line_height_is_the_font_size_times_one_point_one` of `crates/text/tests/line_height.rs`); baselines 150 apart at `1.5`; 40 apart at `40px`; `AB` with a letter spacing of 10 widens by 20; the weight 500 face is the Regular face and 600 is the Bold face.
 
@@ -156,7 +156,8 @@ The engine's behaviour this spec relies on was read from the source of the libra
 - CSS Fonts Level 4: font-weight matching (section 5.2); the oblique style and its default angle (14 degrees).
 - CSS Text Level 3 and Level 4: white space, line breaking, letter spacing and typographic character units.
 - CSS Inline Layout Level 3: half-leading and line boxes.
-- Unicode Standard Annex 14 (line breaking), with the Unicode 15.1.0 data; Unicode Standard Annex 29 (grapheme clusters).
+- Unicode Standard Annex 14 (line breaking), with the Unicode 15.1.0 data; Unicode Standard Annex 29 (grapheme clusters); Unicode Standard Annex 9 (the bidirectional algorithm, which orders the runs of a line, section 12.2); the Unicode character classes of section 12.3.
+- The OpenType specification, `GSUB` (the contextual forms `init`, `medi`, `fina` and `isol` of the Arabic letters, section 12.2).
 - The OpenType specification (Microsoft): `head`, `hhea`, `OS/2` (USE_TYPO_METRICS), `name`, `hmtx`, `cmap`; the TrueType outline format (`0x00010000`).
 - `docs/spec/notation.md`: 6.2, 6.4, 6.12, 7.1, 7.3, N1, N2, N6, Q5, sections 13 and 14.
 - `docs/spec/error-catalogue.md` and its record: FS-0032, FS-0035, FS-0039, FS-0049 to FS-0053 (the codes of this part; the meaning of FS-0034 is a length below 0 where 0 or more is taken, so it is not used for a size that must be above 0).
@@ -164,3 +165,47 @@ The engine's behaviour this spec relies on was read from the source of the libra
 - The libraries the spec relies on, at the versions that `Cargo.lock` locks: parley 0.12.0, the shaping and line-breaking engine (sections 2.5, 5.2 and 10), with the crates it is built from, parley_engine 0.12.0 and parley_data 0.12.0; fontique 0.12.0, the font collection and the weight matching (sections 2 and 3.2); skrifa 0.44.0, the reader of the font tables (sections 2.2 and 4); harfrust 0.12.0, the shaper (section 2.5); icu_segmenter 2.3.0, the line segmenter, which follows Unicode 15.1.0 (section 5.2); vello_cpu 0.3.0 and glifo 0.4.0, which fill the glyph outlines on the processor (sections 3.3 and 9), and vello_cpu 0.3.0 again, which makes the card's glyph masks (`card-renderer.md` section 9).
 - `docs/spec/test-font.md`: the test font's glyphs, advances and tables.
 - `PLAN.md` section 3 (the crates) and section 5 (the picture rules).
+
+## 12. Scripts: fonts, shaping, order, breaks and emoji
+
+This section states what the scripts of the ticket T048 do: Cyrillic, Arabic, Hebrew, Japanese, Thai and emoji, with Latin as before. Their pictures are judged by behaviour, on macOS only, and not byte for byte (decision A9). Sources: section 11.
+
+### 12.1 The fonts of the scripts
+
+The fixtures of the scripts (section 12.5) draw their scripts with the machine's font `Arial Unicode`, named by its path in the composition: `<font src="/System/Library/Fonts/Supplemental/Arial Unicode.ttf" family="Arial Unicode"/>`. Its file is read as it is (section 2.1), and its family is the one the `<font>` element declares, so `font-family="Arial Unicode"` names a family of the composition (section 2.3). The file is a TrueType font. It maps the Latin, Cyrillic, Hebrew, Thai, Japanese kana and kanji characters, and most Arabic letters; it maps no emoji (section 12.4). Because the file belongs to the machine, the tests that read it are compiled for macOS only, and no test of another system reads it (decision A9).
+
+In this version a character that the named font lacks is refused, as section 2.4 says. The rule that draws such a character from the machine's font is T052's; until then it is a known gap (decision A9).
+
+### 12.2 Shaping, order and direction
+
+1. Shaping. A run of text in one script and one direction is shaped by the engine with the font's own tables, with the features the font gives for the script. The letters of Arabic take the contextual forms the font gives them (the `init`, `medi`, `fina` and `isol` forms of GSUB). So a letter inside a word is drawn with the glyph of its joined form, which is not the glyph the font has for that letter alone.
+2. Base direction. The base direction of a paragraph is left to right in this version, for every script. The notation has no attribute for the direction (S21 of the notation), and the proofs took the same rule (`_swe/poc/tree/docs/spec/native-notation.md`, section 7, a record only). The runs of a paragraph are put in visual order by the bidirectional algorithm of UAX 9 for that base direction. Each line is drawn in that order.
+3. What follows. A run of Arabic or Hebrew letters is drawn from its last letter at the left to its first letter at the right. A run of Latin letters keeps its own order. In a line that mixes them, the runs are placed in the order UAX 9 gives for a left-to-right base: a right-to-left run stays between the runs that come before and after it in the text, and is drawn reversed. A line of Arabic or Hebrew still starts at the left edge of the text; a start at the right edge is S21's, not this version's.
+
+### 12.3 Where a line may end
+
+1. Latin, Cyrillic, Hebrew and Arabic text ends a line at a space, and after a hyphen, as UAX 14 gives (classes SP, HY and AL). The rule of section 5.2 applies: a word wider than its line is kept whole.
+2. Japanese text has no spaces. A line may end between any two characters where UAX 14 allows it. It never ends before a character of a class that may not start a line: the closing marks (such as `。`, `、`, `」` and `）`, class CL and CP) and the other classes that rule LB13 keeps with the character before them. It never ends after an opening bracket (such as `「` or `（`, class OP; rule LB14).
+3. Thai text has no spaces between its words. A line may end at a space, or at a place that the dictionary of the segmenter gives as a boundary between two words. It never ends inside a word of the dictionary (a line that breaks there is wrong).
+4. These places come from the engine's dictionary segmenter, the `complex-scripts` feature of section 10. Without that feature the Thai text of this section would have no place to break, and the Japanese text would be broken by the class rules alone.
+
+### 12.4 Emoji
+
+1. An emoji is drawn in its own colours, whatever the colour of its text. That is the ticket's aim. This version does not draw it. The emoji font of the machine, `Apple Color Emoji.ttc`, is a collection, which section 2.1 refuses; its glyphs are colour bitmaps, which the outline engine draws only with a PNG decoder that the build does not have (the `png` feature of vello_cpu, which needs a crate that the lock file does not hold). Colour glyphs from another font form are not in the build either.
+2. So an emoji is a character that no declared family maps. It is refused with FS-0035 on the element's line, by `framesmith check` and by `framesmith render`, before the first frame (section 2.4). It is never drawn in black or in the colour of its text.
+
+### 12.5 The fixtures of the scripts
+
+Each fixture is a one-second composition at 10 frames a second, on a white canvas of 320 by 300 pixels, with one `<text>` of 300 pixels' width at 20 pixels, a line height of twice the size, black, in the Arial Unicode font of section 12.1. The pictures are judged at frames 0 and 9, which are the same picture, since nothing moves.
+
+| Fixture | Script | Judged by |
+|---|---|---|
+| `text-cyrillic` | Cyrillic | the letters in reading order; the line breaks at spaces inside the width |
+| `text-arabic` | Arabic | the letters drawn right to left; the joined forms; the line breaks at word boundaries |
+| `text-hebrew-latin` | Hebrew and Latin in one paragraph | each run in its own direction; the runs in UAX 9 order |
+| `text-japanese` | Japanese | the breaks between characters; no line starts with a closing mark |
+| `text-thai` | Thai, with no spaces | the breaks at word boundaries only |
+| `text-emoji` | an emoji | refused with FS-0035 (section 12.4) |
+
+The fixtures have no checked-in pictures (decision A9): a judgement by behaviour is made on the frames the processor draws.
+The card's pictures agree with the processor's on every frame of each fixture, the frames 0 and 9 among them, at the tolerance of `PLAN.md`, section 5 (`card-renderer.md`, sections 4 and 7). That test needs a graphics card, so it is reference machine only. The `check` and `render` commands accept the five fixtures that name the machine's font and refuse `text-emoji` with its line (`cli` tests of the same ticket).
