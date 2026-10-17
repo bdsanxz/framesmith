@@ -235,6 +235,8 @@ fn arabic_frames_draw_each_word_right_to_left_with_its_joined_letters() {
     let lines = judged_lines("text-arabic");
     let mut fonts = mac_fonts();
     let space = drawn_alone(&mut fonts, "a a")[1];
+    let comma = drawn_alone(&mut fonts, "،")[0];
+    let stop = drawn_alone(&mut fonts, ".")[0];
     let words: Vec<&str> = TEXT.split(' ').collect();
     let mut at = 0;
     for line in &lines {
@@ -248,15 +250,31 @@ fn arabic_frames_draw_each_word_right_to_left_with_its_joined_letters() {
             .collect();
         for segment in segments {
             let word = words[at];
+            // The letters are judged by their joined forms. A comma or a full stop is a neutral mark: its place comes from
+            // the runs around it, so it is judged apart. A comma after a word of the right-to-left run sits at the left of
+            // that word, and the full stop of the paragraph is judged at the right edge of the last line below.
+            let letters: Vec<u32> = segment.iter().copied().filter(|id| *id != comma && *id != stop).collect();
+            let joined = word.trim_end_matches(['،', '.']);
             assert_eq!(
-                segment,
-                drawn_alone(&mut fonts, word),
-                "the word {word:?} is drawn on its own as it is in the frame, with its letters joined"
+                letters,
+                drawn_alone(&mut fonts, joined),
+                "the word {word:?} is drawn with its letters joined, as it is alone"
             );
+            if word.ends_with('،') {
+                assert_eq!(segment.first(), Some(&comma), "the comma of {word:?} sits at the left of that word");
+            }
             at += 1;
         }
     }
     assert_eq!(at, words.len(), "every word is on a line, in reading order from the right");
+    // The paragraph's base direction is left to right (`docs/spec/text.md`, section 12.2, rule 2), so its full stop, which
+    // ends the paragraph, is drawn at the right edge of the last line, to the right of its last word.
+    let last = lines.last().and_then(|line| line.last());
+    assert_eq!(
+        last,
+        Some(&stop),
+        "the full stop is drawn at the right edge of the last line, right of the last word"
+    );
 }
 
 #[test]

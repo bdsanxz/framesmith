@@ -4,7 +4,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use parley::{FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
+use parley::{BaseDirection, FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
 
 use crate::fonts::Fonts;
 
@@ -154,6 +154,9 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
         .collect();
     let Fonts { context, layouts, faces } = fonts;
     let mut builder = layouts.ranged_builder(context, &text, 1.0, true);
+    // The base direction is left to right for every script (`docs/spec/text.md`, section 12.2, rule 2). Parley would
+    // otherwise take it from the first strong character, which makes an Arabic or Hebrew paragraph right to left.
+    builder.set_base_direction(BaseDirection::Ltr);
     builder.push_default(StyleProperty::FontFamily(family_stack(&style.families)));
     builder.push_default(StyleProperty::FontSize(style.size));
     builder.push_default(StyleProperty::FontWeight(FontWeight::new(style.weight)));
