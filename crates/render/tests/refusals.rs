@@ -73,7 +73,7 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
         only("in-box", "<box>\n<tween at=\"0\" duration=\"1\" to-x=\"5\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
     );
     // A box inside a box is drawn (section 4.1), so it is not refused.
     assert_eq!(refused("box-in-box", "<box>\n<box/>\n</box>"), Vec::<String>::new());
@@ -88,7 +88,7 @@ fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         reports[0],
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
     );
 }
 
@@ -105,7 +105,7 @@ fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
     let inside = only("names-box", "<box>\n<rect/>\n</box>");
     assert_eq!(
         inside,
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
     );
     assert!(inside.contains("<box>") && inside.contains("<composition src>"), "{inside}");
 }

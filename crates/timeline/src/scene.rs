@@ -335,11 +335,12 @@ fn takes(node: &Node, name: &str) -> bool {
 }
 
 /// The reports of the forms of a place, a size, a margin, a position and the words and numbers of a
-/// row or column that this version does not list, in the order of the file, and of an attribute that a
-/// `<style>` gives and this version does not draw. They are the reports `Scene::from_project` makes of
-/// those forms, by the same code, without the settings of the project file and without the other
-/// refusals of what is drawn: `check` judges the forms of a place and the attributes that a style gives,
-/// and does not judge the rest (`docs/spec/check-command.md`, sections 3b and 3c).
+/// row or column that this version does not list, in the order of the file, of an attribute that a
+/// `<style>` gives and this version does not draw, and of a text form: an element inside a `<text>` and an
+/// attribute of a `<text>` that this version does not draw. They are the reports `Scene::from_project` makes of
+/// those forms, by the same code, without the settings of the project file and without the other refusals of
+/// what is drawn: `check` judges the forms of a place, the attributes that a style gives and the text forms, and
+/// does not judge the rest (`docs/spec/check-command.md`, sections 3b and 3c; `docs/spec/text.md`, section 9).
 pub fn place_reports(project: &Project) -> Vec<Report> {
     walk(project, true).1
 }
@@ -460,16 +461,13 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             continue;
         }
         if node.element() == Element::Font {
-            // A font stands in the root, where its file is read (`load_fonts`); inside an element it is refused.
-            if parent != 0 {
-                refusals.push(Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_font_place()));
-            }
+            // A font stands in the root, where its file is read (`load_fonts`). The schema allows it nowhere else.
             places.push(None);
             continue;
         }
         if node.element() == Element::Text {
             if tree[parent].element() == Element::Text {
-                refusals.push(Refusal::of_drawing(
+                refusals.push(Refusal::of_text_form(
                     Code::FormNotSupported,
                     node.line(),
                     unsupported_inside_text(node.element()),
@@ -484,14 +482,14 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             }
         }
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
-            let message = if parent == 0 {
-                unsupported_element(node.element())
+            let refusal = if parent == 0 {
+                Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_element(node.element()))
             } else if tree[parent].element() == Element::Text {
-                unsupported_inside_text(node.element())
+                Refusal::of_text_form(Code::FormNotSupported, node.line(), unsupported_inside_text(node.element()))
             } else {
-                unsupported_inside_box(node.element())
+                Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_inside_box(node.element()))
             };
-            refusals.push(Refusal::of_drawing(Code::FormNotSupported, node.line(), message));
+            refusals.push(refusal);
             places.push(None);
             continue;
         }
@@ -823,6 +821,18 @@ impl Refusal {
         }
     }
 
+    /// A refusal of an element inside a `<text>`, or of an attribute of a `<text>` that this version does not draw. It is
+    /// a text form, which `check` judges as well as `render` (`docs/spec/text.md`, section 9).
+    fn of_text_form(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
+    }
+
     /// A refusal of anything else that this version does not draw or apply.
     fn of_drawing(code: Code, line: u32, message: String) -> Refusal {
         Refusal {
@@ -892,11 +902,13 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     for attribute in node.attributes() {
         let name = attribute.name();
         if !takes(node, name) {
-            refusals.push(Refusal::of_attribute(
-                Code::FormNotSupported,
-                attribute,
-                unsupported_attribute(node, attribute),
-            ));
+            // An attribute of a `<text>` is a text form that `check` judges; a `<box>`'s is judged only when a style
+            // gives it (`docs/spec/check-command.md`, section 3c).
+            let message = unsupported_attribute(node, attribute);
+            refusals.push(match node.element() {
+                Element::Text => Refusal::of_text_form(Code::FormNotSupported, attribute.line(), message),
+                _ => Refusal::of_attribute(Code::FormNotSupported, attribute, message),
+            });
             continue;
         }
         let value = attribute.shown();
@@ -1223,14 +1235,10 @@ fn unsupported_inside_flow() -> String {
     "<text> inside a row or column is not supported by this version, which places a <box> or a <composition src> there only".to_string()
 }
 
-/// The message for a `<font>` written inside an element: a font stands directly in the composition.
-fn unsupported_font_place() -> String {
-    "<font> stands directly in <composition>, not inside an element, and this version reads it there only".to_string()
-}
-
+/// The message for an element written inside a `<box>`: a `<box>`, a `<text>` or a `<composition src>` is drawn there.
 fn unsupported_inside_box(element: Element) -> String {
     format!(
-        "{} inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element",
+        "{} inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element",
         element.tag()
     )
 }
