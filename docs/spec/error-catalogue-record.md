@@ -46,3 +46,6 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0038` | The author asked for the graphics card (`gpu`), and this machine has no card that frx7 can draw with. |
 | `FS-0039` | A value that must be one of a list of words is not one of them. |
 | `FS-0040` | An element of the composition file has `start` without `duration`, or `duration` without `start`, where the notation writes both or neither. |
+| `FS-0041` | A `<style>` of the composition file has no `id`, so no element can take it. |
+| `FS-0042` | Two `<style>` elements of the composition file have the same `id`. |
+| `FS-0043` | An element's `class` names a style that the composition file does not have. |

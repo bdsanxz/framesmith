@@ -85,8 +85,8 @@ The message of a report of `FS-0035` is one of:
 
 - ``<text> is not supported by this version, which draws <box> only`` for an element in the root, with `<text>` as the notation writes it (``<composition src>`` for a composition shown from a file);
 - ``<text> inside a <box> is not supported by this version, which draws a <box> inside a <box> and no other element`` for an element in a box;
-- ``<text> has an attribute this version does not support: `border-radius` `` for an attribute, with `<text>` the element it is written on (`<composition>` for the root);
-- ``` `left="10.5"` on <box> is not a form this version supports: a whole number of pixels from -1000000 to 1000000, or a percentage such as 50% ``` for a value, with `a whole number of pixels from 0 to 1000000, or a percentage such as 50%` for a size and `one opaque colour, #rrggbb` for a colour;
+- ``<text> has an attribute this version does not support: `border-radius` `` for an attribute, with `<text>` the element it is written on (`<composition>` for the root); when a `<style>` gives the attribute to the element, the message ends with ``, which the style `x` gives it``, where `x` is the name of that style (`check-command.md` section 3c; `notation.md` N5);
+- ``` `left="10.5"` on <box> is not a form this version supports: a whole number of pixels from -1000000 to 1000000, or a percentage such as 50% ``` for a value, with `a whole number of pixels from 0 to 1000000, or a percentage such as 50%` for a size and `one opaque colour, #rrggbb` for a colour, whose message ends with the same clause as line 88 when a style gives the colour;
 - ``` a place or a size of <box> works out beyond 1000000 pixels, which this version does not place ``` for a box whose edge or size lies beyond the limit (section 4.1);
 - ``` `render.quality: high` is not supported by this version, which takes standard ``` for a setting of the project file, and ``` `--quality high` is not supported by this version, which takes standard ``` for an option, with what it takes after `takes` (`64 to 320` for the sound's bit rate).
 
