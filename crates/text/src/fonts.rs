@@ -103,4 +103,15 @@ impl Fonts {
     pub fn is_empty(&self) -> bool {
         self.faces.is_empty()
     }
+
+    /// The names of the families that the engine's own collection lists, in the engine's order. A test asks it what the
+    /// machine's fonts are: none, while the system's fonts are not read (`docs/spec/text.md`, section 10).
+    pub fn engine_family_names(&mut self) -> Vec<String> {
+        self.context.collection.family_names().map(str::to_string).collect()
+    }
+
+    /// Whether the engine's own collection resolves a family of this name.
+    pub fn engine_resolves(&mut self, name: &str) -> bool {
+        self.context.collection.family_id(name).is_some()
+    }
 }

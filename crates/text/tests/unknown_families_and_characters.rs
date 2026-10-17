@@ -27,10 +27,23 @@ fn a_character_the_font_lacks_is_an_error_that_names_it() {
 }
 
 #[test]
-fn a_new_collection_holds_no_font_of_the_machine() {
-    let fonts = Fonts::new();
-    assert!(fonts.is_empty(), "a new collection holds no font");
-    for family in ["sans-serif", "serif", "monospace", "Helvetica"] {
-        assert!(!fonts.has_family(family), "{family} is not declared by a font of the composition");
+fn a_new_collection_lists_no_family_and_resolves_no_family_of_the_machine() {
+    // The engine's own collection, asked directly: it lists no family, and a family that every Mac has, or a generic
+    // name, resolves to nothing in it.
+    let mut fonts = Fonts::new();
+    assert_eq!(fonts.engine_family_names(), Vec::<String>::new(), "a new collection lists a family");
+    for family in ["Helvetica", "Times New Roman", "Menlo", "sans-serif", "serif", "monospace"] {
+        assert!(!fonts.engine_resolves(family), "{family} resolves in a new collection");
+    }
+}
+
+#[test]
+fn a_family_every_mac_has_is_an_unknown_family_to_a_new_collection() {
+    let mut fonts = Fonts::new();
+    let mut named = style(40.0);
+    named.families = vec!["Helvetica".to_string()];
+    match layout(&mut fonts, "AB", &named, None) {
+        Err(TextError::UnknownFamily(name)) => assert_eq!(name, "Helvetica"),
+        other => panic!("expected an unknown family, got {other:?}"),
     }
 }
