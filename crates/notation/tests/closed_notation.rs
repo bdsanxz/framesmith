@@ -125,8 +125,9 @@ fn an_attribute_its_element_does_not_take_is_reported_with_its_line_the_attribut
 
 #[test]
 fn the_root_takes_only_the_attributes_of_its_table() {
-    let text =
-        "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\" id=\"x\" class=\"y\"\n src=\"a.xml\" color=\"#ffffff\"/>";
+    // The root's `class` names the style `y`, which the file has, so the only reports are the two
+    // attributes the root does not take.
+    let text = "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\" id=\"x\" class=\"y\"\n src=\"a.xml\" color=\"#ffffff\">\n<style id=\"y\"/>\n</composition>";
     let problems = problems_of(text);
     let words: Vec<String> = problems.iter().map(worded).collect();
     assert_eq!(

@@ -86,6 +86,9 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0038` | unsupported | The author asked for the graphics card (`gpu`), and this machine has no card that frx7 can draw with. | Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there. |
 | `FS-0039` | invalid | A value that must be one of a list of words is not one of them. | Write one of the words the message names, in lower case, or leave the attribute out. |
 | `FS-0040` | invalid | An element of the composition file has `start` without `duration`, or `duration` without `start`, where the notation writes both or neither. | Write both `start` and `duration` on the element, or neither. |
+| `FS-0041` | invalid | A `<style>` of the composition file has no `id`, so no element can take it. | Write an `id` on each `<style>`, the name that elements take it by. |
+| `FS-0042` | invalid | Two `<style>` elements of the composition file have the same `id`. | Give each `<style>` of the file its own `id`. |
+| `FS-0043` | invalid | An element's `class` names a style that the composition file does not have. | Name a `<style>` of this file in `class`, or write its attributes on the element. |
 
 Notes on the rows:
 
@@ -99,6 +102,7 @@ Notes on the rows:
 - `FS-0038` was added with the choice of the renderer (`render-command.md` section 1.2): `gpu`, from the project file or the command line, on a machine with no card that frx7 can draw with. It is of the kind unsupported, as the card refusals of the support table are (ticket T086), and it is the one code of that kind that is not a form of the composition or of the project file: this machine lacks what the author asked for, and the file is right. `render` refuses it before the first frame and exits with 2, with the last line `Refused:` (`render-command.md` section 7). `auto` never gives it: with no card it draws on the processor and says so.
 - `FS-0039` was added with the places of a box (`render-command.md` section 3): a `position` that is neither `static` nor `absolute`. A word out of a list the notation gives is an invalid value, not a form of this version that is unsupported, since the list is the notation's and not this version's.
 - `FS-0040` was added with the clip window of a box (`notation.md` section 5.2): `start` and `duration` are written both or neither, on each element that takes them as a clip (`notation.md` section 6). The report is on the line of the element. It is of the kind invalid, since the pair is the notation's own rule and not a form this version leaves out.
+- `FS-0041` to `FS-0043` were added with shared styles (`notation.md` section 9 and N5; `check-command.md` section 3c): a `<style>` with no `id`, two styles with one `id`, and a `class` that names no style of the file. `FS-0030` and `FS-0031` keep their meanings for a style, with the messages of `check-command.md` section 3c.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

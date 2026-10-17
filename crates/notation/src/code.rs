@@ -121,11 +121,17 @@ pub enum Code {
     WordNotTaken,
     /// An element that takes `start` and `duration` as a clip has one of them without the other.
     ClipNotPaired,
+    /// A `<style>` of the file has no `id`, so no element can take it.
+    StyleWithoutId,
+    /// Two `<style>` elements of the file have one `id`.
+    StyleIdTwice,
+    /// An element's `class` names a style that the file does not have.
+    ClassNamesNoStyle,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 40] = [
+    pub const ALL: [Code; 43] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -166,6 +172,9 @@ impl Code {
         Code::RendererNotAvailable,
         Code::WordNotTaken,
         Code::ClipNotPaired,
+        Code::StyleWithoutId,
+        Code::StyleIdTwice,
+        Code::ClassNamesNoStyle,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -211,6 +220,9 @@ impl Code {
             Code::RendererNotAvailable => "FS-0038",
             Code::WordNotTaken => "FS-0039",
             Code::ClipNotPaired => "FS-0040",
+            Code::StyleWithoutId => "FS-0041",
+            Code::StyleIdTwice => "FS-0042",
+            Code::ClassNamesNoStyle => "FS-0043",
         }
     }
 
@@ -275,6 +287,9 @@ impl Code {
             Code::OptionNotTaken => "Give one of the options the message lists, with one of the values it names, or leave the option out.",
             Code::WordNotTaken => "Write one of the words the message names, in lower case, or leave the attribute out.",
             Code::ClipNotPaired => "Write both `start` and `duration` on the element, or neither.",
+            Code::StyleWithoutId => "Write an `id` on each `<style>`, the name that elements take it by.",
+            Code::StyleIdTwice => "Give each `<style>` of the file its own `id`.",
+            Code::ClassNamesNoStyle => "Name a `<style>` of this file in `class`, or write its attributes on the element.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

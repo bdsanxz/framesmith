@@ -175,6 +175,19 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             3,
         ),
         ("start-without-duration", inside_root("<box start=\"1\"/>"), Code::ClipNotPaired, 2),
+        ("style-without-id", inside_root("<style/>"), Code::StyleWithoutId, 2),
+        (
+            "style-id-twice",
+            inside_root("<style id=\"a\"/>\n<style id=\"a\"/>"),
+            Code::StyleIdTwice,
+            3,
+        ),
+        (
+            "class-names-no-style",
+            inside_root("<box class=\"a\"/>"),
+            Code::ClassNamesNoStyle,
+            2,
+        ),
     ]
 }
 

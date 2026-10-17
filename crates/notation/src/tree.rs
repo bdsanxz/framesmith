@@ -6,8 +6,9 @@
 //! animate read the attributes they take through [`Attribute`], which reads the value forms of
 //! `docs/spec/notation.md` section 4 (a length, a colour).
 
-use crate::root::{shown, trimmed};
+use crate::root::{shown, Spot};
 use crate::schema::Element;
+use crate::styles::{self, Styles};
 use crate::value;
 use crate::Colour;
 use timebase::Time;
@@ -27,12 +28,19 @@ pub struct Attribute {
     name: String,
     value: String,
     line: u32,
+    given_by: Option<String>,
 }
 
 impl Attribute {
     /// The name, without a prefix: the notation takes none.
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    /// The `id` of the style that gives this value to the element, or `None` when the element writes
+    /// it itself (`docs/spec/notation.md` section 9).
+    pub fn given_by(&self) -> Option<&str> {
+        self.given_by.as_deref()
     }
 
     /// The value as written, without the white space round it.
@@ -138,8 +146,15 @@ impl Tree {
 }
 
 /// Makes the tree of a document that `structure::judge` found no problem in.
-pub(crate) fn build(document: &roxmltree::Document) -> Tree {
+pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles) -> Tree {
     let line_at = |offset: usize| document.text_pos_at(offset).row;
+    let spot_at = |offset: usize| {
+        let position = document.text_pos_at(offset);
+        Spot {
+            line: position.row,
+            column: position.col,
+        }
+    };
     let namespace = document.root_element().tag_name().namespace();
     let mut nodes: Vec<Node> = Vec::new();
     // Iterative, so that a deeply nested file cannot exhaust the stack. A node is taken after the
@@ -151,12 +166,13 @@ pub(crate) fn build(document: &roxmltree::Document) -> Tree {
             element,
             line: line_at(node.range().start),
             parent,
-            attributes: node
-                .attributes()
-                .map(|attribute| Attribute {
-                    name: attribute.name().to_string(),
-                    value: trimmed(attribute.value()).to_string(),
-                    line: line_at(attribute.range().start),
+            attributes: styles::effective(node, text, element, styles, &spot_at)
+                .into_iter()
+                .map(|entry| Attribute {
+                    name: entry.name,
+                    value: entry.value,
+                    line: entry.spot.line,
+                    given_by: entry.from,
                 })
                 .collect(),
         });

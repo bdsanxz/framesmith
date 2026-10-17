@@ -4,7 +4,7 @@
 mod common;
 
 use common::{composition, project_with, scratch};
-use project::{Code, Kind, Project, Report, COMPOSITION_FILE, PROJECT_FILE};
+use project::{Code, Kind, OpenError, Project, Report, COMPOSITION_FILE, PROJECT_FILE};
 use render::Scene;
 use std::fs;
 
@@ -50,7 +50,6 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
     for (index, (element, tag)) in [
-        ("<style id=\"s\"/>", "<style>"),
         ("<font src=\"f.ttf\" family=\"F\"/>", "<font>"),
         ("<audio src=\"a.wav\" duration=\"1\"/>", "<audio>"),
         ("<rect/>", "<rect>"),
@@ -108,16 +107,19 @@ fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `opacity`",
         ]
     );
-    // The root takes its seven attributes and no `class`.
+    // The root takes its seven attributes and `class`, which names styles of the file: a name that no
+    // style of the file has is reported on its line, and is not taken as an attribute this version lacks.
     let folder = project_with(
         "refusals",
         "root-class",
         "<composition version=\"1\" id=\"x\"\n class=\"a\" width=\"96\" height=\"54\" duration=\"1\"/>\n",
     );
-    let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
+    let Err(OpenError::Invalid(reports)) = Project::open(&folder) else {
+        panic!("a `class` that names no style of the file is refused when the project opens");
+    };
     assert_eq!(
         shown(&reports[0]),
-        "composition.xml 2 FS-0035 <composition> has an attribute this version does not support: `class`"
+        "composition.xml 2 FS-0043 `class` names the style `a`, and this file has no <style> with that id"
     );
     assert_eq!(reports.len(), 1);
 }
