@@ -1,7 +1,7 @@
 //! A composition with text: `check` accepts it, `render --backend cpu` draws and writes it, and a family that no font
 //! of the composition declares is reported by `check` and refused by `render` with the line of the `<text>`
-//! (`docs/spec/text.md`, sections 2.3 and 9). The card does not draw text in this version, so its refusal is a test
-//! for the reference machine, which has the card.
+//! (`docs/spec/text.md`, sections 2.3 and 9). The card does not draw text in this version. Its refusal runs on every machine in
+//! `text_refused_by_a_renderer_without_text.rs`, with a started double; the real card is tested here, on the reference machine.
 
 mod common;
 
