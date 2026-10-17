@@ -84,7 +84,7 @@ A setting in use (section 1.1) that this version does not apply is refused the s
 
 The message of a report of `FS-0035` is one of:
 
-- ``<text> is not supported by this version, which draws <box> and <composition src> only`` for an element in the root, with `<text>` as the notation writes it;
+- ``<rect> is not supported by this version, which draws <box>, <text> and <composition src> only`` for an element in the root, with `<rect>` as the notation writes it;
 - ``<text> inside a <box> is not supported by this version, which draws a <box> or a <composition src> inside a <box> and no other element`` for an element in a box;
 - ``<text> inside <composition src> is not supported by this version, which draws a <composition src> with no element inside it`` for a child of a `<composition src>`, with `<text>` the child as the notation writes it;
 - ``<text> has an attribute this version does not support: `border-radius` `` for an attribute, with `<text>` the element it is written on (`<composition>` for the root); when a `<style>` gives the attribute to the element, the message ends with ``, which the style `x` gives it``, where `x` is the name of that style (`check-command.md` section 3c; `notation.md` N5);

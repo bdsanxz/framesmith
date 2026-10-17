@@ -22,7 +22,7 @@ Not in this version, and reported by `framesmith check` and refused by `framesmi
 
 ### 2.1 The `<font>` element and the files it names
 
-A `<font src="..." family="...">` stands in the root (notation 6.12). Its `src` is a path written from the project folder and taken by `Project::resolve` (T032); nothing else joins the two. Its file is read in full and must be a TrueType font: the first four bytes of the table directory are `0x00010000` or the tag `true`. Any other file is unsupported in this version. A file that cannot be read is reported with the element's line and the path (FS-0028); a file that is read but is not a font of any kind is invalid (exit code 1).
+A `<font src="..." family="...">` stands in the root (notation 6.12). Its `src` is a path written from the project folder and taken by `Project::resolve` (T032); nothing else joins the two. Its file is read in full and must be a TrueType font: its first four bytes are `0x00010000` or the tag `true`. A file whose first four bytes are the tag `OTTO` (OpenType with PostScript outlines), `wOF2` (WOFF2) or `ttcf` (a collection) is a font of a kind this version does not draw: it is unsupported (FS-0035). Any other file is not a font: it is invalid (FS-0051, exit code 1). A `src` that names no file of the project folder, or no file at all, is reported with FS-0049; a file that exists and cannot be read is reported with FS-0050, a failure. Each report carries the element's line and the path as written.
 
 The face of a file is the one of the font (a file of a collection is not read). Two `<font>` elements with the same `src` and `family` name the same face and are used once (notation 6.12). Two files of one family name are two faces of one family; the test font of decision A8 is such a pair (Regular, weight class 400, and Bold, weight class 700, under the same family).
 
@@ -50,11 +50,11 @@ Letters are shaped by the font's own tables through the shaping engine (section 
 
 ### 3.1 Size
 
-`font-size` is a number of pixels above 0 (N6). Zero or a negative value is reported with the element's line as `` `font-size="0"` must be above 0 `` (FS-0034, an invalid length or size), and the composition is not drawn. The default is 16.
+`font-size` is a number of pixels above 0 (N6, notation 7.3); the default is 16. Zero or a negative value is reported with the element's line as `` `font-size="0"` must be above 0 `` (FS-0053, invalid, the wording of the notation's section 13). The composition is refused with exit code 1 and no video is written. A font size of zero is reported, never drawn: this is the rule criterion t046-c8 holds.
 
 ### 3.2 Weight: which face is drawn
 
-`font-weight` is a number (the default 400); a word is reported as the notation states. The face is chosen from the faces of the family by the font-weight matching of CSS Fonts Level 4, section 5.2, which is the rule of the font library the shaper uses:
+`font-weight` is a number (the default 400, notation 7.3). Any finite number is taken as written; a word such as `bold` is reported as FS-0032, the notation's "is not a number" (section 13). The face is chosen from the faces of the family by the font-weight matching of CSS Fonts Level 4, section 5.2, which is the rule of the font library the shaper uses:
 
 - a desired weight from 400 to 500 inclusive: the faces from the desired weight up to 500 in ascending order, then the faces below the desired weight in descending order, then the faces above 500 in ascending order;
 - a desired weight below 400: the faces at or below it in descending order, then the faces above it in ascending order;
@@ -74,7 +74,7 @@ With the test font (weights 400 and 700): 400 and 500 draw the Regular face; 600
 
 - **`normal`**: the line's natural height from the font's metrics. The ascender and the descender are the typographic ones when the font's OS/2 `fsSelection` has USE_TYPO_METRICS (bit 7) set; otherwise the `hhea` ones. The leading is added to the height (the line gap of the same table). This is the rule of the font library, which follows the usual reading of the OpenType specification (`OS/2`, `hhea`). For the test font, both tables give an ascender of 850, a descender of −250 and a line gap of 0, so `normal` is 1.1 times the font size at every size.
 - **A number**: that many times the font size. `1.5` at 100 pixels is 150 pixels.
-- **A number with `px`**: that many pixels. A number of pixels or a multiple of 0 or less is reported (N6).
+- **A number with `px`**: that many pixels. A value of 0 or less is reported with FS-0053 (N6). Any other form, such as a percentage, is reported with FS-0052.
 
 Within a line the baseline sits at the line's top, plus half of the difference between the line height and the ascender plus descender, plus the ascender. This is the half-leading rule of CSS Inline Layout Level 3. Consecutive baselines are one line height apart. The first line's top is the top of the text.
 
@@ -104,7 +104,7 @@ The height of the text is the sum of its line heights (section 4), unless a `hei
 
 ### 6.1 Letter spacing
 
-`letter-spacing` is a number of pixels, or a number with `em` that is multiplied by the font size; a negative value is allowed. A letter is a typographic character unit (CSS Text Level 4, letter-spacing): an extended grapheme cluster of UAX 29, which for the text of this version is one printable ASCII character, a space included. The spacing is added after every letter, the last letter of each line included, so a line of `n` letters is wider by `n` times the spacing.
+`letter-spacing` is a number of pixels, or a number with `em` that is multiplied by the font size of the element that writes it, so a child that inherits the value takes it in pixels, as CSS does. A negative value is allowed (N6). Any other form is reported with FS-0052. A letter is a typographic character unit (CSS Text Level 4, letter-spacing): an extended grapheme cluster of UAX 29, which for the text of this version is one printable ASCII character, a space included. The spacing is added after every letter, the last letter of each line included, so a line of `n` letters is wider by `n` times the spacing.
 
 The space that ends a wrapped line is the exception: neither its advance nor its spacing counts toward the line's width (section 5.3).
 
@@ -112,7 +112,7 @@ This is the rule of the shaping engine (spacing after each atom, as Blink applie
 
 ### 6.2 Alignment
 
-`text-align` is `left`, `center` or `right` (notation 7.3). Each line lies at that side of the text's width: its left edge at 0, at `(width − line width) / 2`, or at `width − line width`, where the line width is that of section 5.3. For a text with no `width` every line is as wide as the text, so the alignment has no effect.
+`text-align` is `left`, `center` or `right` (notation 7.3); any other word is reported as FS-0039, the notation's "not one of" (section 13). Each line lies at that side of the text's width: its left edge at 0, at `(width − line width) / 2`, or at `width − line width`, where the line width is that of section 5.3. For a text with no `width` every line is as wide as the text, so the alignment has no effect.
 
 ### 6.3 Colour
 
@@ -130,17 +130,19 @@ A text takes no `<tween>` or `<set>` in this version. Animated colour and size o
 
 A `<text>` is placed by the rules of placement of section 7.1 of the notation (`left`, `top`, `right`, `bottom`, `position`, `margin`, `width`, `height`), exactly as a box is placed (T041). Its `start` and `duration` hold it to a window as for a box (T042).
 
-The text attributes of section 3 to 6 pass from a box to everything inside it, and from a text to its children, unless the child writes its own value. A child that writes one wins (criterion t046-c7). At the root the defaults of the table apply. A text inside a box that clips its children (`overflow` hidden) is drawn inside the clip. A `<text>` with a `background`, a `padding` or another attribute of section 6.4 that this version does not draw is unsupported.
+The text attributes of section 3 to 6 pass from a box to everything inside it, and from a text to its children, unless the child writes its own value. A child that writes one wins (criterion t046-c7). At the root the defaults of the table apply. A box takes no `overflow` in this version and `framesmith check` refuses it, so no box clips a text: a text is drawn inside its canvas only. A `<text>` with a `background`, a `padding` or another attribute of section 6.4 that this version does not draw is unsupported.
 
 ## 9. Renderers and refusals
 
-The processor's renderer (`draw-cpu`, name `processor`) draws text. The card's renderer (`draw-gpu`, name `card`) does not, in this version: the picture of a text is drawn by the processor only until the order t046g. A composition with a `<text>` that `render` is asked to draw with the card is refused before the first frame, with the code FS-0035 and the line of the first `<text>`, and exit code 2. The refusal is the rule for a feature not yet supported (`CLAUDE.md` section 2), not a silent fallback (T040).
+The processor's renderer (`draw-cpu`, name `processor`) draws text. The card's renderer (`draw-gpu`, name `card`) does not, in this version: the picture of a text is drawn by the processor only until the order t046g. A composition with a `<text>` that `render` is asked to draw with the card is refused before the first frame, with the code FS-0035 and the line of the first `<text>`, and exit code 2. The report reads ``file, line N: FS-0035: unsupported: <text> is not drawn by the card renderer in this version, which draws no text; the processor draws it: use `--backend cpu` ``, and the closing line is the one of an unsupported form. The refusal is the rule for a feature not yet supported (`CLAUDE.md` section 2), not a silent fallback (T040). The check is made after the renderer is chosen and started, so a `gpu` without a card is still refused with FS-0038 first.
+
+With `--backend auto` the card is chosen when it starts (`render-command.md`, section 1.2), and the same refusal then applies to a composition with a `<text>`: `auto` does not turn to the processor in silence for a text in this version. This is the literal reading of the rule; whether `auto` should choose the processor for a composition with text is the owner's decision (`DEFERS.md` and the report of the order t046).
 
 ## 10. The shaping and line-breaking engine
 
 The text crate (`crates/text`) draws its paragraphs with the shaping engine parley, version 0.12.0, with its default features off so that it reads no font of the machine: its font collection is made without system fonts, which is checked by the tests (`crates/text/tests/` holds the test that the collection of a new context has no family before a `<font>` is registered). The engine's own font library, the shaper and the segmenter are its dependencies and are not named by the crates of Framesmith (`PLAN.md` section 3). No type of the engine is in a public interface of our crates.
 
-The engine's behaviour this spec relies on was read from its source and measured by a scratch program outside the repository (not kept): the weight matching of section 3.2, the oblique of section 3.3, the line height of section 4, the spacing of section 6.1 and the hanging space of section 5.3. The values measured for the test font at 100 pixels were: `normal` line height 110; baselines 85 apart at `normal`, 150 at `1.5`, 40 at `40px`; `AB` with a letter spacing of 10 widens by 20; the weight 500 face is the Regular face and 600 is the Bold face.
+The engine's behaviour this spec relies on was read from its source and measured by a scratch program outside the repository (not kept): the weight matching of section 3.2, the oblique of section 3.3, the line height of section 4, the spacing of section 6.1 and the hanging space of section 5.3. The values measured for the test font at 100 pixels were: `normal` line height 110, so baselines 110 apart at `normal` (the rule of section 4 and the test `the_normal_line_height_is_the_font_size_times_one_point_one` of `crates/text/tests/line_height.rs`); baselines 150 apart at `1.5`; 40 apart at `40px`; `AB` with a letter spacing of 10 widens by 20; the weight 500 face is the Regular face and 600 is the Bold face.
 
 ## 11. Sources
 
@@ -150,6 +152,7 @@ The engine's behaviour this spec relies on was read from its source and measured
 - Unicode Standard Annex 14 (line breaking), with the Unicode 15.1.0 data; Unicode Standard Annex 29 (grapheme clusters).
 - The OpenType specification (Microsoft): `head`, `hhea`, `OS/2` (USE_TYPO_METRICS), `name`, `hmtx`, `cmap`; the TrueType outline format (`0x00010000`).
 - `docs/spec/notation.md`: 6.2, 6.4, 6.12, 7.1, 7.3, N1, N2, N6, Q5, sections 13 and 14.
+- `docs/spec/error-catalogue.md` and its record: FS-0032, FS-0035, FS-0039, FS-0049 to FS-0053 (the codes of this part; the meaning of FS-0034 is a length below 0 where 0 or more is taken, so it is not used for a size that must be above 0).
 - `DECISIONS.md` A8 (the test font), A9 (the machine's fonts are a known gap), A29 (the stated values of the card's tolerance, which this part does not state), B4 (the proofs are a record, not a source of files).
 - `docs/spec/test-font.md`: the test font's glyphs, advances and tables.
 - `PLAN.md` section 3 (the crates) and section 5 (the picture rules).
