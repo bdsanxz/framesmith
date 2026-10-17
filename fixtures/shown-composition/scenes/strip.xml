@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A composition shown at the foot of the composition of the fixture: 96 by 14 pixels, 30 frames a second, and
+     1 second long, so the clip that shows it runs longer than the file. -->
+<composition version="1" id="strip" width="96" height="14" fps="30" duration="1" background="#000000">
+  <box id="band" left="0" top="0" width="96" height="14" background="#00a0a0"/>
+</composition>

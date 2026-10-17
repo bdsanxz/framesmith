@@ -42,15 +42,31 @@ fn checked_in() -> Vec<(String, Vec<(u64, PathBuf)>)> {
     out
 }
 
-/// A project folder of the test's own, holding a copy of the fixture's composition.
+/// A project folder of the test's own, holding a copy of the fixture's files; its `expected` pictures are left out.
 fn project_of(fixture: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("within-one-level").join(fixture);
     if dir.exists() {
         fs::remove_dir_all(&dir).unwrap();
     }
-    fs::create_dir_all(&dir).unwrap();
-    fs::copy(fixtures().join(fixture).join("composition.xml"), dir.join("composition.xml")).unwrap();
+    copy_tree(&fixtures().join(fixture), &dir);
     dir
+}
+
+/// Copies the files and folders of `from` into `to`, all but a folder named `expected`.
+fn copy_tree(from: &Path, to: &Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let target = to.join(entry.file_name());
+        if path.is_dir() {
+            if entry.file_name() != "expected" {
+                copy_tree(&path, &target);
+            }
+        } else {
+            fs::copy(&path, &target).unwrap();
+        }
+    }
 }
 
 #[test]

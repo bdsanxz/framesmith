@@ -57,7 +57,6 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
         ("<image src=\"i.png\"/>", "<image>"),
         ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
         ("<shape src=\"s.svg\"/>", "<shape>"),
-        ("<composition src=\"other.xml\"/>", "<composition src>"),
     ]
     .into_iter()
     .enumerate()
