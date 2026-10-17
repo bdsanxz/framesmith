@@ -89,6 +89,11 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0041` | invalid | A `<style>` of the composition file has no `id`, so no element can take it. | Write an `id` on each `<style>`, the name that elements take it by. |
 | `FS-0042` | invalid | Two `<style>` elements of the composition file have the same `id`. | Give each `<style>` of the file its own `id`. |
 | `FS-0043` | invalid | An element's `class` names a style that the composition file does not have. | Name a `<style>` of this file in `class`, or write its attributes on the element. |
+| `FS-0044` | invalid | A composition shows itself, directly or through the compositions it shows. | Take out the `<composition src>` that closes the loop, so that no composition shows itself. |
+| `FS-0045` | invalid | A chain of compositions shown by `<composition src>` is more than 16 compositions deep, the root counted. | Show fewer compositions in one chain: at most 16 with the root, each shown by the one before it. |
+| `FS-0046` | invalid | A composition shown by `<composition src>` has another frame rate from the composition that shows it. | Write in the shown composition the same `fps` as in the one that shows it, a missing `fps` counting as 30. |
+| `FS-0047` | invalid | A composition shown by `<composition src>` does not exist in the project folder. | Give the path of a composition file in the project folder, or put the file there. |
+| `FS-0048` | failure | A composition shown by `<composition src>` is in the project folder and could not be read. | Make the shown composition file readable by this user, then run the command again. |
 
 Notes on the rows:
 
@@ -103,6 +108,7 @@ Notes on the rows:
 - `FS-0039` was added with the places of a box (`render-command.md` section 3): a `position` that is neither `static` nor `absolute`. A word out of a list the notation gives is an invalid value, not a form of this version that is unsupported, since the list is the notation's and not this version's.
 - `FS-0040` was added with the clip window of a box (`notation.md` section 5.2): `start` and `duration` are written both or neither, on each element that takes them as a clip (`notation.md` section 6). The report is on the line of the element. It is of the kind invalid, since the pair is the notation's own rule and not a form this version leaves out.
 - `FS-0041` to `FS-0043` were added with shared styles (`notation.md` section 9 and N5; `check-command.md` section 3c): a `<style>` with no `id`, two styles with one `id`, and a `class` that names no style of the file. `FS-0030` and `FS-0031` keep their meanings for a style, with the messages of `check-command.md` section 3c.
+- `FS-0044` to `FS-0048` were added with the compositions shown from other files (`notation.md` sections 10 and 13). `FS-0044` to `FS-0047` are of the kind invalid, since the author wrote a loop, a chain too deep, a frame rate that differs, or a path that is wrong. `FS-0048` is of the kind failure, since the file is there and the machine would not give it, as `FS-0016`, `FS-0020`, `FS-0026` and `FS-0028` are.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list
