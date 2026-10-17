@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two words of the test font's capitals at 20 pixels, with a span of the same capitals at 44 pixels in blue between
+     them. The span makes its line as tall as its own size needs, and its letters stand on the baseline of the others.
+     200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-spans-larger-size" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20" color="#202020">HI <span font-size="44" color="#2050c0">II</span> HI</text>
+</composition>

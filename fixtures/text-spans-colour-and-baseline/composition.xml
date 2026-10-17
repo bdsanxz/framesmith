@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Three words of the test font's capitals at 30 pixels. The middle word is a span in red, and its letters stand on
+     the same baseline as the words around it. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-spans-colour-and-baseline" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="20" font-family="Framesmith Test Stroke" font-size="30" color="#202020">HI <span color="#c02020">II</span> HH</text>
+</composition>

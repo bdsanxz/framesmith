@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two words of the test font's capitals at 30 pixels, with a span in red between them that has a margin of 12 pixels and
+     a padding of 6 pixels on each side. The room on each side is 18 pixels, and it does not change the height of the line.
+     200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-spans-margin-and-padding" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="20" font-family="Framesmith Test Stroke" font-size="30" color="#202020">HI<span margin="0 12" padding="0 6" color="#c02020">II</span>HH</text>
+</composition>

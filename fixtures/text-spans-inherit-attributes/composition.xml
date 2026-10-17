@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two words of the test font's capitals at 30 pixels in blue. The span in the middle writes only its weight, so it takes
+     the family, the size and the colour of its text, and is drawn in the Bold face. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-spans-inherit-attributes" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <font src="fonts/framesmith-test-stroke-700.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="20" font-family="Framesmith Test Stroke" font-size="30" color="#2050c0">HI <span font-weight="700">II</span> HH</text>
+</composition>
