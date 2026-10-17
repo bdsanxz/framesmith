@@ -6,6 +6,8 @@
 //! animate read the attributes they take through [`Attribute`], which reads the value forms of
 //! `docs/spec/notation.md` section 4 (a length, a colour).
 
+use std::collections::HashMap;
+
 use crate::root::{shown, Spot};
 use crate::schema::Element;
 use crate::styles::{self, Styles};
@@ -90,6 +92,15 @@ impl Attribute {
     }
 }
 
+/// One part of the text of a `<text>` or a `<span>`, in document order (`docs/spec/text.md`, section 6.5).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Part {
+    /// Words as they are written, their white space unchanged (`docs/spec/text.md`, section 5, collapses it).
+    Words(String),
+    /// A `<span>` inside the text, by its place in [`Tree::nodes`].
+    Span(usize),
+}
+
 /// One element of the file.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Node {
@@ -97,7 +108,7 @@ pub struct Node {
     line: u32,
     parent: Option<usize>,
     attributes: Vec<Attribute>,
-    words: String,
+    parts: Vec<Part>,
 }
 
 impl Node {
@@ -126,10 +137,9 @@ impl Node {
         self.attributes.iter().find(|attribute| attribute.name == name)
     }
 
-    /// The words a `<text>` writes: its direct text, as written, with its white space unchanged
-    /// (`docs/spec/text.md` section 5 collapses it). Empty for every other element.
-    pub fn words(&self) -> &str {
-        &self.words
+    /// The words and spans of a `<text>` or a `<span>`, in the order they are written. Empty for every other element.
+    pub fn parts(&self) -> &[Part] {
+        &self.parts
     }
 }
 
@@ -152,12 +162,24 @@ impl Tree {
     }
 }
 
-/// The text that the direct children of an element hold, joined in document order.
-fn direct_text(node: roxmltree::Node) -> String {
-    node.children()
-        .filter(roxmltree::Node::is_text)
-        .filter_map(|child| child.text())
-        .collect()
+/// The parts of a `<text>` or a `<span>`: its words, as written, and the `<span>`s among them, in document order. A
+/// child that is not a `<span>` is not a part; the structure check refuses any such child before the tree is made.
+fn parts_of(node: roxmltree::Node, span_at: &HashMap<roxmltree::NodeId, usize>) -> Vec<Part> {
+    let mut parts: Vec<Part> = Vec::new();
+    for child in node.children() {
+        if child.is_text() {
+            let Some(text) = child.text() else {
+                continue;
+            };
+            match parts.last_mut() {
+                Some(Part::Words(words)) => words.push_str(text),
+                _ => parts.push(Part::Words(text.to_string())),
+            }
+        } else if let Some(&index) = span_at.get(&child.id()) {
+            parts.push(Part::Span(index));
+        }
+    }
+    parts
 }
 
 /// Makes the tree of a document that `structure::judge` found no problem in.
@@ -172,6 +194,8 @@ pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles)
     };
     let namespace = document.root_element().tag_name().namespace();
     let mut nodes: Vec<Node> = Vec::new();
+    // The document node of each element of `nodes`, in the same order, so that the parts can be read after the tree is made.
+    let mut handles: Vec<roxmltree::Node> = Vec::new();
     // Iterative, so that a deeply nested file cannot exhaust the stack. A node is taken after the
     // ones before it in the file, since the children of a node are put on the stack in reverse.
     let mut pending: Vec<(roxmltree::Node, Option<usize>, Element)> = vec![(document.root_element(), None, Element::Composition)];
@@ -190,12 +214,9 @@ pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles)
                     given_by: entry.from,
                 })
                 .collect(),
-            words: if element == Element::Text {
-                direct_text(node)
-            } else {
-                String::new()
-            },
+            parts: Vec::new(),
         });
+        handles.push(node);
         let children: Vec<roxmltree::Node> = node.children().filter(roxmltree::Node::is_element).collect();
         for child in children.into_iter().rev() {
             let has_src = child
@@ -208,6 +229,23 @@ pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles)
                 pending.push((child, Some(index), kind));
             }
         }
+    }
+    let span_at: HashMap<roxmltree::NodeId, usize> = nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, node)| node.element == Element::Span)
+        .map(|(index, _)| (handles[index].id(), index))
+        .collect();
+    let parts: Vec<Vec<Part>> = nodes
+        .iter()
+        .zip(&handles)
+        .map(|(node, handle)| match node.element {
+            Element::Text | Element::Span => parts_of(*handle, &span_at),
+            _ => Vec::new(),
+        })
+        .collect();
+    for (node, node_parts) in nodes.iter_mut().zip(parts) {
+        node.parts = node_parts;
     }
     Tree { nodes }
 }

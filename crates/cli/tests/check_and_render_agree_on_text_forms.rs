@@ -23,11 +23,16 @@ const HEAD: &str = r##"<composition version="1" id="film" width="160" height="60
 
 /// Each form inside a `<text>` that this version does not draw, with the start of the message that both commands
 /// give for it.
-const TEXT_FORMS: [(&str, &str, &str); 4] = [
+const TEXT_FORMS: [(&str, &str, &str); 5] = [
     (
-        "span-inside-text",
-        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB <span color="#ff0000">CD</span></text>"##,
-        "<span> inside <text> is not supported by this version",
+        "tween-inside-span",
+        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB <span color="#ff0000">CD<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></span></text>"##,
+        "<tween> inside <text> is not supported by this version",
+    ),
+    (
+        "percentage-margin-on-span",
+        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB <span margin="10%" color="#ff0000">CD</span></text>"##,
+        "`margin=\"10%\"` on <span> is not a form this version supports",
     ),
     (
         "tween-inside-text",

@@ -47,3 +47,28 @@ fn the_frames_of_line_heights_and_letter_spacings_equal_their_checked_in_picture
 fn the_frames_of_texts_inside_a_box_equal_their_checked_in_pictures() {
     drawn_frames_equal_the_checked_in_pictures("text-attributes-inherited");
 }
+
+#[test]
+fn the_frames_of_a_span_in_another_colour_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-spans-colour-and-baseline");
+}
+
+#[test]
+fn the_frames_of_a_span_in_a_larger_size_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-spans-larger-size");
+}
+
+#[test]
+fn the_frames_of_a_span_that_takes_the_attributes_of_its_text_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-spans-inherit-attributes");
+}
+
+#[test]
+fn the_frames_of_a_span_broken_across_two_lines_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-spans-line-break");
+}
+
+#[test]
+fn the_frames_of_a_span_with_margin_and_padding_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-spans-margin-and-padding");
+}

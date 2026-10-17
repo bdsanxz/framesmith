@@ -4,8 +4,8 @@
 
 use draw::Colour;
 use layout::{place, Amount, Beyond, Rect, Written, LIMIT};
-use project::{Attribute, Code, Element, Length, Node, Project};
-use text::{Align, Block, FontError, Fonts, LineHeight, Style};
+use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
+use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
 
 /// The text attributes: a `<box>` and a `<text>` take them, and they pass to the elements inside (`text.md`
 /// section 8). A value a `<text>` writes is the one its words are drawn with.
@@ -51,6 +51,24 @@ pub(crate) const TEXT_TAKES: &[&str] = &[
     "max-width",
 ];
 
+/// What a `<span>` takes (`docs/spec/text.md`, section 6.5): its id and class, its margin and padding, and the text
+/// attributes that section 6.4 draws. Any other attribute is a fault on its line, and the span is not drawn.
+pub(crate) const SPAN_TAKES: &[&str] = &[
+    "id",
+    "class",
+    "margin",
+    "padding",
+    "font-family",
+    "font-weight",
+    "font-style",
+    "font-size",
+    "line-height",
+    "letter-spacing",
+    "color",
+    "white-space",
+    "text-transform",
+];
+
 /// A fault of a text or a font, as the timeline reports it: its code, the line it is on, its message, and whether
 /// a `<style>` gives the attribute it is about (`docs/spec/check-command.md`, section 3c).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -81,12 +99,11 @@ pub(crate) struct TextAttrs {
     align: Option<Align>,
 }
 
-/// A paragraph placed in its place: its rectangle in the frame, its lines, and its colour.
+/// A paragraph placed in its place: its rectangle in the frame and its lines. The colour of each run is in the block.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Paragraph {
     pub(crate) rect: Rect,
     pub(crate) block: Block,
-    pub(crate) colour: Colour,
 }
 
 /// Reads the text attributes that an element writes. A value that is not in the form the notation gives is a fault
@@ -356,7 +373,6 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
 /// height is the one written, or the height of its lines. Gives the rectangle and the lines, or the fault that stops it.
 pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, parent: Rect) -> Result<Paragraph, Fault> {
     let node = &tree[index];
-    let (style, colour) = style_of(tree, index);
     let beyond = |Beyond| Fault {
         code: Code::FormNotSupported,
         line: node.line(),
@@ -380,7 +396,7 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
     } else {
         None
     };
-    let block = lay_block(fonts, node, &style, wrap, written.max_width)?;
+    let block = lay_block(fonts, tree, index, wrap, written.max_width)?;
     let mut sized = written;
     if sized.width.is_none() {
         sized.width = Some(Amount::Pixels(f64::from(block.width).ceil()));
@@ -389,7 +405,7 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
         sized.height = Some(Amount::Pixels(f64::from(block.height).ceil()));
     }
     let rect = place(parent, sized).map_err(beyond)?;
-    Ok(Paragraph { rect, block, colour })
+    Ok(Paragraph { rect, block })
 }
 
 /// A `<text>` laid out as an item of a row, a column or a set (`render-command.md` section 4.3, rule 14; `text.md`
@@ -398,7 +414,6 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
 /// line; the glyphs and the lines of the block are moved by the same amount.
 pub(crate) struct ItemText {
     pub(crate) block: Block,
-    pub(crate) colour: Colour,
     pub(crate) width: f64,
     pub(crate) height: f64,
     pub(crate) baseline: Option<f64>,
@@ -411,7 +426,6 @@ pub(crate) struct ItemText {
 /// fault that stops it.
 pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, absolute: bool) -> Result<ItemText, Fault> {
     let node = &tree[index];
-    let (style, colour) = style_of(tree, index);
     if absolute && written.width.is_none() && written.left.is_some() && written.right.is_some() {
         return Err(Fault {
             code: Code::FormNotSupported,
@@ -424,7 +438,7 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
     }
     let width = flow_pixels(written.width, "width", node)?;
     let height = flow_pixels(written.height, "height", node)?;
-    let mut block = lay_block(fonts, node, &style, width.map(|pixels| pixels as f32), written.max_width)?;
+    let mut block = lay_block(fonts, tree, index, width.map(|pixels| pixels as f32), written.max_width)?;
     let first = block.lines.first().map(|line| f64::from(line.baseline));
     let baseline = first.map(|first| {
         let whole = (first + 0.5).floor();
@@ -443,7 +457,6 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
     let height = height.unwrap_or_else(|| f64::from(block.height).ceil());
     Ok(ItemText {
         block,
-        colour,
         width,
         height,
         baseline,
@@ -467,14 +480,17 @@ fn flow_pixels(amount: Option<Amount>, name: &str, node: &Node) -> Result<Option
     }
 }
 
-/// Lays out the words of the `<text>` at `node` in `style`: wrapped at `wrap` where a width is given, else broken so that
-/// no line is wider than `max` where a `max-width` is written (`text.md` section 5.3), else one line. Gives the block, or
-/// the fault of a character that no family has.
-fn lay_block(fonts: &mut Fonts, node: &Node, style: &Style, wrap: Option<f32>, max: Option<f64>) -> Result<Block, Fault> {
+/// Lays out the paragraph of the `<text>` at `index` (`docs/spec/text.md`, section 6.5), its pieces in the style of each
+/// element: wrapped at `wrap` where a width is given, else broken so that no line is wider than `max` where a `max-width`
+/// is written (section 5.3), else one line. Gives the block, or the fault of a character that no family has.
+fn lay_block(fonts: &mut Fonts, tree: &[Node], index: usize, wrap: Option<f32>, max: Option<f64>) -> Result<Block, Fault> {
+    let node = &tree[index];
+    let (style, _) = style_of(tree, index);
+    let pieces = pieces_of(tree, index);
     let laid = match (wrap, max) {
-        (Some(width), _) => text::layout(fonts, node.words(), style, Some(width)),
-        (None, Some(max)) => text::layout_fitted(fonts, node.words(), style, max as f32),
-        (None, None) => text::layout(fonts, node.words(), style, None),
+        (Some(width), _) => text::layout_pieces(fonts, &pieces, style.align, Some(width)),
+        (None, Some(max)) => text::layout_fitted_pieces(fonts, &pieces, style.align, max as f32),
+        (None, None) => text::layout_pieces(fonts, &pieces, style.align, None),
     };
     laid.map_err(|error| Fault {
         code: Code::FormNotSupported,
@@ -482,6 +498,185 @@ fn lay_block(fonts: &mut Fonts, node: &Node, style: &Style, wrap: Option<f32>, m
         message: format!("<text> is not drawn by this version: {error}"),
         style: false,
     })
+}
+
+/// The pieces of the `<text>` at `index` (`docs/spec/text.md`, section 6.5), in document order: its words and those of its
+/// `<span>`s, each in the style and the colour of the element that holds it (section 8), and the room of a span's margin and
+/// padding at each of its edges. A text with no span is one piece of words, as before.
+pub(crate) fn pieces_of(tree: &[Node], index: usize) -> Vec<Piece> {
+    // The work still to do, last first: the parts of an element from a position on, or the room after a span.
+    enum Work {
+        Parts(usize, usize),
+        Room(f32),
+    }
+    let mut pieces: Vec<Piece> = Vec::new();
+    let mut work = vec![Work::Parts(index, 0)];
+    while let Some(next) = work.pop() {
+        match next {
+            Work::Room(width) => pieces.push(Piece::Room { width }),
+            Work::Parts(element, at) => {
+                let Some(part) = tree[element].parts().get(at) else {
+                    continue;
+                };
+                work.push(Work::Parts(element, at + 1));
+                match part {
+                    Part::Words(words) => {
+                        let (style, colour) = style_of(tree, element);
+                        pieces.push(Piece::Words {
+                            words: words.clone(),
+                            style,
+                            colour: rgba(colour),
+                        });
+                    }
+                    Part::Span(span) => {
+                        let (left, right) = edge_room(&tree[*span]);
+                        if left > 0.0 {
+                            pieces.push(Piece::Room { width: left });
+                        }
+                        if right > 0.0 {
+                            work.push(Work::Room(right));
+                        }
+                        work.push(Work::Parts(*span, 0));
+                    }
+                }
+            }
+        }
+    }
+    pieces
+}
+
+/// The spans inside the element at `index`, in document order: each is before the spans written inside it.
+fn spans_in(tree: &[Node], index: usize) -> Vec<usize> {
+    let mut found = Vec::new();
+    let mut pending: Vec<usize> = Vec::new();
+    let push_spans_of = |element: usize, pending: &mut Vec<usize>| {
+        let spans: Vec<usize> = tree[element]
+            .parts()
+            .iter()
+            .filter_map(|part| match part {
+                Part::Span(span) => Some(*span),
+                Part::Words(_) => None,
+            })
+            .collect();
+        pending.extend(spans.into_iter().rev());
+    };
+    push_spans_of(index, &mut pending);
+    while let Some(span) = pending.pop() {
+        found.push(span);
+        push_spans_of(span, &mut pending);
+    }
+    found
+}
+
+/// The room a span holds at its left and at its right edge (`docs/spec/text.md`, section 6.5, rule 4): its margin and its
+/// padding on that side, in pixels. A value that is not drawn holds no room, and its fault is reported with the text.
+fn edge_room(node: &Node) -> (f32, f32) {
+    let (margin_left, margin_right) = horizontal_sides(node, "margin");
+    let (padding_left, padding_right) = horizontal_sides(node, "padding");
+    ((margin_left + padding_left) as f32, (margin_right + padding_right) as f32)
+}
+
+/// The left and the right side of a `margin` or a `padding` written in one to four numbers, in CSS's shorthand order (top,
+/// right, bottom, left): one number is every side, two are the vertical and the horizontal, three are top, the horizontal and
+/// bottom, and four are all four. Only the horizontal sides are drawn (`docs/spec/text.md`, section 6.5, rule 4). A negative
+/// side is taken as 0, its fault being reported with the text.
+fn horizontal_sides(node: &Node, name: &str) -> (f64, f64) {
+    let Some(values) = node.attribute(name).and_then(Attribute::sides) else {
+        return (0.0, 0.0);
+    };
+    let (left, right) = match values.as_slice() {
+        [all] => (*all, *all),
+        [_, horizontal] => (*horizontal, *horizontal),
+        [_, horizontal, _] => (*horizontal, *horizontal),
+        [_, right, _, left] => (*left, *right),
+        _ => (0.0, 0.0),
+    };
+    (left.max(0.0), right.max(0.0))
+}
+
+/// The faults of the `<span>`s inside the `<text>` at `index`, in document order (`docs/spec/text.md`, section 6.5): an
+/// attribute a span does not take, a margin or a padding that is not drawn, and a text attribute that is not in the form the
+/// notation gives. Each is on the line of its attribute. Gives no fault for a text with no span.
+pub(crate) fn span_faults(tree: &[Node], index: usize) -> Vec<Fault> {
+    let mut faults = Vec::new();
+    for span in spans_in(tree, index) {
+        for attribute in tree[span].attributes() {
+            if let Some(fault) = span_attribute_fault(attribute) {
+                faults.push(fault);
+            }
+        }
+    }
+    faults
+}
+
+/// The fault of one attribute of a `<span>`, if it has one.
+fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
+    let name = attribute.name();
+    let value = attribute.value();
+    let style = attribute.given_by().is_some();
+    let fault = |code: Code, message: String| Fault {
+        code,
+        line: attribute.line(),
+        message,
+        style,
+    };
+    if !SPAN_TAKES.contains(&name) {
+        let message = format!("<span> has an attribute this version does not support: `{}`", shown(name));
+        let message = match attribute.given_by() {
+            None => message,
+            Some(given) => format!("{message}, which the style `{}` gives it", shown(given)),
+        };
+        return Some(fault(Code::FormNotSupported, message));
+    }
+    match name {
+        "margin" | "padding" => sides_refusal(name, attribute).map(|(code, message)| fault(code, message)),
+        "white-space" if value != "normal" => Some(fault(
+            Code::FormNotSupported,
+            format!("`white-space=\"{value}\"` on <span> is not a form this version supports: normal"),
+        )),
+        "text-transform" if value != "none" => Some(fault(
+            Code::FormNotSupported,
+            format!("`text-transform=\"{value}\"` on <span> is not a form this version supports: none"),
+        )),
+        _ => match read_text_attribute(attribute, &mut TextAttrs::default()) {
+            Err((code, message)) => Some(fault(code, message)),
+            Ok(()) => None,
+        },
+    }
+}
+
+/// Why a `margin` or a `padding` of a span is not drawn: a value that is not one to four numbers, a percentage, and a
+/// negative margin are refused; a negative padding is refused as a box's is (`docs/spec/notation.md`, section 7.2).
+fn sides_refusal(name: &str, attribute: &Attribute) -> Option<(Code, String)> {
+    let value = attribute.value();
+    if value.contains('%') {
+        return Some((
+            Code::FormNotSupported,
+            format!("`{name}=\"{value}\"` on <span> is not a form this version supports: a number of pixels"),
+        ));
+    }
+    let Some(values) = attribute.sides() else {
+        return Some((
+            Code::NotANumber,
+            format!("`{name}=\"{value}\"` is not one to four numbers, such as 4 or 4 8"),
+        ));
+    };
+    if !values.iter().any(|side| *side < 0.0) {
+        return None;
+    }
+    if name == "padding" {
+        Some((Code::LengthNotAccepted, format!("`padding=\"{value}\"` must be 0 or more")))
+    } else {
+        Some((
+            Code::FormNotSupported,
+            format!("`margin=\"{value}\"` on <span> is not drawn by this version: a margin of 0 or more"),
+        ))
+    }
+}
+
+/// A colour of the notation (opaque, as a text's is) as the four bytes the text layout takes.
+fn rgba(colour: Colour) -> [u8; 4] {
+    [colour.red, colour.green, colour.blue, 255]
 }
 
 /// A number as the notation writes it: an optional sign, digits with an optional point, and an optional exponent,
