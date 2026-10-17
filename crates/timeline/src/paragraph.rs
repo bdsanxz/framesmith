@@ -416,7 +416,9 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
         return Err(Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message: "a <text> with `left` and `right` and no `width`, inside a row or a column, is not drawn by this version".to_string(),
+            message:
+                "a <text> with `left` and `right` and no `width`, inside a row, a column or a set of columns, is not drawn by this version"
+                    .to_string(),
             style: false,
         });
     }
