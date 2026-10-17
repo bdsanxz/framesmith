@@ -3,7 +3,7 @@
 
 use draw::{Colour, DisplayList, Picture, Renderer, Step};
 use layout::{Across, Along, Amount, Beyond, Direction, Flex, Item, Measured, Rect, Sides, Written, LIMIT};
-use project::{Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
+use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use timebase::Time;
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
@@ -11,12 +11,13 @@ use timebase::Time;
 const SOUND_KBITS_LOWEST: u32 = 64;
 const SOUND_KBITS_HIGHEST: u32 = 320;
 
-/// What the root takes.
-const ROOT_TAKES: [&str; 7] = ["id", "version", "width", "height", "fps", "duration", "background"];
+/// What the root takes: its seven attributes, and `class`, the names of the styles it takes (`docs/spec/notation.md` section 9).
+const ROOT_TAKES: [&str; 8] = ["id", "class", "version", "width", "height", "fps", "duration", "background"];
 /// What a `<box>` takes: its place, its margin and its position, what it draws and its window, and
 /// the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3).
-const BOX_TAKES: [&str; 18] = [
+const BOX_TAKES: [&str; 19] = [
     "id",
+    "class",
     "left",
     "top",
     "right",
@@ -219,10 +220,11 @@ impl Scene {
 }
 
 /// The reports of the forms of a place, a size, a margin, a position and the words and numbers of a
-/// row or column that this version does not list, in the order of the file. They are the reports
-/// `Scene::from_project` makes of those forms, by the same code, without the settings of the project
-/// file and without the refusals of what is drawn: `check` judges the forms of a place and does not
-/// judge the rest (`docs/spec/check-command.md`, section 3b).
+/// row or column that this version does not list, in the order of the file, and of an attribute that a
+/// `<style>` gives and this version does not draw. They are the reports `Scene::from_project` makes of
+/// those forms, by the same code, without the settings of the project file and without the other
+/// refusals of what is drawn: `check` judges the forms of a place and the attributes that a style gives,
+/// and does not judge the rest (`docs/spec/check-command.md`, sections 3b and 3c).
 pub fn place_reports(project: &Project) -> Vec<Report> {
     walk(project, true).1
 }
@@ -265,18 +267,18 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             // The root.
             for attribute in node.attributes() {
                 if !ROOT_TAKES.contains(&attribute.name()) {
-                    refusals.push(Refusal::of_drawing(
+                    refusals.push(Refusal::of_attribute(
                         Code::FormNotSupported,
-                        attribute.line(),
-                        unsupported_attribute(node, attribute.name()),
+                        attribute,
+                        unsupported_attribute(node, attribute),
                     ));
                 }
             }
             if let (Some(attribute), true) = (node.attribute("background"), root.background.alpha != 255) {
-                refusals.push(Refusal::of_drawing(
+                refusals.push(Refusal::of_attribute(
                     Code::FormNotSupported,
-                    attribute.line(),
-                    unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb"),
+                    attribute,
+                    unsupported_colour(node, attribute),
                 ));
             }
             places.push(Some(Slot {
@@ -291,6 +293,11 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
             places.push(None);
             continue;
         };
+        // A style draws nothing: it is read, and it stands in the file without a picture.
+        if node.element() == Element::Style {
+            places.push(None);
+            continue;
+        }
         if node.element() != Element::Box {
             let message = if parent == 0 {
                 unsupported_element(node.element())
@@ -385,20 +392,22 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Placed>, Vec<Report>) {
     refusals.sort_by_key(|refusal| refusal.line);
     let reports = refusals
         .into_iter()
-        .filter(|refusal| refusal.place || !place_only)
+        .filter(|refusal| refusal.place || refusal.style || !place_only)
         .map(|refusal| Report::new(file, Problem::new(refusal.code, refusal.line, refusal.message)))
         .collect();
     (boxes, reports)
 }
 
-/// A refusal of the root or of a box: its code, its line, its message, and whether it is of a form
-/// of a place (`place`: a length, a size, a margin, a position or a word of a row or column), which
-/// `check` judges as well.
+/// A refusal of the root or of a box: its code, its line, its message, whether it is of a form of a
+/// place (`place`: a length, a size, a margin, a position or a word of a row or column), which `check`
+/// judges as well, and whether a `<style>` gives the attribute it is about (`style`), which `check`
+/// judges too (`docs/spec/check-command.md`, section 3c).
 struct Refusal {
     code: Code,
     line: u32,
     message: String,
     place: bool,
+    style: bool,
 }
 
 impl Refusal {
@@ -409,6 +418,7 @@ impl Refusal {
             line,
             message,
             place: true,
+            style: false,
         }
     }
 
@@ -419,6 +429,19 @@ impl Refusal {
             line,
             message,
             place: false,
+            style: false,
+        }
+    }
+
+    /// A refusal of an attribute of the root or of a box, which is on the attribute's line. It is one
+    /// `check` judges as well when a `<style>` gives the attribute.
+    fn of_attribute(code: Code, attribute: &Attribute, message: String) -> Refusal {
+        Refusal {
+            code,
+            line: attribute.line(),
+            message,
+            place: false,
+            style: attribute.given_by().is_some(),
         }
     }
 }
@@ -463,10 +486,10 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     for attribute in node.attributes() {
         let name = attribute.name();
         if !BOX_TAKES.contains(&name) {
-            refusals.push(Refusal::of_drawing(
+            refusals.push(Refusal::of_attribute(
                 Code::FormNotSupported,
-                attribute.line(),
-                unsupported_attribute(node, name),
+                attribute,
+                unsupported_attribute(node, attribute),
             ));
             continue;
         }
@@ -599,18 +622,18 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                         blue: found.blue,
                     })
                 }
-                _ => refusals.push(Refusal::of_drawing(
+                _ => refusals.push(Refusal::of_attribute(
                     Code::FormNotSupported,
-                    attribute.line(),
-                    unsupported_value(node, name, &value, "one opaque colour, #rrggbb"),
+                    attribute,
+                    unsupported_colour(node, attribute),
                 )),
             },
             "start" | "duration" => match attribute.time() {
                 Some(time) if name == "start" => start = Some(time),
                 Some(time) => duration = Some(time),
-                None => refusals.push(Refusal::of_drawing(
+                None => refusals.push(Refusal::of_attribute(
                     Code::NotATime,
-                    attribute.line(),
+                    attribute,
                     format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
                 )),
             },
@@ -787,12 +810,18 @@ fn unsupported_inside_box(element: Element) -> String {
     )
 }
 
-fn unsupported_attribute(node: &Node, name: &str) -> String {
-    format!(
+/// The message for an attribute this version does not draw; one a style gives names the style, since
+/// the line given is the element's (`docs/spec/check-command.md` section 3c).
+fn unsupported_attribute(node: &Node, attribute: &Attribute) -> String {
+    let message = format!(
         "{} has an attribute this version does not support: `{}`",
         node.element().tag(),
-        project::shown(name)
-    )
+        project::shown(attribute.name())
+    );
+    match attribute.given_by() {
+        None => message,
+        Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
+    }
 }
 
 fn unsupported_value(node: &Node, name: &str, value: &str, takes: &str) -> String {
@@ -800,6 +829,17 @@ fn unsupported_value(node: &Node, name: &str, value: &str, takes: &str) -> Strin
         "`{name}=\"{value}\"` on {} is not a form this version supports: {takes}",
         node.element().tag()
     )
+}
+
+/// The message for a `background` that is not one opaque colour; one a style gives names the style,
+/// as the message of an attribute this version does not draw does (`docs/spec/check-command.md`
+/// section 3c).
+fn unsupported_colour(node: &Node, attribute: &Attribute) -> String {
+    let message = unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb");
+    match attribute.given_by() {
+        None => message,
+        Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
+    }
 }
 
 /// Settings in use that this version does not apply: the renderer is the processor's, the encoder

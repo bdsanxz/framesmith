@@ -12,6 +12,7 @@ mod problem;
 mod root;
 mod schema;
 mod structure;
+mod styles;
 mod tree;
 mod value;
 

@@ -11,13 +11,15 @@
 use crate::code::Code;
 use crate::root::{found, shown, trimmed, Found, Spot};
 use crate::schema::{Element, Form};
+use crate::styles::{self, Effective, Styles};
 use crate::value::{self, NotANumber};
 
-/// Judges every element under the root and the attributes of the root that it does not take.
+/// Judges every element under the root, and the attributes of the root that it does not take.
 ///
 /// `text` is the source, so that a name is shown as it was written, with its prefix. The values of
-/// the root's own attributes are judged by `read_root`, and are not looked at here.
-pub(crate) fn judge(document: &roxmltree::Document, text: &str, problems: &mut Vec<Found>) {
+/// the root's own attributes are judged by `read_root`, and are not looked at here. Each element is
+/// judged by the attributes it reads: its own, and those the styles it names give it (`styles`).
+pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles, problems: &mut Vec<Found>) {
     let root = document.root_element();
     let namespace = root.tag_name().namespace();
     let spot_at = |offset: usize| {
@@ -32,8 +34,19 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, problems: &mut V
     // nested file cannot exhaust the stack.
     let mut pending: Vec<(roxmltree::Node, Element)> = vec![(root, Element::Composition)];
     while let Some((node, element)) = pending.pop() {
-        attributes(node, element, text, &spot_at, problems);
-        clip_pair(node, element, &spot_at, problems);
+        let read = styles::effective(node, text, element, styles, &spot_at);
+        if let Some((name, spot)) = styles::unknown_class(&read, element, styles) {
+            problems.push(found(
+                Code::ClassNamesNoStyle,
+                spot,
+                format!(
+                    "`class` names the style `{}`, and this file has no <style> with that id",
+                    shown(&name)
+                ),
+            ));
+        }
+        attributes(node, element, &read, problems);
+        clip_pair(&read, element, spot_at(node.range().start), problems);
 
         for child in node.children().filter(roxmltree::Node::is_element) {
             let spot = spot_at(child.range().start);
@@ -73,6 +86,21 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, problems: &mut V
                 ));
                 continue;
             }
+            // A style holds attributes only: an element written inside one is reported, and is not read further.
+            if element == Element::Style {
+                problems.push(found(
+                    Code::ElementNotHere,
+                    spot,
+                    format!(
+                        "the style `{}` holds {}, and a style holds attributes only; {} stands directly in {}",
+                        shown(&style_id(node)),
+                        kind.tag(),
+                        with_article(kind),
+                        list(&kind.parents(), "or")
+                    ),
+                ));
+                continue;
+            }
             if !element.children().contains(&kind) {
                 problems.push(found(Code::ElementNotHere, spot, misplaced(kind, element)));
             }
@@ -81,21 +109,38 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, problems: &mut V
     }
 }
 
-/// The attributes of one element: those it does not take, and the numbers and times it writes.
-fn attributes(node: roxmltree::Node, element: Element, text: &str, spot_at: &dyn Fn(usize) -> Spot, problems: &mut Vec<Found>) {
-    for attribute in node.attributes() {
-        let spot = spot_at(attribute.range().start);
-        let name = attribute.name();
-        if attribute.namespace().is_some() || !element.takes(name) {
-            let written = shown(&written_name(text, attribute.range().start));
+/// The attributes of one element as it reads them: those it does not take, and the numbers and times
+/// it writes. A value a style gives is judged on the element, and reported on the element's place
+/// (`docs/spec/check-command.md` section 3c).
+fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], problems: &mut Vec<Found>) {
+    for attribute in read {
+        let spot = attribute.spot;
+        let name = attribute.name.as_str();
+        if element == Element::Style && name == "class" && !attribute.prefixed {
             problems.push(found(
                 Code::AttributeNotTaken,
                 spot,
-                format!("{} has no attribute `{written}`", element.tag()),
+                format!(
+                    "the style `{}` has `class`; a style cannot take another style",
+                    shown(&style_id(node))
+                ),
             ));
             continue;
         }
-        let value = trimmed(attribute.value());
+        if attribute.prefixed || !element.takes(name) {
+            let message = match &attribute.from {
+                Some(style) => format!(
+                    "{} has no attribute `{}`, which the style `{}` gives it",
+                    element.tag(),
+                    shown(&attribute.written),
+                    shown(style)
+                ),
+                None => format!("{} has no attribute `{}`", element.tag(), shown(&attribute.written)),
+            };
+            problems.push(found(Code::AttributeNotTaken, spot, message));
+            continue;
+        }
+        let value = attribute.value.as_str();
         match element.form(name) {
             Form::Other => {}
             Form::Number => match value::number(value) {
@@ -141,22 +186,27 @@ fn attributes(node: roxmltree::Node, element: Element, text: &str, spot_at: &dyn
 
 /// The pair of a clip: an element that takes `start` and `duration` as a clip has both or neither
 /// (`docs/spec/notation.md` section 5.2). One report, on the line of the element, for an element
-/// with one of them and not the other.
-fn clip_pair(node: roxmltree::Node, element: Element, spot_at: &dyn Fn(usize) -> Spot, problems: &mut Vec<Found>) {
+/// with one of them and not the other. A value a style gives counts as written on the element.
+fn clip_pair(read: &[Effective], element: Element, spot: Spot, problems: &mut Vec<Found>) {
     if !element.clip_pair() {
         return;
     }
-    let written = |name: &str| {
-        node.attributes()
-            .any(|attribute| attribute.namespace().is_none() && attribute.name() == name)
-    };
+    let written = |name: &str| read.iter().any(|attribute| !attribute.prefixed && attribute.name == name);
     if written("start") != written("duration") {
         problems.push(found(
             Code::ClipNotPaired,
-            spot_at(node.range().start),
+            spot,
             format!("{} needs both start and duration, or neither", element.tag()),
         ));
     }
+}
+
+/// The `id` of a `<style>` as it is written, or nothing when it has none.
+fn style_id(node: roxmltree::Node) -> String {
+    node.attributes()
+        .find(|attribute| attribute.namespace().is_none() && attribute.name() == "id")
+        .map(|attribute| trimmed(attribute.value()).to_string())
+        .unwrap_or_default()
 }
 
 /// The message for an element the notation does not have, with what is taken where it stands.
@@ -217,7 +267,7 @@ fn list(elements: &[Element], last: &str) -> String {
 }
 
 /// The name of the element that opens at `offset`, as it is written, with its prefix.
-fn written_name(text: &str, offset: usize) -> String {
+pub(crate) fn written_name(text: &str, offset: usize) -> String {
     let rest = &text[offset..];
     let rest = rest.strip_prefix('<').unwrap_or(rest);
     rest.chars()

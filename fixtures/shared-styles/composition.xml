@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Shared styles (docs/spec/notation.md section 9): two boxes name the style `panel`; a box names
+     `panel` and writes its own background, which wins; a box names `first` and then `second`, which
+     both give a background, so `second` wins. 160 by 90 pixels, 10 frames a second for one second:
+     ten frames, all alike. -->
+<composition version="1" id="shared-styles" width="160" height="90" fps="10" duration="1" background="#102040">
+  <style id="panel" background="#e0a030" width="30" height="20"/>
+  <style id="first" background="#ff3030" height="12"/>
+  <style id="second" background="#30ff60"/>
+  <box id="one" class="panel" left="10" top="10"/>
+  <box id="two" class="panel" left="50" top="10"/>
+  <box id="own" class="panel" left="90" top="10" background="#3060ff"/>
+  <box id="both" class="first second" left="10" top="50" width="30"/>
+</composition>

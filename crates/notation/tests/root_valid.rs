@@ -102,12 +102,12 @@ fn white_space_around_a_value_is_not_part_of_it() {
 
 #[test]
 fn the_meaning_of_the_children_of_the_root_and_of_a_class_is_not_judged_here() {
-    // Every form here is one the notation lists. What `width="odd"` or an empty `<style/>` mean is
-    // for the part that draws them, and a name given by `class` is looked up with the styles.
+    // Every form here is one the notation lists. What `width="odd"` or an empty style means is for
+    // the part that draws them, and a name given by `class` is found among the styles of the file.
     let text = r#"<?xml version="1.0" encoding="UTF-8"?>
 <!-- a comment -->
 <composition version="1" width="640" height="360" duration="2" class="big">
-  <style/>
+  <style id="big"/>
   <box width="odd"><tween/></box>
 </composition>
 "#;

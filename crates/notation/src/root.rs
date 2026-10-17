@@ -3,7 +3,9 @@
 
 use crate::code::Code;
 use crate::problem::Problem;
+use crate::schema::Element;
 use crate::structure;
+use crate::styles;
 use crate::tree::{self, Tree};
 use crate::value;
 use timebase::{frame_count, Time, DEFAULT_FPS, MAX_FPS, MIN_FPS};
@@ -139,22 +141,24 @@ pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
         )]);
     }
 
+    let mut problems = Vec::new();
+    // The styles of the file, and the attributes the root reads: its own, and those its `class` gives it.
+    let table = styles::styles(element, &spot_at, &mut problems);
+    let read = styles::effective(element, text, Element::Composition, &table, &spot_at);
+
     // The written value of an attribute with the place it is at; the attribute has no namespace.
     let attribute = |name: &str| -> Written {
-        element
-            .attributes()
-            .find(|attribute| attribute.namespace().is_none() && attribute.name() == name)
-            .map(|attribute| (trimmed(attribute.value()), spot_at(attribute.range().start)))
+        read.iter()
+            .find(|entry| !entry.prefixed && entry.name == name)
+            .map(|entry| (entry.value.as_str(), entry.spot))
     };
-
-    let mut problems = Vec::new();
     let version = keep(version(attribute("version"), root_spot), &mut problems);
     let width = keep(size(attribute("width"), "width", root_spot), &mut problems);
     let height = keep(size(attribute("height"), "height", root_spot), &mut problems);
     let fps = keep(fps(attribute("fps")), &mut problems);
     let duration = keep(duration(attribute("duration"), root_spot), &mut problems);
     let background = keep(background(attribute("background")), &mut problems);
-    structure::judge(&document, text, &mut problems);
+    structure::judge(&document, text, &table, &mut problems);
 
     match (version, width, height, fps, duration, background) {
         (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if problems.is_empty() => Ok(Composition {
@@ -167,7 +171,7 @@ pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
                 frames: frame_count(duration, fps),
                 background,
             },
-            tree: tree::build(&document),
+            tree: tree::build(&document, text, &table),
         }),
         _ => {
             // Stable: two problems at one place stay in the order the attributes were judged.

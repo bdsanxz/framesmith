@@ -64,6 +64,7 @@ pub fn written(element: Element) -> String {
     match element {
         Element::Composition => "<composition/>".to_string(),
         Element::Nested => "<composition src=\"scenes/more.xml\"/>".to_string(),
+        Element::Style => "<style id=\"label\"/>".to_string(),
         other => format!("<{}/>", other.name()),
     }
 }
