@@ -1,7 +1,7 @@
 //! A composition with text: `check` accepts it, `render --backend cpu` draws and writes it, and a family that no font
 //! of the composition declares is reported by `check` and refused by `render` with the line of the `<text>`
-//! (`docs/spec/text.md`, sections 2.3 and 9). The card does not draw text in this version. Its refusal runs on every machine in
-//! `text_refused_by_a_renderer_without_text.rs`, with a started double; the real card is tested here, on the reference machine.
+//! (`docs/spec/text.md`, sections 2.3 and 9). The card draws text too, and the real card is tested here, on the reference
+//! machine. A renderer that draws no text is refused on every machine, with a started double, in `text_refused_by_a_renderer_without_text.rs`.
 
 mod common;
 
@@ -74,13 +74,12 @@ fn a_family_no_font_declares_is_reported_by_check_and_refused_by_render_with_its
 
 #[test]
 #[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
-fn reference_machine_only_the_card_refuses_a_text_before_any_frame_and_writes_no_file() {
-    let (project, cwd) = project_with_fonts("card-refuses-text", &fixture("text-colour-and-weight"));
+fn reference_machine_only_the_card_draws_a_text_and_writes_its_film() {
+    let (project, cwd) = project_with_fonts("card-draws-text", &fixture("text-colour-and-weight"));
     let output = framesmith(&cwd, ["render", project.to_str().unwrap(), "--backend", "gpu"], &[]);
-    assert_eq!(output.status.code(), Some(2), "{}{}", out(&output), err(&output));
+    assert_eq!(output.status.code(), Some(0), "{}{}", out(&output), err(&output));
     let printed = out(&output);
-    assert!(printed.contains("line 7: FS-0035"), "{printed}");
-    assert!(printed.contains("is not drawn by the card renderer"), "{printed}");
-    assert!(printed.contains("--backend cpu"), "{printed}");
-    assert!(!printed.contains("Rendered "), "{printed}");
+    assert!(printed.contains("renderer: card"), "{printed}");
+    assert!(printed.contains("frames: 10"), "{printed}");
+    assert!(!printed.contains("FS-"), "{printed}");
 }
