@@ -291,7 +291,9 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
             faults.push(Fault {
                 code: Code::FontMissing,
                 line,
-                message: "`<font>` needs the attribute `src`, the path of a font file in the project folder".to_string(),
+                message:
+                    "`<font>` needs the attribute `src`, the path of a font file: from the project folder, or a path that begins with `/`"
+                        .to_string(),
                 style: false,
             });
             continue;
@@ -308,7 +310,7 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
             faults.push(Fault {
                 code: Code::FontMissing,
                 line,
-                message: format!("`src=\"{src}\"` names no file: a font file of the project folder"),
+                message: format!("`src=\"{src}\"` names no file: a font file, from the project folder or a path that begins with `/`"),
                 style: false,
             });
             continue;
@@ -319,7 +321,7 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
                 faults.push(Fault {
                     code: Code::FontUnreadable,
                     line,
-                    message: format!("`src=\"{src}\"` is in the project folder and could not be read: {}", reason(&error)),
+                    message: format!("`src=\"{src}\"` could not be read: {}", reason(&error)),
                     style: false,
                 });
                 continue;
@@ -344,8 +346,9 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
     (fonts, faults)
 }
 
-/// Lays out the `<text>` at `index` in its place (`text.md` sections 4, 5 and 8). Its width is the one written, and
-/// its lines wrap inside it; without one it is as wide as its widest line. Its height is the one written, or the height of
+/// Lays out the `<text>` at `index` in its place (`text.md` sections 4, 5 and 8). Its width is the one written, or the
+/// one that `left` and `right` leave in its container, and its lines wrap inside it; without either it is as wide as its
+/// widest line. Its height is the one written, or the height of
 /// its lines. Gives the rectangle and the lines, or the fault that stops it.
 pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, parent: Rect) -> Result<Paragraph, Fault> {
     let node = &tree[index];
@@ -356,20 +359,22 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
         message: format!("a place or a size of <text> works out beyond {LIMIT} pixels, which this version does not place"),
         style: false,
     };
-    let wrap = match written.width {
-        None => None,
-        Some(_) => {
-            // The width the place gives, with the height left out: it depends on the width alone.
-            let across = place(
-                parent,
-                Written {
-                    height: Some(Amount::Pixels(0.0)),
-                    ..written
-                },
-            )
-            .map_err(beyond)?;
-            Some(across.width as f32)
-        }
+    // A width is known with a written `width`, or with both `left` and `right`, which give the width of the
+    // container less the two (`layout::place`). Without either, the text is as wide as its widest line.
+    let known = written.width.is_some() || (written.left.is_some() && written.right.is_some());
+    let wrap = if known {
+        // The width the place gives, with the height left out: it depends on the width alone.
+        let across = place(
+            parent,
+            Written {
+                height: Some(Amount::Pixels(0.0)),
+                ..written
+            },
+        )
+        .map_err(beyond)?;
+        Some(across.width as f32)
+    } else {
+        None
     };
     let block = text::layout(fonts, node.words(), &style, wrap).map_err(|error| Fault {
         code: Code::FormNotSupported,
