@@ -41,13 +41,9 @@ pub fn mac_style(size: f32) -> Style {
 
 /// The glyph of a single character laid out alone, which is its isolated form, and its glyph count.
 fn alone(fonts: &mut Fonts, character: char) -> Vec<u32> {
-    let block = layout(fonts, &character.to_string(), &mac_style(20.0), None)
-        .unwrap_or_else(|error| panic!("{character:?} alone: {error}"));
-    block
-        .runs
-        .iter()
-        .flat_map(|run| run.glyphs.iter().map(|glyph| glyph.id))
-        .collect()
+    let block =
+        layout(fonts, &character.to_string(), &mac_style(20.0), None).unwrap_or_else(|error| panic!("{character:?} alone: {error}"));
+    block.runs.iter().flat_map(|run| run.glyphs.iter().map(|glyph| glyph.id)).collect()
 }
 
 /// The glyph each character of `chars` has when it is laid out alone, and the glyph the space has, as the names of the

@@ -35,7 +35,10 @@ fn japanese_lines_break_between_characters_and_keep_the_text_whole() {
         assert_eq!(lines.concat(), TEXT, "at width {width} no character is lost or repeated: {lines:?}");
         width += 3.0;
     }
-    assert!(widths_that_break > 20, "the paragraph breaks at most of these widths: {widths_that_break}");
+    assert!(
+        widths_that_break > 20,
+        "the paragraph breaks at most of these widths: {widths_that_break}"
+    );
 }
 
 #[test]

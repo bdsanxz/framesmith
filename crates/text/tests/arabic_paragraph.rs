@@ -30,7 +30,10 @@ fn arabic_letters_are_joined_inside_a_word() {
     assert_eq!(logical.len(), letters.len(), "one glyph per letter at this word: {logical:?}");
     for (letter, glyph) in letters.iter().zip(&logical) {
         let alone = isolated(&mut fonts, *letter);
-        assert_ne!(*glyph, alone, "the letter {letter:?} is drawn in its joined form, not its isolated one");
+        assert_ne!(
+            *glyph, alone,
+            "the letter {letter:?} is drawn in its joined form, not its isolated one"
+        );
     }
 }
 

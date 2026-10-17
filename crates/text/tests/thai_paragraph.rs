@@ -36,7 +36,11 @@ fn thai_lines_break_only_at_word_boundaries() {
         // mark take forms that depend on the letter they sit on, so the glyphs are counted rather than named.
         let per_line: Vec<usize> = line_glyphs(&block).iter().map(Vec::len).collect();
         let total: usize = per_line.iter().sum();
-        assert_eq!(total, text.chars().count(), "one glyph per character at width {width}: {per_line:?}");
+        assert_eq!(
+            total,
+            text.chars().count(),
+            "one glyph per character at width {width}: {per_line:?}"
+        );
         let mut at = 0;
         for count in per_line.iter().take(per_line.len().saturating_sub(1)) {
             at += count;

@@ -85,12 +85,21 @@ fn frame_lines(frame: &Frame) -> Vec<Line> {
             }
         }
     }
-    glyphs.sort_by(|first, second| first.0.partial_cmp(&second.0).unwrap().then(first.1.partial_cmp(&second.1).unwrap()));
+    glyphs.sort_by(|first, second| {
+        first
+            .0
+            .partial_cmp(&second.0)
+            .unwrap()
+            .then(first.1.partial_cmp(&second.1).unwrap())
+    });
     let mut lines: Vec<Line> = Vec::new();
     for (baseline, _, id) in glyphs {
         match lines.last_mut() {
             Some(line) if (line.baseline - baseline).abs() < 0.01 => line.glyphs.push(id),
-            _ => lines.push(Line { baseline, glyphs: vec![id] }),
+            _ => lines.push(Line {
+                baseline,
+                glyphs: vec![id],
+            }),
         }
     }
     lines
@@ -121,7 +130,13 @@ fn ink_rows(picture: &Picture) -> Vec<bool> {
     let width = picture.width() as usize;
     let pixels = picture.pixels();
     (0..picture.height() as usize)
-        .map(|row| pixels[row * width * 4..(row + 1) * width * 4].chunks_exact(4).any(is_dark))
+        .map(|row| {
+            pixels[row * width * 4..(row + 1) * width * 4]
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .any(|pixel| is_dark(pixel))
+        })
         .collect()
 }
 
@@ -130,7 +145,7 @@ fn ink_columns(picture: &Picture) -> (u32, u32) {
     let width = picture.width() as usize;
     let mut least = u32::MAX;
     let mut most = 0;
-    for (index, pixel) in picture.pixels().chunks_exact(4).enumerate() {
+    for (index, pixel) in picture.pixels().as_chunks::<4>().0.iter().enumerate() {
         if is_dark(pixel) {
             let column = (index % width) as u32;
             least = least.min(column);
@@ -155,9 +170,15 @@ fn check_ink_on_baselines(fixture: &str, number: usize, picture: &Picture, basel
         };
         let in_band = |row: usize| (row as f32 + 0.5) >= top && (row as f32 + 0.5) < bottom;
         let inked = (0..rows.len()).any(|row| in_band(row) && rows[row]);
-        assert!(inked, "{fixture}: judged frame {number} has ink in the band of the line at {baseline}");
+        assert!(
+            inked,
+            "{fixture}: judged frame {number} has ink in the band of the line at {baseline}"
+        );
         let above = baseline as usize - 1;
-        assert!(rows[above], "{fixture}: judged frame {number} has ink in the row above the baseline {baseline}");
+        assert!(
+            rows[above],
+            "{fixture}: judged frame {number} has ink in the row above the baseline {baseline}"
+        );
     }
 }
 
@@ -171,7 +192,11 @@ fn judged_lines(fixture: &str) -> Vec<Vec<u32>> {
     let baselines: Vec<f32> = lines.iter().map(|line| line.baseline).collect();
     for (number, (frame, picture)) in frames.iter().enumerate() {
         assert_eq!(frame_lines(frame), lines, "{fixture}: judged frame {number} draws the same lines");
-        assert_eq!(picture.pixels(), first_picture.pixels(), "{fixture}: judged frame {number} is the same picture");
+        assert_eq!(
+            picture.pixels(),
+            first_picture.pixels(),
+            "{fixture}: judged frame {number} is the same picture"
+        );
         check_ink_on_baselines(fixture, number, picture, &baselines);
         let (least, most) = ink_columns(picture);
         assert!(
@@ -241,7 +266,12 @@ fn hebrew_and_latin_frames_draw_each_run_in_its_direction_and_in_order() {
     assert_eq!(lines.len(), 2, "the paragraph breaks into two lines");
     let mut fonts = mac_fonts();
     let names = names_of(&mut fonts, TEXT);
-    let drawn: String = lines.iter().flatten().map(|id| names[id]).filter(|character| *character != ' ').collect();
+    let drawn: String = lines
+        .iter()
+        .flatten()
+        .map(|id| names[id])
+        .filter(|character| *character != ' ')
+        .collect();
     // Each run in its own direction: the Latin runs in reading order, each Hebrew run reversed, in the order the runs
     // of the text take on a left-to-right line.
     let expected = "Hello\u{5dd}\u{5d5}\u{5dc}\u{5e9}World,\u{5dd}\u{5dc}\u{5d5}\u{5e2}\u{5dd}\u{5d5}\u{5dc}\u{5e9}again.";
@@ -281,11 +311,18 @@ fn thai_frames_break_only_at_word_boundaries() {
     }
     // Each character of this text is one glyph, so the glyphs of a line count its characters.
     let counts: Vec<usize> = lines.iter().map(Vec::len).collect();
-    assert_eq!(counts.iter().sum::<usize>(), WORDS.concat().chars().count(), "one glyph per character: {counts:?}");
+    assert_eq!(
+        counts.iter().sum::<usize>(),
+        WORDS.concat().chars().count(),
+        "one glyph per character: {counts:?}"
+    );
     assert!(counts.len() > 1, "the paragraph breaks into lines: {counts:?}");
     let mut end = 0;
     for count in &counts[..counts.len() - 1] {
         end += count;
-        assert!(boundaries.contains(&end), "a line ends after {end} characters, inside a word: {counts:?}");
+        assert!(
+            boundaries.contains(&end),
+            "a line ends after {end} characters, inside a word: {counts:?}"
+        );
     }
 }

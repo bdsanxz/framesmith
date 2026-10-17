@@ -35,7 +35,11 @@ fn cyrillic_lines_break_at_the_spaces_inside_the_width() {
     let lines: Vec<String> = line_text(&block, &names).iter().map(|line| line.trim().to_string()).collect();
     assert_eq!(lines, words, "every word is a line of its own at this width");
     for (number, line) in block.lines.iter().enumerate() {
-        assert!(line.width <= width + 0.01, "line {number} is {} wide, the width is {width}", line.width);
+        assert!(
+            line.width <= width + 0.01,
+            "line {number} is {} wide, the width is {width}",
+            line.width
+        );
     }
 }
 
@@ -48,5 +52,8 @@ fn cyrillic_words_are_not_split_across_lines() {
     let lines: Vec<String> = line_text(&block, &names).iter().map(|line| line.trim().to_string()).collect();
     assert!(lines.len() > 1, "the paragraph breaks into lines: {lines:?}");
     let rejoined = lines.join(" ");
-    assert_eq!(rejoined, TEXT, "no letter is lost or repeated, and every line ends at a space: {lines:?}");
+    assert_eq!(
+        rejoined, TEXT,
+        "no letter is lost or repeated, and every line ends at a space: {lines:?}"
+    );
 }

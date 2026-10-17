@@ -23,7 +23,11 @@ const SCRIPTS: [&str; 5] = ["text-cyrillic", "text-arabic", "text-hebrew-latin",
 /// Whether the project's `renders` folder holds a film.
 fn has_a_film(project: &Path) -> bool {
     fs::read_dir(project.join("renders"))
-        .map(|entries| entries.flatten().any(|entry| entry.path().extension().is_some_and(|ext| ext == "mp4")))
+        .map(|entries| {
+            entries
+                .flatten()
+                .any(|entry| entry.path().extension().is_some_and(|ext| ext == "mp4"))
+        })
         .unwrap_or(false)
 }
 
