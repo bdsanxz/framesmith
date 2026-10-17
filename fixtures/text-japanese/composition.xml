@@ -1,0 +1,4 @@
+<composition version="1" width="320" height="300" fps="10" duration="1" background="#ffffff">
+<font src="/System/Library/Fonts/Supplemental/Arial Unicode.ttf" family="Arial Unicode"/>
+<text left="10" top="10" width="300" font-family="Arial Unicode" font-size="20" line-height="2" color="#000000">日本語の文章を、改行の位置を確かめるために「区切り」の記号を含めて、正しく折り返すかを調べます。</text>
+</composition>
