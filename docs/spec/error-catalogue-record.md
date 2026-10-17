@@ -54,8 +54,8 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0046` | A composition shown by `<composition src>` has another frame rate from the composition that shows it. |
 | `FS-0047` | A composition shown by `<composition src>` does not exist in the project folder. |
 | `FS-0048` | A composition shown by `<composition src>` is in the project folder and could not be read. |
-| `FS-0049` | A font file that `<font src>` names is not in the project folder, or does not exist. |
-| `FS-0050` | A font file that `<font src>` names is in the project folder and could not be read. |
+| `FS-0049` | A font file that `<font src>` names does not exist, at the path it gives from the project folder or, when it begins with `/`, on the machine. |
+| `FS-0050` | A font file that `<font src>` names exists and could not be read. |
 | `FS-0051` | A file that `<font src>` names is not a font of a kind this version reads, which is TrueType (`.ttf`). |
 | `FS-0052` | A text attribute's value is not in the form the notation gives for it. |
 | `FS-0053` | A length or size that must be above 0 is 0 or below. |

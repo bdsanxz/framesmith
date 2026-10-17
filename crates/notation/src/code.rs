@@ -132,7 +132,8 @@ pub enum Code {
     ShownFpsDiffers,
     ShownMissing,
     ShownUnreadable,
-    /// The font file that `<font src>` names is not in the project folder or does not exist.
+    /// The font file that `<font src>` names does not exist, at the path it gives from the project folder or, when it
+    /// begins with `/`, on the machine.
     FontMissing,
     /// The font file exists and could not be read.
     FontUnreadable,
@@ -332,7 +333,7 @@ impl Code {
             Code::ShownFpsDiffers => "Write in the shown composition the same `fps` as in the one that shows it, a missing `fps` counting as 30.",
             Code::ShownMissing => "Give the path of a composition file in the project folder, or put the file there.",
             Code::ShownUnreadable => "Make the shown composition file readable by this user, then run the command again.",
-            Code::FontMissing => "Give the path of a font file in the project folder, or put the file there.",
+            Code::FontMissing => "Give the path of a font file that exists, from the project folder or a path that begins with `/`, or put the file there.",
             Code::FontUnreadable => "Make the font file readable by this user, then run the command again.",
             Code::FontNotAFont => "Give the path of a TrueType font file (`.ttf`) in `src`.",
             Code::ValueNotInForm => "Write the value in the form the message names.",
