@@ -5,6 +5,8 @@
 
 use std::path::PathBuf;
 
+pub mod scripts;
+
 use text::{Align, Fonts, LineHeight, Style};
 
 /// The family name of the test font (`docs/spec/test-font.md`, section 1).
