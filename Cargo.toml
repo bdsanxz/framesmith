@@ -56,15 +56,15 @@ vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "u
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
 # docs/dev/frx7.md says how, and how the pin is moved.
-base = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
-format = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
-mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
-probe = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
-codec = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
-backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
-pixel = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
+base = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
+format = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
+mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
+probe = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
+codec = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
+backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
+pixel = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
 # The graphics card, as frx7's system crate hands it to us: wgpu is reached through it, not named here.
-gpu = { git = "https://github.com/bdsanxz/frx7", rev = "495d0764b41a9ae6fbe7ad8b7e00cd031c6b571e" }
+gpu = { git = "https://github.com/bdsanxz/frx7", rev = "f43e7c017ed395186e0b993345e87eaed780f33c" }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
