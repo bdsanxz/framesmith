@@ -11,15 +11,18 @@ pub const TABULAR: u16 = 96;
 /// The glyph of the old-style figure of the digit 0; the old-style figures follow the tabular ones.
 pub const OLDSTYLE: u16 = 106;
 
+/// A feature of the layout table: its tag, and its substitutions as pairs of (lining glyph, variant glyph).
+pub type Feature = ([u8; 4], Vec<(u16, u16)>);
+
 /// The features and their substitutions, in tag order, as `(tag, pairs)` where each pair is (lining glyph, variant glyph).
-pub fn figure_features() -> Vec<([u8; 4], Vec<(u16, u16)>)> {
+pub fn figure_features() -> Vec<Feature> {
     let digits = |first: u16| (0..10u16).map(|digit| (FIRST_DIGIT + digit, first + digit)).collect::<Vec<_>>();
     vec![(*b"onum", digits(OLDSTYLE)), (*b"tnum", digits(TABULAR))]
 }
 
 /// The GSUB table: a header, a script list, a feature list and a lookup list, in that order, each offset from the start of
 /// the table or of its own list. The feature list holds the features in the order given, which is tag order.
-pub fn gsub(features: &[([u8; 4], Vec<(u16, u16)>)]) -> Vec<u8> {
+pub fn gsub(features: &[Feature]) -> Vec<u8> {
     let script_list = script_list(features.len());
     let feature_list = feature_list(features);
     let lookup_list = lookup_list(features);
@@ -49,7 +52,7 @@ fn script_list(features: usize) -> Vec<u8> {
 }
 
 /// The feature records, then the feature tables: each table names the one lookup of its feature.
-fn feature_list(features: &[([u8; 4], Vec<(u16, u16)>)]) -> Vec<u8> {
+fn feature_list(features: &[Feature]) -> Vec<u8> {
     let tables: Vec<Vec<u8>> = (0..features.len()).map(|index| u16s(&[0, 1, index as u16])).collect();
     let mut out = u16s(&[features.len() as u16]);
     let mut offset = 2 + 6 * features.len();
@@ -65,7 +68,7 @@ fn feature_list(features: &[([u8; 4], Vec<(u16, u16)>)]) -> Vec<u8> {
 }
 
 /// The lookups, one for each feature, in the same order: a count, the offset of each lookup, then the lookups.
-fn lookup_list(features: &[([u8; 4], Vec<(u16, u16)>)]) -> Vec<u8> {
+fn lookup_list(features: &[Feature]) -> Vec<u8> {
     let lookups: Vec<Vec<u8>> = features.iter().map(|(_, pairs)| lookup(pairs)).collect();
     let mut out = u16s(&[lookups.len() as u16]);
     let mut offset = 2 + 2 * lookups.len();
