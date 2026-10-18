@@ -253,6 +253,37 @@ fn an_outline_surrounds_each_glyph_over_its_fill_by_the_written_width() {
     assert!(around > 0, "the outline is drawn around the glyphs");
 }
 
+/// The farthest that an outline pixel of `outlined` lies from the glyphs of `plain`, over the pixels that are not over a glyph.
+fn outline_reach(plain: &Picture, outlined: &Picture) -> i64 {
+    let mut reach = 0;
+    for y in 0..i64::from(plain.height()) {
+        for x in 0..i64::from(plain.width()) {
+            if at(outlined, x, y) != BLUE || ink(plain, x, y) == Some(Ink::Black) {
+                continue;
+            }
+            let distance = distance_to_ink(plain, x, y, 4).unwrap_or_else(|| panic!("an outline far from its glyph at ({x}, {y})"));
+            reach = reach.max(distance);
+        }
+    }
+    reach
+}
+
+#[test]
+fn an_outline_reaches_half_its_width_past_each_glyph_edge() {
+    let plain = picture_of(&text_project("outline-reach-plain", &text_body("", "HIIH")));
+    for (width, reach) in [(2, 1), (4, 2)] {
+        let outlined = picture_of(&text_project(
+            &format!("outline-reach-{width}-pixels"),
+            &text_body(&format!("text-stroke=\"{width}px #2050c0\""), "HIIH"),
+        ));
+        assert_eq!(
+            outline_reach(&plain, &outlined),
+            reach,
+            "an outline {width} pixels wide reaches {reach} pixels past each glyph edge"
+        );
+    }
+}
+
 #[test]
 fn an_outline_of_width_zero_draws_nothing() {
     let plain = picture_of(&text_project("outline-none-plain", &text_body("", "HIIH")));
