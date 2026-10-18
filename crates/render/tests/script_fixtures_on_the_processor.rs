@@ -502,15 +502,17 @@ fn first_difference(first: &Picture, second: &Picture) -> Option<(u32, u32, [u8;
 
 #[test]
 fn emoji_pixels_are_equal_value_for_value_in_three_text_colours() {
+    // The place of a picture on the frame: left, top, width and height.
+    type Place = (u32, u32, u32, u32);
     for &number in &JUDGED {
-        let frames: Vec<(&str, Picture, Picture, (u32, u32, u32, u32))> = EMOJI_TEXT_COLOURS
+        let frames: Vec<(&str, Picture, Picture, Place)> = EMOJI_TEXT_COLOURS
             .iter()
             .map(|&(name, colour)| {
                 let (whole, picture, place) = emoji_frame_in_colour(name, colour, number);
                 (colour, whole, picture, place)
             })
             .collect();
-        let drawn: Vec<(&str, (u32, u32, u32, u32), Picture)> = frames
+        let drawn: Vec<(&str, Place, Picture)> = frames
             .iter()
             .map(|(colour, _, picture, place)| (*colour, *place, picture.clone()))
             .collect();
