@@ -10,7 +10,7 @@ mod common;
 
 use std::collections::HashMap;
 
-use common::project_copied_from_fixture;
+use common::{crop, first_picture_place, project_copied_from_fixture, project_with_text_colour, EMOJI_TEXT_COLOURS};
 use draw::{Frame, Mark, Picture};
 use draw_cpu::CpuRenderer;
 use project::Project;
@@ -472,5 +472,70 @@ fn emoji_frames_break_the_lines_at_the_spaces_the_width_allows() {
             texts, EMOJI_LINES,
             "frame {number}: the lines the rules give, from the emoji fixture"
         );
+    }
+}
+
+/// The frame `number` of the fixture drawn on the processor, when its text is in `colour`: the whole picture, the
+/// rectangle of the emoji's picture at its place, and that place.
+fn emoji_frame_in_colour(name: &str, colour: &str, number: u64) -> (Picture, Picture, (u32, u32, u32, u32)) {
+    let folder = project_with_text_colour("script-fixtures-on-the-processor", name, EMOJI_FIXTURE, "#1e6fd9", colour);
+    let project = Project::open(&folder).unwrap();
+    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let place = first_picture_place(&scene, number);
+    let (left, top, width, height) = place;
+    let picture = scene.picture(number, &mut CpuRenderer).unwrap();
+    (picture.clone(), crop(&picture, left, top, width, height), place)
+}
+
+/// The first pixel that differs between two pictures of the same size, with its column, row and both values.
+fn first_difference(first: &Picture, second: &Picture) -> Option<(u32, u32, [u8; 4], [u8; 4])> {
+    for y in 0..first.height() {
+        for x in 0..first.width() {
+            let (a, b) = (first.pixel(x, y).unwrap(), second.pixel(x, y).unwrap());
+            if a != b {
+                return Some((x, y, a, b));
+            }
+        }
+    }
+    None
+}
+
+#[test]
+fn emoji_pixels_are_equal_value_for_value_in_three_text_colours() {
+    for &number in &JUDGED {
+        let frames: Vec<(&str, Picture, Picture, (u32, u32, u32, u32))> = EMOJI_TEXT_COLOURS
+            .iter()
+            .map(|&(name, colour)| {
+                let (whole, picture, place) = emoji_frame_in_colour(name, colour, number);
+                (colour, whole, picture, place)
+            })
+            .collect();
+        let drawn: Vec<(&str, (u32, u32, u32, u32), Picture)> = frames
+            .iter()
+            .map(|(colour, _, picture, place)| (*colour, *place, picture.clone()))
+            .collect();
+        // The colour of the text reaches the frame: the black and the yellow frames differ somewhere.
+        assert!(
+            first_difference(&frames[0].1, &frames[2].1).is_some(),
+            "frame {number}: the text's colour is drawn: the frames in black and in yellow are equal"
+        );
+        let (first_colour, first_place, first) = &drawn[0];
+        let emoji_yellow = (0..first.height())
+            .flat_map(|y| (0..first.width()).map(move |x| (x, y)))
+            .filter(|&(x, y)| is_emoji_yellow(&first.pixel(x, y).unwrap()))
+            .count();
+        assert!(
+            emoji_yellow > 50,
+            "frame {number}: the emoji has its yellow in {first_colour}: {emoji_yellow} pixels"
+        );
+        for (colour, place, picture) in &drawn[1..] {
+            assert_eq!(
+                place, first_place,
+                "frame {number}: the emoji is at the same place in {colour} as in {first_colour}"
+            );
+            if let Some((x, y, a, b)) = first_difference(first, picture) {
+                panic!("frame {number}: the emoji's picture at ({x}, {y}) of its place is {a:?} in {first_colour} and {b:?} in {colour}");
+            }
+        }
     }
 }
