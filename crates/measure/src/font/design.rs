@@ -373,3 +373,30 @@ pub const PRINTABLE: [(char, &[Piece]); 94] = [
     ),
     ('~', &[line(40, 300, 100, 400), line(100, 400, 160, 300), line(160, 300, 220, 400)]),
 ];
+
+/// The old-style figures, one for each digit from 0 to 9, in the order of the digits, on the grid of the lining figures
+/// (`docs/spec/test-font.md`, section 7). The figures 0, 1 and 2 stand on the baseline and reach the x-height; 3, 4, 5, 7
+/// and 9 reach the x-height and descend below the baseline; 6 and 8 reach the cap height.
+pub const OLDSTYLE: [&[Piece]; 10] = [
+    &[
+        line(0, 170, 0, 290),
+        line(260, 170, 260, 290),
+        arc(130, 290, 130, 0, 180),
+        arc(130, 170, 130, 180, 360),
+        line(90, 180, 170, 380),
+    ],
+    &[line(40, 330, 130, 420), line(130, 420, 130, 40), line(40, 40, 220, 40)],
+    &[arc(110, 310, 110, 180, 0), line(220, 310, 0, 40), line(0, 40, 220, 40)],
+    &[arc(130, 300, 120, 150, -90), arc(130, -20, 140, 90, -150)],
+    &[line(200, -160, 200, 420), line(200, 420, 0, 160), line(0, 160, 280, 160)],
+    &[
+        line(250, 420, 30, 420),
+        line(30, 420, 30, 120),
+        line(30, 120, 150, 120),
+        arc(150, -20, 140, 90, -150),
+    ],
+    &[line(0, 170, 0, 530), arc(130, 530, 130, 180, 60), arc(130, 170, 130, 0, 360)],
+    &[line(0, 420, 260, 420), line(260, 420, 90, -160)],
+    &[arc(155, 505, 155, 0, 360), arc(155, 195, 155, 0, 360)],
+    &[arc(130, 290, 130, 0, 360), line(260, 290, 260, -30), arc(130, -30, 130, 0, -180)],
+];

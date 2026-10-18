@@ -324,15 +324,15 @@ fn a_text_with_wrapping_turned_off_stays_on_one_line_however_narrow_its_width() 
 }
 
 #[test]
-fn figure_words_on_a_font_with_no_figure_variants_leave_the_figures_of_the_font_as_they_are() {
+fn figure_words_the_font_has_no_lookup_for_leave_its_own_figures_as_they_are() {
     let plain = picture_of(&text_project("figures-plain", &text_body("", "111 888")));
     let worded = picture_of(&text_project(
         "figures-words",
-        &text_body("font-variant-numeric=\"lining-nums tabular-nums\"", "111 888"),
+        &text_body("font-variant-numeric=\"lining-nums proportional-nums\"", "111 888"),
     ));
     assert_eq!(
         plain.pixels(),
         worded.pixels(),
-        "the test font has no figure variants, so its own figures are drawn"
+        "lining-nums and proportional-nums have no lookup in the test font, so its own figures are drawn"
     );
 }

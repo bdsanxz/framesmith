@@ -86,14 +86,17 @@ fn each_checked_in_face_reads_back_as_its_family_style_and_weight() {
     }
 }
 
+/// The glyphs of a face: the 96 of section 2, and the ten tabular and ten old-style figures of section 7.
+const GLYPHS: u16 = 116;
+
 #[test]
-fn each_face_has_96_glyphs() {
+fn each_face_has_the_glyphs_of_the_spec() {
     for face in Face::ALL {
         let bytes = checked_in(face);
         let font = FontRef::new(&bytes).expect("the file is a font");
         let glyphs = font.maxp().expect("a maxp table").num_glyphs();
         println!("{}: {glyphs} glyphs", face.file_name());
-        assert_eq!(glyphs, 96);
+        assert_eq!(glyphs, GLYPHS);
     }
 }
 
@@ -156,7 +159,7 @@ fn both_faces_share_their_advance_widths() {
     let bold = FontRef::new(&bold).expect("the bold file is a font");
     let regular_metrics = regular.glyph_metrics(Size::unscaled(), LocationRef::default());
     let bold_metrics = bold.glyph_metrics(Size::unscaled(), LocationRef::default());
-    for index in 0..96u32 {
+    for index in 0..u32::from(GLYPHS) {
         let glyph = GlyphId::new(index);
         assert_eq!(
             regular_metrics.advance_width(glyph),
