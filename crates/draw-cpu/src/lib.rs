@@ -156,7 +156,7 @@ pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow) -
         };
         lay_picture(layer.data_as_u8_slice_mut(), width, height, &moved);
     }
-    let mut alpha: Vec<u8> = layer.data_as_u8_slice().chunks_exact(4).map(|pixel| pixel[3]).collect();
+    let mut alpha: Vec<u8> = layer.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
     blur_alpha(&mut alpha, width as usize, height as usize, shadow.blur);
     let colour = shadow.colour;
     let mut picture = Vec::with_capacity(alpha.len() * 4);
@@ -218,7 +218,7 @@ fn average_line(line: &mut [u8], span: usize) {
 
 /// Lays a layer of premultiplied pixels over another of the same size, each pixel as a colour picture is laid over a layer.
 fn lay_layer(layer: &mut [u8], over: &[u8]) {
-    for (destination, source) in layer.chunks_exact_mut(4).zip(over.chunks_exact(4)) {
+    for (destination, source) in layer.as_chunks_mut::<4>().0.iter_mut().zip(over.as_chunks::<4>().0.iter()) {
         let kept = 255 - u32::from(source[3]);
         for channel in 0..4 {
             let under = u32::from(destination[channel]) * kept;
