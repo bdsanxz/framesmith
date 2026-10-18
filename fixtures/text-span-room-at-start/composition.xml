@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A span in red at the very start of a text, with a margin of 12 pixels on each side, and then a space and the word CD,
+     in the test font's capitals at 24 pixels, 180 pixels wide. The room before the span has no character before it, and it
+     moves the span's first letter 12 pixels to the right; the text does not break.
+     200 by 60 pixels, 10 frames a second. -->
+<composition version="1" id="text-span-room-at-start" width="200" height="60" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" width="180" font-family="Framesmith Test Stroke" font-size="24" color="#202020"><span margin="0 12" color="#c02020">AB</span> CD</text>
+</composition>

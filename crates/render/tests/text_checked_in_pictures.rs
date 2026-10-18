@@ -72,3 +72,13 @@ fn the_frames_of_a_span_broken_across_two_lines_equal_their_checked_in_pictures(
 fn the_frames_of_a_span_with_margin_and_padding_equal_their_checked_in_pictures() {
     drawn_frames_equal_the_checked_in_pictures("text-spans-margin-and-padding");
 }
+
+#[test]
+fn the_frames_of_a_span_with_room_that_begins_a_line_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-span-room-at-a-break");
+}
+
+#[test]
+fn the_frames_of_a_span_with_room_at_the_start_of_a_text_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-span-room-at-start");
+}

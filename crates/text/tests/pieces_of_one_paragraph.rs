@@ -144,7 +144,7 @@ fn room_moves_the_words_after_it_and_leaves_the_line_height() {
         None,
     )
     .unwrap();
-    // The joiners beside the room have no advance, so the first and the last glyph are the letters A and D.
+    // Room after a letter adds no glyph, so the first and the last glyph are the letters A and D.
     let plain_glyphs = glyphs(&plain);
     let room_glyphs = glyphs(&with_room);
     let (first, last) = (plain_glyphs[0], plain_glyphs[plain_glyphs.len() - 1]);

@@ -203,3 +203,19 @@ fn reference_machine_only_every_frame_of_the_span_margin_fixture_is_within_the_t
     let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card(), None);
     assert!(comparison.passed(), "{}", comparison.report().join("\n"));
 }
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_span_room_at_a_break_fixture_is_within_the_tolerance_of_the_processor() {
+    let scene = scene_of("text-span-room-at-a-break");
+    let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card(), None);
+    assert!(comparison.passed(), "{}", comparison.report().join("\n"));
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_span_room_at_the_start_fixture_is_within_the_tolerance_of_the_processor() {
+    let scene = scene_of("text-span-room-at-start");
+    let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card(), None);
+    assert!(comparison.passed(), "{}", comparison.report().join("\n"));
+}

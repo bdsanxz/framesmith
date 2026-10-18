@@ -92,6 +92,9 @@ pub enum TextError {
     UnknownFamily(String),
     /// A character that none of the listed families has (`docs/spec/text.md`, section 2.4).
     MissingCharacter(char),
+    /// Room of a span (its margin or its padding) in a paragraph with no character to hold it (`docs/spec/text.md`,
+    /// section 6.5, rule 4).
+    RoomWithoutWords,
 }
 
 impl fmt::Display for TextError {
@@ -101,6 +104,10 @@ impl fmt::Display for TextError {
             TextError::MissingCharacter(character) => {
                 write!(f, "the character {character:?} is in none of the fonts named")
             }
+            TextError::RoomWithoutWords => write!(
+                f,
+                "a margin or a padding of a <span> in a <text> with no word, which this version does not draw"
+            ),
         }
     }
 }
@@ -122,8 +129,12 @@ enum Sizing {
 pub enum Piece {
     /// Words in `style`, drawn in `colour` (RGBA).
     Words { words: String, style: Style, colour: [u8; 4] },
-    /// `width` pixels of room in the line, at the place where the piece falls.
+    /// `width` pixels of room after the character before it, at the place where the piece falls: the right space of a span.
     Room { width: f32 },
+    /// `width` pixels of room before the first character of the piece that follows it: the left space of a span. Where a
+    /// space comes before it, the room is kept on a carrier after that space, so that it moves to the line the span
+    /// begins when the line breaks there (`docs/spec/text.md`, section 10).
+    Lead { width: f32 },
 }
 
 /// The colour the words of [`layout`] and [`layout_fitted`] are drawn in: opaque black (`docs/spec/notation.md`, Q5).
@@ -177,6 +188,9 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
     }
     let flat = flatten(pieces);
     if flat.text.is_empty() {
+        if flat.unplaced > 0.0 {
+            return Err(TextError::RoomWithoutWords);
+        }
         let width = match sizing {
             Sizing::Given => width.unwrap_or(0.0),
             Sizing::Widest => 0.0,
@@ -198,7 +212,7 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
                 .filter(|face| style.families.contains(&face.family))
                 .map(|face| face.blob)
                 .collect(),
-            Piece::Room { .. } => Vec::new(),
+            Piece::Room { .. } | Piece::Lead { .. } => Vec::new(),
         })
         .collect();
     let Fonts { context, layouts, faces } = fonts;
@@ -236,7 +250,16 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             continue;
         };
         let length = flat.text[start..].chars().next().map_or(0, char::len_utf8);
-        builder.push(StyleProperty::LetterSpacing(style.letter_spacing + width), start..start + length);
+        let range = start..start + length;
+        if flat.carriers.contains(&start) {
+            // A carrier holds its room and no glyph: it is shaped at size 0, so its advance is 0 whatever the font, and
+            // it has no line height of its own, so it does not change the height of the line (section 10).
+            builder.push(StyleProperty::FontSize(0.0), range.clone());
+            builder.push(StyleProperty::LineHeight(parley::LineHeight::Absolute(0.0)), range.clone());
+            builder.push(StyleProperty::LetterSpacing(width), range);
+        } else {
+            builder.push(StyleProperty::LetterSpacing(style.letter_spacing + width), range);
+        }
     }
     let mut layout = builder.build(&flat.text);
     layout.break_all_lines(width);
@@ -250,6 +273,10 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
                 continue;
             };
             let run = glyph_run.run();
+            // The run of a carrier is the only one at size 0: no font size of a style is 0 (`docs/spec/text.md`, section 3.1).
+            if run.font_size() == 0.0 {
+                continue;
+            }
             for cluster in run.clusters() {
                 let start = cluster.text_range().start;
                 let from_listed = listed[flat.owner[start]].contains(&run.font().data.id());
@@ -284,6 +311,10 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
                 continue;
             };
             let run = glyph_run.run();
+            // A carrier's run holds no glyph of the paragraph, so it is not drawn (section 10).
+            if run.font_size() == 0.0 {
+                continue;
+            }
             let Some(face) = faces.iter().find(|face| face.blob == run.font().data.id()) else {
                 continue;
             };
@@ -331,20 +362,29 @@ struct Flat {
     /// The index of the piece each byte of the text belongs to.
     owner: Vec<usize>,
     /// Each room as the byte where the character it follows begins, and its width. The room is spacing after that
-    /// character, so the words after the room move on by its width.
+    /// character, so the words after the room move on by its width. A carrier (below) is one of these characters.
     spacing: Vec<(usize, f32)>,
+    /// The byte where each carrier begins: a character that holds room and no glyph (`docs/spec/text.md`, section 10).
+    carriers: Vec<usize>,
+    /// Room that has no character to follow, when the text has no character at all.
+    unplaced: f32,
 }
 
-/// The word joiner (U+2060). Room that comes before the first character of a text has no character to follow, so it
-/// is kept on a joiner put at the start of the text. The engine shapes the joiner to a glyph of no advance, and the
-/// test font's glyph for it has no ink.
+/// The word joiner (U+2060): the carrier of room before the first character of a text, which has no character to
+/// follow. A joiner is never counted as a missing character and never drawn, whatever the font (section 10).
 const JOINER: char = '\u{2060}';
+
+/// The no-break space (U+00A0): the carrier of the left room of a span that follows a space. A line may end before it,
+/// after the space, and may not end after it, so the room goes to the line that begins with the span (section 10).
+const NO_BREAK_SPACE: char = '\u{a0}';
 
 fn flatten(pieces: &[Piece]) -> Flat {
     let mut flat = Flat {
         text: String::new(),
         owner: Vec::new(),
         spacing: Vec::new(),
+        carriers: Vec::new(),
+        unplaced: 0.0,
     };
     let mut pending = false;
     let mut last_words = 0;
@@ -354,9 +394,15 @@ fn flatten(pieces: &[Piece]) -> Flat {
         match piece {
             Piece::Room { width } => {
                 emit_pending_space(&mut flat, &mut pending, last_words);
-                match flat.text.char_indices().next_back() {
-                    Some((start, _)) => flat.spacing.push((start, *width)),
-                    None => leading += width,
+                room_after_last(&mut flat, &mut leading, *width);
+            }
+            Piece::Lead { width } => {
+                emit_pending_space(&mut flat, &mut pending, last_words);
+                if flat.text.ends_with(' ') {
+                    let start = push_carrier(&mut flat, last_words, NO_BREAK_SPACE);
+                    flat.spacing.push((start, *width));
+                } else {
+                    room_after_last(&mut flat, &mut leading, *width);
                 }
             }
             Piece::Words { words, .. } => {
@@ -367,8 +413,7 @@ fn flatten(pieces: &[Piece]) -> Flat {
                     }
                     emit_pending_space(&mut flat, &mut pending, number);
                     if flat.text.is_empty() && leading > 0.0 {
-                        flat.text.push(JOINER);
-                        flat.owner.resize(flat.text.len(), number);
+                        push_carrier(&mut flat, number, JOINER);
                         flat.spacing.push((0, leading));
                         leading = 0.0;
                     }
@@ -379,7 +424,26 @@ fn flatten(pieces: &[Piece]) -> Flat {
             }
         }
     }
+    flat.unplaced = leading;
     flat
+}
+
+/// Puts room of `width` after the last character of the text, or before its first character when the text has none
+/// yet, where it waits for that character.
+fn room_after_last(flat: &mut Flat, leading: &mut f32, width: f32) {
+    match flat.text.char_indices().next_back() {
+        Some((start, _)) => flat.spacing.push((start, width)),
+        None => *leading += width,
+    }
+}
+
+/// Puts a carrier of room at the end of the text, owned by `owner`, and gives the byte where it begins.
+fn push_carrier(flat: &mut Flat, owner: usize, carrier: char) -> usize {
+    let start = flat.text.len();
+    flat.carriers.push(start);
+    flat.text.push(carrier);
+    flat.owner.resize(flat.text.len(), owner);
+    start
 }
 
 /// Puts the space that white space before a character (or a room) asks for, unless the text is empty or already ends

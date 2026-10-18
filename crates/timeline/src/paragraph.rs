@@ -531,7 +531,7 @@ pub(crate) fn pieces_of(tree: &[Node], index: usize) -> Vec<Piece> {
                     Part::Span(span) => {
                         let (left, right) = edge_room(&tree[*span]);
                         if left > 0.0 {
-                            pieces.push(Piece::Room { width: left });
+                            pieces.push(Piece::Lead { width: left });
                         }
                         if right > 0.0 {
                             work.push(Work::Room(right));
