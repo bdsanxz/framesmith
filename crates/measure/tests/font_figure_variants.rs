@@ -199,7 +199,7 @@ fn the_old_style_3_4_5_7_and_9_descend_well_below_the_baseline() {
 }
 
 #[test]
-fn the_old_style_0_and_2_reach_the_x_height_and_the_old_style_6_and_8_the_cap_height() {
+fn the_old_style_0_and_2_reach_420_and_the_old_style_6_and_8_the_cap_height() {
     for face in Face::ALL {
         let bytes = checked_in(face);
         let font = FontRef::new(&bytes).expect("the file is a font");
@@ -208,7 +208,7 @@ fn the_old_style_0_and_2_reach_the_x_height_and_the_old_style_6_and_8_the_cap_he
             let (_, _, _, y1) = on_curve_bounds(&font, OLDSTYLE + digit);
             assert!(
                 (y1 - (420.0 + half)).abs() <= TOLERANCE,
-                "the old-style figure {digit} of {} reaches {y1}, not the x-height",
+                "the old-style figure {digit} of {} reaches {y1}, not 420",
                 face.file_name()
             );
         }
