@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The word AB and a hyphen, then a span in red with a margin of 12 pixels on each side, in the test font's capitals at
+     24 pixels, 60 pixels wide. The words do not fit one line, so the line breaks after the hyphen, which the room of the
+     span does not move: the hyphen stays on the first line, and the room moves the span's first letter 12 pixels to the
+     right on the second line, where the span begins.
+     120 by 80 pixels, 10 frames a second. -->
+<composition version="1" id="text-span-room-at-a-hyphen" width="120" height="80" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" width="60" font-family="Framesmith Test Stroke" font-size="24" color="#202020">AB-<span margin="0 12" color="#c02020">CD</span></text>
+</composition>

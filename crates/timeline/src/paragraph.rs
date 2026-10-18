@@ -486,34 +486,54 @@ fn flow_pixels(amount: Option<Amount>, name: &str, node: &Node) -> Result<Option
 fn lay_block(fonts: &mut Fonts, tree: &[Node], index: usize, wrap: Option<f32>, max: Option<f64>) -> Result<Block, Fault> {
     let node = &tree[index];
     let (style, _) = style_of(tree, index);
-    let pieces = pieces_of(tree, index);
+    let (pieces, sources) = pieces_of(tree, index);
     let laid = match (wrap, max) {
         (Some(width), _) => text::layout_pieces(fonts, &pieces, style.align, Some(width)),
         (None, Some(max)) => text::layout_fitted_pieces(fonts, &pieces, style.align, max as f32),
         (None, None) => text::layout_pieces(fonts, &pieces, style.align, None),
     };
-    laid.map_err(|error| Fault {
-        code: Code::FormNotSupported,
-        line: node.line(),
-        message: format!("<text> is not drawn by this version: {error}"),
-        style: false,
+    laid.map_err(|error| match error {
+        // A room where a line may end before its span is reported on the line of the attribute that writes the room.
+        text::TextError::RoomAtALineBreak { piece } => {
+            let source = sources.get(piece).copied().flatten().unwrap_or(RoomSource {
+                line: node.line(),
+                style: false,
+            });
+            Fault {
+                code: Code::FormNotSupported,
+                line: source.line,
+                message: format!("<text> is not drawn by this version: {error}"),
+                style: source.style,
+            }
+        }
+        _ => Fault {
+            code: Code::FormNotSupported,
+            line: node.line(),
+            message: format!("<text> is not drawn by this version: {error}"),
+            style: false,
+        },
     })
 }
 
 /// The pieces of the `<text>` at `index` (`docs/spec/text.md`, section 6.5), in document order: its words and those of its
 /// `<span>`s, each in the style and the colour of the element that holds it (section 8), and the room of a span's margin and
-/// padding at each of its edges. A text with no span is one piece of words, as before.
-pub(crate) fn pieces_of(tree: &[Node], index: usize) -> Vec<Piece> {
+/// padding at each of its edges. A text with no span is one piece of words, as before. Gives the pieces, and beside each the
+/// attribute that gives its room (`None` for words), so that a refusal of a room is reported on the line of its attribute.
+pub(crate) fn pieces_of(tree: &[Node], index: usize) -> (Vec<Piece>, Vec<Option<RoomSource>>) {
     // The work still to do, last first: the parts of an element from a position on, or the room after a span.
     enum Work {
         Parts(usize, usize),
-        Room(f32),
+        Room(f32, RoomSource),
     }
     let mut pieces: Vec<Piece> = Vec::new();
+    let mut sources: Vec<Option<RoomSource>> = Vec::new();
     let mut work = vec![Work::Parts(index, 0)];
     while let Some(next) = work.pop() {
         match next {
-            Work::Room(width) => pieces.push(Piece::Room { width }),
+            Work::Room(width, source) => {
+                pieces.push(Piece::Room { width });
+                sources.push(Some(source));
+            }
             Work::Parts(element, at) => {
                 let Some(part) = tree[element].parts().get(at) else {
                     continue;
@@ -527,14 +547,16 @@ pub(crate) fn pieces_of(tree: &[Node], index: usize) -> Vec<Piece> {
                             style,
                             colour: rgba(colour),
                         });
+                        sources.push(None);
                     }
                     Part::Span(span) => {
                         let (left, right) = edge_room(&tree[*span]);
                         if left > 0.0 {
                             pieces.push(Piece::Lead { width: left });
+                            sources.push(Some(room_source(&tree[*span], true)));
                         }
                         if right > 0.0 {
-                            work.push(Work::Room(right));
+                            work.push(Work::Room(right, room_source(&tree[*span], false)));
                         }
                         work.push(Work::Parts(*span, 0));
                     }
@@ -542,7 +564,7 @@ pub(crate) fn pieces_of(tree: &[Node], index: usize) -> Vec<Piece> {
             }
         }
     }
-    pieces
+    (pieces, sources)
 }
 
 /// The spans inside the element at `index`, in document order: each is before the spans written inside it.
@@ -574,6 +596,32 @@ fn edge_room(node: &Node) -> (f32, f32) {
     let (margin_left, margin_right) = horizontal_sides(node, "margin");
     let (padding_left, padding_right) = horizontal_sides(node, "padding");
     ((margin_left + padding_left) as f32, (margin_right + padding_right) as f32)
+}
+
+/// Where the room of a span at one edge comes from (`docs/spec/text.md`, section 10): the line of the attribute that writes it,
+/// and whether a `<style>` gives that attribute.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RoomSource {
+    pub(crate) line: u32,
+    pub(crate) style: bool,
+}
+
+/// The attribute that gives the room of a span at one edge: its `margin` where the margin holds room on that side, and its
+/// `padding` otherwise (`edge_room`). Without the attribute, the line of the span.
+fn room_source(node: &Node, left: bool) -> RoomSource {
+    let (margin_left, margin_right) = horizontal_sides(node, "margin");
+    let margin = if left { margin_left } else { margin_right };
+    let name = if margin > 0.0 { "margin" } else { "padding" };
+    match node.attribute(name) {
+        Some(attribute) => RoomSource {
+            line: attribute.line(),
+            style: attribute.given_by().is_some(),
+        },
+        None => RoomSource {
+            line: node.line(),
+            style: false,
+        },
+    }
 }
 
 /// The left and the right side of a `margin` or a `padding` written in one to four numbers, in CSS's shorthand order (top,

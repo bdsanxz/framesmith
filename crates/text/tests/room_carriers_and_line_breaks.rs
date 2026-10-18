@@ -1,7 +1,8 @@
-//! The room of a span at the edge of its words: the left room of a span is kept on the line the span begins when the line
-//! breaks at the space before it, the word joiner carries the room before the first character of a text and is never
-//! drawn, two rooms at one edge add up, and a text with no word refuses its room (`docs/spec/text.md`, sections 6.5
-//! and 10).
+//! The room of a span at the edge of its words: the room is carried where the line breaker allows a line to end before
+//! the span, so that it moves to the line the span begins (a space or a hyphen before it, with a no-break space), and
+//! where no line may end, so that the lines of the text stay as they are (a word joiner). The word joiner carries the
+//! room before the first character of a text and is never drawn, two rooms at one edge add up, and a text with no word
+//! refuses its room (`docs/spec/text.md`, sections 6.5 and 10).
 
 mod common;
 
@@ -143,12 +144,13 @@ fn room_in_a_text_with_no_word_is_refused_and_room_with_a_word_is_not() {
 }
 
 #[test]
-fn room_after_a_hyphen_stays_on_the_hyphens_line_at_a_break_as_a_known_limit() {
-    // A known limit of this version (docs/spec/text.md, section 10): the line may break after the hyphen, and the room
-    // of the span that follows the hyphen then stays on the line of the hyphen. The second line begins with the letter C
-    // at the left edge. A fix would move that letter to 12 pixels, and this test would then need to change with the spec.
+fn room_after_a_hyphen_at_a_break_is_drawn_at_the_start_of_the_line_the_span_begins() {
+    // The line may break after the hyphen (UAX 14, rule LB21 and LB12a allow a break before a no-break space after HY), so
+    // the no-break space that carries the room keeps the break where the text without the room has it, and the room
+    // moves the letter C to 12 pixels on the second line (`docs/spec/text.md`, section 10).
     let mut fonts = fonts();
     let width = layout(&mut fonts, "AB-", &style(30.0), None).unwrap().width + 1.0;
+    let plain = layout_pieces(&mut fonts, &[words("AB-CD", 30.0)], Align::Left, Some(width)).unwrap();
     let block = layout_pieces(
         &mut fonts,
         &[words("AB-", 30.0), Piece::Lead { width: 12.0 }, words("CD", 30.0)],
@@ -157,8 +159,50 @@ fn room_after_a_hyphen_stays_on_the_hyphens_line_at_a_break_as_a_known_limit() {
     )
     .unwrap();
     assert_eq!(block.lines.len(), 2, "{:?}", block.lines);
+    assert_eq!(
+        block.lines.len(),
+        plain.lines.len(),
+        "the room keeps the lines of the text without it: {:?}",
+        block.lines
+    );
+    assert!(
+        (block.lines[0].width - plain.lines[0].width).abs() < 1e-3,
+        "the first line keeps its width without the room: {:?} {:?}",
+        block.lines,
+        plain.lines
+    );
+    assert!(
+        (block.lines[1].width - plain.lines[1].width - 12.0).abs() < 1e-3,
+        "the second line takes the room: {:?} {:?}",
+        block.lines,
+        plain.lines
+    );
     let c = glyphs(&block)[3];
-    assert!(c.x.abs() < 1e-3, "the letter C begins the second line at the left edge: {c:?}");
+    assert!((c.x - 12.0).abs() < 1e-3, "the letter C begins the second line 12 pixels in: {c:?}");
+}
+
+#[test]
+fn room_after_a_hyphen_before_a_digit_keeps_the_lines_of_the_text_without_it() {
+    // A hyphen and a digit after it are kept together (UAX 14, rule LB25), so no line may end at the place of the room:
+    // the word joiner carries the room, which moves the digit 12 pixels on the one line, as the text without it has it.
+    let mut fonts = fonts();
+    let width = layout(&mut fonts, "AB-", &style(30.0), None).unwrap().width + 1.0;
+    let plain = layout_pieces(&mut fonts, &[words("AB-1", 30.0)], Align::Left, Some(width)).unwrap();
+    let block = layout_pieces(
+        &mut fonts,
+        &[words("AB-", 30.0), Piece::Lead { width: 12.0 }, words("1", 30.0)],
+        Align::Left,
+        Some(width),
+    )
+    .unwrap();
+    assert_eq!(plain.lines.len(), 1, "{:?}", plain.lines);
+    assert_eq!(block.lines.len(), plain.lines.len(), "{:?}", block.lines);
+    let digit = glyphs(&block)[3];
+    let plain_digit = glyphs(&plain)[3];
+    assert!(
+        (digit.x - plain_digit.x - 12.0).abs() < 1e-3,
+        "the digit moves 12 pixels: {digit:?} {plain_digit:?}"
+    );
 }
 
 #[test]
@@ -188,10 +232,9 @@ fn an_empty_span_between_words_keeps_its_room_as_css_keeps_an_empty_inline_box()
 }
 
 #[test]
-fn a_room_before_a_span_of_a_closing_mark_may_break_at_the_space_as_a_known_limit() {
-    // A known limit of this version (docs/spec/text.md, section 10): the no-break space that carries the room after a
-    // space is a place where the line may end before it, so a span whose first character the line-breaking rules keep
-    // with the space (here the full stop) breaks away from that space, where the same text without the room does not.
+fn a_room_before_a_full_stop_after_a_space_keeps_the_lines_of_the_text_without_it() {
+    // A full stop is kept with the space before it (UAX 14, rule LB13), so no line may end before it, and the word joiner
+    // carries the room: the text stays on one line, and the full stop moves 12 pixels as it does with a room of 12.
     let mut fonts = fonts();
     let width = layout(&mut fonts, "AB", &style(30.0), None).unwrap().width + 1.0;
     let plain = layout_pieces(&mut fonts, &[words("AB ", 30.0), words(".CD", 30.0)], Align::Left, Some(width)).unwrap();
@@ -210,8 +253,14 @@ fn a_room_before_a_span_of_a_closing_mark_may_break_at_the_space_as_a_known_limi
     );
     assert_eq!(
         with_room.lines.len(),
-        2,
-        "with the room the line breaks before the span: {:?}",
+        plain.lines.len(),
+        "with the room the lines are those of the text without it: {:?}",
         with_room.lines
+    );
+    let stop = glyphs(&with_room)[3];
+    let plain_stop = glyphs(&plain)[3];
+    assert!(
+        (stop.x - plain_stop.x - 12.0).abs() < 1e-3,
+        "the full stop moves 12 pixels: {stop:?} {plain_stop:?}"
     );
 }

@@ -82,3 +82,13 @@ fn the_frames_of_a_span_with_room_that_begins_a_line_equal_their_checked_in_pict
 fn the_frames_of_a_span_with_room_at_the_start_of_a_text_equal_their_checked_in_pictures() {
     drawn_frames_equal_the_checked_in_pictures("text-span-room-at-start");
 }
+
+#[test]
+fn the_frames_of_a_span_with_room_after_a_hyphen_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-span-room-at-a-hyphen");
+}
+
+#[test]
+fn the_frames_of_a_span_with_room_before_a_full_stop_equal_their_checked_in_pictures() {
+    drawn_frames_equal_the_checked_in_pictures("text-span-room-before-a-full-stop");
+}

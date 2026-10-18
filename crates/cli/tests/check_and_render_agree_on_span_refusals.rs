@@ -260,3 +260,15 @@ fn check_and_render_report_start_and_duration_of_one_span_in_the_order_they_are_
     }
     assert!(failures.is_empty(), "{} case(s) failed:\n{}", failures.len(), failures.join("\n"));
 }
+
+#[test]
+fn check_and_render_refuse_a_room_between_two_ideographs_on_the_line_of_its_attribute() {
+    // Two ideographs may break between them (UAX 14, rule LB31), and a no-break space after the first keeps no break before
+    // it (rule LB12a), so the room of the span cannot keep its place and its break: it is refused where the margin is written.
+    // The refusal does not wait for a glyph of the characters, since the room is refused before the glyphs are looked up.
+    let text = r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">漢<span margin="0 12" color="#c02020">字</span></text>"##;
+    let (check, render, film) = check_and_render("ideograph-room", text);
+    let report = "composition.xml, line 3: FS-0035: unsupported: <text> is not drawn by this version: a margin or a padding of a <span> where the line may break before the span, after a character other than a space or a hyphen, which this version does not draw";
+    let found = problems(&check, &render, &film, &[report], 2);
+    assert!(found.is_empty(), "{}", found.join("\n"));
+}
