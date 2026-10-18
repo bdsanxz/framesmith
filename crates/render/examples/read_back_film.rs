@@ -3,7 +3,7 @@
 //! folder of them is given. Development only; nothing that ships uses it.
 //!
 //! ```text
-//! read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... [--lines] <frame>...
+//! read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... [--row Y] [--lines] <frame>...
 //! ```
 //!
 //! For each frame asked for it prints the time it is shown at, the colour at every `--at` point, and,
@@ -11,6 +11,9 @@
 //! edge by a pixel, so a pixel belongs to the colour it is nearest to) and the box round those pixels.
 //! With `--lines` it also prints, for each of those colours, each band of rows that holds such pixels:
 //! a line of text is one band, with the rows and columns it spans.
+//! With `--row Y` it prints, along row `Y`, each run of pixels that are nearest to the same colour of
+//! `--palette`, with the columns the run spans and its width: the width of a line at an edge is the
+//! width of the run of its colour.
 //! The sheet has a row `A`
 //! for the pictures decoded from the file and, when `--checked-in` is given, a row `B` for the
 //! pictures of `DIR/frame-NNNN.png`; each picture has its number and time written above it.
@@ -27,7 +30,7 @@ const GAP: u32 = 8;
 const LABEL_HEIGHT: u32 = 5 * 3 + 6;
 
 fn usage() -> ! {
-    eprintln!("usage: read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... [--lines] <frame>...");
+    eprintln!("usage: read_back_film <film.mp4> <sheet.png> [--checked-in DIR] [--palette RRGGBB]... [--at X,Y]... [--row Y] [--lines] <frame>...");
     std::process::exit(2);
 }
 
@@ -165,9 +168,11 @@ fn main() {
     let mut at: Vec<(u32, u32)> = Vec::new();
     let mut numbers: Vec<usize> = Vec::new();
     let mut lines = false;
+    let mut row: Option<u32> = None;
     while let Some(word) = words.next() {
         match word.as_str() {
             "--lines" => lines = true,
+            "--row" => row = Some(words.next().unwrap_or_else(|| usage()).parse().unwrap_or_else(|_| usage())),
             "--checked-in" => checked_in = Some(PathBuf::from(words.next().unwrap_or_else(|| usage()))),
             "--palette" => palette.push(colour(&words.next().unwrap_or_else(|| usage()))),
             "--at" => {
@@ -209,6 +214,21 @@ fn main() {
         println!("frame {number}, shown at {seconds:.3} s:");
         for &(x, y) in &at {
             println!("  colour at ({x}, {y}): {}", hex(frame.pixel(x, y)));
+        }
+        if let (Some(y), false) = (row, palette.is_empty()) {
+            assert!(y < frame.height, "row {y} is below the picture");
+            println!("  row {y}, the colour of each run of pixels along it:");
+            let mut runs: Vec<(usize, u32, u32)> = Vec::new();
+            for x in 0..frame.width {
+                let index = nearest(&palette, frame.pixel(x, y));
+                match runs.last_mut() {
+                    Some(run) if run.0 == index => run.2 = x,
+                    _ => runs.push((index, x, x)),
+                }
+            }
+            for (index, first, last) in runs {
+                println!("    {} columns {first}..{last} ({} wide)", hex(palette[index]), last - first + 1);
+            }
         }
         for (index, &wanted) in palette.iter().enumerate() {
             let (mut count, mut left, mut top, mut right, mut bottom) = (0u32, u32::MAX, u32::MAX, 0, 0);

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Four texts in black at 36 units of font size, each one figure: 3 and 9 with lining figures on the first and third
+     lines, and with old-style figures on the second and fourth. The old-style 3 and 9 descend below the baseline, so
+     their ink reaches lower than the lining ones. 200 by 200 pixels, 10 frames a second. -->
+<composition version="1" id="text-figure-oldstyle" width="200" height="200" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="6" font-family="Framesmith Test Stroke" font-size="36" color="#000000" font-variant-numeric="lining-nums">3</text>
+  <text left="10" top="50" font-family="Framesmith Test Stroke" font-size="36" color="#000000" font-variant-numeric="oldstyle-nums">3</text>
+  <text left="10" top="94" font-family="Framesmith Test Stroke" font-size="36" color="#000000" font-variant-numeric="lining-nums">9</text>
+  <text left="10" top="138" font-family="Framesmith Test Stroke" font-size="36" color="#000000" font-variant-numeric="oldstyle-nums">9</text>
+</composition>

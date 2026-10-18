@@ -23,6 +23,9 @@ fn emoji_style(size: f32) -> Style {
         line_height: LineHeight::Normal,
         letter_spacing: 0.0,
         align: Align::Left,
+        uppercase: false,
+        nowrap: false,
+        figures: Vec::new(),
     }
 }
 

@@ -16,7 +16,7 @@ use skrifa::string::StringId;
 use skrifa::{FontRef, GlyphId, MetadataProvider};
 
 const COLUMNS: usize = 12;
-const ROWS: usize = 8;
+const ROWS: usize = 10;
 const CELL: usize = 180;
 const WIDTH: usize = COLUMNS * CELL;
 const HEIGHT: usize = ROWS * CELL;
@@ -241,12 +241,14 @@ fn main() {
     println!("cmap: U+0020 to U+007E map to glyphs 1 to 95, as the spec says");
 
     let mut gray = vec![255u8; WIDTH * HEIGHT];
-    for glyph in 0..COLUMNS * ROWS {
+    for glyph in 0..usize::from(glyphs).min(COLUMNS * ROWS) {
         let (column, row) = (glyph % COLUMNS, glyph / COLUMNS);
         let (left, top) = (column * CELL, row * CELL);
         let label = match glyph {
             0 => ".notdef".to_string(),
             1 => "space".to_string(),
+            96..=105 => format!("tabular figure {}", char::from(b'0' + (glyph - 96) as u8)),
+            106..=115 => format!("old-style figure {}", char::from(b'0' + (glyph - 106) as u8)),
             _ => format!("U+{:04X} {}", glyph + 0x1F, char::from((glyph + 0x1F) as u8)),
         };
         println!("cell {glyph} (row {row}, column {column}): glyph {glyph}, {label}");

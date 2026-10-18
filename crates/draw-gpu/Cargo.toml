@@ -17,7 +17,9 @@ draw = { workspace = true }
 layout = { workspace = true }
 gpu = { workspace = true }
 vello_cpu = { workspace = true }
+# The shadows and the outline of a paragraph are pictures the processor draws and the card places (`docs/spec/card-renderer.md`,
+# section 9.9); the card calls the processor's functions for them. No type of the processor is in a public interface of this crate.
+draw-cpu = { workspace = true }
 
 [dev-dependencies]
-draw-cpu = { workspace = true }
 measure = { workspace = true }

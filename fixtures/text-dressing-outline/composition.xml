@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text in black with an outline of 2 pixels in blue, drawn around each glyph over its fill. At font size 96 a stem
+     of the test font is about 8 pixels wide, so the black fill shows inside the 2 pixel line. 240 by 120 pixels,
+     10 frames a second. -->
+<composition version="1" id="text-dressing-outline" width="240" height="120" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="8" font-family="Framesmith Test Stroke" font-size="96" text-stroke="2px #2050c0">HIIH</text>
+</composition>

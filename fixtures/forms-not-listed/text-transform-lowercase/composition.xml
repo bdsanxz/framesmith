@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text-transform value the spec does not list: lowercase is not one of none or uppercase, so this version refuses it. -->
+<composition version="1" id="text-transform-lowercase" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <text left="4" top="4" font-size="12" text-transform="lowercase">Hi</text>
+</composition>

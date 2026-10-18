@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text in black with one blue shadow, 5 pixels right and 4 down, blurred by 3 pixels: its edges are soft.
+     200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-dressing-blurred-shadow" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="8" font-family="Framesmith Test Stroke" font-size="30" text-shadow="5px 4px 3px #2050c0">HIIH</text>
+</composition>

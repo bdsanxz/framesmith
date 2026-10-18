@@ -1,8 +1,9 @@
 //! The TrueType file of a face, as `docs/spec/test-font.md`, sections 1 and 5 set out: the tables
-//! `OS/2`, `cmap`, `glyf`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name` and `post`, in tag order.
+//! `GSUB`, `OS/2`, `cmap`, `glyf`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name` and `post`, in tag order.
 //! Every number is written from the design and the OpenType specification; nothing is read from a font.
 
 use super::design::{self, Piece};
+use super::layout;
 use super::outline::{self, Point};
 use super::{Face, FAMILY};
 
@@ -13,6 +14,9 @@ const SPACE_ADVANCE: u16 = 300;
 const LEFT_EDGE: f64 = 100.0;
 /// The advance of a glyph is the width of its centreline box plus this.
 const SIDE_GAP: f64 = 240.0;
+/// The advance of every tabular figure: the advance of the 8 of the lining figures, which is 320 units of centreline
+/// box and the side gaps (`docs/spec/test-font.md`, section 7).
+const TABULAR_ADVANCE: u16 = 560;
 const ASCENDER: i16 = 850;
 const DESCENDER: i16 = -250;
 
@@ -36,7 +40,8 @@ impl Glyph {
     }
 }
 
-/// The glyphs of a face in glyph order: the missing-character glyph, the space, then U+0021 to U+007E.
+/// The glyphs of a face in glyph order: the missing-character glyph, the space, then U+0021 to U+007E, then the ten
+/// tabular figures, then the ten old-style figures (`docs/spec/test-font.md`, section 7).
 fn glyphs(face: Face) -> Vec<Glyph> {
     let stroke = f64::from(face.stroke());
     let mut glyphs = vec![
@@ -47,6 +52,19 @@ fn glyphs(face: Face) -> Vec<Glyph> {
         },
     ];
     glyphs.extend(design::PRINTABLE.iter().map(|(_, pieces)| outlined(pieces, stroke)));
+    // The lining figures, which are the printable digits, in the order of the digits.
+    let lining: Vec<&[Piece]> = design::PRINTABLE
+        .iter()
+        .filter(|(character, _)| character.is_ascii_digit())
+        .map(|(_, pieces)| *pieces)
+        .collect();
+    glyphs.extend(lining.iter().map(|pieces| placed(pieces, stroke, TABULAR_ADVANCE)));
+    glyphs.extend(
+        design::OLDSTYLE
+            .iter()
+            .zip(&lining)
+            .map(|(pieces, figure)| placed(pieces, stroke, outlined(figure, stroke).advance)),
+    );
     glyphs
 }
 
@@ -59,11 +77,24 @@ fn outlined(pieces: &[Piece], stroke: f64) -> Glyph {
     }
 }
 
+/// A glyph of the given advance whose centreline box is centred in the room the advance leaves, that is the advance less
+/// the side gaps. A figure of a variant is drawn this way; the room of a lining figure is its own centreline box.
+fn placed(pieces: &[Piece], stroke: f64, advance: u16) -> Glyph {
+    let (lo, hi) = outline::centreline_span(pieces);
+    let room = f64::from(advance) - SIDE_GAP;
+    let left = LEFT_EDGE + (room - (hi - lo)) / 2.0;
+    Glyph {
+        advance,
+        contours: outline::contours(pieces, stroke, left - lo),
+    }
+}
+
 /// The whole TrueType file of a face. The same bytes on every run.
 pub fn build(face: Face) -> Vec<u8> {
     let glyphs = glyphs(face);
     let (glyf, loca) = glyf_and_loca(&glyphs);
     let mut tables: Vec<([u8; 4], Vec<u8>)> = vec![
+        (*b"GSUB", layout::gsub(&layout::figure_features())),
         (*b"OS/2", os2(face, &glyphs)),
         (*b"cmap", cmap()),
         (*b"glyf", glyf),

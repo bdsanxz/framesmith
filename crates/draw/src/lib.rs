@@ -75,14 +75,35 @@ pub struct GlyphPicture {
     pub y: f32,
 }
 
-/// The glyph runs and the colour pictures of one paragraph, drawn together: the runs first, in the order they are listed,
-/// then the pictures in the order of the text. Only the pixels of `clip` change; `None` for the whole frame. A paragraph
-/// in a composition shown from another file is cut to the rectangle that file is shown in (`docs/spec/text.md`, section 8).
+/// A shadow of a paragraph (`docs/spec/text.md`, section 6.6): the alpha of its glyphs moved by `across` pixels to the
+/// right and `down` pixels down, blurred by `blur` as notation 7.6 blurs a picture, and laid in `colour` under the glyphs.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Shadow {
+    pub across: f32,
+    pub down: f32,
+    pub blur: f32,
+    pub colour: Colour,
+}
+
+/// An outline of a paragraph (`docs/spec/text.md`, section 6.6): a line `width` pixels wide, centred on the outline of each
+/// glyph and laid in `colour` over the glyph fills.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Outline {
+    pub width: f32,
+    pub colour: Colour,
+}
+
+/// The glyph runs and the colour pictures of one paragraph, drawn together: the shadows first, the last listed first so that
+/// the first listed is on top, then the runs in the order they are listed, the outline over the fills, and the pictures in
+/// the order of the text. Only the pixels of `clip` change; `None` for the whole frame. A paragraph in a composition shown
+/// from another file is cut to the rectangle that file is shown in (`docs/spec/text.md`, section 8).
 #[derive(Clone, Debug)]
 pub struct TextMark {
     pub runs: Vec<GlyphRun>,
     pub pictures: Vec<GlyphPicture>,
     pub clip: Option<Rect>,
+    pub shadows: Vec<Shadow>,
+    pub outline: Option<Outline>,
 }
 
 /// One mark of a frame: a drawing step, or the glyph runs of a paragraph of text. The marks are carried out in

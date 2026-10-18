@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text-shadow entry that is not two lengths with an optional blur and colour: red is not a length, so this version refuses it. -->
+<composition version="1" id="text-shadow-two-words" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <text left="4" top="4" font-size="12" text-shadow="2px 2px red">Hi</text>
+</composition>

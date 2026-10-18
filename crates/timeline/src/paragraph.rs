@@ -2,14 +2,14 @@
 //! they are written and as they pass from a box to the elements inside it, the fonts that a composition
 //! declares, and the lines of a `<text>` laid out in its place.
 
-use draw::Colour;
+use draw::{Colour, Outline, Shadow};
 use layout::{place, Amount, Beyond, Rect, Written, LIMIT};
 use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
 use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
 
 /// The text attributes: a `<box>` and a `<text>` take them, and they pass to the elements inside (`text.md`
-/// section 8). A value a `<text>` writes is the one its words are drawn with.
-pub(crate) const TEXT_ATTRIBUTES: [&str; 8] = [
+/// section 8). A value a `<text>` writes is the one its words are drawn with. The last five are those of section 6.6.
+pub(crate) const TEXT_ATTRIBUTES: [&str; 13] = [
     "font-family",
     "font-weight",
     "font-style",
@@ -18,6 +18,11 @@ pub(crate) const TEXT_ATTRIBUTES: [&str; 8] = [
     "letter-spacing",
     "color",
     "text-align",
+    "white-space",
+    "text-transform",
+    "font-variant-numeric",
+    "text-shadow",
+    "text-stroke",
 ];
 
 /// What a `<text>` takes: its id and class, its place and its clip, the text attributes, and `white-space` and
@@ -46,6 +51,9 @@ pub(crate) const TEXT_TAKES: &[&str] = &[
     "text-align",
     "white-space",
     "text-transform",
+    "font-variant-numeric",
+    "text-shadow",
+    "text-stroke",
     "align-self",
     "flex-grow",
     "max-width",
@@ -97,13 +105,38 @@ pub(crate) struct TextAttrs {
     spacing: Option<Spacing>,
     colour: Option<Colour>,
     align: Option<Align>,
+    uppercase: Option<bool>,
+    nowrap: Option<bool>,
+    figures: Option<Vec<[u8; 4]>>,
+    shadows: Option<Vec<ShadowAs>>,
+    outline: Option<Outline>,
 }
 
-/// A paragraph placed in its place: its rectangle in the frame and its lines. The colour of each run is in the block.
+/// A shadow as a `<text>` writes it: its offsets and its blur in pixels, and its colour, where it writes one; a shadow with
+/// no colour takes the colour of its text (`docs/spec/text.md`, section 6.6, rule 5).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct ShadowAs {
+    across: f32,
+    down: f32,
+    blur: f32,
+    colour: Option<Colour>,
+}
+
+/// What a `<text>` draws around its glyphs (`docs/spec/text.md`, section 6.6): its shadows, the first listed first, and its
+/// outline, where the outline has a width above 0.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct Dressing {
+    pub(crate) shadows: Vec<Shadow>,
+    pub(crate) outline: Option<Outline>,
+}
+
+/// A paragraph placed in its place: its rectangle in the frame, its lines and its shadows and outline. The colour of each
+/// run is in the block.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Paragraph {
     pub(crate) rect: Rect,
     pub(crate) block: Block,
+    pub(crate) dressing: Dressing,
 }
 
 /// Reads the text attributes that an element writes. A value that is not in the form the notation gives is a fault
@@ -173,6 +206,33 @@ fn read_text_attribute(attribute: &Attribute, attrs: &mut TextAttrs) -> Result<(
         }
         "line-height" => attrs.line_height = Some(line_height(value)?),
         "letter-spacing" => attrs.spacing = Some(spacing(value)?),
+        "text-transform" => {
+            attrs.uppercase = Some(match value {
+                "none" => false,
+                "uppercase" => true,
+                _ => {
+                    return Err((
+                        Code::WordNotTaken,
+                        format!("`text-transform=\"{value}\"` is not one of: none, uppercase"),
+                    ))
+                }
+            })
+        }
+        "white-space" => {
+            attrs.nowrap = Some(match value {
+                "normal" => false,
+                "nowrap" => true,
+                _ => {
+                    return Err((
+                        Code::WordNotTaken,
+                        format!("`white-space=\"{value}\"` is not one of: normal, nowrap"),
+                    ))
+                }
+            })
+        }
+        "font-variant-numeric" => attrs.figures = Some(figures(value)?),
+        "text-shadow" => attrs.shadows = Some(shadows(value)?),
+        "text-stroke" => attrs.outline = Some(outline(value)?),
         "color" => match attribute.colour() {
             Some(found) if found.alpha == 255 => {
                 attrs.colour = Some(Colour {
@@ -212,6 +272,142 @@ fn read_text_attribute(attribute: &Attribute, attrs: &mut TextAttrs) -> Result<(
     Ok(())
 }
 
+/// `font-variant-numeric`: `normal`, or a list of the words of the figures, each asking the font for one feature: where a list
+/// holds both words of a pair, the one written last is asked for (`docs/spec/text.md`, section 6.6, rule 4).
+fn figures(value: &str) -> Result<Vec<[u8; 4]>, (Code, String)> {
+    let not_taken = || {
+        (
+            Code::WordNotTaken,
+            format!("`font-variant-numeric=\"{value}\"` is not normal or a list of: lining-nums, oldstyle-nums, tabular-nums, proportional-nums"),
+        )
+    };
+    if value == "normal" {
+        return Ok(Vec::new());
+    }
+    // Each pair of words asks for one kind of the feature: lining or old-style figures, or tabular or proportional ones.
+    let mut found: Vec<([u8; 4], u8)> = Vec::new();
+    for word in value.split_whitespace() {
+        let (tag, pair) = match word {
+            "lining-nums" => (*b"lnum", 0),
+            "oldstyle-nums" => (*b"onum", 0),
+            "tabular-nums" => (*b"tnum", 1),
+            "proportional-nums" => (*b"pnum", 1),
+            _ => return Err(not_taken()),
+        };
+        found.retain(|(_, other)| *other != pair);
+        found.push((tag, pair));
+    }
+    if found.is_empty() {
+        return Err(not_taken());
+    }
+    Ok(found.into_iter().map(|(tag, _)| tag).collect())
+}
+
+/// `text-shadow`: `none`, or shadows separated by commas, each of two lengths with an optional blur and an optional colour, in
+/// either order (`docs/spec/text.md`, section 6.6, rule 5).
+fn shadows(value: &str) -> Result<Vec<ShadowAs>, (Code, String)> {
+    if value == "none" {
+        return Ok(Vec::new());
+    }
+    value.split(',').map(|entry| shadow(value, entry.trim())).collect()
+}
+
+/// One shadow of a `text-shadow` list (section 6.6, rule 5), read from its words.
+fn shadow(value: &str, entry: &str) -> Result<ShadowAs, (Code, String)> {
+    let not_a_list = || {
+        (
+            Code::ValueNotInForm,
+            format!("`text-shadow=\"{value}\"` is not a list of shadows: two lengths, an optional blur and an optional colour, such as 2px 2px 4px #000000"),
+        )
+    };
+    let mut lengths: Vec<f32> = Vec::new();
+    let mut colour: Option<[u8; 4]> = None;
+    for token in entry.split_whitespace() {
+        if token.starts_with('#') {
+            if colour.is_some() {
+                return Err(not_a_list());
+            }
+            colour = Some(colour_token(token).ok_or_else(not_a_list)?);
+        } else {
+            lengths.push(length_token(token).ok_or_else(not_a_list)?);
+        }
+    }
+    if !(2..=3).contains(&lengths.len()) {
+        return Err(not_a_list());
+    }
+    let blur = lengths.get(2).copied().unwrap_or(0.0);
+    if blur < 0.0 {
+        return Err((Code::LengthNotAccepted, format!("`text-shadow=\"{value}\"` must be 0 or more")));
+    }
+    let colour = match colour {
+        None => None,
+        Some([red, green, blue, 255]) => Some(Colour { red, green, blue }),
+        Some(_) => {
+            return Err((
+                Code::FormNotSupported,
+                format!("`text-shadow=\"{value}\"` has an alpha below ff, which this version does not draw"),
+            ))
+        }
+    };
+    Ok(ShadowAs {
+        across: lengths[0],
+        down: lengths[1],
+        blur,
+        colour,
+    })
+}
+
+/// `text-stroke`: a width and a colour, in that order (`docs/spec/text.md`, section 6.6, rule 6). A width of 0 draws no outline.
+fn outline(value: &str) -> Result<Outline, (Code, String)> {
+    let not_taken = || {
+        (
+            Code::ValueNotInForm,
+            format!("`text-stroke=\"{value}\"` is not a width and a colour, such as 2px #000000"),
+        )
+    };
+    let tokens: Vec<&str> = value.split_whitespace().collect();
+    let (width, colour) = match tokens.as_slice() {
+        [width, colour] => (
+            length_token(width).ok_or_else(not_taken)?,
+            colour_token(colour).ok_or_else(not_taken)?,
+        ),
+        _ => return Err(not_taken()),
+    };
+    if width < 0.0 {
+        return Err((Code::LengthNotAccepted, format!("`text-stroke=\"{value}\"` must be 0 or more")));
+    }
+    let [red, green, blue, alpha] = colour;
+    if alpha != 255 {
+        return Err((
+            Code::FormNotSupported,
+            format!("`text-stroke=\"{value}\"` has an alpha below ff, which this version does not draw"),
+        ));
+    }
+    Ok(Outline {
+        width,
+        colour: Colour { red, green, blue },
+    })
+}
+
+/// A length of a shadow or an outline: a number of pixels with an optional `px` after it (notation N9).
+fn length_token(token: &str) -> Option<f32> {
+    let text = token.strip_suffix("px").unwrap_or(token);
+    number(text).map(|pixels| pixels as f32)
+}
+
+/// A colour written `#rrggbb` or `#rrggbbaa`, as red, green, blue and alpha (section 6.3).
+fn colour_token(token: &str) -> Option<[u8; 4]> {
+    let hex = token.strip_prefix('#')?;
+    if !matches!(hex.len(), 6 | 8) || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    let mut parts = [0, 0, 0, 255];
+    for (part, pair) in parts.iter_mut().zip(hex.as_bytes().chunks(2)) {
+        *part = u8::from_str_radix(std::str::from_utf8(pair).ok()?, 16).ok()?;
+    }
+    Some(parts)
+}
+
 /// `line-height`: `normal`, a number of times the font size, or a number of pixels above 0 (`text.md` section 4).
 fn line_height(value: &str) -> Result<LineHeight, (Code, String)> {
     if value == "normal" {
@@ -247,17 +443,48 @@ fn spacing(value: &str) -> Result<Spacing, (Code, String)> {
     }
 }
 
-/// The style of the text at `index` (`text.md` section 8): each text attribute that the element, or the nearest
-/// element above it, writes, and the defaults of the table where none does. A letter spacing in ems is taken in
-/// pixels of the font size of the element that writes it. Gives the style and the colour, which is black where
-/// none is written.
-pub(crate) fn style_of(tree: &[Node], index: usize) -> (Style, Colour) {
+/// The text attributes of the element at `index` and of each element above it, nearest first.
+fn chain_of(tree: &[Node], index: usize) -> Vec<TextAttrs> {
     let mut chain: Vec<TextAttrs> = Vec::new();
     let mut at = Some(index);
     while let Some(current) = at {
         chain.push(read_text_attributes(&tree[current], &mut Vec::new()));
         at = tree[current].parent();
     }
+    chain
+}
+
+/// The shadows and the outline of the `<text>` at `index` (`docs/spec/text.md`, section 6.6): each takes the nearest element
+/// above the text that writes it, and a shadow with no colour of its own takes the colour of the text.
+pub(crate) fn dressing_of(tree: &[Node], index: usize) -> Dressing {
+    let chain = chain_of(tree, index);
+    let colour = chain
+        .iter()
+        .find_map(|attrs| attrs.colour)
+        .unwrap_or(Colour { red: 0, green: 0, blue: 0 });
+    let shadows = chain
+        .iter()
+        .find_map(|attrs| attrs.shadows.clone())
+        .unwrap_or_default()
+        .into_iter()
+        .map(|shadow| Shadow {
+            across: shadow.across,
+            down: shadow.down,
+            blur: shadow.blur,
+            colour: shadow.colour.unwrap_or(colour),
+        })
+        .collect();
+    // A width of 0 draws no outline (section 6.6, rule 6).
+    let outline = chain.iter().find_map(|attrs| attrs.outline).filter(|outline| outline.width > 0.0);
+    Dressing { shadows, outline }
+}
+
+/// The style of the text at `index` (`text.md` section 8): each text attribute that the element, or the nearest
+/// element above it, writes, and the defaults of the table where none does. A letter spacing in ems is taken in
+/// pixels of the font size of the element that writes it. Gives the style and the colour, which is black where
+/// none is written.
+pub(crate) fn style_of(tree: &[Node], index: usize) -> (Style, Colour) {
+    let chain = chain_of(tree, index);
     let families = chain
         .iter()
         .find_map(|attrs| attrs.families.clone())
@@ -284,6 +511,9 @@ pub(crate) fn style_of(tree: &[Node], index: usize) -> (Style, Colour) {
             ems * writer_size
         }
     };
+    let uppercase = chain.iter().find_map(|attrs| attrs.uppercase).unwrap_or(false);
+    let nowrap = chain.iter().find_map(|attrs| attrs.nowrap).unwrap_or(false);
+    let figures = chain.iter().find_map(|attrs| attrs.figures.clone()).unwrap_or_default();
     let style = Style {
         families,
         size,
@@ -292,6 +522,9 @@ pub(crate) fn style_of(tree: &[Node], index: usize) -> (Style, Colour) {
         line_height,
         letter_spacing,
         align,
+        uppercase,
+        nowrap,
+        figures,
     };
     (style, colour)
 }
@@ -409,7 +642,11 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
         sized.height = Some(Amount::Pixels(f64::from(block.height).ceil()));
     }
     let rect = place(parent, sized).map_err(beyond)?;
-    Ok(Paragraph { rect, block })
+    Ok(Paragraph {
+        rect,
+        block,
+        dressing: dressing_of(tree, index),
+    })
 }
 
 /// A `<text>` laid out as an item of a row, a column or a set (`render-command.md` section 4.3, rule 14; `text.md`
@@ -421,6 +658,7 @@ pub(crate) struct ItemText {
     pub(crate) width: f64,
     pub(crate) height: f64,
     pub(crate) baseline: Option<f64>,
+    pub(crate) dressing: Dressing,
 }
 
 /// Lays out the `<text>` at `index` as an item of a row, a column or a set. Its width is the one written, or that of its
@@ -467,6 +705,7 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
         width,
         height,
         baseline,
+        dressing: dressing_of(tree, index),
     })
 }
 

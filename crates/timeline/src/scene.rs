@@ -347,6 +347,8 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
         runs,
         pictures,
         clip: text.clip,
+        shadows: paragraph.dressing.shadows.clone(),
+        outline: paragraph.dressing.outline,
     }))
 }
 
@@ -534,8 +536,11 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             // A text that is an item of a row, a column or a set takes the rectangle its flow gives it; any other is
             // placed in its parent.
             let placed = match assigned[index] {
-                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute)
-                    .map(|item| Paragraph { rect, block: item.block }),
+                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute).map(|item| Paragraph {
+                    rect,
+                    block: item.block,
+                    dressing: item.dressing,
+                }),
                 None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
             };
             match placed {
@@ -1115,16 +1120,6 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                     format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
                 )),
             },
-            "white-space" if attribute.value() != "normal" => refusals.push(Refusal::of_place(
-                Code::FormNotSupported,
-                attribute.line(),
-                unsupported_value(node, name, &value, "normal"),
-            )),
-            "text-transform" if attribute.value() != "none" => refusals.push(Refusal::of_place(
-                Code::FormNotSupported,
-                attribute.line(),
-                unsupported_value(node, name, &value, "none"),
-            )),
             _ => {}
         }
     }

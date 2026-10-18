@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text whose source words are in lower case and whose transform is uppercase: it is drawn in capitals. 200 by 90
+     pixels, 10 frames a second. -->
+<composition version="1" id="text-dressing-upper-case" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="8" font-family="Framesmith Test Stroke" font-size="30" color="#c02020" text-transform="uppercase">hello, world</text>
+</composition>

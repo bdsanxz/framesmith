@@ -4,6 +4,7 @@
 //! the method are in `docs/spec/test-font.md`.
 
 mod design;
+mod layout;
 mod outline;
 mod sfnt;
 
