@@ -12,3 +12,9 @@ workspace = true
 # The dictionary segmenters of the engine (docs/spec/text.md, section 12.3): Thai and Japanese text breaks at word
 # boundaries. The feature adds no crate to the lock file.
 parley = { workspace = true, features = ["complex-scripts"] }
+# frx7 reads the PNG pictures of the emoji from memory and scales them (docs/spec/text.md, section 12.4). The picture
+# decoding stays in frx7; no type of frx7 is in a public interface of this crate.
+base = { workspace = true }
+codec = { workspace = true }
+backend-os = { workspace = true }
+pixel = { workspace = true }

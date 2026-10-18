@@ -1489,7 +1489,11 @@ dependencies = [
 name = "text"
 version = "0.1.0"
 dependencies = [
+ "backend-os",
+ "base",
+ "codec",
  "parley",
+ "pixel",
 ]
 
 [[package]]
