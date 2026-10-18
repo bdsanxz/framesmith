@@ -78,6 +78,8 @@ fn frame_of_text(font: &Arc<Vec<u8>>) -> Frame {
             width: 120,
             height: 60,
         }),
+        shadows: Vec::new(),
+        outline: None,
     };
     let whole = TextMark {
         runs: vec![GlyphRun {
@@ -93,6 +95,8 @@ fn frame_of_text(font: &Arc<Vec<u8>>) -> Frame {
         }],
         pictures: Vec::new(),
         clip: None,
+        shadows: Vec::new(),
+        outline: None,
     };
     Frame {
         width: 160,

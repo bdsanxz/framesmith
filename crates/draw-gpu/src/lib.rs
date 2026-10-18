@@ -7,9 +7,10 @@
 //! the graphics API only through the safe types that crate hands out.
 
 use std::ops::Range;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 
 use draw::{Colour, DisplayList, Error, Frame, GlyphPicture, Mark, Picture, Renderer, Step, TextMark};
+use draw_cpu::{outline_layer, shadow_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
@@ -367,8 +368,11 @@ impl CardRenderer {
         Ok((floats, draws, pictures))
     }
 
-    /// The quads of a paragraph of text: one for each glyph that has coverage, in the order of the runs and of the
-    /// glyphs in them, each clipped to the paragraph's clip.
+    /// The quads of a paragraph of text, each clipped to the paragraph's clip: its shadows first, the last listed first, so
+    /// that the first listed is on top (`docs/spec/text.md`, section 6.6, rule 5); then one quad for each glyph that has
+    /// coverage, in the order of the runs and of the glyphs in them; then its outline; then the colour pictures of the emoji.
+    /// The shadows and the outline are pictures of the frame's size that the processor draws (`docs/spec/card-renderer.md`,
+    /// section 9.9), and they make no glyph mask.
     fn plan_text(
         &mut self,
         floats: &mut Vec<f32>,
@@ -390,6 +394,10 @@ impl CardRenderer {
                 None => return Ok(()),
             },
         };
+        for shadow in text.shadows.iter().rev() {
+            let layer = shadow_layer(width, height, text, shadow)?;
+            self.push_layer(floats, draws, pictures, width, height, scissor, layer)?;
+        }
         for run in &text.runs {
             let colour = colour_floats(run.colour);
             for glyph in &run.glyphs {
@@ -414,25 +422,68 @@ impl CardRenderer {
                 });
             }
         }
+        if let Some(outline) = &text.outline {
+            let layer = outline_layer(width, height, text, outline)?;
+            self.push_layer(floats, draws, pictures, width, height, scissor, layer)?;
+        }
         // The colour pictures of the emoji come after the glyph runs, in the order of the text (section 12.4, point 10).
         for picture in &text.pictures {
-            if picture.width == 0 || picture.height == 0 {
-                continue;
-            }
-            let bind_group = self.picture_bind_group(picture)?;
-            let left = whole_pixel(picture.x);
-            let top = whole_pixel(picture.y);
-            let (left, top) = (left as f32, top as f32);
-            let first = (floats.len() / VERTEX_FLOATS) as u32;
-            let corners = (left, top, left + picture.width as f32, top + picture.height as f32);
-            push_quad(floats, width, height, corners, [left, top], [0.0; 4]);
-            draws.push(Draw {
-                scissor,
-                vertices: first..first + CORNERS,
-                source: Source::Picture(pictures.len()),
-            });
-            pictures.push(bind_group);
+            let left = whole_pixel(picture.x) as f32;
+            let top = whole_pixel(picture.y) as f32;
+            self.push_picture(floats, draws, pictures, width, height, scissor, picture, (left, top))?;
         }
+        Ok(())
+    }
+
+    /// Draws a layer of premultiplied pixels of the frame's size over the whole frame, in `scissor`, after what is drawn before it.
+    #[allow(clippy::too_many_arguments)]
+    fn push_layer(
+        &self,
+        floats: &mut Vec<f32>,
+        draws: &mut Vec<Draw>,
+        pictures: &mut Vec<wgpu::BindGroup>,
+        width: u32,
+        height: u32,
+        scissor: [u32; 4],
+        layer: Vec<u8>,
+    ) -> Result<(), Error> {
+        let picture = GlyphPicture {
+            width,
+            height,
+            pixels: Arc::new(layer),
+            x: 0.0,
+            y: 0.0,
+        };
+        self.push_picture(floats, draws, pictures, width, height, scissor, &picture, (0.0, 0.0))
+    }
+
+    /// Draws a colour picture with its top left corner at the whole pixel `(left, top)`, in `scissor`, after what is drawn
+    /// before it. A picture with no pixel draws nothing.
+    #[allow(clippy::too_many_arguments)]
+    fn push_picture(
+        &self,
+        floats: &mut Vec<f32>,
+        draws: &mut Vec<Draw>,
+        pictures: &mut Vec<wgpu::BindGroup>,
+        width: u32,
+        height: u32,
+        scissor: [u32; 4],
+        picture: &GlyphPicture,
+        (left, top): (f32, f32),
+    ) -> Result<(), Error> {
+        if picture.width == 0 || picture.height == 0 {
+            return Ok(());
+        }
+        let bind_group = self.picture_bind_group(picture)?;
+        let first = (floats.len() / VERTEX_FLOATS) as u32;
+        let corners = (left, top, left + picture.width as f32, top + picture.height as f32);
+        push_quad(floats, width, height, corners, [left, top], [0.0; 4]);
+        draws.push(Draw {
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Picture(pictures.len()),
+        });
+        pictures.push(bind_group);
         Ok(())
     }
 

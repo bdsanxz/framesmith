@@ -43,6 +43,8 @@ fn capital_i(file: &str, colour: Colour) -> Picture {
             }],
             pictures: Vec::new(),
             clip: None,
+            shadows: Vec::new(),
+            outline: None,
         })],
     };
     CpuRenderer.draw_frame(&frame).unwrap()

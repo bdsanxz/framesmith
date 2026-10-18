@@ -6,7 +6,7 @@ use std::fmt;
 use std::ops::Range;
 use std::sync::Arc;
 
-use parley::{BaseDirection, FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
+use parley::{BaseDirection, FontFamily, FontFamilyName, FontFeatures, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
 
 use crate::fonts::Fonts;
 use crate::picture;
@@ -45,6 +45,14 @@ pub struct Style {
     /// The space added after each letter, in pixels.
     pub letter_spacing: f32,
     pub align: Align,
+    /// Whether the words are drawn in capitals: each character takes its upper-case form under the Unicode default
+    /// mapping, before the lines are laid out (`docs/spec/text.md`, section 6.6, rule 2).
+    pub uppercase: bool,
+    /// Whether the paragraph is one line, however narrow its width (`white-space: nowrap`, section 6.6, rule 3).
+    pub nowrap: bool,
+    /// The OpenType features of the figures asked for (`font-variant-numeric`, section 6.6, rule 4), as their tags, such as
+    /// `lnum`. Empty where the font's own figures are drawn.
+    pub figures: Vec<[u8; 4]>,
 }
 
 /// A glyph with its place in the block: `x` from the block's left edge, `y` the baseline from its top.
@@ -293,7 +301,11 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
         }
     }
     let mut layout = builder.build(&flat.text);
-    layout.break_all_lines(width);
+    // A paragraph with `white-space: nowrap` is one line whatever its width (section 6.6, rule 3).
+    let nowrap = pieces
+        .iter()
+        .any(|piece| matches!(piece, Piece::Words { style, .. } if style.nowrap));
+    layout.break_all_lines(if nowrap { None } else { width });
 
     // First pass: every character must come from a face of its own piece, and the width of each line is taken without
     // the space it ends at (section 5.3).
@@ -526,14 +538,18 @@ fn plain(pieces: &[Piece]) -> Plain {
                     place.width += width;
                 }
             }
-            Piece::Words { words, .. } => {
+            Piece::Words { words, style, .. } => {
                 for character in words.chars() {
                     if matches!(character, ' ' | '\t' | '\n' | '\r') {
                         pending = true;
                         continue;
                     }
                     emit_pending_space(&mut plain, &mut pending, number);
-                    plain.text.push(character);
+                    if style.uppercase {
+                        plain.text.extend(character.to_uppercase());
+                    } else {
+                        plain.text.push(character);
+                    }
                     plain.owner.resize(plain.text.len(), number);
                 }
                 last_words = number;
@@ -740,8 +756,17 @@ fn push_owner_styles(builder: &mut parley::RangedBuilder<'_, [u8; 4]>, flat: &Fl
         );
         builder.push(StyleProperty::LineHeight(engine_line_height(style.line_height)), range.clone());
         builder.push(StyleProperty::LetterSpacing(letter.unwrap_or(style.letter_spacing)), range.clone());
+        if !style.figures.is_empty() {
+            builder.push(StyleProperty::FontFeatures(figure_features(&style.figures)), range.clone());
+        }
         builder.push(StyleProperty::Brush(*colour), range);
     }
+}
+
+/// The features of the figures asked for, in the form the engine reads as a list of settings: each tag with the value 1.
+fn figure_features(tags: &[[u8; 4]]) -> FontFeatures<'static> {
+    let settings: Vec<String> = tags.iter().map(|tag| format!("\"{}\" 1", String::from_utf8_lossy(tag))).collect();
+    FontFeatures::Source(std::borrow::Cow::Owned(settings.join(", ")))
 }
 
 /// The style of a carrier: font size 0, so that its advance is only its letter spacing, line height 0, so that it adds
