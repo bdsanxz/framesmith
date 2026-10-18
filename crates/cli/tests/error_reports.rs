@@ -686,7 +686,26 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     );
     emitted.insert(Code::RendererNotAvailable.as_str());
 
-    let all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
+    // The one refusal of an emoji with no picture is emitted only where the Mac's emoji font is read: that font is a file of
+    // the machine, so no other system reads it, and no emoji is drawn there (`docs/spec/text.md`, sections 2.6 and 12.4).
+    #[cfg(target_os = "macos")]
+    {
+        let composition = r##"<composition version="1" width="320" height="300" fps="10" duration="1" background="#ffffff">
+<font src="/System/Library/Fonts/Apple Color Emoji.ttc" family="Apple Color Emoji"/>
+<text left="10" top="10" width="300" font-family="Apple Color Emoji" font-size="20" line-height="2" color="#1e6fd9">♀</text>
+</composition>
+"##;
+        let (project, cwd) = project("emit-emoji-without-picture", composition.as_bytes());
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert!(printed.contains(&format!(": {}: ", Code::EmojiNotDrawn.as_str())), "{printed}");
+        emitted.insert(Code::EmojiNotDrawn.as_str());
+    }
+
+    let mut all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
+    if !cfg!(target_os = "macos") {
+        all.remove(Code::EmojiNotDrawn.as_str());
+    }
     assert_eq!(emitted, all);
 }
 

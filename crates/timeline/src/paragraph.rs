@@ -354,6 +354,10 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
                     Code::FormNotSupported,
                     format!("`src=\"{src}\"` is {kind}, a font of a kind this version does not draw"),
                 ),
+                FontError::Collection(reason) => (
+                    Code::FormNotSupported,
+                    format!("`src=\"{src}\"` is a font collection this version does not draw: {reason}"),
+                ),
                 FontError::NotAFont => (Code::FontNotAFont, format!("`src=\"{src}\"` is not a TrueType font (`.ttf`)")),
             };
             faults.push(Fault {
@@ -448,6 +452,9 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
                 glyph.y += shift;
             }
         }
+        for picture in block.pictures.iter_mut() {
+            picture.y += shift;
+        }
         for line in block.lines.iter_mut() {
             line.baseline += shift;
         }
@@ -506,6 +513,14 @@ fn lay_block(fonts: &mut Fonts, tree: &[Node], index: usize, wrap: Option<f32>, 
                 style: source.style,
             }
         }
+        // An emoji with no picture this version draws is refused on the line of its `<text>` (`docs/spec/text.md`,
+        // section 12.4, point 9).
+        text::TextError::NoPicture(_) | text::TextError::PictureRefused { .. } => Fault {
+            code: Code::EmojiNotDrawn,
+            line: node.line(),
+            message: format!("<text> is not drawn by this version: {error}"),
+            style: false,
+        },
         _ => Fault {
             code: Code::FormNotSupported,
             line: node.line(),

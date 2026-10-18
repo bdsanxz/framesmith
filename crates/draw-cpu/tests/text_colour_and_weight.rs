@@ -41,6 +41,7 @@ fn capital_i(file: &str, colour: Colour) -> Picture {
                     y: 70.0,
                 }],
             }],
+            pictures: Vec::new(),
             clip: None,
         })],
     };

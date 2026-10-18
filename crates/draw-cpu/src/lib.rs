@@ -9,7 +9,7 @@
 
 use std::sync::Arc;
 
-use draw::{DisplayList, Error, Frame, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
+use draw::{DisplayList, Error, Frame, GlyphPicture, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
 use vello_cpu::kurbo::Affine;
 use vello_cpu::peniko::{Blob, Color, FontData};
 use vello_cpu::{Glyph, Pixmap, RenderContext, Resources};
@@ -92,8 +92,46 @@ fn draw_text(bytes: &mut [u8], width: u32, height: u32, text: &TextMark) -> Resu
     context.flush();
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
+    // The colour pictures of the emoji go into the same layer, after the glyph runs, in the order of the text
+    // (`docs/spec/text.md`, section 12.4, point 10).
+    for picture in &text.pictures {
+        lay_picture(layer.data_as_u8_slice_mut(), width, height, picture);
+    }
     composite(bytes, width, layer.data_as_u8_slice(), region);
     Ok(())
+}
+
+/// Lays a colour picture over a layer of premultiplied pixels, with its top-left corner at the whole pixel nearest to its
+/// place, halves up. Each pixel is laid over what is there by the same src-over rounding as the layer (`divide_by_255`).
+fn lay_picture(layer: &mut [u8], width: u32, height: u32, picture: &GlyphPicture) {
+    let left = whole_pixel(picture.x);
+    let top = whole_pixel(picture.y);
+    let row_length = picture.width as usize * 4;
+    for line in 0..picture.height as i64 {
+        let y = top + line;
+        if y < 0 || y >= i64::from(height) {
+            continue;
+        }
+        for column in 0..picture.width as i64 {
+            let x = left + column;
+            if x < 0 || x >= i64::from(width) {
+                continue;
+            }
+            let source = &picture.pixels[line as usize * row_length + column as usize * 4..][..4];
+            let at = (y as usize * width as usize + x as usize) * 4;
+            let destination = &mut layer[at..at + 4];
+            let kept = 255 - u32::from(source[3]);
+            for channel in 0..4 {
+                let under = u32::from(destination[channel]) * kept;
+                destination[channel] = (u32::from(source[channel]) + divide_by_255(under)) as u8;
+            }
+        }
+    }
+}
+
+/// The whole pixel nearest to a coordinate, halves up.
+fn whole_pixel(value: f32) -> i64 {
+    (f64::from(value) + 0.5).floor() as i64
 }
 
 /// Fills the glyphs of one run in its colour, sheared by its skew about each glyph's origin.

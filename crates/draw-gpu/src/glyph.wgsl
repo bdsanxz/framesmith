@@ -30,3 +30,12 @@ fn paint_glyph(glyph: Glyph) -> @location(0) vec4<f32> {
     let coverage = textureLoad(mask, texel, 0).r;
     return vec4<f32>(glyph.colour.rgb * coverage, coverage);
 }
+
+// A colour picture of an emoji (docs/spec/text.md, section 12.4; docs/spec/card-renderer.md, section 9.8): each pixel is read
+// as it is stored, premultiplied, without filtering, and blended over the frame by the blend of the glyphs, which keeps the
+// pixel's own colours whatever the colour of the text.
+@fragment
+fn paint_picture(glyph: Glyph) -> @location(0) vec4<f32> {
+    let texel = vec2<i32>(floor(glyph.place.xy - glyph.origin));
+    return textureLoad(mask, texel, 0);
+}

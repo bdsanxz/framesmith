@@ -9,7 +9,7 @@
 use std::ops::Range;
 use std::sync::mpsc;
 
-use draw::{Colour, DisplayList, Error, Frame, Mark, Picture, Renderer, Step, TextMark};
+use draw::{Colour, DisplayList, Error, Frame, GlyphPicture, Mark, Picture, Renderer, Step, TextMark};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
@@ -79,6 +79,7 @@ pub struct CardRenderer {
     card: Card,
     pipeline: wgpu::RenderPipeline,
     glyph_pipeline: wgpu::RenderPipeline,
+    picture_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
     masks: Masks,
 }
@@ -173,10 +174,36 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let picture_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("picture"),
+            layout: Some(&glyph_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &glyph_shader,
+                entry_point: Some("place_glyph_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &glyph_shader,
+                entry_point: Some("paint_picture"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: Some(GLYPH_BLEND),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         Ok(CardRenderer {
             card,
             pipeline,
             glyph_pipeline,
+            picture_pipeline,
             glyph_layout,
             masks: Masks::new(),
         })
@@ -194,7 +221,7 @@ impl CardRenderer {
             )));
         }
 
-        let (floats, draws) = self.plan(frame)?;
+        let (floats, draws, pictures) = self.plan(frame)?;
         let device = self.card.device();
         let bytes: Vec<u8> = floats.iter().flat_map(|value| value.to_ne_bytes()).collect();
         let vertices = device.create_buffer(&wgpu::BufferDescriptor {
@@ -243,17 +270,22 @@ impl CardRenderer {
             for draw in &draws {
                 let [x, y, w, h] = draw.scissor;
                 pass.set_scissor_rect(x, y, w, h);
-                match &draw.mask {
-                    None => {
+                match &draw.source {
+                    Source::Fill => {
                         pass.set_pipeline(&self.pipeline);
                         pass.draw(draw.vertices.clone(), 0..1);
                     }
-                    Some(key) => {
+                    Source::Glyph(key) => {
                         let Some(placed) = self.masks.placed(key) else {
                             return Err(Error::new("a glyph mask was not kept for its draw"));
                         };
                         pass.set_pipeline(&self.glyph_pipeline);
                         pass.set_bind_group(0, &placed.bind_group, &[]);
+                        pass.draw(draw.vertices.clone(), 0..1);
+                    }
+                    Source::Picture(index) => {
+                        pass.set_pipeline(&self.picture_pipeline);
+                        pass.set_bind_group(0, &pictures[*index], &[]);
                         pass.draw(draw.vertices.clone(), 0..1);
                     }
                 }
@@ -312,10 +344,11 @@ impl CardRenderer {
     /// The vertices of a frame and its draw calls, in the order they are drawn: the background over the whole frame
     /// first, then each mark. A fill that lies outside the frame makes no quad, and so does a paragraph whose clip
     /// has no visible pixel.
-    fn plan(&mut self, frame: &Frame) -> Result<(Vec<f32>, Vec<Draw>), Error> {
+    fn plan(&mut self, frame: &Frame) -> Result<Plan, Error> {
         let (width, height) = (frame.width, frame.height);
         let mut floats = Vec::new();
         let mut draws = Vec::new();
+        let mut pictures = Vec::new();
         let whole = Rect {
             left: 0,
             top: 0,
@@ -328,15 +361,23 @@ impl CardRenderer {
                 Mark::Step(Step::Fill { rect, colour }) => {
                     push_fill(&mut floats, &mut draws, width, height, *rect, *colour);
                 }
-                Mark::Text(text) => self.plan_text(&mut floats, &mut draws, width, height, text)?,
+                Mark::Text(text) => self.plan_text(&mut floats, &mut draws, &mut pictures, width, height, text)?,
             }
         }
-        Ok((floats, draws))
+        Ok((floats, draws, pictures))
     }
 
     /// The quads of a paragraph of text: one for each glyph that has coverage, in the order of the runs and of the
     /// glyphs in them, each clipped to the paragraph's clip.
-    fn plan_text(&mut self, floats: &mut Vec<f32>, draws: &mut Vec<Draw>, width: u32, height: u32, text: &TextMark) -> Result<(), Error> {
+    fn plan_text(
+        &mut self,
+        floats: &mut Vec<f32>,
+        draws: &mut Vec<Draw>,
+        pictures: &mut Vec<wgpu::BindGroup>,
+        width: u32,
+        height: u32,
+        text: &TextMark,
+    ) -> Result<(), Error> {
         let scissor = match &text.clip {
             None => [0, 0, width, height],
             Some(clip) => match clip.visible(width, height) {
@@ -369,11 +410,76 @@ impl CardRenderer {
                 draws.push(Draw {
                     scissor,
                     vertices: first..first + CORNERS,
-                    mask: Some(key),
+                    source: Source::Glyph(key),
                 });
             }
         }
+        // The colour pictures of the emoji come after the glyph runs, in the order of the text (section 12.4, point 10).
+        for picture in &text.pictures {
+            if picture.width == 0 || picture.height == 0 {
+                continue;
+            }
+            let bind_group = self.picture_bind_group(picture)?;
+            let left = whole_pixel(picture.x);
+            let top = whole_pixel(picture.y);
+            let (left, top) = (left as f32, top as f32);
+            let first = (floats.len() / VERTEX_FLOATS) as u32;
+            let corners = (left, top, left + picture.width as f32, top + picture.height as f32);
+            push_quad(floats, width, height, corners, [left, top], [0.0; 4]);
+            draws.push(Draw {
+                scissor,
+                vertices: first..first + CORNERS,
+                source: Source::Picture(pictures.len()),
+            });
+            pictures.push(bind_group);
+        }
         Ok(())
+    }
+
+    /// The texture of a colour picture, with its premultiplied pixels as they are, and the bind group that reads it. A
+    /// picture with a side above the card's limit is refused, since no texture of it can be made.
+    fn picture_bind_group(&self, picture: &GlyphPicture) -> Result<wgpu::BindGroup, Error> {
+        let device = self.card.device();
+        let limit = device.limits().max_texture_dimension_2d;
+        if picture.width > limit || picture.height > limit {
+            return Err(Error::new(format!(
+                "a picture of {}x{} pixels cannot be drawn on the card: a side is above {limit}",
+                picture.width, picture.height
+            )));
+        }
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("emoji picture"),
+            size: wgpu::Extent3d {
+                width: picture.width,
+                height: picture.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        self.card.queue().write_texture(
+            texture.as_image_copy(),
+            &picture.pixels,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(picture.width * 4),
+                rows_per_image: None,
+            },
+            texture.size(),
+        );
+        let view = texture.create_view(&Default::default());
+        Ok(device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("emoji picture"),
+            layout: &self.glyph_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            }],
+        }))
     }
 }
 
@@ -395,12 +501,27 @@ impl Renderer for CardRenderer {
     }
 }
 
-/// One draw call of a frame: the rectangle it is clipped to (left, top, width, height), the vertices of its quad,
-/// and the key of its mask when it is a glyph (`None` for a fill).
+/// The vertices of a frame, the draw calls that paint them, and the bind groups of the pictures the calls use.
+type Plan = (Vec<f32>, Vec<Draw>, Vec<wgpu::BindGroup>);
+
+/// One draw call of a frame: the rectangle it is clipped to (left, top, width, height), the vertices of its quad, and what
+/// it draws.
 struct Draw {
     scissor: [u32; 4],
     vertices: Range<u32>,
-    mask: Option<MaskKey>,
+    source: Source,
+}
+
+/// What a draw call paints: a fill, the mask of a glyph, or the texture of a colour picture, by its index in the frame.
+enum Source {
+    Fill,
+    Glyph(MaskKey),
+    Picture(usize),
+}
+
+/// The whole pixel nearest to a coordinate, halves up.
+fn whole_pixel(value: f32) -> i64 {
+    (f64::from(value) + 0.5).floor() as i64
 }
 
 /// Adds the quad of a fill, clipped to the frame, and its draw call. A fill is drawn over the whole frame.
@@ -414,7 +535,7 @@ fn push_fill(floats: &mut Vec<f32>, draws: &mut Vec<Draw>, width: u32, height: u
     draws.push(Draw {
         scissor: [0, 0, width, height],
         vertices: first..first + CORNERS,
-        mask: None,
+        source: Source::Fill,
     });
 }
 
