@@ -7,4 +7,7 @@ mod fonts;
 mod paragraph;
 
 pub use fonts::{FontError, Fonts};
-pub use paragraph::{layout, layout_fitted, Align, Block, Line, LineHeight, PositionedGlyph, PositionedRun, Style, TextError};
+pub use paragraph::{
+    layout, layout_fitted, layout_fitted_pieces, layout_pieces, Align, Block, Line, LineHeight, Piece, PositionedGlyph, PositionedRun,
+    Style, TextError,
+};

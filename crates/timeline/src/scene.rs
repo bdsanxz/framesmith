@@ -315,7 +315,11 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
             },
             size: run.size,
             skew_degrees: run.skew_degrees,
-            colour: paragraph.colour,
+            colour: Colour {
+                red: run.colour[0],
+                green: run.colour[1],
+                blue: run.colour[2],
+            },
             glyphs: run
                 .glyphs
                 .iter()
@@ -468,6 +472,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
+        if node.element() == Element::Span {
+            // A span is drawn in the paragraph of the text it stands in, and its faults are reported with the text
+            // (`docs/spec/text.md`, section 6.5). The elements inside it are judged against its text's place.
+            places.push(Some(parent_place));
+            continue;
+        }
         if node.element() == Element::Text && tree[parent].element() == Element::Text {
             refusals.push(Refusal::of_text_form(
                 Code::FormNotSupported,
@@ -480,7 +490,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
             let refusal = if parent == 0 {
                 Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_element(node.element()))
-            } else if tree[parent].element() == Element::Text {
+            } else if matches!(tree[parent].element(), Element::Text | Element::Span) {
                 Refusal::of_text_form(Code::FormNotSupported, node.line(), unsupported_inside_text(node.element()))
             } else {
                 Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_inside_box(node.element()))
@@ -497,6 +507,9 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 read
             }
         };
+        if node.element() == Element::Text {
+            refusals.extend(paragraph::span_faults(tree, index).into_iter().map(Refusal::of_text));
+        }
         let Read::Valid(form) = read else {
             places.push(None);
             continue;
@@ -505,11 +518,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             // A text that is an item of a row, a column or a set takes the rectangle its flow gives it; any other is
             // placed in its parent.
             let placed = match assigned[index] {
-                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute).map(|item| Paragraph {
-                    rect,
-                    block: item.block,
-                    colour: item.colour,
-                }),
+                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute)
+                    .map(|item| Paragraph { rect, block: item.block }),
                 None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
             };
             match placed {
@@ -1433,10 +1443,11 @@ fn unsupported_inside_nested(element: Element) -> String {
     )
 }
 
-/// The message for an element written inside a `<text>`: a `<span>` is not drawn in this version (`text.md`, section 1).
+/// The message for an element written inside a `<text>` or a `<span>` that is not drawn there: a `<tween>` or a `<set>`
+/// (`text.md`, section 7).
 fn unsupported_inside_text(element: Element) -> String {
     format!(
-        "{} inside <text> is not supported by this version, which draws the words of a <text> and no element inside it",
+        "{} inside <text> is not supported by this version, which draws the words of a <text> and of its <span>s and no other element inside it",
         element.tag()
     )
 }

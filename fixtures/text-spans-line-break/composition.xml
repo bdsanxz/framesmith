@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A paragraph of the test font's capitals at 24 pixels, 110 pixels wide. The span in red is longer than the first line
+     allows, so it is on the first line and the rest of it on the second, which is how the words of a paragraph break.
+     200 by 110 pixels, 10 frames a second. -->
+<composition version="1" id="text-spans-line-break" width="200" height="110" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" width="110" font-family="Framesmith Test Stroke" font-size="24" color="#202020">HI <span color="#c02020">II HH II</span> HI</text>
+</composition>

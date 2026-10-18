@@ -20,4 +20,4 @@ pub use code::{Code, Kind};
 pub use problem::Problem;
 pub use root::{read, read_root, shown, shows, Colour, Composition, Root, Show, Shows};
 pub use schema::{Element, Form};
-pub use tree::{Attribute, Length, Node, Tree};
+pub use tree::{Attribute, Length, Node, Part, Tree};

@@ -1,7 +1,9 @@
 //! The layout of one paragraph (`docs/spec/text.md`, sections 4 to 6): its white space, its lines, the
 //! alignment of each line within the width, and the glyph runs with their places in the block.
 
+use std::collections::BTreeMap;
 use std::fmt;
+use std::ops::Range;
 use std::sync::Arc;
 
 use parley::{BaseDirection, FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
@@ -52,14 +54,15 @@ pub struct PositionedGlyph {
     pub y: f32,
 }
 
-/// The glyphs of one run of the lines that share a face: the bytes of its font file, the index in them, the
-/// size, the skew in degrees, and the glyphs.
+/// The glyphs of one run of the lines that share a face and a colour: the bytes of its font file, the index in them,
+/// the size, the skew in degrees, the colour (RGBA), and the glyphs.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PositionedRun {
     pub font: Arc<Vec<u8>>,
     pub index: u32,
     pub size: f32,
     pub skew_degrees: f32,
+    pub colour: [u8; 4],
     pub glyphs: Vec<PositionedGlyph>,
 }
 
@@ -89,6 +92,13 @@ pub enum TextError {
     UnknownFamily(String),
     /// A character that none of the listed families has (`docs/spec/text.md`, section 2.4).
     MissingCharacter(char),
+    /// Room of a span (its margin or its padding) in a paragraph with no character to hold it (`docs/spec/text.md`,
+    /// section 6.5, rule 9).
+    RoomWithoutWords,
+    /// Room of a span that falls where the line may break before the span, after a character that no no-break space
+    /// keeps with the room (`docs/spec/text.md`, section 10). `piece` is the index, in the pieces given, of the piece
+    /// that holds the room.
+    RoomAtALineBreak { piece: usize },
 }
 
 impl fmt::Display for TextError {
@@ -98,6 +108,14 @@ impl fmt::Display for TextError {
             TextError::MissingCharacter(character) => {
                 write!(f, "the character {character:?} is in none of the fonts named")
             }
+            TextError::RoomWithoutWords => write!(
+                f,
+                "a margin or a padding of a <span> in a <text> with no word, which this version does not draw"
+            ),
+            TextError::RoomAtALineBreak { .. } => write!(
+                f,
+                "a margin or a padding of a <span> where the line may break before the span, after a character other than a space or a hyphen, which this version does not draw"
+            ),
         }
     }
 }
@@ -113,10 +131,32 @@ enum Sizing {
     Widest,
 }
 
+/// One piece of a paragraph, in the order it is written (`docs/spec/text.md`, section 6.5): words in one style and one
+/// colour, or room that holds no glyph, such as the margin and padding of a span at one of its edges.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Piece {
+    /// Words in `style`, drawn in `colour` (RGBA).
+    Words { words: String, style: Style, colour: [u8; 4] },
+    /// `width` pixels of room after the character before it, at the place where the piece falls: the right space of a span.
+    Room { width: f32 },
+    /// `width` pixels of room before the first character of the piece that follows it: the left space of a span. The room
+    /// is kept where the line may end before that character, on a carrier, so that it moves to the line the span begins
+    /// when the line breaks there (`docs/spec/text.md`, section 10).
+    Lead { width: f32 },
+}
+
+/// The colour the words of [`layout`] and [`layout_fitted`] are drawn in: opaque black (`docs/spec/notation.md`, Q5).
+const BLACK: [u8; 4] = [0, 0, 0, 255];
+
 /// Lays out the words of a paragraph in `style`, broken into lines within `width` where it is given. Without a
 /// width the text is one line. The white space is collapsed first (section 5.1).
 pub fn layout(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>) -> Result<Block, TextError> {
-    lay_out(fonts, words, style, width, Sizing::Given)
+    let pieces = [Piece::Words {
+        words: words.to_string(),
+        style: style.clone(),
+        colour: BLACK,
+    }];
+    lay_out(fonts, &pieces, style.align, width, Sizing::Given)
 }
 
 /// Lays out the words of a paragraph in `style` for a widest width `max` (`docs/spec/text.md`, section 5.3): the lines
@@ -124,17 +164,41 @@ pub fn layout(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>)
 /// The block is as wide as its widest line, so a paragraph shorter than `max` keeps its own width, and its lines are
 /// aligned within that width.
 pub fn layout_fitted(fonts: &mut Fonts, words: &str, style: &Style, max: f32) -> Result<Block, TextError> {
-    lay_out(fonts, words, style, Some(max), Sizing::Widest)
+    let pieces = [Piece::Words {
+        words: words.to_string(),
+        style: style.clone(),
+        colour: BLACK,
+    }];
+    lay_out(fonts, &pieces, style.align, Some(max), Sizing::Widest)
 }
 
-fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, sizing: Sizing) -> Result<Block, TextError> {
-    for family in &style.families {
-        if !fonts.has_family(family) {
-            return Err(TextError::UnknownFamily(family.clone()));
+/// Lays out a paragraph made of `pieces` (`docs/spec/text.md`, section 6.5): its lines are broken within `width` where it
+/// is given, and aligned by `align`, the alignment of the paragraph (section 6.2). Without a width the text is one line.
+/// Each piece is drawn in its own style and colour, and the lines of the pieces share their baselines.
+pub fn layout_pieces(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>) -> Result<Block, TextError> {
+    lay_out(fonts, pieces, align, width, Sizing::Given)
+}
+
+/// Lays out a paragraph made of `pieces` for a widest width `max`, as [`layout_fitted`] does for one style.
+pub fn layout_fitted_pieces(fonts: &mut Fonts, pieces: &[Piece], align: Align, max: f32) -> Result<Block, TextError> {
+    lay_out(fonts, pieces, align, Some(max), Sizing::Widest)
+}
+
+fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>, sizing: Sizing) -> Result<Block, TextError> {
+    for piece in pieces {
+        if let Piece::Words { style, .. } = piece {
+            for family in &style.families {
+                if !fonts.has_family(family) {
+                    return Err(TextError::UnknownFamily(family.clone()));
+                }
+            }
         }
     }
-    let text = collapse(words);
-    if text.is_empty() {
+    let plain = plain(pieces);
+    if plain.text.is_empty() {
+        if plain.unplaced > 0.0 {
+            return Err(TextError::RoomWithoutWords);
+        }
         let width = match sizing {
             Sizing::Given => width.unwrap_or(0.0),
             Sizing::Widest => 0.0,
@@ -146,31 +210,54 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
             lines: Vec::new(),
         });
     }
-    let listed: Vec<u64> = fonts
-        .faces
+    let flat = carry(fonts, pieces, plain)?;
+    // The faces each piece may draw from: those of its own families.
+    let listed: Vec<Vec<u64>> = pieces
         .iter()
-        .filter(|face| style.families.contains(&face.family))
-        .map(|face| face.blob)
+        .map(|piece| match piece {
+            Piece::Words { style, .. } => fonts
+                .faces
+                .iter()
+                .filter(|face| style.families.contains(&face.family))
+                .map(|face| face.blob)
+                .collect(),
+            Piece::Room { .. } | Piece::Lead { .. } => Vec::new(),
+        })
         .collect();
     let Fonts { context, layouts, faces } = fonts;
-    let mut builder = layouts.ranged_builder(context, &text, 1.0, true);
+    let mut builder = layouts.ranged_builder(context, &flat.text, 1.0, true);
     // The base direction is left to right for every script (`docs/spec/text.md`, section 12.2, rule 2). Parley would
     // otherwise take it from the first strong character, which makes an Arabic or Hebrew paragraph right to left.
     builder.set_base_direction(BaseDirection::Ltr);
-    builder.push_default(StyleProperty::FontFamily(family_stack(&style.families)));
-    builder.push_default(StyleProperty::FontSize(style.size));
-    builder.push_default(StyleProperty::FontWeight(FontWeight::new(style.weight)));
-    builder.push_default(StyleProperty::FontStyle(if style.italic {
-        FontStyle::Italic
-    } else {
-        FontStyle::Normal
-    }));
-    builder.push_default(StyleProperty::LineHeight(engine_line_height(style.line_height)));
-    builder.push_default(StyleProperty::LetterSpacing(style.letter_spacing));
-    let mut layout = builder.build(&text);
+    push_owner_styles(&mut builder, &flat, pieces, None);
+    // Room is the spacing after the character before it: it takes its width in the line, moves the words after it, and
+    // does not change the height of the line (`docs/spec/text.md`, section 6.5, rule 4). It is not an inline box: the
+    // engine ends a line after every inline box, whatever the break classes of the text around it.
+    let mut spacing: BTreeMap<usize, f32> = BTreeMap::new();
+    for (start, width) in &flat.spacing {
+        *spacing.entry(*start).or_insert(0.0) += width;
+    }
+    for (start, width) in spacing {
+        let Some(number) = flat.owner.get(start).copied() else {
+            continue;
+        };
+        let Piece::Words { style, .. } = &pieces[number] else {
+            continue;
+        };
+        let length = flat.text[start..].chars().next().map_or(0, char::len_utf8);
+        let range = start..start + length;
+        if flat.carriers.contains(&start) {
+            // A carrier holds its room and no glyph: it is shaped at size 0, so its advance is 0 whatever the font, and
+            // it has no line height of its own, so it does not change the height of the line (section 10).
+            push_carrier_styles(&mut builder, range.clone(), width);
+        } else {
+            builder.push(StyleProperty::LetterSpacing(style.letter_spacing + width), range);
+        }
+    }
+    let mut layout = builder.build(&flat.text);
     layout.break_all_lines(width);
 
-    // First pass: every character must come from a listed family, and the width of each line is taken without
+    // First pass: every character must come from a face of its own piece, and the width of each line is taken without
     // the space it ends at (section 5.3).
     let mut widths: Vec<f32> = Vec::new();
     for line in layout.lines() {
@@ -179,10 +266,15 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
                 continue;
             };
             let run = glyph_run.run();
-            let from_listed = listed.contains(&run.font().data.id());
+            // The run of a carrier is the only one at size 0: no font size of a style is 0 (`docs/spec/text.md`, section 3.1).
+            if run.font_size() == 0.0 {
+                continue;
+            }
             for cluster in run.clusters() {
+                let start = cluster.text_range().start;
+                let from_listed = listed[flat.owner[start]].contains(&run.font().data.id());
                 if !from_listed || cluster.glyphs().any(|glyph| glyph.id == 0) {
-                    let character = text[cluster.text_range()].chars().next().unwrap_or('\u{fffd}');
+                    let character = flat.text[cluster.text_range()].chars().next().unwrap_or('\u{fffd}');
                     return Err(TextError::MissingCharacter(character));
                 }
             }
@@ -201,7 +293,7 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
     let mut lines: Vec<Line> = Vec::new();
     let mut height = 0.0_f32;
     for (line, line_width) in layout.lines().zip(widths.iter().copied()) {
-        let offset = match style.align {
+        let offset = match align {
             Align::Left => 0.0,
             Align::Center => (block_width - line_width) / 2.0,
             Align::Right => block_width - line_width,
@@ -212,6 +304,10 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
                 continue;
             };
             let run = glyph_run.run();
+            // A carrier's run holds no glyph of the paragraph, so it is not drawn (section 10).
+            if run.font_size() == 0.0 {
+                continue;
+            }
             let Some(face) = faces.iter().find(|face| face.blob == run.font().data.id()) else {
                 continue;
             };
@@ -229,8 +325,9 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
             runs.push(PositionedRun {
                 font: face.bytes.clone(),
                 index: face.index,
-                size: style.size,
+                size: run.font_size(),
                 skew_degrees: run.synthesis().skew().unwrap_or(0.0),
+                colour: glyph_run.style().brush,
                 glyphs,
             });
         }
@@ -250,17 +347,331 @@ fn lay_out(fonts: &mut Fonts, words: &str, style: &Style, width: Option<f32>, si
     })
 }
 
-/// The words with each run of spaces, tabs and line ends made one space, and the white space at either end
-/// dropped (`docs/spec/text.md`, section 5.1). No other character is white space here.
-fn collapse(words: &str) -> String {
-    let mut out = String::with_capacity(words.len());
-    for word in words.split([' ', '\t', '\n', '\r']).filter(|word| !word.is_empty()) {
-        if !out.is_empty() {
-            out.push(' ');
+/// The words of the pieces joined into one text, with the white space collapsed across the pieces (`docs/spec/text.md`,
+/// section 5.1): a run of spaces, tabs and line ends is one space, and no space is at either end of the paragraph.
+/// A space that lies between two pieces is put where the second piece begins, and room is kept where it falls. This is
+/// the text before any carrier of room is put into it (section 10).
+struct Plain {
+    text: String,
+    /// The index of the piece each byte of the text belongs to.
+    owner: Vec<usize>,
+    /// Room that is spacing after the character that begins at each key, a byte of the text: the room of a span's right
+    /// edge that follows that character.
+    spacing: BTreeMap<usize, f32>,
+    /// The room that waits for the character after it, keyed by the byte where that character begins: the end of the text
+    /// when no character follows. Room that falls at the same place adds up here.
+    places: BTreeMap<usize, Place>,
+    /// The room of a text with no character, which has no place to hold it.
+    unplaced: f32,
+}
+
+/// The room at one place of a text: its width, and the piece that holds it first.
+#[derive(Clone, Copy, Debug)]
+struct Place {
+    width: f32,
+    piece: usize,
+}
+
+/// The text with its carriers and each room's spacing, ready for the engine (section 10).
+struct Flat {
+    text: String,
+    /// The index of the piece each byte of the text belongs to.
+    owner: Vec<usize>,
+    /// Each room as the byte where the character it follows begins, and its width. The room is spacing after that
+    /// character, so the words after the room move on by its width. A carrier (below) is one of these characters.
+    spacing: Vec<(usize, f32)>,
+    /// The byte where each carrier begins: a character that holds room and no glyph (`docs/spec/text.md`, section 10).
+    carriers: Vec<usize>,
+}
+
+/// The word joiner (U+2060): the carrier of room where no line may end before the character after the room, which
+/// allows no break on either side (UAX 14, rule LB11). A joiner is never counted as a missing character and never drawn,
+/// whatever the font (section 10).
+const JOINER: char = '\u{2060}';
+
+/// The no-break space (U+00A0): the carrier of room where a line may end after a space or a hyphen. A line may end before
+/// it after a space, a hyphen or a class BA break character (UAX 14, rule LB12a), and may not end after it (LB12), so the
+/// line still ends where it did, and the room goes to the line that begins with the character after it (section 10).
+const NO_BREAK_SPACE: char = '\u{a0}';
+
+/// The letter spacing, in pixels, that the analysis of the line breaks gives every character. It is small and positive, so
+/// that no character has an advance of 0 and the engine takes every place where a line may end (section 10).
+const ANALYSIS_SPACING: f32 = 1.0;
+
+/// The carrier of one place of room: where it falls in the text without carriers, the character, the room it holds, and
+/// the piece that holds the room first.
+#[derive(Clone, Copy, Debug)]
+struct Carrier {
+    site: usize,
+    character: char,
+    width: f32,
+    piece: usize,
+}
+
+/// Joins the words of the pieces, and records each room at its place, before any carrier is chosen.
+fn plain(pieces: &[Piece]) -> Plain {
+    let mut plain = Plain {
+        text: String::new(),
+        owner: Vec::new(),
+        spacing: BTreeMap::new(),
+        places: BTreeMap::new(),
+        unplaced: 0.0,
+    };
+    let mut pending = false;
+    let mut last_words = 0;
+    for (number, piece) in pieces.iter().enumerate() {
+        match piece {
+            Piece::Room { width } => {
+                emit_pending_space(&mut plain, &mut pending, last_words);
+                if *width > 0.0 {
+                    room_after(&mut plain, number, *width);
+                }
+            }
+            Piece::Lead { width } => {
+                emit_pending_space(&mut plain, &mut pending, last_words);
+                if *width > 0.0 {
+                    let end = plain.text.len();
+                    let place = plain.places.entry(end).or_insert(Place { width: 0.0, piece: number });
+                    place.width += width;
+                }
+            }
+            Piece::Words { words, .. } => {
+                for character in words.chars() {
+                    if matches!(character, ' ' | '\t' | '\n' | '\r') {
+                        pending = true;
+                        continue;
+                    }
+                    emit_pending_space(&mut plain, &mut pending, number);
+                    plain.text.push(character);
+                    plain.owner.resize(plain.text.len(), number);
+                }
+                last_words = number;
+            }
         }
-        out.push_str(word);
     }
-    out
+    plain.unplaced = if plain.text.is_empty() {
+        plain.places.values().map(|place| place.width).sum()
+    } else {
+        0.0
+    };
+    plain
+}
+
+/// Puts room of a right edge (`Piece::Room`) at the place where it falls: with the room that waits at the end of the
+/// text, when there is one, and otherwise as spacing after the last character.
+fn room_after(plain: &mut Plain, number: usize, width: f32) {
+    let end = plain.text.len();
+    if plain.text.is_empty() || plain.places.contains_key(&end) {
+        let place = plain.places.entry(end).or_insert(Place { width: 0.0, piece: number });
+        place.width += width;
+    } else if let Some((start, _)) = plain.text.char_indices().next_back() {
+        *plain.spacing.entry(start).or_insert(0.0) += width;
+    }
+}
+
+/// Puts the space that white space before a character (or a room) asks for, unless the text is empty or already ends
+/// with a space. The space belongs to `owner`.
+fn emit_pending_space(plain: &mut Plain, pending: &mut bool, owner: usize) {
+    if *pending && !plain.text.is_empty() && !plain.text.ends_with(' ') {
+        plain.text.push(' ');
+        plain.owner.resize(plain.text.len(), owner);
+    }
+    *pending = false;
+}
+
+/// Chooses the carrier of each place of room, and puts the carriers into the text (`docs/spec/text.md`, section 10).
+///
+/// The choice is made from the line breaks the text has without any carrier: the places where the engine's line breaker
+/// may end a line, taken at width 0. At a place with no character before it, room is carried by a word joiner. At a place
+/// where no line may end, room after a letter is spacing after that letter, and room after any other character is carried
+/// by a word joiner, which allows no break on either side. At a place where a line may end, room is carried by a no-break
+/// space, which keeps the line end where it is. The carried text is then broken again, and its places are compared with
+/// the places of the text without carriers: a place that a carrier moved or removed is a refusal of the room that holds it.
+fn carry(fonts: &mut Fonts, pieces: &[Piece], plain: Plain) -> Result<Flat, TextError> {
+    if plain.places.is_empty() {
+        return Ok(Flat {
+            text: plain.text,
+            owner: plain.owner,
+            spacing: plain.spacing.into_iter().collect(),
+            carriers: Vec::new(),
+        });
+    }
+    let without = Flat {
+        text: plain.text.clone(),
+        owner: plain.owner.clone(),
+        spacing: Vec::new(),
+        carriers: Vec::new(),
+    };
+    let breaks = break_places(fonts, &without, pieces);
+    let mut carriers: Vec<Carrier> = Vec::new();
+    let mut letters = plain.spacing;
+    for (&site, place) in &plain.places {
+        let before = plain.text[..site].char_indices().next_back();
+        let character = if site == 0 {
+            Some(JOINER)
+        } else if site == plain.text.len() {
+            // No character follows the room, so no line can end after it: it is spacing after the character before it.
+            None
+        } else if breaks.contains(&site) {
+            Some(NO_BREAK_SPACE)
+        } else if before.is_some_and(|(_, character)| character.is_alphanumeric()) {
+            None
+        } else {
+            Some(JOINER)
+        };
+        match character {
+            Some(character) => carriers.push(Carrier {
+                site,
+                character,
+                width: place.width,
+                piece: place.piece,
+            }),
+            None => {
+                let start = before.map_or(0, |(start, _)| start);
+                *letters.entry(start).or_insert(0.0) += place.width;
+            }
+        }
+    }
+    let by_site: BTreeMap<usize, Carrier> = carriers.iter().map(|carrier| (carrier.site, *carrier)).collect();
+    let mut text = String::new();
+    let mut owner: Vec<usize> = Vec::new();
+    let mut spacing: BTreeMap<usize, f32> = BTreeMap::new();
+    let mut starts: BTreeMap<usize, usize> = BTreeMap::new();
+    let mut placed: Vec<Placed> = Vec::new();
+    for (start, character) in plain.text.char_indices() {
+        let holder = plain.owner[start];
+        if let Some(carrier) = by_site.get(&start) {
+            let at = text.len();
+            text.push(carrier.character);
+            owner.resize(text.len(), holder);
+            *spacing.entry(at).or_insert(0.0) += carrier.width;
+            placed.push(Placed {
+                site: start,
+                start: at,
+                length: carrier.character.len_utf8(),
+            });
+        }
+        starts.insert(start, text.len());
+        text.push(character);
+        owner.resize(text.len(), holder);
+    }
+    for (start, width) in letters {
+        if let Some(at) = starts.get(&start) {
+            *spacing.entry(*at).or_insert(0.0) += width;
+        }
+    }
+    let carried = Flat {
+        text,
+        owner,
+        spacing: spacing.into_iter().collect(),
+        carriers: placed.iter().map(|carrier| carrier.start).collect(),
+    };
+    if placed.is_empty() {
+        return Ok(carried);
+    }
+    let after = break_places(fonts, &carried, pieces);
+    match first_difference(&breaks, &placed, &after) {
+        None => Ok(carried),
+        Some(site) => {
+            let piece = by_site.get(&site).map_or(0, |carrier| carrier.piece);
+            Err(TextError::RoomAtALineBreak { piece })
+        }
+    }
+}
+
+/// A carrier in the carried text: the place it has in the text without carriers, where it starts in the carried text,
+/// and its length in bytes.
+#[derive(Clone, Copy, Debug)]
+struct Placed {
+    site: usize,
+    start: usize,
+    length: usize,
+}
+
+/// Compares the places where a line may end in the carried text, mapped back to the text without carriers, with the
+/// places of the text without carriers (`docs/spec/text.md`, section 10). Gives the place of the carrier nearest the first
+/// place that differs, or none where the two are the same. A line end just after a carrier is a difference of its own.
+fn first_difference(without: &[usize], placed: &[Placed], carried: &[usize]) -> Option<usize> {
+    let mut mapped: Vec<usize> = Vec::new();
+    let mut differences: Vec<usize> = Vec::new();
+    for &end in carried {
+        if let Some(carrier) = placed.iter().find(|carrier| carrier.start + carrier.length == end) {
+            differences.push(carrier.site);
+            continue;
+        }
+        let removed: usize = placed
+            .iter()
+            .filter(|carrier| carrier.start + carrier.length <= end)
+            .map(|carrier| carrier.length)
+            .sum();
+        mapped.push(end - removed);
+    }
+    differences.extend(without.iter().copied().filter(|site| !mapped.contains(site)));
+    differences.extend(mapped.iter().copied().filter(|site| !without.contains(site)));
+    let first = differences.into_iter().min()?;
+    placed
+        .iter()
+        .min_by_key(|carrier| (carrier.site.abs_diff(first), carrier.site))
+        .map(|carrier| carrier.site)
+}
+
+/// The places where a line of `flat` may end, as the engine's line breaker takes them at width 0: every place the
+/// breaker may end a line at is taken, because each character has an advance above 0 (section 10). Each character gets
+/// the analysis letter spacing, and a carrier has font size 0 as in the layout.
+fn break_places(fonts: &mut Fonts, flat: &Flat, pieces: &[Piece]) -> Vec<usize> {
+    let Fonts { context, layouts, .. } = fonts;
+    let mut builder = layouts.ranged_builder(context, &flat.text, 1.0, true);
+    builder.set_base_direction(BaseDirection::Ltr);
+    push_owner_styles(&mut builder, flat, pieces, Some(ANALYSIS_SPACING));
+    for &start in &flat.carriers {
+        let length = flat.text[start..].chars().next().map_or(0, char::len_utf8);
+        push_carrier_styles(&mut builder, start..start + length, ANALYSIS_SPACING);
+    }
+    let mut layout = builder.build(&flat.text);
+    layout.break_all_lines(Some(0.0));
+    let end = flat.text.len();
+    layout.lines().map(|line| line.text_range().end).filter(|&at| at < end).collect()
+}
+
+/// The style of each run of the text that one piece owns: its family, size, weight, slant, line height, colour, and its
+/// letter spacing, which is `letter` where one is given and the piece's own otherwise.
+fn push_owner_styles(builder: &mut parley::RangedBuilder<'_, [u8; 4]>, flat: &Flat, pieces: &[Piece], letter: Option<f32>) {
+    for (range, number) in runs_of(&flat.owner) {
+        let Piece::Words { style, colour, .. } = &pieces[number] else {
+            continue;
+        };
+        builder.push(StyleProperty::FontFamily(family_stack(&style.families)), range.clone());
+        builder.push(StyleProperty::FontSize(style.size), range.clone());
+        builder.push(StyleProperty::FontWeight(FontWeight::new(style.weight)), range.clone());
+        builder.push(
+            StyleProperty::FontStyle(if style.italic { FontStyle::Italic } else { FontStyle::Normal }),
+            range.clone(),
+        );
+        builder.push(StyleProperty::LineHeight(engine_line_height(style.line_height)), range.clone());
+        builder.push(StyleProperty::LetterSpacing(letter.unwrap_or(style.letter_spacing)), range.clone());
+        builder.push(StyleProperty::Brush(*colour), range);
+    }
+}
+
+/// The style of a carrier: font size 0, so that its advance is only its letter spacing, line height 0, so that it adds
+/// no height, and the letter spacing `letter`.
+fn push_carrier_styles(builder: &mut parley::RangedBuilder<'_, [u8; 4]>, range: Range<usize>, letter: f32) {
+    builder.push(StyleProperty::FontSize(0.0), range.clone());
+    builder.push(StyleProperty::LineHeight(parley::LineHeight::Absolute(0.0)), range.clone());
+    builder.push(StyleProperty::LetterSpacing(letter), range);
+}
+
+/// The byte ranges of a text that one piece owns, each with its piece, in the order of the text.
+fn runs_of(owner: &[usize]) -> Vec<(Range<usize>, usize)> {
+    let mut runs = Vec::new();
+    let mut start = 0;
+    for end in 1..=owner.len() {
+        if end == owner.len() || owner[end] != owner[start] {
+            runs.push((start..end, owner[start]));
+            start = end;
+        }
+    }
+    runs
 }
 
 fn family_stack(names: &[String]) -> FontFamily<'static> {

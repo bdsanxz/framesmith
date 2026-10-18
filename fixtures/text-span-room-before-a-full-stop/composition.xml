@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The word AB, a space, and then a span in red with a margin of 12 pixels on each side, its words a full stop and CD, in
+     the test font's capitals at 24 pixels, 100 pixels wide. A line may not end before a full stop, so the text stays on one
+     line, and the room of the span moves the full stop 12 pixels to the right, as it moves the letters after it.
+     140 by 80 pixels, 10 frames a second. -->
+<composition version="1" id="text-span-room-before-a-full-stop" width="140" height="80" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" width="100" font-family="Framesmith Test Stroke" font-size="24" color="#202020">AB <span margin="0 12" color="#c02020">.CD</span></text>
+</composition>
