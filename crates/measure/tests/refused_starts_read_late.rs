@@ -9,8 +9,10 @@
 mod common;
 
 use common::isolate_from_runner;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 fn root() -> PathBuf {
@@ -31,33 +33,55 @@ fn executable(path: &Path, content: &str) {
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).expect("the file is made runnable");
 }
 
-/// What a command printed and how long it took.
+/// What a command printed, how long its run took, and when its process ended.
 struct Run {
     code: i32,
     text: String,
     took: Duration,
+    /// When the command's process ended, in milliseconds since 1970 (the time its exit status was read).
+    ended_at: u128,
+}
+
+/// A file of this test's own, made new, for the output of one command.
+fn output_file(kind: &str) -> PathBuf {
+    static NEXT: AtomicUsize = AtomicUsize::new(0);
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("refused-starts").join("output");
+    std::fs::create_dir_all(&dir).expect("the folder is made");
+    dir.join(format!("{}-{}-{kind}.txt", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)))
 }
 
 /// Runs a command, stopping it when it has run for `limit`, so that a hang is a failure of the test.
+///
+/// The output goes to files of its own, not to pipes, and the run ends when the command's own process
+/// ends. A pipe ends only when every process holding its write end has ended, so a process another test
+/// started, or one this command left running, could hold the run open (`docs/dev/gates.md`, section 10).
 fn run_limited(mut command: Command, limit: Duration) -> Run {
     isolate_from_runner(&mut command);
-    command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    let (out, err) = (output_file("out"), output_file("err"));
+    command
+        .stdin(Stdio::null())
+        .stdout(File::create(&out).expect("the output file is made"))
+        .stderr(File::create(&err).expect("the output file is made"));
     let start = Instant::now();
-    let child = command.spawn().expect("the command starts");
+    let mut child = command.spawn().expect("the command starts");
     let id = child.id();
     let (sender, receiver) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let _ = sender.send(child.wait_with_output());
+        let status = child.wait();
+        let _ = sender.send((status, Instant::now(), unix_millis_now()));
     });
     match receiver.recv_timeout(limit) {
-        Ok(output) => {
-            let output = output.expect("the command ends");
-            let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
-            text.push_str(&String::from_utf8_lossy(&output.stderr));
+        Ok((status, ended, ended_at)) => {
+            let code = status.expect("the command ends").code().unwrap_or(-1);
+            let mut text = std::fs::read_to_string(&out).expect("the output is read");
+            text.push_str(&std::fs::read_to_string(&err).expect("the output is read"));
+            let _ = std::fs::remove_file(&out);
+            let _ = std::fs::remove_file(&err);
             Run {
-                code: output.status.code().unwrap_or(-1),
+                code,
                 text,
-                took: start.elapsed(),
+                took: ended.duration_since(start),
+                ended_at,
             }
         }
         Err(_) => {
@@ -283,7 +307,6 @@ fn a_log_that_cannot_be_read_ends_the_wait_and_says_so() {
     let folder = scratch("unreadable");
     let stand_in = log_stand_in(&folder, None, false);
     let run = read_with(&folder, &stand_in, 2, 40);
-    let ended = unix_millis_now();
     assert_eq!(run.code, 0, "{}", run.text);
     assert!(
         run.text
@@ -293,14 +316,15 @@ fn a_log_that_cannot_be_read_ends_the_wait_and_says_so() {
     );
     assert!(!run.text.contains("refused to start /"), "{}", run.text);
     assert_eq!(answers(&folder), 2, "two readings in a row end the wait");
-    // Measured from the answer of the second reading, not from the start of the run: a busy machine can
-    // make each start of `log` take seconds, and a wait that ran on to its bound would be about 20 seconds
-    // from that answer.
+    // Measured from the answer of the second reading to the moment the reader's own process ends (its exit
+    // status, `run.ended_at`), not from the start of the run: a busy machine can make each start of `log`
+    // take seconds, and a wait that ran on to its bound would be about 20 seconds from that answer. The end
+    // is not the closing of the reader's output, which another process could hold open.
     let second = answer_times(&folder)
         .get(1)
         .copied()
         .expect("the time of the second answer is kept");
-    let after_second = ended.saturating_sub(second);
+    let after_second = run.ended_at.saturating_sub(second);
     assert!(
         after_second < 10_000,
         "{after_second} ms from the second answer to the end of the wait"
@@ -320,6 +344,25 @@ fn a_run_whose_output_shows_no_refused_start_ends_the_wait_after_the_shortest_wa
     assert!(
         run.took >= Duration::from_secs(3) && run.took < Duration::from_secs(10),
         "took {:?}",
+        run.took
+    );
+}
+
+/// A command that leaves a process running behind it, one that inherits its output, does not hold its run
+/// open: the run ends with the command's own process. A pipe for the output ends only when every process
+/// holding its write end has ended, and that is how a process another test started can hold a run open
+/// (`docs/dev/gates.md`, section 10).
+#[test]
+fn a_process_a_command_leaves_running_does_not_hold_its_run_open() {
+    let folder = scratch("left-running");
+    let script = folder.join("leaves-one-running");
+    executable(&script, "#!/bin/bash\nsleep 5 &\necho the command ended\n");
+    let run = run_limited(Command::new(&script), Duration::from_secs(30));
+    assert_eq!(run.code, 0, "{}", run.text);
+    assert!(run.text.contains("the command ended"), "{}", run.text);
+    assert!(
+        run.took < Duration::from_secs(3),
+        "took {:?}: the process the command left running held the run open",
         run.took
     );
 }
