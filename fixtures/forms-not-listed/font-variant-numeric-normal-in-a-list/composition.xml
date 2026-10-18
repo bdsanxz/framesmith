@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The word normal stands alone: normal with a figure word after it is not a form the spec lists, so this version refuses it. -->
+<composition version="1" id="font-variant-numeric-normal-in-a-list" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <text left="4" top="4" font-size="12" font-variant-numeric="normal tabular-nums">Hi</text>
+</composition>

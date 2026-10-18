@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A font-variant-numeric word the spec does not list: slashed-zero is not one of the four figure words, so this version refuses it. -->
+<composition version="1" id="font-variant-numeric-slashed-zero" width="96" height="54" fps="10" duration="1">
+  <box/>
+  <text left="4" top="4" font-size="12" font-variant-numeric="slashed-zero">Hi</text>
+</composition>

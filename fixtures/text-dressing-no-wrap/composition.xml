@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two texts 20 pixels wide, each with the words AB CD EF GH. The first is written with white-space nowrap and stays on
+     one line; the second wraps at the spaces and takes several lines. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-dressing-no-wrap" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="8" top="8" width="20" font-family="Framesmith Test Stroke" font-size="16" color="#102040" white-space="nowrap">AB CD EF GH</text>
+  <text left="8" top="48" width="20" font-family="Framesmith Test Stroke" font-size="16" color="#102040">AB CD EF GH</text>
+</composition>
