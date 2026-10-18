@@ -61,4 +61,4 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0053` | A length or size that must be above 0 is 0 or below. |
 | `FS-0054` | A `columns` of a `<box>` is not a list of column widths: each a number of pixels above 0, or a share such as `1fr`. |
 | `FS-0055` | A `<box>` has both `columns` and `flex-direction`. |
-| `FS-0056` | A character of a text is an emoji whose picture this version does not draw: the font has no PNG picture for it at any size, or frx7 refuses the picture. |
+| `FS-0056` | A character of a text whose picture this version does not draw: the font has no PNG picture for it at any size, or frx7 refuses the picture. |

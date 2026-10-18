@@ -380,7 +380,7 @@ fn a_glyph_whose_only_graphic_is_a_dupe_is_refused_by_check_and_by_render() {
     let line = refused_the_same_way(&check, &render, 2);
     assert!(line.starts_with("composition.xml, line 3: FS-0056: unsupported:"), "{line}");
     assert!(
-        line.contains("the emoji U+0041 has no PNG picture in its font at any size"),
+        line.contains("the character U+0041 has no PNG picture in its font at any size"),
         "{line}"
     );
 }
@@ -392,7 +392,7 @@ fn a_glyph_whose_only_graphic_is_a_flip_is_refused_by_check_and_by_render() {
     let line = refused_the_same_way(&check, &render, 2);
     assert!(line.starts_with("composition.xml, line 3: FS-0056: unsupported:"), "{line}");
     assert!(
-        line.contains("the emoji U+0041 has no PNG picture in its font at any size"),
+        line.contains("the character U+0041 has no PNG picture in its font at any size"),
         "{line}"
     );
 }
@@ -410,7 +410,7 @@ fn a_picture_that_frx7_refuses_is_refused_by_check_and_by_render_with_frx7s_reas
     assert!(line.starts_with("composition.xml, line 3: FS-0056: unsupported:"), "{line}");
     assert!(
         line.contains(
-            "the picture of the emoji U+0041 is refused: a picture held in memory is damaged: its chunk  is  runs past the end of the file."
+            "the picture of the character U+0041 is refused: a picture held in memory is damaged: its chunk  is  runs past the end of the file."
         ),
         "{line}"
     );

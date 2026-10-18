@@ -147,7 +147,7 @@ pub enum Code {
     ColumnsNotAList,
     /// A `<box>` has both `columns` and `flex-direction`.
     ColumnsWithDirection,
-    /// A character of a text is an emoji whose picture this version does not draw.
+    /// A character of a text whose picture this version does not draw.
     EmojiNotDrawn,
 }
 

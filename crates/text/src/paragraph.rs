@@ -114,10 +114,10 @@ pub enum TextError {
     /// keeps with the room (`docs/spec/text.md`, section 10). `piece` is the index, in the pieces given, of the piece
     /// that holds the room.
     RoomAtALineBreak { piece: usize },
-    /// An emoji with no colour picture of the type `png ` in its font at any size, which this version does not draw
+    /// A character with no colour picture of the type `png ` in its font at any size, which this version does not draw
     /// (`docs/spec/text.md`, section 12.4, point 9).
     NoPicture(char),
-    /// An emoji whose picture frx7 refuses, with frx7's reason (`docs/spec/text.md`, section 12.4, point 9).
+    /// A character whose picture frx7 refuses, with frx7's reason (`docs/spec/text.md`, section 12.4, point 9).
     PictureRefused { character: char, reason: String },
 }
 
@@ -138,12 +138,12 @@ impl fmt::Display for TextError {
             ),
             TextError::NoPicture(character) => write!(
                 f,
-                "the emoji U+{:04X} has no PNG picture in its font at any size, and this version draws only those pictures",
+                "the character U+{:04X} has no PNG picture in its font at any size, and this version draws only those pictures",
                 *character as u32
             ),
             TextError::PictureRefused { character, reason } => write!(
                 f,
-                "the picture of the emoji U+{:04X} is refused: {reason}",
+                "the picture of the character U+{:04X} is refused: {reason}",
                 *character as u32
             ),
         }

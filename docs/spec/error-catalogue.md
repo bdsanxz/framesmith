@@ -101,7 +101,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0053` | invalid | A length or size that must be above 0 is 0 or below. | Write the value as a number above 0, or leave the attribute out for its default. |
 | `FS-0054` | invalid | A `columns` of a `<box>` is not a list of column widths: each a number of pixels above 0, or a share such as `1fr`. | Write the widths as numbers of pixels, such as 640, or as shares, such as 1fr, separated by spaces. |
 | `FS-0055` | invalid | A `<box>` has both `columns` and `flex-direction`. | Remove `columns` to lay the children out in a row or a column, or `flex-direction` to lay them out in columns. |
-| `FS-0056` | unsupported | A character of a text is an emoji whose picture this version does not draw: the font has no PNG picture for it at any size, or frx7 refuses the picture. | Give the text a font that has a PNG picture for the character, or remove the character. |
+| `FS-0056` | unsupported | A character of a text whose picture this version does not draw: the font has no PNG picture for it at any size, or frx7 refuses the picture. | Give the text a font that has a PNG picture for the character, or remove the character. |
 
 Notes on the rows:
 
