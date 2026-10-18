@@ -62,12 +62,26 @@ pub struct GlyphRun {
     pub glyphs: Vec<Glyph>,
 }
 
-/// The glyph runs of one paragraph, drawn together in the order they are listed. Only the pixels of `clip`
-/// change; `None` for the whole frame. A paragraph in a composition shown from another file is cut to the
-/// rectangle that file is shown in (`docs/spec/text.md`, section 8).
+/// A colour picture of an emoji (`docs/spec/text.md`, section 12.4): premultiplied RGBA8 pixels in rows with no padding,
+/// its size, and the top-left corner of its place on the frame in pixels, not yet a whole pixel. A renderer places the
+/// corner at the whole pixel nearest to it, halves up, and draws the picture in its own colours, whatever the colour of its
+/// text.
+#[derive(Clone, Debug)]
+pub struct GlyphPicture {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Arc<Vec<u8>>,
+    pub x: f32,
+    pub y: f32,
+}
+
+/// The glyph runs and the colour pictures of one paragraph, drawn together: the runs first, in the order they are listed,
+/// then the pictures in the order of the text. Only the pixels of `clip` change; `None` for the whole frame. A paragraph
+/// in a composition shown from another file is cut to the rectangle that file is shown in (`docs/spec/text.md`, section 8).
 #[derive(Clone, Debug)]
 pub struct TextMark {
     pub runs: Vec<GlyphRun>,
+    pub pictures: Vec<GlyphPicture>,
     pub clip: Option<Rect>,
 }
 

@@ -71,6 +71,7 @@ fn frame_of_text(font: &Arc<Vec<u8>>) -> Frame {
                 glyphs: glyphs(&[9, 10, 11, 12, 13], 22.3, 70.3, 11.9),
             },
         ],
+        pictures: Vec::new(),
         clip: Some(Rect {
             left: 10,
             top: 10,
@@ -90,6 +91,7 @@ fn frame_of_text(font: &Arc<Vec<u8>>) -> Frame {
             },
             glyphs: glyphs(&[5, 14, 15], 60.6, 38.2, 14.4),
         }],
+        pictures: Vec::new(),
         clip: None,
     };
     Frame {

@@ -44,6 +44,47 @@ pub fn project_copied_from_fixture(group: &str, name: &str, fixture: &str) -> Pa
     dir
 }
 
+/// The text colours the emoji of the emoji fixture is drawn in, each with the name its project folder is given: black,
+/// the fixture's own blue, and a yellow close to the emoji's own yellow.
+pub const EMOJI_TEXT_COLOURS: [(&str, &str); 3] = [("black", "#000000"), ("blue", "#1e6fd9"), ("yellow", "#f5c000")];
+
+/// A project folder of the test's own, copied from `fixture`, whose composition writes its text colour
+/// `from` as `to`. The fixture must write `from` exactly once.
+pub fn project_with_text_colour(group: &str, name: &str, fixture: &str, from: &str, to: &str) -> PathBuf {
+    let dir = numbered_scratch(group, name);
+    copy_files(&fixtures().join(fixture), &dir);
+    let path = dir.join("composition.xml");
+    let text = fs::read_to_string(&path).unwrap();
+    let written = format!("color=\"{from}\"");
+    assert_eq!(text.matches(&written).count(), 1, "{fixture} writes its text colour {from} once");
+    fs::write(&path, text.replacen(&written, &format!("color=\"{to}\""), 1)).unwrap();
+    dir
+}
+
+/// The place of the first picture of a text in frame `number` of a scene, as left, top, width and
+/// height: the whole pixel nearest to its top-left corner, and its size in pixels.
+pub fn first_picture_place(scene: &render::Scene, number: u64) -> (u32, u32, u32, u32) {
+    let frame = scene.frame(number).unwrap();
+    let picture = frame
+        .marks
+        .iter()
+        .find_map(|mark| match mark {
+            draw::Mark::Text(text) => text.pictures.first(),
+            _ => None,
+        })
+        .expect("the emoji is drawn as a picture");
+    (picture.x.round() as u32, picture.y.round() as u32, picture.width, picture.height)
+}
+
+/// The pixels of `picture` in the rectangle of `width` by `height` from (`left`, `top`), as a picture of their own.
+pub fn crop(picture: &Picture, left: u32, top: u32, width: u32, height: u32) -> Picture {
+    let pixels = (top..top + height)
+        .flat_map(|y| (left..left + width).map(move |x| (x, y)))
+        .flat_map(|(x, y)| picture.pixel(x, y).expect("the rectangle lies on the picture"))
+        .collect();
+    Picture::new(width, height, pixels).unwrap()
+}
+
 /// A new folder for one call of a test, named after `name` and the number of the call.
 fn numbered_scratch(group: &str, name: &str) -> PathBuf {
     static CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);

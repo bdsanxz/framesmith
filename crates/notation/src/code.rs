@@ -147,11 +147,13 @@ pub enum Code {
     ColumnsNotAList,
     /// A `<box>` has both `columns` and `flex-direction`.
     ColumnsWithDirection,
+    /// A character of a text whose picture this version does not draw.
+    EmojiNotDrawn,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 55] = [
+    pub const ALL: [Code; 56] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -207,6 +209,7 @@ impl Code {
         Code::SizeNotAboveZero,
         Code::ColumnsNotAList,
         Code::ColumnsWithDirection,
+        Code::EmojiNotDrawn,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -267,6 +270,7 @@ impl Code {
             Code::SizeNotAboveZero => "FS-0053",
             Code::ColumnsNotAList => "FS-0054",
             Code::ColumnsWithDirection => "FS-0055",
+            Code::EmojiNotDrawn => "FS-0056",
         }
     }
 
@@ -280,7 +284,7 @@ impl Code {
             | Code::VideoNotMade
             | Code::ShownUnreadable
             | Code::FontUnreadable => Kind::Failure,
-            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable => Kind::Unsupported,
+            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable | Code::EmojiNotDrawn => Kind::Unsupported,
             _ => Kind::Invalid,
         }
     }
@@ -348,6 +352,7 @@ impl Code {
             Code::SizeNotAboveZero => "Write the value as a number above 0, or leave the attribute out for its default.",
             Code::ColumnsNotAList => "Write the widths as numbers of pixels, such as 640, or as shares, such as 1fr, separated by spaces.",
             Code::ColumnsWithDirection => "Remove `columns` to lay the children out in a row or a column, or `flex-direction` to lay them out in columns.",
+            Code::EmojiNotDrawn => "Give the text a font that has a PNG picture for the character, or remove the character.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

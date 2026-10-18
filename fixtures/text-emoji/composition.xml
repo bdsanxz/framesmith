@@ -1,4 +1,5 @@
 <composition version="1" width="320" height="300" fps="10" duration="1" background="#ffffff">
 <font src="/System/Library/Fonts/Supplemental/Arial Unicode.ttf" family="Arial Unicode"/>
-<text left="10" top="10" width="300" font-family="Arial Unicode" font-size="20" line-height="2" color="#000000">Smile 😀 now</text>
+<font src="/System/Library/Fonts/Apple Color Emoji.ttc" family="Apple Color Emoji"/>
+<text left="10" top="10" width="300" font-family="Arial Unicode, Apple Color Emoji" font-size="20" line-height="2" color="#1e6fd9">Smile 😀 now, a line of Latin text holds an emoji in the middle of its words, and the words wrap at the spaces inside the width.</text>
 </composition>

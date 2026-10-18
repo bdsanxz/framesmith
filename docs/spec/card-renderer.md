@@ -138,3 +138,15 @@ The masks are kept for the life of the renderer, so a glyph that stays in place 
 
 - `crates/render/tests/card_agreement.rs`: every frame of each of the five text fixtures of T046 is within the tolerance of section 4. Reference machine only.
 - `crates/draw-gpu/tests/card_text.rs`: a frame of the test font, with origins at fractions, a skew, a clip and a fill over the text, agrees with the processor's frame within the tolerance; and a font whose table directory cannot be read is refused by the card with its reason, and draws no picture. Reference machine only.
+- The emoji tests of section 9.8.
+
+### 9.8 Pictures of emoji
+
+A picture of an emoji (`draw`, `GlyphPicture`; `text.md`, section 12.4) is drawn after the glyph runs of its paragraph, in the order of the paragraph's pictures, within the paragraph's clip (section 9.1). Its pixels are premultiplied RGBA of 8 bits, as the text crate gives them, and it is drawn as two triangles whose corners lie on whole pixels, at the place `text.md` section 12.4, point 6, gives it.
+
+- Each frame pixel takes the picture's pixel at the same position, read without filtering, so the card changes no pixel of the picture.
+- The picture is blended over the frame by the premultiplied src-over operation: the frame's colour becomes the picture's colour plus the frame's colour times the share of the frame the picture's alpha leaves clear. The alpha stays 255.
+- A glyph of a colour-picture face is never a mask: the card makes no mask of it, and so the picture needs none of the checks of section 9.3.
+- A picture larger than the card's limit on the sides of a texture is refused with its reason, and draws no picture, as a mask is (section 9.3).
+
+The two pictures agree in the way section 9.5 gives: the processor composes the picture into the paragraph's layer and the card composes it at each write, which is the same in exact arithmetic, so the difference is rounding, measured by section 4. The fixture `text-emoji` (`text.md`, section 12.5) is in `crates/render/tests/script_fixtures_on_the_card.rs`, reference machine only, in three tests. `reference_machine_only_the_card_agrees_with_the_processor_on_emoji_text` compares the card's picture of every frame of the fixture with the processor's, as section 4 gives. `reference_machine_only_the_card_draws_the_emoji_in_its_own_colours_whatever_the_text_colour` checks frame 0 at the emoji's place: the card draws the emoji's yellow there and no pixel takes the blue of the text. `reference_machine_only_the_card_draws_the_emoji_within_the_tolerance_whatever_the_text_colour` draws the fixture with its text in black, in its blue and in a yellow close to the emoji's own, and compares the card's pictures of the emoji with one another, on frames 0 and 9, within the tolerance of section 4. No test in `crates/draw-gpu/tests/` draws an emoji picture.

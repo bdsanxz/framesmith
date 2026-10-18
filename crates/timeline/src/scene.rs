@@ -1,7 +1,7 @@
 //! The scene: the root's canvas, the boxes in it and the compositions shown from other files, as far
 //! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
-use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
+use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use text::Fonts;
@@ -300,7 +300,7 @@ fn fill_mark(placed: &Placed) -> Option<Mark> {
 /// The glyph runs of a paragraph, moved to its place in the frame, and the mark that draws them.
 fn text_mark(text: &PlacedText) -> Option<Mark> {
     let paragraph = &text.paragraph;
-    if paragraph.block.runs.is_empty() {
+    if paragraph.block.runs.is_empty() && paragraph.block.pictures.is_empty() {
         return None;
     }
     let (left, top) = (paragraph.rect.left as f32, paragraph.rect.top as f32);
@@ -331,7 +331,23 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
                 .collect(),
         })
         .collect();
-    Some(Mark::Text(TextMark { runs, clip: text.clip }))
+    let pictures = paragraph
+        .block
+        .pictures
+        .iter()
+        .map(|picture| GlyphPicture {
+            width: picture.width,
+            height: picture.height,
+            pixels: picture.pixels.clone(),
+            x: picture.x + left,
+            y: picture.y + top,
+        })
+        .collect();
+    Some(Mark::Text(TextMark {
+        runs,
+        pictures,
+        clip: text.clip,
+    }))
 }
 
 /// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, and a `<box>` what

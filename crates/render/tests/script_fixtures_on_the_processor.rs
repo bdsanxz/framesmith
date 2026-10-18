@@ -10,7 +10,7 @@ mod common;
 
 use std::collections::HashMap;
 
-use common::project_copied_from_fixture;
+use common::{crop, first_picture_place, project_copied_from_fixture, project_with_text_colour, EMOJI_TEXT_COLOURS};
 use draw::{Frame, Mark, Picture};
 use draw_cpu::CpuRenderer;
 use project::Project;
@@ -342,5 +342,202 @@ fn thai_frames_break_only_at_word_boundaries() {
             boundaries.contains(&end),
             "a line ends after {end} characters, inside a word: {counts:?}"
         );
+    }
+}
+
+/// The text of the emoji fixture: a Latin line with one emoji, which wraps at the spaces inside its width.
+const EMOJI_FIXTURE: &str = "text-emoji";
+const EMOJI_TEXT: &str = "Smile \u{1F600} now, a line of Latin text holds an emoji in the middle of its words, and the words wrap at the spaces inside the width.";
+/// The lines of the emoji fixture as the rules give them, with the emoji left out and each run of spaces made one.
+const EMOJI_LINES: [&str; 4] = [
+    "Smile now, a line of Latin text",
+    "holds an emoji in the middle of its",
+    "words, and the words wrap at the",
+    "spaces inside the width.",
+];
+
+/// The pictures of the emoji a frame draws, each with the place it is drawn at.
+fn pictures_of(frame: &Frame) -> Vec<&draw::GlyphPicture> {
+    let mut found = Vec::new();
+    for mark in &frame.marks {
+        if let Mark::Text(text) = mark {
+            found.extend(text.pictures.iter());
+        }
+    }
+    found
+}
+
+/// Whether a pixel is a yellow of the emoji face: red high, green high, blue low.
+fn is_emoji_yellow(pixel: &[u8]) -> bool {
+    pixel[0] >= 200 && pixel[1] >= 140 && pixel[2] <= 120
+}
+
+/// Whether a pixel is the blue of the text in the fixture, to within a wide margin.
+fn is_text_blue(pixel: &[u8]) -> bool {
+    let [red, green, blue] = [0x1e_i32, 0x6f, 0xd9];
+    (i32::from(pixel[0]) - red).abs() < 40 && (i32::from(pixel[1]) - green).abs() < 40 && (i32::from(pixel[2]) - blue).abs() < 40
+}
+
+#[test]
+fn emoji_frames_draw_the_emoji_in_its_own_colours_whatever_the_text_colour() {
+    for (number, (frame, rendered)) in JUDGED.iter().zip(judged_frames(EMOJI_FIXTURE)) {
+        let pictures = pictures_of(&frame);
+        assert_eq!(pictures.len(), 1, "frame {number}: the one emoji is drawn as a picture");
+        let emoji = pictures[0];
+        let (left, top) = (emoji.x.round() as u32, emoji.y.round() as u32);
+        let (mut yellow, mut blue) = (0_usize, 0_usize);
+        for row in 0..emoji.height {
+            for column in 0..emoji.width {
+                let pixel = rendered.pixel(left + column, top + row).expect("the emoji lies on the frame");
+                yellow += usize::from(is_emoji_yellow(&pixel));
+                blue += usize::from(is_text_blue(&pixel));
+            }
+        }
+        assert!(yellow > 50, "frame {number}: the emoji has yellow of its own, {yellow} pixels");
+        assert_eq!(blue, 0, "frame {number}: no pixel of the emoji takes the colour of the text");
+    }
+}
+
+/// The glyphs of a frame's text, each as its baseline, its pen position and its glyph id.
+fn glyphs_of(frame: &Frame) -> Vec<(f32, f32, u32)> {
+    let mut glyphs: Vec<(f32, f32, u32)> = Vec::new();
+    for mark in &frame.marks {
+        if let Mark::Text(text) = mark {
+            for run in &text.runs {
+                glyphs.extend(run.glyphs.iter().map(|glyph| (glyph.y, glyph.x, glyph.id)));
+            }
+        }
+    }
+    glyphs
+}
+
+/// The letters of the first line that lie where `keep` says, from the left, each named by its glyph.
+fn letters_of_first_line(glyphs: &[(f32, f32, u32)], names: &HashMap<u32, char>, keep: impl Fn(f32) -> bool) -> String {
+    let first = glyphs.iter().map(|glyph| glyph.0).fold(f32::MAX, f32::min);
+    let mut on_line: Vec<(f32, u32)> = glyphs
+        .iter()
+        .filter(|glyph| (glyph.0 - first).abs() < 0.01 && names.contains_key(&glyph.2) && keep(glyph.1))
+        .map(|glyph| (glyph.1, glyph.2))
+        .collect();
+    on_line.sort_by(|first, second| first.0.partial_cmp(&second.0).unwrap());
+    on_line.iter().map(|(_, id)| names[id]).collect()
+}
+
+#[test]
+fn emoji_frames_keep_the_emoji_between_the_words_it_sits_between() {
+    let mut fonts = mac_fonts();
+    let names = names_of(&mut fonts, EMOJI_TEXT.replace('\u{1F600}', "").as_str());
+    for (number, (frame, _)) in JUDGED.iter().zip(judged_frames(EMOJI_FIXTURE)) {
+        let emoji = pictures_of(&frame)[0];
+        let glyphs = glyphs_of(&frame);
+        let (left, right) = (emoji.x, emoji.x + emoji.width as f32);
+        let before = letters_of_first_line(&glyphs, &names, |x| x < left);
+        let after = letters_of_first_line(&glyphs, &names, |x| x >= right);
+        assert_eq!(before.trim_end(), "Smile", "frame {number}: the letters before the emoji");
+        assert!(
+            after.trim_start().starts_with("now,"),
+            "frame {number}: the letters after the emoji: {after:?}"
+        );
+    }
+}
+
+#[test]
+fn emoji_frames_break_the_lines_at_the_spaces_the_width_allows() {
+    let mut fonts = mac_fonts();
+    let names = names_of(&mut fonts, EMOJI_TEXT.replace('\u{1F600}', "").as_str());
+    for (number, (frame, _)) in JUDGED.iter().zip(judged_frames(EMOJI_FIXTURE)) {
+        let mut glyphs = glyphs_of(&frame);
+        glyphs.sort_by(|first, second| {
+            first
+                .0
+                .partial_cmp(&second.0)
+                .unwrap()
+                .then(first.1.partial_cmp(&second.1).unwrap())
+        });
+        let mut lines: Vec<(f32, String)> = Vec::new();
+        for (baseline, _, id) in glyphs {
+            let Some(&character) = names.get(&id) else {
+                continue;
+            };
+            match lines.last_mut() {
+                Some((line, text)) if (*line - baseline).abs() < 0.01 => text.push(character),
+                _ => lines.push((baseline, character.to_string())),
+            }
+        }
+        let texts: Vec<String> = lines
+            .iter()
+            .map(|(_, text)| text.split_whitespace().collect::<Vec<_>>().join(" "))
+            .collect();
+        assert_eq!(
+            texts, EMOJI_LINES,
+            "frame {number}: the lines the rules give, from the emoji fixture"
+        );
+    }
+}
+
+/// The frame `number` of the fixture drawn on the processor, when its text is in `colour`: the whole picture, the
+/// rectangle of the emoji's picture at its place, and that place.
+fn emoji_frame_in_colour(name: &str, colour: &str, number: u64) -> (Picture, Picture, (u32, u32, u32, u32)) {
+    let folder = project_with_text_colour("script-fixtures-on-the-processor", name, EMOJI_FIXTURE, "#1e6fd9", colour);
+    let project = Project::open(&folder).unwrap();
+    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let place = first_picture_place(&scene, number);
+    let (left, top, width, height) = place;
+    let picture = scene.picture(number, &mut CpuRenderer).unwrap();
+    (picture.clone(), crop(&picture, left, top, width, height), place)
+}
+
+/// The first pixel that differs between two pictures of the same size, with its column, row and both values.
+fn first_difference(first: &Picture, second: &Picture) -> Option<(u32, u32, [u8; 4], [u8; 4])> {
+    for y in 0..first.height() {
+        for x in 0..first.width() {
+            let (a, b) = (first.pixel(x, y).unwrap(), second.pixel(x, y).unwrap());
+            if a != b {
+                return Some((x, y, a, b));
+            }
+        }
+    }
+    None
+}
+
+#[test]
+fn emoji_pixels_are_equal_value_for_value_in_three_text_colours() {
+    // The place of a picture on the frame: left, top, width and height.
+    type Place = (u32, u32, u32, u32);
+    for &number in &JUDGED {
+        let frames: Vec<(&str, Picture, Picture, Place)> = EMOJI_TEXT_COLOURS
+            .iter()
+            .map(|&(name, colour)| {
+                let (whole, picture, place) = emoji_frame_in_colour(name, colour, number);
+                (colour, whole, picture, place)
+            })
+            .collect();
+        let drawn: Vec<(&str, Place, Picture)> = frames
+            .iter()
+            .map(|(colour, _, picture, place)| (*colour, *place, picture.clone()))
+            .collect();
+        // The colour of the text reaches the frame: the black and the yellow frames differ somewhere.
+        assert!(
+            first_difference(&frames[0].1, &frames[2].1).is_some(),
+            "frame {number}: the text's colour is drawn: the frames in black and in yellow are equal"
+        );
+        let (first_colour, first_place, first) = &drawn[0];
+        let emoji_yellow = (0..first.height())
+            .flat_map(|y| (0..first.width()).map(move |x| (x, y)))
+            .filter(|&(x, y)| is_emoji_yellow(&first.pixel(x, y).unwrap()))
+            .count();
+        assert!(
+            emoji_yellow > 50,
+            "frame {number}: the emoji has its yellow in {first_colour}: {emoji_yellow} pixels"
+        );
+        for (colour, place, picture) in &drawn[1..] {
+            assert_eq!(
+                place, first_place,
+                "frame {number}: the emoji is at the same place in {colour} as in {first_colour}"
+            );
+            if let Some((x, y, a, b)) = first_difference(first, picture) {
+                panic!("frame {number}: the emoji's picture at ({x}, {y}) of its place is {a:?} in {first_colour} and {b:?} in {colour}");
+            }
+        }
     }
 }

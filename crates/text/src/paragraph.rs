@@ -9,6 +9,7 @@ use std::sync::Arc;
 use parley::{BaseDirection, FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
 
 use crate::fonts::Fonts;
+use crate::picture;
 
 /// A line height as the notation writes it (`docs/spec/text.md`, section 4).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -72,8 +73,22 @@ pub struct Block {
     pub width: f32,
     pub height: f32,
     pub runs: Vec<PositionedRun>,
+    /// The colour pictures of the emoji of the block, in the order of the text (`docs/spec/text.md`, section 12.4).
+    pub pictures: Vec<PositionedPicture>,
     /// The lines in order, from the top of the block.
     pub lines: Vec<Line>,
+}
+
+/// A colour picture of an emoji on a block (`docs/spec/text.md`, section 12.4): its size in pixels, its premultiplied RGBA8
+/// pixels in rows with no padding, and the top-left corner of its place, `x` from the block's left edge and `y` from its
+/// top. The corner is not yet a whole pixel: a renderer places it at the whole pixel nearest to it, halves up.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PositionedPicture {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Arc<Vec<u8>>,
+    pub x: f32,
+    pub y: f32,
 }
 
 /// One line of a block: its left edge from the block's left edge, its width (which leaves out the space it ends
@@ -99,6 +114,11 @@ pub enum TextError {
     /// keeps with the room (`docs/spec/text.md`, section 10). `piece` is the index, in the pieces given, of the piece
     /// that holds the room.
     RoomAtALineBreak { piece: usize },
+    /// A character with no colour picture of the type `png ` in its font at any size, which this version does not draw
+    /// (`docs/spec/text.md`, section 12.4, point 9).
+    NoPicture(char),
+    /// A character whose picture frx7 refuses, with frx7's reason (`docs/spec/text.md`, section 12.4, point 9).
+    PictureRefused { character: char, reason: String },
 }
 
 impl fmt::Display for TextError {
@@ -115,6 +135,16 @@ impl fmt::Display for TextError {
             TextError::RoomAtALineBreak { .. } => write!(
                 f,
                 "a margin or a padding of a <span> where the line may break before the span, after a character other than a space or a hyphen, which this version does not draw"
+            ),
+            TextError::NoPicture(character) => write!(
+                f,
+                "the character U+{:04X} has no PNG picture in its font at any size, and this version draws only those pictures",
+                *character as u32
+            ),
+            TextError::PictureRefused { character, reason } => write!(
+                f,
+                "the picture of the character U+{:04X} is refused: {reason}",
+                *character as u32
             ),
         }
     }
@@ -207,24 +237,32 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             width,
             height: 0.0,
             runs: Vec::new(),
+            pictures: Vec::new(),
             lines: Vec::new(),
         });
     }
     let flat = carry(fonts, pieces, plain)?;
-    // The faces each piece may draw from: those of its own families.
-    let listed: Vec<Vec<u64>> = pieces
+    // The faces each piece may draw from: those of its own families, by blob and index in the file, so that a face of
+    // a collection that is not drawn is never matched.
+    let listed: Vec<Vec<(u64, u32)>> = pieces
         .iter()
         .map(|piece| match piece {
             Piece::Words { style, .. } => fonts
                 .faces
                 .iter()
                 .filter(|face| style.families.contains(&face.family))
-                .map(|face| face.blob)
+                .map(|face| (face.blob, face.index))
                 .collect(),
             Piece::Room { .. } | Piece::Lead { .. } => Vec::new(),
         })
         .collect();
-    let Fonts { context, layouts, faces } = fonts;
+    let Fonts {
+        context,
+        layouts,
+        faces,
+        codecs,
+        pictures: cache,
+    } = fonts;
     let mut builder = layouts.ranged_builder(context, &flat.text, 1.0, true);
     // The base direction is left to right for every script (`docs/spec/text.md`, section 12.2, rule 2). Parley would
     // otherwise take it from the first strong character, which makes an Arabic or Hebrew paragraph right to left.
@@ -270,9 +308,10 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             if run.font_size() == 0.0 {
                 continue;
             }
+            let key = (run.font().data.id(), run.font().index);
             for cluster in run.clusters() {
                 let start = cluster.text_range().start;
-                let from_listed = listed[flat.owner[start]].contains(&run.font().data.id());
+                let from_listed = listed[flat.owner[start]].contains(&key);
                 if !from_listed || cluster.glyphs().any(|glyph| glyph.id == 0) {
                     let character = flat.text[cluster.text_range()].chars().next().unwrap_or('\u{fffd}');
                     return Err(TextError::MissingCharacter(character));
@@ -283,13 +322,15 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
         widths.push(metrics.advance - metrics.hanging_advance);
     }
 
-    // Second pass: the place of each line and of each glyph.
+    // Second pass: the place of each line and of each glyph. A glyph of a colour face is drawn as its picture, or refused
+    // (`docs/spec/text.md`, section 12.4, point 9); its outlines are never drawn.
     let widest = widths.iter().copied().fold(0.0, f32::max);
     let block_width = match (sizing, width) {
         (Sizing::Given, Some(width)) => width,
         (Sizing::Given, None) | (Sizing::Widest, _) => widest,
     };
     let mut runs: Vec<PositionedRun> = Vec::new();
+    let mut placed_pictures: Vec<PositionedPicture> = Vec::new();
     let mut lines: Vec<Line> = Vec::new();
     let mut height = 0.0_f32;
     for (line, line_width) in layout.lines().zip(widths.iter().copied()) {
@@ -308,7 +349,8 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             if run.font_size() == 0.0 {
                 continue;
             }
-            let Some(face) = faces.iter().find(|face| face.blob == run.font().data.id()) else {
+            let key = (run.font().data.id(), run.font().index);
+            let Some(face) = faces.iter().find(|face| (face.blob, face.index) == key) else {
                 continue;
             };
             let glyphs: Vec<PositionedGlyph> = glyph_run
@@ -322,14 +364,51 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             if baseline.is_none() {
                 baseline = glyphs.first().map(|glyph| glyph.y);
             }
-            runs.push(PositionedRun {
-                font: face.bytes.clone(),
+            let Some(colour) = &face.colour else {
+                runs.push(PositionedRun {
+                    font: face.bytes.clone(),
+                    index: face.index,
+                    size: run.font_size(),
+                    skew_degrees: run.synthesis().skew().unwrap_or(0.0),
+                    colour: glyph_run.style().brush,
+                    glyphs,
+                });
+                continue;
+            };
+            let characters = glyph_characters(&flat.text, run);
+            debug_assert_eq!(characters.len(), glyphs.len(), "every glyph has the character of its cluster");
+            let source = picture::Source {
+                blob: face.blob,
                 index: face.index,
-                size: run.font_size(),
-                skew_degrees: run.synthesis().skew().unwrap_or(0.0),
-                colour: glyph_run.style().brush,
-                glyphs,
-            });
+                bytes: &face.bytes,
+                colour,
+            };
+            for (glyph, character) in glyphs.iter().zip(characters) {
+                if matches!(character, ' ' | '\t' | '\n' | '\r') {
+                    continue;
+                }
+                let id = glyph.id as usize;
+                let made = picture::glyph_picture(codecs, cache, &source, id, run.font_size()).map_err(|missing| match missing {
+                    picture::Missing::NoPicture => TextError::NoPicture(character),
+                    picture::Missing::Refused(reason) => TextError::PictureRefused { character, reason },
+                })?;
+                if made.width == 0 || made.height == 0 {
+                    continue;
+                }
+                let Some((x, y)) = picture::top_left(&source, id, &made, run.font_size(), glyph.x, glyph.y) else {
+                    return Err(TextError::PictureRefused {
+                        character,
+                        reason: "its outline box cannot be read".to_string(),
+                    });
+                };
+                placed_pictures.push(PositionedPicture {
+                    width: made.width,
+                    height: made.height,
+                    pixels: made.pixels.clone(),
+                    x,
+                    y,
+                });
+            }
         }
         // A line with no glyph sits at its own top; every line of a text has glyphs.
         lines.push(Line {
@@ -343,8 +422,20 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
         width: block_width,
         height,
         runs,
+        pictures: placed_pictures,
         lines,
     })
+}
+
+/// The character each glyph of a run belongs to, in the order of the glyphs: the first character of the cluster the glyph
+/// is in.
+fn glyph_characters(text: &str, run: &parley::Run<'_, [u8; 4]>) -> Vec<char> {
+    let mut characters = Vec::new();
+    for cluster in run.clusters() {
+        let character = text[cluster.text_range()].chars().next().unwrap_or(' ');
+        characters.extend(std::iter::repeat_n(character, cluster.glyphs().count()));
+    }
+    characters
 }
 
 /// The words of the pieces joined into one text, with the white space collapsed across the pieces (`docs/spec/text.md`,
