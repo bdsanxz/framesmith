@@ -103,6 +103,8 @@ while :; do
     fi
     [ "$ELAPSED" -ge "$BOUND_MS" ] && break
     sleep "$PAUSE"
+    # The bound is looked at again after the pause, so that no reading is begun after it (rule 2).
+    [ "$(($(now_ms) - START))" -ge "$BOUND_MS" ] && break
 done
 
 [ -n "$READING" ] && printf '%s\n' "$READING"

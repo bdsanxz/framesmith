@@ -11,7 +11,7 @@ mod common;
 use common::isolate_from_runner;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..")
@@ -102,11 +102,16 @@ fn stand_in_head(folder: &Path) -> String {
 /// A stand-in for `log show`: it answers in the compact form with the lines the system writes for a
 /// refused start. The first record is there from the first answer; the second one only from
 /// `second_after_ms` after the first answer on, and never when that is `None`. A record of a program
-/// that is not of this run is always there. `readable` false makes it end with an error.
-fn log_stand_in(folder: &Path, second_after_ms: Option<u64>, readable: bool) -> PathBuf {
+/// that is not of this run is always there. `readable` false makes it end with an error, and then it
+/// keeps the time of each answer, in milliseconds since 1970, in the file `answered`. `first_sleep`
+/// makes the first answer of a readable stand-in come only after that many seconds.
+fn stand_in_script(folder: &Path, second_after_ms: Option<u64>, readable: bool, first_sleep: Option<&str>) -> PathBuf {
     let script = folder.join("log-stand-in");
     let mut body = stand_in_head(folder);
     if readable {
+        if let Some(seconds) = first_sleep {
+            body.push_str(&format!("if [ \"$n\" -eq 1 ]; then sleep {seconds}; fi\n"));
+        }
         body.push_str(&format!(
             "echo \"Filtering the log data using \\\"eventMessage CONTAINS ...\\\"\"\n\
              echo \"2026-10-14 07:15:35.191 E  kernel[0:29c9bd6] (Sandbox) Sandbox: {PROGRAM}(25029) deny(1) process-exec* {FIRST}\"\n\
@@ -118,10 +123,16 @@ fn log_stand_in(folder: &Path, second_after_ms: Option<u64>, readable: bool) -> 
             ));
         }
     } else {
-        body.push_str("echo \"log: cannot open the log archive\" >&2\nexit 1\n");
+        body.push_str("echo \"log: cannot open the log archive\" >&2\n");
+        body.push_str("perl -MTime::HiRes=time -e 'printf \"%d\\n\", time() * 1000' >>\"$state/answered\"\n");
+        body.push_str("exit 1\n");
     }
     executable(&script, &body);
     script
+}
+
+fn log_stand_in(folder: &Path, second_after_ms: Option<u64>, readable: bool) -> PathBuf {
+    stand_in_script(folder, second_after_ms, readable, None)
 }
 
 fn count_lines(folder: &Path, file: &str) -> usize {
@@ -135,6 +146,22 @@ fn answers(folder: &Path) -> usize {
         .ok()
         .and_then(|text| text.trim().parse().ok())
         .unwrap_or(0)
+}
+
+/// The times, in milliseconds since 1970, at which an unreadable stand-in gave its answers, in order.
+fn answer_times(folder: &Path) -> Vec<u128> {
+    std::fs::read_to_string(folder.join("answered"))
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|line| line.trim().parse().ok())
+        .collect()
+}
+
+fn unix_millis_now() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("the clock is after 1970")
+        .as_millis()
 }
 
 /// Runs the reading with the stand-in against the output of a run that had `refused_tests` forbidden starts.
@@ -227,10 +254,36 @@ fn a_record_that_never_arrives_ends_the_wait_at_the_bound_and_says_so() {
 }
 
 #[test]
+fn no_reading_is_begun_after_the_bound() {
+    let folder = scratch("first-answer-past-the-pause");
+    // The first answer comes 19.2 seconds after the start: it ends before the bound, and the pause after it ends past the bound.
+    let stand_in = stand_in_script(&folder, None, true, Some("19.2"));
+    let run = read_with(&folder, &stand_in, 2, 40);
+    assert_eq!(run.code, 0, "{}", run.text);
+    assert_eq!(answers(&folder), 1, "a reading was begun after the bound: {}", run.text);
+    assert!(run.text.contains(&named(FIRST)), "{}", run.text);
+    assert!(
+        run.text.contains(
+            "core problem: after waiting 20 seconds the system log names 1 program(s) the system refused to start, \
+             and the output of the tests shows 2 start(s) refused (\"Operation not permitted\"); a refused program may be missing from this list"
+        ),
+        "{}",
+        run.text
+    );
+    assert!(
+        run.took >= Duration::from_secs(20),
+        "stopped after {:?}, before the bound",
+        run.took
+    );
+    assert!(run.took < Duration::from_secs(30), "took {:?}, after the bound", run.took);
+}
+
+#[test]
 fn a_log_that_cannot_be_read_ends_the_wait_and_says_so() {
     let folder = scratch("unreadable");
     let stand_in = log_stand_in(&folder, None, false);
     let run = read_with(&folder, &stand_in, 2, 40);
+    let ended = unix_millis_now();
     assert_eq!(run.code, 0, "{}", run.text);
     assert!(
         run.text
@@ -240,7 +293,18 @@ fn a_log_that_cannot_be_read_ends_the_wait_and_says_so() {
     );
     assert!(!run.text.contains("refused to start /"), "{}", run.text);
     assert_eq!(answers(&folder), 2, "two readings in a row end the wait");
-    assert!(run.took < Duration::from_secs(10), "took {:?}", run.took);
+    // Measured from the answer of the second reading, not from the start of the run: a busy machine can
+    // make each start of `log` take seconds, and a wait that ran on to its bound would be about 20 seconds
+    // from that answer.
+    let second = answer_times(&folder)
+        .get(1)
+        .copied()
+        .expect("the time of the second answer is kept");
+    let after_second = ended.saturating_sub(second);
+    assert!(
+        after_second < 10_000,
+        "{after_second} ms from the second answer to the end of the wait"
+    );
 }
 
 #[test]
