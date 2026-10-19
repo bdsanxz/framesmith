@@ -585,13 +585,20 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
             let (code, message) = match error {
                 FontError::Unsupported(kind) => (
                     Code::FormNotSupported,
-                    format!("`src=\"{src}\"` is {kind}, a font of a kind this version does not draw"),
+                    format!(
+                        "`src=\"{src}\"` is {kind}, a font of a kind this version does not draw. The kinds taken are TrueType (`.ttf`) and font collection (`.ttc`)"
+                    ),
                 ),
                 FontError::Collection(reason) => (
                     Code::FormNotSupported,
                     format!("`src=\"{src}\"` is a font collection this version does not draw: {reason}"),
                 ),
-                FontError::NotAFont => (Code::FontNotAFont, format!("`src=\"{src}\"` is not a TrueType font (`.ttf`)")),
+                FontError::NotAFont => (
+                    Code::FontNotAFont,
+                    format!(
+                        "`src=\"{src}\"` is not a font of a kind this version takes. The kinds taken are TrueType (`.ttf`) and font collection (`.ttc`)"
+                    ),
+                ),
             };
             faults.push(Fault {
                 code,

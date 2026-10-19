@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Four capitals of the test font's Regular face, declared with <font> in the root and named by its family. Drawn on
+     every frame, from frame 0. 200 by 60 pixels, 10 frames a second, 1 second long. -->
+<composition version="1" id="declared-font-file" width="200" height="60" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="12" font-family="Framesmith Test Stroke" font-size="30" color="#202020">HIIH</text>
+</composition>

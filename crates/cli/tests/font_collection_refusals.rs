@@ -287,7 +287,7 @@ fn a_collection_whose_header_lies_outside_the_file_is_refused_as_not_a_font() {
     let (check, render) = check_and_render("header-outside", &composition("", FAMILY, "A"), &font);
     let line = refused_the_same_way(&check, &render, 1);
     assert!(line.starts_with("composition.xml, line 2: FS-0051: invalid:"), "{line}");
-    assert!(line.contains("is not a TrueType font"), "{line}");
+    assert!(line.contains("is not a font of a kind this version takes"), "{line}");
 }
 
 #[test]

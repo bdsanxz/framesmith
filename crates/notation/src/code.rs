@@ -137,7 +137,7 @@ pub enum Code {
     FontMissing,
     /// The font file exists and could not be read.
     FontUnreadable,
-    /// The file is not a font of a kind this version reads (TrueType only).
+    /// The file is not a font of a kind this version reads: TrueType (`.ttf`) or font collection (`.ttc`).
     FontNotAFont,
     /// A text attribute's value is not in the form the notation gives for it.
     ValueNotInForm,
@@ -347,7 +347,7 @@ impl Code {
             Code::ShownUnreadable => "Make the shown composition file readable by this user, then run the command again.",
             Code::FontMissing => "Give the path of a font file that exists, from the project folder or a path that begins with `/`, or put the file there.",
             Code::FontUnreadable => "Make the font file readable by this user, then run the command again.",
-            Code::FontNotAFont => "Give the path of a TrueType font file (`.ttf`) in `src`.",
+            Code::FontNotAFont => "Give in `src` the path of a TrueType font file (`.ttf`) or a font collection file (`.ttc`).",
             Code::ValueNotInForm => "Write the value in the form the message names.",
             Code::SizeNotAboveZero => "Write the value as a number above 0, or leave the attribute out for its default.",
             Code::ColumnsNotAList => "Write the widths as numbers of pixels, such as 640, or as shares, such as 1fr, separated by spaces.",
