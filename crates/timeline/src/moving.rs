@@ -67,29 +67,26 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
 
 /// Reads a `<tween>` that moves a `<box>` or a `<text>`, with `origin` the start of the time its `at` counts in (the time of
 /// the parent of the element it moves). Gives the tween, or `None` when it has no duration above 0 (the form check reports
-/// that, `FS-0058`), and the refusals of what this version does not apply: an easing other than `linear`, and a property
-/// other than the seven, each on its attribute's line (`FS-0035`).
+/// that, `FS-0058`), and the refusal of a property other than the seven, on its attribute's line (`FS-0035`). The tween is
+/// eased by its `ease` (`docs/spec/notation.md` section 8.4).
 pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>) {
     let mut found = Vec::new();
     let mut from: Values = [None; PROP_COUNT];
     let mut to: Values = [None; PROP_COUNT];
     let mut at = Time::ZERO;
     let mut duration = None;
+    let mut ease = Ease::Linear;
     for attribute in node.attributes() {
         let name = attribute.name();
         match name {
             "at" => at = attribute.time().unwrap_or(Time::ZERO),
             "duration" => duration = attribute.time(),
+            // The form check reports an `ease` that is not an easing (`FS-0063`); none is left to read here.
             "ease" => {
-                if attribute.value() != "linear" {
-                    found.push((
-                        Code::FormNotSupported,
-                        attribute.line(),
-                        format!(
-                            "<tween> has `ease=\"{}\"`, which this version does not apply: it applies linear",
-                            attribute.shown()
-                        ),
-                    ));
+                ease = match project::easing(attribute.value()) {
+                    Some(project::Easing::Named(name)) => Ease::from_name(name).unwrap_or(Ease::Linear),
+                    Some(project::Easing::OutBack(n)) => Ease::OutBack(n),
+                    None => Ease::Linear,
                 }
             }
             _ => {
@@ -121,7 +118,7 @@ pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found
         to,
         at: origin + at,
         duration,
-        ease: Ease::Linear,
+        ease,
     });
     (tween, found)
 }

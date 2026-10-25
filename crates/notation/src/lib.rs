@@ -8,6 +8,7 @@
 //! file and also the [`Tree`] of its elements, in document order, with their attributes and lines.
 
 mod code;
+mod easing;
 mod problem;
 mod root;
 mod schema;
@@ -17,6 +18,7 @@ mod tree;
 mod value;
 
 pub use code::{Code, Kind};
+pub use easing::{easing, Easing, EASINGS};
 pub use problem::Problem;
 pub use root::{read, read_root, shown, shows, Colour, Composition, Root, Show, Shows};
 pub use schema::{Element, Form};

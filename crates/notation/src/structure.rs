@@ -254,6 +254,19 @@ fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spo
             ));
         }
     }
+    if let Some(ease) = own().find(|attribute| attribute.name() == "ease") {
+        if crate::easing::easing(ease.value()).is_none() {
+            problems.push(found(
+                Code::EaseNotKnown,
+                spot_at(ease.range().start),
+                format!(
+                    "`ease=\"{}\"` is not a known easing; the easings taken are {}",
+                    shown(ease.value()),
+                    crate::easing::taken()
+                ),
+            ));
+        }
+    }
     if !changes {
         problems.push(found(
             Code::TweenNoProperty,

@@ -161,11 +161,13 @@ pub enum Code {
     SetNoProperty,
     /// A `<set>` changes a property that the element it moves does not take.
     SetPropertyNotTaken,
+    /// The `ease` of a `<tween>` is not an easing the notation takes.
+    EaseNotKnown,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 62] = [
+    pub const ALL: [Code; 63] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -228,6 +230,7 @@ impl Code {
         Code::PropertyNotTaken,
         Code::SetNoProperty,
         Code::SetPropertyNotTaken,
+        Code::EaseNotKnown,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -295,6 +298,7 @@ impl Code {
             Code::PropertyNotTaken => "FS-0060",
             Code::SetNoProperty => "FS-0061",
             Code::SetPropertyNotTaken => "FS-0062",
+            Code::EaseNotKnown => "FS-0063",
         }
     }
 
@@ -383,6 +387,7 @@ impl Code {
             Code::PropertyNotTaken => "Move the tween to an element that takes the property, or change a property the element takes.",
             Code::SetNoProperty => "Write at least one property on the set, such as `x=\"300\"`.",
             Code::SetPropertyNotTaken => "Move the set to an element that takes the property, or change a property the element takes.",
+            Code::EaseNotKnown => "Write one of the easings the message lists, in lower case, such as `ease=\"out-cubic\"`.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

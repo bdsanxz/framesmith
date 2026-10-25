@@ -990,6 +990,8 @@ or `out-back(n)`, `n` a finite number, spaces inside the brackets accepted. `p` 
 
 `in-` starts slowly, `out-` ends slowly, `in-out-` does both. Every curve gives exactly 0 at `p = 0` and exactly 1 at `p = 1`. A curve as computed agrees with its formula to within 1e-12 (a value stated under decision A29). No other name is taken: `ease-in`, `ease-out`, `bounce`, `elastic`, `power2.out` and cubic-bezier curves are not (more easings are on the table of section 14, S16; other forms are invalid).
 
+An `ease` that is none of these, in a `<tween>` that stands where it may, is reported on the line of the attribute (`FS-0063`, invalid), with the names taken: ``` `ease="bounce"` is not a known easing; the easings taken are linear, in-quad, out-quad, in-out-quad, in-cubic, out-cubic, in-out-cubic, in-quart, out-quart, in-out-quart, in-quint, out-quint, in-out-quint, in-sine, out-sine, in-out-sine, in-expo, out-expo, in-out-expo and out-back(n), with n a number ```. The `n` of `out-back(n)` is read as any number of the notation (N9); `out-back()` or `out-back(x)` is not a known easing. The engine's curves are those of `motion.md`.
+
 ### 8.5 Whose time, and when tweens overlap
 
 - **Time.** The `at` of a `<tween>` or `<set>` is in the time of the parent of the element it moves, the same time as the element's own `start`; it is not the time inside the element. An element with `start="0.8"` that should fade in as it appears has `<tween at="0.8" .../>`, not `at="0"`. The element's children, on the other hand, count their `start` and the `at` of their tweens from 0.8 (5.2). In a span the same holds (Q4).
@@ -1235,7 +1237,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | No length | `<composition> needs a `duration` above 0` |
 | Tween without duration | `<tween> needs a `duration` above 0` |
 | Tween or set without a property | `<tween> changes no property` (or `<set> ...`) |
-| Unknown easing | `` `ease="bouncy"` is not a known easing `` |
+| Unknown easing | `` `ease="bouncy"` is not a known easing; the easings taken are linear, in-quad, ... and out-back(n), with n a number `` (every name, as section 8.4 gives it) |
 | Background layers | `` `background-size` has 2 entries for 3 layers; it takes one for each layer, or one for all ``; `` `background-repeat` needs a `background` to place ``; `` `background-size="8"` is not a list of `auto` or a width and a height ``; `` `background-position="..."` is not a list of an x and a y ``; `` `background-repeat="round"` is not a list of `repeat` or `no-repeat` `` |
 | A number that counts | `` `count` is for a <text>, not a <box> ``; `a <text> that counts holds no words of its own: its text is the number`; `` `count-format` needs `count` ``; `` a tween of `count` needs the attribute `count` on its <text> ``; `` `count-format="..."` is not a form of number; the forms are `0`, `0.00`, `0,0`, `0,0.00`, `m:ss` and `m:ss.0`, with up to six decimals `` |
 | Shape | `` `draw` is for a <shape> with `stroke-width` `` (the same for `dash`); `` `dash="..."` is not pairs of lengths: a dash and a gap, in view-box units ``; `<shape> needs `d` or a `src` with paths`; `` `...` is not a view box of four numbers `` |

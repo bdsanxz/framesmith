@@ -161,6 +161,14 @@ fn shown_problems() -> Vec<ShownProblem> {
             Code::SetPropertyNotTaken,
         ),
         (
+            "ease-not-known",
+            vec![(
+                "composition.xml".to_string(),
+                inside_root(r#"<box><tween duration="1" to-x="5" ease="bounce"/></box>"#),
+            )],
+            Code::EaseNotKnown,
+        ),
+        (
             "shown-frame-rate",
             vec![
                 ("composition.xml".to_string(), at_30("inner.xml")),

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Eased tweens. Six boxes each move 300 pixels right over 2 s from 0, eased differently: no ease (the first, red), linear
+     (orange), out-cubic (blue), in-out-sine (green), in-expo (purple) and out-back(1.7) (grey), which runs past its end and
+     settles on it. The first two draw alike. A seventh box (black) grows with scale eased by in-out-quint over 1 s from 0.5 s.
+     400 by 250 pixels, 30 frames a second. -->
+<composition version="1" id="motion-eased" width="400" height="250" fps="30" duration="3" background="#ffffff">
+  <box left="10" top="10" width="20" height="20" background="#d03020">
+    <tween duration="2" to-x="300"/>
+  </box>
+  <box left="10" top="40" width="20" height="20" background="#e08020">
+    <tween duration="2" to-x="300" ease="linear"/>
+  </box>
+  <box left="10" top="70" width="20" height="20" background="#2050c0">
+    <tween duration="2" to-x="300" ease="out-cubic"/>
+  </box>
+  <box left="10" top="100" width="20" height="20" background="#20a040">
+    <tween duration="2" to-x="300" ease="in-out-sine"/>
+  </box>
+  <box left="10" top="130" width="20" height="20" background="#8030a0">
+    <tween duration="2" to-x="300" ease="in-expo"/>
+  </box>
+  <box left="10" top="160" width="20" height="20" background="#808080">
+    <tween duration="2" to-x="300" ease="out-back(1.7)"/>
+  </box>
+  <box left="180" top="195" width="40" height="40" background="#000000">
+    <tween at="0.5" duration="1" from-scale="0.25" to-scale="1" ease="in-out-quint"/>
+  </box>
+</composition>

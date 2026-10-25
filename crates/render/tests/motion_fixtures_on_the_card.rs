@@ -56,3 +56,9 @@ fn reference_machine_only_the_card_agrees_with_the_processor_on_boxes_moved_by_s
 fn reference_machine_only_the_card_agrees_with_the_processor_on_sets_in_order_with_tweens_and_a_set_text() {
     the_card_agrees_with_the_processor("motion-set-and-tween");
 }
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_boxes_moved_by_eased_tweens() {
+    the_card_agrees_with_the_processor("motion-eased");
+}

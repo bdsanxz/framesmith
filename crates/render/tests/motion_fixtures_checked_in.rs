@@ -56,3 +56,8 @@ fn the_frames_of_boxes_moved_by_sets_on_and_beside_frame_times_equal_their_check
 fn the_frames_of_sets_in_order_with_tweens_and_a_set_text_equal_their_checked_in_pictures() {
     drawn_frames_at_equal_the_checked_in_pictures("motion-set-and-tween", &[0, 29, 30, 45, 60, 75, 89]);
 }
+
+#[test]
+fn the_frames_of_boxes_moved_by_eased_tweens_equal_their_checked_in_pictures() {
+    drawn_frames_at_equal_the_checked_in_pictures("motion-eased", &[0, 15, 30, 35, 45, 60, 89]);
+}
