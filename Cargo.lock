@@ -39,6 +39,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "audio"
+version = "0.1.0"
+source = "git+https://github.com/bdsanxz/frx7?rev=f43e7c017ed395186e0b993345e87eaed780f33c#f43e7c017ed395186e0b993345e87eaed780f33c"
+dependencies = [
+ "base",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -804,6 +812,11 @@ dependencies = [
 [[package]]
 name = "mix"
 version = "0.1.0"
+dependencies = [
+ "audio",
+ "base",
+ "codec",
+]
 
 [[package]]
 name = "motion"

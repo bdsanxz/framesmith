@@ -9,3 +9,6 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+base = { workspace = true }
+codec = { workspace = true }
+audio = { workspace = true }
