@@ -47,7 +47,11 @@ fn output_file(kind: &str) -> PathBuf {
     static NEXT: AtomicUsize = AtomicUsize::new(0);
     let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("refused-starts").join("output");
     std::fs::create_dir_all(&dir).expect("the folder is made");
-    dir.join(format!("{}-{}-{kind}.txt", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)))
+    dir.join(format!(
+        "{}-{}-{kind}.txt",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ))
 }
 
 /// Runs a command, stopping it when it has run for `limit`, so that a hang is a failure of the test.
