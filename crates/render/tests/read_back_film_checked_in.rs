@@ -60,6 +60,48 @@ fn a_frame_with_no_checked_in_picture_is_named_and_the_example_exits_with_1_and_
     assert!(!sheet.exists());
 }
 
+/// The line naming frame `number` as having no checked-in picture.
+fn no_picture(number: u32) -> String {
+    let missing = fixtures()
+        .join("first-render")
+        .join("expected")
+        .join(format!("frame-{number:04}.png"));
+    format!(
+        "read_back_film: frame {number} has no checked-in picture: {} does not exist",
+        missing.display()
+    )
+}
+
+#[test]
+fn several_frames_with_no_checked_in_picture_among_ones_that_have_it_are_each_named_in_the_order_asked() {
+    let film = film("several-missing");
+    let sheet = film.with_file_name("sheet.png");
+    let output = read_back(&film, &sheet, &["9", "7", "0", "2", "4", "5"]);
+    let err = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "{err}");
+    let wanted: Vec<String> = [7, 2, 5].into_iter().map(no_picture).collect();
+    assert_eq!(err.lines().collect::<Vec<_>>(), wanted, "{err}");
+    assert!(!err.contains("panicked"), "{err}");
+    assert!(!sheet.exists());
+}
+
+#[test]
+fn a_frame_with_no_checked_in_picture_is_named_before_a_file_that_is_not_a_film_is_read() {
+    let folder = project_from_fixture(GROUP, "not-a-film", "first-render");
+    let not_a_film = folder.join("not-a-film.mp4");
+    std::fs::write(&not_a_film, b"these bytes are not a film").unwrap();
+    let absent = folder.join("absent.mp4");
+    for film in [&not_a_film, &absent] {
+        let sheet = folder.join("sheet.png");
+        let output = read_back(film, &sheet, &["0", "5"]);
+        let err = String::from_utf8_lossy(&output.stderr);
+        assert_eq!(output.status.code(), Some(1), "{}: {err}", film.display());
+        assert_eq!(err.trim_end(), no_picture(5), "{}", film.display());
+        assert!(!err.contains("panicked"), "{err}");
+        assert!(!sheet.exists());
+    }
+}
+
 #[test]
 fn frames_that_all_have_a_checked_in_picture_give_a_sheet() {
     let film = film("present");
