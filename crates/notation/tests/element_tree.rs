@@ -11,7 +11,7 @@ use notation::{read, read_root, Colour, Element, Length};
 const FILE: &str = "<composition version=\"1\" id=\"demo\" width=\"640\" height=\"360\" duration=\"2\">
   <box id=\"first\" left=\"10\" top=\"20\"
        background=\"#ff0000\">
-    <tween at=\"0\" duration=\"1\"/>
+    <tween at=\"0\" duration=\"1\" to-x=\"10\"/>
   </box>
   <text id=\"words\">hello <span color=\"#ffffff\">there</span></text>
   <box id=\"last\"/>

@@ -2,7 +2,7 @@
 
 Status: v0 (Sprint 1). Sources: `PLAN.md`, section 3 (what `motion` keeps: tweens, keyframes, easings, paths, expressions, the pure evaluator) decision D3 (our own engine, easings written by us) and decision D2 (motion is written in the composition's XML, so its written form belongs to the notation's spec); the principle that animation is put at a time and never played; the easing formulas below, which are the standard power curves written out by us.
 
-This is the behaviour of the motion engine, the `motion` crate: what a tween is, the five properties, the ten easings, and the value of a property at a time. The way motion is written in a composition is left to the notation's spec.
+This is the behaviour of the motion engine, the `motion` crate: what a tween is, the seven properties, the ten easings, and the value of a property at a time. The way motion is written in a composition is left to the notation's spec.
 
 ## A tween
 
@@ -33,10 +33,14 @@ This is the behaviour of the motion engine, the `motion` crate: what a tween is,
 | `x` | pixels, to the right | 0 |
 | `y` | pixels, downward | 0 |
 | `scale` | a factor, the same on both axes | 1 |
+| `scale-x` | a factor on the horizontal axis alone, applied with `scale` | 1 |
 | `rotation` | degrees, clockwise | 0 |
+| `skew-y` | degrees: points right of the transform origin move down for a positive angle | 0 |
 | `opacity` | 0 to 1 | 1 |
 
 A value is a number. `opacity` outside 0 to 1 is not a value of the engine.
+
+The engine gives each property's value at a time. How the values move the element's picture (the transform origin, the order scale, slant, turn, move, and fading as one picture) is the notation's rule (`notation.md` section 8).
 
 ## Easing names
 

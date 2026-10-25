@@ -103,6 +103,8 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
             }
             if !element.children().contains(&kind) {
                 problems.push(found(Code::ElementNotHere, spot, misplaced(kind, element)));
+            } else if kind == Element::Tween {
+                tween(child, element, spot, &spot_at, problems);
             }
             pending.push((child, kind));
         }
@@ -197,6 +199,64 @@ fn clip_pair(read: &[Effective], element: Element, spot: Spot, problems: &mut Ve
             Code::ClipNotPaired,
             spot,
             format!("{} needs both start and duration, or neither", element.tag()),
+        ));
+    }
+}
+
+/// What a `<tween>` needs, and what it may change (`docs/spec/notation.md` section 8.2): a `duration` above 0, at least one
+/// `from-` or `to-` attribute (one of a name that is not an animated property counts, since it is reported on its own), and only properties that the element it moves takes as attributes (section 8.1). A missing or
+/// zero duration and a tween with no property are reported on the tween's line; a property its element does not take, on the
+/// attribute. A `duration` that is not a time is reported by the form check, and not again here. A tween takes no `class`, so
+/// its own attributes are all it reads.
+fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot, spot_at: &F, problems: &mut Vec<Found>) {
+    let own = || node.attributes().filter(|attribute| attribute.namespace().is_none());
+    match own().find(|attribute| attribute.name() == "duration") {
+        None => problems.push(found(
+            Code::TweenNoDuration,
+            spot,
+            "<tween> has no `duration`; a tween needs a duration above 0".to_string(),
+        )),
+        Some(duration) => {
+            if value::time(duration.value()).is_some_and(|time| time == timebase::Time::ZERO) {
+                problems.push(found(
+                    Code::TweenNoDuration,
+                    spot,
+                    format!(
+                        "<tween> has `duration=\"{}\"`; a tween needs a duration above 0",
+                        shown(duration.value())
+                    ),
+                ));
+            }
+        }
+    }
+    let mut changes = false;
+    for attribute in own() {
+        let name = attribute.name();
+        let Some(property) = name.strip_prefix("from-").or_else(|| name.strip_prefix("to-")) else {
+            continue;
+        };
+        changes = true;
+        if !Element::Tween.takes(name) {
+            // Not an animated property: the form check reports the attribute as one the tween does not take, and that one
+            // report is the tween's.
+            continue;
+        }
+        if !parent.takes(property) {
+            problems.push(found(
+                Code::PropertyNotTaken,
+                spot_at(attribute.range().start),
+                format!(
+                    "`{name}` changes `{property}`, which {} does not take; a tween changes only the properties of the element it moves",
+                    parent.tag()
+                ),
+            ));
+        }
+    }
+    if !changes {
+        problems.push(found(
+            Code::TweenNoProperty,
+            spot,
+            "<tween> changes no property; a tween needs at least one `from-` or `to-` attribute".to_string(),
         ));
     }
 }

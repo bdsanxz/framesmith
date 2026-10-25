@@ -151,11 +151,17 @@ pub enum Code {
     EmojiNotDrawn,
     /// A font file of a kind this version reads that the font reader refuses as damaged.
     FontDamaged,
+    /// A `<tween>` without a `duration` above 0.
+    TweenNoDuration,
+    /// A `<tween>` with no `from-` or `to-` attribute.
+    TweenNoProperty,
+    /// A `<tween>` changes a property that the element it moves does not take.
+    PropertyNotTaken,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 57] = [
+    pub const ALL: [Code; 60] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -213,6 +219,9 @@ impl Code {
         Code::ColumnsWithDirection,
         Code::EmojiNotDrawn,
         Code::FontDamaged,
+        Code::TweenNoDuration,
+        Code::TweenNoProperty,
+        Code::PropertyNotTaken,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -275,6 +284,9 @@ impl Code {
             Code::ColumnsWithDirection => "FS-0055",
             Code::EmojiNotDrawn => "FS-0056",
             Code::FontDamaged => "FS-0057",
+            Code::TweenNoDuration => "FS-0058",
+            Code::TweenNoProperty => "FS-0059",
+            Code::PropertyNotTaken => "FS-0060",
         }
     }
 
@@ -358,6 +370,9 @@ impl Code {
             Code::ColumnsWithDirection => "Remove `columns` to lay the children out in a row or a column, or `flex-direction` to lay them out in columns.",
             Code::EmojiNotDrawn => "Give the text a font that has a PNG picture for the character, or remove the character.",
             Code::FontDamaged => "Replace the font file with a copy that is not damaged, such as the one the font came in.",
+            Code::TweenNoDuration => "Write `duration` on the tween as a number of seconds above 0.",
+            Code::TweenNoProperty => "Write at least one `from-` or `to-` attribute on the tween, such as `to-x=\"100\"`.",
+            Code::PropertyNotTaken => "Move the tween to an element that takes the property, or change a property the element takes.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

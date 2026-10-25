@@ -1,7 +1,9 @@
 //! The renderer on the graphics card (`docs/spec/card-renderer.md`). It draws the marks of a frame in their order:
 //! each visible fill as two triangles whose corners lie on the whole pixel boundaries of the frame, and each glyph
 //! of a paragraph of text as a quad of whole pixels whose coverage is a mask made by the processor's rasteriser
-//! (section 9). Its picture must agree with the processor's within the tolerance of section 4.
+//! (section 9); the marks of an element that moves with its map, and those of one that fades in a texture of its own,
+//! laid over the picture with its opacity (section 10). Its picture must agree with the processor's within the tolerance
+//! of section 4.
 //!
 //! The card and the calls to it are frx7's `gpu` crate, the system boundary of `CLAUDE.md` rule 10; this crate uses
 //! the graphics API only through the safe types that crate hands out.
@@ -9,13 +11,15 @@
 use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
-use draw::{Colour, DisplayList, Error, Frame, GlyphPicture, Mark, Picture, Renderer, Step, TextMark};
-use draw_cpu::{outline_layer, shadow_layer};
+use draw::{Colour, DisplayList, Error, Frame, GlyphPicture, Group, Map, Mark, Picture, Renderer, Step, TextMark};
+use draw_cpu::{outline_layer, pictures_layer, shadow_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
 mod head;
 mod mask;
+
+pub use mask::BOUND as MASK_BOUND;
 
 use mask::{MaskKey, Masks};
 
@@ -60,7 +64,8 @@ const ATTRIBUTES: [wgpu::VertexAttribute; 3] = [
 ];
 
 /// A glyph's colour is blended over the picture by its coverage: the colour is premultiplied by it, and the
-/// picture keeps what the coverage leaves clear. The alpha of the picture stays as it is (section 9.4).
+/// picture keeps what the coverage leaves clear (section 9.4). The alpha is blended the same way, so that a transparent
+/// texture of a group takes the coverage of what is drawn into it; over the opaque picture it stays 1 (section 10.1).
 const GLYPH_BLEND: wgpu::BlendState = wgpu::BlendState {
     color: wgpu::BlendComponent {
         src_factor: wgpu::BlendFactor::One,
@@ -68,8 +73,8 @@ const GLYPH_BLEND: wgpu::BlendState = wgpu::BlendState {
         operation: wgpu::BlendOperation::Add,
     },
     alpha: wgpu::BlendComponent {
-        src_factor: wgpu::BlendFactor::Zero,
-        dst_factor: wgpu::BlendFactor::One,
+        src_factor: wgpu::BlendFactor::One,
+        dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
         operation: wgpu::BlendOperation::Add,
     },
 };
@@ -83,6 +88,13 @@ pub struct CardRenderer {
     picture_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
     masks: Masks,
+}
+
+/// Where the draws of a frame go: the picture, or the texture of a group that fades, by its index in the frame.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Target {
+    Picture,
+    Layer(usize),
 }
 
 impl CardRenderer {
@@ -210,6 +222,12 @@ impl CardRenderer {
         })
     }
 
+    /// The bytes of coverage of the masks the card keeps across frames, at most `mask::BOUND` after each frame
+    /// (`docs/spec/card-renderer.md`, section 9.6).
+    pub fn mask_bytes(&self) -> u64 {
+        self.masks.bytes()
+    }
+
     /// Draws the marks of a frame: the background over the whole frame first, then each mark in order, each over
     /// what is there. One render pass carries all of them.
     fn draw_marks(&mut self, frame: &Frame) -> Result<Picture, Error> {
@@ -222,7 +240,8 @@ impl CardRenderer {
             )));
         }
 
-        let (floats, draws, pictures) = self.plan(frame)?;
+        self.masks.begin_frame();
+        let (floats, draws, pictures, layers) = self.plan(frame)?;
         let device = self.card.device();
         let bytes: Vec<u8> = floats.iter().flat_map(|value| value.to_ne_bytes()).collect();
         let vertices = device.create_buffer(&wgpu::BufferDescriptor {
@@ -249,32 +268,34 @@ impl CardRenderer {
         });
         let view = texture.create_view(&Default::default());
         let mut encoder = device.create_command_encoder(&Default::default());
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("frame"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-                multiview_mask: None,
-            });
+        // The texture of each group that fades starts transparent.
+        for layer in &layers {
+            begin_pass(&mut encoder, &layer.view, wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT));
+        }
+        // One draw call for each quad, in the order of the frame: a later quad covers an earlier one. A pass is begun each
+        // time the target changes, so that a group's texture is drawn before it is laid over its parent.
+        let mut index = 0;
+        let mut first = true;
+        while index < draws.len() {
+            let target = draws[index].target;
+            let (target_view, load) = match target {
+                Target::Picture if first => (&view, wgpu::LoadOp::Clear(wgpu::Color::BLACK)),
+                Target::Picture => (&view, wgpu::LoadOp::Load),
+                Target::Layer(layer) => (&layers[layer].view, wgpu::LoadOp::Load),
+            };
+            if target == Target::Picture {
+                first = false;
+            }
+            let mut pass = begin_pass(&mut encoder, target_view, load);
             pass.set_vertex_buffer(0, vertices.slice(..));
-            // One draw call for each quad, in the order of the frame: a later quad covers an earlier one.
-            for draw in &draws {
+            while index < draws.len() && draws[index].target == target {
+                let draw = &draws[index];
+                index += 1;
                 let [x, y, w, h] = draw.scissor;
                 pass.set_scissor_rect(x, y, w, h);
                 match &draw.source {
                     Source::Fill => {
                         pass.set_pipeline(&self.pipeline);
-                        pass.draw(draw.vertices.clone(), 0..1);
                     }
                     Source::Glyph(key) => {
                         let Some(placed) = self.masks.placed(key) else {
@@ -282,15 +303,21 @@ impl CardRenderer {
                         };
                         pass.set_pipeline(&self.glyph_pipeline);
                         pass.set_bind_group(0, &placed.bind_group, &[]);
-                        pass.draw(draw.vertices.clone(), 0..1);
                     }
-                    Source::Picture(index) => {
+                    Source::Picture(picture) => {
                         pass.set_pipeline(&self.picture_pipeline);
-                        pass.set_bind_group(0, &pictures[*index], &[]);
-                        pass.draw(draw.vertices.clone(), 0..1);
+                        pass.set_bind_group(0, &pictures[*picture], &[]);
+                    }
+                    Source::Layer(layer) => {
+                        pass.set_pipeline(&self.picture_pipeline);
+                        pass.set_bind_group(0, &layers[*layer].bind_group, &[]);
                     }
                 }
+                pass.draw(draw.vertices.clone(), 0..1);
             }
+        }
+        if first {
+            begin_pass(&mut encoder, &view, wgpu::LoadOp::Clear(wgpu::Color::BLACK));
         }
 
         // The rows of a texture copy are padded to a multiple of 256 bytes; the padding is left out.
@@ -339,6 +366,7 @@ impl CardRenderer {
         }
         drop(mapped);
         read.unmap();
+        self.masks.end_frame();
         Picture::new(width, height, bytes).ok_or_else(|| Error::new("the picture does not have the bytes of its size"))
     }
 
@@ -347,75 +375,197 @@ impl CardRenderer {
     /// has no visible pixel.
     fn plan(&mut self, frame: &Frame) -> Result<Plan, Error> {
         let (width, height) = (frame.width, frame.height);
-        let mut floats = Vec::new();
-        let mut draws = Vec::new();
-        let mut pictures = Vec::new();
+        let mut plan = Planned {
+            floats: Vec::new(),
+            draws: Vec::new(),
+            pictures: Vec::new(),
+            layers: Vec::new(),
+            width,
+            height,
+        };
         let whole = Rect {
             left: 0,
             top: 0,
             width,
             height,
         };
-        push_fill(&mut floats, &mut draws, width, height, whole, frame.background);
-        for mark in &frame.marks {
+        let scissor = [0, 0, width, height];
+        push_fill(&mut plan, Target::Picture, scissor, whole, frame.background);
+        self.plan_marks(&mut plan, Target::Picture, scissor, &frame.marks, Map::IDENTITY)?;
+        Ok((plan.floats, plan.draws, plan.pictures, plan.layers))
+    }
+
+    /// The draws of marks into `target`, each with `map`, cut to `scissor` (left, top, width, height).
+    fn plan_marks(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], marks: &[Mark], map: Map) -> Result<(), Error> {
+        for mark in marks {
             match mark {
-                Mark::Step(Step::Fill { rect, colour }) => {
-                    push_fill(&mut floats, &mut draws, width, height, *rect, *colour);
-                }
-                Mark::Text(text) => self.plan_text(&mut floats, &mut draws, &mut pictures, width, height, text)?,
+                Mark::Step(Step::Fill { rect, colour }) => match map.whole_move() {
+                    Some((across, down)) => {
+                        let moved = Rect {
+                            left: (i64::from(rect.left) + across).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+                            top: (i64::from(rect.top) + down).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+                            ..*rect
+                        };
+                        push_fill(plan, target, scissor, moved, *colour);
+                    }
+                    None => self.plan_mapped_fill(plan, target, scissor, *rect, *colour, map)?,
+                },
+                Mark::Text(text) => match map.whole_move() {
+                    Some((across, down)) => self.plan_text(plan, target, scissor, &text.moved(across, down), None)?,
+                    None => self.plan_text(plan, target, scissor, text, Some(map))?,
+                },
+                Mark::Group(group) => self.plan_group(plan, target, scissor, group, map)?,
             }
         }
-        Ok((floats, draws, pictures))
+        Ok(())
+    }
+
+    /// The draws of a group (section 10.1): straight into `target` with an opacity of 1, otherwise into a texture of its
+    /// own that is then laid over `target` with the opacity; nothing at opacity 0.
+    fn plan_group(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], group: &Group, map: Map) -> Result<(), Error> {
+        let opacity = if group.opacity.is_nan() { 0.0 } else { group.opacity.clamp(0.0, 1.0) };
+        if opacity == 0.0 {
+            return Ok(());
+        }
+        let map = map.then_after(group.map);
+        if !map.is_finite() {
+            return Err(Error::new("an element is moved by a map that is not finite"));
+        }
+        let scissor = match &group.clip {
+            None => scissor,
+            Some(clip) => match cut(scissor, clip, plan.width, plan.height) {
+                Some(scissor) => scissor,
+                None => return Ok(()),
+            },
+        };
+        if opacity == 1.0 {
+            return self.plan_marks(plan, target, scissor, &group.marks, map);
+        }
+        let layer = plan.layers.len();
+        plan.layers.push(self.layer(plan.width, plan.height));
+        self.plan_marks(plan, Target::Layer(layer), scissor, &group.marks, map)?;
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        let corners = (0.0, 0.0, plan.width as f32, plan.height as f32);
+        let faded = opacity as f32;
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], [faded; 4]);
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Layer(layer),
+        });
+        Ok(())
+    }
+
+    /// A texture of the frame's size for a group that fades, and the bind group that reads it.
+    fn layer(&self, width: u32, height: u32) -> Layer {
+        let device = self.card.device();
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("group"),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: FORMAT,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let view = texture.create_view(&Default::default());
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("group"),
+            layout: &self.glyph_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            }],
+        });
+        Layer {
+            _texture: texture,
+            view,
+            bind_group,
+        }
+    }
+
+    /// The draw of a fill under a map that is not a move by whole pixels: the processor's coverage of the mapped rectangle as
+    /// a mask, through which the fill's colour is blended (section 10.3).
+    #[allow(clippy::too_many_arguments)]
+    fn plan_mapped_fill(
+        &mut self,
+        plan: &mut Planned,
+        target: Target,
+        scissor: [u32; 4],
+        rect: Rect,
+        colour: Colour,
+        map: Map,
+    ) -> Result<(), Error> {
+        let key = self.masks.prepare_fill(
+            self.card.device(),
+            self.card.queue(),
+            &self.glyph_layout,
+            rect,
+            map,
+            (plan.width, plan.height),
+        )?;
+        let Some(placed) = self.masks.placed(&key) else {
+            return Ok(());
+        };
+        let left = -placed.origin_x as f32;
+        let top = -placed.origin_y as f32;
+        let corners = (left, top, left + placed.width as f32, top + placed.height as f32);
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [left, top], colour_floats(colour));
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Glyph(key),
+        });
+        Ok(())
     }
 
     /// The quads of a paragraph of text, each clipped to the paragraph's clip: its shadows first, the last listed first, so
     /// that the first listed is on top (`docs/spec/text.md`, section 6.6, rule 5); then one quad for each glyph that has
     /// coverage, in the order of the runs and of the glyphs in them; then its outline; then the colour pictures of the emoji.
     /// The shadows and the outline are pictures of the frame's size that the processor draws (`docs/spec/card-renderer.md`,
-    /// section 9.9), and they make no glyph mask.
-    fn plan_text(
-        &mut self,
-        floats: &mut Vec<f32>,
-        draws: &mut Vec<Draw>,
-        pictures: &mut Vec<wgpu::BindGroup>,
-        width: u32,
-        height: u32,
-        text: &TextMark,
-    ) -> Result<(), Error> {
+    /// section 9.9), and they make no glyph mask. Under a map that is not a move by whole pixels the glyphs are mapped
+    /// (section 10.2) and the shadows, the outline and the emoji are the processor's pictures with the map (section 10.4).
+    fn plan_text(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], text: &TextMark, map: Option<Map>) -> Result<(), Error> {
+        let (width, height) = (plan.width, plan.height);
         let scissor = match &text.clip {
-            None => [0, 0, width, height],
-            Some(clip) => match clip.visible(width, height) {
-                Some(visible) => [
-                    visible.left,
-                    visible.top,
-                    visible.right - visible.left,
-                    visible.bottom - visible.top,
-                ],
+            None => scissor,
+            Some(clip) => match cut(scissor, clip, width, height) {
+                Some(scissor) => scissor,
                 None => return Ok(()),
             },
         };
+        let layer_map = map.unwrap_or(Map::IDENTITY);
         for shadow in text.shadows.iter().rev() {
-            let layer = shadow_layer(width, height, text, shadow)?;
-            self.push_layer(floats, draws, pictures, width, height, scissor, layer)?;
+            let layer = shadow_layer(width, height, text, shadow, layer_map)?;
+            self.push_layer(plan, target, scissor, layer)?;
         }
         for run in &text.runs {
             let colour = colour_floats(run.colour);
             for glyph in &run.glyphs {
-                let key = self
+                let (key, (x, y)) = self
                     .masks
-                    .prepare(self.card.device(), self.card.queue(), &self.glyph_layout, run, glyph)?;
+                    .prepare(self.card.device(), self.card.queue(), &self.glyph_layout, run, glyph, map)?;
                 let Some(placed) = self.masks.placed(&key) else {
                     continue;
                 };
                 // The mask's pixel of the origin lies on the whole pixel of the origin: the mask's top left is
                 // the whole pixel of the origin less the mask's origin inside the mask.
-                let left = glyph.x.floor() - placed.origin_x as f32;
-                let top = glyph.y.floor() - placed.origin_y as f32;
+                let left = (x.floor() - placed.origin_x as f64) as f32;
+                let top = (y.floor() - placed.origin_y as f64) as f32;
                 let right = left + placed.width as f32;
                 let bottom = top + placed.height as f32;
-                let first = (floats.len() / VERTEX_FLOATS) as u32;
-                push_quad(floats, width, height, (left, top, right, bottom), [left, top], colour);
-                draws.push(Draw {
+                let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+                push_quad(&mut plan.floats, width, height, (left, top, right, bottom), [left, top], colour);
+                plan.draws.push(Draw {
+                    target,
                     scissor,
                     vertices: first..first + CORNERS,
                     source: Source::Glyph(key),
@@ -423,50 +573,43 @@ impl CardRenderer {
             }
         }
         if let Some(outline) = &text.outline {
-            let layer = outline_layer(width, height, text, outline)?;
-            self.push_layer(floats, draws, pictures, width, height, scissor, layer)?;
+            let layer = outline_layer(width, height, text, outline, layer_map)?;
+            self.push_layer(plan, target, scissor, layer)?;
+        }
+        if map.is_some() {
+            if !text.pictures.is_empty() {
+                let layer = pictures_layer(width, height, text, layer_map, (0.0, 0.0))?;
+                self.push_layer(plan, target, scissor, layer)?;
+            }
+            return Ok(());
         }
         // The colour pictures of the emoji come after the glyph runs, in the order of the text (section 12.4, point 10).
         for picture in &text.pictures {
             let left = whole_pixel(picture.x) as f32;
             let top = whole_pixel(picture.y) as f32;
-            self.push_picture(floats, draws, pictures, width, height, scissor, picture, (left, top))?;
+            self.push_picture(plan, target, scissor, picture, (left, top))?;
         }
         Ok(())
     }
 
     /// Draws a layer of premultiplied pixels of the frame's size over the whole frame, in `scissor`, after what is drawn before it.
-    #[allow(clippy::too_many_arguments)]
-    fn push_layer(
-        &self,
-        floats: &mut Vec<f32>,
-        draws: &mut Vec<Draw>,
-        pictures: &mut Vec<wgpu::BindGroup>,
-        width: u32,
-        height: u32,
-        scissor: [u32; 4],
-        layer: Vec<u8>,
-    ) -> Result<(), Error> {
+    fn push_layer(&self, plan: &mut Planned, target: Target, scissor: [u32; 4], layer: Vec<u8>) -> Result<(), Error> {
         let picture = GlyphPicture {
-            width,
-            height,
+            width: plan.width,
+            height: plan.height,
             pixels: Arc::new(layer),
             x: 0.0,
             y: 0.0,
         };
-        self.push_picture(floats, draws, pictures, width, height, scissor, &picture, (0.0, 0.0))
+        self.push_picture(plan, target, scissor, &picture, (0.0, 0.0))
     }
 
     /// Draws a colour picture with its top left corner at the whole pixel `(left, top)`, in `scissor`, after what is drawn
     /// before it. A picture with no pixel draws nothing.
-    #[allow(clippy::too_many_arguments)]
     fn push_picture(
         &self,
-        floats: &mut Vec<f32>,
-        draws: &mut Vec<Draw>,
-        pictures: &mut Vec<wgpu::BindGroup>,
-        width: u32,
-        height: u32,
+        plan: &mut Planned,
+        target: Target,
         scissor: [u32; 4],
         picture: &GlyphPicture,
         (left, top): (f32, f32),
@@ -475,15 +618,16 @@ impl CardRenderer {
             return Ok(());
         }
         let bind_group = self.picture_bind_group(picture)?;
-        let first = (floats.len() / VERTEX_FLOATS) as u32;
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
         let corners = (left, top, left + picture.width as f32, top + picture.height as f32);
-        push_quad(floats, width, height, corners, [left, top], [0.0; 4]);
-        draws.push(Draw {
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [left, top], [1.0; 4]);
+        plan.draws.push(Draw {
+            target,
             scissor,
             vertices: first..first + CORNERS,
-            source: Source::Picture(pictures.len()),
+            source: Source::Picture(plan.pictures.len()),
         });
-        pictures.push(bind_group);
+        plan.pictures.push(bind_group);
         Ok(())
     }
 
@@ -552,22 +696,73 @@ impl Renderer for CardRenderer {
     }
 }
 
-/// The vertices of a frame, the draw calls that paint them, and the bind groups of the pictures the calls use.
-type Plan = (Vec<f32>, Vec<Draw>, Vec<wgpu::BindGroup>);
+/// The vertices of a frame, the draw calls that paint them, the bind groups of the pictures the calls use, and the textures
+/// of the groups that fade.
+type Plan = (Vec<f32>, Vec<Draw>, Vec<wgpu::BindGroup>, Vec<Layer>);
 
-/// One draw call of a frame: the rectangle it is clipped to (left, top, width, height), the vertices of its quad, and what
-/// it draws.
+/// A frame being planned: what `Plan` gathers, and the size of the frame.
+struct Planned {
+    floats: Vec<f32>,
+    draws: Vec<Draw>,
+    pictures: Vec<wgpu::BindGroup>,
+    layers: Vec<Layer>,
+    width: u32,
+    height: u32,
+}
+
+/// The texture of a group that fades, its view as a target, and the bind group that reads it.
+struct Layer {
+    _texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    bind_group: wgpu::BindGroup,
+}
+
+/// One draw call of a frame: where it draws, the rectangle it is clipped to (left, top, width, height), the vertices of its
+/// quad, and what it draws.
 struct Draw {
+    target: Target,
     scissor: [u32; 4],
     vertices: Range<u32>,
     source: Source,
 }
 
-/// What a draw call paints: a fill, the mask of a glyph, or the texture of a colour picture, by its index in the frame.
+/// What a draw call paints: a fill, a mask (of a glyph, or of a mapped fill), the texture of a colour picture, by its index in
+/// the frame, or the texture of a group that fades, by its index in the frame.
 enum Source {
     Fill,
     Glyph(MaskKey),
     Picture(usize),
+    Layer(usize),
+}
+
+/// Begins a render pass on a view, with what it starts from.
+fn begin_pass<'a>(encoder: &'a mut wgpu::CommandEncoder, view: &'a wgpu::TextureView, load: wgpu::LoadOp<wgpu::Color>) -> wgpu::RenderPass<'a> {
+    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("frame"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load,
+                store: wgpu::StoreOp::Store,
+            },
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    })
+}
+
+/// The part of a scissor (left, top, width, height) that a clip holds, inside the frame; `None` when it holds no pixel.
+fn cut([x, y, w, h]: [u32; 4], clip: &Rect, width: u32, height: u32) -> Option<[u32; 4]> {
+    let visible = clip.visible(width, height)?;
+    let left = x.max(visible.left);
+    let top = y.max(visible.top);
+    let right = (x + w).min(visible.right);
+    let bottom = (y + h).min(visible.bottom);
+    (left < right && top < bottom).then_some([left, top, right - left, bottom - top])
 }
 
 /// The whole pixel nearest to a coordinate, halves up.
@@ -575,16 +770,17 @@ fn whole_pixel(value: f32) -> i64 {
     (f64::from(value) + 0.5).floor() as i64
 }
 
-/// Adds the quad of a fill, clipped to the frame, and its draw call. A fill is drawn over the whole frame.
-fn push_fill(floats: &mut Vec<f32>, draws: &mut Vec<Draw>, width: u32, height: u32, rect: Rect, colour: Colour) {
-    let Some(visible) = rect.visible(width, height) else {
+/// Adds the quad of a fill, clipped to the frame, and its draw call, cut to `scissor`.
+fn push_fill(plan: &mut Planned, target: Target, scissor: [u32; 4], rect: Rect, colour: Colour) {
+    let Some(visible) = rect.visible(plan.width, plan.height) else {
         return;
     };
-    let first = (floats.len() / VERTEX_FLOATS) as u32;
+    let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
     let corners = (visible.left as f32, visible.top as f32, visible.right as f32, visible.bottom as f32);
-    push_quad(floats, width, height, corners, [0.0, 0.0], colour_floats(colour));
-    draws.push(Draw {
-        scissor: [0, 0, width, height],
+    push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], colour_floats(colour));
+    plan.draws.push(Draw {
+        target,
+        scissor,
         vertices: first..first + CORNERS,
         source: Source::Fill,
     });

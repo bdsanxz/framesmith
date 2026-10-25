@@ -5,14 +5,16 @@
 //! The marks of a frame are carried out in order. A fill is written into the picture. A paragraph of text
 //! is filled by vello_cpu into a layer of its own, which is then laid over the picture with each pixel's
 //! coverage, the same integer rounding for every pixel, so that the picture does not depend on anything but
-//! the frame.
+//! the frame. The marks of an element that moves are drawn with its map, and those of one that fades into a layer
+//! of their own, which is laid over the picture with its opacity (`docs/spec/render-command.md`, section 4.5).
 
 use std::sync::Arc;
 
-use draw::{DisplayList, Error, Frame, GlyphPicture, GlyphRun, Mark, Outline, Picture, Renderer, Shadow, Step, TextMark};
-use vello_cpu::kurbo::{Affine, Stroke};
-use vello_cpu::peniko::{Blob, Color, FontData};
-use vello_cpu::{Glyph, Pixmap, RenderContext, Resources};
+use draw::{DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, Shadow, Step, TextMark};
+use layout::Rect;
+use vello_cpu::kurbo::{self, Affine, Stroke};
+use vello_cpu::peniko::{Blob, Color, FontData, ImageAlphaType, ImageQuality, ImageSampler};
+use vello_cpu::{Glyph, Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
 
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
@@ -47,51 +49,299 @@ impl Renderer for CpuRenderer {
         for _ in 0..pixels {
             bytes.extend_from_slice(&background);
         }
-        for mark in &frame.marks {
-            match mark {
-                Mark::Step(step) => fill(&mut bytes, frame.width, frame.height, step),
-                Mark::Text(text) => draw_text(&mut bytes, frame.width, frame.height, text)?,
-            }
-        }
+        let whole = (0, 0, frame.width, frame.height);
+        draw_marks(&mut bytes, frame.width, frame.height, &frame.marks, Map::IDENTITY, whole)?;
         Picture::new(frame.width, frame.height, bytes).ok_or_else(|| Error::new("the picture does not have the bytes of its size"))
     }
 }
 
-/// Writes one fill step into the picture: every pixel of its rectangle that lies inside the frame.
-fn fill(bytes: &mut [u8], width: u32, height: u32, step: &Step) {
-    let Step::Fill { rect, colour } = *step;
-    let Some(visible) = rect.visible(width, height) else {
-        return;
-    };
-    let row_length = width as usize;
-    let fill = [colour.red, colour.green, colour.blue, 255];
-    for row in visible.top..visible.bottom {
-        let start = (row as usize * row_length + visible.left as usize) * 4;
-        let end = (row as usize * row_length + visible.right as usize) * 4;
-        for pixel in bytes[start..end].as_chunks_mut::<4>().0 {
-            pixel.copy_from_slice(&fill);
+/// A region of the frame: left, top, right and bottom, the right and bottom edges not in it.
+type Region = (u32, u32, u32, u32);
+
+/// Draws marks over premultiplied pixels of the frame's size, each with `map`, changing only the pixels of `region`.
+fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Map, region: Region) -> Result<(), Error> {
+    for mark in marks {
+        match mark {
+            Mark::Step(step) => fill(bytes, width, height, step, map, region)?,
+            Mark::Text(text) => match map.whole_move() {
+                Some((across, down)) => draw_text(bytes, width, height, &text.moved(across, down), region)?,
+                None => draw_mapped_text(bytes, width, height, text, map, region)?,
+            },
+            Mark::Group(group) => draw_group(bytes, width, height, group, map, region)?,
         }
     }
+    Ok(())
+}
+
+/// Draws the marks of an element that moves (`docs/spec/render-command.md`, section 4.5, rules 6 and 7): with its map put
+/// after `map`, cut to its clip; with an opacity below 1 into a transparent layer, which is then laid over the picture with
+/// each of its values times the opacity, rounded to the nearest level, halves up. At opacity 0 nothing is drawn.
+fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
+    let opacity = if group.opacity.is_nan() { 0.0 } else { group.opacity.clamp(0.0, 1.0) };
+    if opacity == 0.0 {
+        return Ok(());
+    }
+    let map = map.then_after(group.map);
+    if !map.is_finite() {
+        return Err(Error::new("an element is moved by a map that is not finite"));
+    }
+    let region = match &group.clip {
+        None => region,
+        Some(clip) => match within(region, clip, width, height) {
+            Some(region) => region,
+            None => return Ok(()),
+        },
+    };
+    if opacity == 1.0 {
+        return draw_marks(bytes, width, height, &group.marks, map, region);
+    }
+    let mut layer = vec![0_u8; bytes.len()];
+    draw_marks(&mut layer, width, height, &group.marks, map, region)?;
+    let (left, top, right, bottom) = region;
+    for row in top..bottom {
+        let start = (row as usize * width as usize + left as usize) * 4;
+        let end = (row as usize * width as usize + right as usize) * 4;
+        let over = layer[start..end].as_chunks::<4>().0;
+        for (pixel, source) in bytes[start..end].as_chunks_mut::<4>().0.iter_mut().zip(over) {
+            if source[3] == 0 {
+                continue;
+            }
+            let faded = source.map(|value| (f64::from(value) * opacity + 0.5).floor() as u32);
+            let kept = 255 - faded[3];
+            for channel in 0..4 {
+                pixel[channel] = (faded[channel] + divide_by_255(u32::from(pixel[channel]) * kept)) as u8;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The part of `region` that a clip holds, inside the frame; `None` when it holds no pixel.
+fn within((left, top, right, bottom): Region, clip: &Rect, width: u32, height: u32) -> Option<Region> {
+    let visible = clip.visible(width, height)?;
+    let region = (
+        left.max(visible.left),
+        top.max(visible.top),
+        right.min(visible.right),
+        bottom.min(visible.bottom),
+    );
+    (region.0 < region.2 && region.1 < region.3).then_some(region)
+}
+
+/// Writes one fill step into the picture, in `region`. Moved by whole pixels, every pixel of its moved rectangle becomes its
+/// colour. Under any other map its coverage (`fill_coverage`) blends its colour over the picture.
+fn fill(bytes: &mut [u8], width: u32, height: u32, step: &Step, map: Map, (left, top, right, bottom): Region) -> Result<(), Error> {
+    let Step::Fill { rect, colour } = *step;
+    let paint = [colour.red, colour.green, colour.blue, 255];
+    if let Some((across, down)) = map.whole_move() {
+        let moved = Rect {
+            left: (i64::from(rect.left) + across).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            top: (i64::from(rect.top) + down).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            ..rect
+        };
+        let Some(visible) = moved.visible(width, height) else {
+            return Ok(());
+        };
+        let (from_x, to_x) = (visible.left.max(left), visible.right.min(right));
+        let row_length = width as usize;
+        for row in visible.top.max(top)..visible.bottom.min(bottom) {
+            if from_x >= to_x {
+                break;
+            }
+            let start = (row as usize * row_length + from_x as usize) * 4;
+            let end = (row as usize * row_length + to_x as usize) * 4;
+            for pixel in bytes[start..end].as_chunks_mut::<4>().0 {
+                pixel.copy_from_slice(&paint);
+            }
+        }
+        return Ok(());
+    }
+    let Some(coverage) = fill_coverage(rect, map, width, height)? else {
+        return Ok(());
+    };
+    for line in 0..coverage.height {
+        let y = coverage.top + line;
+        if y < top || y >= bottom {
+            continue;
+        }
+        for column in 0..coverage.width {
+            let x = coverage.left + column;
+            if x < left || x >= right {
+                continue;
+            }
+            let share = u32::from(coverage.alpha[(line * coverage.width + column) as usize]);
+            if share == 0 {
+                continue;
+            }
+            let at = (y as usize * width as usize + x as usize) * 4;
+            let pixel = &mut bytes[at..at + 4];
+            for channel in 0..4 {
+                let value = u32::from(paint[channel]) * share + u32::from(pixel[channel]) * (255 - share);
+                pixel[channel] = divide_by_255(value) as u8;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The coverage of a mapped rectangle: the share of each pixel it covers, from 0 to 255, in a box of whole pixels of the
+/// frame that holds the mapped rectangle, cut to the frame (`docs/spec/card-renderer.md`, section 10.3).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Coverage {
+    /// The frame pixel of the box's top left corner.
+    pub left: u32,
+    pub top: u32,
+    pub width: u32,
+    pub height: u32,
+    /// One byte for each pixel of the box, row by row.
+    pub alpha: Vec<u8>,
+}
+
+/// Fills the rectangle mapped by `map` in opaque white with vello_cpu, in the box of whole pixels of the frame that holds it,
+/// and gives the coverage of each pixel; `None` when the box holds no pixel of the frame. The processor and the card both
+/// take a mapped fill from here.
+pub fn fill_coverage(rect: Rect, map: Map, width: u32, height: u32) -> Result<Option<Coverage>, Error> {
+    if !map.is_finite() {
+        return Err(Error::new("a box is moved by a map that is not finite"));
+    }
+    if rect.width == 0 || rect.height == 0 {
+        return Ok(None);
+    }
+    let (x0, y0) = (f64::from(rect.left), f64::from(rect.top));
+    let (x1, y1) = (x0 + f64::from(rect.width), y0 + f64::from(rect.height));
+    let corners = [map.apply(x0, y0), map.apply(x1, y0), map.apply(x1, y1), map.apply(x0, y1)];
+    let least_x = corners.iter().map(|corner| corner.0).fold(f64::INFINITY, f64::min);
+    let most_x = corners.iter().map(|corner| corner.0).fold(f64::NEG_INFINITY, f64::max);
+    let least_y = corners.iter().map(|corner| corner.1).fold(f64::INFINITY, f64::min);
+    let most_y = corners.iter().map(|corner| corner.1).fold(f64::NEG_INFINITY, f64::max);
+    let left = least_x.floor().max(0.0);
+    let top = least_y.floor().max(0.0);
+    let right = most_x.ceil().min(f64::from(width));
+    let bottom = most_y.ceil().min(f64::from(height));
+    if left >= right || top >= bottom {
+        return Ok(None);
+    }
+    let (box_width, box_height) = ((right - left) as u32, (bottom - top) as u32);
+    let mut context = RenderContext::new(box_width as u16, box_height as u16);
+    let mut resources = Resources::new();
+    context.set_paint(Color::from_rgba8(255, 255, 255, 255));
+    context.set_transform(Affine::translate((-left, -top)) * affine(map));
+    context.fill_rect(&kurbo::Rect::new(x0, y0, x1, y1));
+    context.flush();
+    let mut pixmap = Pixmap::new(box_width as u16, box_height as u16);
+    context.render(&mut pixmap, &mut resources);
+    let alpha = pixmap.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
+    Ok(Some(Coverage {
+        left: left as u32,
+        top: top as u32,
+        width: box_width,
+        height: box_height,
+        alpha,
+    }))
+}
+
+/// The map as the rasteriser's affine map.
+fn affine(map: Map) -> Affine {
+    Affine::new([map.a, map.b, map.c, map.d, map.e, map.f])
 }
 
 /// Lays the glyph runs of a paragraph over the picture: its shadows first, the last listed first so that the first listed is on
 /// top, then its glyphs with their outline and colour pictures, in one layer of the frame's size, which is composited with each
 /// pixel's coverage, inside the paragraph's clip.
-fn draw_text(bytes: &mut [u8], width: u32, height: u32, text: &TextMark) -> Result<(), Error> {
+fn draw_text(bytes: &mut [u8], width: u32, height: u32, text: &TextMark, region: Region) -> Result<(), Error> {
     let region = match &text.clip {
-        None => (0, 0, width, height),
-        Some(clip) => match clip.visible(width, height) {
-            Some(visible) => (visible.left, visible.top, visible.right, visible.bottom),
+        None => region,
+        Some(clip) => match within(region, clip, width, height) {
+            Some(region) => region,
             None => return Ok(()),
         },
     };
     for shadow in text.shadows.iter().rev() {
-        let layer = shadow_layer(width, height, text, shadow)?;
+        let layer = shadow_layer(width, height, text, shadow, Map::IDENTITY)?;
         composite(bytes, width, &layer, region);
     }
     let layer = text_layer(width, height, text)?;
     composite(bytes, width, &layer, region);
     Ok(())
+}
+
+/// Lays a paragraph mapped by `map` over the picture, in `region` and its clip (`docs/spec/render-command.md`, section 4.5,
+/// rule 7): its shadows, the last listed first, then one layer with its glyph runs, its outline over them and its colour
+/// pictures over those, each drawn with the map.
+fn draw_mapped_text(bytes: &mut [u8], width: u32, height: u32, text: &TextMark, map: Map, region: Region) -> Result<(), Error> {
+    let region = match &text.clip {
+        None => region,
+        Some(clip) => match within(region, clip, width, height) {
+            Some(region) => region,
+            None => return Ok(()),
+        },
+    };
+    for shadow in text.shadows.iter().rev() {
+        let layer = shadow_layer(width, height, text, shadow, map)?;
+        composite(bytes, width, &layer, region);
+    }
+    let mut context = RenderContext::new(width as u16, height as u16);
+    let mut resources = Resources::new();
+    context.set_transform(affine(map));
+    for run in &text.runs {
+        fill_run(&mut context, &mut resources, run, (0.0, 0.0))?;
+    }
+    context.flush();
+    let mut layer = Pixmap::new(width as u16, height as u16);
+    context.render(&mut layer, &mut resources);
+    if let Some(outline) = &text.outline {
+        lay_layer(layer.data_as_u8_slice_mut(), &outline_layer(width, height, text, outline, map)?);
+    }
+    if !text.pictures.is_empty() {
+        lay_layer(layer.data_as_u8_slice_mut(), &pictures_layer(width, height, text, map, (0.0, 0.0))?);
+    }
+    composite(bytes, width, layer.data_as_u8_slice(), region);
+    Ok(())
+}
+
+/// The colour pictures of the emoji of a paragraph, mapped by `map` and moved by `offset` in the paragraph's own coordinates,
+/// as one layer of premultiplied pixels of the frame's size: each picture, with its corner at the whole pixel nearest to its
+/// place, is drawn through the map by vello_cpu and sampled bilinearly (`docs/spec/render-command.md`, section 4.5, rule 7).
+pub fn pictures_layer(width: u32, height: u32, text: &TextMark, map: Map, offset: (f32, f32)) -> Result<Vec<u8>, Error> {
+    let mut context = RenderContext::new(width as u16, height as u16);
+    let mut resources = Resources::new();
+    for picture in &text.pictures {
+        if picture.width == 0 || picture.height == 0 {
+            continue;
+        }
+        if picture.width > u32::from(u16::MAX) || picture.height > u32::from(u16::MAX) {
+            return Err(Error::new(format!(
+                "a picture of {}x{} pixels cannot be drawn: a side is above {}",
+                picture.width,
+                picture.height,
+                u16::MAX
+            )));
+        }
+        let pixmap = Pixmap::from_parts(
+            picture.pixels.as_ref().clone(),
+            picture.width as u16,
+            picture.height as u16,
+            PixelMetadata {
+                may_have_transparency: true,
+                alpha_type: ImageAlphaType::AlphaPremultiplied,
+            },
+        );
+        let left = whole_pixel(picture.x + offset.0) as f64;
+        let top = whole_pixel(picture.y + offset.1) as f64;
+        context.set_transform(affine(map) * Affine::translate((left, top)));
+        context.set_paint(Image {
+            image: ImageSource::Pixmap(Arc::new(pixmap)),
+            sampler: ImageSampler {
+                quality: ImageQuality::Medium,
+                ..ImageSampler::default()
+            },
+        });
+        context.fill_rect(&kurbo::Rect::new(0.0, 0.0, f64::from(picture.width), f64::from(picture.height)));
+    }
+    context.flush();
+    let mut layer = Pixmap::new(width as u16, height as u16);
+    context.render(&mut layer, &mut resources);
+    Ok(layer.data_as_u8_slice().to_vec())
 }
 
 /// The glyphs of a paragraph, its outline and its colour pictures, as one layer of premultiplied pixels of the frame's size:
@@ -107,7 +357,7 @@ fn text_layer(width: u32, height: u32, text: &TextMark) -> Result<Vec<u8>, Error
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
     if let Some(outline) = &text.outline {
-        lay_layer(layer.data_as_u8_slice_mut(), &outline_layer(width, height, text, outline)?);
+        lay_layer(layer.data_as_u8_slice_mut(), &outline_layer(width, height, text, outline, Map::IDENTITY)?);
     }
     // The colour pictures of the emoji go into the same layer, after the glyph runs, in the order of the text
     // (`docs/spec/text.md`, section 12.4, point 10).
@@ -118,10 +368,14 @@ fn text_layer(width: u32, height: u32, text: &TextMark) -> Result<Vec<u8>, Error
 }
 
 /// The outline of the glyph runs of a paragraph as a layer of premultiplied pixels of the frame's size: a line `outline.width`
-/// pixels wide, centred on the outline of each glyph, in `outline.colour` (`docs/spec/text.md`, section 6.6, rule 6).
-pub fn outline_layer(width: u32, height: u32, text: &TextMark, outline: &Outline) -> Result<Vec<u8>, Error> {
+/// pixels wide, centred on the outline of each glyph, in `outline.colour` (`docs/spec/text.md`, section 6.6, rule 6), stroked in
+/// the paragraph's own coordinates and mapped by `map`.
+pub fn outline_layer(width: u32, height: u32, text: &TextMark, outline: &Outline, map: Map) -> Result<Vec<u8>, Error> {
     let mut context = RenderContext::new(width as u16, height as u16);
     let mut resources = Resources::new();
+    if !map.is_identity() {
+        context.set_transform(affine(map));
+    }
     let colour = outline.colour;
     context.set_paint(Color::from_rgba8(colour.red, colour.green, colour.blue, 255));
     context.set_stroke(Stroke::new(f64::from(outline.width)));
@@ -136,17 +390,26 @@ pub fn outline_layer(width: u32, height: u32, text: &TextMark, outline: &Outline
 
 /// The shadow of a paragraph as a layer of premultiplied pixels of the frame's size (`docs/spec/text.md`, section 6.6, rule 5):
 /// the alpha of the glyphs and of the colour pictures, moved by the shadow's offset and blurred, in the shadow's colour. The
-/// outline does not cast a shadow.
-pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow) -> Result<Vec<u8>, Error> {
+/// outline does not cast a shadow. Under a map other than the identity, the offset is in the paragraph's own coordinates and
+/// mapped with it, and the blur is scaled by the square root of how much the map scales an area (`docs/spec/render-command.md`,
+/// section 4.5, rule 7).
+pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow, map: Map) -> Result<Vec<u8>, Error> {
     let mut context = RenderContext::new(width as u16, height as u16);
     let mut resources = Resources::new();
+    let mapped = !map.is_identity();
+    if mapped {
+        context.set_transform(affine(map));
+    }
     for run in &text.runs {
         fill_run(&mut context, &mut resources, run, (shadow.across, shadow.down))?;
     }
     context.flush();
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
-    for picture in &text.pictures {
+    if mapped && !text.pictures.is_empty() {
+        lay_layer(layer.data_as_u8_slice_mut(), &pictures_layer(width, height, text, map, (shadow.across, shadow.down))?);
+    }
+    for picture in text.pictures.iter().filter(|_| !mapped) {
         let moved = GlyphPicture {
             width: picture.width,
             height: picture.height,
@@ -157,7 +420,8 @@ pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow) -
         lay_picture(layer.data_as_u8_slice_mut(), width, height, &moved);
     }
     let mut alpha: Vec<u8> = layer.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
-    blur_alpha(&mut alpha, width as usize, height as usize, shadow.blur);
+    let blur = if mapped { (f64::from(shadow.blur) * map.area_scale().sqrt()) as f32 } else { shadow.blur };
+    blur_alpha(&mut alpha, width as usize, height as usize, blur);
     let colour = shadow.colour;
     let mut picture = Vec::with_capacity(alpha.len() * 4);
     for alpha in alpha {
@@ -301,11 +565,11 @@ fn run_parts(run: &GlyphRun, offset: (f32, f32)) -> (FontData, Affine, Vec<Glyph
     (font, transform, glyphs)
 }
 
-/// Lays a layer of premultiplied red, green, blue and alpha over the picture's bytes, which are opaque, in the
-/// region (`left`, `top`, `right`, `bottom`; the right and bottom edges are not in it). The colour of a pixel is
-/// its layer colour plus the picture's colour times what the layer leaves clear, each rounded to the nearest
-/// whole level.
-fn composite(bytes: &mut [u8], width: u32, layer: &[u8], (left, top, right, bottom): (u32, u32, u32, u32)) {
+/// Lays a layer of premultiplied red, green, blue and alpha over the picture's premultiplied bytes, in the region (`left`,
+/// `top`, `right`, `bottom`; the right and bottom edges are not in it). Each value of a pixel is its layer value plus the
+/// picture's value times what the layer leaves clear, rounded to the nearest whole level; over an opaque picture the alpha
+/// stays 255.
+fn composite(bytes: &mut [u8], width: u32, layer: &[u8], (left, top, right, bottom): Region) {
     for row in top..bottom {
         for column in left..right {
             let at = (row as usize * width as usize + column as usize) * 4;
@@ -315,11 +579,10 @@ fn composite(bytes: &mut [u8], width: u32, layer: &[u8], (left, top, right, bott
                 continue;
             }
             let pixel = &mut bytes[at..at + 4];
-            for channel in 0..3 {
+            for channel in 0..4 {
                 let kept = u32::from(pixel[channel]) * (255 - alpha);
                 pixel[channel] = (u32::from(over[channel]) + divide_by_255(kept)) as u8;
             }
-            pixel[3] = 255;
         }
     }
 }

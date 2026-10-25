@@ -1,13 +1,15 @@
 //! The scene: the root's canvas, the boxes in it and the compositions shown from other files, as far
 //! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
-use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Mark, Picture, Renderer, Step, TextMark};
+use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Mark, Picture, Renderer, Step, TextMark};
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use text::Fonts;
 use timebase::Time;
 
+use crate::moving::{self, Found, Mover, Movement, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
+use motion::{ElementMotion, Tween};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
 /// at 48 kHz in stereo (`frx7/docs/spec/os-codecs.md` section 3.1, measured).
@@ -146,6 +148,8 @@ pub struct Scene {
     frames: u64,
     background: Colour,
     entries: Vec<Entry>,
+    /// The elements that move, in document order: an outer one before the ones inside it.
+    movers: Vec<Mover>,
 }
 
 /// Why a picture was not made.
@@ -177,7 +181,7 @@ impl Scene {
     /// of the file.
     pub fn from_project(project: &Project) -> Result<Scene, Vec<Report>> {
         let mut reports = settings(project);
-        let (entries, found) = walk(project, false);
+        let (entries, movers, found) = walk(project, false);
         reports.extend(found);
         if !reports.is_empty() {
             return Err(reports);
@@ -198,6 +202,7 @@ impl Scene {
             frames: root.frames,
             background,
             entries,
+            movers,
         })
     }
 
@@ -256,21 +261,65 @@ impl Scene {
                 frames: self.frames,
             });
         }
-        let marks = self
-            .entries
-            .iter()
-            .filter(|entry| entry.window().contains(number))
-            .filter_map(|entry| match entry {
-                Entry::Box(placed) => fill_mark(placed),
-                Entry::Text(text) => text_mark(text),
-            })
-            .collect();
+        let time = Time::of_frame(number as i64, self.fps);
+        let marks = self.marks(0..self.entries.len(), &self.movers, number, time, true);
         Ok(Frame {
             width: self.width,
             height: self.height,
             background: self.background,
             marks,
         })
+    }
+
+    /// The marks of the entries in `range` at frame `number`, at `time`, with the elements that move among them (`movers`, in
+    /// document order) wrapped in groups (`docs/spec/timeline.md` section 5). With `clipped`, a mark is cut to the canvas it
+    /// stands on; inside a group that moves it is not, and the group is cut instead.
+    fn marks(&self, range: std::ops::Range<usize>, movers: &[Mover], number: u64, time: Time, clipped: bool) -> Vec<Mark> {
+        let mut marks = Vec::new();
+        let mut index = range.start;
+        let mut next = 0;
+        while index < range.end {
+            if let Some(mover) = movers.get(next).filter(|mover| mover.first == index) {
+                let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
+                let inner = &movers[next + 1..inner_end];
+                let (map, opacity) = mover.at(time);
+                if map.is_identity() && opacity == 1.0 {
+                    marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
+                } else if opacity > 0.0 {
+                    let held = self.marks(mover.first..mover.end, inner, number, time, false);
+                    if !held.is_empty() {
+                        marks.push(Mark::Group(Group {
+                            map,
+                            opacity,
+                            clip: mover.clip,
+                            marks: held,
+                        }));
+                    }
+                }
+                index = mover.end;
+                next = inner_end;
+                continue;
+            }
+            let entry = &self.entries[index];
+            index += 1;
+            if !entry.window().contains(number) {
+                continue;
+            }
+            let mark = match entry {
+                Entry::Box(placed) if clipped => fill_mark(placed),
+                Entry::Box(placed) => placed.colour.map(|colour| Mark::Step(Step::Fill {
+                    rect: placed.slot.rect,
+                    colour,
+                })),
+                Entry::Text(text) if clipped => text_mark(text),
+                Entry::Text(text) => text_mark(text).map(|mark| match mark {
+                    Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
+                    other => other,
+                }),
+            };
+            marks.extend(mark);
+        }
+        marks
     }
 
     /// Draws frame `number` with `renderer`.
@@ -355,6 +404,9 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
 /// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, and a `<box>` what
 /// `BOX_TAKES` lists and the text attributes, which pass to the elements inside it (`docs/spec/text.md`, section 8).
 fn takes(node: &Node, name: &str) -> bool {
+    if MOVEMENT.contains(&name) && moving::moves(node.element()) {
+        return true;
+    }
     match node.element() {
         Element::Text => TEXT_TAKES.contains(&name),
         _ => BOX_TAKES.contains(&name) || TEXT_ATTRIBUTES.contains(&name),
@@ -369,13 +421,13 @@ fn takes(node: &Node, name: &str) -> bool {
 /// what is drawn: `check` judges the forms of a place, the attributes that a style gives and the text forms, and
 /// does not judge the rest (`docs/spec/check-command.md`, sections 3b and 3c; `docs/spec/text.md`, section 9).
 pub fn place_reports(project: &Project) -> Vec<Report> {
-    walk(project, true).1
+    walk(project, true).2
 }
 
 /// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
-/// order. Gives the boxes that are placed, in document order, and the reports of the refusals. With `place_only`,
-/// the reports are those of a place form alone.
-fn walk(project: &Project, place_only: bool) -> (Vec<Entry>, Vec<Report>) {
+/// order. Gives the boxes that are placed, in document order, the elements that move, and the reports of the refusals.
+/// With `place_only`, the reports are those of a place form alone.
+fn walk(project: &Project, place_only: bool) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
     let root = project.root();
     walk_canvas(
         project,
@@ -415,7 +467,7 @@ struct Canvas<'a> {
 /// its own, at its place, in its window and cut to its rectangle. Gives the boxes that are placed, in document
 /// order, and the reports: those of this file in the order of their lines, then those of the files it shows, each
 /// report once, in the order the files are reached.
-fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool) -> (Vec<Entry>, Vec<Report>) {
+fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
     let tree = canvas.tree;
     // The elements inside each element, in document order.
     let mut inside: Vec<Vec<usize>> = vec![Vec::new(); tree.len()];
@@ -442,8 +494,19 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     let mut assigned: Vec<Option<(Rect, Measured)>> = vec![None; tree.len()];
     // The size and the first baseline of each row, column, set of columns and text that is an item, from the inside out.
     let sizes = measures(project, tree, &inside, &mut fonts);
+    // The motion of each element (`docs/spec/render-command.md`, section 4.5): the number of entries before it, the entry
+    // of its own box or text, its rectangle, the start of its parent's time, what it writes of its motion and its tweens,
+    // with the line of each tween. The elements that move are gathered after the walk, when the entries inside each are known.
+    let mut entries_before: Vec<usize> = Vec::with_capacity(tree.len() + 1);
+    let mut entry_at: Vec<Option<usize>> = vec![None; tree.len()];
+    let mut rect_of: Vec<Option<Rect>> = vec![None; tree.len()];
+    let mut parent_origin: Vec<Time> = vec![Time::ZERO; tree.len()];
+    let mut movement_of: Vec<Option<Movement>> = vec![None; tree.len()];
+    let mut tweens_of: Vec<Vec<(Tween, u32)>> = vec![Vec::new(); tree.len()];
+    let mut movers: Vec<Mover> = Vec::new();
 
     for (index, node) in tree.iter().enumerate() {
+        entries_before.push(entries.len());
         let Some(parent) = node.parent() else {
             // The root of the canvas.
             for attribute in node.attributes() {
@@ -505,6 +568,24 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
+        if node.element() == Element::Set {
+            refusals.push(Refusal::of_motion((
+                Code::FormNotSupported,
+                node.line(),
+                "<set> is not supported by this version, which moves an element with <tween> only".to_string(),
+            )));
+            places.push(None);
+            continue;
+        }
+        if node.element() == Element::Tween && moving::moves(tree[parent].element()) {
+            let (tween, found) = moving::read_tween(node, parent_origin[parent]);
+            refusals.extend(found.into_iter().map(Refusal::of_motion));
+            if let Some(tween) = tween {
+                tweens_of[parent].push((tween, node.line()));
+            }
+            places.push(None);
+            continue;
+        }
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
             let refusal = if parent == 0 {
                 Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_element(node.element()))
@@ -525,6 +606,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 read
             }
         };
+        parent_origin[index] = parent_place.origin;
+        if moving::moves(node.element()) {
+            let (movement, found) = moving::read_movement(node);
+            refusals.extend(found.into_iter().map(Refusal::of_motion));
+            movement_of[index] = Some(movement);
+        }
         if node.element() == Element::Text {
             refusals.extend(paragraph::span_faults(tree, index).into_iter().map(Refusal::of_text));
         }
@@ -546,6 +633,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             match placed {
                 Ok(paragraph) => {
                     let slot = slot_of(form.clip, parent_place, paragraph.rect, fps);
+                    entry_at[index] = Some(entries.len());
+                    rect_of[index] = Some(paragraph.rect);
                     entries.push(Entry::Text(PlacedText {
                         slot,
                         clip: canvas.clip,
@@ -629,6 +718,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         let slot = slot_of(form.clip, parent_place, rect, fps);
 
         let Some(name) = &form.shown else {
+            entry_at[index] = Some(entries.len());
+            rect_of[index] = Some(rect);
             entries.push(Entry::Box(Placed {
                 slot,
                 colour: form.colour,
@@ -648,7 +739,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             Some(outer) => intersect(rect, outer),
             None => rect,
         };
-        let (placed, found) = walk_canvas(
+        let (placed, inner_movers, found) = walk_canvas(
             project,
             Canvas {
                 file: file.name(),
@@ -664,6 +755,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             fps,
             place_only,
         );
+        let offset = entries.len();
+        movers.extend(inner_movers.into_iter().map(|mover| Mover {
+            first: mover.first + offset,
+            end: mover.end + offset,
+            ..mover
+        }));
         entries.extend(placed);
         for report in found {
             if !shown.contains(&report) {
@@ -672,6 +769,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         }
         places.push(Some(slot));
     }
+
+    entries_before.push(entries.len());
+    let own = gather_movers(tree, &entries_before, &entry_at, &rect_of, &movement_of, &tweens_of, canvas.clip, fps);
+    refusals.extend(own.1);
+    movers.extend(own.0);
+    movers.sort_by_key(|mover| mover.first);
 
     // A row or column reads its items ahead, so the reports are put in the order of the file by their lines; a
     // stable sort keeps the order of the reports of one line.
@@ -682,8 +785,68 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         .map(|refusal| Report::new(canvas.file, Problem::new(refusal.code, refusal.line, refusal.message)))
         .collect();
     reports.extend(shown);
-    (entries, reports)
+    (entries, movers, reports)
 }
+
+/// The elements of one canvas that move: each placed `<box>` or `<text>` that writes a movement attribute or holds a tween,
+/// with the run of entries of its subtree, which follow one another in document order. One that holds a
+/// `<composition src>` is refused on the line of each movement attribute and tween (`docs/spec/render-command.md` section 3),
+/// and does not move.
+#[allow(clippy::too_many_arguments)]
+fn gather_movers(
+    tree: &[Node],
+    entries_before: &[usize],
+    entry_at: &[Option<usize>],
+    rect_of: &[Option<Rect>],
+    movement_of: &[Option<Movement>],
+    tweens_of: &[Vec<(Tween, u32)>],
+    clip: Option<Rect>,
+    fps: u32,
+) -> (Vec<Mover>, Vec<Refusal>) {
+    let mut movers = Vec::new();
+    let mut refusals = Vec::new();
+    for index in 0..tree.len() {
+        let (Some(first), Some(rect), Some(movement)) = (entry_at[index], rect_of[index], &movement_of[index]) else {
+            continue;
+        };
+        let tweens = &tweens_of[index];
+        if !movement.written() && tweens.is_empty() {
+            continue;
+        }
+        // The subtree of an element is the run of elements after it whose parents lie in it: in document order, those whose
+        // parent is the element or comes after it.
+        let mut after = index + 1;
+        let mut holds_shown = false;
+        while after < tree.len() && tree[after].parent().is_some_and(|parent| parent >= index) {
+            holds_shown |= tree[after].element() == Element::Nested;
+            after += 1;
+        }
+        if holds_shown {
+            let tag = tree[index].element().tag();
+            for line in movement.lines.iter().copied().chain(tweens.iter().map(|(_, line)| *line)) {
+                refusals.push(Refusal::of_motion((
+                    Code::FormNotSupported,
+                    line,
+                    format!(
+                        "motion of {tag} that holds a <composition src> is not supported by this version, which moves a <box> or a <text> that holds no <composition src>"
+                    ),
+                )));
+            }
+            continue;
+        }
+        let written: Vec<Tween> = tweens.iter().map(|(tween, _)| tween.clone()).collect();
+        movers.push(Mover {
+            first,
+            end: entries_before[after],
+            own: movement.own,
+            origin: Mover::origin_in(rect, movement.origin),
+            motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
+            clip,
+        });
+    }
+    (movers, refusals)
+}
+
 
 /// The slot of an element placed in `rect` inside `parent`: the origin and the window that its clip gives, or the
 /// parent's when it has no clip (`docs/spec/render-command.md`, section 4.2).
@@ -879,6 +1042,18 @@ impl Refusal {
     /// A refusal of an element inside a `<text>`, or of an attribute of a `<text>` that this version does not draw. It is
     /// a text form, which `check` judges as well as `render` (`docs/spec/text.md`, section 9).
     fn of_text_form(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
+    }
+
+    /// A refusal of a form of motion: a tween, a `<set>` or a movement attribute that this version does not apply. `check`
+    /// judges it as well as `render`.
+    fn of_motion((code, line, message): Found) -> Refusal {
         Refusal {
             code,
             line,

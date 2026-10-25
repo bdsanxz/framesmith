@@ -1570,6 +1570,7 @@ dependencies = [
  "draw",
  "draw-cpu",
  "layout",
+ "motion",
  "project",
  "text",
  "timebase",

@@ -14,8 +14,7 @@ path = "src/lib.rs"
 
 [dependencies]
 draw = { workspace = true }
+# The rectangles a fill and a clip are given in (the workspace's own crate).
+layout = { workspace = true }
 # The glyph outlines of the text are filled by vello_cpu (docs/spec/text.md, section 10); multithreading stays off.
 vello_cpu = { workspace = true }
-
-[dev-dependencies]
-layout = { workspace = true }

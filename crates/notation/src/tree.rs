@@ -69,6 +69,23 @@ impl Attribute {
         }
     }
 
+    /// The value as lengths separated by white space, each a number (N9) with an optional `%` after it, in the order
+    /// written; `None` when a part is not a length.
+    pub fn lengths(&self) -> Option<Vec<Length>> {
+        self.value
+            .split_whitespace()
+            .map(|part| match part.strip_suffix('%') {
+                Some(number) => value::number(number).ok().map(Length::Percent),
+                None => value::number(part).ok().map(Length::Pixels),
+            })
+            .collect()
+    }
+
+    /// The value as a number (N9), or `None` when it is not one.
+    pub fn number(&self) -> Option<f64> {
+        value::number(&self.value).ok()
+    }
+
     /// The value as a time in seconds, read exactly (`docs/spec/notation.md` section 5 and N8), or
     /// `None` when it is not one.
     pub fn time(&self) -> Option<Time> {

@@ -108,7 +108,7 @@ fn the_meaning_of_the_children_of_the_root_and_of_a_class_is_not_judged_here() {
 <!-- a comment -->
 <composition version="1" width="640" height="360" duration="2" class="big">
   <style id="big"/>
-  <box width="odd"><tween/></box>
+  <box width="odd"><tween duration="1" to-x="1"/></box>
 </composition>
 "#;
     let root = read_root(text.as_bytes()).unwrap();

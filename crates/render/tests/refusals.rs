@@ -72,8 +72,13 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 #[test]
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
-        only("in-box", "<box>\n<tween at=\"0\" duration=\"1\" to-x=\"5\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <tween> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        only("in-box", "<box>\n<image src=\"i.png\"/>\n</box>"),
+        "composition.xml 3 FS-0035 <image> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+    );
+    // A tween inside a box moves it (section 4.5), so it is not refused.
+    assert_eq!(
+        refused("tween-in-box", "<box>\n<tween at=\"0\" duration=\"1\" to-x=\"5\"/>\n</box>"),
+        Vec::<String>::new()
     );
     // A box inside a box is drawn (section 4.1), so it is not refused.
     assert_eq!(refused("box-in-box", "<box>\n<box/>\n</box>"), Vec::<String>::new());
@@ -114,15 +119,15 @@ fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
 fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
     let reports = refused(
         "attributes",
-        "<box id=\"a\" border-radius=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" opacity=\"0.5\"/>",
+        "<box id=\"a\" border-radius=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" blur=\"0.5\"/>",
     );
+    // `x` moves the box (section 4.5) and is taken; `blur` is not drawn.
     assert_eq!(
         reports,
         vec![
             "composition.xml 2 FS-0035 <box> has an attribute this version does not support: `border-radius`",
-            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `x`",
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `box-shadow`",
-            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `opacity`",
+            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `blur`",
         ]
     );
     // The root takes its seven attributes and `class`, which names styles of the file: a name that no
@@ -279,7 +284,7 @@ fn a_project_the_notation_does_not_accept_is_not_opened_so_nothing_is_drawn_from
 fn the_refusals_of_a_composition_come_in_the_order_of_its_lines() {
     let reports = refused(
         "order",
-        "<rect/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<tween at=\"0\" duration=\"1\"/>\n</box>\n<image src=\"i.png\"/>",
+        "<rect/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<image src=\"j.png\"/>\n</box>\n<image src=\"i.png\"/>",
     );
     let places: Vec<(String, String)> = reports
         .iter()

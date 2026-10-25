@@ -132,7 +132,9 @@ The processor composes each paragraph in a layer and then lays the layer over th
 
 ### 9.6 What is kept
 
-The masks are kept for the life of the renderer, so a glyph that stays in place is made once. No mask is evicted in this version: the memory of a composition grows with the number of different keys it draws. The picture does not depend on what was kept: a frame drawn from kept masks is the frame drawn from new ones.
+The masks are kept across frames, so a glyph that stays in place is made once. They are bounded: the card keeps at most **64 MiB** of coverage (the sum, over the kept masks, of their width times their height, one byte for each pixel; masks of fills under a map, section 10.3, count too). After each frame has been read back, the masks that were used least recently are let go, one at a time, until what is kept is at most the bound; a mask used by the frame just drawn counts as used most recently. A single frame that needs more than the bound keeps all of its masks until it has been drawn, and lets the extra ones go after it. A text that moves, scales or turns makes new masks in every frame (its keys change, section 10.2), so its kept coverage rises to the bound and then holds level for as long as it moves.
+
+The renderer gives the number of bytes of coverage it keeps (`CardRenderer::mask_bytes`), so that the bound can be measured. The picture does not depend on what was kept: a frame drawn from kept masks is the frame drawn from new ones, since a mask is a function of its key alone.
 
 ### 9.7 Tests
 
@@ -159,3 +161,33 @@ The shadows and the outline of a paragraph (`text.md`, section 6.6, rules 5 and 
 - Each shadow and the outline is placed as a picture whose corners lie on whole pixels at the frame's origin, and its pixels are read without filtering, as section 9.8 gives for an emoji picture. The composition is the one of section 9.8.
 - A picture of the frame's size is refused where a side is above the card's texture limit, as section 9.8 gives.
 - The processor's picture of a shadow or an outline is a picture of the frame's size, so a paragraph with a shadow costs one texture of the frame's size for each shadow on the card, and the masks of section 9.6 are not changed by it.
+
+## 10. Moved and faded marks
+
+Sources: `render-command.md` section 4.5 (what a moved, scaled, turned, slanted or faded element looks like), section 9 above (masks), the src-over operation of premultiplied colour.
+
+A moving element is a group of marks (`draw`, `Mark::Group`): a map (an affine map of the plane, six numbers), an opacity from 0 to 1, a rectangle it is cut to or none, and the marks of the element and its children. The map of a group inside a group is its parent's times its own. The card draws a group as follows, and its picture agrees with the processor's within section 4.
+
+### 10.1 Groups
+
+- A group with an opacity of 1 draws its marks straight onto the picture, each with the group's map, cut to the group's rectangle (the scissor of its draws, intersected with any outer one).
+- A group with an opacity below 1 draws its marks into a texture of the frame's size of its own, cleared to transparent, and then lays that texture over the picture as a premultiplied picture whose values are multiplied by the opacity, cut to its rectangle. The processor rounds the multiplied values to whole levels; the card multiplies in floating point and rounds once at the write. The difference is at most one level.
+- A group with an opacity of 0 draws nothing.
+- The blend of a glyph, a mask and a picture writes alpha by src-over as well as colour, so that a transparent texture takes the coverage of what is drawn into it; on the opaque picture the alpha stays 255.
+
+### 10.2 Glyphs under a map
+
+A map that only moves by whole pixels moves each glyph's origin by that much, and the glyph is drawn as section 9 gives. Under any other map, the glyph's key (section 9.2) also holds the linear part of the map (its four numbers, each as its exact 64-bit pattern), and its origin is the mapped origin, whose fraction is in the key as before. The mask is made by the processor's rasteriser with the run's skew and the linear part together, at the fraction of the mapped origin. Its box is the box of section 9.3 mapped by the linear part: the half sizes are the largest of the absolute coordinates of the four corners `(±bx, ±by)` under the linear part, rounded up, plus the margin of two pixels. The checks of section 9.3 hold for it.
+
+### 10.3 Fills under a map
+
+A fill moved by whole pixels is the fill of its moved rectangle (section 1). A fill under any other map is drawn as a mask: the processor's rasteriser fills the mapped rectangle in opaque white into a box of whole pixels that holds it, and the card blends the fill's colour over the picture through the mask, as it blends a glyph (section 9.4). Its key is the rectangle's size, the linear part of the map and the fraction of the mapped top left corner, each as its exact bit pattern; it is kept and let go with the glyph masks (section 9.6). The processor makes the same coverage with the same function (`draw_cpu::fill_coverage`), so the two pictures differ only by the rounding of the blend.
+
+### 10.4 Shadows, outlines and emoji under a map
+
+The shadows and the outline of a paragraph under a map, and its colour pictures of emoji under a map that is not a move by whole pixels, are pictures of the frame's size that the processor's functions make with the map (`draw_cpu::shadow_layer`, `draw_cpu::outline_layer`, `draw_cpu::pictures_layer`), placed by the card as section 9.9 gives. They make no mask.
+
+### 10.5 Tests
+
+- `crates/draw-gpu/tests/card_motion.rs`: groups with a turned, scaled and slanted fill, a turned text, a faded group over another fill and a group cut to a rectangle each agree with the processor's picture within section 4; the kept coverage of a text that turns in every frame stops rising at the bound of section 9.6. Reference machine only.
+- `crates/render/tests/motion_fixtures_on_the_card.rs`: the frames of the motion fixtures (`timeline.md` section 5) at their chosen times agree with the processor's within section 4. Reference machine only.

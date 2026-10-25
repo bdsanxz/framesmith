@@ -10,4 +10,4 @@ mod spec;
 
 pub use ease::Ease;
 pub use eval::{motion_end, ElementMotion, Timeline, Track};
-pub use spec::{Kind, Prop, Tween, Values, PROPS};
+pub use spec::{Kind, Prop, Tween, Values, PROPS, PROP_COUNT};

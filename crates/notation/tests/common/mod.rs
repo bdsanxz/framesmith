@@ -65,6 +65,9 @@ pub fn written(element: Element) -> String {
         Element::Composition => "<composition/>".to_string(),
         Element::Nested => "<composition src=\"scenes/more.xml\"/>".to_string(),
         Element::Style => "<style id=\"label\"/>".to_string(),
+        // A tween needs a duration and a property (`notation.md` section 8.2); `x` is one every element that holds a
+        // tween takes.
+        Element::Tween => "<tween duration=\"1\" to-x=\"1\"/>".to_string(),
         other => format!("<{}/>", other.name()),
     }
 }

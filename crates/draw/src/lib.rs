@@ -106,12 +106,135 @@ pub struct TextMark {
     pub outline: Option<Outline>,
 }
 
-/// One mark of a frame: a drawing step, or the glyph runs of a paragraph of text. The marks are carried out in
-/// order, each over what is there.
+/// An affine map of the plane (`docs/spec/render-command.md`, section 4.5): a point `(x, y)` goes to
+/// `(a x + c y + e, b x + d y + f)`, in pixels of the frame.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Map {
+    pub a: f64,
+    pub b: f64,
+    pub c: f64,
+    pub d: f64,
+    pub e: f64,
+    pub f: f64,
+}
+
+impl Map {
+    /// The map that leaves every point where it is.
+    pub const IDENTITY: Map = Map {
+        a: 1.0,
+        b: 0.0,
+        c: 0.0,
+        d: 1.0,
+        e: 0.0,
+        f: 0.0,
+    };
+
+    /// The map that moves every point by `x` across and `y` down.
+    pub fn moving(x: f64, y: f64) -> Map {
+        Map { e: x, f: y, ..Map::IDENTITY }
+    }
+
+    /// The map that applies `inner` first and then `self`.
+    pub fn then_after(self, inner: Map) -> Map {
+        Map {
+            a: self.a * inner.a + self.c * inner.b,
+            b: self.b * inner.a + self.d * inner.b,
+            c: self.a * inner.c + self.c * inner.d,
+            d: self.b * inner.c + self.d * inner.d,
+            e: self.a * inner.e + self.c * inner.f + self.e,
+            f: self.b * inner.e + self.d * inner.f + self.f,
+        }
+    }
+
+    /// Where the point `(x, y)` goes.
+    pub fn apply(self, x: f64, y: f64) -> (f64, f64) {
+        (self.a * x + self.c * y + self.e, self.b * x + self.d * y + self.f)
+    }
+
+    /// Whether the map leaves every point where it is.
+    pub fn is_identity(self) -> bool {
+        self == Map::IDENTITY
+    }
+
+    /// The whole pixels the map moves by, when it only moves, and by whole pixels; `None` for any other map.
+    pub fn whole_move(self) -> Option<(i64, i64)> {
+        let linear = self.a == 1.0 && self.b == 0.0 && self.c == 0.0 && self.d == 1.0;
+        let whole = |value: f64| (value.fract() == 0.0 && value.abs() <= 1.0e9).then_some(value as i64);
+        if !linear {
+            return None;
+        }
+        Some((whole(self.e)?, whole(self.f)?))
+    }
+
+    /// The absolute value of the determinant of the linear part: how much the map scales an area.
+    pub fn area_scale(self) -> f64 {
+        (self.a * self.d - self.b * self.c).abs()
+    }
+
+    /// Whether all six numbers are finite.
+    pub fn is_finite(self) -> bool {
+        [self.a, self.b, self.c, self.d, self.e, self.f].iter().all(|value| value.is_finite())
+    }
+}
+
+/// The marks of an element that moves, scales, turns, slants or fades, with its children (`docs/spec/render-command.md`,
+/// section 4.5): they are drawn with `map`, put after the map of any group around this one. With an `opacity` below 1 they
+/// are drawn into a layer of their own, which is laid over the picture with each value times the opacity; at 0 nothing is
+/// drawn. Only the pixels of `clip` change, a rectangle of the frame that is not mapped; `None` for the whole frame.
+#[derive(Clone, Debug)]
+pub struct Group {
+    pub map: Map,
+    pub opacity: f64,
+    pub clip: Option<Rect>,
+    pub marks: Vec<Mark>,
+}
+
+impl TextMark {
+    /// The paragraph moved by whole pixels, `across` to the right and `down` downward: its glyphs and pictures moved, its
+    /// clip, which is a rectangle of the frame, kept (`docs/spec/render-command.md`, section 4.5, rule 7).
+    pub fn moved(&self, across: i64, down: i64) -> TextMark {
+        if across == 0 && down == 0 {
+            return self.clone();
+        }
+        let (dx, dy) = (across as f32, down as f32);
+        TextMark {
+            runs: self
+                .runs
+                .iter()
+                .map(|run| GlyphRun {
+                    glyphs: run
+                        .glyphs
+                        .iter()
+                        .map(|glyph| Glyph {
+                            id: glyph.id,
+                            x: glyph.x + dx,
+                            y: glyph.y + dy,
+                        })
+                        .collect(),
+                    ..run.clone()
+                })
+                .collect(),
+            pictures: self
+                .pictures
+                .iter()
+                .map(|picture| GlyphPicture {
+                    x: picture.x + dx,
+                    y: picture.y + dy,
+                    ..picture.clone()
+                })
+                .collect(),
+            ..self.clone()
+        }
+    }
+}
+
+/// One mark of a frame: a drawing step, the glyph runs of a paragraph of text, or the marks of an element that moves. The
+/// marks are carried out in order, each over what is there.
 #[derive(Clone, Debug)]
 pub enum Mark {
     Step(Step),
     Text(TextMark),
+    Group(Group),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -135,28 +258,26 @@ impl Frame {
         }
     }
 
-    /// Whether the frame holds a paragraph of text.
+    /// Whether the frame holds a paragraph of text, or the marks of an element that moves.
     pub fn has_text(&self) -> bool {
-        self.marks.iter().any(|mark| matches!(mark, Mark::Text(_)))
+        self.marks.iter().any(|mark| !matches!(mark, Mark::Step(_)))
     }
 
-    /// The steps of the frame, when it holds no text; `None` for a frame with text.
+    /// The steps of the frame, when it holds only steps; `None` for a frame with text or with an element that moves.
     pub fn display_list(&self) -> Option<DisplayList> {
-        if self.has_text() {
-            return None;
-        }
+        let steps = self
+            .marks
+            .iter()
+            .map(|mark| match mark {
+                Mark::Step(step) => Some(*step),
+                Mark::Text(_) | Mark::Group(_) => None,
+            })
+            .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {
             width: self.width,
             height: self.height,
             background: self.background,
-            steps: self
-                .marks
-                .iter()
-                .filter_map(|mark| match mark {
-                    Mark::Step(step) => Some(*step),
-                    Mark::Text(_) => None,
-                })
-                .collect(),
+            steps,
         })
     }
 }

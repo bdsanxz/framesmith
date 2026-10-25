@@ -35,14 +35,14 @@ const TEXT_FORMS: [(&str, &str, &str); 6] = [
         "`margin=\"10%\"` on <span> is not a form this version supports",
     ),
     (
-        "tween-inside-text",
-        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></text>"##,
+        "tween-inside-span",
+        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">A<span>B<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></span></text>"##,
         "<tween> inside <text> is not supported by this version",
     ),
     (
         "set-inside-text",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB<set at="0" opacity="1"/></text>"##,
-        "<set> inside <text> is not supported by this version",
+        "<set> is not supported by this version, which moves an element with <tween> only",
     ),
     (
         "background-of-text",

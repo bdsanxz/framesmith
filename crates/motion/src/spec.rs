@@ -4,18 +4,31 @@ use crate::Ease;
 use serde::{Deserialize, Serialize};
 use timebase::Time;
 
-/// The five properties a tween can change, in the order used everywhere.
+/// The seven properties a tween can change, in the order used everywhere.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Prop {
     X,
     Y,
     Scale,
+    ScaleX,
     Rotation,
+    SkewY,
     Opacity,
 }
 
-pub const PROPS: [Prop; 5] = [Prop::X, Prop::Y, Prop::Scale, Prop::Rotation, Prop::Opacity];
+/// The number of properties.
+pub const PROP_COUNT: usize = 7;
+
+pub const PROPS: [Prop; PROP_COUNT] = [
+    Prop::X,
+    Prop::Y,
+    Prop::Scale,
+    Prop::ScaleX,
+    Prop::Rotation,
+    Prop::SkewY,
+    Prop::Opacity,
+];
 
 impl Prop {
     pub fn name(self) -> &'static str {
@@ -23,7 +36,9 @@ impl Prop {
             Prop::X => "x",
             Prop::Y => "y",
             Prop::Scale => "scale",
+            Prop::ScaleX => "scale-x",
             Prop::Rotation => "rotation",
+            Prop::SkewY => "skew-y",
             Prop::Opacity => "opacity",
         }
     }
@@ -39,14 +54,14 @@ impl Prop {
     /// The value the element has when no tween touches the property.
     pub fn own_value(self) -> f64 {
         match self {
-            Prop::X | Prop::Y | Prop::Rotation => 0.0,
-            Prop::Scale | Prop::Opacity => 1.0,
+            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY => 0.0,
+            Prop::Scale | Prop::ScaleX | Prop::Opacity => 1.0,
         }
     }
 }
 
 /// One optional value per property, indexed by `Prop::index`.
-pub type Values = [Option<f64>; 5];
+pub type Values = [Option<f64>; PROP_COUNT];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

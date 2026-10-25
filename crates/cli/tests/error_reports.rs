@@ -133,6 +133,21 @@ fn shown_problems() -> Vec<ShownProblem> {
         ),
         ("shown-too-deep", chain_files(17), Code::ShownTooDeep),
         (
+            "tween-no-duration",
+            vec![("composition.xml".to_string(), inside_root(r#"<box><tween to-x="5"/></box>"#))],
+            Code::TweenNoDuration,
+        ),
+        (
+            "tween-no-property",
+            vec![("composition.xml".to_string(), inside_root(r#"<box><tween duration="1"/></box>"#))],
+            Code::TweenNoProperty,
+        ),
+        (
+            "property-not-taken",
+            vec![("composition.xml".to_string(), inside_root(r#"<box><tween duration="1" to-count="5"/></box>"#))],
+            Code::PropertyNotTaken,
+        ),
+        (
             "shown-frame-rate",
             vec![
                 ("composition.xml".to_string(), at_30("inner.xml")),

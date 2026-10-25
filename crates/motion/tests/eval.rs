@@ -1,7 +1,7 @@
 use motion::*;
 use timebase::Time;
 
-const NO_VALUES: Values = [None; 5];
+const NO_VALUES: Values = [None; PROP_COUNT];
 
 fn values(list: &[(Prop, f64)]) -> Values {
     let mut values = NO_VALUES;
@@ -179,11 +179,11 @@ fn the_value_does_not_depend_on_evaluation_order() {
         ],
         30,
     );
-    let forward: Vec<[Option<f64>; 5]> = (0..120).map(|i| tl.elements[0].values(Time::of_frame(i, 30))).collect();
-    let mut backward: Vec<[Option<f64>; 5]> = (0..120).rev().map(|i| tl.elements[0].values(Time::of_frame(i, 30))).collect();
+    let forward: Vec<Values> = (0..120).map(|i| tl.elements[0].values(Time::of_frame(i, 30))).collect();
+    let mut backward: Vec<Values> = (0..120).rev().map(|i| tl.elements[0].values(Time::of_frame(i, 30))).collect();
     backward.reverse();
     assert_eq!(forward, backward);
-    let bits = |values: &[Option<f64>; 5]| values.map(|v| v.map(f64::to_bits));
+    let bits = |values: &Values| values.map(|v| v.map(f64::to_bits));
     for (a, b) in forward.iter().zip(&backward) {
         assert_eq!(bits(a), bits(b));
     }

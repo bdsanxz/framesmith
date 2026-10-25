@@ -1,6 +1,6 @@
 //! The pure evaluator: the value of every animated property at a time.
 
-use crate::{Ease, Kind, Prop, Tween, PROPS};
+use crate::{Ease, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use std::collections::BTreeMap;
 use timebase::Time;
 
@@ -27,6 +27,8 @@ impl Segment {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Track {
     prop: Prop,
+    /// The element's own value of the property: what it holds before and without a tween.
+    own: f64,
     /// Ordered by start time; tweens with the same start keep document order.
     segments: Vec<Segment>,
     /// Whether the first tween's starting value holds before it starts.
@@ -34,14 +36,14 @@ pub struct Track {
 }
 
 impl Track {
-    fn build(prop: Prop, tweens: &[&Tween], fps: u32) -> Track {
+    fn build(prop: Prop, own: f64, tweens: &[&Tween], fps: u32) -> Track {
         let mut ordered: Vec<(Time, &Tween)> = tweens.iter().map(|tween| (tween.at.snapped(fps), *tween)).collect();
         ordered.sort_by_key(|(at, _)| *at);
         let mut segments: Vec<Segment> = Vec::with_capacity(ordered.len());
         for (at, tween) in &ordered {
             let in_effect = match segments.last() {
                 Some(previous) => previous.value(*at),
-                None => prop.own_value(),
+                None => own,
             };
             let given_from = tween.from[prop.index()];
             let given_to = tween.to[prop.index()];
@@ -67,6 +69,7 @@ impl Track {
             .is_some_and(|(_, tween)| matches!(tween.kind, Kind::From | Kind::FromTo));
         Track {
             prop,
+            own,
             segments,
             holds_before,
         }
@@ -78,7 +81,7 @@ impl Track {
         match started {
             0 => match self.segments.first() {
                 Some(first) if self.holds_before => first.from,
-                _ => self.prop.own_value(),
+                _ => self.own,
             },
             n => self.segments[n - 1].value(t),
         }
@@ -91,17 +94,29 @@ pub struct ElementMotion {
     /// The caller's key for the element.
     pub element: usize,
     /// One track per property, indexed by `Prop::index`; `None` when no tween touches it.
-    pub tracks: [Option<Track>; 5],
+    pub tracks: [Option<Track>; PROP_COUNT],
 }
 
 impl ElementMotion {
     /// The value of each animated property at `t`; `None` for properties left alone.
-    pub fn values(&self, t: Time) -> [Option<f64>; 5] {
-        let mut values = [None; 5];
+    pub fn values(&self, t: Time) -> Values {
+        let mut values = [None; PROP_COUNT];
         for (slot, track) in values.iter_mut().zip(&self.tracks) {
             *slot = track.as_ref().map(|track| track.value(t));
         }
         values
+    }
+}
+
+impl ElementMotion {
+    /// The tracks of one element at `fps`, from its tweens in the order written and its own value of each property (the
+    /// value it holds before and without a tween), indexed by `Prop::index`.
+    pub fn build(element: usize, tweens: &[Tween], own: [f64; PROP_COUNT], fps: u32) -> ElementMotion {
+        let tracks = PROPS.map(|prop| {
+            let touching: Vec<&Tween> = tweens.iter().filter(|tween| tween.touches(prop)).collect();
+            (!touching.is_empty()).then(|| Track::build(prop, own[prop.index()], &touching, fps))
+        });
+        ElementMotion { element, tracks }
     }
 }
 
@@ -133,7 +148,7 @@ impl Timeline {
                 let tweens = &per_element[&element];
                 let tracks = PROPS.map(|prop| {
                     let touching: Vec<&Tween> = tweens.iter().copied().filter(|tween| tween.touches(prop)).collect();
-                    (!touching.is_empty()).then(|| Track::build(prop, &touching, fps))
+                    (!touching.is_empty()).then(|| Track::build(prop, prop.own_value(), &touching, fps))
                 });
                 ElementMotion { element, tracks }
             })

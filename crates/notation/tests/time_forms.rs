@@ -71,6 +71,10 @@ fn a_time_written_without_a_leading_digit_is_read() {
             "123456789.123456789",
             "000000001.5",
         ] {
+            // A tween's duration must be above 0 as well, which is a rule of its own (`FS-0058`), not of the form.
+            if place == "tween-duration" && value.trim().chars().all(|c| c == '0') {
+                continue;
+            }
             let text = with_time(place, value);
             assert!(read_root(text.as_bytes()).is_ok(), "{place}={value:?}: {:?}", problems_of(&text));
         }

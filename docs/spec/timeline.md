@@ -30,3 +30,9 @@ On every system, each checked-in picture (`fixtures/<name>/expected/frame-NNNN.p
 - The window of the canvas is the frames the element is drawn in: its start and duration by the frame-grid rule (`frame-time.md`), cut to the window of its parent. The shown file's own length cuts it further, so that a shorter file shows nothing after its end and a longer one is cut at the end of the clip. The origin of the shown file's elements is the exact start of the clip, as for a box that is a clip.
 - What the canvas draws outside its rectangle is cut off, and so is what lies outside the rectangle of any shown canvas that encloses it. The background of the shown file is not drawn.
 - The shown canvases, their windows and their rectangles are worked out once, with the scene, as the windows above are.
+
+## 5. Motion
+
+- The scene keeps, for each element that moves (`render-command.md` section 4.5), the tracks of its seven properties built by the `motion` crate from its tweens, at the frame rate of the root, with the times of the tweens counted in the parent's time; its own values; its origin in the frame; and the run of entries that are its own and its children's, which follow one another in document order.
+- The marks of a frame wrap the entries of an element in a group (`draw`, `Mark::Group`) when, at that frame's time, its map is not the identity or its opacity is not 1; a group in a group holds the map of the inner element alone, and the renderer puts the maps together. An element whose map is the identity and whose opacity is 1 at a frame gives the marks it gives when it does not move. A group is cut to the rectangle of the canvas it stands on, when that is shown from another file; its marks are then not cut again.
+- The fixtures of motion are `fixtures/motion-*`, each with its pictures at the chosen times (section 3, `render-command.md` section 9).
