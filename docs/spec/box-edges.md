@@ -60,7 +60,7 @@ A box that moves, scales, turns, slants or fades (`render-command.md` section 4.
 
 | Code | Kind | When |
 |---|---|---|
-| `FS-` (numbered at the rebase, W7) | invalid | A `border` in a form section 1 does not list. The message names the value and the forms `width colour` and `width double colour`. |
+| `FS-0067` | invalid | A `border` in a form section 1 does not list. The message names the value and the forms `width colour` and `width double colour`. |
 | `FS-0032` | invalid | A `border-radius` that is not a number. |
 | `FS-0034` | invalid | A `border-radius` below 0 (`notation.md` N6). |
 | `FS-0039` | invalid | An `overflow` that is not `visible` or `hidden`. |

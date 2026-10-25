@@ -809,7 +809,9 @@ A cross drawn from two bars, each drawn once:
 - **`border-radius`**: the corner radius in pixels. It rounds the background, the border, the shadow, a picture and footage and, with `overflow="hidden"`, the cut of the children.
 - **`border`**: a line (`width colour`) round the box, inside its edge. It does not change the box's size. `width double colour` draws two lines with a gap between them in the room one line of that width takes: the outer line, the gap and the inner line are each a third of the width. The word `double` stands between the width and the colour and no other word is taken there.
 - **`box-shadow`**: a shadow list, following the box's radius; the first listed is on top. The blur is counted as CSS counts it. A box with `clip-path` shows no `box-shadow`.
-- **`overflow`**: `hidden` cuts the element's children and its own content at the box.
+- **`overflow`**: `hidden` cuts the element's children and its own content at the box, inside its border, following the inner rounded corners.
+
+How a box draws its border, corners and cut, pixel by pixel, and the reports of a value in another form, are in `box-edges.md`. A border by side is S20 (section 14) and is reported as unsupported on the line of the attribute.
 - **`clip-path`**: `polygon(x% y%, x% y%, ...)`, three or more corners, each in percent of the box; it cuts the element and its children to the polygon.
 
 ### 7.6 Blur, brightness, torn edges, uneven ink and shadows that follow

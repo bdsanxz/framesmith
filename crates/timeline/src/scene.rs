@@ -903,8 +903,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
 
     entries_before.push(entries.len());
     // A box that cuts its children holds the run of entries of its subtree: the elements after it whose parents lie in it.
-    for index in 0..tree.len() {
-        let Some(first) = entry_at[index] else {
+    for (index, first) in entry_at.iter().enumerate() {
+        let Some(first) = *first else {
             continue;
         };
         if let Entry::Box(placed) = &mut entries[first] {

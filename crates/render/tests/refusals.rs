@@ -125,13 +125,13 @@ fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
 fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
     let reports = refused(
         "attributes",
-        "<box id=\"a\" border-radius=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" blur=\"0.5\"/>",
+        "<box id=\"a\" clip-path=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" blur=\"0.5\"/>",
     );
     // `x` moves the box (section 4.5) and is taken; `blur` is not drawn.
     assert_eq!(
         reports,
         vec![
-            "composition.xml 2 FS-0035 <box> has an attribute this version does not support: `border-radius`",
+            "composition.xml 2 FS-0035 <box> has an attribute this version does not support: `clip-path`",
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `box-shadow`",
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `blur`",
         ]
@@ -289,7 +289,7 @@ fn a_project_the_notation_does_not_accept_is_not_opened_so_nothing_is_drawn_from
 fn the_refusals_of_a_composition_come_in_the_order_of_its_lines() {
     let reports = refused(
         "order",
-        "<rect/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<image src=\"j.png\"/>\n</box>\n<image src=\"i.png\"/>",
+        "<rect/>\n<box left=\"abc\" clip-path=\"4\"/>\n<box>\n<image src=\"j.png\"/>\n</box>\n<image src=\"i.png\"/>",
     );
     let places: Vec<(String, String)> = reports
         .iter()
