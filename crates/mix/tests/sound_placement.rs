@@ -131,7 +131,7 @@ fn one_channel_is_heard_on_both_sides_3_db_lower() {
     })
     .unwrap();
     let all = read_all(mix);
-    let expected = 0.5 * 0.70710678_f32;
+    let expected = 0.5 * std::f32::consts::FRAC_1_SQRT_2;
     for frame in [0, 1, 24_000, 47_999] {
         assert!((all[frame * 2] - expected).abs() < 1e-6, "left at {frame}: {}", all[frame * 2]);
         assert!((all[frame * 2 + 1] - expected).abs() < 1e-6, "right at {frame}");

@@ -195,7 +195,7 @@ fn an_audio_in_a_composition_shown_from_another_file_is_refused_by_render() {
     let shown = b"<composition version=\"1\" width=\"64\" height=\"64\" fps=\"30\" duration=\"1\">\n<audio src=\"tone.wav\" start=\"0\" duration=\"1\"/>\n</composition>\n".to_vec();
     let runs = check_and_render(
         "in-shown-file",
-        "<composition src=\"part.xml\" start=\"0\" duration=\"1\" left=\"0\" top=\"0\" width=\"64\" height=\"64\"/>",
+        "<composition src=\"part.xml\" start=\"0\" duration=\"1\" left=\"0\" top=\"0\"/>",
         &[("part.xml", shown), ("tone.wav", a_good_wav())],
     );
     let (status, lines) = &runs[1];
