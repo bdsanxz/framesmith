@@ -62,3 +62,9 @@ fn reference_machine_only_the_card_agrees_with_the_processor_on_sets_in_order_wi
 fn reference_machine_only_the_card_agrees_with_the_processor_on_boxes_moved_by_eased_tweens() {
     the_card_agrees_with_the_processor("motion-eased");
 }
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_the_order_proof_s_composition() {
+    the_card_agrees_with_the_processor("frame-order");
+}
