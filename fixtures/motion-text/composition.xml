@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A text with a blurred shadow and an outline that moves, grows and turns about its top left corner over two seconds.
+     200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="motion-text" width="200" height="90" fps="10" duration="2" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="20" top="20" font-family="Framesmith Test Stroke" font-size="24" color="#202020" text-shadow="3px 3px 2px #2050c0" text-stroke="1px #d03020" transform-origin="0 0">HIIH<tween at="0" duration="2" to-x="60" to-y="10" to-scale="1.4" to-rotation="20"/></text>
+</composition>

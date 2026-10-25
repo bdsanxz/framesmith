@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A large text that moves, grows and turns for a whole minute, so that its glyphs are drawn under a new map in every
+     frame: the card's kept coverage for it must rise to its bound and hold level. 640 by 360 pixels, 30 frames a
+     second. -->
+<composition version="1" id="motion-text-a-minute" width="640" height="360" fps="30" duration="60" background="#101820">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="200" top="120" font-family="Framesmith Test Stroke" font-size="96" color="#f0d040">HIIH<tween at="0" duration="60" to-x="120" to-y="40" to-scale="1.8" to-rotation="1440"/></text>
+</composition>

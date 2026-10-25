@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A box moved 120 pixels to the right by a linear tween from 0.5 s to 1.5 s, held still before and after; a second box
+     beside it stays where it is. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="motion-box-across" width="200" height="90" fps="10" duration="2" background="#ffffff">
+  <box left="10" top="20" width="30" height="30" background="#d03020">
+    <tween at="0.5" duration="1" from-x="0" to-x="120"/>
+  </box>
+  <box left="10" top="60" width="30" height="20" background="#2050c0"/>
+</composition>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A box that turns a quarter about its middle, grows to one and a half times its size, wider still across, slants and
+     fades to half over two seconds, above a still box that shows through it. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="motion-box-turn-and-fade" width="200" height="90" fps="10" duration="2" background="#ffffff">
+  <box left="70" top="30" width="80" height="20" background="#30a060"/>
+  <box left="80" top="25" width="40" height="30" background="#d03020">
+    <tween at="0" duration="2" to-rotation="90" to-scale="1.5" to-scale-x="1.2" to-skew-y="15" to-opacity="0.5"/>
+  </box>
+</composition>

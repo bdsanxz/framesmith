@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A box holding two overlapping boxes and a text fades out as one over two seconds while it moves down: the boxes inside
+     do not show through each other. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="motion-group-fade" width="200" height="90" fps="10" duration="2" background="#f0f0f0">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <box left="20" top="10" width="160" height="50">
+    <box left="0" top="0" width="60" height="40" background="#d03020"/>
+    <box left="30" top="10" width="60" height="40" background="#2050c0"/>
+    <text left="100" top="10" font-family="Framesmith Test Stroke" font-size="20">HI</text>
+    <tween at="0" duration="2" from-opacity="1" to-opacity="0" to-y="30"/>
+  </box>
+</composition>
