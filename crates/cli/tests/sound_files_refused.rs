@@ -90,7 +90,45 @@ fn an_audio_with_no_duration_is_reported_with_its_line_its_file_and_the_reason()
         1,
     );
     assert!(line.starts_with("composition.xml, line 2: FS-0063: invalid:"), "{line}");
-    assert!(line.contains("`<audio>` needs a `duration` above 0"), "{line}");
+    assert!(line.contains("`<audio src=\"tone.wav\">` needs a `duration` above 0"), "{line}");
+}
+
+#[test]
+fn an_audio_with_a_duration_of_0_is_reported_with_its_file_and_the_value() {
+    let line = one_report(
+        &check_and_render(
+            "zero-duration",
+            "<audio src=\"tone.wav\" start=\"0\" duration=\"0\"/>",
+            &[("tone.wav", a_good_wav())],
+        ),
+        1,
+    );
+    assert!(line.starts_with("composition.xml, line 2: FS-0063: invalid:"), "{line}");
+    assert!(
+        line.contains("`<audio src=\"tone.wav\">` needs a `duration` above 0, the seconds the sound plays, not `duration=\"0\"`"),
+        "{line}"
+    );
+}
+
+#[test]
+fn an_audio_with_no_src_and_no_duration_gets_two_reports_on_its_line() {
+    let runs = check_and_render("no-src-no-duration", "<audio start=\"0\"/>", &[]);
+    for (status, lines) in &runs {
+        assert_eq!(*status, Some(1), "{lines:?}");
+        assert_eq!(lines.len(), 2, "{lines:?}");
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.starts_with("composition.xml, line 2: FS-0063: invalid: `<audio>` needs a `duration` above 0")),
+            "{lines:?}"
+        );
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.starts_with("composition.xml, line 2: FS-0064: invalid: `<audio>` needs the attribute `src`")),
+            "{lines:?}"
+        );
+    }
 }
 
 #[test]

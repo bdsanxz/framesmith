@@ -39,7 +39,7 @@ The judging is in two steps. What is found from the composition alone (no `src`,
 | What is wrong | Code | Kind | The message says |
 |---|---|---|---|
 | no `src` | `FS-0064` | invalid | `` `<audio>` needs the attribute `src`, the path of a sound file: from the project folder, or a path that begins with `/` `` |
-| no `duration`, or a `duration` of 0 | `FS-0063` | invalid | `` `<audio>` needs a `duration` above 0, the seconds the sound plays `` (with the value written, when there is one) |
+| no `duration`, or a `duration` of 0 | `FS-0063` | invalid | `` `<audio src="<as written>">` needs a `duration` above 0, the seconds the sound plays `` (with the value written, when there is one). An `<audio>` with no `src` has no file to name: it is named `` `<audio>` ``, and its missing `src` is reported on its own (`FS-0064`, the first row) |
 | the file is not there, or `src` names a folder | `FS-0064` | invalid | `` `src="<as written>"` names no file: a sound file, from the project folder or a path that begins with `/` `` |
 | the file is there and the machine does not give it (no permission) | `FS-0065` | failure | `` `src="<as written>"` could not be read: <the system's reason> `` |
 | the file is not sound of a kind frx7 reads, or a kind read in a form that is not (another number of channels, MP3 below 16,000 Hz) | `FS-0066` | unsupported | `` `src="<as written>"` is not sound this version reads: <frx7's reason>. The kinds read are wav, aiff, mp3 and aac-in-mp4 `` |

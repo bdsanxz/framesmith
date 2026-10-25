@@ -67,12 +67,17 @@ pub(crate) fn gather(project: &Project, tree: &[Node]) -> (Vec<Sound>, Vec<Fault
         let duration = node.attribute("duration");
         let length = duration.and_then(|attribute| attribute.time()).filter(|time| time.is_positive());
         if length.is_none() {
+            // The sound is named by its `src` as written; an `<audio>` with none is named as the element.
+            let named = match src {
+                Some(src) => format!("`<audio src=\"{src}\">`"),
+                None => "`<audio>`".to_string(),
+            };
             let message = match duration {
                 Some(attribute) => format!(
-                    "`<audio>` needs a `duration` above 0, the seconds the sound plays, not `duration=\"{}\"`",
+                    "{named} needs a `duration` above 0, the seconds the sound plays, not `duration=\"{}\"`",
                     attribute.shown()
                 ),
-                None => "`<audio>` needs a `duration` above 0, the seconds the sound plays".to_string(),
+                None => format!("{named} needs a `duration` above 0, the seconds the sound plays"),
             };
             faults.push(fault(Code::SoundNoDuration, message));
         }
