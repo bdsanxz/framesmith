@@ -241,7 +241,7 @@ fn the_messages_of_the_spec_are_the_messages_of_the_program() {
         "`width=\"10.5\"` is not a whole number",
         "`at=\"-1\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
         "<span> is not a known element here; a <span> stands directly in <text> or <span>",
-        "a <style> stands directly in the <composition>, not inside an element",
+        "<style> is not known inside <box>; a <style> stands only directly in the <composition>, never inside an element",
         "<box> is not known inside <text>; only <span>, <tween> and <set> are; a <box> stands directly in <composition>, <box> or <rect>",
         "<rect> has no attribute `colour`",
         "a <composition> inside a composition needs the attribute `src`; without one it stands only as the root of a file",

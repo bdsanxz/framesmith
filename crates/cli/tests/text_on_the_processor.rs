@@ -53,23 +53,24 @@ fn render_with_the_processor_draws_a_text_and_writes_its_film() {
     assert!(printed.contains("frames: 10"), "{printed}");
 }
 
+/// A name no font of the composition declares is looked up among the generic names and the fonts of the machine
+/// (`docs/spec/text.md`, sections 2.3 and 2.7): on macOS `sans-serif` is Helvetica, so the text is drawn and nothing is
+/// reported.
+#[cfg(target_os = "macos")]
 #[test]
-fn a_family_no_font_declares_is_reported_by_check_and_refused_by_render_with_its_line() {
+fn a_generic_family_no_font_declares_is_drawn_from_the_machine() {
     let text = fixture("text-colour-and-weight").replace(
         "font-family=\"Framesmith Test Stroke\" font-size=\"30\" font-weight=\"400\"",
         "font-family=\"sans-serif\" font-size=\"30\"",
     );
     let (project, cwd) = project_with_fonts("family-not-declared", &text);
     let checked = framesmith(&cwd, ["check", project.to_str().unwrap()], &[]);
-    assert_eq!(checked.status.code(), Some(2), "{}{}", out(&checked), err(&checked));
-    let printed = out(&checked);
-    assert!(printed.contains("line 7: FS-0035"), "{printed}");
-    assert!(printed.contains("no font of the composition is named sans-serif"), "{printed}");
+    assert_eq!(checked.status.code(), Some(0), "{}{}", out(&checked), err(&checked));
+    assert!(!out(&checked).contains("FS-"), "{}", out(&checked));
 
     let rendered = framesmith(&cwd, ["render", project.to_str().unwrap(), "--backend", "cpu"], &[]);
-    assert_eq!(rendered.status.code(), Some(2), "{}{}", out(&rendered), err(&rendered));
-    assert!(out(&rendered).contains("line 7: FS-0035"), "{}", out(&rendered));
-    assert!(!out(&rendered).contains("Rendered "), "{}", out(&rendered));
+    assert_eq!(rendered.status.code(), Some(0), "{}{}", out(&rendered), err(&rendered));
+    assert!(out(&rendered).contains("frames: 10"), "{}", out(&rendered));
 }
 
 #[test]

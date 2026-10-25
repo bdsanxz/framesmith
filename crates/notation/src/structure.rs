@@ -289,7 +289,12 @@ fn unknown(written: &str, parent: Element) -> String {
 fn misplaced(kind: Element, parent: Element) -> String {
     let parents = kind.parents();
     if parents == [Element::Composition] {
-        return format!("{} stands directly in the <composition>, not inside an element", with_article(kind));
+        return format!(
+            "{} is not known inside {}; {} stands only directly in the <composition>, never inside an element",
+            kind.tag(),
+            parent.tag(),
+            with_article(kind)
+        );
     }
     let holds = if parent.children().is_empty() {
         format!("{} holds no element", parent.tag())

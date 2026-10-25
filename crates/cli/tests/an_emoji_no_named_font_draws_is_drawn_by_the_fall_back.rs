@@ -1,6 +1,7 @@
-//! An emoji in a text that no font of the composition draws is refused by `check` and by `render` on every machine, with
-//! the line of the `<text>` (`docs/spec/text.md`, section 12.4). The composition names the test font, which is a file of
-//! the repository and draws no emoji, so the test runs without the machine's fonts.
+//! An emoji in a text that no font of the composition draws is drawn by the fall-back of `docs/spec/text.md`, section
+//! 2.4: on macOS `check` accepts it and `render` writes the film; where the fonts of the machine are not read, it is
+//! drawn as the missing-character mark and `check` prints a note with the line of the `<text>`. The composition names
+//! the test font, which is a file of the repository and draws no emoji.
 
 mod common;
 
@@ -12,7 +13,7 @@ use common::framesmith;
 use common::out;
 use common::project as make;
 
-const GROUP: &str = "an-emoji-no-named-font-draws-is-refused";
+const GROUP: &str = "an-emoji-no-named-font-draws-falls-back";
 
 /// The composition: the emoji is on line 3, in a text set in the test font.
 fn composition() -> String {
@@ -48,22 +49,27 @@ fn project_with_test_font(name: &str) -> (std::path::PathBuf, std::path::PathBuf
 }
 
 #[test]
-fn check_refuses_an_emoji_that_no_named_font_draws_with_its_line() {
+fn check_accepts_an_emoji_that_no_named_font_draws() {
     let (project, cwd) = project_with_test_font("check");
     let checked = framesmith(&cwd, ["check", project.to_str().unwrap()], &[]);
-    assert_eq!(checked.status.code(), Some(2), "{}{}", out(&checked), err(&checked));
+    assert_eq!(checked.status.code(), Some(0), "{}{}", out(&checked), err(&checked));
     let printed = out(&checked);
-    assert!(printed.contains("line 3: FS-0035"), "{printed}");
-    assert!(printed.contains("is in none of the fonts named"), "{printed}");
+    assert!(!printed.contains("FS-"), "{printed}");
+    if cfg!(target_os = "macos") {
+        assert!(!printed.contains("note:"), "{printed}");
+    } else {
+        assert!(
+            printed.contains("note: composition.xml, line 3: <text> holds the character U+1F600"),
+            "{printed}"
+        );
+    }
 }
 
 #[test]
-fn render_refuses_an_emoji_that_no_named_font_draws_before_any_frame() {
+fn render_draws_an_emoji_that_no_named_font_draws_and_writes_the_film() {
     let (project, cwd) = project_with_test_font("render");
     let rendered = framesmith(&cwd, ["render", project.to_str().unwrap(), "--backend", "cpu"], &[]);
-    assert_eq!(rendered.status.code(), Some(2), "{}{}", out(&rendered), err(&rendered));
-    let printed = out(&rendered);
-    assert!(printed.contains("line 3: FS-0035"), "{printed}");
-    assert!(!printed.contains("Rendered "), "{printed}");
-    assert!(!has_a_film(&project), "no film is written");
+    assert_eq!(rendered.status.code(), Some(0), "{}{}", out(&rendered), err(&rendered));
+    assert!(!out(&rendered).contains("FS-"), "{}", out(&rendered));
+    assert!(has_a_film(&project), "the film is written");
 }

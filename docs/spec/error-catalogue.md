@@ -96,7 +96,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0048` | failure | A composition shown by `<composition src>` is in the project folder and could not be read. | Make the shown composition file readable by this user, then run the command again. |
 | `FS-0049` | invalid | A font file that `<font src>` names does not exist, at the path it gives from the project folder or, when it begins with `/`, on the machine. | Give the path of a font file that exists, from the project folder or a path that begins with `/`, or put the file there. |
 | `FS-0050` | failure | A font file that `<font src>` names exists and could not be read. | Make the font file readable by this user, then run the command again. |
-| `FS-0051` | invalid | A file that `<font src>` names is not a font of a kind this version reads, which is TrueType (`.ttf`). | Give in `src` the path of a TrueType font file (`.ttf`) or a font collection file (`.ttc`). |
+| `FS-0051` | invalid | A file that `<font src>` names is not a font of a kind this version reads, which are TrueType (`.ttf`) and font collections (`.ttc`). | Give in `src` the path of a TrueType font file (`.ttf`) or a font collection file (`.ttc`). |
 | `FS-0052` | invalid | A text attribute's value is not in the form the notation gives for it. | Write the value in the form the message names. |
 | `FS-0053` | invalid | A length or size that must be above 0 is 0 or below. | Write the value as a number above 0, or leave the attribute out for its default. |
 | `FS-0054` | invalid | A `columns` of a `<box>` is not a list of column widths: each a number of pixels above 0, or a share such as `1fr`. | Write the widths as numbers of pixels, such as 640, or as shares, such as 1fr, separated by spaces. |

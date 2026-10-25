@@ -5,7 +5,7 @@
 mod common;
 
 use common::{font_file, fonts, style};
-use text::{layout, layout_pieces, Align, Block, LineHeight, Piece, PositionedGlyph, Style, TextError};
+use text::{layout, layout_pieces, Align, Block, LineHeight, Piece, PositionedGlyph, Style};
 
 const BLACK: [u8; 4] = [0, 0, 0, 255];
 const RED: [u8; 4] = [0xc0, 0x20, 0x20, 255];
@@ -176,10 +176,10 @@ fn an_edge_of_a_piece_is_not_a_place_where_a_line_breaks() {
 }
 
 #[test]
-fn a_family_no_font_declares_in_one_piece_is_an_error_that_names_it() {
+fn an_absent_family_in_one_piece_is_passed_over_for_the_next_of_its_list() {
     let mut fonts = fonts();
     let mut named = style(30.0);
-    named.families = vec!["Nowhere".to_string()];
+    named.families = vec!["Nowhere".to_string(), common::FAMILY.to_string()];
     let pieces = [
         words("AB", 30.0, BLACK),
         Piece::Words {
@@ -188,20 +188,20 @@ fn a_family_no_font_declares_in_one_piece_is_an_error_that_names_it() {
             colour: BLACK,
         },
     ];
-    match layout_pieces(&mut fonts, &pieces, Align::Left, None) {
-        Err(TextError::UnknownFamily(name)) => assert_eq!(name, "Nowhere"),
-        other => panic!("expected an unknown family, got {other:?}"),
-    }
+    let block = layout_pieces(&mut fonts, &pieces, Align::Left, None).unwrap();
+    let plain = layout_pieces(&mut fonts, &[words("ABCD", 30.0, BLACK)], Align::Left, None).unwrap();
+    assert_eq!(block.width, plain.width);
+    assert_eq!(block.missing, None);
 }
 
 #[test]
-fn a_character_the_font_lacks_in_one_piece_is_an_error_that_names_it() {
+fn a_character_no_font_maps_in_one_piece_is_named_by_the_block() {
+    // U+0378 is not assigned in Unicode, so neither the test font nor any font of the machine maps it: it is drawn as the
+    // missing-character mark, and the block names it (`docs/spec/text.md`, section 2.4, point 3).
     let mut fonts = fonts();
-    let pieces = [words("AB", 30.0, BLACK), words("\u{00c9}", 30.0, RED)];
-    match layout_pieces(&mut fonts, &pieces, Align::Left, None) {
-        Err(TextError::MissingCharacter(character)) => assert_eq!(character, '\u{00c9}'),
-        other => panic!("expected a missing character, got {other:?}"),
-    }
+    let pieces = [words("AB", 30.0, BLACK), words("\u{0378}", 30.0, RED)];
+    let block = layout_pieces(&mut fonts, &pieces, Align::Left, None).unwrap();
+    assert_eq!(block.missing, Some('\u{0378}'));
 }
 
 #[test]

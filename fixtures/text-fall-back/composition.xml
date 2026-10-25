@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One text in the test font, which draws capitals only. The É is drawn from the machine's Helvetica and the Thai letter
+     from Arial Unicode MS, by the fall-back order of the text spec; the H and I are drawn from the test font. Reads the
+     machine's fonts, so it is judged on macOS only. 260 by 60 pixels, 10 frames a second. -->
+<composition version="1" id="text-fall-back" width="260" height="60" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="10" font-family="Framesmith Test Stroke" font-size="30" color="#000000">HÉI ก H</text>
+</composition>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two texts whose font-family is a list. The first names a family that is absent, then the test font, so it is drawn
+     with the test font. The second names the test font first, then Helvetica, so it is drawn with the test font and the
+     second name is not used. 200 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="text-family-list" width="200" height="90" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="8" font-family="No Such Family, Framesmith Test Stroke" font-size="30" color="#c02020">HIIH</text>
+  <text left="10" top="48" font-family="Framesmith Test Stroke, Helvetica" font-size="30" color="#2050c0">HIIH</text>
+</composition>

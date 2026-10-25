@@ -88,7 +88,7 @@ fn an_element_in_a_place_it_may_not_stand_is_reported_with_its_line_and_the_plac
             report(
                 "composition.xml, line 3",
                 Code::ElementNotHere,
-                "a <style> stands directly in the <composition>, not inside an element"
+                "<style> is not known inside <box>; a <style> stands only directly in the <composition>, never inside an element"
             ),
             report(
                 "composition.xml, line 6",

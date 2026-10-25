@@ -61,3 +61,20 @@ fn a_file_of_no_font_kind_is_reported_with_its_file_and_the_kinds_taken() {
     );
     assert!(line.contains(KINDS_TAKEN), "{line}");
 }
+
+#[test]
+fn a_font_file_fault_is_reported_once_and_the_text_of_its_family_is_not_reported_again() {
+    for (name, src, bytes) in [
+        ("once-not-a-font", "fonts/notes.txt", b"These bytes are not a font.\n".to_vec()),
+        ("once-woff2", "fonts/f.ttf", {
+            let mut font = test_font();
+            font[..4].copy_from_slice(b"wOF2");
+            font
+        }),
+    ] {
+        let (check, render) = check_and_render("font-file-kinds", name, &composition(src), &[(src, bytes)]);
+        assert_eq!(check.lines.len(), 1, "one report, on the <font> line: {}", check.printed);
+        assert_eq!(render.lines.len(), 1, "one report, on the <font> line: {}", render.printed);
+        assert!(check.lines[0].starts_with("composition.xml, line 2: "), "{}", check.lines[0]);
+    }
+}

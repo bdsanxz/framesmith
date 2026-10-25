@@ -34,6 +34,38 @@ fn glyphs(ids: &[u32], first_x: f32, y: f32, advance: f32) -> Vec<Glyph> {
         .collect()
 }
 
+/// A frame of one run of glyphs of the first face of the machine's Helvetica, the face the fall-back of
+/// `docs/spec/text.md`, section 2.4, draws a character the named font lacks with.
+fn frame_of_a_machine_face(font: Arc<Vec<u8>>) -> Frame {
+    let run = GlyphRun {
+        font: Font { data: font, index: 0 },
+        size: 36.0,
+        skew_degrees: 0.0,
+        colour: Colour {
+            red: 250,
+            green: 250,
+            blue: 250,
+        },
+        glyphs: glyphs(&[36, 37, 38, 100, 140, 180], 8.4, 52.3, 24.0),
+    };
+    Frame {
+        width: 160,
+        height: 80,
+        background: Colour {
+            red: 10,
+            green: 20,
+            blue: 30,
+        },
+        marks: vec![Mark::Text(TextMark {
+            runs: vec![run],
+            pictures: Vec::new(),
+            clip: None,
+            shadows: Vec::new(),
+            outline: None,
+        })],
+    }
+}
+
 /// A frame of a background, a fill under the text, two runs in a clipped paragraph, a run without a clip that
 /// lies over the first, and a fill drawn over the text.
 fn frame_of_text(font: &Arc<Vec<u8>>) -> Frame {
@@ -145,6 +177,41 @@ fn measured(picture: &Picture) -> measure::Frame {
             .flat_map(|pixel| [pixel[0], pixel[1], pixel[2]])
             .collect(),
     }
+}
+
+/// Asserts that the card's picture agrees with the processor's within the tolerance of section 4.
+fn agrees(processor: &Picture, card: &Picture) {
+    let similarity = measure::similarity(&measured(processor), &measured(card));
+    let further_apart: u64 = processor
+        .pixels()
+        .chunks(4)
+        .zip(card.pixels().chunks(4))
+        .map(|(a, b)| a[..3].iter().zip(&b[..3]).filter(|&(x, y)| x.abs_diff(*y) > 4).count() as u64)
+        .sum();
+    let values = u64::from(processor.width()) * u64::from(processor.height()) * 3;
+    assert!(
+        matches!(similarity, Some(value) if value >= LEAST_SIMILARITY),
+        "similarity {similarity:?} is below {LEAST_SIMILARITY}"
+    );
+    assert!(
+        further_apart * ONE_IN <= values,
+        "{further_apart} of {values} values are further apart than 4 levels, above 0.05 %"
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_glyphs_of_a_machine_face_agree_with_the_processor() {
+    let collection = fs::read("/System/Library/Fonts/Helvetica.ttc").unwrap();
+    let font = Arc::new(text::one_face(collection, 0).expect("the first face of Helvetica"));
+    let frame = frame_of_a_machine_face(font);
+    let processor = CpuRenderer.draw_frame(&frame).unwrap();
+    let card = CardRenderer::new().unwrap().draw_frame(&frame).unwrap();
+    let background = processor.pixel(0, 79).unwrap();
+    let ink = processor.pixels().chunks(4).filter(|pixel| pixel[..3] != background[..3]).count();
+    assert!(ink > 300, "the frame draws too little text to test anything: {ink} pixels");
+    agrees(&processor, &card);
 }
 
 #[test]

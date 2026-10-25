@@ -265,9 +265,21 @@ enum Reply {
 fn check(path: PathBuf) -> Reply {
     match Project::open(&path) {
         Ok(project) => {
-            let reports = render::place_reports(&project);
+            let (reports, notes) = render::place_reports_and_notes(&project);
+            if !notes.is_empty() {
+                tracing::debug!(notes = notes.len(), "notes");
+            }
             if !reports.is_empty() {
-                return reports_reply(&reports);
+                // The notes are printed before the closing line (`docs/spec/check-command.md`, section 1).
+                return match reports_reply(&reports) {
+                    Reply::Printed(mut lines, code, outcome) => {
+                        let closing = lines.pop();
+                        lines.extend(notes);
+                        lines.extend(closing);
+                        Reply::Printed(lines, code, outcome)
+                    }
+                    other => other,
+                };
             }
             let root = project.root();
             let frames = if root.frames == 1 {
@@ -275,14 +287,12 @@ fn check(path: PathBuf) -> Reply {
             } else {
                 format!("{} frames", root.frames)
             };
-            Reply::Printed(
-                vec![format!(
-                    "Ready: the project is valid, {frames}, {}x{}, {} fps",
-                    root.width, root.height, root.fps
-                )],
-                EXIT_OK,
-                Outcome::Ready,
-            )
+            let mut lines = notes;
+            lines.push(format!(
+                "Ready: the project is valid, {frames}, {}x{}, {} fps",
+                root.width, root.height, root.fps
+            ));
+            Reply::Printed(lines, EXIT_OK, Outcome::Ready)
         }
         Err(error) => not_opened(error),
     }

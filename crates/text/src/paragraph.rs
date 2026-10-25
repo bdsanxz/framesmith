@@ -85,6 +85,9 @@ pub struct Block {
     pub pictures: Vec<PositionedPicture>,
     /// The lines in order, from the top of the block.
     pub lines: Vec<Line>,
+    /// The first character of the block that no family of its list and no family of the machine maps, drawn as the
+    /// missing-character mark (`docs/spec/text.md`, section 2.4, point 3), if there is one.
+    pub missing: Option<char>,
 }
 
 /// A colour picture of an emoji on a block (`docs/spec/text.md`, section 12.4): its size in pixels, its premultiplied RGBA8
@@ -111,9 +114,10 @@ pub struct Line {
 /// Why a paragraph cannot be laid out.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TextError {
-    /// A family the paragraph names has no face in the collection.
-    UnknownFamily(String),
-    /// A character that none of the listed families has (`docs/spec/text.md`, section 2.4).
+    /// No name of a `font-family` list is a family of the composition, on a system whose fonts are not read
+    /// (`docs/spec/text.md`, section 2.3).
+    NoFamily,
+    /// A character drawn from a face that is not one of its families: the engine's own choice, which is never drawn.
     MissingCharacter(char),
     /// Room of a span (its margin or its padding) in a paragraph with no character to hold it (`docs/spec/text.md`,
     /// section 6.5, rule 9).
@@ -132,7 +136,10 @@ pub enum TextError {
 impl fmt::Display for TextError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TextError::UnknownFamily(name) => write!(f, "no font of the composition is named {name}"),
+            TextError::NoFamily => write!(
+                f,
+                "no family of `font-family` is a font of the composition, and this version reads the fonts of the machine on macOS only"
+            ),
             TextError::MissingCharacter(character) => {
                 write!(f, "the character {character:?} is in none of the fonts named")
             }
@@ -223,16 +230,14 @@ pub fn layout_fitted_pieces(fonts: &mut Fonts, pieces: &[Piece], align: Align, m
 }
 
 fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>, sizing: Sizing) -> Result<Block, TextError> {
-    for piece in pieces {
+    // Each name of a list as the family the engine knows, with the absent names left out (section 2.3).
+    let mut pieces: Vec<Piece> = pieces.to_vec();
+    for piece in pieces.iter_mut() {
         if let Piece::Words { style, .. } = piece {
-            for family in &style.families {
-                if !fonts.has_family(family) {
-                    return Err(TextError::UnknownFamily(family.clone()));
-                }
-            }
+            style.families = fonts.families_of(&style.families)?;
         }
     }
-    let plain = plain(pieces);
+    let plain = plain(&pieces);
     if plain.text.is_empty() {
         if plain.unplaced > 0.0 {
             return Err(TextError::RoomWithoutWords);
@@ -247,9 +252,36 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             runs: Vec::new(),
             pictures: Vec::new(),
             lines: Vec::new(),
+            missing: None,
         });
     }
-    let flat = carry(fonts, pieces, plain)?;
+    let flat = carry(fonts, &pieces, plain)?;
+    // A character that no family of its list maps is drawn by the family of the machine that the fall-back gives it, which
+    // joins the end of its list; one that no family of the machine maps either is drawn as the missing-character mark of
+    // the first family of its list (section 2.4).
+    let mut unmapped: Vec<char> = Vec::new();
+    for (byte, character) in flat.text.char_indices() {
+        if character.is_control() || character == JOINER || flat.carriers.contains(&byte) {
+            continue;
+        }
+        let Piece::Words { style, .. } = &pieces[flat.owner[byte]] else {
+            continue;
+        };
+        if fonts.families_map(&style.families, character) || unmapped.contains(&character) {
+            continue;
+        }
+        match fonts.fall_back(character) {
+            Some(family) => {
+                if let Piece::Words { style, .. } = &mut pieces[flat.owner[byte]] {
+                    if !style.families.contains(&family) {
+                        style.families.push(family);
+                    }
+                }
+            }
+            None => unmapped.push(character),
+        }
+    }
+    let pieces = &pieces[..];
     // The faces each piece may draw from: those of its own families, by blob and index in the file, so that a face of
     // a collection that is not drawn is never matched.
     let listed: Vec<Vec<(u64, u32)>> = pieces
@@ -270,6 +302,7 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
         faces,
         codecs,
         pictures: cache,
+        ..
     } = fonts;
     let mut builder = layouts.ranged_builder(context, &flat.text, 1.0, true);
     // The base direction is left to right for every script (`docs/spec/text.md`, section 12.2, rule 2). Parley would
@@ -324,8 +357,9 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             for cluster in run.clusters() {
                 let start = cluster.text_range().start;
                 let from_listed = listed[flat.owner[start]].contains(&key);
-                if !from_listed || cluster.glyphs().any(|glyph| glyph.id == 0) {
-                    let character = flat.text[cluster.text_range()].chars().next().unwrap_or('\u{fffd}');
+                let character = flat.text[cluster.text_range()].chars().next().unwrap_or('\u{fffd}');
+                // A character no font maps is drawn as glyph 0 of the first family of its list (section 2.4, point 3).
+                if !from_listed || (cluster.glyphs().any(|glyph| glyph.id == 0) && !unmapped.contains(&character)) {
                     return Err(TextError::MissingCharacter(character));
                 }
             }
@@ -436,6 +470,7 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
         runs,
         pictures: placed_pictures,
         lines,
+        missing: unmapped.first().copied(),
     })
 }
 

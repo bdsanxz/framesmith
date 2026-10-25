@@ -205,7 +205,7 @@ fn an_element_in_a_place_it_may_not_stand_is_reported_with_its_line_and_the_plac
         assert_eq!(
             problems[0].message(),
             format!(
-                "{} <{element}> stands directly in the <composition>, not inside an element",
+                "<{element}> is not known inside <box>; {} <{element}> stands only directly in the <composition>, never inside an element",
                 if element == "audio" { "an" } else { "a" }
             )
         );

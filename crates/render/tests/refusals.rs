@@ -82,12 +82,18 @@ fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_
     );
     // A box inside a box is drawn (section 4.1), so it is not refused.
     assert_eq!(refused("box-in-box", "<box>\n<box/>\n</box>"), Vec::<String>::new());
-    // A text that names no font of the composition is refused for its family, once; the span inside it is not looked
-    // into, since the text is not drawn. A span inside a text that is drawn is refused in `text_frame_marks.rs`.
-    assert_eq!(
-        only("inside-reported", "<text>words <span color=\"#ffffff\">x</span></text>"),
-        "composition.xml 2 FS-0035 <text> is not drawn by this version: no font of the composition is named sans-serif"
-    );
+    // A text whose names are all absent is drawn with Helvetica on macOS (`docs/spec/text.md`, section 2.3), so it is
+    // not refused there; elsewhere it is refused for its family, once, and the span inside it is not looked into. A span
+    // inside a text that is drawn is refused in `text_frame_marks.rs`.
+    let reports = refused("inside-reported", "<text>words <span color=\"#ffffff\">x</span></text>");
+    if cfg!(target_os = "macos") {
+        assert_eq!(reports, Vec::<String>::new());
+    } else {
+        assert_eq!(
+            reports,
+            ["composition.xml 2 FS-0035 <text> is not drawn by this version: no family of `font-family` is a font of the composition, and this version reads the fonts of the machine on macOS only"]
+        );
+    }
     // A rect inside a box is reported once; the box inside that rect is not looked into.
     let reports = refused("inside-inside", "<box>\n<rect>\n<box/>\n</rect>\n</box>");
     assert_eq!(reports.len(), 1, "{reports:#?}");

@@ -1,6 +1,6 @@
 # Text: paragraphs, fonts and their drawing
 
-Status: v1, Sprint 1, T046 parts 2 (processor) and 3 (card, order t046g), T048 (the scripts of section 12, order t048; the emoji of section 12.4 and the font collections of section 2.6, order t048e), T049 (the spans of section 6.5, order t049), and T050 (the attributes of section 6.6, order t050), and T051 (the font files of a project, section 2.1, order t051; decision B28 for the damaged file). Owner of the rules: the maintainer, under `CLAUDE.md` section 1 (a composition is plain files; animation and drawing are ours) and `PLAN.md` section 3 (the crate `text`, and the two drawing renderers). The notation's rules for text are `docs/spec/notation.md`, sections 6.4, 6.5, 6.12, 7.3, N1, N2, N6, Q5 and the messages of section 13; where this file says a rule is ours, it is stated as such.
+Status: v1, Sprint 1, T046 parts 2 (processor) and 3 (card, order t046g), T048 (the scripts of section 12, order t048; the emoji of section 12.4 and the font collections of section 2.6, order t048e), T049 (the spans of section 6.5, order t049), and T050 (the attributes of section 6.6, order t050), and T051 (the font files of a project, section 2.1, order t051; decision B28 for the damaged file), and T052 (the family list, the fonts of the machine and the character no font maps, sections 2.3, 2.4 and 2.7, order t052; decision A9). Owner of the rules: the maintainer, under `CLAUDE.md` section 1 (a composition is plain files; animation and drawing are ours) and `PLAN.md` section 3 (the crate `text`, and the two drawing renderers). The notation's rules for text are `docs/spec/notation.md`, sections 6.4, 6.5, 6.12, 7.3, N1, N2, N6, Q5 and the messages of section 13; where this file says a rule is ours, it is stated as such.
 
 ## 1. What this version draws
 
@@ -14,8 +14,8 @@ A `<text>` is one paragraph. Its words, and those of the `<span>`s inside it (se
 
 Not in this version, and reported by `framesmith check` and refused by `framesmith render` before the first frame, with the element's line (FS-0035, or FS-0056 where a bullet names it):
 
-- a family that no `<font>` of the composition declares, including the default `sans-serif`, `serif`, `monospace` and every family of the machine (section 2.3);
-- a character that none of the declared families of the list has (section 2.4); a glyph of a colour picture that section 12.4 does not draw is refused with FS-0056 instead, on the line of its `<text>`;
+- on a system other than macOS, a text none of whose families is a font of the composition (section 2.3);
+- a glyph of a colour picture that section 12.4 does not draw, refused with FS-0056, on the line of its `<text>`;
 - a font file that is not a TrueType font, such as an OpenType font with PostScript outlines or a WOFF2 file (section 2.1), and a font collection that section 2.6 does not read;
 - a `<span>` attribute that section 6.5 does not draw, a `direction` attribute (S21 of the notation), and a text attribute beyond those of section 6.4 that this version draws (section 6.4 below);
 - a `<span>` with a margin or a padding in a `<text>` that has no word, or only white space (section 6.5, rule 9), reported on the line of the `<text>`;
@@ -38,13 +38,33 @@ Source: notation 6.12 (`family` default: the name inside the file); the OpenType
 
 ### 2.3 The family list of `font-family`
 
-The value is a list of family names separated by commas, tried in order (notation N1). Every name in the list must be the family of a `<font>` of the composition in this version. A name that is a family of the machine, or the generic `sans-serif`, `serif` or `monospace`, is unsupported; the text refuses with the element's line. An empty entry (`A,,B`) and an empty value are reported as the notation's section 13 states. A text with no `font-family` has the default `sans-serif` and so is unsupported until a `<font>` is named for it.
+The value is a list of family names separated by commas, tried in order (notation N1). A name with spaces is written as it is (`Arial Unicode MS`) or in single quotes (`'Arial Unicode MS'`); the quotes are not part of the name, and white space at either end of an entry is not either. An empty entry (`A,,B`) and an empty value are reported as the notation's section 13 states. A text with no `font-family` has the default `sans-serif`.
 
-The reason is not a taste. The rule that draws from the machine's fonts (N2, section 14 of the notation) needs the machine's font interfaces, which are the work of T048 and T052 through frx7's system crates. Until then a family of the machine would be drawn by a font we cannot name, so the text is refused rather than drawn wrong (`CLAUDE.md` section 2: never render a wrong video silently).
+Each name of the list is looked up in this order, and the first that matches is the family it names:
+
+1. **A family of the composition:** the family of a `<font>` of the composition (section 2.2), matched exactly, case included.
+2. **A generic family:** `sans-serif`, `serif` and `monospace`, matched exactly, name the families of the machine `Helvetica`, `Times` and `Menlo` (section 2.7).
+3. **A family of the machine:** a family of the machine's fonts of section 2.7, matched without regard to the case of the letters A to Z.
+
+A name that none of them matches is **absent**: it is left out of the list, and the next name is tried, as if it were not written. So a text whose first family is absent is drawn with the second, and one whose first family is present is drawn with the first. A family whose `<font>` is reported (sections 2.1 and 2.6) is absent too: its fault is reported once, on the line of its `<font>`, and the `<text>` that names it is not reported again.
+
+On macOS a text whose names are all absent is drawn as section 2.4 says for a character that no family of its list maps. On every other system the fonts of the machine are not read in this version (section 2.7), so a text none of whose names is a family of the composition has no font: it is unsupported (FS-0035), on the line of the `<text>`, with the message ``<text> is not drawn by this version: no family of `font-family` is a font of the composition, and this version reads the fonts of the machine on macOS only``.
 
 ### 2.4 Characters
 
-Each character of the text, after the white-space rule of section 5.1, is drawn by the first family of the list that has it (N1). A character that none of the listed families maps is unsupported in this version, for the same reason as section 2.3: N2 would draw it from a font of the machine. The test font maps the printable ASCII characters U+0020 to U+007E and no other (test-font.md, section 2); a text in a fixture that uses the test font uses those characters only. The scripts of section 12 are written in a font the composition declares that maps them, which for those fixtures is a font of the machine named by its path (section 12.1).
+Each character of the text, after the white-space rule of section 5.1 and the upper case of section 6.6, is drawn by the first family of its list (section 2.3, with the absent names left out) that maps it (N1). A family maps a character when one of its faces does: its `cmap` table gives the character a glyph other than glyph 0. For a face of colour pictures this is the same test; a glyph it maps that has no picture this version draws is refused as section 12.4, point 9, says.
+
+A character that no family of the list maps is drawn by the **fall-back** of the machine (N2; decision A9), on macOS:
+
+1. **The order.** The families of the machine are tried in this order: `Helvetica`, then `Arial Unicode MS`, then `Apple Color Emoji`, then every other family of the machine in the order section 2.7 reads its faces, each family at the place of its first face. The character is drawn by the first family that maps it. That family is added to the end of the list of the words that hold the character, so the characters the listed families map are still drawn by them.
+2. **The face.** The face of that family is chosen by the weight and the style of the words, as for any family (sections 3.2 and 3.3).
+3. **No family maps it.** A character that no family of the list and no family of the machine maps is drawn as the **missing-character mark**: glyph 0 of the first family of its list, or of `Helvetica` when every name of the list is absent. `check` prints a note for each such `<text>`, on its line (`check-command.md`, section 1): ``note: composition.xml, line 3: <text> holds the character U+0378, which no font of its list and no font of the machine maps: it is drawn as the missing-character mark. No rule names a font for it in this version, since the stand-in fonts are chosen in Sprint 5``. A text with several such characters has one note, which names the first. The note does not change the exit code, and `render` draws the text.
+
+On every other system the machine's fonts are not read (section 2.7): a character that no family of the list maps is drawn as the missing-character mark of the first family of its list, and has the note of point 3.
+
+**Why the font is ours to state.** The draft of N2 left the font of a missing character to the machine's own choice. That choice is made by interfaces of the system that Framesmith does not call, and it can change with the system's version, the language of the user and the fonts installed since. This version states the choice instead: the folders, the order of the files, the generic families and the order of the fall-back of section 2.7 and of this section are ours. Within one machine and one set of installed fonts the same composition therefore gives the same picture on every run. It is still a font of the machine, so a picture that draws one may differ from one machine to another: that is the known gap of decision A9, until the stand-in fonts of Sprint 5. A text that draws only from the families of the composition, as every fixture written with the test font made by us does (decision A8), does not depend on the machine.
+
+The test font maps the printable ASCII characters U+0020 to U+007E and no other (test-font.md, section 2), so it is the font made to lack a character in the tests of this section.
 
 ### 2.5 Glyphs and shaping
 
@@ -64,6 +84,23 @@ A font collection is a file whose first four bytes are the tag `ttcf`. It is rea
 The refusals of points 1, 3, 4 and 5 of this section, of point 3 of section 12.4 (the graphics `dupe` and `flip`) and of point 9 of section 12.4 (frx7's refusal of a picture) are tested by `crates/cli/tests/font_collection_refusals.rs`, each by `framesmith check` and by `framesmith render`: the code, the reason in the message and the line, the same report from both, and no film from `render`. The collections of those tests are made from the bytes of the project's test font.
 
 Source: the OpenType specification, the font collection header and the table directory (section 11).
+
+### 2.7 The fonts of the machine
+
+The fonts of the machine are the font files of the machine's font folders, read by Framesmith's own reading of their tables, on macOS only. No interface of the system is called for them, and the shaping engine's own reading of the system's fonts stays out of the build (section 10). On every other system no folder is read, and the machine has no font in this version.
+
+1. **The folders.** In this order: `/System/Library/Fonts`, `/System/Library/Fonts/Supplemental`, `/Library/Fonts`, and the folder `Library/Fonts` of the user's home folder. A folder that is not there is passed over. The folders inside a folder are not read.
+2. **The files.** In each folder, the files whose names end in `.ttf` or `.ttc`, in any case, in the order of the bytes of their names. A file of another kind (an OpenType font with PostScript outlines, `.otf`, or any other) is not read.
+3. **The faces.** The faces of a file in the order of the file: one for a TrueType file, and every face of a collection, in the order of its header (section 2.6). A face is taken when its table directory and its `name` table can be read, its family name (section 2.6, point 2) does not begin with a dot, and it has a `glyf` table (outlines) or an `sbix` table (colour pictures, section 12.4). Any other face is passed over, and so is a file whose header cannot be read: these are files of the machine, not of the author, and nothing is reported for them.
+4. **The family.** A face belongs to the family of its family name. A family is the faces of one name, from whichever files they come; its place in the order is that of its first face.
+5. **When they are read.** The names of the faces are read the first time a text names a family that is not a family of the composition, or holds a character its families do not map, and are kept for the rest of the command. A face's `cmap` table is read when the fall-back of section 2.4 asks it, and kept. The whole file of a face is read only when that face draws. A face of outlines taken from a collection is given to both renderers as a TrueType file of that face alone: its table directory, with each of its tables copied after it at an offset that is a multiple of four. The card reads no collection (`card-renderer.md` section 9), and the processor draws the same file.
+6. **The generic families.** `sans-serif` names `Helvetica`, `serif` names `Times` and `monospace` names `Menlo`, the families of the files `Helvetica.ttc`, `Times.ttc` and `Menlo.ttc` of `/System/Library/Fonts`. A machine without the family a generic name names has no such family, and the name is absent (section 2.3).
+
+The choices of this section are ours, not the system's (section 2.4, "Why the font is ours to state").
+
+Tests: `crates/text/tests/unknown_families_and_characters.rs`, `crates/text/tests/an_emoji_no_family_maps_is_drawn_by_the_fall_back.rs`, `crates/text/tests/pieces_of_one_paragraph.rs`, `crates/render/tests/font_choice_on_both_renderers.rs` (fixtures `text-family-list` and `text-fall-back`), `crates/draw-gpu/tests/card_text.rs`, `crates/cli/tests/font_family_list_and_missing_characters.rs`, `crates/cli/tests/an_emoji_no_named_font_draws_is_drawn_by_the_fall_back.rs`, `crates/cli/tests/text_on_the_processor.rs`.
+
+Sources: the OpenType specification (the font collection header, the table directory, the `name`, `cmap`, `glyf` and `sbix` tables); notation N1 and N2; decision A9.
 
 ## 3. Font size, weight and style
 
@@ -203,7 +240,7 @@ With `--backend auto` the card is chosen when it starts (`render-command.md`, se
 
 ## 10. The shaping and line-breaking engine
 
-The text crate (`crates/text`) draws its paragraphs with the shaping engine parley, version 0.12.0, with its default features off (`Cargo.toml`, the `parley` line of the workspace) and with its feature `complex-scripts` on, which the crate's own `Cargo.toml` turns on: the engine then breaks lines and words with its dictionary segmenters (section 12.3). The feature adds no crate to the lock file. The build holds no platform font backend, since parley's `system` feature is left out, so no option of the font collection reads a font of the machine. The tests of `crates/text/tests/no_font_backend_of_the_system_is_built.rs` hold this: the lock file, which lists the dependencies of every system, has no font interface of a system, and the engine's font library depends on none of them; with the `system` feature turned on they fail. The test `a_new_collection_lists_no_family_and_resolves_no_family_of_the_machine` (`crates/text/tests/unknown_families_and_characters.rs`) asks the engine's own collection, which a new context leaves with no family. The engine's own font library, the shaper and the segmenter are its dependencies and are named in section 11. The card's glyph masks use the same rasteriser as the processor, vello_cpu 0.3.0, through the calls of `card-renderer.md` section 9; no other engine draws text on the card. No type of the engine is in a public interface of our crates.
+The text crate (`crates/text`) draws its paragraphs with the shaping engine parley, version 0.12.0, with its default features off (`Cargo.toml`, the `parley` line of the workspace) and with its feature `complex-scripts` on, which the crate's own `Cargo.toml` turns on: the engine then breaks lines and words with its dictionary segmenters (section 12.3). The feature adds no crate to the lock file. The build holds no platform font backend, since parley's `system` feature is left out, so no option of the font collection reads a font of the machine: the fonts of the machine are read by Framesmith itself (section 2.7) and given to the engine as fonts of their own. The tests of `crates/text/tests/no_font_backend_of_the_system_is_built.rs` hold this: the lock file, which lists the dependencies of every system, has no font interface of a system, and the engine's font library depends on none of them; with the `system` feature turned on they fail. The test `a_new_collection_lists_no_family_and_resolves_no_family_of_the_machine` (`crates/text/tests/unknown_families_and_characters.rs`) asks the engine's own collection, which a new context leaves with no family. The engine's own font library, the shaper and the segmenter are its dependencies and are named in section 11. The card's glyph masks use the same rasteriser as the processor, vello_cpu 0.3.0, through the calls of `card-renderer.md` section 9; no other engine draws text on the card. No type of the engine is in a public interface of our crates.
 
 A span's margin and padding are reserved in its line as room, which is spacing and not an inline box: each room adds its width to the letter spacing of the character before it, so the words after it move on by that width (section 6.5, rule 4). Room with no character before it is carried by a carrier, as the next paragraph states. The engine ends a line after every in-flow inline box, whatever the break classes around it: measured with the test font, `AB`, an inline box of 30 pixels and `CD` in a width that holds `AB` alone broke into three lines, the box alone on the middle one. An inline box therefore cannot hold room between two letters, which rule 8 forbids.
 
@@ -247,7 +284,7 @@ This section states what the scripts of the ticket T048 do: Cyrillic, Arabic, He
 
 The fixtures of the scripts (section 12.5) draw their scripts with the machine's font `Arial Unicode`, named by its path in the composition: `<font src="/System/Library/Fonts/Supplemental/Arial Unicode.ttf" family="Arial Unicode"/>`. Its file is read as it is (section 2.1), and its family is the one the `<font>` element declares, so `font-family="Arial Unicode"` names a family of the composition (section 2.3). The file is a TrueType font. It maps the Latin, Cyrillic, Hebrew, Thai, Japanese kana and kanji characters, and most Arabic letters; it maps no emoji (section 12.4). Because the file belongs to the machine, the tests that read it are compiled for macOS only, and no test of another system reads it (decision A9).
 
-In this version a character that the named font lacks is refused, as section 2.4 says. The rule that draws such a character from the machine's font is T052's; until then it is a known gap (decision A9).
+A character that the named fonts lack is drawn by the fall-back of section 2.4 from a font of the machine (section 2.7): a known gap until the stand-in fonts of Sprint 5 (decision A9).
 
 ### 12.2 Shaping, order and direction
 

@@ -426,6 +426,30 @@ pub fn place_reports(project: &Project) -> Vec<Report> {
     walk(project, true).2
 }
 
+/// The reports of [`place_reports`], and the notes that `check` prints (`docs/spec/check-command.md`, section 1): one for
+/// each `<text>` with a character that no family of its list and no family of the machine maps, on the line of the
+/// `<text>`, which names the first such character (`docs/spec/text.md`, section 2.4, point 3).
+pub fn place_reports_and_notes(project: &Project) -> (Vec<Report>, Vec<String>) {
+    let (entries, reports) = walk(project, true);
+    let mut notes: Vec<String> = Vec::new();
+    for entry in &entries {
+        let Entry::Text(text) = entry else {
+            continue;
+        };
+        let Some(character) = text.paragraph.block.missing else {
+            continue;
+        };
+        let note = format!(
+            "note: {}, line {}: <text> holds the character U+{:04X}, which no font of its list and no font of the machine maps: it is drawn as the missing-character mark. No rule names a font for it in this version, since the stand-in fonts are chosen in Sprint 5",
+            text.file, text.line, character as u32
+        );
+        if !notes.contains(&note) {
+            notes.push(note);
+        }
+    }
+    (reports, notes)
+}
+
 /// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
 /// order. Gives the boxes that are placed, in document order, the elements that move, and the reports of the refusals.
 /// With `place_only`, the reports are those of a place form alone.

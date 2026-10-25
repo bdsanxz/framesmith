@@ -455,3 +455,10 @@ fn a_message_that_ends_with_a_full_stop_gets_no_second_one() {
         "{statement}"
     );
 }
+
+#[test]
+fn the_meaning_of_a_file_that_is_not_a_font_names_both_kinds_read() {
+    let rows = the_list();
+    let row = rows.iter().find(|row| row.code == "FS-0051").expect("FS-0051 is on the list");
+    assert!(row.meaning.contains("`.ttf`") && row.meaning.contains("`.ttc`"), "{}", row.meaning);
+}

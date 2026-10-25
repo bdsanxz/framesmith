@@ -1062,15 +1062,15 @@ Fifteen points were recorded as open: ten the earlier text was "not sure" about 
 
 ### N1. A `font-family` that is a list
 
-**Rule.** The value is a list of families separated by commas, tried in order. A name is the `family` of a `<font>` of the composition, a family installed on the machine, or one of `sans-serif`, `serif`, `monospace`. A name with spaces may be written as it is (`IBM Plex Mono`) or in single quotes. Each character is drawn by the first family of the list that has it. One name is a list of one. An empty entry (`A,,B`) and an empty value are reported with the element's line. A text whose first family is absent from the machine and the composition is drawn with the second; one whose first family is present is drawn with the first.
+**Rule.** The value is a list of families separated by commas, tried in order. A name is the `family` of a `<font>` of the composition, a family of the machine's fonts, or one of `sans-serif`, `serif`, `monospace`, looked up in that order (`text.md`, section 2.3). A name with spaces may be written as it is (`IBM Plex Mono`) or in single quotes. Each character is drawn by the first family of the list that has it. One name is a list of one. An empty entry (`A,,B`) and an empty value are reported with the element's line. A name that is neither is absent and is passed over: a text whose first family is absent from the machine and the composition is drawn with the second; one whose first family is present is drawn with the first. The fonts of the machine, and the families the three generic names stand for, are stated in `text.md`, section 2.7; they are read on macOS only in this work.
 
-**Settled by.** Maintainer draft: the proofs passed the value to the text engine, which reads the CSS list.
+**Settled by.** Maintainer draft: the proofs passed the value to the text engine, which reads the CSS list. The lookup order, the folders and the generic families are T052's (`text.md`, sections 2.3 and 2.7).
 
 ### N2. Which font draws a character the named font lacks
 
-**Rule.** A character that none of the families of the list has is drawn from a font of the machine; which font that is, is the machine's choice. The picture of such a character therefore depends on the machine; this is a known gap, recorded as such until the stand-in font set of Sprint 5 (decision A9; `DEFERS.md`). A character that no font of the machine has either is drawn as the missing-character mark of the machine's font. No rule that names the font can be given in this work, because the stand-in fonts are not chosen; for that reason `check` reports each text that holds a character neither the listed families nor the machine's fonts can draw, as a note with the element's line (a note does not change the exit code, section 13). A text that uses only the families of its list, such as every fixture with the test font made by us (decision A8), does not depend on the machine.
+**Rule.** A character that none of the families of the list has is drawn from a font of the machine. Which font that is, is not left to the system: Framesmith states it, as the first family that maps the character in a stated order of the machine's families (`text.md`, sections 2.4 and 2.7), so that one machine gives the same picture on every run. The picture of such a character still depends on the machine's fonts; this is a known gap, recorded as such until the stand-in font set of Sprint 5 (decision A9; `DEFERS.md`). A character that no font of the machine has either is drawn as the missing-character mark: glyph 0 of the first family of the list. No rule that names a font for it can be given in this work, because the stand-in fonts are not chosen; for that reason `check` reports each text that holds a character neither the listed families nor the machine's fonts can draw, as a note with the element's line (a note does not change the exit code, section 13). A text that uses only the families of its list, such as every fixture with the test font made by us (decision A8), does not depend on the machine.
 
-**Settled by.** Decision A9 for the machine's font; the note is a maintainer draft.
+**Settled by.** Decision A9 for the machine's font; the stated order is T052's (`text.md`, section 2.4), agreed by the lead on 2026-10-25 in place of the machine's own choice; the note is a maintainer draft.
 
 ### N3. Which picture and sound kinds are read
 
@@ -1172,7 +1172,7 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 ## 13. The messages for the common mistakes
 
-Each message is given with its line as `line N: message`, and `file, line N: message` for a problem in a file shown by `<composition src>`. The reader collects every problem and prints them all, one line each. The code and the remedy of each message belong to the error catalogue; the wording below is what an author reads. A line that begins `note` is a note: a form accepted and drawn as this document states, that an author may not have meant. A note does not change the exit code.
+Each message is given with its line as `line N: message`, and `file, line N: message` for a problem in a file shown by `<composition src>`. The reader collects every problem and prints them all, one line each. The code and the remedy of each message belong to the error catalogue; the wording below is what an author reads. A line that begins `note` is a note: a form accepted and drawn as this document states, that an author may not have meant. A note does not change the exit code. Its form is `note: <file>, line N: <message>`, and `check` prints the notes before its closing line. The one note of this version is that of N2, a `<text>` with a character no font maps (`text.md`, section 2.4, point 3).
 
 | Mistake | Message |
 |---|---|
@@ -1185,7 +1185,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Unknown attribute on a tween | `<tween> has no attribute `to-width``; on a set: `<set> has no attribute `duration`` |
 | Other element in a text | `<box> is not known inside <text>; only <span>, <tween> and <set> are; a <box> stands directly in <composition>, <box> or <rect>` (the same form for every element in a place it may not stand: what the place holds, then where the element may stand; `<font> holds no element` where it holds none) |
 | `<span>` outside a text | `<span> is not a known element here; a <span> stands directly in <text> or <span>` |
-| `<style>`, `<font>` or `<audio>` inside an element | `a <style> stands directly in the <composition>, not inside an element` |
+| `<style>`, `<font>` or `<audio>` inside an element | `<style> is not known inside <box>; a <style> stands only directly in the <composition>, never inside an element` |
 | Not a number | `` `x="a"` is not a number: an optional sign, digits with an optional point and an optional exponent, such as 12, -4, .5 or 2.5e-1 ``; `` `x="1e999"` is too large: a number must be finite ``; `` `width="10.5"` is not a whole number `` (the `width` and `height` of a `<video>`) |
 | Not a length | `` `width="ten"` is not a number or a percentage `` |
 | Not a time | `` `at="-1"` is not a time in seconds: digits with an optional point, such as 5 or 1.25 `` |

@@ -56,7 +56,7 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0048` | A composition shown by `<composition src>` is in the project folder and could not be read. |
 | `FS-0049` | A font file that `<font src>` names does not exist, at the path it gives from the project folder or, when it begins with `/`, on the machine. |
 | `FS-0050` | A font file that `<font src>` names exists and could not be read. |
-| `FS-0051` | A file that `<font src>` names is not a font of a kind this version reads, which is TrueType (`.ttf`). |
+| `FS-0051` | A file that `<font src>` names is not a font of a kind this version reads, which are TrueType (`.ttf`) and font collections (`.ttc`). |
 | `FS-0052` | A text attribute's value is not in the form the notation gives for it. |
 | `FS-0053` | A length or size that must be above 0 is 0 or below. |
 | `FS-0054` | A `columns` of a `<box>` is not a list of column widths: each a number of pixels above 0, or a share such as `1fr`. |
