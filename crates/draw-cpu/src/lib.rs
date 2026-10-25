@@ -11,13 +11,17 @@
 use std::sync::Arc;
 
 use draw::{
-    level, Background, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, ResolvedLayer,
-    Shadow, Step, TextMark, Turn,
+    level, Background, Cut, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer,
+    ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, Stroke};
 use vello_cpu::peniko::{Blob, Color, FontData, ImageAlphaType, ImageQuality, ImageSampler};
 use vello_cpu::{Glyph, Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
+
+mod edges;
+
+pub use edges::{ring_coverage, rounded_coverage};
 
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
@@ -72,6 +76,8 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
             },
             Mark::Group(group) => draw_group(bytes, width, height, group, map, region)?,
             Mark::Background(background) => draw_background(bytes, width, height, background, map, region)?,
+            Mark::Ring(ring) => draw_ring(bytes, width, height, ring, map, region)?,
+            Mark::Cut(cut) => draw_cut(bytes, width, height, cut, map, region)?,
         }
     }
     Ok(())
@@ -187,6 +193,91 @@ fn draw_turned(
             }
         }
     }
+    Ok(())
+}
+
+/// Lays a ring of a border over the picture, in `region` (`docs/spec/box-edges.md`, sections 3 and 5): each pixel takes the
+/// ring's colour by src-over with the colour's alpha times the ring's coverage there, rounded to the nearest whole level.
+fn draw_ring(
+    bytes: &mut [u8],
+    width: u32,
+    height: u32,
+    mark: &RingMark,
+    map: Map,
+    (left, top, right, bottom): Region,
+) -> Result<(), Error> {
+    let Some(coverage) = ring_coverage(mark.ring, map, width, height)? else {
+        return Ok(());
+    };
+    let colour = mark.colour;
+    let paint = [colour.red, colour.green, colour.blue, 255];
+    for line in 0..coverage.height {
+        let y = coverage.top + line;
+        if y < top || y >= bottom {
+            continue;
+        }
+        for column in 0..coverage.width {
+            let x = coverage.left + column;
+            if x < left || x >= right {
+                continue;
+            }
+            let covered = u32::from(coverage.alpha[(line * coverage.width + column) as usize]);
+            let share = divide_by_255(covered * u32::from(colour.alpha));
+            if share == 0 {
+                continue;
+            }
+            let at = (y as usize * width as usize + x as usize) * 4;
+            let pixel = &mut bytes[at..at + 4];
+            for channel in 0..4 {
+                let value = u32::from(paint[channel]) * share + u32::from(pixel[channel]) * (255 - share);
+                pixel[channel] = divide_by_255(value) as u8;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Draws marks cut to a rounded rectangle (`docs/spec/box-edges.md`, sections 3 and 4). A shape of whole pixels under a move by
+/// whole pixels is a cut to its rectangle: only its pixels change. Any other shape draws the marks into a transparent layer,
+/// weighs each value of the layer by the shape's coverage, rounded to the nearest whole level, and lays the layer over the
+/// picture.
+fn draw_cut(bytes: &mut [u8], width: u32, height: u32, cut: &Cut, map: Map, region: Region) -> Result<(), Error> {
+    if let (Some((across, down)), Some(rect)) = (map.whole_move(), cut.shape.whole_rect()) {
+        let moved = Rect {
+            left: (i64::from(rect.left) + across).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            top: (i64::from(rect.top) + down).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            ..rect
+        };
+        return match within(region, &moved, width, height) {
+            Some(region) => draw_marks(bytes, width, height, &cut.marks, map, region),
+            None => Ok(()),
+        };
+    }
+    let Some(coverage) = rounded_coverage(cut.shape, map, width, height)? else {
+        return Ok(());
+    };
+    let held = Rect {
+        left: coverage.left as i32,
+        top: coverage.top as i32,
+        width: coverage.width,
+        height: coverage.height,
+    };
+    let Some(region) = within(region, &held, width, height) else {
+        return Ok(());
+    };
+    let mut layer = vec![0_u8; bytes.len()];
+    draw_marks(&mut layer, width, height, &cut.marks, map, region)?;
+    let (left, top, right, bottom) = region;
+    for y in top..bottom {
+        for x in left..right {
+            let covered = u32::from(coverage.alpha[((y - coverage.top) * coverage.width + (x - coverage.left)) as usize]);
+            let at = (y as usize * width as usize + x as usize) * 4;
+            for value in &mut layer[at..at + 4] {
+                *value = divide_by_255(u32::from(*value) * covered) as u8;
+            }
+        }
+    }
+    composite(bytes, width, &layer, region);
     Ok(())
 }
 

@@ -12,7 +12,8 @@ use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
 use draw::{
-    Background, Colour, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Step, TextMark, Turn,
+    Background, Colour, Cut, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Rgba, Ring,
+    RingMark, Step, TextMark, Turn,
 };
 use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
 use gpu::{wgpu, Card};
@@ -85,6 +86,21 @@ const GLYPH_BLEND: wgpu::BlendState = wgpu::BlendState {
     },
 };
 
+/// A layer of a cut keeps what is drawn into it only inside the shape (`docs/spec/box-edges.md`, section 7): each value of the
+/// layer is multiplied by the shape's coverage, which the fragment gives in all four channels.
+const KEEP_INSIDE: wgpu::BlendState = wgpu::BlendState {
+    color: wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::Zero,
+        dst_factor: wgpu::BlendFactor::SrcAlpha,
+        operation: wgpu::BlendOperation::Add,
+    },
+    alpha: wgpu::BlendComponent {
+        src_factor: wgpu::BlendFactor::Zero,
+        dst_factor: wgpu::BlendFactor::SrcAlpha,
+        operation: wgpu::BlendOperation::Add,
+    },
+};
+
 /// The renderer on the graphics card. It is started once, and draws any number of frames with the
 /// card it was started on.
 pub struct CardRenderer {
@@ -94,6 +110,7 @@ pub struct CardRenderer {
     picture_pipeline: wgpu::RenderPipeline,
     paint_pipeline: wgpu::RenderPipeline,
     turn_pipeline: wgpu::RenderPipeline,
+    cut_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
     paint_layout: wgpu::BindGroupLayout,
     turn_layout: wgpu::BindGroupLayout,
@@ -328,6 +345,31 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let cut_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("cut"),
+            layout: Some(&glyph_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &glyph_shader,
+                entry_point: Some("place_glyph_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &glyph_shader,
+                entry_point: Some("keep_inside"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: Some(KEEP_INSIDE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         Ok(CardRenderer {
             card,
             pipeline,
@@ -335,6 +377,7 @@ impl CardRenderer {
             picture_pipeline,
             paint_pipeline,
             turn_pipeline,
+            cut_pipeline,
             glyph_layout,
             paint_layout,
             turn_layout,
@@ -465,6 +508,13 @@ impl CardRenderer {
                         pass.set_pipeline(&self.paint_pipeline);
                         pass.set_bind_group(0, group, &[]);
                     }
+                    Source::KeepInside(key) => {
+                        let Some(placed) = self.masks.placed(key) else {
+                            return Err(Error::new("the mask of a cut was not kept for its draw"));
+                        };
+                        pass.set_pipeline(&self.cut_pipeline);
+                        pass.set_bind_group(0, &placed.bind_group, &[]);
+                    }
                 }
                 pass.draw(draw.vertices.clone(), 0..1);
             }
@@ -576,6 +626,8 @@ impl CardRenderer {
                         self.push_layer(plan, target, scissor, layer)?;
                     }
                 },
+                Mark::Ring(ring) => self.plan_ring(plan, target, scissor, ring, map)?,
+                Mark::Cut(cut) => self.plan_cut(plan, target, scissor, cut, map)?,
             }
         }
         Ok(())
@@ -672,6 +724,108 @@ impl CardRenderer {
             scissor,
             vertices: first..first + CORNERS,
             source: Source::Turned(layer),
+        });
+        Ok(())
+    }
+
+    /// The draw of a ring of a border (`docs/spec/box-edges.md`, section 7): the processor's coverage of the mapped ring as a
+    /// mask, through which the ring's colour, premultiplied by its alpha, is blended.
+    fn plan_ring(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], mark: &RingMark, map: Map) -> Result<(), Error> {
+        let key = self.masks.prepare_shape(
+            self.card.device(),
+            self.card.queue(),
+            &self.glyph_layout,
+            mark.ring,
+            map,
+            (plan.width, plan.height),
+        )?;
+        let Some(placed) = self.masks.placed(&key) else {
+            return Ok(());
+        };
+        let left = -placed.origin_x as f32;
+        let top = -placed.origin_y as f32;
+        let corners = (left, top, left + placed.width as f32, top + placed.height as f32);
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        push_quad(
+            &mut plan.floats,
+            plan.width,
+            plan.height,
+            corners,
+            [left, top],
+            premultiplied(mark.colour),
+        );
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Glyph(key),
+        });
+        Ok(())
+    }
+
+    /// The draws of marks cut to a rounded rectangle (`docs/spec/box-edges.md`, section 7). A shape of whole pixels under a move
+    /// by whole pixels cuts the scissor. Any other shape draws the marks into a texture of their own, keeps what lies inside
+    /// the shape's mask, and lays the texture over `target`, both in the mask's box.
+    fn plan_cut(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], cut: &Cut, map: Map) -> Result<(), Error> {
+        if let (Some((across, down)), Some(rect)) = (map.whole_move(), cut.shape.whole_rect()) {
+            let moved = Rect {
+                left: (i64::from(rect.left) + across).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+                top: (i64::from(rect.top) + down).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+                ..rect
+            };
+            return match self::cut(scissor, &moved, plan.width, plan.height) {
+                Some(scissor) => self.plan_marks(plan, target, scissor, &cut.marks, map),
+                None => Ok(()),
+            };
+        }
+        let shape = Ring {
+            outer: cut.shape,
+            inner: None,
+        };
+        let key = self.masks.prepare_shape(
+            self.card.device(),
+            self.card.queue(),
+            &self.glyph_layout,
+            shape,
+            map,
+            (plan.width, plan.height),
+        )?;
+        let Some(placed) = self.masks.placed(&key) else {
+            return Ok(());
+        };
+        let held = Rect {
+            left: -placed.origin_x as i32,
+            top: -placed.origin_y as i32,
+            width: placed.width,
+            height: placed.height,
+        };
+        let Some(scissor) = self::cut(scissor, &held, plan.width, plan.height) else {
+            return Ok(());
+        };
+        let corners = (
+            held.left as f32,
+            held.top as f32,
+            (held.left + held.width as i32) as f32,
+            (held.top + held.height as i32) as f32,
+        );
+        let layer = plan.layers.len();
+        plan.layers.push(self.layer(plan.width, plan.height));
+        self.plan_marks(plan, Target::Layer(layer), scissor, &cut.marks, map)?;
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [corners.0, corners.1], [1.0; 4]);
+        plan.draws.push(Draw {
+            target: Target::Layer(layer),
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::KeepInside(key),
+        });
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], [1.0; 4]);
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Layer(layer),
         });
         Ok(())
     }
@@ -995,6 +1149,8 @@ enum Source {
     Paint,
     /// The texture of a group turned in space, laid through its turn (section 10.6).
     Turned(usize),
+    /// A mask that keeps a cut's texture only inside its shape.
+    KeepInside(MaskKey),
 }
 
 /// Begins a render pass on a view, with what it starts from.
@@ -1135,6 +1291,17 @@ fn push_quad(
         floats.extend_from_slice(&origin);
         floats.extend_from_slice(&colour);
     }
+}
+
+/// A colour with its alpha as the four numbers of a vertex, each from 0 to 1, premultiplied by its alpha.
+fn premultiplied(colour: Rgba) -> [f32; 4] {
+    let alpha = f32::from(colour.alpha) / 255.0;
+    [
+        f32::from(colour.red) / 255.0 * alpha,
+        f32::from(colour.green) / 255.0 * alpha,
+        f32::from(colour.blue) / 255.0 * alpha,
+        alpha,
+    ]
 }
 
 /// A colour as the four numbers of a vertex, each from 0 to 1, with alpha 1.

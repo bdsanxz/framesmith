@@ -10,9 +10,11 @@ use std::sync::Arc;
 use layout::Rect;
 
 mod background;
+mod edges;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
+pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use turn::Turn;
 
 /// An opaque colour: red, green and blue, each from 0 to 255.
@@ -260,8 +262,8 @@ impl TextMark {
     }
 }
 
-/// One mark of a frame: a drawing step, the glyph runs of a paragraph of text, the marks of an element that moves, or the
-/// layers of a background. The
+/// One mark of a frame: a drawing step, the glyph runs of a paragraph of text, the marks of an element that moves, the
+/// layers of a background, a ring of a border, or marks cut to a rounded rectangle. The
 /// marks are carried out in order, each over what is there.
 #[derive(Clone, Debug)]
 pub enum Mark {
@@ -270,6 +272,11 @@ pub enum Mark {
     Group(Group),
     /// The layers of a box's background that are not one opaque colour (`docs/spec/render-command.md`, section 4.6).
     Background(Background),
+    /// A ring of a border (`docs/spec/box-edges.md`, section 3).
+    Ring(RingMark),
+    /// Marks cut to a rounded rectangle: a rounded background, or the children of a box that cuts them (`docs/spec/box-edges.md`,
+    /// sections 3 and 4).
+    Cut(Cut),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -305,7 +312,7 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) => None,
+                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {
