@@ -430,7 +430,7 @@ pub fn place_reports(project: &Project) -> Vec<Report> {
 /// each `<text>` with a character that no family of its list and no family of the machine maps, on the line of the
 /// `<text>`, which names the first such character (`docs/spec/text.md`, section 2.4, point 3).
 pub fn place_reports_and_notes(project: &Project) -> (Vec<Report>, Vec<String>) {
-    let (entries, reports) = walk(project, true);
+    let (entries, _, reports) = walk(project, true);
     let mut notes: Vec<String> = Vec::new();
     for entry in &entries {
         let Entry::Text(text) = entry else {
