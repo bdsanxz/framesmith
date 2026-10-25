@@ -23,3 +23,5 @@ draw-cpu = { workspace = true }
 
 [dev-dependencies]
 measure = { workspace = true }
+# The face of a machine font as the text crate gives it to the renderers (`docs/spec/text.md`, section 2.7).
+text = { workspace = true }

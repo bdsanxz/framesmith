@@ -271,6 +271,7 @@ dependencies = [
  "gpu",
  "layout",
  "measure",
+ "text",
  "vello_cpu",
 ]
 
@@ -1495,6 +1496,7 @@ dependencies = [
  "parley",
  "pixel",
  "read-fonts",
+ "tracing",
 ]
 
 [[package]]
