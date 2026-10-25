@@ -10,8 +10,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use draw::{Error, Glyph, GlyphRun, Map};
-use layout::Rect;
 use gpu::wgpu;
+use layout::Rect;
 use vello_cpu::kurbo::Affine;
 use vello_cpu::peniko::{Blob, Color, FontData};
 use vello_cpu::{Pixmap, RenderContext, Resources};
@@ -170,7 +170,9 @@ impl Masks {
 
     /// Keeps a new mask, used now.
     fn keep(&mut self, key: MaskKey, font: Option<Arc<Vec<u8>>>, placed: Option<Placed>) {
-        let bytes = placed.as_ref().map_or(0, |placed| u64::from(placed.width) * u64::from(placed.height));
+        let bytes = placed
+            .as_ref()
+            .map_or(0, |placed| u64::from(placed.width) * u64::from(placed.height));
         let used = (self.frame, self.uses);
         self.uses += 1;
         self.bytes += bytes;

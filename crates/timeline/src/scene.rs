@@ -7,7 +7,7 @@ use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, P
 use text::Fonts;
 use timebase::Time;
 
-use crate::moving::{self, Found, Mover, Movement, MOVEMENT};
+use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 use motion::{ElementMotion, Tween};
 
@@ -307,10 +307,12 @@ impl Scene {
             }
             let mark = match entry {
                 Entry::Box(placed) if clipped => fill_mark(placed),
-                Entry::Box(placed) => placed.colour.map(|colour| Mark::Step(Step::Fill {
-                    rect: placed.slot.rect,
-                    colour,
-                })),
+                Entry::Box(placed) => placed.colour.map(|colour| {
+                    Mark::Step(Step::Fill {
+                        rect: placed.slot.rect,
+                        colour,
+                    })
+                }),
                 Entry::Text(text) if clipped => text_mark(text),
                 Entry::Text(text) => text_mark(text).map(|mark| match mark {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
@@ -771,7 +773,16 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     }
 
     entries_before.push(entries.len());
-    let own = gather_movers(tree, &entries_before, &entry_at, &rect_of, &movement_of, &tweens_of, canvas.clip, fps);
+    let own = gather_movers(
+        tree,
+        &entries_before,
+        &entry_at,
+        &rect_of,
+        &movement_of,
+        &tweens_of,
+        canvas.clip,
+        fps,
+    );
     refusals.extend(own.1);
     movers.extend(own.0);
     movers.sort_by_key(|mover| mover.first);
@@ -846,7 +857,6 @@ fn gather_movers(
     }
     (movers, refusals)
 }
-
 
 /// The slot of an element placed in `rect` inside `parent`: the origin and the window that its clip gives, or the
 /// parent's when it has no clip (`docs/spec/render-command.md`, section 4.2).

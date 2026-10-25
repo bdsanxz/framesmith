@@ -77,7 +77,11 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
 /// after `map`, cut to its clip; with an opacity below 1 into a transparent layer, which is then laid over the picture with
 /// each of its values times the opacity, rounded to the nearest level, halves up. At opacity 0 nothing is drawn.
 fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
-    let opacity = if group.opacity.is_nan() { 0.0 } else { group.opacity.clamp(0.0, 1.0) };
+    let opacity = if group.opacity.is_nan() {
+        0.0
+    } else {
+        group.opacity.clamp(0.0, 1.0)
+    };
     if opacity == 0.0 {
         return Ok(());
     }
@@ -357,7 +361,10 @@ fn text_layer(width: u32, height: u32, text: &TextMark) -> Result<Vec<u8>, Error
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
     if let Some(outline) = &text.outline {
-        lay_layer(layer.data_as_u8_slice_mut(), &outline_layer(width, height, text, outline, Map::IDENTITY)?);
+        lay_layer(
+            layer.data_as_u8_slice_mut(),
+            &outline_layer(width, height, text, outline, Map::IDENTITY)?,
+        );
     }
     // The colour pictures of the emoji go into the same layer, after the glyph runs, in the order of the text
     // (`docs/spec/text.md`, section 12.4, point 10).
@@ -407,7 +414,10 @@ pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow, m
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
     if mapped && !text.pictures.is_empty() {
-        lay_layer(layer.data_as_u8_slice_mut(), &pictures_layer(width, height, text, map, (shadow.across, shadow.down))?);
+        lay_layer(
+            layer.data_as_u8_slice_mut(),
+            &pictures_layer(width, height, text, map, (shadow.across, shadow.down))?,
+        );
     }
     for picture in text.pictures.iter().filter(|_| !mapped) {
         let moved = GlyphPicture {
@@ -420,7 +430,11 @@ pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow, m
         lay_picture(layer.data_as_u8_slice_mut(), width, height, &moved);
     }
     let mut alpha: Vec<u8> = layer.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
-    let blur = if mapped { (f64::from(shadow.blur) * map.area_scale().sqrt()) as f32 } else { shadow.blur };
+    let blur = if mapped {
+        (f64::from(shadow.blur) * map.area_scale().sqrt()) as f32
+    } else {
+        shadow.blur
+    };
     blur_alpha(&mut alpha, width as usize, height as usize, blur);
     let colour = shadow.colour;
     let mut picture = Vec::with_capacity(alpha.len() * 4);

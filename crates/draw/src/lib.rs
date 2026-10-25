@@ -131,7 +131,11 @@ impl Map {
 
     /// The map that moves every point by `x` across and `y` down.
     pub fn moving(x: f64, y: f64) -> Map {
-        Map { e: x, f: y, ..Map::IDENTITY }
+        Map {
+            e: x,
+            f: y,
+            ..Map::IDENTITY
+        }
     }
 
     /// The map that applies `inner` first and then `self`.
@@ -173,7 +177,9 @@ impl Map {
 
     /// Whether all six numbers are finite.
     pub fn is_finite(self) -> bool {
-        [self.a, self.b, self.c, self.d, self.e, self.f].iter().all(|value| value.is_finite())
+        [self.a, self.b, self.c, self.d, self.e, self.f]
+            .iter()
+            .all(|value| value.is_finite())
     }
 }
 

@@ -47,5 +47,9 @@ fn a_movement_attribute_the_box_writes_itself_is_taken() {
          </composition>\n",
     );
     let scene = Scene::from_project(&Project::open(&folder).unwrap());
-    assert!(scene.is_ok(), "{:?}", scene.err().map(|reports| reports.iter().map(shown).collect::<Vec<_>>()));
+    assert!(
+        scene.is_ok(),
+        "{:?}",
+        scene.err().map(|reports| reports.iter().map(shown).collect::<Vec<_>>())
+    );
 }

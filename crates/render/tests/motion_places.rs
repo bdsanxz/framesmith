@@ -73,9 +73,8 @@ fn a_tween_of_x_holds_the_box_in_place_before_it_goes_half_way_at_its_middle_and
 #[test]
 fn each_property_is_half_of_the_way_at_the_middle_of_a_linear_tween() {
     // Two seconds from 0: frame 30 is the middle.
-    let tweened = |name: &str, attributes: &str| {
-        scene(name, &format!("<box {BOX}>\n<tween at=\"0\" duration=\"2\" {attributes}/>\n</box>"))
-    };
+    let tweened =
+        |name: &str, attributes: &str| scene(name, &format!("<box {BOX}>\n<tween at=\"0\" duration=\"2\" {attributes}/>\n</box>"));
     let y = tweened("half-y", "from-y=\"0\" to-y=\"30\"");
     assert_eq!(first_red_down(&picture(&y, 30), 20), Some(35));
     assert!(near(group(&y, 30).0.f, 15.0));
@@ -83,7 +82,10 @@ fn each_property_is_half_of_the_way_at_the_middle_of_a_linear_tween() {
     // The origin is the middle of the box, (20, 30).
     let scale = tweened("half-scale", "from-scale=\"1\" to-scale=\"2\"");
     let (map, _) = group(&scale, 30);
-    assert!(near(map.a, 1.5) && near(map.d, 1.5) && near(map.b, 0.0) && near(map.c, 0.0), "{map:?}");
+    assert!(
+        near(map.a, 1.5) && near(map.d, 1.5) && near(map.b, 0.0) && near(map.c, 0.0),
+        "{map:?}"
+    );
     assert_eq!(first_red(&picture(&scale, 30), 30), Some(5));
 
     let across = tweened("half-scale-x", "from-scale-x=\"1\" to-scale-x=\"3\"");
@@ -94,11 +96,17 @@ fn each_property_is_half_of_the_way_at_the_middle_of_a_linear_tween() {
     let turn = tweened("half-rotation", "from-rotation=\"0\" to-rotation=\"90\"");
     let (map, _) = group(&turn, 30);
     let half = std::f64::consts::FRAC_1_SQRT_2;
-    assert!(near(map.a, half) && near(map.b, half) && near(map.c, -half) && near(map.d, half), "{map:?}");
+    assert!(
+        near(map.a, half) && near(map.b, half) && near(map.c, -half) && near(map.d, half),
+        "{map:?}"
+    );
 
     let slant = tweened("half-skew-y", "from-skew-y=\"0\" to-skew-y=\"40\"");
     let (map, _) = group(&slant, 30);
-    assert!(near(map.b, 20f64.to_radians().tan()) && near(map.a, 1.0) && near(map.d, 1.0), "{map:?}");
+    assert!(
+        near(map.b, 20f64.to_radians().tan()) && near(map.a, 1.0) && near(map.d, 1.0),
+        "{map:?}"
+    );
 
     let fade = tweened("half-opacity", "from-opacity=\"0\" to-opacity=\"1\"");
     assert!(near(group(&fade, 30).1, 0.5));
@@ -116,16 +124,44 @@ fn scale_slant_and_turn_happen_about_the_origin_in_that_order_before_the_move() 
     let (sin, cos) = 30f64.to_radians().sin_cos();
     let tan = 10f64.to_radians().tan();
     // Each part as a map about the origin (10, 20), the box's top left corner.
-    let scale = Map { a: 3.0, b: 0.0, c: 0.0, d: 2.0, e: 0.0, f: 0.0 };
-    let slant = Map { a: 1.0, b: tan, c: 0.0, d: 1.0, e: 0.0, f: 0.0 };
-    let turn = Map { a: cos, b: sin, c: -sin, d: cos, e: 0.0, f: 0.0 };
+    let scale = Map {
+        a: 3.0,
+        b: 0.0,
+        c: 0.0,
+        d: 2.0,
+        e: 0.0,
+        f: 0.0,
+    };
+    let slant = Map {
+        a: 1.0,
+        b: tan,
+        c: 0.0,
+        d: 1.0,
+        e: 0.0,
+        f: 0.0,
+    };
+    let turn = Map {
+        a: cos,
+        b: sin,
+        c: -sin,
+        d: cos,
+        e: 0.0,
+        f: 0.0,
+    };
     let wanted = Map::moving(7.0, 3.0)
         .then_after(Map::moving(10.0, 20.0))
         .then_after(turn)
         .then_after(slant)
         .then_after(scale)
         .then_after(Map::moving(-10.0, -20.0));
-    for (found, wanted) in [(map.a, wanted.a), (map.b, wanted.b), (map.c, wanted.c), (map.d, wanted.d), (map.e, wanted.e), (map.f, wanted.f)] {
+    for (found, wanted) in [
+        (map.a, wanted.a),
+        (map.b, wanted.b),
+        (map.c, wanted.c),
+        (map.d, wanted.d),
+        (map.e, wanted.e),
+        (map.f, wanted.f),
+    ] {
         assert!(near(found, wanted), "{map:?} against {wanted:?}");
     }
     // The origin itself is only moved.
@@ -156,9 +192,7 @@ fn a_to_only_tween_starts_from_the_value_in_effect_with_no_jump() {
 fn the_later_of_two_overlapping_tweens_controls_from_its_at_and_cuts_the_earlier_off() {
     let scene = scene(
         "overlap",
-        &format!(
-            "<box {BOX}>\n<tween at=\"0\" duration=\"2\" to-x=\"200\"/>\n<tween at=\"1\" duration=\"1\" to-x=\"0\"/>\n</box>"
-        ),
+        &format!("<box {BOX}>\n<tween at=\"0\" duration=\"2\" to-x=\"200\"/>\n<tween at=\"1\" duration=\"1\" to-x=\"0\"/>\n</box>"),
     );
     // The first goes 100 pixels a second; the second takes over at 1 s from 100 and goes back to 0 by 2 s, and the
     // first, cut off, never reaches 200.

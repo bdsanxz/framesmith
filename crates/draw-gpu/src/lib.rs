@@ -423,7 +423,11 @@ impl CardRenderer {
     /// The draws of a group (section 10.1): straight into `target` with an opacity of 1, otherwise into a texture of its
     /// own that is then laid over `target` with the opacity; nothing at opacity 0.
     fn plan_group(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], group: &Group, map: Map) -> Result<(), Error> {
-        let opacity = if group.opacity.is_nan() { 0.0 } else { group.opacity.clamp(0.0, 1.0) };
+        let opacity = if group.opacity.is_nan() {
+            0.0
+        } else {
+            group.opacity.clamp(0.0, 1.0)
+        };
         if opacity == 0.0 {
             return Ok(());
         }
@@ -517,7 +521,14 @@ impl CardRenderer {
         let top = -placed.origin_y as f32;
         let corners = (left, top, left + placed.width as f32, top + placed.height as f32);
         let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
-        push_quad(&mut plan.floats, plan.width, plan.height, corners, [left, top], colour_floats(colour));
+        push_quad(
+            &mut plan.floats,
+            plan.width,
+            plan.height,
+            corners,
+            [left, top],
+            colour_floats(colour),
+        );
         plan.draws.push(Draw {
             target,
             scissor,
@@ -736,7 +747,11 @@ enum Source {
 }
 
 /// Begins a render pass on a view, with what it starts from.
-fn begin_pass<'a>(encoder: &'a mut wgpu::CommandEncoder, view: &'a wgpu::TextureView, load: wgpu::LoadOp<wgpu::Color>) -> wgpu::RenderPass<'a> {
+fn begin_pass<'a>(
+    encoder: &'a mut wgpu::CommandEncoder,
+    view: &'a wgpu::TextureView,
+    load: wgpu::LoadOp<wgpu::Color>,
+) -> wgpu::RenderPass<'a> {
     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("frame"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -777,7 +792,14 @@ fn push_fill(plan: &mut Planned, target: Target, scissor: [u32; 4], rect: Rect, 
     };
     let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
     let corners = (visible.left as f32, visible.top as f32, visible.right as f32, visible.bottom as f32);
-    push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], colour_floats(colour));
+    push_quad(
+        &mut plan.floats,
+        plan.width,
+        plan.height,
+        corners,
+        [0.0, 0.0],
+        colour_floats(colour),
+    );
     plan.draws.push(Draw {
         target,
         scissor,

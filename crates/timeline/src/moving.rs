@@ -151,7 +151,10 @@ impl Mover {
             Length::Pixels(pixels) => pixels,
             Length::Percent(percent) => percent / 100.0 * f64::from(size),
         };
-        (f64::from(rect.left) + along(x, rect.width), f64::from(rect.top) + along(y, rect.height))
+        (
+            f64::from(rect.left) + along(x, rect.width),
+            f64::from(rect.top) + along(y, rect.height),
+        )
     }
 
     /// The value of each property at `time`: the tween's, or the element's own.

@@ -45,7 +45,11 @@ fn text(face: &Font, size: f32, x: f32, y: f32) -> Mark {
             glyphs: [5u32, 6, 7, 8]
                 .iter()
                 .enumerate()
-                .map(|(index, &id)| Glyph { id, x: x + size * 0.6 * index as f32, y })
+                .map(|(index, &id)| Glyph {
+                    id,
+                    x: x + size * 0.6 * index as f32,
+                    y,
+                })
                 .collect(),
         }],
         pictures: Vec::new(),
@@ -61,9 +65,30 @@ fn about(origin: (f64, f64), moved: (f64, f64), scale: (f64, f64), slant_degrees
     let tan = slant_degrees.to_radians().tan();
     Map::moving(moved.0, moved.1)
         .then_after(Map::moving(origin.0, origin.1))
-        .then_after(Map { a: cos, b: sin, c: -sin, d: cos, e: 0.0, f: 0.0 })
-        .then_after(Map { a: 1.0, b: tan, c: 0.0, d: 1.0, e: 0.0, f: 0.0 })
-        .then_after(Map { a: scale.0, b: 0.0, c: 0.0, d: scale.1, e: 0.0, f: 0.0 })
+        .then_after(Map {
+            a: cos,
+            b: sin,
+            c: -sin,
+            d: cos,
+            e: 0.0,
+            f: 0.0,
+        })
+        .then_after(Map {
+            a: 1.0,
+            b: tan,
+            c: 0.0,
+            d: 1.0,
+            e: 0.0,
+            f: 0.0,
+        })
+        .then_after(Map {
+            a: scale.0,
+            b: 0.0,
+            c: 0.0,
+            d: scale.1,
+            e: 0.0,
+            f: 0.0,
+        })
         .then_after(Map::moving(-origin.0, -origin.1))
 }
 
@@ -72,14 +97,23 @@ fn group(map: Map, opacity: f64, clip: Option<Rect>, marks: Vec<Mark>) -> Mark {
 }
 
 fn frame(marks: Vec<Mark>) -> Frame {
-    Frame { width: 200, height: 120, background: colour(16, 32, 64), marks }
+    Frame {
+        width: 200,
+        height: 120,
+        background: colour(16, 32, 64),
+        marks,
+    }
 }
 
 fn measured(picture: &Picture) -> measure::Frame {
     measure::Frame {
         width: picture.width(),
         height: picture.height(),
-        rgb: picture.pixels().chunks(4).flat_map(|pixel| [pixel[0], pixel[1], pixel[2]]).collect(),
+        rgb: picture
+            .pixels()
+            .chunks(4)
+            .flat_map(|pixel| [pixel[0], pixel[1], pixel[2]])
+            .collect(),
     }
 }
 
@@ -98,8 +132,14 @@ fn the_card_agrees_with_the_processor(name: &str, frame: &Frame) {
         .sum();
     let values = u64::from(processor.width()) * u64::from(processor.height()) * 3;
     println!("{name}: similarity {similarity:?}, {further_apart} of {values} values further apart than 4 levels");
-    assert!(matches!(similarity, Some(value) if value >= LEAST_SIMILARITY), "{name}: similarity {similarity:?}");
-    assert!(further_apart * ONE_IN <= values, "{name}: {further_apart} of {values} values further apart than 4 levels");
+    assert!(
+        matches!(similarity, Some(value) if value >= LEAST_SIMILARITY),
+        "{name}: similarity {similarity:?}"
+    );
+    assert!(
+        further_apart * ONE_IN <= values,
+        "{name}: {further_apart} of {values} values further apart than 4 levels"
+    );
 }
 
 #[test]
@@ -131,7 +171,11 @@ fn reference_machine_only_a_faded_group_over_another_fill_agrees_with_the_proces
                 map,
                 0.45,
                 None,
-                vec![fill(60, 20, 50, 60, colour(220, 60, 40)), fill(90, 40, 50, 60, colour(40, 80, 220)), text(&face(), 24.0, 70.0, 60.0)],
+                vec![
+                    fill(60, 20, 50, 60, colour(220, 60, 40)),
+                    fill(90, 40, 50, 60, colour(40, 80, 220)),
+                    text(&face(), 24.0, 70.0, 60.0),
+                ],
             ),
         ]),
     );
@@ -141,10 +185,20 @@ fn reference_machine_only_a_faded_group_over_another_fill_agrees_with_the_proces
 #[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
 fn reference_machine_only_a_group_cut_to_a_rectangle_agrees_with_the_processor() {
     let map = about((100.0, 60.0), (5.0, 0.0), (2.0, 2.0), 0.0, 40.0);
-    let cut = Rect { left: 40, top: 20, width: 120, height: 70 };
+    let cut = Rect {
+        left: 40,
+        top: 20,
+        width: 120,
+        height: 70,
+    };
     the_card_agrees_with_the_processor(
         "cut",
-        &frame(vec![group(map, 0.8, Some(cut), vec![fill(70, 40, 60, 40, colour(220, 60, 40)), text(&face(), 30.0, 70.0, 75.0)])]),
+        &frame(vec![group(
+            map,
+            0.8,
+            Some(cut),
+            vec![fill(70, 40, 60, 40, colour(220, 60, 40)), text(&face(), 30.0, 70.0, 75.0)],
+        )]),
     );
 }
 
@@ -167,8 +221,14 @@ fn reference_machine_only_the_kept_coverage_of_a_text_that_turns_in_every_frame_
     }
     let most = *kept.iter().max().unwrap();
     assert!(most <= MASK_BOUND, "the card kept {most} bytes, above the bound of {MASK_BOUND}");
-    let first_full = kept.iter().position(|&bytes| bytes * 10 >= MASK_BOUND * 9).expect("the kept coverage reaches the bound");
+    let first_full = kept
+        .iter()
+        .position(|&bytes| bytes * 10 >= MASK_BOUND * 9)
+        .expect("the kept coverage reaches the bound");
     assert!(first_full < 600, "the kept coverage reached the bound only at frame {first_full}");
     let after = &kept[first_full..];
-    assert!(after.iter().all(|&bytes| bytes * 10 >= MASK_BOUND * 9), "the kept coverage fell after it reached the bound");
+    assert!(
+        after.iter().all(|&bytes| bytes * 10 >= MASK_BOUND * 9),
+        "the kept coverage fell after it reached the bound"
+    );
 }

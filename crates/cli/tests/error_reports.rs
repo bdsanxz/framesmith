@@ -144,7 +144,10 @@ fn shown_problems() -> Vec<ShownProblem> {
         ),
         (
             "property-not-taken",
-            vec![("composition.xml".to_string(), inside_root(r#"<box><tween duration="1" to-count="5"/></box>"#))],
+            vec![(
+                "composition.xml".to_string(),
+                inside_root(r#"<box><tween duration="1" to-count="5"/></box>"#),
+            )],
             Code::PropertyNotTaken,
         ),
         (
