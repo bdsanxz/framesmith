@@ -411,6 +411,7 @@ fn a_refusal_recorded_for_another_run_is_set_aside_and_one_of_this_run_is_counte
             (foreign, "/other-copy/decoy/first-program"),
             (plain, "/plain-run/decoy/outside/bin/outside-command"),
             ("another-worktree-0000", "/elsewhere/other-program"),
+            ("r9876fedc-offending-0123456789ab", "/other-copy/decoy/outside/bin/outside-command"),
         ],
     );
     let run = read_with(&folder, &stand_in, 1, 40);
@@ -432,7 +433,16 @@ fn a_refusal_recorded_for_another_run_is_set_aside_and_one_of_this_run_is_counte
         "{}",
         run.text
     );
-    // A record of a program that is not one of this run's is not this gate's at all.
+    // Another run's token sets a record aside whatever test program it names.
+    assert!(
+        run.text.contains(&set_aside(
+            "/other-copy/decoy/outside/bin/outside-command",
+            "r9876fedc-offending-0123456789ab"
+        )),
+        "{}",
+        run.text
+    );
+    // A record under no token of a program that is not one of this run's is not this gate's at all.
     assert!(!run.text.contains("/elsewhere/other-program"), "{}", run.text);
     assert_eq!(
         run.text.lines().filter(|line| line.starts_with("core problem:")).count(),
@@ -471,6 +481,87 @@ fn a_system_program_refused_in_this_run_is_counted_though_it_lies_outside_every_
     assert!(run.text.contains(&named("/bin/echo")), "{}", run.text);
     assert!(!run.text.contains("set aside"), "{}", run.text);
     assert!(!run.text.contains("may be missing"), "{}", run.text);
+}
+
+#[test]
+fn a_program_built_in_the_target_refused_under_no_token_is_named_as_run_unknown_and_not_counted() {
+    let folder = scratch("built-program");
+    // A target folder with the command binary a test starts, and a file that is not a program.
+    let target = folder.join("target");
+    std::fs::create_dir_all(target.join("debug")).expect("the folder is made");
+    executable(&target.join("debug/framesmith"), "#!/bin/bash\n");
+    std::fs::write(target.join("debug/framesmith.d"), "not a program").expect("the file is written");
+    let encoder = concat!("/opt/homebrew/bin/ff", "mpeg");
+    let stand_in = fixed_stand_in(
+        &folder,
+        &[
+            ("framesmith", encoder),
+            ("framesmith.d", "/bin/echo"),
+            ("mdworker_shared", "/usr/libexec/other"),
+        ],
+    );
+    let log = folder.join("core-suite.log");
+    std::fs::write(&log, run_log(1)).expect("the output of the run is written");
+    let mut command = Command::new("bash");
+    command
+        .arg(root().join("scripts/gates/core-refused.sh"))
+        .args(["--since", "2026-10-25 21:25:00", "--run-log"])
+        .arg(&log)
+        .env("FRAMESMITH_CORE_RUN_TOKEN", TOKEN)
+        .env("FRAMESMITH_CORE_TARGET", &target)
+        .env("FRAMESMITH_CORE_LOG_COMMAND", &stand_in);
+    let run = run_limited(command, Duration::from_secs(60));
+    assert_eq!(run.code, 0, "{}", run.text);
+    assert!(
+        run.text.contains(&format!("refused, run unknown: {encoder} (by framesmith)")),
+        "{}",
+        run.text
+    );
+    // Not counted: the one start the output shows refused is still missing from this run's refusals.
+    assert!(!run.text.contains(&named(encoder)), "{}", run.text);
+    assert!(run.text.contains("names 0 program(s)"), "{}", run.text);
+    // Only programs built in the target are named so; the rest of the machine's records are not this gate's.
+    assert!(!run.text.contains("/bin/echo"), "{}", run.text);
+    assert!(!run.text.contains("/usr/libexec/other"), "{}", run.text);
+}
+
+#[test]
+fn the_lines_of_a_reading_come_counted_then_set_aside_then_run_unknown() {
+    let folder = scratch("order-of-lines");
+    let target = folder.join("target");
+    std::fs::create_dir_all(target.join("debug")).expect("the folder is made");
+    executable(&target.join("debug/framesmith"), "#!/bin/bash\n");
+    let stand_in = fixed_stand_in(
+        &folder,
+        &[
+            ("framesmith", "/bin/date"),
+            ("r9876fedc-latecomer-0123456789ab", "/other-copy/b"),
+            (OWN, "/bin/echo"),
+        ],
+    );
+    let log = folder.join("core-suite.log");
+    std::fs::write(&log, run_log(1)).expect("the output of the run is written");
+    let mut command = Command::new("bash");
+    command
+        .arg(root().join("scripts/gates/core-refused.sh"))
+        .args(["--since", "2026-10-25 21:25:00", "--run-log"])
+        .arg(&log)
+        .env("FRAMESMITH_CORE_RUN_TOKEN", TOKEN)
+        .env("FRAMESMITH_CORE_TARGET", &target)
+        .env("FRAMESMITH_CORE_LOG_COMMAND", &stand_in);
+    let run = run_limited(command, Duration::from_secs(40));
+    assert_eq!(run.code, 0, "{}", run.text);
+    let lines: Vec<&str> = run.text.lines().collect();
+    assert_eq!(
+        lines,
+        [
+            named("/bin/echo").as_str(),
+            "set aside, refused in another run: /other-copy/b (by r9876fedc-latecomer-0123456789ab)",
+            "refused, run unknown: /bin/date (by framesmith)",
+        ],
+        "{}",
+        run.text
+    );
 }
 
 #[test]
