@@ -57,11 +57,3 @@ fn a_file_whose_first_four_bytes_name_no_font_kind_is_not_a_font() {
     assert_eq!(error, FontError::NotAFont);
     assert!(fonts.is_empty());
 }
-
-#[test]
-fn a_truetype_file_cut_short_after_its_tag_is_not_read() {
-    let mut fonts = Fonts::new();
-    let error = fonts.register(test_font_bytes()[..64].to_vec(), Some(FAMILY)).unwrap_err();
-    assert_eq!(error, FontError::NotAFont);
-    assert!(fonts.is_empty());
-}

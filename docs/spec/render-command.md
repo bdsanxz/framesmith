@@ -1,13 +1,13 @@
 # The `render` command: a first composition to an MP4, drawn on the processor
 
-Status: in force from Sprint 1, for the first form of `framesmith render`. Sources: `card-renderer.md` (the renderer on the card, the choice of `--backend gpu`, and the comparison of the two renderers: ticket T039); `notation.md` (section 3 for the project and the drawing order, section 4 for the value forms, section 5.1 for the frame count, sections 6.1 and 6.2 for the root and the box, section 7.1 for place and size, Q1, Q2 and N10 for the edges, the drawing order and `margin`, section 7.4 for the root's background, N6 for a size below 0, N9 for numbers); `check-command.md` and `project-location.md` (a project is opened as `check` opens it); `project-file.md` (the name and the place of the finished file, and the settings); `error-catalogue.md` (the codes, the kinds and the form of a report); `run-log.md`; decisions P2 and A19 of `DECISIONS.md` (the exit codes; A19 also for an option value outside its list), the ticket T038 of Sprint 1 (the options, the rule that an option wins over the project file and the file over the default, the summary of the settings used), the ticket T041 of Sprint 1 (the places and sizes of a box, section 4.1), the ticket T040 of Sprint 1 (the choice of the renderer by `auto`, `cpu` and `gpu`, section 1.2, and the refusal of `gpu` without a card) and `ROADMAP.md` line 1.48 (the option names), P5 (a file that exists is replaced only when a new render succeeds) and D22 (the encoder choices); `PLAN.md` section 3 (a frame is a pure function of the composition and the frame's number; the processor's renderer defines the picture; which crate holds what) and section 5.2 (the processor's renderer against its checked-in pictures: equal to the byte); `CLAUDE.md` rules 1, 2 and 5; ITU-T H.264 for the stream and ITU-R BT.709 for its colour marks (both through frx7: `frx7/docs/spec/pixel.md` and `frx7/docs/spec/os-codecs.md`). The proofs of concept's `native-render-pipeline.md` (a record read under decision B4) is the origin of the stages and their order, taken as behaviour and not as text.
+Status: in force from Sprint 1, for the first form of `framesmith render`. Sources: `card-renderer.md` (the renderer on the card, the choice of `--backend gpu`, and the comparison of the two renderers: ticket T039); `notation.md` (section 3 for the project and the drawing order, section 4 for the value forms, section 5.1 for the frame count, sections 6.1 and 6.2 for the root and the box, section 7.1 for place and size, Q1, Q2 and N10 for the edges, the drawing order and `margin`, section 7.4 for the root's background, N6 for a size below 0, N9 for numbers); `check-command.md` and `project-location.md` (a project is opened as `check` opens it); `project-file.md` (the name and the place of the finished file, and the settings); `error-catalogue.md` (the codes, the kinds and the form of a report); `run-log.md`; decisions P2 and A19 of `DECISIONS.md` (the exit codes; A19 also for an option value outside its list), the ticket T038 of Sprint 1 (the options, the rule that an option wins over the project file and the file over the default, the summary of the settings used), the ticket T041 of Sprint 1 (the places and sizes of a box, section 4.1), the ticket T040 of Sprint 1 (the choice of the renderer by `auto`, `cpu` and `gpu`, section 1.2, and the refusal of `gpu` without a card) and `ROADMAP.md` line 1.48 (the option names), P5 (a file that exists is replaced only when a new render succeeds) and D22 (the encoder choices); `PLAN.md` section 3 (a frame is a pure function of the composition and the frame's number; the processor's renderer defines the picture; which crate holds what) and section 5.2 (the processor's renderer against its checked-in pictures: equal to the byte); `CLAUDE.md` rules 1, 2 and 5; decision B27 of `DECISIONS.md` and the hash FNV-1a of Fowler, Noll and Vo, as published in the IETF draft `draft-eastlake-fnv` (the frame marks, section 7.1); ITU-T H.264 for the stream and ITU-R BT.709 for its colour marks (both through frx7: `frx7/docs/spec/pixel.md` and `frx7/docs/spec/os-codecs.md`). The proofs of concept's `native-render-pipeline.md` (a record read under decision B4) is the origin of the stages and their order, taken as behaviour and not as text.
 
 This is the tracer through the whole product: the project is read, drawn on the processor, handed to frx7 and written as a file. It draws the root's background and `<box>` elements with a background colour, placed by their edges in pixels or percentages of their parent (section 4.1). Everything else is named and refused before the first frame (section 3), so that no wrong video is made in silence.
 
 ## 1. The command line
 
 ```
-framesmith render <path> [--output <file>] [--backend <word>] [--quality <word>] [--encoder <word>] [--codec <word>] [--workers <value>]
+framesmith render <path> [--output <file>] [--backend <word>] [--quality <word>] [--encoder <word>] [--codec <word>] [--workers <value>] [--marks]
 ```
 
 - **One argument, the path of the project**, in the three forms `project-location.md` gives (a folder, a `framesmith.yaml`, a composition file), and any of the options below, before or after it, in any order.
@@ -22,20 +22,23 @@ framesmith render <path> [--output <file>] [--backend <word>] [--quality <word>]
 | `--codec <word>` | `render.codec` | `h264`, `hevc` |
 | `--workers <value>` | `render.workers` | `auto`, or a whole number from 1 to 16 written in digits |
 
+  `--marks` takes no value and sets no setting: the summary then ends with the mark of every frame drawn (section 7.1). It is written `--marks` alone; `--marks=yes` and `--marks` given twice are options not taken.
+
   The values are those of the project file's keys (`project-file.md` section 3), letter for letter. `--backend` chooses the renderer, by section 1.2: `cpu` draws on the processor, `gpu` draws on the graphics card (`card-renderer.md`), and `auto`, the default, draws on the card when one is there and on the processor when none is. What `--codec`, `--encoder`, `--quality` and `--workers` do to the film is stated by their own tickets (T084, T085, T096); a value this version does not apply is refused before the first frame (section 3). `--json`, `--strict`, `--debug` and settings by environment variable are not taken in this version. `render.audio-bitrate` has no option in this version (`ROADMAP.md` line 1.48 lists none): it is set in the project file.
 - **A command line that cannot be read** (`FS-0017`): no path, or more than one path. Its remedy is about the path of the project.
 - **An option that is not taken** (`FS-0037`, of the kind invalid): an option that is not in the table, an option with no value after it, an option given twice, and a value outside the values of its option. Its remedy is ``Give one of the options the message lists, with one of the values it names, or leave the option out.``, so that the author is sent to the option, not to the path. The message names what was written and the options or values taken:
-  - ``--colour` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers``;
+  - ``--colour` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers, --marks``;
   - ``--quality` must be one of draft, standard, high, not ultra``;
   - ``--workers` must be auto or a whole number from 1 to 16, not 17``;
   - ``--output` must be a path that is not empty``;
   - ``--quality` needs a value: one of draft, standard, high``;
-  - ``--quality` is given twice; give it once``.
+  - ``--quality` is given twice; give it once``;
+  - ``--marks` takes no value, and is written alone``.
 
   Both are told on standard error as `check` tells a command line it cannot read (`framesmith: ` and the statement of the code), followed by the usage line of `render`, which names every option and its values:
 
   ```
-  usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]
+  usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]
   ```
 
   then nothing is printed on standard output, the project is not opened, nothing is written, and the exit code is 1 (decision A19: a value outside its list is invalid and ends with 1). A command line with no command, or with a word that is not a command, is told with both usage lines, `usage: framesmith check <path>` and the usage line of `render` above, in that order.
@@ -261,6 +264,17 @@ elapsed: 1.234 s
 | The command line cannot be read | Nothing (standard error: `check-command.md` section 1) | 1 |
 
 The report of `FS-0038` carries the reason the card gave, which frx7 gives (for example, that this machine has no graphics card frx7 can draw with), and the remedy of the catalogue: the setting to change, `render.backend` or `--backend`, to `auto` or `cpu` (`error-catalogue.md` section 4). Its outcome in the run log is `refused` (`run-log.md` section 4).
+
+### 7.1 The frame marks
+
+With `--marks`, a render that completes prints, after the `elapsed` line, one line for each frame in the order of the frames, `mark <number>: <mark>`, the number in four digits or more as in the checked-in pictures (section 9) and the mark as 16 small hexadecimal digits:
+
+```
+mark 0000: 5c1f0e2a9b3d7c41
+mark 0001: 5c1f0e2a9b3d7c41
+```
+
+The mark of a frame is a short mark of its pixels, equal for equal pixels: the 64-bit FNV-1a hash (Fowler, Noll and Vo, offset basis `cbf29ce484222325`, prime `100000001b3`) of the picture the renderer drew, before it is brought to the encoder's planes, taken over the width and the height, each as four bytes with the lowest first, then the pixels' bytes, red, green, blue and alpha, row by row from the top. It does not depend on the encoder, on the file, or on the time; two frames with one picture have one mark, and a picture that differs in one value has, but for a collision of the hash, another. The marks are printed only when the film is written; a render that stops prints none. The marks compare two runs of one composition: the renderer that drew is on the `renderer` line, and only marks of one renderer are compared.
 
 ## 8. A frame on request
 

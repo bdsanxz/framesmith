@@ -50,7 +50,11 @@ fn a_text_naming_the_declared_family_is_drawn_with_the_declared_file_on_frame_0_
             })
             .collect();
         assert_eq!(runs.len(), 1, "frame {number} draws one run of glyphs");
-        assert_eq!(runs[0].font.data.as_slice(), declared.as_slice(), "frame {number} draws the glyphs of the declared file");
+        assert_eq!(
+            runs[0].font.data.as_slice(),
+            declared.as_slice(),
+            "frame {number} draws the glyphs of the declared file"
+        );
         assert_eq!(runs[0].glyphs.len(), 4, "frame {number} draws the four capitals");
     }
 }

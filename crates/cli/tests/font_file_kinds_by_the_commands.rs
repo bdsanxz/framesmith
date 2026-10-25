@@ -26,7 +26,10 @@ fn an_opentype_file_with_postscript_outlines_is_reported_with_its_file_and_the_k
     let (check, render) = check_and_render("font-file-kinds", "otto", &composition("fonts/f.ttf"), &[("fonts/f.ttf", font)]);
     let line = refused_the_same_way(&check, &render, 2);
     assert!(line.starts_with("composition.xml, line 2: FS-0035: unsupported:"), "{line}");
-    assert!(line.contains("`src=\"fonts/f.ttf\"` is OpenType with PostScript outlines"), "{line}");
+    assert!(
+        line.contains("`src=\"fonts/f.ttf\"` is OpenType with PostScript outlines"),
+        "{line}"
+    );
     assert!(line.contains(KINDS_TAKEN), "{line}");
 }
 
@@ -44,7 +47,12 @@ fn a_woff2_file_is_reported_with_its_file_and_the_kinds_taken() {
 #[test]
 fn a_file_of_no_font_kind_is_reported_with_its_file_and_the_kinds_taken() {
     let notes = b"These bytes are not a font.\n".to_vec();
-    let (check, render) = check_and_render("font-file-kinds", "not-a-font", &composition("fonts/notes.txt"), &[("fonts/notes.txt", notes)]);
+    let (check, render) = check_and_render(
+        "font-file-kinds",
+        "not-a-font",
+        &composition("fonts/notes.txt"),
+        &[("fonts/notes.txt", notes)],
+    );
     let line = refused_the_same_way(&check, &render, 1);
     assert!(line.starts_with("composition.xml, line 2: FS-0051: invalid:"), "{line}");
     assert!(

@@ -313,7 +313,7 @@ fn a_command_line_that_cannot_be_read_is_told_on_standard_error_with_the_usage_l
         (
             vec!["render", "--fast", "a"],
             "FS-0037",
-            "`--fast` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers.",
+            "`--fast` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers, --marks.",
         ),
     ] {
         let output = framesmith(&base, args.clone(), &[]);
@@ -324,7 +324,7 @@ fn a_command_line_that_cannot_be_read_is_told_on_standard_error_with_the_usage_l
             told.starts_with(&format!("framesmith: {code}: invalid: {message} ")),
             "{args:?}: {told}"
         );
-        assert!(told.ends_with("\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n"), "{args:?}: {told}");
+        assert!(told.ends_with("\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]\n"), "{args:?}: {told}");
     }
     assert!(!base.join("renders").exists());
 }
@@ -336,7 +336,7 @@ fn no_command_and_an_unknown_command_are_told_with_both_usage_lines() {
         let output = framesmith(&base, args.clone(), &[]);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert!(
-            err(&output).ends_with("\nusage: framesmith check <path>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n"),
+            err(&output).ends_with("\nusage: framesmith check <path>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]\n"),
             "{args:?}: {}",
             err(&output)
         );

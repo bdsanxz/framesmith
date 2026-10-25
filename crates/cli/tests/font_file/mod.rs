@@ -91,7 +91,11 @@ pub fn refused_the_same_way(check: &Run, render: &Run, status: i32) -> String {
     assert_eq!(render.status, Some(status), "render ends with {status}: {}", render.printed);
     assert!(!render.printed.contains("Rendered "), "render prints no film: {}", render.printed);
     assert!(!render.film, "render writes no film: {}", render.printed);
-    assert!(!render.project.join("renders").exists(), "render makes no renders folder: {}", render.printed);
+    assert!(
+        !render.project.join("renders").exists(),
+        "render makes no renders folder: {}",
+        render.printed
+    );
     assert_eq!(check.lines, render.lines, "render gives the report that check gives");
     assert!(!check.lines.is_empty(), "the report names a code: {}", check.printed);
     check.lines[0].clone()

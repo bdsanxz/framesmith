@@ -396,7 +396,7 @@ fn a_folder_without_a_composition_is_no_project_and_exits_1() {
 fn a_command_line_that_cannot_be_read_is_told_on_standard_error_and_exits_1() {
     let base = folder("bad-command-lines");
     let check_usage = "usage: framesmith check <path>\n";
-    let both_usages = "usage: framesmith check <path>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n";
+    let both_usages = "usage: framesmith check <path>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]\n";
     let cases: [(&[&str], &str, &str); 6] = [
         (&[], "no command is given", both_usages),
         (&["play", "demo"], "`play` is not a command", both_usages),

@@ -18,3 +18,6 @@ base = { workspace = true }
 codec = { workspace = true }
 backend-os = { workspace = true }
 pixel = { workspace = true }
+# The font reader that judges a declared font file (docs/spec/text.md, section 2.1; decision B28): a file it refuses is
+# damaged, and its reason is reported. The version is the one the shaping engine already brings.
+read-fonts = { version = "=0.41.0", default-features = false, features = ["std"] }

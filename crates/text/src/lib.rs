@@ -4,6 +4,7 @@
 //! the glyph runs of the lines with their places. No type of the engine is part of this crate's interface.
 
 mod colour;
+mod damage;
 mod fonts;
 mod paragraph;
 mod picture;

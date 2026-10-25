@@ -279,39 +279,39 @@ fn refused_the_same_way(check: &Report, render: &Report, status: i32) -> String 
 }
 
 #[test]
-fn a_collection_whose_header_lies_outside_the_file_is_refused_as_not_a_font() {
+fn a_collection_whose_header_lies_outside_the_file_is_refused_as_damaged() {
     let mut font = b"ttcf".to_vec();
     font.extend(0x0001_0000_u32.to_be_bytes());
     font.extend(1_u32.to_be_bytes());
     font.extend(0x00FF_FFFF_u32.to_be_bytes());
     let (check, render) = check_and_render("header-outside", &composition("", FAMILY, "A"), &font);
     let line = refused_the_same_way(&check, &render, 1);
-    assert!(line.starts_with("composition.xml, line 2: FS-0051: invalid:"), "{line}");
-    assert!(line.contains("is not a font of a kind this version takes"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0057: invalid:"), "{line}");
+    assert!(line.contains("is damaged: the font reader refuses it:"), "{line}");
 }
 
 #[test]
-fn a_collection_whose_table_directory_lies_outside_the_file_is_refused_as_not_a_font() {
+fn a_collection_whose_table_directory_lies_outside_the_file_is_refused_as_damaged() {
     let mut font = collection(&[test_font(REGULAR)]);
     let end = font.len() as u32;
     font[12..16].copy_from_slice(&(end - 2).to_be_bytes());
     let (check, render) = check_and_render("directory-outside", &composition("", FAMILY, "A"), &font);
     let line = refused_the_same_way(&check, &render, 1);
-    assert!(line.starts_with("composition.xml, line 2: FS-0051: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0057: invalid:"), "{line}");
 }
 
 #[test]
-fn a_collection_whose_name_table_lies_outside_the_file_is_refused_as_not_a_font() {
+fn a_collection_whose_name_table_lies_outside_the_file_is_refused_as_damaged() {
     let mut font = collection(&[test_font(REGULAR)]);
     let face = be32(&font, 12) as usize;
     patch_table_offset(&mut font, face, b"name", 0x00FF_FFF0);
     let (check, render) = check_and_render("name-outside", &composition("", FAMILY, "A"), &font);
     let line = refused_the_same_way(&check, &render, 1);
-    assert!(line.starts_with("composition.xml, line 2: FS-0051: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0057: invalid:"), "{line}");
 }
 
 #[test]
-fn a_collection_face_with_no_family_name_is_refused_as_not_a_font() {
+fn a_collection_face_with_no_family_name_is_refused_as_damaged() {
     let mut tables = test_font(REGULAR);
     tables = with_table(
         &tables,
@@ -321,7 +321,7 @@ fn a_collection_face_with_no_family_name_is_refused_as_not_a_font() {
     let font = collection(&[tables]);
     let (check, render) = check_and_render("no-family-name", &composition("", FAMILY, "A"), &font);
     let line = refused_the_same_way(&check, &render, 1);
-    assert!(line.starts_with("composition.xml, line 2: FS-0051: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0057: invalid:"), "{line}");
 }
 
 #[test]

@@ -593,6 +593,10 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
                     Code::FormNotSupported,
                     format!("`src=\"{src}\"` is a font collection this version does not draw: {reason}"),
                 ),
+                FontError::Damaged(reason) => (
+                    Code::FontDamaged,
+                    format!("`src=\"{src}\"` is damaged: the font reader refuses it: {reason}"),
+                ),
                 FontError::NotAFont => (
                     Code::FontNotAFont,
                     format!(

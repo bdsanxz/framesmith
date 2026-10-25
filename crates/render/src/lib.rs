@@ -8,5 +8,5 @@
 
 mod film;
 
-pub use film::{write_film, Failure, Written};
+pub use film::{write_film, write_film_marked, Failure, Written};
 pub use timeline::{place_reports, PictureError, Scene};

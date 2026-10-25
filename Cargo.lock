@@ -1494,6 +1494,7 @@ dependencies = [
  "codec",
  "parley",
  "pixel",
+ "read-fonts",
 ]
 
 [[package]]

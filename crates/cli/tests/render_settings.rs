@@ -144,12 +144,12 @@ fn an_unknown_option_and_a_value_outside_its_list_are_told_with_the_values_taken
         (
             "unknown",
             vec!["--colour", "red"],
-            "`--colour` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers.",
+            "`--colour` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers, --marks.",
         ),
         (
             "json",
             vec!["--json"],
-            "`--json` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers.",
+            "`--json` is not an option of `render`; the options are: --output, --backend, --quality, --encoder, --codec, --workers, --marks.",
         ),
         (
             "quality",
@@ -190,7 +190,7 @@ fn an_unknown_option_and_a_value_outside_its_list_are_told_with_the_values_taken
             !told.contains("framesmith check <path>` or"),
             "{options:?}: the remedy is not about the path: {told}"
         );
-        assert!(told.ends_with("\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]\n"), "{options:?}: {told}");
+        assert!(told.ends_with("\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]\n"), "{options:?}: {told}");
         assert_eq!(files(&project), ["composition.xml"], "{options:?}: no file is written");
     }
 }

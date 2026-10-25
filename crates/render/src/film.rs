@@ -71,6 +71,18 @@ fn codecs() -> codec::Registry {
 /// (`render.audio-bitrate`, section 5.2). A film that cannot be finished leaves no file at
 /// `output`.
 pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32) -> Result<Written, Failure> {
+    write_film_marked(scene, renderer, output, audio_bitrate, None)
+}
+
+/// Writes the film as `write_film` does and, when `marks` is given, puts in it the mark of each frame drawn, in the order of
+/// the frames (`docs/spec/render-command.md`, section 7.1). A film that is not finished leaves the marks it gave so far.
+pub fn write_film_marked(
+    scene: &Scene,
+    renderer: &mut dyn Renderer,
+    output: &Path,
+    audio_bitrate: u32,
+    marks: Option<&mut Vec<u64>>,
+) -> Result<Written, Failure> {
     if let Some(folder) = output.parent().filter(|folder| !folder.as_os_str().is_empty()) {
         fs::create_dir_all(folder).map_err(|error| Failure::new(format!("the folder for the file could not be made: {error}")))?;
     }
@@ -83,7 +95,7 @@ pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, aud
         renderer = renderer.name(),
         "render started"
     );
-    let written = make(scene, renderer, output, audio_bitrate, began).inspect_err(|_| {
+    let written = make(scene, renderer, output, audio_bitrate, began, marks).inspect_err(|_| {
         // A film that was not finished leaves no file that looks finished.
         let _ = fs::remove_file(output);
     })?;
@@ -91,7 +103,14 @@ pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, aud
     Ok(written)
 }
 
-fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32, began: Instant) -> Result<Written, Failure> {
+fn make(
+    scene: &Scene,
+    renderer: &mut dyn Renderer,
+    output: &Path,
+    audio_bitrate: u32,
+    began: Instant,
+    mut marks: Option<&mut Vec<u64>>,
+) -> Result<Written, Failure> {
     let named = |error: Error| Failure::new(error.to_string());
     let sound_bitrate = audio_bitrate
         .checked_mul(1000)
@@ -171,6 +190,9 @@ fn make(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate
         let drawn = scene
             .picture(number, renderer)
             .map_err(|error| Failure::new(format!("frame {number}: {error}")))?;
+        if let Some(marks) = marks.as_deref_mut() {
+            marks.push(drawn.mark());
+        }
         let mut rgba = Picture::new(PixelFormat::Rgba8, drawn.width(), drawn.height());
         rgba.planes[0].data.copy_from_slice(drawn.pixels());
         let planes = pixel::convert(&rgba, None, PixelFormat::Nv12, Some(Color::BT709)).map_err(named)?;

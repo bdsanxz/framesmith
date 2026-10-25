@@ -22,8 +22,12 @@ pub const EXIT_FAILED: u8 = 1;
 /// The exit code of a project that is valid, except that it uses what this version does not support.
 pub const EXIT_UNSUPPORTED: u8 = 2;
 
+/// The switch of `render` that prints the mark of every frame drawn after the summary (`docs/spec/render-command.md`,
+/// section 7.1). It sets no setting of the project file, so it is not one of `project`'s options.
+const MARKS: &str = "--marks";
+
 const CHECK_USAGE: &str = "usage: framesmith check <path>";
-const RENDER_USAGE: &str = "usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16]";
+const RENDER_USAGE: &str = "usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]";
 
 /// The starter of the renderer on the graphics card: `CardRenderer::new`, boxed as a renderer. It is
 /// a parameter of `run_with`, so that a test can run the command on a machine with no card.
@@ -65,7 +69,7 @@ fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_ca
         None => Reply::Unreadable(Code::CommandLineNotRead, "no command is given".to_string(), BOTH_USAGES),
         Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, check),
         Some((command, rest)) if command == "render" => match render_line(rest) {
-            Ok((path, options)) => render(path, &options, start_card),
+            Ok((path, options, marks)) => render(path, &options, marks, start_card),
             Err((code, why)) => Reply::Unreadable(code, why, &[RENDER_USAGE]),
         },
         Some((command, _)) => Reply::Unreadable(
@@ -117,12 +121,14 @@ fn with_path(name: &str, usages: &'static [&'static str], rest: &[OsString], run
 }
 
 /// Reads the words after `render`: the path of one project and the options, in any order
-/// (`docs/spec/render-command.md` section 1). Gives the sentence that says what is wrong otherwise.
-fn render_line(rest: &[OsString]) -> Result<(PathBuf, Options), (Code, String)> {
+/// (`docs/spec/render-command.md` section 1), and whether `--marks` asks for the frame marks (section 7.1). Gives the
+/// sentence that says what is wrong otherwise.
+fn render_line(rest: &[OsString]) -> Result<(PathBuf, Options, bool), (Code, String)> {
     let not_read = |why: String| (Code::CommandLineNotRead, why);
     let not_taken = |why: String| (Code::OptionNotTaken, why);
     let mut options = Options::default();
     let mut path: Option<&OsString> = None;
+    let mut marks = false;
     let mut words = rest.iter();
     while let Some(word) = words.next() {
         let text = word.to_string_lossy();
@@ -139,8 +145,18 @@ fn render_line(rest: &[OsString]) -> Result<(PathBuf, Options), (Code, String)> 
             Some((name, value)) => (name.to_string(), Some(value.to_string())),
             None => (text.to_string(), None),
         };
+        if name == MARKS {
+            if written.is_some() {
+                return Err(not_taken(format!("`{MARKS}` takes no value, and is written alone")));
+            }
+            if marks {
+                return Err(not_taken(format!("`{MARKS}` is given twice; give it once")));
+            }
+            marks = true;
+            continue;
+        }
         if !Options::is_option(&name) {
-            return Err(not_taken(Options::unknown(&name)));
+            return Err(not_taken(format!("{}, {MARKS}", Options::unknown(&name))));
         }
         let value = match written {
             Some(value) => value,
@@ -152,7 +168,7 @@ fn render_line(rest: &[OsString]) -> Result<(PathBuf, Options), (Code, String)> 
         options.set(&name, &value).map_err(not_taken)?;
     }
     match path {
-        Some(path) => Ok((PathBuf::from(path), options)),
+        Some(path) => Ok((PathBuf::from(path), options, marks)),
         None => Err(not_read("`render` needs the path of a project".to_string())),
     }
 }
@@ -359,7 +375,7 @@ pub fn renderer_for(settings: &Settings, start_card: &StartCard) -> Result<Choic
 /// draws, draws every frame on the renderer that the settings choose and writes the film to the
 /// project's output path. A project that does not open, or that uses what this version does not
 /// draw, is told as `check` tells it and nothing is written (`docs/spec/render-command.md`).
-fn render(path: PathBuf, options: &Options, start_card: &StartCard) -> Reply {
+fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard) -> Reply {
     let mut project = match Project::open(&path) {
         Ok(project) => project,
         Err(error) => return not_opened(error),
@@ -387,7 +403,9 @@ fn render(path: PathBuf, options: &Options, start_card: &StartCard) -> Reply {
             return reports_reply(&[text_not_drawn(file, line, choice.name())]);
         }
     }
-    match render::write_film(&scene, choice.renderer_mut(), &output, settings.audio_bitrate()) {
+    let mut drawn_marks = Vec::new();
+    let asked = marks.then_some(&mut drawn_marks);
+    match render::write_film_marked(&scene, choice.renderer_mut(), &output, settings.audio_bitrate(), asked) {
         Ok(written) => {
             let mut lines = vec![
                 format!("Rendered {}", output.display()),
@@ -399,6 +417,12 @@ fn render(path: PathBuf, options: &Options, start_card: &StartCard) -> Reply {
             ];
             lines.extend(settings_used(settings, &written_output));
             lines.push(format!("elapsed: {:.3} s", written.seconds));
+            lines.extend(
+                drawn_marks
+                    .iter()
+                    .enumerate()
+                    .map(|(number, mark)| format!("mark {number:04}: {mark:016x}")),
+            );
             Reply::Printed(lines, EXIT_OK, Outcome::Rendered { frames: written.frames })
         }
         Err(failure) => video_not_made(&format!("the video could not be made: {failure}")),

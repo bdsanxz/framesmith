@@ -189,6 +189,16 @@ impl Picture {
         &self.pixels
     }
 
+    /// The frame mark of the picture (`docs/spec/render-command.md`, section 7.1): the 64-bit FNV-1a hash of the width and
+    /// the height, each as four bytes with the lowest first, then of the pixels' bytes. Equal pictures have equal marks.
+    pub fn mark(&self) -> u64 {
+        const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+        const PRIME: u64 = 0x0000_0100_0000_01b3;
+        let size = self.width.to_le_bytes().into_iter().chain(self.height.to_le_bytes());
+        size.chain(self.pixels.iter().copied())
+            .fold(OFFSET, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(PRIME))
+    }
+
     /// The four bytes of the pixel in column `x` of row `y`, or `None` outside the picture.
     pub fn pixel(&self, x: u32, y: u32) -> Option<[u8; 4]> {
         if x >= self.width || y >= self.height {

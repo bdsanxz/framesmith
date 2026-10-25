@@ -6,6 +6,7 @@ use std::sync::Arc;
 use parley::fontique::{Blob, Collection, CollectionOptions, FontInfoOverride};
 
 use crate::colour::{read_collection, ColourFace, Refusal};
+use crate::damage;
 use crate::picture;
 
 /// Why a file is not registered as a font.
@@ -18,6 +19,8 @@ pub enum FontError {
     Collection(String),
     /// The bytes are not a font of any kind.
     NotAFont,
+    /// The file begins as a font of a kind this version reads, and the font reader refuses it: the reader's reason.
+    Damaged(String),
 }
 
 /// One face registered in the collection: the family it belongs to, the file's blob and bytes, its index in the file, and
@@ -75,8 +78,14 @@ impl Fonts {
             Some([0, 1, 0, 0]) | Some(b"true") => {}
             Some(b"OTTO") => return Err(FontError::Unsupported("OpenType with PostScript outlines")),
             Some(b"wOF2") => return Err(FontError::Unsupported("WOFF2")),
-            Some(b"ttcf") => return self.register_collection(bytes, family),
+            Some(b"ttcf") => {}
             _ => return Err(FontError::NotAFont),
+        }
+        if let Some(reason) = damage::refusal(&bytes) {
+            return Err(FontError::Damaged(reason));
+        }
+        if bytes.starts_with(b"ttcf") {
+            return self.register_collection(bytes, family);
         }
         let bytes = Arc::new(bytes);
         let blob = Blob::new(bytes.clone());
@@ -87,7 +96,9 @@ impl Fonts {
         });
         let registered = self.context.collection.register_fonts(blob, info_override);
         if registered.is_empty() {
-            return Err(FontError::NotAFont);
+            return Err(FontError::Damaged(
+                "the font reader reads it, and the shaping engine takes no face from it".into(),
+            ));
         }
         for (family_id, _) in registered {
             let name = match family {
@@ -111,7 +122,11 @@ impl Fonts {
     fn register_collection(&mut self, bytes: Vec<u8>, family: Option<&str>) -> Result<(), FontError> {
         let colour = match read_collection(&bytes) {
             Ok(colour) => colour,
-            Err(Refusal::Invalid) => return Err(FontError::NotAFont),
+            Err(Refusal::Invalid) => {
+                return Err(FontError::Damaged(
+                    "a table of one of its faces lies outside the file or cannot be read, or a face has no family name".into(),
+                ))
+            }
             Err(Refusal::Unsupported(reason)) => return Err(FontError::Collection(reason)),
         };
         if let Some(name) = family {
@@ -127,7 +142,9 @@ impl Fonts {
         let registered = self.context.collection.register_fonts(blob, None);
         let at_index = registered.iter().any(|(_, infos)| infos.iter().any(|info| info.index() == index));
         if !at_index {
-            return Err(FontError::NotAFont);
+            return Err(FontError::Damaged(format!(
+                "the font reader reads it, and the shaping engine takes no face at index {index} from it"
+            )));
         }
         if self.context.collection.family_id(&name).is_none() {
             return Err(FontError::Collection(format!(

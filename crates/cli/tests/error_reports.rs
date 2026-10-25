@@ -190,6 +190,15 @@ fn font_problems() -> Vec<ShownProblem> {
             ],
             Code::FontNotAFont,
         ),
+        (
+            // The TrueType tag, and nothing after it that the font reader can read.
+            "font-damaged",
+            vec![
+                ("composition.xml".to_string(), font("fonts/damaged.ttf")),
+                ("fonts/damaged.ttf".to_string(), b"\x00\x01\x00\x00 and no table directory".to_vec()),
+            ],
+            Code::FontDamaged,
+        ),
     ]
 }
 

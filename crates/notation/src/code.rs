@@ -149,11 +149,13 @@ pub enum Code {
     ColumnsWithDirection,
     /// A character of a text whose picture this version does not draw.
     EmojiNotDrawn,
+    /// A font file of a kind this version reads that the font reader refuses as damaged.
+    FontDamaged,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 56] = [
+    pub const ALL: [Code; 57] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -210,6 +212,7 @@ impl Code {
         Code::ColumnsNotAList,
         Code::ColumnsWithDirection,
         Code::EmojiNotDrawn,
+        Code::FontDamaged,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -271,6 +274,7 @@ impl Code {
             Code::ColumnsNotAList => "FS-0054",
             Code::ColumnsWithDirection => "FS-0055",
             Code::EmojiNotDrawn => "FS-0056",
+            Code::FontDamaged => "FS-0057",
         }
     }
 
@@ -353,6 +357,7 @@ impl Code {
             Code::ColumnsNotAList => "Write the widths as numbers of pixels, such as 640, or as shares, such as 1fr, separated by spaces.",
             Code::ColumnsWithDirection => "Remove `columns` to lay the children out in a row or a column, or `flex-direction` to lay them out in columns.",
             Code::EmojiNotDrawn => "Give the text a font that has a PNG picture for the character, or remove the character.",
+            Code::FontDamaged => "Replace the font file with a copy that is not damaged, such as the one the font came in.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }
