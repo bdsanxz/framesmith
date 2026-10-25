@@ -97,6 +97,11 @@ fn run_limited(mut command: Command, limit: Duration) -> Run {
 }
 
 const PROGRAM: &str = "latecomer-0123456789abcdef";
+/// The token of the run the reading belongs to, as core-suite.sh makes it.
+const TOKEN: &str = "r0123abcd";
+/// The name this run's test program is started under, as the system's record keeps it: the token, then the
+/// program's name, cut to 32 characters.
+const OWN: &str = "r0123abcd-latecomer-0123456789ab";
 const FIRST: &str = "/work/decoy/first-program";
 const SECOND: &str = "/work/decoy/outside/bin/outside-command";
 
@@ -142,12 +147,12 @@ fn stand_in_script(folder: &Path, second_after_ms: Option<u64>, readable: bool, 
         }
         body.push_str(&format!(
             "echo \"Filtering the log data using \\\"eventMessage CONTAINS ...\\\"\"\n\
-             echo \"2026-10-14 07:15:35.191 E  kernel[0:29c9bd6] (Sandbox) Sandbox: {PROGRAM}(25029) deny(1) process-exec* {FIRST}\"\n\
+             echo \"2026-10-14 07:15:35.191 E  kernel[0:29c9bd6] (Sandbox) Sandbox: {OWN}(25029) deny(1) process-exec* {FIRST}\"\n\
              echo \"2026-10-14 07:15:35.200 E  kernel[0:29c9bd7] (Sandbox) Sandbox: another-worktree-0000(31) deny(1) process-exec* /elsewhere/other-program\"\n"
         ));
         if let Some(after) = second_after_ms {
             body.push_str(&format!(
-                "if [ \"$age\" -ge {after} ]; then echo \"2026-10-14 07:15:36.102 E  sandboxd[395:1c0b] (Sandbox) Sandbox: {PROGRAM}(25030) deny(1) process-exec* {SECOND}\"; else echo hidden >>\"$state/hidden\"; fi\n"
+                "if [ \"$age\" -ge {after} ]; then echo \"2026-10-14 07:15:36.102 E  sandboxd[395:1c0b] (Sandbox) Sandbox: {OWN}(25030) deny(1) process-exec* {SECOND}\"; else echo hidden >>\"$state/hidden\"; fi\n"
             ));
         }
     } else {
@@ -201,6 +206,7 @@ fn read_with(folder: &Path, stand_in: &Path, refused_tests: usize, limit: u64) -
         .arg(root().join("scripts/gates/core-refused.sh"))
         .args(["--since", "2026-10-14 07:15:30", "--run-log"])
         .arg(&log)
+        .env("FRAMESMITH_CORE_RUN_TOKEN", TOKEN)
         .env("FRAMESMITH_CORE_LOG_COMMAND", stand_in);
     run_limited(command, Duration::from_secs(limit))
 }
@@ -369,6 +375,126 @@ fn a_process_a_command_leaves_running_does_not_hold_its_run_open() {
         "took {:?}: the process the command left running held the run open",
         run.took
     );
+}
+
+/// A stand-in for `log show` that gives the same records at every answer: each a pair of the name of the
+/// process that was refused and the program it was refused.
+fn fixed_stand_in(folder: &Path, records: &[(&str, &str)]) -> PathBuf {
+    let script = folder.join("log-stand-in");
+    let mut body = stand_in_head(folder);
+    body.push_str("echo \"Filtering the log data using \\\"eventMessage CONTAINS ...\\\"\"\n");
+    for (pid, (process, path)) in records.iter().enumerate() {
+        body.push_str(&format!(
+            "echo \"2026-10-25 21:25:16.007 E  kernel[0:4c9e0c] (Sandbox) Sandbox: {process}({}) deny(1) process-exec* {path}\"\n",
+            48000 + pid
+        ));
+    }
+    executable(&script, &body);
+    script
+}
+
+fn set_aside(path: &str, process: &str) -> String {
+    format!("set aside, refused in another run: {path} (by {process})")
+}
+
+#[test]
+fn a_refusal_recorded_for_another_run_is_set_aside_and_one_of_this_run_is_counted() {
+    let folder = scratch("another-run");
+    // The same test program, refused under this run's name, under the name of a run of another copy
+    // (another token), and under its plain name (a run started without the runner of this gate).
+    let foreign = "r9876fedc-latecomer-0123456789ab";
+    let plain = "latecomer-0123456789abcdef";
+    let stand_in = fixed_stand_in(
+        &folder,
+        &[
+            (OWN, FIRST),
+            (foreign, "/other-copy/decoy/first-program"),
+            (plain, "/plain-run/decoy/outside/bin/outside-command"),
+            ("another-worktree-0000", "/elsewhere/other-program"),
+        ],
+    );
+    let run = read_with(&folder, &stand_in, 1, 40);
+    assert_eq!(run.code, 0, "{}", run.text);
+    assert!(run.text.contains(&named(FIRST)), "{}", run.text);
+    assert!(!run.text.contains(&named("/other-copy/decoy/first-program")), "{}", run.text);
+    assert!(
+        !run.text.contains(&named("/plain-run/decoy/outside/bin/outside-command")),
+        "{}",
+        run.text
+    );
+    assert!(
+        run.text.contains(&set_aside("/other-copy/decoy/first-program", foreign)),
+        "{}",
+        run.text
+    );
+    assert!(
+        run.text.contains(&set_aside("/plain-run/decoy/outside/bin/outside-command", plain)),
+        "{}",
+        run.text
+    );
+    // A record of a program that is not one of this run's is not this gate's at all.
+    assert!(!run.text.contains("/elsewhere/other-program"), "{}", run.text);
+    assert_eq!(
+        run.text.lines().filter(|line| line.starts_with("core problem:")).count(),
+        1,
+        "{}",
+        run.text
+    );
+    assert!(!run.text.contains("may be missing"), "{}", run.text);
+}
+
+#[test]
+fn only_refusals_of_another_run_leave_this_run_short_and_say_so() {
+    let folder = scratch("only-another-run");
+    let foreign = "r9876fedc-latecomer-0123456789ab";
+    let stand_in = fixed_stand_in(&folder, &[(foreign, FIRST), (foreign, SECOND)]);
+    let run = read_with(&folder, &stand_in, 2, 60);
+    assert_eq!(run.code, 0, "{}", run.text);
+    assert!(!run.text.contains(&named(FIRST)), "{}", run.text);
+    assert!(!run.text.contains(&named(SECOND)), "{}", run.text);
+    assert!(run.text.contains(&set_aside(FIRST, foreign)), "{}", run.text);
+    assert!(run.text.contains(&set_aside(SECOND, foreign)), "{}", run.text);
+    assert!(
+        run.text
+            .contains("core problem: after waiting 20 seconds the system log names 0 program(s) the system refused to start"),
+        "{}",
+        run.text
+    );
+}
+
+#[test]
+fn a_system_program_refused_in_this_run_is_counted_though_it_lies_outside_every_copy() {
+    let folder = scratch("system-program");
+    let stand_in = fixed_stand_in(&folder, &[(OWN, "/bin/echo")]);
+    let run = read_with(&folder, &stand_in, 1, 40);
+    assert_eq!(run.code, 0, "{}", run.text);
+    assert!(run.text.contains(&named("/bin/echo")), "{}", run.text);
+    assert!(!run.text.contains("set aside"), "{}", run.text);
+    assert!(!run.text.contains("may be missing"), "{}", run.text);
+}
+
+#[test]
+fn the_reading_refuses_to_run_without_the_token_of_its_run() {
+    let folder = scratch("no-token");
+    let stand_in = fixed_stand_in(&folder, &[(OWN, FIRST)]);
+    let log = folder.join("core-suite.log");
+    std::fs::write(&log, run_log(1)).expect("the output of the run is written");
+    for token in [None, Some("latecomer"), Some("r0123ABCD"), Some("r0123abc")] {
+        let mut command = Command::new("bash");
+        command
+            .arg(root().join("scripts/gates/core-refused.sh"))
+            .args(["--since", "2026-10-25 21:25:00", "--run-log"])
+            .arg(&log)
+            .env("FRAMESMITH_CORE_LOG_COMMAND", &stand_in)
+            .env_remove("FRAMESMITH_CORE_RUN_TOKEN");
+        if let Some(token) = token {
+            command.env("FRAMESMITH_CORE_RUN_TOKEN", token);
+        }
+        let run = run_limited(command, Duration::from_secs(20));
+        assert_eq!(run.code, 2, "token {token:?}: {}", run.text);
+        assert!(run.text.contains("FRAMESMITH_CORE_RUN_TOKEN"), "{}", run.text);
+        assert!(!run.text.contains(&named(FIRST)), "{}", run.text);
+    }
 }
 
 #[test]

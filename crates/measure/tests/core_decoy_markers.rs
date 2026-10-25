@@ -176,6 +176,7 @@ fn a_decoy_refused_by_the_system_is_proven_by_its_marker_when_the_log_holds_no_r
         .arg(root().join("scripts/gates/core-refused.sh"))
         .args(["--since", "2026-10-16 08:00:00", "--run-log"])
         .arg(&output)
+        .env("FRAMESMITH_CORE_RUN_TOKEN", "r0123abcd")
         .env("FRAMESMITH_CORE_LOG_COMMAND", never_records(&dir));
     let read = run(reader, Duration::from_secs(40));
     assert_eq!(read.code, 0, "{}", read.text);
@@ -251,6 +252,47 @@ fn a_decoy_that_ran_fails_the_control_and_is_named() {
     assert!(
         judged.text.contains("refused, as it must: decoy/outside/bin/outside-command"),
         "the other decoy was still refused: {}",
+        judged.text
+    );
+}
+
+#[test]
+fn only_the_records_of_this_controls_own_decoys_are_counted_in_its_note() {
+    let dir = folder("own-decoys");
+    let made = step(&["make", text_of(&dir)]);
+    assert_eq!(made.code, 0, "{}", made.text);
+    let own = std::fs::canonicalize(&dir).expect("the folder has a full path");
+    let output = dir.join("core-selftest-suite.log");
+    let refused = |folder: &Path, decoy: &str| format!("core problem: the system refused to start {}/decoy/{decoy}\n", folder.display());
+
+    // The suite names the decoys of a control of another copy, at the same paths under another folder.
+    let other = own.with_file_name("own-decoys-of-another-copy");
+    let mut text = suite_output(false);
+    text.push_str(&refused(&other, ENCODER));
+    text.push_str(&refused(&other, "outside/bin/outside-command"));
+    std::fs::write(&output, &text).expect("the output of the run is written");
+    let judged = step(&["judge", text_of(&dir), text_of(&output)]);
+    assert_eq!(judged.code, 0, "{}", judged.text);
+    assert!(
+        judged
+            .text
+            .contains("core self-test note: the system log named no decoy program as refused in this run"),
+        "{}",
+        judged.text
+    );
+
+    // Its own decoys, at its own paths, are counted.
+    let mut text = suite_output(false);
+    text.push_str(&refused(&own, ENCODER));
+    text.push_str(&refused(&own, "outside/bin/outside-command"));
+    std::fs::write(&output, &text).expect("the output of the run is written");
+    let judged = step(&["judge", text_of(&dir), text_of(&output)]);
+    assert_eq!(judged.code, 0, "{}", judged.text);
+    assert!(
+        judged
+            .text
+            .contains("core self-test note: the system log named 2 of the 2 decoy programs as refused"),
+        "{}",
         judged.text
     );
 }

@@ -82,6 +82,9 @@ impl Repo {
         let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("frx7-gates").join(name);
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("the folder is made");
+        // The scripts name folders by their full, resolved path; cargo gives this one as it was given
+        // the target folder, which may hold `..` or a link.
+        let dir = std::fs::canonicalize(&dir).expect("the folder has a full path");
         let repo = Repo { dir };
         repo.git(&["init", "-q", "-b", "main"]);
         repo.write(

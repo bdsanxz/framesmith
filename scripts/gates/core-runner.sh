@@ -63,4 +63,23 @@ for extra in "${FRAMESMITH_CORE_DEVTOOLS:-}" "${FRAMESMITH_CORE_TOOLCHAIN:-}"; d
 (allow process-exec* (subpath \"$extra\"))"
 done
 
-exec /usr/bin/env PATH="$SYSTEM_PATH" /usr/bin/sandbox-exec -p "$PROFILE" "$@"
+# Each test program is started under a name of this run (docs/dev/gates.md, section 10, "Telling runs
+# apart"): a hard link beside it, named with the run's token first, which the system keeps in its record
+# of a refused start. A symbolic link would not do: the record names the program it points to.
+TOKEN="${FRAMESMITH_CORE_RUN_TOKEN:-}"
+if [ -z "$TOKEN" ]; then
+    exec /usr/bin/env PATH="$SYSTEM_PATH" /usr/bin/sandbox-exec -p "$PROFILE" "$@"
+fi
+case "$TOKEN" in
+    r[0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef]) ;;
+    *) echo "core-runner: a run token is r and 8 hexadecimal digits: $TOKEN" >&2; exit 2 ;;
+esac
+PROGRAM="$1"
+shift
+LINK="$(dirname "$PROGRAM")/$TOKEN-$(basename "$PROGRAM")"
+rm -f "$LINK"
+ln "$PROGRAM" "$LINK" || { echo "core-runner: the program could not be linked as $LINK" >&2; exit 2; }
+/usr/bin/env PATH="$SYSTEM_PATH" /usr/bin/sandbox-exec -p "$PROFILE" "$LINK" "$@"
+CODE=$?
+rm -f "$LINK"
+exit "$CODE"

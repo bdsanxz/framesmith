@@ -125,9 +125,13 @@ judge_decoys() {
             echo "refused, as it must: decoy/$rel (test $name failed by its name, its output shows Operation not permitted, its marker file is absent)"
         fi
     done
+    # The record of a decoy names its path in full; only this control's own decoys count, never those of
+    # a control of another copy running at the same time.
+    local own
+    own=$(cd "$folder" && pwd -P)
     for pair in $DECOYS; do
         rel=${pair%%:*}
-        if grep -q "^core problem: the system refused to start .*decoy/$rel" "$output"; then
+        if grep -qFx "core problem: the system refused to start $own/decoy/$rel" "$output"; then
             named=$((named + 1))
         fi
     done

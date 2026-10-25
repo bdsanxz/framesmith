@@ -76,6 +76,11 @@ fi
 export FRAMESMITH_CORE_TARGET="$TARGET"
 export FRAMESMITH_CORE_TOOLCHAIN="$SYSROOT"
 export FRAMESMITH_CORE_DEVTOOLS="$DEVTOOLS"
+# The token of this run: the runner starts each test program under a name that begins with it, and the
+# reading of refused starts counts only the refusals recorded for such a name, so that a run of another
+# copy, or one at the same time, is not taken for this one (docs/dev/gates.md, section 10).
+FRAMESMITH_CORE_RUN_TOKEN=r$(printf '%s %s %s %s' "$RANDOM" "$$" "$(date +%s)" "$WORKSPACE" | shasum | cut -c1-8)
+export FRAMESMITH_CORE_RUN_TOKEN
 
 RUNNER="$REPO/scripts/gates/core-runner.sh"
 CONFIG="target.'cfg(all())'.runner=[\"$RUNNER\"]"
