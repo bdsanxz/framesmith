@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tiles. Left: a 20 by 20 gradient tile repeated over the box. Middle: the same tile drawn once, with no-repeat. Right:
+     the same tile moved 10 pixels right and 5 down, repeated, so the tiles start at that place. 330 by 120 pixels. -->
+<composition version="1" id="background-tiles" width="330" height="120" fps="30" duration="1" background="#808080">
+  <box left="10" top="10" width="100" height="100" background="linear-gradient(90deg, #ff0000 0%, #0000ff 100%), #ffffff" background-size="20 20, auto"/>
+  <box left="120" top="10" width="100" height="100" background="linear-gradient(90deg, #ff0000 0%, #0000ff 100%), #ffffff" background-size="20 20, auto" background-repeat="no-repeat, repeat"/>
+  <box left="230" top="10" width="90" height="100" background="linear-gradient(90deg, #ff0000 0%, #0000ff 100%), #ffffff" background-size="20 20, auto" background-position="10 5, 0 0"/>
+</composition>

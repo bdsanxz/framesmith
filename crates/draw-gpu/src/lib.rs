@@ -11,8 +11,8 @@
 use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
-use draw::{Colour, DisplayList, Error, Frame, GlyphPicture, Group, Map, Mark, Picture, Renderer, Step, TextMark};
-use draw_cpu::{outline_layer, pictures_layer, shadow_layer};
+use draw::{Background, Colour, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Step, TextMark};
+use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
@@ -28,6 +28,9 @@ const SHADER: &str = include_str!("fill.wgsl");
 
 /// The shader of the glyphs: `place_glyph_corner` for a corner, `paint_glyph` for its colour and coverage.
 const GLYPH_SHADER: &str = include_str!("glyph.wgsl");
+
+/// The shader of the layers of a background: `place_layer_corner` for a corner, `paint_layer` for its colour (section 11).
+const PAINT_SHADER: &str = include_str!("paint.wgsl");
 
 /// The format of the picture: 8 bits a channel, with no conversion between colour spaces, so that
 /// the colour value `v` is drawn as `v / 255` and stored as `v`.
@@ -86,7 +89,9 @@ pub struct CardRenderer {
     pipeline: wgpu::RenderPipeline,
     glyph_pipeline: wgpu::RenderPipeline,
     picture_pipeline: wgpu::RenderPipeline,
+    paint_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
+    paint_layout: wgpu::BindGroupLayout,
     masks: Masks,
 }
 
@@ -212,12 +217,61 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let paint_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("paint"),
+            source: wgpu::ShaderSource::Wgsl(PAINT_SHADER.into()),
+        });
+        let paint_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("background layers"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+        let paint_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("paint"),
+            bind_group_layouts: &[Some(&paint_layout)],
+            immediate_size: 0,
+        });
+        let paint_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("paint"),
+            layout: Some(&paint_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &paint_shader,
+                entry_point: Some("place_layer_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &paint_shader,
+                entry_point: Some("paint_layer"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: Some(GLYPH_BLEND),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         Ok(CardRenderer {
             card,
             pipeline,
             glyph_pipeline,
             picture_pipeline,
+            paint_pipeline,
             glyph_layout,
+            paint_layout,
             masks: Masks::new(),
         })
     }
@@ -241,8 +295,27 @@ impl CardRenderer {
         }
 
         self.masks.begin_frame();
-        let (floats, draws, pictures, layers) = self.plan(frame)?;
+        let (floats, draws, pictures, layers, paint) = self.plan(frame)?;
         let device = self.card.device();
+        // The numbers of the background layers of the frame, read by the paint shader (section 11).
+        let paint_group = (!paint.is_empty()).then(|| {
+            let bytes: Vec<u8> = paint.iter().flat_map(|value| value.to_ne_bytes()).collect();
+            let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("background layers"),
+                size: bytes.len() as u64,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            self.card.queue().write_buffer(&buffer, 0, &bytes);
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("background layers"),
+                layout: &self.paint_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: buffer.as_entire_binding(),
+                }],
+            })
+        });
         let bytes: Vec<u8> = floats.iter().flat_map(|value| value.to_ne_bytes()).collect();
         let vertices = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("frame vertices"),
@@ -312,6 +385,13 @@ impl CardRenderer {
                         pass.set_pipeline(&self.picture_pipeline);
                         pass.set_bind_group(0, &layers[*layer].bind_group, &[]);
                     }
+                    Source::Paint => {
+                        let Some(group) = &paint_group else {
+                            return Err(Error::new("a background layer was drawn with no numbers"));
+                        };
+                        pass.set_pipeline(&self.paint_pipeline);
+                        pass.set_bind_group(0, group, &[]);
+                    }
                 }
                 pass.draw(draw.vertices.clone(), 0..1);
             }
@@ -380,6 +460,7 @@ impl CardRenderer {
             draws: Vec::new(),
             pictures: Vec::new(),
             layers: Vec::new(),
+            paint: Vec::new(),
             width,
             height,
         };
@@ -392,7 +473,7 @@ impl CardRenderer {
         let scissor = [0, 0, width, height];
         push_fill(&mut plan, Target::Picture, scissor, whole, frame.background);
         self.plan_marks(&mut plan, Target::Picture, scissor, &frame.marks, Map::IDENTITY)?;
-        Ok((plan.floats, plan.draws, plan.pictures, plan.layers))
+        Ok((plan.floats, plan.draws, plan.pictures, plan.layers, plan.paint))
     }
 
     /// The draws of marks into `target`, each with `map`, cut to `scissor` (left, top, width, height).
@@ -415,6 +496,13 @@ impl CardRenderer {
                     None => self.plan_text(plan, target, scissor, text, Some(map))?,
                 },
                 Mark::Group(group) => self.plan_group(plan, target, scissor, group, map)?,
+                Mark::Background(background) => match map.whole_move() {
+                    Some((across, down)) => push_background(plan, target, scissor, background, across, down),
+                    None => {
+                        let layer = background_layer(plan.width, plan.height, background, map)?;
+                        self.push_layer(plan, target, scissor, layer)?;
+                    }
+                },
             }
         }
         Ok(())
@@ -709,7 +797,7 @@ impl Renderer for CardRenderer {
 
 /// The vertices of a frame, the draw calls that paint them, the bind groups of the pictures the calls use, and the textures
 /// of the groups that fade.
-type Plan = (Vec<f32>, Vec<Draw>, Vec<wgpu::BindGroup>, Vec<Layer>);
+type Plan = (Vec<f32>, Vec<Draw>, Vec<wgpu::BindGroup>, Vec<Layer>, Vec<f32>);
 
 /// A frame being planned: what `Plan` gathers, and the size of the frame.
 struct Planned {
@@ -717,6 +805,8 @@ struct Planned {
     draws: Vec<Draw>,
     pictures: Vec<wgpu::BindGroup>,
     layers: Vec<Layer>,
+    /// The numbers of the background layers, four floats at a time, in the layout of `paint.wgsl`.
+    paint: Vec<f32>,
     width: u32,
     height: u32,
 }
@@ -744,6 +834,8 @@ enum Source {
     Glyph(MaskKey),
     Picture(usize),
     Layer(usize),
+    /// A layer of a background, whose numbers the quad's origin points to.
+    Paint,
 }
 
 /// Begins a render pass on a view, with what it starts from.
@@ -783,6 +875,57 @@ fn cut([x, y, w, h]: [u32; 4], clip: &Rect, width: u32, height: u32) -> Option<[
 /// The whole pixel nearest to a coordinate, halves up.
 fn whole_pixel(value: f32) -> i64 {
     (f64::from(value) + 0.5).floor() as i64
+}
+
+/// Adds one quad for each layer of a background moved by whole pixels, the last listed first, over the moved rectangle clipped
+/// to the frame, with the layer's numbers (section 11). A tile with no size draws nothing.
+fn push_background(plan: &mut Planned, target: Target, scissor: [u32; 4], background: &Background, across: i64, down: i64) {
+    let rect = background.rect;
+    let moved = Rect {
+        left: (i64::from(rect.left) + across).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+        top: (i64::from(rect.top) + down).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+        ..rect
+    };
+    let Some(visible) = moved.visible(plan.width, plan.height) else {
+        return;
+    };
+    let corners = (visible.left as f32, visible.top as f32, visible.right as f32, visible.bottom as f32);
+    for layer in background.layers.iter().rev() {
+        let resolved = layer.resolve(f64::from(rect.width), f64::from(rect.height));
+        if !(resolved.width > 0.0 && resolved.height > 0.0) {
+            continue;
+        }
+        let start = (plan.paint.len() / 4) as f32;
+        let (kind, shape, half) = match resolved.gradient {
+            Gradient::Flat => (0.0, [0.0; 4], 0.0),
+            Gradient::Linear { sin, cos, cx, cy, half } => (1.0, [sin, cos, cx, cy], half),
+            Gradient::Radial { cx, cy, rx, ry } => (2.0, [cx, cy, rx, ry], 0.0),
+        };
+        plan.paint.extend_from_slice(&[
+            (f64::from(moved.left) + resolved.left) as f32,
+            (f64::from(moved.top) + resolved.top) as f32,
+            resolved.width as f32,
+            resolved.height as f32,
+            if resolved.repeat { 1.0 } else { 0.0 },
+            kind,
+            resolved.stops.len() as f32,
+            0.0,
+        ]);
+        plan.paint.extend(shape.map(|value| value as f32));
+        plan.paint.extend_from_slice(&[half as f32, 0.0, 0.0, 0.0]);
+        for (place, colour) in &resolved.stops {
+            plan.paint.extend_from_slice(&[*place as f32, 0.0, 0.0, 0.0]);
+            plan.paint.extend(colour.map(|value| value as f32));
+        }
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [start, 0.0], [0.0; 4]);
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Paint,
+        });
+    }
 }
 
 /// Adds the quad of a fill, clipped to the frame, and its draw call, cut to `scissor`.

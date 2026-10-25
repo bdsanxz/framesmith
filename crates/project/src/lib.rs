@@ -18,7 +18,9 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 pub use nesting::{ShownFile, MAX_CHAIN_DEPTH};
-pub use notation::{easing, shown, Attribute, Code, Colour, Easing, Element, Kind, Length, Node, Part, Problem, Root, Tree};
+pub use notation::{
+    colour_value, easing, number_value, shown, Attribute, Code, Colour, Easing, Element, Kind, Length, Node, Part, Problem, Root, Tree,
+};
 pub use options::{Options, OPTION_NAMES};
 pub use settings::{Backend, Codec, Encoder, Quality, Settings, Source, Workers, MAX_WORKERS, PROJECT_FILE};
 

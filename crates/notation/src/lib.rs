@@ -23,3 +23,14 @@ pub use problem::Problem;
 pub use root::{read, read_root, shown, shows, Colour, Composition, Root, Show, Shows};
 pub use schema::{Element, Form};
 pub use tree::{Attribute, Length, Node, Part, Tree};
+
+/// A part of a value read as a number (N9), for a value whose parts are read by the crate that draws it, such as the layers
+/// of a `background`; `None` when it is not a number.
+pub fn number_value(text: &str) -> Option<f64> {
+    value::number(text).ok()
+}
+
+/// A part of a value read as a colour written `#rrggbb` or `#rrggbbaa`; `None` when it is not one.
+pub fn colour_value(text: &str) -> Option<Colour> {
+    value::colour(text).map(|[red, green, blue, alpha]| Colour { red, green, blue, alpha })
+}

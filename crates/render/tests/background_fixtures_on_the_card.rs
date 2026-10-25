@@ -1,0 +1,40 @@
+//! The card's pictures of the background fixtures agree with the processor's on every frame, at the tolerance of
+//! `PLAN.md` section 5 (`docs/spec/card-renderer.md`, section 11). Each needs a graphics card that frx7 can draw with:
+//! reference machine only.
+
+mod common;
+
+use common::agreement::compare_scene;
+use common::project_copied_from_fixture;
+use draw_cpu::CpuRenderer;
+use draw_gpu::CardRenderer;
+use project::Project;
+use render::Scene;
+
+fn the_card_agrees_with_the_processor(fixture: &str) {
+    let folder = project_copied_from_fixture("background-fixtures-on-the-card", fixture, fixture);
+    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let mut card = CardRenderer::new().unwrap_or_else(|error| panic!("the card could not be started: {error}"));
+    let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card, None);
+    let report = comparison.report();
+    println!("{fixture}:\n{}", report.join("\n"));
+    assert!(comparison.passed(), "{fixture}: {}", report.join("\n"));
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_layers_of_colours_and_a_gradient() {
+    the_card_agrees_with_the_processor("background-layers");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_linear_and_radial_gradients_and_one_that_moves() {
+    the_card_agrees_with_the_processor("background-gradients");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_tiles_repeated_drawn_once_and_moved() {
+    the_card_agrees_with_the_processor("background-tiles");
+}

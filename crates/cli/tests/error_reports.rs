@@ -169,6 +169,27 @@ fn shown_problems() -> Vec<ShownProblem> {
             Code::EaseNotKnown,
         ),
         (
+            "background-not-in-form",
+            vec![(
+                "composition.xml".to_string(),
+                inside_root(r##"<box background="linear-gradient(90deg, #ff0000 0%)"/>"##),
+            )],
+            Code::BackgroundNotInForm,
+        ),
+        (
+            "background-list-length",
+            vec![(
+                "composition.xml".to_string(),
+                inside_root(r##"<box background="#ff0000, #00ff00, #0000ff" background-size="10 10, 20 20"/>"##),
+            )],
+            Code::BackgroundListLength,
+        ),
+        (
+            "background-setting-alone",
+            vec![("composition.xml".to_string(), inside_root(r#"<box background-size="10 10"/>"#))],
+            Code::BackgroundSettingAlone,
+        ),
+        (
             "shown-frame-rate",
             vec![
                 ("composition.xml".to_string(), at_30("inner.xml")),

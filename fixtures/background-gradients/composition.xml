@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Gradients. Top row: black to white at 90deg (left to right), at 0deg (upward) and with no angle (downward). Bottom row:
+     a hard edge from red to blue at the middle, red fading to clear black over white (which does not darken), and a circle of
+     radius 40 at 50% 50% from yellow at the centre to blue at the radius. A last box with a gradient moves 100.5 pixels
+     right over the second. 400 by 250 pixels, 30 frames a second. -->
+<composition version="1" id="background-gradients" width="400" height="250" fps="30" duration="1" background="#808080">
+  <box left="10" top="10" width="120" height="60" background="linear-gradient(90deg, #000000 0%, #ffffff 100%)"/>
+  <box left="140" top="10" width="120" height="60" background="linear-gradient(0deg, #000000 0%, #ffffff 100%)"/>
+  <box left="270" top="10" width="120" height="60" background="linear-gradient(#000000 0%, #ffffff 100%)"/>
+  <box left="10" top="80" width="120" height="80" background="linear-gradient(90deg, #ff0000 50%, #0000ff 50%)"/>
+  <box left="140" top="80" width="120" height="80" background="linear-gradient(90deg, #ff0000 0%, #00000000 100%), #ffffff"/>
+  <box left="270" top="80" width="120" height="80" background="radial-gradient(circle 40 at 50% 50%, #ffff00 0%, #0000ff 100%)"/>
+  <box left="10" top="170" width="120" height="70" background="radial-gradient(ellipse, #ffffff 0%, #ff8000 60%, #400080 100%)">
+    <tween duration="1" to-x="100.5"/>
+  </box>
+</composition>

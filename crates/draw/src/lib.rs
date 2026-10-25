@@ -9,6 +9,10 @@ use std::sync::Arc;
 
 use layout::Rect;
 
+mod background;
+
+pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
+
 /// An opaque colour: red, green and blue, each from 0 to 255.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Colour {
@@ -170,6 +174,23 @@ impl Map {
         Some((whole(self.e)?, whole(self.f)?))
     }
 
+    /// The map that undoes this one, or `None` when it flattens the plane (its determinant is 0).
+    pub fn inverse(self) -> Option<Map> {
+        let det = self.a * self.d - self.b * self.c;
+        if det == 0.0 || !det.is_finite() {
+            return None;
+        }
+        let (a, b, c, d) = (self.d / det, -self.b / det, -self.c / det, self.a / det);
+        Some(Map {
+            a,
+            b,
+            c,
+            d,
+            e: -(a * self.e + c * self.f),
+            f: -(b * self.e + d * self.f),
+        })
+    }
+
     /// The absolute value of the determinant of the linear part: how much the map scales an area.
     pub fn area_scale(self) -> f64 {
         (self.a * self.d - self.b * self.c).abs()
@@ -234,13 +255,16 @@ impl TextMark {
     }
 }
 
-/// One mark of a frame: a drawing step, the glyph runs of a paragraph of text, or the marks of an element that moves. The
+/// One mark of a frame: a drawing step, the glyph runs of a paragraph of text, the marks of an element that moves, or the
+/// layers of a background. The
 /// marks are carried out in order, each over what is there.
 #[derive(Clone, Debug)]
 pub enum Mark {
     Step(Step),
     Text(TextMark),
     Group(Group),
+    /// The layers of a box's background that are not one opaque colour (`docs/spec/render-command.md`, section 4.6).
+    Background(Background),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -276,7 +300,7 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) => None,
+                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {

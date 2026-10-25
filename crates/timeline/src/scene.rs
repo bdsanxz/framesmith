@@ -1,12 +1,17 @@
 //! The scene: the root's canvas, the boxes in it and the compositions shown from other files, as far
 //! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
-use draw::{Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Mark, Picture, Renderer, Step, TextMark};
+use std::sync::Arc;
+
+use draw::{
+    Background, Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer, Step, TextMark,
+};
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use text::Fonts;
 use timebase::Time;
 
+use crate::background;
 use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 use motion::{ElementMotion, Tween};
@@ -22,7 +27,7 @@ const ROOT_TAKES: [&str; 8] = ["id", "class", "version", "width", "height", "fps
 /// window, the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3), its
 /// `columns` for a set of columns (section 4.4), and its `max-width` and `flex-grow` as an item (sections 4.1 and 4.3).
 /// The text attributes pass to the elements inside a box (`docs/spec/text.md` section 8).
-const BOX_TAKES: [&str; 22] = [
+const BOX_TAKES: [&str; 25] = [
     "id",
     "class",
     "left",
@@ -34,6 +39,9 @@ const BOX_TAKES: [&str; 22] = [
     "position",
     "margin",
     "background",
+    "background-size",
+    "background-position",
+    "background-repeat",
     "start",
     "duration",
     "flex-direction",
@@ -102,12 +110,55 @@ struct Slot {
     window: Window,
 }
 
-/// A box that is placed and drawn, or placed and drawn as nothing: its slot, the colour it fills with, and the
+/// What a box fills its rectangle with: one opaque colour, drawn as a fill, or layers of colours and gradients
+/// (`docs/spec/render-command.md`, section 4.6), shared by every frame it is drawn in.
+#[derive(Clone, Debug, PartialEq)]
+enum Fill {
+    Colour(Colour),
+    Layers(Arc<Vec<Layer>>),
+}
+
+impl Fill {
+    /// The mark of the fill of `rect`, cut to `clip` when there is one; `None` when the part held is empty.
+    fn mark(&self, rect: Rect, clip: Option<Rect>) -> Option<Mark> {
+        let held = match clip {
+            None => rect,
+            Some(clip) => intersect(rect, clip),
+        };
+        if clip.is_some() && (held.width == 0 || held.height == 0) {
+            return None;
+        }
+        Some(match self {
+            Fill::Colour(colour) => Mark::Step(Step::Fill {
+                rect: held,
+                colour: *colour,
+            }),
+            // A gradient is measured on the whole box and cut to the part held (rule 9).
+            Fill::Layers(layers) => {
+                let background = Mark::Background(Background {
+                    rect,
+                    layers: layers.as_ref().clone(),
+                });
+                match clip {
+                    None => background,
+                    Some(_) => Mark::Group(Group {
+                        map: Map::IDENTITY,
+                        opacity: 1.0,
+                        clip: Some(held),
+                        marks: vec![background],
+                    }),
+                }
+            }
+        })
+    }
+}
+
+/// A box that is placed and drawn, or placed and drawn as nothing: its slot, what it fills with, and the
 /// rectangle it is cut to when it stands on a canvas shown from another file (`None` on the root's canvas).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 struct Placed {
     slot: Slot,
-    colour: Option<Colour>,
+    fill: Option<Fill>,
     clip: Option<Rect>,
 }
 
@@ -307,12 +358,7 @@ impl Scene {
             }
             let mark = match entry {
                 Entry::Box(placed) if clipped => fill_mark(placed),
-                Entry::Box(placed) => placed.colour.map(|colour| {
-                    Mark::Step(Step::Fill {
-                        rect: placed.slot.rect,
-                        colour,
-                    })
-                }),
+                Entry::Box(placed) => placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, None)),
                 Entry::Text(text) if clipped => text_mark(text),
                 Entry::Text(text) => text_mark(text).map(|mark| match mark {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
@@ -330,22 +376,10 @@ impl Scene {
     }
 }
 
-/// The fill of a box in its frame: the part of its rectangle that its canvas holds, when it has a colour and
+/// The fill of a box in its frame: the part of its rectangle that its canvas holds, when it has a fill and
 /// the part is not empty (`docs/spec/timeline.md` section 4).
 fn fill_mark(placed: &Placed) -> Option<Mark> {
-    // A box on a canvas shown from another file is drawn in the part of its rectangle that the canvas holds, and not
-    // at all where that part is empty (`docs/spec/timeline.md` section 4).
-    let rect = match placed.clip {
-        None => placed.slot.rect,
-        Some(clip) => {
-            let held = intersect(placed.slot.rect, clip);
-            if held.width == 0 || held.height == 0 {
-                return None;
-            }
-            held
-        }
-    };
-    placed.colour.map(|colour| Mark::Step(Step::Fill { rect, colour }))
+    placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, placed.clip))
 }
 
 /// The glyph runs of a paragraph, moved to its place in the frame, and the mark that draws them.
@@ -750,7 +784,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             rect_of[index] = Some(rect);
             entries.push(Entry::Box(Placed {
                 slot,
-                colour: form.colour,
+                fill: form.fill.clone(),
                 clip: canvas.clip,
             }));
             places.push(Some(slot));
@@ -988,7 +1022,7 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         columns: None,
         grow: 0.0,
         text: false,
-        colour: None,
+        fill: None,
         clip: Some((start.unwrap_or(Time::ZERO), duration.unwrap_or(file.duration))),
         shown: Some(name.to_string()),
     };
@@ -1099,6 +1133,18 @@ impl Refusal {
         }
     }
 
+    /// A refusal of a background, of one of its layers or of one of its settings (`docs/spec/render-command.md`, section 4.6,
+    /// rule 10). `check` judges it as well as `render`.
+    fn of_background(code: Code, line: u32, message: String) -> Refusal {
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
+    }
+
     /// A refusal of anything else that this version does not draw or apply.
     fn of_drawing(code: Code, line: u32, message: String) -> Refusal {
         Refusal {
@@ -1139,7 +1185,7 @@ struct Form {
     grow: f64,
     /// Whether the element is a `<text>`: a text is not stretched across, and is sized by its words.
     text: bool,
-    colour: Option<Colour>,
+    fill: Option<Fill>,
     clip: Option<(Time, Time)>,
     /// The file a `<composition src>` shows, as written; `None` for a box.
     shown: Option<String>,
@@ -1158,6 +1204,9 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     let mut refusals: Vec<Refusal> = Vec::new();
     let mut written = Written::default();
     let mut colour = None;
+    let mut layers: Option<Vec<draw::Paint>> = None;
+    let mut background_line = None;
+    let mut settings: Vec<(&'static str, String, u32)> = Vec::new();
     let mut start: Option<Time> = None;
     let mut duration: Option<Time> = None;
     let mut margin = Sides::default();
@@ -1308,20 +1357,38 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 }
                 Some(sides) => padding = sides,
             },
-            "background" => match attribute.colour() {
-                Some(found) if found.alpha == 255 => {
-                    colour = Some(Colour {
-                        red: found.red,
-                        green: found.green,
-                        blue: found.blue,
-                    })
+            "background" => {
+                background_line = Some(attribute.line());
+                match attribute.colour() {
+                    Some(found) if found.alpha == 255 => {
+                        colour = Some(Colour {
+                            red: found.red,
+                            green: found.green,
+                            blue: found.blue,
+                        })
+                    }
+                    _ => match background::layers(attribute.value()) {
+                        Ok(found) => layers = Some(found),
+                        Err((code, message)) => {
+                            // One a style gives names the style, as the message of an attribute this version does not
+                            // draw does (`docs/spec/check-command.md` section 3c).
+                            let message = match attribute.given_by() {
+                                None => message,
+                                Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
+                            };
+                            refusals.push(Refusal::of_background(code, attribute.line(), message))
+                        }
+                    },
                 }
-                _ => refusals.push(Refusal::of_attribute(
-                    Code::FormNotSupported,
-                    attribute,
-                    unsupported_colour(node, attribute),
-                )),
-            },
+            }
+            "background-size" | "background-position" | "background-repeat" => {
+                let name = match name {
+                    "background-size" => "background-size",
+                    "background-position" => "background-position",
+                    _ => "background-repeat",
+                };
+                settings.push((name, attribute.value().to_string(), attribute.line()));
+            }
             "start" | "duration" => match attribute.time() {
                 Some(time) if name == "start" => start = Some(time),
                 Some(time) => duration = Some(time),
@@ -1352,6 +1419,13 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         }),
         None => None,
     };
+    let fill = match background_fill(colour, layers, background_line, &settings) {
+        Ok(fill) => fill,
+        Err(mut found) => {
+            refusals.append(&mut found);
+            None
+        }
+    };
     if !refusals.is_empty() {
         return (Read::Refused, refusals);
     }
@@ -1381,11 +1455,75 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         columns,
         grow,
         text: node.element() == Element::Text,
-        colour,
+        fill,
         clip,
         shown: None,
     };
     (Read::Valid(Box::new(form)), Vec::new())
+}
+
+/// What a box fills with: its colour, or its layers with their settings (`docs/spec/render-command.md`, section 4.6). A
+/// setting with no `background` is reported (`FS-0066`), as is a list of settings with neither one entry nor one for each
+/// layer (`FS-0065`) and a setting not in its form (`FS-0064`).
+fn background_fill(
+    colour: Option<Colour>,
+    layers: Option<Vec<draw::Paint>>,
+    line: Option<u32>,
+    settings: &[(&'static str, String, u32)],
+) -> Result<Option<Fill>, Vec<Refusal>> {
+    if line.is_none() {
+        let alone = settings.iter().map(|(name, value, at)| {
+            Refusal::of_background(
+                Code::BackgroundSettingAlone,
+                *at,
+                format!(
+                    "`{name}=\"{}\"` is written on <box>, which has no `background`",
+                    project::shown(value)
+                ),
+            )
+        });
+        return match alone.collect::<Vec<_>>() {
+            found if found.is_empty() => Ok(None),
+            found => Err(found),
+        };
+    }
+    let paints = match (colour, layers) {
+        (Some(colour), _) if settings.is_empty() => return Ok(Some(Fill::Colour(colour))),
+        (Some(colour), _) => vec![draw::Paint::Colour(draw::Rgba {
+            red: colour.red,
+            green: colour.green,
+            blue: colour.blue,
+            alpha: 255,
+        })],
+        (None, Some(paints)) => paints,
+        // The `background` was refused already.
+        (None, None) => return Ok(None),
+    };
+    let count = paints.len();
+    let mut sizes = vec![draw::Size::Auto; count];
+    let mut positions = vec![(draw::Amount::Pixels(0.0), draw::Amount::Pixels(0.0)); count];
+    let mut repeats = vec![true; count];
+    let mut refusals = Vec::new();
+    for (name, value, at) in settings {
+        let read = match *name {
+            "background-size" => background::sizes(value)
+                .and_then(|found| background::for_each(name, value, found, count))
+                .map(|found| sizes = found),
+            "background-position" => background::positions(value)
+                .and_then(|found| background::for_each(name, value, found, count))
+                .map(|found| positions = found),
+            _ => background::repeats(value)
+                .and_then(|found| background::for_each(name, value, found, count))
+                .map(|found| repeats = found),
+        };
+        if let Err((code, message)) = read {
+            refusals.push(Refusal::of_background(code, *at, message));
+        }
+    }
+    if !refusals.is_empty() {
+        return Err(refusals);
+    }
+    Ok(Some(Fill::Layers(Arc::new(background::settle(paints, sizes, positions, repeats)))))
 }
 
 /// The column widths of a `columns` attribute (`docs/spec/render-command.md` section 4.4, rule 1): numbers of pixels above

@@ -109,6 +109,9 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0061` | invalid | A `<set>` has no property. | Write at least one property on the set, such as `x="300"`. |
 | `FS-0062` | invalid | A `<set>` changes a property that the element it moves does not take as an attribute. | Move the set to an element that takes the property, or change a property the element takes. |
 | `FS-0063` | invalid | The `ease` of a `<tween>` is not an easing the notation takes. | Write one of the easings the message lists, in lower case, such as `ease="out-cubic"`. |
+| `FS-0064` | invalid | A background layer, or a size, place or repeat of one, is not in the form the notation gives for it. | Write the value in the form the message names. |
+| `FS-0065` | invalid | A list of background settings has neither one entry nor one for each layer of the background. | Write one entry for all the layers, or one for each layer in the order of `background`. |
+| `FS-0066` | invalid | A background setting is written on an element with no background. | Write a `background` on the element, or remove the setting. |
 
 Notes on the rows:
 
@@ -130,6 +133,7 @@ Notes on the rows:
 - `FS-0058` to `FS-0060` were added with the tweens (`notation.md` sections 8.1 and 8.2): a tween with no duration above 0, one that changes no property, and one that changes a property the element it moves does not take, such as `to-count` on a `<box>`. They are of the kind invalid, since each breaks a rule of the notation. `FS-0058` and `FS-0059` are on the line of the tween, `FS-0060` on the line of the attribute. A `from-` or `to-` attribute of a name that is not an animated property, such as `to-width`, is `FS-0030`, as any attribute the tween does not take, and it counts as the tween's property for `FS-0059`, so that the one mistake has one report.
 - `FS-0061` and `FS-0062` were added with the sets (`notation.md` section 8.3): a set that changes no property, and one that changes a property the element it moves does not take. They are new codes, not wider meanings of `FS-0059` and `FS-0060`, since a meaning is never changed (section 5). `FS-0061` is on the line of the set, `FS-0062` on the line of the attribute. An attribute of a set that is not an animated property, such as `width`, is `FS-0030`, and counts as the set's property for `FS-0061`.
 - `FS-0063` was added with the easings (`notation.md` section 8.4; `motion.md`): an `ease` that is not one of the nineteen names or `out-back(n)`. It is of the kind invalid, on the line of the attribute, and its message lists the names taken.
+- `FS-0064` to `FS-0066` were added with the backgrounds of several layers (`render-command.md` section 4.6, rule 10): a layer or setting not in its form, a list of settings of the wrong length, and a setting with no background. They are new codes rather than a wider meaning of `FS-0052`, whose meaning is a text attribute's.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

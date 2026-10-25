@@ -23,10 +23,10 @@ const CASES: [(&str, &str, &[u32]); 3] = [
         &[3, 3],
     ),
     (
-        "background-not-opaque-on-box",
+        "conic-background-on-box",
         "<composition version=\"1\" width=\"160\" height=\"90\" fps=\"10\" duration=\"1\">\n\
-         <style id=\"faint\" background=\"#ffffff80\"/>\n\
-         <box class=\"faint\" left=\"90\" top=\"50\" width=\"20\" height=\"16\"/>\n\
+         <style id=\"turning\" background=\"conic-gradient(#ffffff 0%, #000000 100%)\"/>\n\
+         <box class=\"turning\" left=\"90\" top=\"50\" width=\"20\" height=\"16\"/>\n\
          </composition>\n",
         &[3],
     ),

@@ -163,11 +163,17 @@ pub enum Code {
     SetPropertyNotTaken,
     /// The `ease` of a `<tween>` is not an easing the notation takes.
     EaseNotKnown,
+    /// A background layer, or a size, place or repeat of one, is not in its form.
+    BackgroundNotInForm,
+    /// A list of background settings has neither one entry nor one for each layer.
+    BackgroundListLength,
+    /// A background setting is written on an element with no background.
+    BackgroundSettingAlone,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 63] = [
+    pub const ALL: [Code; 66] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -231,6 +237,9 @@ impl Code {
         Code::SetNoProperty,
         Code::SetPropertyNotTaken,
         Code::EaseNotKnown,
+        Code::BackgroundNotInForm,
+        Code::BackgroundListLength,
+        Code::BackgroundSettingAlone,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -299,6 +308,9 @@ impl Code {
             Code::SetNoProperty => "FS-0061",
             Code::SetPropertyNotTaken => "FS-0062",
             Code::EaseNotKnown => "FS-0063",
+            Code::BackgroundNotInForm => "FS-0064",
+            Code::BackgroundListLength => "FS-0065",
+            Code::BackgroundSettingAlone => "FS-0066",
         }
     }
 
@@ -388,6 +400,9 @@ impl Code {
             Code::SetNoProperty => "Write at least one property on the set, such as `x=\"300\"`.",
             Code::SetPropertyNotTaken => "Move the set to an element that takes the property, or change a property the element takes.",
             Code::EaseNotKnown => "Write one of the easings the message lists, in lower case, such as `ease=\"out-cubic\"`.",
+            Code::BackgroundNotInForm => "Write the value in the form the message names.",
+            Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
+            Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

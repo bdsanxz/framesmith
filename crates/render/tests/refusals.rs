@@ -244,19 +244,18 @@ fn a_value_that_is_no_length_and_a_size_below_zero_are_invalid_and_not_unsupport
 }
 
 #[test]
-fn a_background_that_is_not_one_opaque_colour_is_unsupported() {
-    for (name, written) in [
-        ("alpha", "#ff000080"),
-        ("gradient", "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)"),
-        ("layers", "#ff0000, #0000ff"),
-        ("name", "red"),
-        ("short", "#f00"),
-    ] {
+fn a_background_that_is_not_a_colour_or_a_gradient_is_not_in_its_form_and_a_conic_one_is_unsupported() {
+    for (name, written) in [("name", "red"), ("short", "#f00"), ("word", "#ff0000, stripes")] {
         assert_eq!(
             only(name, &format!("<box background=\"{written}\"/>")),
-            format!("composition.xml 2 FS-0035 `background=\"{written}\"` on <box> is not a form this version supports: one opaque colour, #rrggbb")
+            format!("composition.xml 2 FS-0064 `background=\"{written}\"` is not in the form of a background: each layer is a colour #rrggbb or #rrggbbaa, a linear-gradient(...) or a radial-gradient(...)")
         );
     }
+    let conic = "conic-gradient(#ff0000 0%, #0000ff 100%)";
+    assert_eq!(
+        only("conic", &format!("<box background=\"{conic}\"/>")),
+        format!("composition.xml 2 FS-0035 `background=\"{conic}\"` holds a conic gradient, which this version does not draw: it draws colours, linear gradients and radial gradients")
+    );
 }
 
 #[test]

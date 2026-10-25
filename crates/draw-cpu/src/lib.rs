@@ -10,7 +10,10 @@
 
 use std::sync::Arc;
 
-use draw::{DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, Shadow, Step, TextMark};
+use draw::{
+    level, Background, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, ResolvedLayer,
+    Shadow, Step, TextMark,
+};
 use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, Stroke};
 use vello_cpu::peniko::{Blob, Color, FontData, ImageAlphaType, ImageQuality, ImageSampler};
@@ -68,6 +71,7 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
                 None => draw_mapped_text(bytes, width, height, text, map, region)?,
             },
             Mark::Group(group) => draw_group(bytes, width, height, group, map, region)?,
+            Mark::Background(background) => draw_background(bytes, width, height, background, map, region)?,
         }
     }
     Ok(())
@@ -186,6 +190,102 @@ fn fill(bytes: &mut [u8], width: u32, height: u32, step: &Step, map: Map, (left,
         }
     }
     Ok(())
+}
+
+/// Lays the layers of a background over the picture, in `region` (`docs/spec/render-command.md`, section 4.6, rules 8 and
+/// 9): the last listed first, each pixel taken at its centre. Moved by whole pixels, the layers fill the moved rectangle. Under
+/// any other map, each pixel the mapped rectangle covers is taken back through the inverse of the map, and its colour is laid
+/// with the share of the pixel the rectangle covers.
+fn draw_background(
+    bytes: &mut [u8],
+    width: u32,
+    height: u32,
+    background: &Background,
+    map: Map,
+    (left, top, right, bottom): Region,
+) -> Result<(), Error> {
+    let rect = background.rect;
+    if rect.width == 0 || rect.height == 0 {
+        return Ok(());
+    }
+    let layers: Vec<ResolvedLayer> = background
+        .layers
+        .iter()
+        .rev()
+        .map(|layer| layer.resolve(f64::from(rect.width), f64::from(rect.height)))
+        .collect();
+    let mut lay_at = |x: u32, y: u32, point: (f64, f64), share: u32| {
+        let at = (y as usize * width as usize + x as usize) * 4;
+        let pixel = &mut bytes[at..at + 4];
+        for layer in &layers {
+            if let Some(colour) = layer.colour_at(point.0, point.1) {
+                lay(pixel, colour, share);
+            }
+        }
+    };
+    if let Some((across, down)) = map.whole_move() {
+        let moved = Rect {
+            left: (i64::from(rect.left) + across).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            top: (i64::from(rect.top) + down).clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            ..rect
+        };
+        let Some(visible) = moved.visible(width, height) else {
+            return Ok(());
+        };
+        for y in visible.top.max(top)..visible.bottom.min(bottom) {
+            for x in visible.left.max(left)..visible.right.min(right) {
+                let point = (
+                    f64::from(x) + 0.5 - f64::from(moved.left),
+                    f64::from(y) + 0.5 - f64::from(moved.top),
+                );
+                lay_at(x, y, point, 255);
+            }
+        }
+        return Ok(());
+    }
+    let Some(inverse) = map.inverse() else {
+        return Ok(());
+    };
+    let Some(coverage) = fill_coverage(rect, map, width, height)? else {
+        return Ok(());
+    };
+    for line in 0..coverage.height {
+        let y = coverage.top + line;
+        if y < top || y >= bottom {
+            continue;
+        }
+        for column in 0..coverage.width {
+            let x = coverage.left + column;
+            if x < left || x >= right {
+                continue;
+            }
+            let share = u32::from(coverage.alpha[(line * coverage.width + column) as usize]);
+            if share == 0 {
+                continue;
+            }
+            let (bx, by) = inverse.apply(f64::from(x) + 0.5, f64::from(y) + 0.5);
+            lay_at(x, y, (bx - f64::from(rect.left), by - f64::from(rect.top)), share);
+        }
+    }
+    Ok(())
+}
+
+/// Lays a premultiplied colour, times `share` of 255, over one pixel by src-over (`docs/spec/render-command.md`, section 4.6,
+/// rule 8).
+fn lay(pixel: &mut [u8], colour: [f64; 4], share: u32) {
+    let source = colour.map(|value| u32::from(level(value * f64::from(share) / 255.0)));
+    let kept = 255 - source[3];
+    for channel in 0..4 {
+        pixel[channel] = (source[channel] + divide_by_255(u32::from(pixel[channel]) * kept)).min(255) as u8;
+    }
+}
+
+/// The layers of a background drawn with `map` into a transparent picture of the frame's size, for the card to lay over
+/// its picture (`docs/spec/card-renderer.md`, section 11).
+pub fn background_layer(width: u32, height: u32, background: &Background, map: Map) -> Result<Vec<u8>, Error> {
+    let mut layer = vec![0_u8; width as usize * height as usize * 4];
+    draw_background(&mut layer, width, height, background, map, (0, 0, width, height))?;
+    Ok(layer)
 }
 
 /// The coverage of a mapped rectangle: the share of each pixel it covers, from 0 to 255, in a box of whole pixels of the

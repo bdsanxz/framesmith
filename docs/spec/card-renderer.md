@@ -191,3 +191,13 @@ The shadows and the outline of a paragraph under a map, and its colour pictures 
 
 - `crates/draw-gpu/tests/card_motion.rs`: groups with a turned, scaled and slanted fill, a turned text, a faded group over another fill and a group cut to a rectangle each agree with the processor's picture within section 4; the kept coverage of a text that turns in every frame stops rising at the bound of section 9.6. Reference machine only.
 - `crates/render/tests/motion_fixtures_on_the_card.rs`: the frames of the motion fixtures (`timeline.md` section 5) at their chosen times agree with the processor's within section 4. Reference machine only.
+
+## 11. Backgrounds on the card
+
+The layers of a box's background (`render-command.md` section 4.6) are drawn by the card in a shader of their own, `paint.wgsl`.
+
+1. **Whole pixels.** For a box whose map is a move by whole pixels, each layer is one quad over the box's moved rectangle, the last listed first. The layer's numbers, worked out once by the `draw` crate for the box's size (`draw::Layer::resolve`: the tile, the gradient's line or shape and its stops in pixels, the stops' colours premultiplied), are written into a buffer that the fragment shader reads by the layer's index. The shader takes each pixel at its centre, finds its place in the tile and its colour by rules 3 to 7 of section 4.6 in 32-bit floating point, and gives the colour premultiplied; the card lays it over the picture by src-over, as it lays a glyph (section 9.4).
+2. **Under any other map.** A box under a map that is not a move by whole pixels has its layers drawn by the processor into a picture of the frame's size (`draw_cpu::background_layer`), placed by the card as section 9.9 places a shadow, as section 10.4 does for the shadows of a text under a map. It makes no mask.
+3. **Agreement.** The card's picture agrees with the processor's within section 4. The two differ by the rounding of 32-bit against 64-bit arithmetic and of the blend.
+4. **Tests.** `crates/render/tests/background_colours.rs` (each layer kind, tiles, a hard edge and a fade to transparent, at worked colours within 4 levels) and `crates/render/tests/background_fixtures_on_the_card.rs` (the background fixtures at their chosen times). Reference machine only.
+
