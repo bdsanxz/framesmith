@@ -124,6 +124,8 @@ run_tests() {
     echo "\$ cargo test ${SCOPE[*]} --lib --bins --tests --no-fail-fast --config <runner: scripts/gates/core-runner.sh> -- --skip yardstick_ $*"
     ( cargo test "${SCOPE[@]}" --lib --bins --tests --no-fail-fast --config "$CONFIG" -- --skip yardstick_ "$@" 2>&1; echo $? >"$LOGS/$name.code" ) | tee "$LOGS/$name.log"
     RUN_CODE=$(cat "$LOGS/$name.code")
+    # The runner's links of this run, one beside each test program it started.
+    find "$TARGET" -name "$FRAMESMITH_CORE_RUN_TOKEN-*" -type f -delete 2>/dev/null
     echo "[exit $RUN_CODE]"
 }
 

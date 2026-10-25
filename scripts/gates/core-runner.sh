@@ -65,21 +65,20 @@ done
 
 # Each test program is started under a name of this run (docs/dev/gates.md, section 10, "Telling runs
 # apart"): a hard link beside it, named with the run's token first, which the system keeps in its record
-# of a refused start. A symbolic link would not do: the record names the program it points to.
+# of a refused start. A symbolic link would not do: the record names the program it points to. The links
+# of a run are removed by core-suite.sh when its tests end.
 TOKEN="${FRAMESMITH_CORE_RUN_TOKEN:-}"
-if [ -z "$TOKEN" ]; then
-    exec /usr/bin/env PATH="$SYSTEM_PATH" /usr/bin/sandbox-exec -p "$PROFILE" "$@"
+if [ -n "$TOKEN" ]; then
+    case "$TOKEN" in
+        r[0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef]) ;;
+        *) echo "core-runner: a run token is r and 8 hexadecimal digits: $TOKEN" >&2; exit 2 ;;
+    esac
+    PROGRAM="$1"
+    shift
+    LINK="$(dirname "$PROGRAM")/$TOKEN-$(basename "$PROGRAM")"
+    rm -f "$LINK"
+    ln "$PROGRAM" "$LINK" || { echo "core-runner: the program could not be linked as $LINK" >&2; exit 2; }
+    set -- "$LINK" "$@"
 fi
-case "$TOKEN" in
-    r[0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef]) ;;
-    *) echo "core-runner: a run token is r and 8 hexadecimal digits: $TOKEN" >&2; exit 2 ;;
-esac
-PROGRAM="$1"
-shift
-LINK="$(dirname "$PROGRAM")/$TOKEN-$(basename "$PROGRAM")"
-rm -f "$LINK"
-ln "$PROGRAM" "$LINK" || { echo "core-runner: the program could not be linked as $LINK" >&2; exit 2; }
-/usr/bin/env PATH="$SYSTEM_PATH" /usr/bin/sandbox-exec -p "$PROFILE" "$LINK" "$@"
-CODE=$?
-rm -f "$LINK"
-exit "$CODE"
+
+exec /usr/bin/env PATH="$SYSTEM_PATH" /usr/bin/sandbox-exec -p "$PROFILE" "$@"
