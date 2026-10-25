@@ -69,15 +69,21 @@ fn codecs() -> codec::Registry {
 /// Draws every frame of `scene` with `renderer` and writes the film to `output`, making the
 /// folder it is in when that is missing, with the sound encoded at `audio_bitrate` kbit/s
 /// (`render.audio-bitrate`, section 5.2). A film that cannot be finished leaves no file at
-/// `output`.
+/// `output`. The scene's sounds are opened first (`docs/spec/sound.md`); one that cannot be is the failure.
 pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32) -> Result<Written, Failure> {
-    write_film_marked(scene, renderer, output, audio_bitrate, None)
+    let sounds = crate::open_sounds("", scene.sounds()).map_err(|reports| {
+        let messages: Vec<String> = reports.iter().map(|report| report.problem().message().to_string()).collect();
+        Failure::new(messages.join("; "))
+    })?;
+    write_film_marked(scene, sounds, renderer, output, audio_bitrate, None)
 }
 
-/// Writes the film as `write_film` does and, when `marks` is given, puts in it the mark of each frame drawn, in the order of
-/// the frames (`docs/spec/render-command.md`, section 7.1). A film that is not finished leaves the marks it gave so far.
+/// Writes the film as `write_film` does, with `sounds` (the scene's, as [`crate::open_sounds`] opens them) placed in its
+/// mix and, when `marks` is given, puts in it the mark of each frame drawn, in the order of the frames
+/// (`docs/spec/render-command.md`, section 7.1). A film that is not finished leaves the marks it gave so far.
 pub fn write_film_marked(
     scene: &Scene,
+    sounds: Vec<mix::Sound>,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
@@ -95,7 +101,7 @@ pub fn write_film_marked(
         renderer = renderer.name(),
         "render started"
     );
-    let written = make(scene, renderer, output, audio_bitrate, began, marks).inspect_err(|_| {
+    let written = make(scene, sounds, renderer, output, audio_bitrate, began, marks).inspect_err(|_| {
         // A film that was not finished leaves no file that looks finished.
         let _ = fs::remove_file(output);
     })?;
@@ -105,6 +111,7 @@ pub fn write_film_marked(
 
 fn make(
     scene: &Scene,
+    sounds: Vec<mix::Sound>,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
@@ -133,6 +140,9 @@ fn make(
     let mut encoder = codecs.video_encoder(&setup).map_err(named)?;
     tracing::debug!(hardware = encoder.hardware(), "encoder started");
     let mut mix = Mix::for_picture(scene.frames(), scene.fps());
+    for sound in sounds {
+        mix.place(sound).map_err(named)?;
+    }
     let mut sound = codecs
         .audio_encoder(&AudioEncoderSetup {
             codec: Codec::Aac,
@@ -211,7 +221,7 @@ fn make(
         let until = mix::length_for_picture(number + 1, scene.fps());
         let due = until - (mix.length() - mix.left());
         samples.resize(due as usize * usize::from(mix::CHANNELS), 0.0);
-        let given = mix.read(&mut samples);
+        let given = mix.read(&mut samples).map_err(named)?;
         sound
             .send(&samples[..given * usize::from(mix::CHANNELS)], &mut sound_packets)
             .map_err(named)?;

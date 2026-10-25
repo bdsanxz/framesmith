@@ -144,10 +144,12 @@ fn a_number_with_an_exponent_or_a_sign_is_read_and_a_non_finite_one_is_reported(
 
 #[test]
 fn two_elements_with_one_id_are_accepted_and_nothing_is_reported() {
-    let (output, printed) = check(
-        "same-id",
-        &composition("<box id=\"panel\"/>\n<box id=\"panel\"/>\n<audio id=\"panel\" src=\"a.wav\" duration=\"1\"/>"),
-    );
+    let text = composition("<box id=\"panel\"/>\n<box id=\"panel\"/>\n<audio id=\"panel\" src=\"a.wav\" duration=\"1\"/>");
+    let (project, cwd) = project(GROUP, "same-id", &text);
+    // The sound the `<audio>` names: a tenth of a second of silence.
+    measure::write_wav(&project.join("a.wav"), 48_000, 2, &[0.0; 9_600]).unwrap();
+    let output = framesmith(&cwd, [OsStr::new("check"), project.as_os_str()], &[]);
+    let printed: Vec<String> = out(&output).lines().map(str::to_string).collect();
     assert_eq!(output.status.code(), Some(0), "{printed:?}");
     assert_eq!(printed, ["Ready: the project is valid, 60 frames, 640x360, 30 fps"]);
 }

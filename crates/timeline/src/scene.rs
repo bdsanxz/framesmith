@@ -16,6 +16,7 @@ use crate::background;
 use crate::edges::read_edges;
 use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
+use crate::sound::{self, Sound};
 use motion::{ElementMotion, Tween};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
@@ -218,6 +219,8 @@ pub struct Scene {
     entries: Vec<Entry>,
     /// The elements that move, in document order: an outer one before the ones inside it.
     movers: Vec<Mover>,
+    /// The sounds of the root, in document order.
+    sounds: Vec<Sound>,
 }
 
 /// Why a picture was not made.
@@ -271,7 +274,13 @@ impl Scene {
             background,
             entries,
             movers,
+            sounds: sound::gather(project, project.tree().nodes()).0,
         })
+    }
+
+    /// The sounds of the film, each placed to the sample, in document order (`docs/spec/sound.md`).
+    pub fn sounds(&self) -> &[Sound] {
+        &self.sounds
     }
 
     /// The frame's width in pixels.
@@ -602,6 +611,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     // The fonts this file declares, and the faults of the font files that are not read.
     let (mut fonts, font_faults) = paragraph::load_fonts(project, tree);
     refusals.extend(font_faults.into_iter().map(Refusal::of_text));
+    // The sounds are those of the root's canvas; their faults are found from the file alone and reported by `check`
+    // as a font's are (`docs/spec/sound.md`, section 5).
+    if canvas.clip.is_none() {
+        let (_, sound_faults) = sound::gather(project, tree);
+        refusals.extend(sound_faults.into_iter().map(Refusal::of_text));
+    }
     // The reports of the files shown from this one, each once.
     let mut shown: Vec<Report> = Vec::new();
     let mut entries: Vec<Entry> = Vec::new();
@@ -665,6 +680,34 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 Code::FormNotSupported,
                 node.line(),
                 unsupported_inside_nested(node.element()),
+            ));
+            places.push(None);
+            continue;
+        }
+        if node.element() == Element::Audio {
+            // A sound is heard, not drawn: it is gathered from the root's canvas (`sound::gather`). Its level is not
+            // applied in this version, and a sound of a file shown from another file is not placed.
+            if canvas.clip.is_some() {
+                refusals.push(Refusal::of_drawing(
+                    Code::FormNotSupported,
+                    node.line(),
+                    "<audio> in a composition shown from another file is not supported by this version, which places the sounds of the project's own composition only".to_string(),
+                ));
+            } else if let Some(attribute) = node.attribute("volume") {
+                refusals.push(Refusal::of_attribute(
+                    Code::FormNotSupported,
+                    attribute,
+                    unapplied_volume(attribute),
+                ));
+            }
+            places.push(Some(parent_place));
+            continue;
+        }
+        if node.element() == Element::Volume {
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                node.line(),
+                "<volume> is not applied by this version, which plays a sound at the level of its file".to_string(),
             ));
             places.push(None);
             continue;
@@ -1946,6 +1989,18 @@ fn unsupported_value(node: &Node, name: &str, value: &str, takes: &str) -> Strin
         "`{name}=\"{value}\"` on {} is not a form this version supports: {takes}",
         node.element().tag()
     )
+}
+
+/// The message for a `volume` on an `<audio>`, which this version does not apply (`docs/spec/sound.md` section 1).
+fn unapplied_volume(attribute: &Attribute) -> String {
+    let message = format!(
+        "`volume=\"{}\"` on <audio> is not applied by this version, which plays a sound at the level of its file",
+        attribute.shown()
+    );
+    match attribute.given_by() {
+        None => message,
+        Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
+    }
 }
 
 /// The message for a `background` that is not one opaque colour; one a style gives names the style,

@@ -137,6 +137,14 @@ impl Time {
         }
     }
 
+    /// The whole number nearest `time × rate`, a half rounded up: the
+    /// sample frame nearest a time at `rate` frames a second.
+    pub fn nearest_count(self, rate: u32) -> i64 {
+        let n = self.num * rate as i128;
+        let d = self.den;
+        (2 * n + d).div_euclid(2 * d) as i64
+    }
+
     /// The fraction as `"num/den"`, the exact form used in JSON.
     pub fn to_exact(self) -> String {
         format!("{}/{}", self.num, self.den)

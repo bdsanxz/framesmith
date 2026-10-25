@@ -171,11 +171,23 @@ pub enum Code {
     BackgroundSettingAlone,
     /// A `border` is not a width and a colour, or a width, `double` and a colour.
     BorderNotInForm,
+    /// An `<audio>` without a `duration` above 0.
+    SoundNoDuration,
+    /// The sound file that `<audio src>` names does not exist, or the `<audio>` has no `src`.
+    SoundMissing,
+    /// The sound file exists and could not be read.
+    SoundUnreadable,
+    /// The file is not sound of a kind this version reads, or is of such a kind in a form it does not read.
+    SoundNotRead,
+    /// The sound file is of a kind this version reads and cannot be decoded.
+    SoundDamaged,
+    /// An `<audio>` has a `media-start` at or past the end of its sound file.
+    SoundStartPastEnd,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 67] = [
+    pub const ALL: [Code; 73] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -243,6 +255,12 @@ impl Code {
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
         Code::BorderNotInForm,
+        Code::SoundNoDuration,
+        Code::SoundMissing,
+        Code::SoundUnreadable,
+        Code::SoundNotRead,
+        Code::SoundDamaged,
+        Code::SoundStartPastEnd,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -315,6 +333,12 @@ impl Code {
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
             Code::BorderNotInForm => "FS-0067",
+            Code::SoundNoDuration => "FS-0076",
+            Code::SoundMissing => "FS-0077",
+            Code::SoundUnreadable => "FS-0078",
+            Code::SoundNotRead => "FS-0079",
+            Code::SoundDamaged => "FS-0080",
+            Code::SoundStartPastEnd => "FS-0081",
         }
     }
 
@@ -327,8 +351,11 @@ impl Code {
             | Code::PathUnreadable
             | Code::VideoNotMade
             | Code::ShownUnreadable
-            | Code::FontUnreadable => Kind::Failure,
-            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable | Code::EmojiNotDrawn => Kind::Unsupported,
+            | Code::FontUnreadable
+            | Code::SoundUnreadable => Kind::Failure,
+            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable | Code::EmojiNotDrawn | Code::SoundNotRead => {
+                Kind::Unsupported
+            }
             _ => Kind::Invalid,
         }
     }
@@ -408,6 +435,12 @@ impl Code {
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
             Code::BorderNotInForm => "Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`.",
+            Code::SoundNoDuration => "Write `duration` on the `<audio>` as the seconds the sound plays, above 0.",
+            Code::SoundMissing => "Write `src` as the path of a sound file that exists, from the project folder or from `/`.",
+            Code::SoundUnreadable => "Check that the path names a file, not a folder, and that it may be read.",
+            Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
+            Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
+            Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

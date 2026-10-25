@@ -100,3 +100,16 @@ fn reads_frame_rates() {
         assert_eq!(parse_fps(bad), Err(FpsError::Invalid), "{bad}");
     }
 }
+
+#[test]
+fn nearest_sample_rounds_a_half_up() {
+    assert_eq!(t("1.0001").nearest_count(48_000), 48_005);
+    assert_eq!(t("1").nearest_count(48_000), 48_000);
+    assert_eq!(t("3").nearest_count(48_000), 144_000);
+    assert_eq!(t("0.5").nearest_count(44_100), 22_050);
+    // 0.00001 s × 48,000 = 0.48 → 0; 0.0000125 s × 48,000 = 0.6 → 1.
+    assert_eq!(t("0.00001").nearest_count(48_000), 0);
+    assert_eq!(t("0.0000125").nearest_count(48_000), 1);
+    // Exactly a half: 1/96000 s × 48,000 = 0.5 → 1.
+    assert_eq!(Time::new(1, 96_000).nearest_count(48_000), 1);
+}

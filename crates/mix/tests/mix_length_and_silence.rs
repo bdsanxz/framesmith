@@ -1,4 +1,4 @@
-//! The mix is as long as the picture to the sample, and silent (`docs/spec/render-command.md`
+//! The mix is as long as the picture to the sample, and silent without a sound (`docs/spec/render-command.md`
 //! section 5.2).
 
 use mix::{length_for_picture, Mix, CHANNELS, SAMPLE_RATE};
@@ -36,7 +36,7 @@ fn every_sample_read_is_silence_and_reading_ends_at_the_length() {
     let mut total = 0_u64;
     loop {
         piece.fill(1.0);
-        let read = mix.read(&mut piece);
+        let read = mix.read(&mut piece).unwrap();
         if read == 0 {
             break;
         }
@@ -51,6 +51,6 @@ fn every_sample_read_is_silence_and_reading_ends_at_the_length() {
 fn a_piece_of_an_odd_number_of_values_takes_only_whole_frames() {
     let mut mix = Mix::for_picture(1, 30);
     let mut piece = vec![1.0_f32; 5];
-    assert_eq!(mix.read(&mut piece), 2);
+    assert_eq!(mix.read(&mut piece).unwrap(), 2);
     assert_eq!(piece[4], 1.0);
 }

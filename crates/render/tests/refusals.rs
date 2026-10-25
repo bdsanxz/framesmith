@@ -50,7 +50,6 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
     for (index, (element, tag)) in [
-        ("<audio src=\"a.wav\" duration=\"1\"/>", "<audio>"),
         ("<rect/>", "<rect>"),
         ("<image src=\"i.png\"/>", "<image>"),
         ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
