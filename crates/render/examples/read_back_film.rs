@@ -186,6 +186,23 @@ fn main() {
     if numbers.is_empty() {
         usage();
     }
+    // Every frame asked for needs its checked-in picture, which is looked for before the film is read.
+    if let Some(folder) = &checked_in {
+        let missing: Vec<usize> = numbers
+            .iter()
+            .copied()
+            .filter(|number| !folder.join(format!("frame-{number:04}.png")).is_file())
+            .collect();
+        if !missing.is_empty() {
+            for number in missing {
+                eprintln!(
+                    "read_back_film: frame {number} has no checked-in picture: {} does not exist",
+                    folder.join(format!("frame-{number:04}.png")).display()
+                );
+            }
+            std::process::exit(1);
+        }
+    }
 
     let facts = video_facts(Path::new(&film)).unwrap_or_else(|error| panic!("{error}"));
     let mut reader = open_pictures(Path::new(&film)).unwrap_or_else(|error| panic!("{error}"));
