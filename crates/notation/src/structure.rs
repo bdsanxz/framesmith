@@ -113,6 +113,17 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
     }
 }
 
+/// The attributes of a border by side (`notation.md` section 14, S20), known and not supported in this version.
+const BORDERS_BY_SIDE: [&str; 7] = [
+    "border-top",
+    "border-right",
+    "border-bottom",
+    "border-left",
+    "border-width",
+    "border-color",
+    "border-style",
+];
+
 /// The attributes of one element as it reads them: those it does not take, and the numbers and times
 /// it writes. A value a style gives is judged on the element, and reported on the element's place
 /// (`docs/spec/check-command.md` section 3c).
@@ -127,6 +138,19 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
                 format!(
                     "the style `{}` has `class`; a style cannot take another style",
                     shown(&style_id(node))
+                ),
+            ));
+            continue;
+        }
+        if !attribute.prefixed && !element.takes(name) && element.takes("border") && BORDERS_BY_SIDE.contains(&name) {
+            // A border by side is known and waits for a later sprint: entry S20 of `notation.md` section 14.
+            problems.push(found(
+                Code::FormNotSupported,
+                spot,
+                format!(
+                    "{} has `{}`, a border by side, which this version does not draw; write `border`, one line round the whole box",
+                    element.tag(),
+                    shown(&attribute.written)
                 ),
             ));
             continue;

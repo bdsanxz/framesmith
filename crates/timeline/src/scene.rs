@@ -4,7 +4,8 @@
 use std::sync::Arc;
 
 use draw::{
-    Background, Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer, Step, TextMark,
+    Background, Colour, DisplayList, Edges, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer, Step,
+    TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
@@ -12,6 +13,7 @@ use text::Fonts;
 use timebase::Time;
 
 use crate::background;
+use crate::edges::read_edges;
 use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 use motion::{ElementMotion, Tween};
@@ -25,9 +27,10 @@ const SOUND_KBITS_HIGHEST: u32 = 320;
 const ROOT_TAKES: [&str; 8] = ["id", "class", "version", "width", "height", "fps", "duration", "background"];
 /// What a `<box>` takes besides the text attributes: its place, its margin and its position, what it draws and its
 /// window, the words and numbers of the row or column it lays out (`docs/spec/render-command.md` section 4.3), its
-/// `columns` for a set of columns (section 4.4), and its `max-width` and `flex-grow` as an item (sections 4.1 and 4.3).
+/// `columns` for a set of columns (section 4.4), its `max-width` and `flex-grow` as an item (sections 4.1 and 4.3), and its
+/// border, corner radius and cut (`docs/spec/box-edges.md`).
 /// The text attributes pass to the elements inside a box (`docs/spec/text.md` section 8).
-const BOX_TAKES: [&str; 25] = [
+const BOX_TAKES: [&str; 28] = [
     "id",
     "class",
     "left",
@@ -53,7 +56,17 @@ const BOX_TAKES: [&str; 25] = [
     "columns",
     "max-width",
     "flex-grow",
+    "border",
+    "border-radius",
+    "overflow",
 ];
+
+/// The edges of an element that writes none: square corners, no border, no cut.
+const NO_EDGES: Edges = Edges {
+    radius: 0.0,
+    border: None,
+    cut: false,
+};
 
 /// What a `<composition src>` takes: its id and class, its file, its clip and its place (`docs/spec/render-command.md`
 /// section 3). Its size is its file's, so `width` and `height` are not taken.
@@ -154,13 +167,16 @@ impl Fill {
     }
 }
 
-/// A box that is placed and drawn, or placed and drawn as nothing: its slot, what it fills with, and the
-/// rectangle it is cut to when it stands on a canvas shown from another file (`None` on the root's canvas).
+/// A box that is placed and drawn, or placed and drawn as nothing: its slot, what it fills with, the rectangle it is
+/// cut to when it stands on a canvas shown from another file (`None` on the root's canvas), its border, corners and cut,
+/// and, for a box that cuts its children, the end of the run of entries of its children, which follow it.
 #[derive(Clone, Debug, PartialEq)]
 struct Placed {
     slot: Slot,
     fill: Option<Fill>,
     clip: Option<Rect>,
+    edges: Edges,
+    cut_end: Option<usize>,
 }
 
 /// A `<text>` that is placed: its slot, the rectangle it is cut to (as a box is), its lines, the composition file
@@ -355,12 +371,27 @@ impl Scene {
             }
             let entry = &self.entries[index];
             index += 1;
+            if let Entry::Box(placed) = entry {
+                if let Some(end) = placed.cut_end {
+                    // The children of a box that cuts are drawn inside its cut, with the elements that move among them.
+                    let inner_end = next + movers[next..].iter().take_while(|inner| inner.first < end).count();
+                    if entry.window().contains(number) {
+                        let children = self.marks(index..end, &movers[next..inner_end], number, time, clipped);
+                        marks.extend(box_marks(placed, clipped, children));
+                    }
+                    index = end;
+                    next = inner_end;
+                    continue;
+                }
+            }
             if !entry.window().contains(number) {
                 continue;
             }
             let mark = match entry {
-                Entry::Box(placed) if clipped => fill_mark(placed),
-                Entry::Box(placed) => placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, None)),
+                Entry::Box(placed) => {
+                    marks.extend(box_marks(placed, clipped, Vec::new()));
+                    None
+                }
                 Entry::Text(text) if clipped => text_mark(text),
                 Entry::Text(text) => text_mark(text).map(|mark| match mark {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
@@ -375,6 +406,33 @@ impl Scene {
     /// Draws frame `number` with `renderer`.
     pub fn picture(&self, number: u64, renderer: &mut dyn Renderer) -> Result<Picture, PictureError> {
         renderer.draw_frame(&self.frame(number)?).map_err(PictureError::Renderer)
+    }
+}
+
+/// The marks of a box and of the children it cuts, in the order of `docs/spec/box-edges.md` section 3: its fill, its border and
+/// its children, with its corners and its cut. With `clipped`, a box on a canvas shown from another file is cut to that canvas.
+/// A box with square corners, no border and no cut is its fill alone, as before.
+fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
+    let edges = placed.edges;
+    if edges.radius == 0.0 && edges.border.is_none() && !edges.cut {
+        let fill = if clipped {
+            fill_mark(placed)
+        } else {
+            placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, None))
+        };
+        return fill.into_iter().chain(children).collect();
+    }
+    let rect = placed.slot.rect;
+    let background = placed.fill.as_ref().and_then(|fill| fill.mark(rect, None));
+    let marks = edges.marks(rect, background.into_iter().collect(), children);
+    match placed.clip {
+        Some(clip) if clipped && !marks.is_empty() => vec![Mark::Group(Group {
+            map: Map::IDENTITY,
+            opacity: 1.0,
+            clip: Some(clip),
+            marks,
+        })],
+        _ => marks,
     }
 }
 
@@ -788,6 +846,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 slot,
                 fill: form.fill.clone(),
                 clip: canvas.clip,
+                edges: form.edges,
+                cut_end: None,
             }));
             places.push(Some(slot));
             continue;
@@ -820,6 +880,13 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             place_only,
         );
         let offset = entries.len();
+        let placed = placed.into_iter().map(|entry| match entry {
+            Entry::Box(inner) => Entry::Box(Placed {
+                cut_end: inner.cut_end.map(|end| end + offset),
+                ..inner
+            }),
+            other => other,
+        });
         movers.extend(inner_movers.into_iter().map(|mover| Mover {
             first: mover.first + offset,
             end: mover.end + offset,
@@ -835,6 +902,21 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     }
 
     entries_before.push(entries.len());
+    // A box that cuts its children holds the run of entries of its subtree: the elements after it whose parents lie in it.
+    for index in 0..tree.len() {
+        let Some(first) = entry_at[index] else {
+            continue;
+        };
+        if let Entry::Box(placed) = &mut entries[first] {
+            if placed.edges.cut {
+                let mut after = index + 1;
+                while after < tree.len() && tree[after].parent().is_some_and(|parent| parent >= index) {
+                    after += 1;
+                }
+                placed.cut_end = Some(entries_before[after]);
+            }
+        }
+    }
     let own = gather_movers(
         tree,
         &entries_before,
@@ -1027,6 +1109,7 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         grow: 0.0,
         text: false,
         fill: None,
+        edges: NO_EDGES,
         clip: Some((start.unwrap_or(Time::ZERO), duration.unwrap_or(file.duration))),
         shown: Some(name.to_string()),
     };
@@ -1190,6 +1273,8 @@ struct Form {
     /// Whether the element is a `<text>`: a text is not stretched across, and is sized by its words.
     text: bool,
     fill: Option<Fill>,
+    /// The border, corners and cut of a box (`docs/spec/box-edges.md`); none for a text and a `<composition src>`.
+    edges: Edges,
     clip: Option<(Time, Time)>,
     /// The file a `<composition src>` shows, as written; `None` for a box.
     shown: Option<String>,
@@ -1405,6 +1490,22 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
             _ => {}
         }
     }
+    // The border, the corner radius and the cut of a box (`docs/spec/box-edges.md`, section 6); a text takes none of them.
+    let edges = if node.element() == Element::Text {
+        NO_EDGES
+    } else {
+        match read_edges(node) {
+            Ok(edges) => edges,
+            Err(faults) => {
+                refusals.extend(
+                    faults
+                        .into_iter()
+                        .map(|(code, line, message)| Refusal::of_place(code, line, message)),
+                );
+                NO_EDGES
+            }
+        }
+    };
     // A `<box>` lays its children out in a row or a column, or in a set of columns, and not in both (`FS-0055`).
     let columns = match tracks {
         Some(_) if direction.is_some() => {
@@ -1460,6 +1561,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         grow,
         text: node.element() == Element::Text,
         fill,
+        edges,
         clip,
         shown: None,
     };
