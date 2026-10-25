@@ -959,6 +959,10 @@ The attributes are in the table of 6.14. `<property>` is one of the names of 8.1
 
 The attributes are in the table of 6.15. A `<set>` changes properties at one instant: the value holds from the frame at `at` onward. The property names are written as they are, without `from-` or `to-`. At least one property is needed.
 
+- The frame at `at` is the first frame whose time is `at` or later, by the frame grid rule (5.3): a set written within a thousandth of a frame after a frame's time is on that frame; one written later than that is on the next frame.
+- A set is a tween of no length in the order of 8.5: a later tween with only `to-` starts from the set's value, and a set and a tween with the same `at` keep their document order, the later one controlling the property.
+- A set with no property is reported on its line (`FS-0061`). A property its element does not take as an attribute (8.1: `count` on a `<text>` only, `typed` on a `<text>` or `<span>`, `draw` on a `<shape>`) is reported on the attribute (`FS-0062`). An attribute that is not an animated property, such as `width`, is one the set does not take (`FS-0030`, S24); it counts as the set's property for `FS-0061`, so that the one mistake has one report.
+
 ### 8.4 Easings
 
 `ease` takes exactly one of these names, in lower case (default `linear`):

@@ -157,11 +157,15 @@ pub enum Code {
     TweenNoProperty,
     /// A `<tween>` changes a property that the element it moves does not take.
     PropertyNotTaken,
+    /// A `<set>` with no property.
+    SetNoProperty,
+    /// A `<set>` changes a property that the element it moves does not take.
+    SetPropertyNotTaken,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 60] = [
+    pub const ALL: [Code; 62] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -222,6 +226,8 @@ impl Code {
         Code::TweenNoDuration,
         Code::TweenNoProperty,
         Code::PropertyNotTaken,
+        Code::SetNoProperty,
+        Code::SetPropertyNotTaken,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -287,6 +293,8 @@ impl Code {
             Code::TweenNoDuration => "FS-0058",
             Code::TweenNoProperty => "FS-0059",
             Code::PropertyNotTaken => "FS-0060",
+            Code::SetNoProperty => "FS-0061",
+            Code::SetPropertyNotTaken => "FS-0062",
         }
     }
 
@@ -373,6 +381,8 @@ impl Code {
             Code::TweenNoDuration => "Write `duration` on the tween as a number of seconds above 0.",
             Code::TweenNoProperty => "Write at least one `from-` or `to-` attribute on the tween, such as `to-x=\"100\"`.",
             Code::PropertyNotTaken => "Move the tween to an element that takes the property, or change a property the element takes.",
+            Code::SetNoProperty => "Write at least one property on the set, such as `x=\"300\"`.",
+            Code::SetPropertyNotTaken => "Move the set to an element that takes the property, or change a property the element takes.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

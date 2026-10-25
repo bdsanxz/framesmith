@@ -105,6 +105,8 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
                 problems.push(found(Code::ElementNotHere, spot, misplaced(kind, element)));
             } else if kind == Element::Tween {
                 tween(child, element, spot, &spot_at, problems);
+            } else if kind == Element::Set {
+                set(child, element, spot, &spot_at, problems);
             }
             pending.push((child, kind));
         }
@@ -257,6 +259,43 @@ fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spo
             Code::TweenNoProperty,
             spot,
             "<tween> changes no property; a tween needs at least one `from-` or `to-` attribute".to_string(),
+        ));
+    }
+}
+
+/// What a `<set>` needs, and what it may change (`docs/spec/notation.md` section 8.3): at least one property (an attribute
+/// other than `at` counts, since one that is not an animated property is reported on its own), and only properties that the
+/// element it moves takes as attributes (section 8.1). A set with no property is reported on the set's line; a property its
+/// element does not take, on the attribute. A set takes no `class`, so its own attributes are all it reads.
+fn set<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot, spot_at: &F, problems: &mut Vec<Found>) {
+    let mut changes = false;
+    for attribute in node.attributes().filter(|attribute| attribute.namespace().is_none()) {
+        let name = attribute.name();
+        if name == "at" {
+            continue;
+        }
+        changes = true;
+        if !Element::Set.takes(name) {
+            // Not an animated property: the form check reports the attribute as one the set does not take, and that one
+            // report is the set's.
+            continue;
+        }
+        if !parent.takes(name) {
+            problems.push(found(
+                Code::SetPropertyNotTaken,
+                spot_at(attribute.range().start),
+                format!(
+                    "`{name}` changes `{name}`, which {} does not take; a set changes only the properties of the element it moves",
+                    parent.tag()
+                ),
+            ));
+        }
+    }
+    if !changes {
+        problems.push(found(
+            Code::SetNoProperty,
+            spot,
+            "<set> changes no property; a set needs at least one property, such as `x`".to_string(),
         ));
     }
 }

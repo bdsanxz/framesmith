@@ -594,12 +594,14 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
-        if node.element() == Element::Set {
-            refusals.push(Refusal::of_motion((
-                Code::FormNotSupported,
-                node.line(),
-                "<set> is not supported by this version, which moves an element with <tween> only".to_string(),
-            )));
+        if node.element() == Element::Set && moving::moves(tree[parent].element()) {
+            // A set is a tween of no length, kept in the order written with the element's tweens (`docs/spec/notation.md`
+            // sections 8.3 and 8.5).
+            let (set, found) = moving::read_set(node, parent_origin[parent]);
+            refusals.extend(found.into_iter().map(Refusal::of_motion));
+            if let Some(set) = set {
+                tweens_of[parent].push((set, node.line()));
+            }
             places.push(None);
             continue;
         }

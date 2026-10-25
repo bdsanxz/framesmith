@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sets in order with tweens. The red box is set to x 100 at 1 s, then a tween with only to-x takes it from there to 300
+     between 1.5 s and 2.5 s. The blue box has a tween and then a set, both at 1 s: the set is written later and controls x,
+     which holds 60. The green box has the set first and the tween after it, both at 1 s: the tween is written later and
+     controls x, going from the set's 60 to 300 by 2 s. The text is set to x 200 and opacity 0.5 at 1 s. 400 by 170 pixels,
+     30 frames a second. -->
+<composition version="1" id="motion-set-and-tween" width="400" height="170" fps="30" duration="3" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <box left="10" top="10" width="30" height="30" background="#d03020">
+    <set at="1" x="100"/>
+    <tween at="1.5" duration="1" to-x="300"/>
+  </box>
+  <box left="10" top="50" width="30" height="30" background="#2050c0">
+    <tween at="1" duration="1" to-x="300"/>
+    <set at="1" x="60"/>
+  </box>
+  <box left="10" top="90" width="30" height="30" background="#20a040">
+    <set at="1" x="60"/>
+    <tween at="1" duration="1" to-x="300"/>
+  </box>
+  <text left="10" top="128" font-family="Framesmith Test Stroke" font-size="30" color="#000000">HIIH<set at="1" x="200" opacity="0.5"/></text>
+</composition>

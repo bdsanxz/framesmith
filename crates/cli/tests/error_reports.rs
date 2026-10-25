@@ -151,6 +151,16 @@ fn shown_problems() -> Vec<ShownProblem> {
             Code::PropertyNotTaken,
         ),
         (
+            "set-no-property",
+            vec![("composition.xml".to_string(), inside_root(r#"<box><set at="1"/></box>"#))],
+            Code::SetNoProperty,
+        ),
+        (
+            "set-property-not-taken",
+            vec![("composition.xml".to_string(), inside_root(r#"<box><set at="1" count="5"/></box>"#))],
+            Code::SetPropertyNotTaken,
+        ),
+        (
             "shown-frame-rate",
             vec![
                 ("composition.xml".to_string(), at_30("inner.xml")),

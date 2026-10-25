@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Three boxes, each moved 300 pixels to the right by a set. The red one's set is at 2 s, frame 60. The blue one's is
+     written a hair after the time of frame 30, within a thousandth of a frame, so it lands on frame 30. The green one's
+     is written a thousandth of a second after it, past that tolerance, so it lands on frame 31. 400 by 130 pixels, 30
+     frames a second. -->
+<composition version="1" id="motion-set-at-an-instant" width="400" height="130" fps="30" duration="3" background="#ffffff">
+  <box left="10" top="10" width="30" height="30" background="#d03020">
+    <set at="2" x="300"/>
+  </box>
+  <box left="10" top="50" width="30" height="30" background="#2050c0">
+    <set at="1.00002" x="300"/>
+  </box>
+  <box left="10" top="90" width="30" height="30" background="#20a040">
+    <set at="1.001" x="300"/>
+  </box>
+</composition>

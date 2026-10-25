@@ -220,7 +220,7 @@ The five attributes of notation 7.3 that a `<text>` draws: `text-transform`, `wh
 
 ## 7. Animation
 
-A text takes no `<tween>` or `<set>` in this version. Animated colour and size of text are Sprint 4 (the ticket's out-of-scope list); a `<tween>` or `<set>` in a `<text>` is unsupported.
+A `<tween>` or a `<set>` inside a `<text>` moves the whole paragraph with the seven properties of `render-command.md` section 4.5. Animated colour and size of text are Sprint 4 (the ticket's out-of-scope list); a `<tween>` or `<set>` inside a `<span>` is unsupported.
 
 ## 8. Placement, and the inheritance of text attributes
 

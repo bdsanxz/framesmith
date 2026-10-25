@@ -40,9 +40,9 @@ const TEXT_FORMS: [(&str, &str, &str); 6] = [
         "<tween> inside <text> is not supported by this version",
     ),
     (
-        "set-inside-text",
-        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB<set at="0" opacity="1"/></text>"##,
-        "<set> is not supported by this version, which moves an element with <tween> only",
+        "set-inside-span",
+        r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">A<span>B<set at="0" opacity="1"/></span></text>"##,
+        "<set> inside <text> is not supported by this version",
     ),
     (
         "background-of-text",

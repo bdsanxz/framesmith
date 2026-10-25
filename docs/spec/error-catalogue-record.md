@@ -66,3 +66,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0058` | A `<tween>` has no `duration`, or a `duration` of 0. |
 | `FS-0059` | A `<tween>` has no `from-` or `to-` attribute. |
 | `FS-0060` | A `<tween>` changes a property that the element it moves does not take as an attribute. |
+| `FS-0061` | A `<set>` has no property. |
+| `FS-0062` | A `<set>` changes a property that the element it moves does not take as an attribute. |

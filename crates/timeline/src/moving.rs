@@ -126,6 +126,48 @@ pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found
     (tween, found)
 }
 
+/// Reads a `<set>` that moves a `<box>` or a `<text>`, with `origin` the start of the time its `at` counts in, as a tween of
+/// no length (`docs/spec/motion.md`, rule 3; `docs/spec/notation.md` section 8.3). Gives the set, or `None` when it changes
+/// none of the seven properties (the form check reports a set with no property, `FS-0061`), and the refusals of a property
+/// other than the seven that it changes, each on its attribute's line (`FS-0035`). An attribute that is not an animated
+/// property is the form check's (`FS-0030`), and is passed over here.
+pub(crate) fn read_set(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>) {
+    let mut found = Vec::new();
+    let mut to: Values = [None; PROP_COUNT];
+    let mut at = Time::ZERO;
+    for attribute in node.attributes() {
+        let name = attribute.name();
+        if name == "at" {
+            at = attribute.time().unwrap_or(Time::ZERO);
+            continue;
+        }
+        if !Element::Set.takes(name) {
+            continue;
+        }
+        match Prop::from_name(name) {
+            Some(prop) => to[prop.index()] = attribute.number(),
+            None => found.push((
+                Code::FormNotSupported,
+                attribute.line(),
+                format!(
+                    "<set> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y and opacity",
+                    project::shown(name)
+                ),
+            )),
+        }
+    }
+    let set = to.iter().any(Option::is_some).then(|| Tween {
+        target: String::new(),
+        kind: Kind::Set,
+        from: [None; PROP_COUNT],
+        to,
+        at: origin + at,
+        duration: Time::ZERO,
+        ease: Ease::Linear,
+    });
+    (set, found)
+}
+
 /// Whether an element of this kind is moved by this version.
 pub(crate) fn moves(element: Element) -> bool {
     matches!(element, Element::Box | Element::Text)

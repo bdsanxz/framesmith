@@ -44,3 +44,15 @@ fn reference_machine_only_the_card_agrees_with_the_processor_on_a_dressed_text_t
 fn reference_machine_only_the_card_agrees_with_the_processor_on_a_box_of_boxes_and_text_that_fades_as_one() {
     the_card_agrees_with_the_processor("motion-group-fade");
 }
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_boxes_moved_by_sets() {
+    the_card_agrees_with_the_processor("motion-set-at-an-instant");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_sets_in_order_with_tweens_and_a_set_text() {
+    the_card_agrees_with_the_processor("motion-set-and-tween");
+}
