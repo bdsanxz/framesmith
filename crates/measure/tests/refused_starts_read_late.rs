@@ -492,6 +492,9 @@ fn a_program_built_in_the_target_refused_under_no_token_is_named_as_run_unknown_
     executable(&target.join("debug/framesmith"), "#!/bin/bash\n");
     std::fs::write(target.join("debug/framesmith.d"), "not a program").expect("the file is written");
     let encoder = concat!("/opt/homebrew/bin/ff", "mpeg");
+    // The cli's own unit tests run as a test program whose name begins with the command's: the record's
+    // name `framesmith` is whole (shorter than the 32 characters the system keeps) and is not that program.
+    let cli_unit_tests = "framesmith-0123456789abcdef";
     let stand_in = fixed_stand_in(
         &folder,
         &[
@@ -501,7 +504,14 @@ fn a_program_built_in_the_target_refused_under_no_token_is_named_as_run_unknown_
         ],
     );
     let log = folder.join("core-suite.log");
-    std::fs::write(&log, run_log(1)).expect("the output of the run is written");
+    std::fs::write(
+        &log,
+        format!(
+            "     Running unittests src/main.rs (target/debug/deps/{cli_unit_tests})\n{}",
+            run_log(1)
+        ),
+    )
+    .expect("the output of the run is written");
     let mut command = Command::new("bash");
     command
         .arg(root().join("scripts/gates/core-refused.sh"))
@@ -520,6 +530,7 @@ fn a_program_built_in_the_target_refused_under_no_token_is_named_as_run_unknown_
     // Not counted: the one start the output shows refused is still missing from this run's refusals.
     assert!(!run.text.contains(&named(encoder)), "{}", run.text);
     assert!(run.text.contains("names 0 program(s)"), "{}", run.text);
+    assert!(!run.text.contains("set aside"), "{}", run.text);
     // Only programs built in the target are named so; the rest of the machine's records are not this gate's.
     assert!(!run.text.contains("/bin/echo"), "{}", run.text);
     assert!(!run.text.contains("/usr/libexec/other"), "{}", run.text);

@@ -83,6 +83,18 @@ fi
 # The output of the tests points to a refusal for each start the profile forbade.
 POINTED=$(grep -c 'Operation not permitted' "$RUNLOG")
 
+# Whether the name of a record ($1) is the name of one of the programs listed in $2. The system keeps the
+# first 32 characters of a name: a name of 32 characters may be cut, and is one of them when it is the
+# start of its name; a shorter one is whole, and must be the same (`framesmith`, the command, is not the
+# test program `framesmith-<hash>`).
+is_one_of() {
+    [ -n "$1" ] || return 1
+    printf '%s\n' "$2" | awk -v name="$1" '
+        length(name) >= 32 && index($0, name) == 1 { found = 1 }
+        length(name) < 32 && $0 == name { found = 1 }
+        END { exit !found }'
+}
+
 now_ms() { perl -MTime::HiRes=time -e 'printf "%d\n", time() * 1000'; }
 
 READING=""   # the programs named by the latest reading that could be read
@@ -117,7 +129,7 @@ read_once() {
                     continue ;;
             esac
             plain="$process"
-            if printf '%s\n' "$PROGRAMS" | awk -v process="$plain" 'index($0, process) == 1 { found = 1 } END { exit !found }'; then
+            if is_one_of "$plain" "$PROGRAMS"; then
                 echo "set aside, refused in another run: $path (by $process)"
             fi
         done | sort -u)
@@ -125,10 +137,10 @@ read_once() {
         while read -r process path; do
             case "$process" in ('') continue ;; (r[0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef][0123456789abcdef]-*) continue ;; esac
             # A test program's own name is set aside above, not named here.
-            if printf '%s\n' "$PROGRAMS" | awk -v process="$process" 'index($0, process) == 1 { found = 1 } END { exit !found }'; then
+            if is_one_of "$process" "$PROGRAMS"; then
                 continue
             fi
-            if printf '%s\n' "$BUILT" | awk -v process="$process" 'process != "" && index($0, process) == 1 { found = 1 } END { exit !found }'; then
+            if is_one_of "$process" "$BUILT"; then
                 echo "refused, run unknown: $path (by $process)"
             fi
         done | sort -u)
