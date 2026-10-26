@@ -79,7 +79,7 @@ fn window_reference(number: u64) -> Picture {
     // Fourth text: 0.33333 s and 0.33334 s are frame 10, 0.34 s is frame 10.2, so frame 11. Each shows for one second;
     // its last frame is not among the chosen ones after frame 30, where all three are shown, and before frame 59, where none
     // is.
-    let (ab, ef) = (n >= 10 && n < 40, n >= 11 && n < 40);
+    let (ab, ef) = ((10..40).contains(&n), (11..40).contains(&n));
     inside += &text_at(
         82,
         &format!("{} {} {} GH", span(ab, RED, "AB"), span(ab, BLUE, "CD"), span(ef, GREEN, "EF")),
