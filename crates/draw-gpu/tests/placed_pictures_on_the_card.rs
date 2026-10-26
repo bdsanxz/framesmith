@@ -53,6 +53,7 @@ fn group(map: Map, clip: Option<Rect>, marks: Vec<Mark>) -> Mark {
         opacity: 1.0,
         clip,
         marks,
+        turn: None,
     })
 }
 
