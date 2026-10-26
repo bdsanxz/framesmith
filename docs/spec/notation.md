@@ -744,6 +744,7 @@ A change of values at one instant, child of the element it moves (section 8.3). 
 - **Zero and negative.** N6.
 - **`max-width`** is a number above 0: the element is never wider than that many pixels when its width does not come from its own `width`. It holds for an item that its row, column or cell would make wider and for a text with no `width`, which then wraps at it. An element with a `width` of its own ignores it.
 - **`position`** is `static` or `absolute`. It matters in a row, column or set of columns: `absolute` takes the element out of the flow and places it by its edges (Q2). Elsewhere it changes nothing.
+- **A plain box has no flow.** The children of a box with no `flex-direction` and no `columns` are absolutely placed, whether or not they write `position`, and CSS's rules for an absolutely placed box hold for them in full (Q2, N10). This is the one way a plain box differs from CSS, where such a box lays its children out one after another in a normal flow: here each child is placed by its own edges alone, and none takes room from another. A normal flow in a plain box is not in this version (B41).
 - **Movement does not move the layout.** `x`, `y`, `rotation` and `scale` move the picture, not the places of the other elements.
 - A percentage of an item in a flex box that has no size of its own counts as 0.
 
@@ -756,7 +757,7 @@ A box with `flex-direction` lays its children out as a row or a column; a box wi
 - **`align-items`** (default `stretch`) places the items across; `stretch` makes an item as wide (column) or as tall (row) as the container when that is known; a row or column with no size across has the size its items give it, and `stretch` fills that. `align-self` overrides it for one item. `baseline`, in a row, sets the items that have it so that the baselines of their first lines lie on one line and the highest touches the top of the row. The baseline of a `<text>` or `<span>` is that of its first line; of a box that is a row, column or set of columns, that of its first item, counted from its top; of anything else, its bottom edge. A row with no height is as high as its items need. In a column and in a cell of a set of columns, `baseline` is the same as `flex-start`.
 - **`gap`** (default `0`) is the space between items, and in a set of columns between columns and between rows.
 - **`padding`** is the space inside the edge of a flex container, a set of columns, a `<text>` or a `<span>`. On a plain box (no `flex-direction`, no `columns`) it has no effect. A written `width` or `height` of a row or column includes its padding, as CSS's `border-box` does (B17, `DECISIONS.md`): `width="80" padding="8"` is 80 wide, and its items have the 64 that remain.
-- **`margin`** is the space around an item of a flex container or of a set of columns, and around a `<span>`. On an item with `position="absolute"` (a `<box>`, a `<text>` or a `<composition src>`) it moves the item in from each edge it is placed by (N10). On any other element it has no effect (N10).
+- **`margin`** is the space around an item of a flex container or of a set of columns, and around a `<span>`. On an absolutely placed item (a `<box>`, a `<text>` or a `<composition src>` that is `position="absolute"`, or that stands in a plain box) it moves the item in from each edge it is placed by, and on an axis with no edge from its static position (N10). On any other element it has no effect (N10).
 - **`flex-grow`** (default `0`): an item with a value above 0 takes a share of the spare room along the direction, in proportion to the values. Only when the container has a width (row) or a height (column).
 - **`columns`** is a list of column widths separated by spaces, each a number of pixels (`640`) or a share of what is left (`1fr`, `2fr`): the room the pixel columns and the gaps leave is divided among the `fr` columns in proportion to their numbers. The children fill the first row from left to right, then the next. An item is as wide as its column less its margins, unless it has a `width` of its own; then it lies at the left of its column. A row is as high as its tallest item; when the box has a height and the rows need less, the rest is shared equally among the rows. In its row an item stands as `align-items` or its `align-self` says. A box with no width of its own: an `fr` column is as wide as its widest item. Every width must be above 0.
 - **Not in the notation:** `space-around`, `space-evenly`, `flex-wrap`, `flex-basis`, `flex-shrink`, `order`, `display`, `grid` (section 14).
@@ -1144,20 +1145,19 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 ### N10. `margin` on an absolutely placed item
 
-**Rule.** It acts as in CSS. The `margin` of an item with `position="absolute"` (a `<box>`, a `<text>` or a `<composition src>`) is read as the sides of section 4, and it moves the item in from each edge of its parent that places it, by the margin of that side, a number of pixels. The edges of the parent are its outer edges, as Q2 says.
+**Rule.** It acts as in CSS. An absolutely placed item is a `<box>`, a `<text>` or a `<composition src>` with `position="absolute"` in a row, a column or a set of columns, or any of them in a plain box, whether or not it writes `position` (7.1). Its `margin` is read as the sides of section 4, and it moves the item in from each edge of its parent that places it, by the margin of that side, a number of pixels. The edges of the parent are its outer edges, as Q2 says.
 
 - With `left`, the item's left edge lies at `left` plus its left margin from the parent's left edge.
 - With `right` and no `left`, its right edge lies at `right` plus its right margin from the parent's right edge.
 - With `top`, its top edge lies at `top` plus its top margin from the parent's top edge.
 - With `bottom` and no `top`, its bottom edge lies at `bottom` plus its bottom margin from the parent's bottom edge.
 - With `left` and `right` and no `width`, its width is what lies between the two edges less the left and the right margins; with `top` and `bottom` and no `height`, its height is what lies between them less the top and the bottom margins. A size that comes out below 0 is 0.
-- A side whose edge places nothing (no `left`, `right`, `top` or `bottom` on that side, or an edge that a written size and the other edge make unused, as Q1 says) moves nothing.
+- On an axis with no edge (neither `left` nor `right`, or neither `top` nor `bottom`), the item lies at its static position, moved in by its margin on the near side (its left margin across, its top margin down). The static position is the place the item would have if it were not absolutely placed: in a plain box, the parent's near edge (its left or its top); in a row, a column or a set of columns, the place the container would give the item if it were its only item, its margins counted as for any item, at the size the item has as an absolutely placed one.
+- A side whose edge places nothing (a far edge that a near edge or a written size makes unused, as Q1 says) moves nothing.
 
-So `left="50" top="10" margin="30"` places the item's top left corner at (80, 40) of its parent, and `right="0" bottom="0" margin="2 4"` places its bottom right corner 4 in from the parent's right edge and 2 up from its bottom edge.
+So `left="50" top="10" margin="30"` places the item's top left corner at (80, 40) of its parent; `right="0" bottom="0" margin="2 4"` places its bottom right corner 4 in from the parent's right edge and 2 up from its bottom edge; and an item of a plain box with no edge and `margin="4 6"` has its top left corner at (6, 4) of its parent.
 
-The `margin` of a child placed by `left`, `top`, `right` or `bottom` in a plain box with no `position="absolute"` still has no effect: this rule is for absolutely placed items only.
-
-**Settled by.** B37 (`DECISIONS.md`, 2026-10-26): the owner chose that `margin` on an absolutely placed item acts as in CSS. Source: CSS 2.1, sections 10.3.7 and 10.6.4 (the widths, heights and offsets of absolutely positioned boxes, where the margins lie between the containing block's edges and the box), and CSS Positioned Layout Level 3, read for their meaning only and written here in our own words.
+**Settled by.** B37 (`DECISIONS.md`, 2026-10-26): the owner chose that `margin` on an absolutely placed item acts as in CSS. B41 (`DECISIONS.md`, 2026-10-26): the owner chose that the children of a plain box are absolutely placed and that CSS's rules for them hold in full, the static position on an axis with no edge included. Source: CSS 2.1, sections 10.3.7 and 10.6.4 (the widths, heights and offsets of absolutely positioned boxes, where the margins lie between the containing block's edges and the box, and the static position stands in for a missing offset), CSS Flexible Box Layout Level 1, section 4.1 (the static position of an absolutely positioned child of a flex container is that of its sole flex item), and CSS Positioned Layout Level 3, read for their meaning only and written here in our own words.
 
 ### Q1. Whether `bottom` places a box that has a height
 
@@ -1167,9 +1167,9 @@ The `margin` of a child placed by `left`, `top`, `right` or `bottom` in a plain 
 
 ### Q2. Where an absolutely placed child is drawn and counted from
 
-**Rule.** It is counted from the parent box's own edges: the outer box, with the parent's `padding` not subtracted, and percentages are of the parent's full width and height. It takes no room in the row, column or set of columns and does not count in `gap`. It is drawn in document order with its siblings: over the siblings written before it, under those after it. A child with `left`, `top`, `right` or `bottom` in a plain box is placed the same way, whether or not it writes `position`.
+**Rule.** It is counted from the parent box's own edges: the outer box, with the parent's `padding` not subtracted, and percentages are of the parent's full width and height. It takes no room in the row, column or set of columns and does not count in `gap`. It is drawn in document order with its siblings: over the siblings written before it, under those after it. Every child of a plain box is placed the same way, whether or not it writes `position`, its margin included (N10).
 
-**Settled by.** Maintainer draft, following the proofs' layout code.
+**Settled by.** Maintainer draft, following the proofs' layout code; the children of a plain box by B41 (`DECISIONS.md`, 2026-10-26).
 
 ### Q3. Whether a clip not yet shown keeps its place in a column
 

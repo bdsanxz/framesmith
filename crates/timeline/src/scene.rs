@@ -865,10 +865,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             (Some((rect, _)), None, None) => Ok((rect, Vec::new())),
             // A row or column, or a set, with no place of its own: its size is worked out with its children.
             (None, Some(flex), _) => {
-                layout::flow(parent_place.rect, &form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
+                layout::flow_absolute(parent_place.rect, &form.written, absolute_margin(&form), &flex, &items)
+                    .map(|flowed| (flowed.container, flowed.items))
             }
             (None, None, Some(set)) => {
-                layout::columns(parent_place.rect, &form.written, set, &cells).map(|flowed| (flowed.container, flowed.items))
+                layout::columns_absolute(parent_place.rect, &form.written, absolute_margin(&form), set, &cells)
+                    .map(|flowed| (flowed.container, flowed.items))
             }
             (None, None, None) => {
                 layout::place_absolute(parent_place.rect, &form.written, absolute_margin(&form)).map(|rect| (rect, Vec::new()))
@@ -1800,14 +1802,10 @@ fn whole_rect(size: Size) -> Rect {
     }
 }
 
-/// The margin that moves a box or a text placed in its parent: its own when it is `position="absolute"`
-/// (`render-command.md` section 4.1, rule 8), and none otherwise (`notation.md` N10).
+/// The margin that moves a box or a text placed in a plain parent: its own, since every child of a plain box is
+/// absolutely placed, whether or not it writes `position` (`render-command.md` section 4.1, rule 8; `notation.md` N10, B41).
 fn absolute_margin(form: &Form) -> Sides {
-    if form.absolute {
-        form.margin
-    } else {
-        Sides::default()
-    }
+    form.margin
 }
 
 /// What a box writes as an item of its row or column's flow. Where it writes no size on an axis, and the

@@ -1,6 +1,7 @@
-//! `margin` moves an absolutely placed `<box>`, `<text>` or `<composition src>` in from each edge it is placed by, and a
-//! box that is not absolutely placed keeps the place its edges give it (`docs/spec/render-command.md` section 4.1,
-//! rule 8; `notation.md` N10). Each picture is worked out by hand here from the composition, pixel by pixel, and the
+//! `margin` moves an absolutely placed `<box>`, `<text>` or `<composition src>` in from each edge it is placed by, and
+//! every child of a plain box is absolutely placed, whatever its `position` (`docs/spec/render-command.md` section 4.1,
+//! rule 8; `notation.md` N10, B41). On an axis with no edge the item lies at its static position, the parent's near
+//! edge, moved in by its near margin. Each picture is worked out by hand here from the composition, pixel by pixel, and the
 //! frames drawn on the processor's renderer, and the fixture's checked-in pictures, are held to it to the byte.
 
 mod common;
@@ -41,10 +42,11 @@ fn worked_out(boxes: &[Shown]) -> Picture {
 }
 
 /// The fixture's three boxes as the rule places them. `plain` (left 10, top 10, 20 by 20, margin 8 4, no `position`)
-/// keeps its place: columns 10 to 29, rows 10 to 29. `absolute` (left 50, top 10, 20 by 20, margin 30) lies 30 further
-/// in from its left and top edges, at 80, 40, and the frame cuts it: columns 80 to 95, rows 40 to 53. `static` (left 10,
-/// top 40, 20 by 10, margin 1 2 3 4, `position="static"`) keeps its place: columns 10 to 29, rows 40 to 49.
-const FIXTURE_BOXES: [Shown; 3] = [(10, 30, 10, 30, OCHRE), (80, 96, 40, 54, TEAL), (10, 30, 40, 50, VIOLET)];
+/// lies 4 right and 8 down: columns 14 to 33, rows 18 to 37. `absolute` (left 50, top 10, 20 by 20, margin 30) lies 30
+/// further in from its left and top edges, at 80, 40, and the frame cuts it: columns 80 to 95, rows 40 to 53. `static`
+/// (left 10, top 40, 20 by 10, margin 1 2 3 4, `position="static"`) lies 4 right and 1 down: columns 14 to 33, rows 41
+/// to 50.
+const FIXTURE_BOXES: [Shown; 3] = [(14, 34, 18, 38, OCHRE), (80, 96, 40, 54, TEAL), (14, 34, 41, 51, VIOLET)];
 
 fn scene_of(folder: &std::path::Path) -> Scene {
     let project = Project::open(folder).unwrap();
@@ -67,7 +69,7 @@ fn drawn_as_worked_out(name: &str, inside: &str, boxes: &[Shown]) {
 }
 
 #[test]
-fn the_fixture_s_frames_and_checked_in_pictures_show_the_absolute_box_moved_in_by_its_margin() {
+fn the_fixture_s_frames_and_checked_in_pictures_show_each_box_moved_in_by_its_margin() {
     let scene = scene_of(&project_from_fixture("absolute-margin-pictures", "fixture", FIXTURE));
     assert_eq!((scene.width(), scene.height(), scene.frames()), (96, 54, 10));
     let want = worked_out(&FIXTURE_BOXES);
@@ -79,15 +81,44 @@ fn the_fixture_s_frames_and_checked_in_pictures_show_the_absolute_box_moved_in_b
 }
 
 #[test]
-fn a_margin_moves_no_box_that_is_not_absolutely_placed() {
-    // The plain and the static box with other margins, and the absolute box written where its margin of 30 puts it,
-    // with no margin: the same picture as the fixture's.
+fn a_box_of_a_plain_box_is_moved_by_its_margin_as_an_absolute_one_is() {
+    // Each box written with no `position`, with `position="static"` and with `position="absolute"`, at left 6, top 3,
+    // 10 by 8, margin 2 3 4 5: each lies 5 right and 2 down, at 11, 5, the columns 11 to 20 and the rows 5 to 12. The
+    // three are side by side, 30 apart.
     drawn_as_worked_out(
-        "other-margins",
-        "<box left=\"10\" top=\"10\" width=\"20\" height=\"20\" margin=\"50\" background=\"#e0a030\"/>\n\
-         <box left=\"80\" top=\"40\" width=\"20\" height=\"20\" position=\"absolute\" background=\"#30c0a0\"/>\n\
-         <box left=\"10\" top=\"40\" width=\"20\" height=\"10\" margin=\"0\" position=\"static\" background=\"#a050e0\"/>",
-        &FIXTURE_BOXES,
+        "every-position",
+        "<box left=\"6\" top=\"3\" width=\"10\" height=\"8\" margin=\"2 3 4 5\" background=\"#e0a030\"/>\n\
+         <box left=\"36\" top=\"3\" width=\"10\" height=\"8\" margin=\"2 3 4 5\" position=\"static\" background=\"#a050e0\"/>\n\
+         <box left=\"66\" top=\"3\" width=\"10\" height=\"8\" margin=\"2 3 4 5\" position=\"absolute\" background=\"#30c0a0\"/>",
+        &[(11, 21, 5, 13, OCHRE), (41, 51, 5, 13, VIOLET), (71, 81, 5, 13, TEAL)],
+    );
+}
+
+#[test]
+fn a_box_with_no_edge_lies_at_its_parent_s_near_edges_moved_in_by_its_near_margins() {
+    // No `left`, `top`, `right` or `bottom`: the static position is the parent's left and top edges, and the left and
+    // top margins move the box in from them; the right and bottom margins move nothing. In the frame, 20 by 10 with
+    // margin 18 7 5 14: columns 14 to 33, rows 18 to 27. Inside a plain box at 40, 30 (50 by 20), 6 by 4 with margin
+    // 3 9 9 2: columns 42 to 47, rows 33 to 36.
+    drawn_as_worked_out(
+        "no-edge",
+        "<box width=\"20\" height=\"10\" margin=\"18 7 5 14\" background=\"#e0a030\"/>\n\
+         <box left=\"40\" top=\"30\" width=\"50\" height=\"20\"><box width=\"6\" height=\"4\" margin=\"3 9 9 2\" background=\"#30c0a0\"/></box>",
+        &[(14, 34, 18, 28, OCHRE), (42, 48, 33, 37, TEAL)],
+    );
+}
+
+#[test]
+fn a_row_and_a_set_of_columns_in_a_plain_box_are_moved_in_by_their_margins() {
+    // A row at left 4, top 2, 20 by 10, margin 3 0 0 5, holding one item 6 by 4: the row lies at 9, 5, and its item at
+    // its start, 9, 5 (columns 9 to 14, rows 5 to 8). A set of one 12-pixel column at right 4, bottom 2, margin 0 6 3
+    // 0, holding one cell 12 by 5: its right edge 10 in, 96 - 10 = 86, columns 74 to 85; its foot 5 up, 54 - 5 = 49,
+    // rows 44 to 48.
+    drawn_as_worked_out(
+        "row-and-set",
+        "<box left=\"4\" top=\"2\" width=\"20\" height=\"10\" margin=\"3 0 0 5\" flex-direction=\"row\" align-items=\"flex-start\"><box width=\"6\" height=\"4\" background=\"#e0a030\"/></box>\n\
+         <box right=\"4\" bottom=\"2\" margin=\"0 6 3 0\" columns=\"12\"><box height=\"5\" background=\"#30c0a0\"/></box>",
+        &[(9, 15, 5, 9, OCHRE), (74, 86, 44, 49, TEAL)],
     );
 }
 
@@ -149,12 +180,12 @@ fn an_absolute_composition_src_is_moved_in_by_its_margin() {
 }
 
 #[test]
-fn an_absolute_text_is_moved_in_by_its_margin() {
+fn a_text_of_a_plain_box_is_moved_in_by_its_margin_whatever_its_position() {
     // Three texts in the test font at 10 pixels. The first glyph of each starts on its text's left edge, and its
     // baseline lies one same distance below its text's top edge, so only the edges are worked out here:
     // - absolute at left 10, top 4, with margin 2 3 5 6: left edge 10 + 6 = 16, top edge 4 + 2 = 6;
     // - absolute at left 10, top 4, with no margin: 10, 4;
-    // - with no `position`, at left 10, top 30, with margin 2 3 5 6: kept at 10, 30.
+    // - with no `position`, at left 10, top 30, with margin 2 3 5 6: moved as the first is, to 16, 32 (B41).
     let text = "<composition version=\"1\" width=\"96\" height=\"54\" fps=\"10\" duration=\"1\" background=\"#ffffff\">\n\
                 <font src=\"fonts/framesmith-test-stroke-400.ttf\" family=\"Framesmith Test Stroke\"/>\n\
                 <text left=\"10\" top=\"4\" margin=\"2 3 5 6\" position=\"absolute\" font-family=\"Framesmith Test Stroke\" font-size=\"10\">HIIH</text>\n\
@@ -181,8 +212,8 @@ fn an_absolute_text_is_moved_in_by_its_margin() {
         .collect();
     assert_eq!(firsts.len(), 3);
     let across: Vec<f32> = firsts.iter().map(|first| first.0).collect();
-    assert_eq!(across, vec![16.0, 10.0, 10.0]);
-    // The baselines are as far apart as the top edges: 6 - 4 = 2 and 30 - 6 = 24.
+    assert_eq!(across, vec![16.0, 10.0, 16.0]);
+    // The baselines are as far apart as the top edges: 6 - 4 = 2 and 32 - 6 = 26.
     assert_eq!(firsts[0].1 - firsts[1].1, 2.0);
-    assert_eq!(firsts[2].1 - firsts[0].1, 24.0);
+    assert_eq!(firsts[2].1 - firsts[0].1, 26.0);
 }

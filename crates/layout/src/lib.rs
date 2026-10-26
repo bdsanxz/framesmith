@@ -18,7 +18,7 @@ mod set;
 
 pub use exact::Decimal;
 
-pub use set::{columns, inside_columns, measure_columns, Cell, Columns, Track};
+pub use set::{columns, columns_absolute, inside_columns, measure_columns, Cell, Columns, Track};
 
 /// The most pixels an edge or a size may be in this version: beyond it a value is not placed.
 pub const LIMIT: i64 = 1_000_000;
@@ -112,7 +112,8 @@ pub fn place(parent: Rect, written: &Written) -> Result<Rect, Beyond> {
 /// The place of an absolutely placed item in `parent`, moved in by its `margin` from each edge it is placed by
 /// (`render-command.md` section 4.1, rule 8; `notation.md` N10). On each axis a side's margin is added to the edge
 /// written on that side, so that with both edges and no size the size is what lies between them less the two margins.
-/// A margin on a side with no edge written moves nothing.
+/// On an axis with no edge written the item lies at the parent's near edge, its static position in a plain box, moved in
+/// by its near margin; the far margin moves nothing there.
 pub fn place_absolute(parent: Rect, written: &Written, margin: Sides) -> Result<Rect, Beyond> {
     placed_in(parent, written, margin)
 }
@@ -309,8 +310,17 @@ pub struct Measured {
 /// margins. An absolute child is placed as [`place`] places a box, in the row or column's outer
 /// rectangle, and takes no room.
 pub fn flow(parent: Rect, written: &Written, flex: &Flex, items: &[Item]) -> Result<Flowed, Beyond> {
-    let across = Span::across(parent, written);
-    let down = Span::down(parent, written);
+    flow_absolute(parent, written, Sides::default(), flex, items)
+}
+
+/// Places a row or a column that is an absolutely placed item of a plain box, as [`flow`] does, with its own `margin`
+/// moving it in from each edge it is placed by, or from its static position on an axis with no edge (section 4.1, rule
+/// 8; `notation.md` N10).
+pub fn flow_absolute(parent: Rect, written: &Written, margin: Sides, flex: &Flex, items: &[Item]) -> Result<Flowed, Beyond> {
+    let mut across = Span::across(parent, written);
+    across.margins = (margin.left, margin.right);
+    let mut down = Span::down(parent, written);
+    down.margins = (margin.top, margin.bottom);
     let (main, cross) = match flex.direction {
         Direction::Row => (across, down),
         Direction::Column => (down, across),
@@ -535,13 +545,52 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
     let mut out = Vec::with_capacity(items.len());
     for item in items {
         let rect = if item.absolute {
-            place_absolute(container, &item.written, item.margin)?
+            let placed = place_absolute(container, &item.written, item.margin)?;
+            static_axes(placed, &item.written, || {
+                let lone = Item {
+                    written: lone_written(placed),
+                    absolute: false,
+                    grow: 0.0,
+                    max_width: None,
+                    measured_across: None,
+                    ..item.clone()
+                };
+                let flowed = inside(container, Measured { width: false, height: false }, flex, &[lone])?;
+                flowed.items.first().copied().ok_or(Beyond)
+            })?
         } else {
             flowed.next().ok_or(Beyond)?
         };
         out.push(rect);
     }
     Ok((out, baseline))
+}
+
+/// The rectangle of an absolutely placed item of a row, a column or a set, `placed` as a box of a plain box is: on an axis
+/// where it writes neither edge, it takes the start that `lone` gives, the place the container would give it as its only
+/// item at its size, its static position (`render-command.md` section 4.3, rule 6, and section 4.4, rule 7; N10).
+fn static_axes(placed: Rect, written: &Written, lone: impl FnOnce() -> Result<Rect, Beyond>) -> Result<Rect, Beyond> {
+    let free_across = written.left.is_none() && written.right.is_none();
+    let free_down = written.top.is_none() && written.bottom.is_none();
+    if !free_across && !free_down {
+        return Ok(placed);
+    }
+    let lone = lone()?;
+    Ok(Rect {
+        left: if free_across { lone.left } else { placed.left },
+        top: if free_down { lone.top } else { placed.top },
+        ..placed
+    })
+}
+
+/// What an absolutely placed item writes as the only item of its container, to find its static position: its size as
+/// it is placed, and no edge.
+fn lone_written(placed: Rect) -> Written {
+    Written {
+        width: Some(Amount::Pixels(Decimal::whole(i128::from(placed.width)))),
+        height: Some(Amount::Pixels(Decimal::whole(i128::from(placed.height)))),
+        ..Written::default()
+    }
 }
 
 /// A child that is not absolute, with its sizes and margins worked out for its row or column.
@@ -756,7 +805,8 @@ impl Span {
 /// `length` pixels long. `near` is the distance of the near edge (`left` or `top`), `far` that of
 /// the far edge (`right` or `bottom`). Without a size written, or two edges, the size is `fallback`
 /// pixels, or the space between the two edges, and `max` caps it (`max-width`, section 4.1, rule 7);
-/// a size written is kept as it is. `margins` are added to the near and the far edge where each is written (rule 8).
+/// a size written is kept as it is. `margins` are added to the near and the far edge where each is written, and with no
+/// edge the near margin is the start (rule 8).
 #[allow(clippy::too_many_arguments)]
 fn axis(
     start: i32,
@@ -789,10 +839,11 @@ fn axis(
     let size = size.max(Decimal::whole(0)).ok_or(Beyond)?;
     // The near edge: as written from the parent's near edge; or, with only a far edge, the far edge
     // lies that distance from the parent's far edge; or the parent's near edge.
+    // With no edge, the near edge is the static position, the parent's near edge, moved in by the near margin.
     let relative = match (near, far) {
         (Some(near), _) => near,
         (None, Some(far)) => length.clone().minus(far).and_then(|rest| rest.minus(size.clone())).ok_or(Beyond)?,
-        (None, None) => Decimal::whole(0),
+        (None, None) => near_margin,
     };
     span_exact(Decimal::whole(i128::from(start)).plus(relative).ok_or(Beyond)?, size)
 }
