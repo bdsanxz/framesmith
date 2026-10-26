@@ -4,9 +4,9 @@
 
 use draw::{Colour, Outline, Shadow};
 use layout::{place, Amount, Beyond, Rect, Written, LIMIT};
-use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
 use motion::{ElementMotion, Prop, Track, PROPS};
 use project::CountFormat;
+use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
 use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
 use timebase::Time;
 
@@ -166,11 +166,19 @@ pub(crate) enum Content {
     /// The same words in every frame.
     Still,
     /// A number that counts (section 7.1): the block of each different number, the number shown in each frame of the
-    /// composition as an index of `blocks`, and where it stands in the text's box.
-    Count { blocks: Vec<Block>, shown: Vec<u32>, align: Align },
+    /// composition as an index of `blocks`, and where it stands in the text's width.
+    Count {
+        blocks: Vec<Block>,
+        shown: Vec<u32>,
+        align: Align,
+        width: f32,
+    },
     /// Typed text (section 7.2): the track of `typed` of each element that types, or its own value when it has no tween,
     /// and for each piece of the block, the element that types it and the characters of that element before the piece.
-    Typed { typing: Vec<Typing>, pieces: Vec<Option<(usize, usize)>> },
+    Typed {
+        typing: Vec<Typing>,
+        pieces: Vec<Option<(usize, usize)>>,
+    },
 }
 
 /// The value of `typed` of one element: its own value, and its track when a tween or a set changes it.
@@ -187,12 +195,17 @@ impl Paragraph {
     pub(crate) fn block_at(&self, number: u64, time: Time) -> (std::borrow::Cow<'_, Block>, f32) {
         match &self.content {
             Content::Still => (std::borrow::Cow::Borrowed(&self.block), 0.0),
-            Content::Count { blocks, shown, align } => {
+            Content::Count {
+                blocks,
+                shown,
+                align,
+                width,
+            } => {
                 let index = shown.get(number as usize).or(shown.last()).copied().unwrap_or(0) as usize;
                 let Some(block) = blocks.get(index) else {
                     return (std::borrow::Cow::Borrowed(&self.block), 0.0);
                 };
-                let room = self.rect.width as f32 - block.width;
+                let room = width - block.width;
                 let offset = match align {
                     Align::Left => 0.0,
                     Align::Center => room / 2.0,
@@ -215,7 +228,7 @@ impl Paragraph {
                         None => usize::MAX,
                     })
                     .collect();
-                
+
                 (std::borrow::Cow::Owned(self.block.typed(&shown)), 0.0)
             }
         }
@@ -872,7 +885,7 @@ fn lay_block(
 ) -> Result<(Block, Content), Fault> {
     let node = &tree[index];
     if let Some(value) = node.attribute("count").and_then(|attribute| attribute.number()) {
-        return count_blocks(fonts, tree, index, value, clock);
+        return count_blocks(fonts, tree, index, value, wrap, clock);
     }
     let (style, _) = style_of(tree, index);
     let (pieces, sources, owners) = pieces_of(tree, index);
@@ -934,7 +947,11 @@ fn tweens_in(tree: &[Node], index: usize, origin: Time) -> Vec<motion::Tween> {
 /// The track of one property of the element at `index` from the tweens inside it, with its own value `own`; `None` when no
 /// tween changes it.
 fn track_of(tree: &[Node], index: usize, prop: Prop, own: f64, clock: Clock) -> Option<Track> {
-    let origin = if tree[index].element() == Element::Span { clock.inner } else { clock.origin };
+    let origin = if tree[index].element() == Element::Span {
+        clock.inner
+    } else {
+        clock.origin
+    };
     let tweens = tweens_in(tree, index, origin);
     let mut owns = PROPS.map(Prop::own_value);
     owns[prop.index()] = own;
@@ -948,7 +965,14 @@ fn track_of(tree: &[Node], index: usize, prop: Prop, own: f64, clock: Clock) -> 
 
 /// The blocks of a number that counts (`docs/spec/text.md`, section 7.1): the number of each frame of the composition
 /// written in its form and laid out on one line in the text's style; the block of the widest number gives the size.
-fn count_blocks(fonts: &mut Fonts, tree: &[Node], index: usize, own: f64, clock: Clock) -> Result<(Block, Content), Fault> {
+fn count_blocks(
+    fonts: &mut Fonts,
+    tree: &[Node],
+    index: usize,
+    own: f64,
+    wrap: Option<f32>,
+    clock: Clock,
+) -> Result<(Block, Content), Fault> {
     let node = &tree[index];
     let format = node
         .attribute("count-format")
@@ -987,16 +1011,27 @@ fn count_blocks(fonts: &mut Fonts, tree: &[Node], index: usize, own: f64, clock:
         let block = text::layout_pieces(fonts, &[piece], Align::Left, None).map_err(|error| text_fault(node, &[], error))?;
         blocks.push(block);
     }
-    let widest = blocks
-        .iter()
-        .enumerate()
-        .fold(0, |widest, (at, block)| if block.width > blocks[widest].width { at } else { widest });
+    let widest = blocks.iter().enumerate().fold(
+        0,
+        |widest, (at, block)| if block.width > blocks[widest].width { at } else { widest },
+    );
     let sizing = blocks[widest].clone();
-    Ok((sizing, Content::Count { blocks, shown, align }))
+    // The numbers stand in the text's width (section 6.2): its own, or the widest number's, before it is rounded up to
+    // the pixel.
+    let width = wrap.unwrap_or(sizing.width);
+    Ok((
+        sizing,
+        Content::Count {
+            blocks,
+            shown,
+            align,
+            width,
+        },
+    ))
 }
 
-/// How a text is typed (`docs/spec/text.md`, section 7.2): `Still` when neither the text nor a span inside it writes
-/// `typed` or holds a tween or a set of it. `owners` gives the element that holds each piece of `block`.
+/// How a text is typed (`docs/spec/text.md`, section 7.2): `Still` when neither the text nor a span inside it holds a
+/// tween or a set of `typed`. `owners` gives the element that holds each piece of `block`.
 fn typing_of(tree: &[Node], owners: &[Option<usize>], block: &Block, clock: Clock) -> Content {
     let mut elements: Vec<usize> = Vec::new();
     let mut typing: Vec<Typing> = Vec::new();
@@ -1011,10 +1046,16 @@ fn typing_of(tree: &[Node], owners: &[Option<usize>], block: &Block, clock: Cloc
         let at = match elements.iter().position(|known| *known == element) {
             Some(at) => at,
             None => {
+                // The attribute is the starting value of the element's tweens and sets of `typed`; with none, every
+                // character is drawn (section 7.2, point 2).
                 let written = tree[element].attribute("typed").and_then(|attribute| attribute.number());
-                let own = written.unwrap_or(f64::INFINITY);
-                let track = track_of(tree, element, Prop::Typed, own, clock);
-                types |= written.is_some() || track.is_some();
+                let track = track_of(tree, element, Prop::Typed, written.unwrap_or(f64::INFINITY), clock);
+                let own = if track.is_some() {
+                    written.unwrap_or(f64::INFINITY)
+                } else {
+                    f64::INFINITY
+                };
+                types |= track.is_some();
                 elements.push(element);
                 typing.push(Typing { own, track });
                 before.push(0);

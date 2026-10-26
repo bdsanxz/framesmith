@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two texts that count (text.md section 7.1). The first counts from 0 to 100 over the first second, linear: 0 at frame 0,
+     30 at frame 3, 50 at frame 5 and 100 from frame 10 on. The second counts to 12345.68 in the form 0,0.00: 0.00,
+     3,703.70, 6,172.84 and 12,345.68 at the same frames. Each number stands at the left of its box. 160 by 60 pixels,
+     10 frames a second, 1.5 seconds. -->
+<composition version="1" id="count-a-number" width="160" height="60" fps="10" duration="1.5" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="4" font-family="Framesmith Test Stroke" font-size="20" color="#202020" count="0"><tween at="0" duration="1" from-count="0" to-count="100"/></text>
+  <text left="10" top="32" font-family="Framesmith Test Stroke" font-size="20" color="#2050c0" count="0" count-format="0,0.00"><tween at="0" duration="1" to-count="12345.68"/></text>
+</composition>

@@ -61,7 +61,10 @@ fn with_number(value: &str) -> Vec<(&'static str, String)> {
             document(&format!("<text>\n<tween duration=\"1\" to-typed=\"{value}\"/>\n</text>")),
         ),
         ("y of a set", document(&format!("<box>\n<set y=\"{value}\"/>\n</box>"))),
-        ("count of a set", document(&format!("<text>\n<set count=\"{value}\"/>\n</text>"))),
+        (
+            "count of a set",
+            document(&format!("<text count=\"0\">\n<set count=\"{value}\"/>\n</text>")),
+        ),
     ]
 }
 

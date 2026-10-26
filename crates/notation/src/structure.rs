@@ -357,9 +357,14 @@ fn counting<F: Fn(usize) -> Spot>(node: roxmltree::Node, read: &[Effective], spo
             "a <text> that counts holds no words of its own: its text is the number".to_string(),
         ));
     }
-    if counts {
-        return;
+    if !counts {
+        count_tweens(node, "needs the attribute `count` on its <text>", spot_at, problems);
     }
+}
+
+/// Reports each tween or set of `count` inside `node`, which has no `count` to change, on the line of its attribute,
+/// with `why` after "a tween of `count`".
+fn count_tweens<F: Fn(usize) -> Spot>(node: roxmltree::Node, why: &str, spot_at: &F, problems: &mut Vec<Found>) {
     for child in node.children().filter(roxmltree::Node::is_element) {
         let (changes, kind): (&[&str], &str) = match child.tag_name().name() {
             "tween" => (&["from-count", "to-count"], "tween"),
@@ -371,7 +376,7 @@ fn counting<F: Fn(usize) -> Spot>(node: roxmltree::Node, read: &[Effective], spo
                 problems.push(found(
                     Code::CountNotWritten,
                     spot_at(attribute.range().start),
-                    format!("a {kind} of `count` needs the attribute `count` on its <text>"),
+                    format!("a {kind} of `count` {why}"),
                 ));
             }
         }

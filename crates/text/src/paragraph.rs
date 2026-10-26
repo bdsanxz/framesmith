@@ -453,7 +453,12 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             // The character each glyph belongs to: the first of its cluster.
             let characters: Vec<char> = glyphs
                 .iter()
-                .map(|glyph| flat.text.get(glyph.source.order..).and_then(|rest| rest.chars().next()).unwrap_or(' '))
+                .map(|glyph| {
+                    flat.text
+                        .get(glyph.source.order..)
+                        .and_then(|rest| rest.chars().next())
+                        .unwrap_or(' ')
+                })
                 .collect();
             let source = picture::Source {
                 blob: face.blob,

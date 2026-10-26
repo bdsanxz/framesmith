@@ -1,0 +1,40 @@
+//! The card's pictures of a counting text and of typed text agree with the processor's on every frame, at the tolerance
+//! of `PLAN.md` section 5 (`docs/spec/card-renderer.md`, section 10). Each needs a graphics card that frx7 can draw with:
+//! reference machine only.
+
+mod common;
+
+use common::agreement::compare_scene;
+use common::project_copied_from_fixture;
+use draw_cpu::CpuRenderer;
+use draw_gpu::CardRenderer;
+use project::Project;
+use render::Scene;
+
+fn the_card_agrees_with_the_processor(fixture: &str) {
+    let folder = project_copied_from_fixture("count-and-typed-on-the-card", fixture, fixture);
+    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let mut card = CardRenderer::new().unwrap_or_else(|error| panic!("the card could not be started: {error}"));
+    let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card, None);
+    let report = comparison.report();
+    println!("{fixture}:\n{}", report.join("\n"));
+    assert!(comparison.passed(), "{fixture}: {}", report.join("\n"));
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_numbers_that_count() {
+    the_card_agrees_with_the_processor("count-a-number");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_texts_typed_out() {
+    the_card_agrees_with_the_processor("type-a-text");
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_the_card_agrees_with_the_processor_on_a_span_typed_out() {
+    the_card_agrees_with_the_processor("type-a-span");
+}

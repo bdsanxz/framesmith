@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A span typed out by its own tween (text.md section 7; notation.md Q4). The text shows from 0.8 s to the end; the tween's at="0.2"
+     counts from the text's start, so the span types its 5 characters " WORD" from 1.0 s to 1.5 s: none at frames 8 and
+     10, " W" at frame 12, " WO" at frame 13, all from frame 15 on. " END" sits right after what the span shows. 180 by
+     40 pixels, 10 frames a second, 2 seconds. -->
+<composition version="1" id="type-a-span" width="180" height="40" fps="10" duration="2" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="8" start="0.8" duration="1.2" font-family="Framesmith Test Stroke" font-size="20" color="#202020">HELLO<span color="#c03020"> WORD<tween at="0.2" duration="0.5" from-typed="0" to-typed="5"/></span> END</text>
+</composition>
