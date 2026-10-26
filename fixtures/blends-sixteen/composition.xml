@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The sixteen blends (docs/spec/blends.md), each over a box below it, for two pairs of colours. Each cell is 30 by 10:
+     the box below at its left, 20 wide; the blended box from x = 10, 20 wide; the overlap from 10 to 19. Rows 0 to 3 hold
+     pair A (the element #cc3399 over #669933), rows 4 to 7 pair B (#33ff66 over #cc00ff), four blends to a row in the
+     notation's order. Each pair stands in a parent <box> with mix-blend-mode="lighten": a blend other than normal draws the
+     parent with its children apart, over a clear backdrop, as CSS's stacking context does, so outside the overlap each box
+     keeps its own colour; lighten then lays the parent over the black frame unchanged (the greater of 0 and each channel).
+     The last row holds multiply of pair A at an opacity of 0.6 in such a parent, and multiply of pair A with no parent,
+     which mixes with the black frame where the blended box is alone. 120 by 90 pixels, 10 frames a second. -->
+<composition version="1" id="blends-sixteen" width="120" height="90" fps="10" duration="1" background="#000000">
+  <box left="0" top="0" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="normal"/>
+  </box>
+  <box left="30" top="0" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="multiply"/>
+  </box>
+  <box left="60" top="0" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="screen"/>
+  </box>
+  <box left="90" top="0" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="overlay"/>
+  </box>
+  <box left="0" top="10" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="darken"/>
+  </box>
+  <box left="30" top="10" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="lighten"/>
+  </box>
+  <box left="60" top="10" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="color-dodge"/>
+  </box>
+  <box left="90" top="10" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="color-burn"/>
+  </box>
+  <box left="0" top="20" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="hard-light"/>
+  </box>
+  <box left="30" top="20" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="soft-light"/>
+  </box>
+  <box left="60" top="20" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="difference"/>
+  </box>
+  <box left="90" top="20" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="exclusion"/>
+  </box>
+  <box left="0" top="30" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="hue"/>
+  </box>
+  <box left="30" top="30" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="saturation"/>
+  </box>
+  <box left="60" top="30" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="color"/>
+  </box>
+  <box left="90" top="30" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="luminosity"/>
+  </box>
+  <box left="0" top="40" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="normal"/>
+  </box>
+  <box left="30" top="40" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="multiply"/>
+  </box>
+  <box left="60" top="40" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="screen"/>
+  </box>
+  <box left="90" top="40" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="overlay"/>
+  </box>
+  <box left="0" top="50" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="darken"/>
+  </box>
+  <box left="30" top="50" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="lighten"/>
+  </box>
+  <box left="60" top="50" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="color-dodge"/>
+  </box>
+  <box left="90" top="50" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="color-burn"/>
+  </box>
+  <box left="0" top="60" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="hard-light"/>
+  </box>
+  <box left="30" top="60" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="soft-light"/>
+  </box>
+  <box left="60" top="60" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="difference"/>
+  </box>
+  <box left="90" top="60" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="exclusion"/>
+  </box>
+  <box left="0" top="70" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="hue"/>
+  </box>
+  <box left="30" top="70" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="saturation"/>
+  </box>
+  <box left="60" top="70" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="color"/>
+  </box>
+  <box left="90" top="70" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#cc00ff"/>
+    <box left="10" top="0" width="20" height="10" background="#33ff66" mix-blend-mode="luminosity"/>
+  </box>
+  <box left="0" top="80" width="30" height="10" mix-blend-mode="lighten">
+    <box left="0" top="0" width="20" height="10" background="#669933"/>
+    <box left="10" top="0" width="20" height="10" background="#cc3399" mix-blend-mode="multiply" opacity="0.6"/>
+  </box>
+  <box left="60" top="80" width="20" height="10" background="#669933"/>
+  <box left="70" top="80" width="20" height="10" background="#cc3399" mix-blend-mode="multiply"/>
+</composition>

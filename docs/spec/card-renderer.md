@@ -175,6 +175,8 @@ A moving element is a group of marks (`draw`, `Mark::Group`): a map (an affine m
 - A group with an opacity of 0 draws nothing.
 - The blend of a glyph, a mask and a picture writes alpha by src-over as well as colour, so that a transparent texture takes the coverage of what is drawn into it; on the opaque picture the alpha stays 255.
 
+- A group laid with a blend other than `normal` is drawn as `blends.md` section 6, rule 2 says: into a texture of its own, then over a copy of what is under it by the shader `blend.wgsl`.
+
 ### 10.2 Glyphs under a map
 
 A map that only moves by whole pixels moves each glyph's origin by that much, and the glyph is drawn as section 9 gives. Under any other map, the glyph's key (section 9.2) also holds the linear part of the map (its four numbers, each as its exact 64-bit pattern), and its origin is the mapped origin, whose fraction is in the key as before. The mask is made by the processor's rasteriser with the run's skew and the linear part together, at the fraction of the mapped origin. Its box is the box of section 9.3 mapped by the linear part: the half sizes are the largest of the absolute coordinates of the four corners `(±bx, ±by)` under the linear part, rounded up, plus the margin of two pixels. The checks of section 9.3 hold for it.

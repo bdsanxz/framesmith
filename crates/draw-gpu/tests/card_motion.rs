@@ -100,6 +100,7 @@ fn group(map: Map, opacity: f64, clip: Option<Rect>, marks: Vec<Mark>) -> Mark {
         marks,
         turn: None,
         filter: Filter::NONE,
+        blend: draw::Blend::Normal,
     })
 }
 

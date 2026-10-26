@@ -10,12 +10,14 @@ use std::sync::Arc;
 use layout::Rect;
 
 mod background;
+mod blend;
 mod edges;
 mod filter;
 pub mod stroke;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
+pub use blend::Blend;
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
 pub use turn::Turn;
@@ -231,6 +233,9 @@ pub struct Group {
     /// The blur and brightness of the group's picture, done before its turn and its clip (`docs/spec/render-command.md`,
     /// section 4.5, rule 11); [`Filter::NONE`] for a group that is not filtered.
     pub filter: Filter,
+    /// How the group's finished picture is mixed with what is under it (`docs/spec/blends.md`); `Normal` lays it by
+    /// src-over.
+    pub blend: Blend,
 }
 
 impl TextMark {

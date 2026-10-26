@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use draw::{
-    Background, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer,
-    Step, TextMark,
+    Background, Blend, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture,
+    Renderer, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Workers};
@@ -162,6 +162,7 @@ impl Fill {
                         marks: vec![background],
                         turn: None,
                         filter: Filter::NONE,
+                        blend: Blend::Normal,
                     }),
                 }
             }
@@ -361,7 +362,7 @@ impl Scene {
                 let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
-                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() {
+                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() && mover.blend == Blend::Normal {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false);
@@ -373,6 +374,7 @@ impl Scene {
                             marks: held,
                             turn,
                             filter: mover.filter,
+                            blend: mover.blend,
                         }));
                     }
                 }
@@ -444,6 +446,7 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
             marks,
             turn: None,
             filter: Filter::NONE,
+            blend: Blend::Normal,
         })],
         _ => marks,
     }
@@ -1052,6 +1055,7 @@ fn gather_movers(
             filter: movement.filter,
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
+            blend: movement.blend,
         });
     }
     (movers, refusals)

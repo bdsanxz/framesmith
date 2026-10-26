@@ -1,15 +1,16 @@
 //! The motion of an element (`docs/spec/render-command.md`, section 4.5): its movement attributes and its tweens as this
 //! version reads them, and its map and opacity at a time.
 
-use draw::{Filter, Map, Turn};
+use draw::{Blend, Filter, Map, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Code, Element, Length, Node, Number};
 use timebase::Time;
 
 /// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, the
-/// `perspective` of a turn in space, and the `blur` and `brightness` of its picture.
-pub(crate) const MOVEMENT: [&str; 13] = [
+/// `perspective` of a turn in space, and the `blur` and `brightness` of its picture, and the blend its finished picture
+/// is laid with (`docs/spec/blends.md`).
+pub(crate) const MOVEMENT: [&str; 14] = [
     "x",
     "y",
     "scale",
@@ -23,6 +24,7 @@ pub(crate) const MOVEMENT: [&str; 13] = [
     "perspective",
     "blur",
     "brightness",
+    "mix-blend-mode",
 ];
 
 /// A refusal found while reading motion: its code, its line and its message.
@@ -37,6 +39,7 @@ pub(crate) struct Movement {
     pub(crate) origin: (Length, Length),
     pub(crate) perspective: Option<f64>,
     pub(crate) filter: Filter,
+    pub(crate) blend: Blend,
     pub(crate) lines: Vec<u32>,
 }
 
@@ -56,12 +59,32 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         origin: (Length::Percent(Number::whole(50)), Length::Percent(Number::whole(50))),
         perspective: None,
         filter: Filter::NONE,
+        blend: Blend::Normal,
         lines: Vec::new(),
     };
     let mut found = Vec::new();
     for attribute in node.attributes() {
         let name = attribute.name();
         if !MOVEMENT.contains(&name) {
+            continue;
+        }
+        if name == "mix-blend-mode" {
+            match Blend::named(attribute.value()) {
+                Some(Blend::Normal) => {}
+                Some(blend) => {
+                    movement.blend = blend;
+                    movement.lines.push(attribute.line());
+                }
+                None => found.push((
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!(
+                        "`mix-blend-mode=\"{}\"` is not one of: {}",
+                        attribute.shown(),
+                        Blend::ALL.map(Blend::name).join(", ")
+                    ),
+                )),
+            }
             continue;
         }
         movement.lines.push(attribute.line());
@@ -243,6 +266,7 @@ pub(crate) struct Mover {
     pub(crate) filter: Filter,
     pub(crate) motion: Option<ElementMotion>,
     pub(crate) clip: Option<Rect>,
+    pub(crate) blend: Blend,
 }
 
 impl Mover {
