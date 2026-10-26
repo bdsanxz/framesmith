@@ -5,6 +5,7 @@
 
 pub mod agreement;
 pub mod png;
+pub mod worked;
 
 use draw::Picture;
 use std::fs;

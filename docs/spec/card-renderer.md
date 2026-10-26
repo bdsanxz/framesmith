@@ -85,7 +85,7 @@ A paragraph of text is a mark of the frame (`draw`, `TextMark`): its glyph runs,
 
 - The runs of the paragraph are drawn in their order, and the glyphs of each run in their order.
 - A glyph is drawn at its origin, in pixels of the frame, at the size of its run, sheared about its origin by the run's skew (`draw`, `GlyphRun`), in the run's colour.
-- Its coverage is the share of each pixel that the glyph's outline covers, as the processor measures it: an integer from 0 to 255 for each pixel. A glyph does not change a pixel it does not cover.
+- Its coverage is the share of each pixel that the glyph's outline covers, as the processor measures it: an integer from 0 to 255 for each pixel. The outline is not hinted, as on the processor (`render-command.md`, section 4.5, rule 7). A glyph does not change a pixel it does not cover.
 - The paragraph changes only the pixels of its clip, which is the clip given by `layout::Rect::visible` for the frame, or the whole frame when there is no clip. A paragraph whose clip has no visible pixel changes nothing.
 
 ### 9.2 The coverage of a glyph, kept as a mask

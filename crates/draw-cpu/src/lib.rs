@@ -710,6 +710,7 @@ fn fill_run(context: &mut RenderContext, resources: &mut Resources, run: &GlyphR
     let (font, transform, glyphs) = run_parts(run, offset);
     context
         .glyph_run(resources, &font)
+        .hint(false)
         .font_size(run.size)
         .glyph_transform(transform)
         .fill_glyphs(glyphs.into_iter())
@@ -721,6 +722,7 @@ fn stroke_run(context: &mut RenderContext, resources: &mut Resources, run: &Glyp
     let (font, transform, glyphs) = run_parts(run, (0.0, 0.0));
     context
         .glyph_run(resources, &font)
+        .hint(false)
         .font_size(run.size)
         .glyph_transform(transform)
         .stroke_glyphs(glyphs.into_iter())

@@ -356,6 +356,7 @@ fn coverage(
     };
     context
         .glyph_run(resources, &font)
+        .hint(false)
         .font_size(size)
         .glyph_transform(transform)
         .fill_glyphs(std::iter::once(placed))
