@@ -459,6 +459,7 @@ fn the_checked_in_pictures_of_a_dressed_text_that_moves_scales_and_turns_hold_th
 /// The span in pixels of each pass of the blur of `motion-text`'s shadow, `2px`, under a map that scales lengths by `scale`:
 /// a standard deviation of half the blur times the scale (`text.md`, section 6.6).
 fn shadow_span(scale: f64) -> i64 {
-    let sigma = 2.0 / 2.0 * scale;
+    const BLUR: f64 = 2.0;
+    let sigma = BLUR / 2.0 * scale;
     (sigma * 3.0 * (2.0 * std::f64::consts::PI).sqrt() / 4.0 + 0.5).floor() as i64
 }
