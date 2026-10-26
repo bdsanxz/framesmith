@@ -269,3 +269,30 @@ fn upper_case_on_a_span_leaves_the_words_the_composition_holds_as_written() {
         .unwrap();
     assert_eq!(format!("{:?}", span.parts()), "[Words(\"low\")]");
 }
+
+#[test]
+fn a_span_inside_a_span_is_cut_to_the_window_of_the_span_around_it() {
+    // At 10 frames a second for 3 seconds, CD shows from 1 s for 1 s, frames 10 to 19; EF inside it starts with it and
+    // would run 2 seconds, to frame 29, but is cut to CD's frames. The text itself has no window.
+    let text = format!(
+        "<composition version=\"1\" width=\"160\" height=\"40\" fps=\"10\" duration=\"3\" background=\"#ffffff\">\n{FONT}\n{}</composition>\n",
+        text_at(
+            4,
+            &format!("AB <span start=\"1\" duration=\"1\" color=\"{RED}\">CD <span start=\"0\" duration=\"2\" color=\"{BLUE}\">EF</span></span> GH")
+        )
+    );
+    let folder = project_with("span-window-and-dressing-pictures", "nested-window", &text);
+    fs::create_dir_all(folder.join("fonts")).unwrap();
+    let font = "framesmith-test-stroke-400.ttf";
+    fs::copy(common::fixtures().join("fonts").join(font), folder.join("fonts").join(font)).unwrap();
+    let scene = scene_of(&folder);
+    for (number, shown) in [(9, false), (10, true), (19, true), (20, false), (25, false)] {
+        let want = picture(
+            &format!("nested-window-{number}"),
+            160,
+            40,
+            &text_at(4, &format!("AB {}{} GH", span(shown, RED, "CD "), span(shown, BLUE, "EF"))),
+        );
+        compare(number, &scene.picture(number, &mut CpuRenderer).unwrap(), &want).unwrap();
+    }
+}
