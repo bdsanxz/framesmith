@@ -8,10 +8,12 @@
 //! `id` is a name and is not compared with another (N7), so two elements with one `id` are not
 //! reported.
 
-use crate::code::Code;
+use crate::code::{Code, Kind};
 use crate::root::{found, shown, trimmed, Found, Spot};
 use crate::schema::{Element, Form};
 use crate::styles::{self, Effective, Styles};
+use std::collections::{HashMap, HashSet};
+
 use crate::support;
 use crate::value::{self, NotANumber};
 
@@ -20,7 +22,12 @@ use crate::value::{self, NotANumber};
 /// `text` is the source, so that a name is shown as it was written, with its prefix. The values of
 /// the root's own attributes are judged by `read_root`, and are not looked at here. Each element is
 /// judged by the attributes it reads: its own, and those the styles it names give it (`styles`).
-pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles, problems: &mut Vec<Found>) {
+///
+/// Gives the elements that a problem was found on, so that the tree can be made without them and the rest of the file still
+/// judged for what this version does not support (`docs/spec/check-command.md` section 3d).
+pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles, problems: &mut Vec<Found>) -> Judged {
+    let mut faulty = HashSet::new();
+    let mut refused: HashMap<roxmltree::NodeId, Vec<String>> = HashMap::new();
     let root = document.root_element();
     let namespace = root.tag_name().namespace();
     let spot_at = |offset: usize| {
@@ -35,6 +42,7 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
     // nested file cannot exhaust the stack.
     let mut pending: Vec<(roxmltree::Node, Element)> = vec![(root, Element::Composition)];
     while let Some((node, element)) = pending.pop() {
+        let before = invalid(problems);
         let read = styles::effective(node, text, element, styles, &spot_at);
         if let Some((name, spot)) = styles::unknown_class(&read, element, styles) {
             problems.push(found(
@@ -46,13 +54,32 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
                 ),
             ));
         }
-        attributes(node, element, &read, problems);
+        let mut unsupported = attributes(node, element, &read, problems);
+        // A clip is its two times together: one of them not supported leaves the clip unread, and the other is not judged
+        // alone (`clip_pair`).
+        if unsupported.iter().any(|name| name == "start" || name == "duration") {
+            unsupported.extend(["start".to_string(), "duration".to_string()]);
+        }
+        if !unsupported.is_empty() {
+            refused.insert(node.id(), unsupported);
+        }
         clip_pair(&read, element, spot_at(node.range().start), problems);
         if element == Element::Text {
             counting(node, &read, spot_at(node.range().start), &spot_at, problems);
         }
+        if invalid(problems) > before {
+            faulty.insert(node.id());
+        }
 
+        // The child judged last, with the number of problems before it: a child that added one is faulty. Kept so, since
+        // a child's judgement ends in several places.
+        let mut last: Option<(roxmltree::Node, usize)> = None;
         for child in node.children().filter(roxmltree::Node::is_element) {
+            if let Some((judged, before)) = last.replace((child, invalid(problems))) {
+                if invalid(problems) > before {
+                    faulty.insert(judged.id());
+                }
+            }
             let spot = spot_at(child.range().start);
             let written = written_name(text, child.range().start);
             let has_src = child
@@ -121,7 +148,26 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
             }
             pending.push((child, kind));
         }
+        if let Some((judged, before)) = last {
+            if invalid(problems) > before {
+                faulty.insert(judged.id());
+            }
+        }
     }
+    Judged { faulty, refused }
+}
+
+/// What the judgement of a file leaves out of its tree: the elements a problem that makes the file invalid was found on, and
+/// for each element the attributes reported as forms this version does not support, so that they are not judged again.
+pub(crate) struct Judged {
+    pub(crate) faulty: HashSet<roxmltree::NodeId>,
+    pub(crate) refused: HashMap<roxmltree::NodeId, Vec<String>>,
+}
+
+/// The number of problems found so far that make the file invalid. An element with only a form this version does not support
+/// is kept in the tree, so that each such form in what it holds is listed too.
+fn invalid(problems: &[Found]) -> usize {
+    problems.iter().filter(|found| found.problem.kind() != Kind::Unsupported).count()
 }
 
 /// The attributes of a border by side (`notation.md` section 14, S20), known and not supported in this version.
@@ -147,7 +193,10 @@ fn is_elliptical(value: &str) -> bool {
 /// The attributes of one element as it reads them: those it does not take, and the numbers and times
 /// it writes. A value a style gives is judged on the element, and reported on the element's place
 /// (`docs/spec/check-command.md` section 3c).
-fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], problems: &mut Vec<Found>) {
+///
+/// Gives the names of the attributes reported as a form this version does not support.
+fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], problems: &mut Vec<Found>) -> Vec<String> {
+    let mut refused = Vec::new();
     for attribute in read {
         let spot = attribute.spot;
         let name = attribute.name.as_str();
@@ -190,6 +239,7 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
         if attribute.prefixed || !element.takes(name) {
             if let Some(entry) = support::attribute(element, name).filter(|_| !attribute.prefixed) {
                 problems.push(found(Code::FormNotSupported, spot, entry.message(&written(element, attribute))));
+                refused.push(attribute.name.clone());
                 continue;
             }
             let message = match &attribute.from {
@@ -217,6 +267,7 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
         };
         if let Some(entry) = unsupported {
             problems.push(found(Code::FormNotSupported, spot, entry.message(&written(element, attribute))));
+            refused.push(attribute.name.clone());
             continue;
         }
         match element.form(name) {
@@ -260,6 +311,7 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
             }
         }
     }
+    refused
 }
 
 /// The pair of a clip: an element that takes `start` and `duration` as a clip has both or neither

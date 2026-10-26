@@ -76,7 +76,7 @@ pub(crate) struct Spot {
 /// A problem with the place it points at, so that the problems of a file can be put in order.
 pub(crate) struct Found {
     spot: Spot,
-    problem: Problem,
+    pub(crate) problem: Problem,
 }
 
 pub(crate) fn found(code: Code, spot: Spot, message: String) -> Found {
@@ -105,24 +105,36 @@ pub fn read_root(source: &[u8]) -> Result<Root, Vec<Problem>> {
 
 /// Reads a composition file as [`read_root`] does, and gives the elements under the root too.
 pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
+    match read_listing(source) {
+        (Some(composition), problems) if problems.is_empty() => Ok(composition),
+        (_, problems) => Err(problems),
+    }
+}
+
+/// Reads a composition file as [`read`] does, and gives also the composition of a file with problems, made without the
+/// elements they were found on, when its root can be read: so that what this version does not support is listed in the
+/// same run (`docs/spec/check-command.md` section 3d). The problems are in the order of the file.
+pub fn read_listing(source: &[u8]) -> (Option<Composition>, Vec<Problem>) {
     let text = match std::str::from_utf8(source) {
         Ok(text) => text,
         Err(error) => {
             let line = 1 + source[..error.valid_up_to()].iter().filter(|&&byte| byte == b'\n').count();
-            return Err(vec![Problem::new(
+            return (None, vec![Problem::new(
                 Code::NotUtf8,
                 line as u32,
                 "the file is not well-formed XML: it is not valid UTF-8 text".to_string(),
             )]);
         }
     };
-    let document = roxmltree::Document::parse(text).map_err(|error| {
-        vec![Problem::new(
-            Code::NotXml,
-            error.pos().row,
-            format!("the file is not well-formed XML: {error}"),
-        )]
-    })?;
+    let document = match roxmltree::Document::parse(text) {
+        Ok(document) => document,
+        Err(error) => {
+            return (
+                None,
+                vec![Problem::new(Code::NotXml, error.pos().row, format!("the file is not well-formed XML: {error}"))],
+            )
+        }
+    };
 
     let element = document.root_element();
     let spot_at = |offset: usize| {
@@ -135,7 +147,7 @@ pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
     let root_spot = spot_at(element.range().start);
     let name = element.tag_name().name();
     if name != "composition" {
-        return Err(vec![Problem::new(
+        return (None, vec![Problem::new(
             Code::RootNotComposition,
             root_spot.line,
             format!("the root element is <{name}>, not <composition>"),
@@ -159,10 +171,12 @@ pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
     let fps = keep(fps(attribute("fps")), &mut problems);
     let duration = keep(duration(attribute("duration"), root_spot), &mut problems);
     let background = keep(background(attribute("background")), &mut problems);
-    structure::judge(&document, text, &table, &mut problems);
+    let judged = structure::judge(&document, text, &table, &mut problems);
 
-    match (version, width, height, fps, duration, background) {
-        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if problems.is_empty() => Ok(Composition {
+    // Stable: two problems at one place stay in the order the attributes were judged.
+    problems.sort_by_key(|found| (found.spot.line, found.spot.column));
+    let composition = match (version, width, height, fps, duration, background) {
+        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if !judged.faulty.contains(&element.id()) => Some(Composition {
             root: Root {
                 id: attribute("id").map(|(written, _)| written.to_string()),
                 width,
@@ -172,14 +186,11 @@ pub fn read(source: &[u8]) -> Result<Composition, Vec<Problem>> {
                 frames: frame_count(duration, fps),
                 background,
             },
-            tree: tree::build(&document, text, &table),
+            tree: tree::build(&document, text, &table, &judged),
         }),
-        _ => {
-            // Stable: two problems at one place stay in the order the attributes were judged.
-            problems.sort_by_key(|found| (found.spot.line, found.spot.column));
-            Err(problems.into_iter().map(|found| found.problem).collect())
-        }
-    }
+        _ => None,
+    };
+    (composition, problems.into_iter().map(|found| found.problem).collect())
 }
 
 /// What a composition file shows with `<composition src>`, read without judging the file.

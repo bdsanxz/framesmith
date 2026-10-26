@@ -164,6 +164,17 @@ impl Project {
     /// file's keys and the composition's root, reporting every problem they have. Nothing is
     /// created, changed or removed.
     pub fn open(path: &Path) -> Result<Project, OpenError> {
+        match Project::open_for_listing(path)? {
+            (Some(project), reports) if reports.is_empty() => Ok(project),
+            (_, reports) => Err(OpenError::Invalid(reports)),
+        }
+    }
+
+    /// Opens the project as [`Project::open`] does, and gives also the project of a composition with problems, made without
+    /// the elements they were found on, whenever its root can be read: so that `check` and `render` list in one run what is
+    /// invalid and what this version does not support (`docs/spec/check-command.md` section 3d). The reports are every
+    /// problem found while opening, as [`OpenError::Invalid`] would hold them.
+    pub fn open_for_listing(path: &Path) -> Result<(Option<Project>, Vec<Report>), OpenError> {
         let located = locate::locate(path).map_err(OpenError::NoProject)?;
         tracing::debug!(
             form = located.form.as_str(),
@@ -230,33 +241,25 @@ impl Project {
             }
         };
         tracing::debug!(bytes = source.len(), "composition file read");
-        let judged_root = notation::read(&source);
-        tracing::debug!(problems = judged_root.as_ref().err().map_or(0, Vec::len), "root judged");
-        let root = match judged_root {
-            Ok(composition) => Some(composition),
-            Err(problems) => {
-                reports.extend(problems.into_iter().map(|problem| Report {
-                    file: path.clone(),
-                    problem,
-                }));
-                None
-            }
-        };
+        let (root, problems) = notation::read_listing(&source);
+        tracing::debug!(problems = problems.len(), "root judged");
+        reports.extend(problems.into_iter().map(|problem| Report {
+            file: path.clone(),
+            problem,
+        }));
         // The compositions the root shows are walked whatever the root's own problems are, so that
         // one run reports every problem of the chain (`docs/spec/notation.md` section 10).
         let walked = nesting::walk(folder, &path, &notation::shows(&source));
         reports.extend(walked.reports);
-        match root {
-            Some(composition) if reports.is_empty() => Ok(Project {
-                folder: folder.to_path_buf(),
-                composition: path,
-                settings: judged.settings,
-                root: composition.root,
-                tree: composition.tree,
-                shown: walked.files,
-            }),
-            _ => Err(OpenError::Invalid(reports)),
-        }
+        let project = root.map(|composition| Project {
+            folder: folder.to_path_buf(),
+            composition: path,
+            settings: judged.settings,
+            root: composition.root,
+            tree: composition.tree,
+            shown: walked.files,
+        });
+        Ok((project, reports))
     }
 
     /// The project folder: the folder given to [`Project::open`], the folder of the project file

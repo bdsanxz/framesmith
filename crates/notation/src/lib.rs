@@ -23,7 +23,7 @@ pub use code::{Code, Kind};
 pub use count::CountFormat;
 pub use easing::{easing, Easing, EASINGS};
 pub use problem::Problem;
-pub use root::{read, read_root, shown, shows, Colour, Composition, Root, Show, Shows};
+pub use root::{read, read_listing, read_root, shown, shows, Colour, Composition, Root, Show, Shows};
 pub use schema::{Element, Form};
 pub use support::{remote, Unsupported};
 pub use tree::{Attribute, Length, Node, Number, Part, Tree};
