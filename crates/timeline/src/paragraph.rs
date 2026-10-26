@@ -8,11 +8,12 @@ use draw::{Colour, Outline, Shadow};
 use layout::{place_absolute, Amount, Beyond, Rect, Sides, Written, LIMIT};
 use motion::{ElementMotion, Prop, Track, PROPS};
 use project::CountFormat;
-use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
+use project::{shown, Attribute, Code, Element, Length, Node, Part, Project, Unsupported};
 use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
 use timebase::Time;
 
 use crate::moving;
+use crate::support;
 
 /// The text attributes: a `<box>` and a `<text>` take them, and they pass to the elements inside (`text.md`
 /// section 8). A value a `<text>` writes is the one its words are drawn with. The last five are those of section 6.6.
@@ -354,7 +355,7 @@ fn read_text_attribute(attribute: &Attribute, attrs: &mut TextAttrs) -> Result<(
             Some(_) => {
                 return Err((
                     Code::FormNotSupported,
-                    format!("`color=\"{value}\"` has an alpha below ff, which this version does not draw"),
+                    Unsupported::AlphaOutsideBoxBackground.message(&format!("`color=\"{value}\"` has an alpha below ff")),
                 ))
             }
             None => {
@@ -455,7 +456,7 @@ fn shadow(value: &str, entry: &str) -> Result<ShadowAs, (Code, String)> {
         Some(_) => {
             return Err((
                 Code::FormNotSupported,
-                format!("`text-shadow=\"{value}\"` has an alpha below ff, which this version does not draw"),
+                Unsupported::AlphaOutsideBoxBackground.message(&format!("`text-shadow=\"{value}\"` has an alpha below ff")),
             ))
         }
     };
@@ -490,7 +491,7 @@ fn outline(value: &str) -> Result<Outline, (Code, String)> {
     if alpha != 255 {
         return Err((
             Code::FormNotSupported,
-            format!("`text-stroke=\"{value}\"` has an alpha below ff, which this version does not draw"),
+            Unsupported::AlphaOutsideBoxBackground.message(&format!("`text-stroke=\"{value}\"` has an alpha below ff")),
         ));
     }
     Ok(Outline {
@@ -669,6 +670,16 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node], codecs: &codec::Regis
             continue;
         }
         loaded.push(key);
+        // Nothing is read from a network (support table S31).
+        if let Some(entry) = project::remote(src) {
+            faults.push(Fault {
+                code: Code::FormNotSupported,
+                line,
+                message: entry.message(&format!("<font> has `src=\"{src}\"`")),
+                style: false,
+            });
+            continue;
+        }
         let path = project.resolve(src);
         if !path.is_file() {
             faults.push(Fault {
@@ -695,13 +706,11 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node], codecs: &codec::Regis
             let (code, message) = match error {
                 FontError::Unsupported(kind) => (
                     Code::FormNotSupported,
-                    format!(
-                        "`src=\"{src}\"` is {kind}, a font of a kind this version does not draw. The kinds taken are TrueType (`.ttf`) and font collection (`.ttc`)"
-                    ),
+                    Unsupported::OtherFontKinds.message(&format!("`src=\"{src}\"` is {kind}")),
                 ),
                 FontError::Collection(reason) => (
                     Code::FormNotSupported,
-                    format!("`src=\"{src}\"` is a font collection this version does not draw: {reason}"),
+                    Unsupported::OtherFontKinds.message(&format!("`src=\"{src}\"` is a font collection that cannot be read: {reason}")),
                 ),
                 FontError::Damaged(reason) => (
                     Code::FontDamaged,
@@ -740,13 +749,13 @@ pub(crate) fn place_text(
     clock: Clock,
 ) -> Result<Paragraph, Fault> {
     let node = &tree[index];
-    let beyond = |Beyond| {
-        Fault {
+    let beyond = |Beyond| Fault {
         code: Code::FormNotSupported,
         line: node.line(),
-        message: format!("a place or a size of <text> works out beyond {LIMIT} pixels, or needs more digits than this version works with, which this version does not place"),
+        message: Unsupported::BeyondTheLimit.message(&format!(
+            "a place or a size of <text> works out beyond {LIMIT} pixels, or needs more digits than this version works with"
+        )),
         style: false,
-    }
     };
     // A width is known with a written `width`, or with both `left` and `right`, which give the width of the
     // container less the two (`layout::place`). Without either, the text is as wide as its widest line.
@@ -814,9 +823,8 @@ pub(crate) fn lay_out_item(
         return Err(Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message:
-                "a <text> with `left` and `right` and no `width`, inside a row, a column or a set of columns, is not drawn by this version"
-                    .to_string(),
+            message: Unsupported::TextBetweenEdgesInFlow
+                .message("a <text> with `left` and `right` and no `width` is inside a row, a column or a set of columns"),
             style: false,
         });
     }
@@ -871,10 +879,8 @@ fn flow_pixels(amount: Option<Amount>, name: &str, node: &Node) -> Result<Option
         Some(Amount::Percent(percent)) => Err(Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message: format!(
-                "`{name}=\"{}%\"` on <text> inside a row or a column is not a form this version supports: a whole number of pixels",
-                percent.to_f64()
-            ),
+            message: Unsupported::TextPercentInFlow
+                .message(&format!("<text> inside a row or a column has `{name}=\"{}%\"`", percent.to_f64())),
             style: false,
         }),
     }
@@ -912,15 +918,12 @@ fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextErro
     match error {
         // A room where a line may end before its span is reported on the line of the attribute that writes the room.
         text::TextError::RoomAtALineBreak { piece } => {
-            let source = sources.get(piece).copied().flatten().unwrap_or(RoomSource {
-                line: node.line(),
-                style: false,
-            });
+            let source = sources.get(piece).copied().flatten().unwrap_or(RoomSource { line: node.line() });
             Fault {
                 code: Code::FormNotSupported,
                 line: source.line,
-                message: format!("<text> is not drawn by this version: {error}"),
-                style: source.style,
+                message: Unsupported::SpanRoomWithoutPlace.message(&format!("<text> holds {error}")),
+                style: false,
             }
         }
         // An emoji with no picture this version draws is refused on the line of its `<text>` (`docs/spec/text.md`,
@@ -928,13 +931,19 @@ fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextErro
         text::TextError::NoPicture(_) | text::TextError::PictureRefused { .. } => Fault {
             code: Code::EmojiNotDrawn,
             line: node.line(),
-            message: format!("<text> is not drawn by this version: {error}"),
+            message: Unsupported::EmojiPicture.message(&format!("<text> holds {error}")),
             style: false,
         },
-        _ => Fault {
+        text::TextError::RoomWithoutWords => Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message: format!("<text> is not drawn by this version: {error}"),
+            message: Unsupported::SpanRoomWithoutPlace.message(&format!("<text> holds {error}")),
+            style: false,
+        },
+        text::TextError::NoFamily | text::TextError::MissingCharacter(_) => Fault {
+            code: Code::FormNotSupported,
+            line: node.line(),
+            message: Unsupported::CharacterWithoutFont.message(&format!("<text> is written so that {error}")),
             style: false,
         },
     }
@@ -1172,7 +1181,6 @@ fn edge_room(node: &Node) -> (f32, f32) {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct RoomSource {
     pub(crate) line: u32,
-    pub(crate) style: bool,
 }
 
 /// The attribute that gives the room of a span at one edge: its `margin` where the margin holds room on that side, and its
@@ -1182,14 +1190,8 @@ fn room_source(node: &Node, left: bool) -> RoomSource {
     let margin = if left { margin_left } else { margin_right };
     let name = if margin > 0.0 { "margin" } else { "padding" };
     match node.attribute(name) {
-        Some(attribute) => RoomSource {
-            line: attribute.line(),
-            style: attribute.given_by().is_some(),
-        },
-        None => RoomSource {
-            line: node.line(),
-            style: false,
-        },
+        Some(attribute) => RoomSource { line: attribute.line() },
+        None => RoomSource { line: node.line() },
     }
 }
 
@@ -1230,20 +1232,15 @@ pub(crate) fn span_faults(tree: &[Node], index: usize) -> Vec<Fault> {
 fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
     let name = attribute.name();
     let value = attribute.value();
-    let style = attribute.given_by().is_some();
     let fault = |code: Code, message: String| Fault {
         code,
         line: attribute.line(),
         message,
-        style,
+        style: false,
     };
     if !SPAN_TAKES.contains(&name) {
-        let message = format!("<span> has an attribute this version does not support: `{}`", shown(name));
-        let message = match attribute.given_by() {
-            None => message,
-            Some(given) => format!("{message}, which the style `{}` gives it", shown(given)),
-        };
-        return Some(fault(Code::FormNotSupported, message));
+        let (code, message) = support::refused_attribute(Element::Span, name, support::written(Element::Span, attribute));
+        return Some(fault(code, message));
     }
     match name {
         // The notation's check judges `typed` (`docs/spec/notation.md` section 7.12).
@@ -1251,11 +1248,11 @@ fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
         "margin" | "padding" => sides_refusal(name, attribute).map(|(code, message)| fault(code, message)),
         "white-space" if value != "normal" => Some(fault(
             Code::FormNotSupported,
-            format!("`white-space=\"{value}\"` on <span> is not a form this version supports: normal"),
+            Unsupported::SpanWindowAndDressing.message(&support::written(Element::Span, attribute)),
         )),
         "text-transform" if value != "none" => Some(fault(
             Code::FormNotSupported,
-            format!("`text-transform=\"{value}\"` on <span> is not a form this version supports: none"),
+            Unsupported::SpanWindowAndDressing.message(&support::written(Element::Span, attribute)),
         )),
         _ => match read_text_attribute(attribute, &mut TextAttrs::default()) {
             Err((code, message)) => Some(fault(code, message)),
@@ -1271,7 +1268,7 @@ fn sides_refusal(name: &str, attribute: &Attribute) -> Option<(Code, String)> {
     if value.contains('%') {
         return Some((
             Code::FormNotSupported,
-            format!("`{name}=\"{value}\"` on <span> is not a form this version supports: a number of pixels"),
+            Unsupported::SpanRoomForm.message(&format!("<span> has `{name}=\"{value}\"`")),
         ));
     }
     let Some(values) = attribute.sides() else {
@@ -1288,7 +1285,7 @@ fn sides_refusal(name: &str, attribute: &Attribute) -> Option<(Code, String)> {
     } else {
         Some((
             Code::FormNotSupported,
-            format!("`margin=\"{value}\"` on <span> is not drawn by this version: a margin of 0 or more"),
+            Unsupported::SpanRoomForm.message(&format!("<span> has `margin=\"{value}\"`, below 0")),
         ))
     }
 }

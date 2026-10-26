@@ -120,6 +120,12 @@ impl Walker<'_> {
         };
         for show in &shows.elements {
             let target = written_path(self.folder, &show.src);
+            // Nothing is read from a network (support table S31).
+            if let Some(entry) = notation::remote(&show.src) {
+                let message = entry.message(&format!("<composition> has `src=\"{}\"`", show.src));
+                self.report(&owner, show.line, &target, Code::FormNotSupported, message);
+                continue;
+            }
             if let Some(at) = chain.iter().position(|link| link.path == target) {
                 let mut names: Vec<String> = chain[at..].iter().map(|link| link.name.clone()).collect();
                 names.push(chain[at].name.clone());

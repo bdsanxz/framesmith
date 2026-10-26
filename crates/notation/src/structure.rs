@@ -12,6 +12,7 @@ use crate::code::Code;
 use crate::root::{found, shown, trimmed, Found, Spot};
 use crate::schema::{Element, Form};
 use crate::styles::{self, Effective, Styles};
+use crate::support;
 use crate::value::{self, NotANumber};
 
 /// Judges every element under the root, and the attributes of the root that it does not take.
@@ -74,7 +75,14 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
                 None
             };
             let Some(kind) = kind else {
-                problems.push(found(Code::ElementNotKnown, spot, unknown(&written, element)));
+                match support::element(local, element) {
+                    Some(entry) if child.tag_name().namespace() == namespace => problems.push(found(
+                        Code::FormNotSupported,
+                        spot,
+                        entry.message(&format!("{} holds <{}>", element.tag(), shown(&written))),
+                    )),
+                    _ => problems.push(found(Code::ElementNotKnown, spot, unknown(&written, element))),
+                }
                 continue;
             };
             // A span stands inside a text or a span, and is not an element anywhere else.
@@ -180,6 +188,10 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
             continue;
         }
         if attribute.prefixed || !element.takes(name) {
+            if let Some(entry) = support::attribute(element, name).filter(|_| !attribute.prefixed) {
+                problems.push(found(Code::FormNotSupported, spot, entry.message(&written(element, attribute))));
+                continue;
+            }
             let message = match &attribute.from {
                 // A number that counts is for a text alone (`docs/spec/notation.md` section 7.12 and the messages of
                 // section 13).
@@ -198,6 +210,15 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
             continue;
         }
         let value = attribute.value.as_str();
+        let unsupported = match element.form(name) {
+            Form::Number => support::expression(element, value),
+            Form::Time if value::time(value).is_none() => support::time(element, name, value),
+            _ => None,
+        };
+        if let Some(entry) = unsupported {
+            problems.push(found(Code::FormNotSupported, spot, entry.message(&written(element, attribute))));
+            continue;
+        }
         match element.form(name) {
             Form::Other => {}
             Form::Number => match value::number(value) {
@@ -308,7 +329,13 @@ fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spo
         }
     }
     if let Some(ease) = own().find(|attribute| attribute.name() == "ease") {
-        if crate::easing::easing(ease.value()).is_none() {
+        if let (None, Some(entry)) = (crate::easing::easing(ease.value()), support::ease(ease.value())) {
+            problems.push(found(
+                Code::FormNotSupported,
+                spot_at(ease.range().start),
+                entry.message(&format!("<tween> has `ease=\"{}\"`", shown(ease.value()))),
+            ));
+        } else if crate::easing::easing(ease.value()).is_none() {
             problems.push(found(
                 Code::EaseNotKnown,
                 spot_at(ease.range().start),
@@ -425,6 +452,18 @@ fn count_tweens<F: Fn(usize) -> Spot>(node: roxmltree::Node, why: &str, spot_at:
                 ));
             }
         }
+/// What an author wrote, for the message of a refusal: the element and the attribute with its value, and the style that gives
+/// it when one does, since the place is then the element's (`docs/spec/check-command.md` section 3c).
+fn written(element: Element, attribute: &Effective) -> String {
+    let what = format!(
+        "{} has `{}=\"{}\"`",
+        element.tag(),
+        shown(&attribute.written),
+        shown(&attribute.value)
+    );
+    match &attribute.from {
+        Some(style) => format!("{what}, which the style `{}` gives it", shown(style)),
+        None => what,
     }
 }
 

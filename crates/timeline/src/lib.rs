@@ -9,6 +9,7 @@ mod paragraph;
 mod scene;
 mod shadows;
 mod sound;
+mod support;
 
 pub use scene::{place_reports, place_reports_and_notes, PictureError, Scene};
 pub use sound::{sounds, Sound};

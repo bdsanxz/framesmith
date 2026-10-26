@@ -4,6 +4,8 @@
 
 use std::fmt;
 
+use crate::schema::Element;
+
 /// An entry of the support table, by what it names. Its number is the entry's number in the spec.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Unsupported {
@@ -69,7 +71,7 @@ pub enum Unsupported {
     AlphaOutsideBoxBackground = 61,
     SoundBitRate = 62,
     SpanTextAlign = 63,
-    FootageMotion = 64,
+    PictureMotion = 64,
     SpanWindowAndDressing = 65,
     ItemFormsOfLeaf = 66,
     Footage = 67,
@@ -145,7 +147,7 @@ impl Unsupported {
         Unsupported::AlphaOutsideBoxBackground,
         Unsupported::SoundBitRate,
         Unsupported::SpanTextAlign,
-        Unsupported::FootageMotion,
+        Unsupported::PictureMotion,
         Unsupported::SpanWindowAndDressing,
         Unsupported::ItemFormsOfLeaf,
         Unsupported::Footage,
@@ -231,7 +233,7 @@ impl Unsupported {
             Unsupported::AlphaOutsideBoxBackground => "Only a box's background is laid over what is under it; a film's ground is opaque",
             Unsupported::SoundBitRate => "The system's sound encoder takes 64 to 320 kbit/s",
             Unsupported::SpanTextAlign => "Lines are aligned by their text, and a span lies inside a line",
-            Unsupported::FootageMotion => "So far footage is drawn in its place only",
+            Unsupported::PictureMotion => "So far footage and a shown composition are drawn in their place only",
             Unsupported::SpanWindowAndDressing => "So far a span is drawn for its text's whole life and in its plain ink only",
             Unsupported::ItemFormsOfLeaf => "So far these are taken on boxes and texts only",
             Unsupported::Footage => "Footage is not read or drawn yet",
@@ -308,7 +310,7 @@ impl Unsupported {
             Unsupported::AlphaOutsideBoxBackground => "Not assigned",
             Unsupported::SoundBitRate => "Not assigned",
             Unsupported::SpanTextAlign => "Not assigned",
-            Unsupported::FootageMotion => "Sprint 1, the order footage-motion",
+            Unsupported::PictureMotion => "Sprint 1, the order picture-motion",
             Unsupported::SpanWindowAndDressing => "Sprint 1, the order span-forms",
             Unsupported::ItemFormsOfLeaf => "Sprint 1, the order item-forms",
             Unsupported::Footage => "Sprint 1, T073",
@@ -336,4 +338,108 @@ impl fmt::Display for Unsupported {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.name())
     }
+}
+
+/// The elements an author draws with: the ones that take the forms of a place, a layout and a turn.
+fn drawn(element: Element) -> bool {
+    matches!(
+        element,
+        Element::Box | Element::Rect | Element::Text | Element::Span | Element::Image | Element::Video | Element::Shape | Element::Nested
+    )
+}
+
+/// The entry that names an attribute `element` does not take, as the table's column "How `check` recognises it" words it, when
+/// one does (S04, S05, S06 to S10, S13 to S15, S19 to S22, S24, S25).
+pub(crate) fn attribute(element: Element, name: &str) -> Option<Unsupported> {
+    let property = |name: &str| Element::ALL.iter().any(|element| element.takes(name));
+    let found = match (element, name) {
+        (Element::Composition, "canvas") => Unsupported::CanvasPreset,
+        (Element::Tween, "stagger") => Unsupported::Stagger,
+        (Element::Tween | Element::Set, "label") => Unsupported::Labels,
+        (Element::Tween, "repeat" | "yoyo") => Unsupported::Repeats,
+        (Element::Tween, "motion-path") => Unsupported::MotionPath,
+        (Element::Tween, _) => {
+            let changed = name.strip_prefix("from-").or_else(|| name.strip_prefix("to-"))?;
+            if !property(changed) {
+                return None;
+            }
+            Unsupported::AnimatedSizeAndColour
+        }
+        (Element::Set, _) if property(name) => Unsupported::AnimatedSizeAndColour,
+        (Element::Video | Element::Audio, "media-end") => Unsupported::MediaEnd,
+        (Element::Video | Element::Audio, "playback-rate") => Unsupported::PlaybackRate,
+        (Element::Video, "volume" | "muted") => Unsupported::FootageSound,
+        (Element::Video | Element::Audio, "loop" | "hold") => Unsupported::LoopOrHold,
+        (Element::Video, "object-fit" | "object-position") => Unsupported::FittingFootage,
+        (Element::Text | Element::Span, "direction" | "dir") => Unsupported::RightToLeft,
+        (_, "z-index") if drawn(element) => Unsupported::StackingOrder,
+        (_, "flex-wrap" | "flex-basis" | "flex-shrink" | "order" | "display" | "grid-template-columns" | "row-gap" | "column-gap")
+            if drawn(element) =>
+        {
+            Unsupported::RestOfFlexAndGrid
+        }
+        (_, "border-top" | "border-right" | "border-bottom" | "border-left" | "border-width" | "border-color" | "border-style")
+            if drawn(element) =>
+        {
+            Unsupported::BordersBySide
+        }
+        (_, "backface-visibility") if drawn(element) => Unsupported::BackfaceVisibility,
+        _ => return None,
+    };
+    Some(found)
+}
+
+/// The entry that names a time written in a form the notation does not list, when one does: a `start` or an `at` that
+/// begins with a letter or `@` (S01, S14), and a `duration` of `auto` (S02).
+pub(crate) fn time(element: Element, name: &str, value: &str) -> Option<Unsupported> {
+    let named = value
+        .trim()
+        .starts_with(|character: char| character.is_alphabetic() || character == '@');
+    match name {
+        "duration" if value.trim() == "auto" => Some(Unsupported::AutoDuration),
+        "at" if named && matches!(element, Element::Tween | Element::Set) => Some(Unsupported::Labels),
+        "start" if named => Some(Unsupported::RelativeStart),
+        _ => None,
+    }
+}
+
+/// The entry that names a value of a `<tween>` or a `<set>` that begins with `=` (S23).
+pub(crate) fn expression(element: Element, value: &str) -> Option<Unsupported> {
+    (matches!(element, Element::Tween | Element::Set) && value.trim().starts_with('=')).then_some(Unsupported::Expressions)
+}
+
+/// The entry that names an `ease` that is not on the list of section 8.4 and is built from the names of the easings that
+/// wait (S16).
+pub(crate) fn ease(value: &str) -> Option<Unsupported> {
+    let value = value.trim();
+    let bare = value
+        .strip_prefix("in-out-")
+        .or_else(|| value.strip_prefix("in-"))
+        .or_else(|| value.strip_prefix("out-"))
+        .unwrap_or(value);
+    let built = value != bare
+        || ["bounce", "elastic", "back", "circ"].contains(&bare)
+        || value.starts_with("steps(")
+        || value.starts_with("cubic-bezier(");
+    built.then_some(Unsupported::MoreEasings)
+}
+
+/// The entry that names an element the notation does not have, when one does: `<keyframes>` in an element (S12).
+pub(crate) fn element(name: &str, parent: Element) -> Option<Unsupported> {
+    (name == "keyframes" && parent != Element::Composition).then_some(Unsupported::Keyframes)
+}
+
+/// The entry that names a frame rate written as a ratio (S03).
+pub(crate) fn frame_rate(value: &str) -> Option<Unsupported> {
+    value.contains('/').then_some(Unsupported::RatioFrameRate)
+}
+
+/// The entry that names a `src` that begins with a scheme and `://` (S31).
+pub fn remote(src: &str) -> Option<Unsupported> {
+    let (scheme, rest) = src.trim().split_once("://")?;
+    let scheme_form = scheme.starts_with(|character: char| character.is_ascii_alphabetic())
+        && scheme
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '+' | '-' | '.'));
+    (scheme_form && !rest.is_empty()).then_some(Unsupported::RemoteSource)
 }

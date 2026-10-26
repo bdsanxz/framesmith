@@ -114,10 +114,7 @@ fn paint(name: &str, value: &str, layer: &str) -> Result<Paint, Fault> {
     if inside("conic-gradient(").is_some() {
         return Err((
             Code::FormNotSupported,
-            format!(
-                "`{name}=\"{}\"` holds a conic gradient, which this version does not draw: it draws colours, linear gradients and radial gradients",
-                project::shown(value)
-            ),
+            project::Unsupported::ConicGradient.message(&format!("`{name}=\"{}\"` holds a conic gradient", project::shown(value))),
         ));
     }
     let two_stops = "a gradient needs two stops or more, each a colour and a place, such as #ffffff 40%";

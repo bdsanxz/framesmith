@@ -1298,13 +1298,13 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S23 | Expressions: `from-x="=width/2"` | A value of a `<tween>` or `<set>` that begins with `=` | A composition carries no code | Sprint 4 |
 | S24 | Animated size and colour: `to-width`, `from-color`, `to-background`, `<set width="...">` | A `from-`, `to-` or `<set>` attribute named as any attribute of the element tables that is not one of the fifteen of 8.1 | Layout does not follow motion and colours are not mixed by the engine | Sprint 4 |
 | S25 | Hiding the back of a turned element: `backface-visibility` | The attribute | A turned element is drawn mirrored (decision A23) | Sprint 4 |
-| S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark | The turn must be applied to the picture (decision P10) | Sprint 7 |
-| S27 | Footage in other kinds of file or other codecs: Matroska, WebM, VP9, AV1, ProRes | A `<video src>` whose file or codec is not on the list of N3 | Their codecs are not written yet | Sprint 7 |
-| S28 | Sound in other kinds: Opus, FLAC and the like | An `<audio src>` of a kind not on the list of N3 | Their decoders are not written yet | Sprint 7 |
-| S29 | Footage with transparency or HDR | A `<video src>` marked so | Both are held to 8 bits and opaque in this work | Sprint 7 |
-| S30 | Animated pictures: GIF, animated PNG, animated WebP in `<image>` | An `<image src>` of such a file | A still picture is one frame | Sprint 7 |
+| S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark; told by reading the media file (T089) | The turn must be applied to the picture (decision P10) | Sprint 7 |
+| S27 | Footage in other kinds of file or other codecs: Matroska, WebM, VP9, AV1, ProRes | A `<video src>` whose file or codec is not on the list of N3; told by reading the media file (T089) | Their codecs are not written yet | Sprint 7 |
+| S28 | Sound in other kinds: Opus, FLAC and the like | An `<audio src>` of a kind not on the list of N3; told by reading the media file (T089) | Their decoders are not written yet | Sprint 7 |
+| S29 | Footage with transparency or HDR | A `<video src>` marked so; told by reading the media file (T089) | Both are held to 8 bits and opaque in this work | Sprint 7 |
+| S30 | Animated pictures: GIF, animated PNG, animated WebP in `<image>` | An `<image src>` of such a file; told by reading the media file (T089) | A still picture is one frame | Sprint 7 |
 | S31 | A remote source: `src="https://..."` | A `src` that begins with a scheme and `://` | Nothing is read from a network (decision P6) | Sprint 7 |
-| S32 | Footage whose edit list has more than one playing entry or a media rate other than 1; footage in fragments | The file, when it is looked at | Refused by name (decision P12) | Sprint 7 |
+| S32 | Footage whose edit list has more than one playing entry or a media rate other than 1; footage in fragments | The file, when it is looked at; told by reading the media file (T089) | Refused by name (decision P12) | Sprint 7 |
 | S33 | A corner written as an ellipse: `border-radius="24 / 12"` or `"24 12"` | A `border-radius` of two numbers, or of two numbers with a `/` between them | One circular radius per corner only | Sprint 5 |
 | S73 | An inner shadow: a shadow written with the word `inset`, in `box-shadow` | The word `inset` in a shadow of a `box-shadow` | Only shadows outside the box are drawn (ROADMAP 5.13) | Sprint 5 |
 | S74 | A shadow with a spread: a fifth value, a length, between the blur and the colour: `box-shadow="0 24 70 8 #00000099"` | A shadow of five values, the fourth a length | Only the four values `X Y BLUR COLOUR` are drawn (ROADMAP 5.13) | Sprint 5 |
@@ -1337,7 +1337,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S61 | A colour with alpha below `ff` anywhere but a box's `background`: the root's `background`, a text's `color`, `text-shadow`, `text-stroke` | A colour of eight hex digits whose last two are below `ff` in one of those attributes | Only a box's background is laid over what is under it; a film's ground is opaque | Not assigned |
 | S62 | The sound bit rate outside 64 to 320: `render.audio-bitrate` | The setting with a value below 64 or above 320 | The system's sound encoder takes 64 to 320 kbit/s | Not assigned |
 | S63 | A line alignment on a span: `text-align` on `<span>` | The attribute on `<span>` | Lines are aligned by their text, and a span lies inside a line | Not assigned |
-| S64 | Movement of footage: `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `transform-origin`, `rotate-x`, `rotate-y`, `perspective` on `<video>`, or a tween or set of them | The attribute, or a `<tween>` or `<set>` of it, on `<video>` | So far footage is drawn in its place only | Sprint 1, the order footage-motion |
+| S64 | Movement of footage and of a shown composition: `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `transform-origin`, `rotate-x`, `rotate-y`, `perspective` on `<video>` or `<composition src>`, `opacity` on `<composition src>`, or a `<tween>` or `<set>` inside them | Such an attribute on `<video>` or `<composition src>`, or a `<tween>` or `<set>` inside one | So far footage and a shown composition are drawn in their place only | Sprint 1, the order picture-motion |
 | S65 | A span's window and dressing: `start`, `duration`, `text-shadow`, `text-stroke`, `font-variant-numeric` on `<span>`; `white-space` other than `normal` and `text-transform` other than `none` on `<span>` | Any of those attributes on `<span>`, the last two with such a value | So far a span is drawn for its text's whole life and in its plain ink only | Sprint 1, the order span-forms |
 | S66 | The item forms of a video or a shown composition: `flex-grow`, `max-width`, `align-self` on `<video>` or `<composition src>` | Any of those attributes on such an element | So far these are taken on boxes and texts only | Sprint 1, the order item-forms |
 | S67 | Footage: `<video>` | The element `<video>` | Footage is not read or drawn yet | Sprint 1, T073 |
@@ -1348,7 +1348,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S72 | An emoji whose colour picture is not a PNG, or that frx7 cannot read | A character drawn from a colour font with no PNG picture for it, or one whose picture frx7 refuses | Only PNG colour pictures are drawn | Not assigned |
 
 **Entries that wait on Sprint 1.** An entry whose sprint is "Sprint 1, T0xx" or "Sprint 1, the order ..." is temporary (decisions B42 and B43): it leaves this table when that ticket or order closes, and its fixture then becomes a test of the supported form. The entries "Not assigned" are limits no ticket plans (decision B42). S33 is added by T054 (decision B35).
->>>>>>> 63dce24 (Support table: S34 to S66 under B40, B42 and B43, S21 in Sprint 5, N7 no longer open)
 
 **Not unsupported, but limited.** A shader opening is supported on the card's renderer only (7.8). A character drawn from a font of the machine (N2) is drawn. Repeated `id`s are accepted (N7). These are not refused.
 

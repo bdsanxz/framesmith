@@ -19,7 +19,11 @@ fn spec_rows() -> BTreeMap<u32, (String, String)> {
     let mut rows = BTreeMap::new();
     for line in section.lines() {
         let cells: Vec<&str> = line.trim_matches('|').split('|').map(str::trim).collect();
-        let Some(number) = cells.first().and_then(|cell| cell.strip_prefix('S')).and_then(|digits| digits.parse::<u32>().ok()) else {
+        let Some(number) = cells
+            .first()
+            .and_then(|cell| cell.strip_prefix('S'))
+            .and_then(|digits| digits.parse::<u32>().ok())
+        else {
             continue;
         };
         assert_eq!(cells.len(), 5, "S{number:02}: a row of the table has five cells");
@@ -47,7 +51,10 @@ fn every_entry_of_the_spec_is_an_entry_of_the_program_with_its_reason_and_its_sp
 fn every_entry_of_the_program_is_on_the_spec_table() {
     let rows = spec_rows();
     for entry in Unsupported::ALL {
-        assert!(rows.contains_key(&entry.number()), "{entry} is an entry of the program but not of the spec");
+        assert!(
+            rows.contains_key(&entry.number()),
+            "{entry} is an entry of the program but not of the spec"
+        );
     }
 }
 

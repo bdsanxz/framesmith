@@ -6,6 +6,7 @@ use crate::problem::Problem;
 use crate::schema::Element;
 use crate::structure;
 use crate::styles;
+use crate::support::{self, Unsupported};
 use crate::tree::{self, Tree};
 use crate::value;
 use timebase::{frame_count, Time, DEFAULT_FPS, MAX_FPS, MIN_FPS};
@@ -320,6 +321,11 @@ fn fps(written: Written) -> Result<u32, Found> {
     };
     match value::whole_number(written) {
         Some(fps) if (i64::from(MIN_FPS)..=i64::from(MAX_FPS)).contains(&fps) => Ok(fps as u32),
+        None if support::frame_rate(written).is_some() => Err(found(
+            Code::FormNotSupported,
+            spot,
+            Unsupported::RatioFrameRate.message(&format!("<composition> has `fps=\"{}\"`", shown(written))),
+        )),
         _ => Err(found(
             Code::FpsNotAccepted,
             spot,
@@ -338,6 +344,11 @@ fn duration(written: Written, root: Spot) -> Result<Time, Found> {
         ));
     };
     match value::time(written) {
+        None if support::time(Element::Composition, "duration", written).is_some() => Err(found(
+            Code::FormNotSupported,
+            spot,
+            Unsupported::AutoDuration.message(&format!("<composition> has `duration=\"{}\"`", shown(written))),
+        )),
         None => Err(found(
             Code::DurationNotATime,
             spot,
