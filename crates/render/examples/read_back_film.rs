@@ -22,6 +22,7 @@
 mod png;
 
 use measure::{open_pictures, video_facts, Frame};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// How many times each picture is magnified on the sheet.
@@ -159,7 +160,13 @@ impl Sheet {
 }
 
 fn main() {
-    let mut words = std::env::args().skip(1);
+    std::process::exit(run(std::env::args().skip(1), &mut std::io::stderr()));
+}
+
+/// Reads the film back as the words of the command line ask, and gives the exit code: 0 when the sheet is written, 1 when
+/// a frame asked for has no checked-in picture, each such frame named on a line of `refusals`.
+pub fn run(words: impl Iterator<Item = String>, refusals: &mut dyn Write) -> i32 {
+    let mut words = words;
     let (Some(film), Some(sheet_path)) = (words.next(), words.next()) else {
         usage()
     };
@@ -195,12 +202,13 @@ fn main() {
             .collect();
         if !missing.is_empty() {
             for number in missing {
-                eprintln!(
+                let _ = writeln!(
+                    refusals,
                     "read_back_film: frame {number} has no checked-in picture: {} does not exist",
                     folder.join(format!("frame-{number:04}.png")).display()
                 );
             }
-            std::process::exit(1);
+            return 1;
         }
     }
 
@@ -290,4 +298,5 @@ fn main() {
     }
     std::fs::write(&sheet_path, png::encode(sheet.width, sheet.height, &sheet.rgba)).unwrap();
     println!("sheet {}x{} written", sheet.width, sheet.height);
+    0
 }
