@@ -1,6 +1,6 @@
 //! Blur and brightness of an element with its children (`docs/spec/render-command.md`, section 4.5, rule 11), measured in
 //! the frame on the processor and on the card: the values across a blurred edge, colours halved and stopped at white, the
-//! order of the two, an element faded as one picture, and an element at opacity 0. The expected values are worked here
+//! order of the two (across a seam and at a corner), a blur scaled with its element, an element faded as one picture, and an element at opacity 0. The expected values are worked here
 //! from a Gaussian of our own (`common/gaussian.rs`, by numerical integration of its density); none comes from the renderer. The card's tests
 //! need a graphics card that frx7 can draw with: reference machine only.
 
@@ -111,6 +111,69 @@ fn blur_comes_before_brightness(renderer: &mut dyn Renderer, within: f64) {
     assert!(apart >= 6, "the two orders differ at {apart} columns of the seam");
 }
 
+fn blur_comes_before_brightness_in_both_directions(renderer: &mut dyn Renderer, within: f64) {
+    // Four greys meeting at (100, 50): 200 at the top left and the bottom right, 40 at the other two, in an element blurred
+    // by 4 and brightened by 3. Blurred across and down first, each value is three times the mix of the four, stopped at
+    // white. Brightened between the two passes, the mix across would stop at white before the pass down, and the values
+    // near the corner would be lower.
+    let picture = drawn(
+        "order-in-both-directions",
+        "#000000",
+        r##"<box left="0" top="0" width="200" height="100" blur="4" brightness="3">
+<box left="0" top="0" width="100" height="50" background="#c8c8c8"/>
+<box left="100" top="0" width="100" height="50" background="#282828"/>
+<box left="0" top="50" width="100" height="50" background="#282828"/>
+<box left="100" top="50" width="100" height="50" background="#c8c8c8"/>
+</box>"##,
+        renderer,
+    );
+    let mut apart = 0;
+    for y in 38..62 {
+        for x in 88..112 {
+            let (cx, cy) = (f64::from(x) + 0.5, f64::from(y) + 0.5);
+            let (left, right) = (share(0.0, 100.0, cx, 4.0), share(100.0, 200.0, cx, 4.0));
+            let (top, bottom) = (share(0.0, 50.0, cy, 4.0), share(50.0, 100.0, cy, 4.0));
+            let alpha = (left + right) * (top + bottom);
+            let across_top = 200.0 * left + 40.0 * right;
+            let across_bottom = 40.0 * left + 200.0 * right;
+            let blurred_first = (3.0 * (across_top * top + across_bottom * bottom)).min(255.0 * alpha);
+            let between = (3.0 * across_top).min(255.0 * (left + right)) * top + (3.0 * across_bottom).min(255.0 * (left + right)) * bottom;
+            let found = picture.pixel(x, y).unwrap()[0];
+            assert!(near(found, blurred_first, within), "({x}, {y}): {found} against {blurred_first:.3}");
+            apart += usize::from((blurred_first - between).abs() > 4.0);
+        }
+    }
+    assert!(apart >= 40, "the two orders differ at {apart} pixels near the corner");
+}
+
+fn a_scaled_element_is_blurred_by_its_blur_times_its_scale(renderer: &mut dyn Renderer, within: f64) {
+    // A white box of 20 by 20 at (90, 40), scaled by 2 about its middle (100, 50): in the frame it covers 80 to 120 across
+    // and 30 to 70 down. Its blur of 2 is 2 times the square root of the determinant 4, a standard deviation of 4 pixels of
+    // the frame, so each value is 255 times the share of that Gaussian over the scaled box.
+    let picture = drawn(
+        "scaled",
+        "#000000",
+        r##"<box left="90" top="40" width="20" height="20" background="#ffffff" blur="2" scale="2"/>"##,
+        renderer,
+    );
+    let mut softened = 0;
+    for y in 10..90 {
+        for x in 60..140 {
+            let (cx, cy) = (f64::from(x) + 0.5, f64::from(y) + 0.5);
+            let wanted = 255.0 * share(80.0, 120.0, cx, 4.0) * share(30.0, 70.0, cy, 4.0);
+            let found = picture.pixel(x, y).unwrap();
+            assert!(
+                found[..3].iter().all(|&value| near(value, wanted, within)),
+                "({x}, {y}): {found:?} against {wanted:.3}"
+            );
+            // A blur of 2 unscaled would leave these values far from the ones worked at 4.
+            let unscaled = 255.0 * share(80.0, 120.0, cx, 2.0) * share(30.0, 70.0, cy, 2.0);
+            softened += usize::from((wanted - unscaled).abs() > 4.0);
+        }
+    }
+    assert!(softened > 500, "the scale changes {softened} values");
+}
+
 fn an_element_fades_as_one_picture(renderer: &mut dyn Renderer, within: u8) {
     // A red box and a blue one over it, overlapping from x = 80 to 120, in an element at opacity 0.5 on white.
     let picture = drawn(
@@ -172,6 +235,16 @@ fn blur_comes_before_brightness_on_the_processor() {
 }
 
 #[test]
+fn blur_comes_before_brightness_in_both_directions_on_the_processor() {
+    blur_comes_before_brightness_in_both_directions(&mut CpuRenderer, 1.0);
+}
+
+#[test]
+fn a_scaled_element_is_blurred_by_its_blur_times_its_scale_on_the_processor() {
+    a_scaled_element_is_blurred_by_its_blur_times_its_scale(&mut CpuRenderer, 1.0);
+}
+
+#[test]
 fn an_element_fades_as_one_picture_on_the_processor() {
     an_element_fades_as_one_picture(&mut CpuRenderer, 0);
 }
@@ -197,6 +270,20 @@ fn reference_machine_only_brightness_multiplies_each_colour_and_stops_at_white_o
 #[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
 fn reference_machine_only_blur_comes_before_brightness_on_the_card() {
     blur_comes_before_brightness(&mut card(), 1.0);
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_blur_comes_before_brightness_in_both_directions_on_the_card() {
+    // The brightness of 3 triples the card's small error in the blur, so its values are held within 2 levels; the other
+    // order is tens of levels away.
+    blur_comes_before_brightness_in_both_directions(&mut card(), 2.0);
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_a_scaled_element_is_blurred_by_its_blur_times_its_scale_on_the_card() {
+    a_scaled_element_is_blurred_by_its_blur_times_its_scale(&mut card(), 1.0);
 }
 
 #[test]
