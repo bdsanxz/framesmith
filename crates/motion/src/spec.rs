@@ -4,7 +4,7 @@ use crate::Ease;
 use serde::{Deserialize, Serialize};
 use timebase::Time;
 
-/// The seven properties a tween can change, in the order used everywhere.
+/// The nine properties a tween can change, in the order used everywhere.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Prop {
@@ -15,10 +15,12 @@ pub enum Prop {
     Rotation,
     SkewY,
     Opacity,
+    RotateX,
+    RotateY,
 }
 
 /// The number of properties.
-pub const PROP_COUNT: usize = 7;
+pub const PROP_COUNT: usize = 9;
 
 pub const PROPS: [Prop; PROP_COUNT] = [
     Prop::X,
@@ -28,6 +30,8 @@ pub const PROPS: [Prop; PROP_COUNT] = [
     Prop::Rotation,
     Prop::SkewY,
     Prop::Opacity,
+    Prop::RotateX,
+    Prop::RotateY,
 ];
 
 impl Prop {
@@ -40,6 +44,8 @@ impl Prop {
             Prop::Rotation => "rotation",
             Prop::SkewY => "skew-y",
             Prop::Opacity => "opacity",
+            Prop::RotateX => "rotate-x",
+            Prop::RotateY => "rotate-y",
         }
     }
 
@@ -54,7 +60,7 @@ impl Prop {
     /// The value the element has when no tween touches the property.
     pub fn own_value(self) -> f64 {
         match self {
-            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY => 0.0,
+            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY | Prop::RotateX | Prop::RotateY => 0.0,
             Prop::Scale | Prop::ScaleX | Prop::Opacity => 1.0,
         }
     }

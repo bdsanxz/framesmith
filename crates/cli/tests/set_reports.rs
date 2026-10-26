@@ -85,7 +85,7 @@ fn a_set_on_an_animated_property_this_version_does_not_move_is_refused_on_its_li
     let lines = refused("blur", "<set at=\"1\" blur=\"4\"/>", 2);
     assert_eq!(lines.len(), 1, "{lines:?}");
     assert!(
-        lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: <set> changes `blur`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y and opacity."),
+        lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: <set> changes `blur`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y, opacity, rotate-x and rotate-y."),
         "{}",
         lines[0]
     );

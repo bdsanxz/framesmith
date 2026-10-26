@@ -1,24 +1,39 @@
 //! The motion of an element (`docs/spec/render-command.md`, section 4.5): its movement attributes and its tweens as this
 //! version reads them, and its map and opacity at a time.
 
-use draw::Map;
+use draw::{Map, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Code, Element, Length, Node};
 use timebase::Time;
 
-/// The attributes of a `<box>` or a `<text>` that move it: the seven properties and the origin they turn about.
-pub(crate) const MOVEMENT: [&str; 8] = ["x", "y", "scale", "scale-x", "rotation", "skew-y", "opacity", "transform-origin"];
+/// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, and the
+/// `perspective` of a turn in space.
+pub(crate) const MOVEMENT: [&str; 11] = [
+    "x",
+    "y",
+    "scale",
+    "scale-x",
+    "rotation",
+    "skew-y",
+    "opacity",
+    "rotate-x",
+    "rotate-y",
+    "transform-origin",
+    "perspective",
+];
 
 /// A refusal found while reading motion: its code, its line and its message.
 pub(crate) type Found = (Code, u32, String);
 
 /// What an element writes of its motion: its own value of each property (the attribute, or the starting value of
-/// `docs/spec/notation.md` section 8.1), its origin, and the lines of the attributes that write them.
+/// `docs/spec/notation.md` section 8.1), its origin, its `perspective` if it writes one, and the lines of the attributes
+/// that write them.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Movement {
     pub(crate) own: [f64; PROP_COUNT],
     pub(crate) origin: (Length, Length),
+    pub(crate) perspective: Option<f64>,
     pub(crate) lines: Vec<u32>,
 }
 
@@ -29,12 +44,14 @@ impl Movement {
     }
 }
 
-/// Reads the movement attributes of an element. A `transform-origin` that is not two lengths is reported (`FS-0034`); a
-/// value of a property that is not a number is the form check's, and is left at its starting value here.
+/// Reads the movement attributes of an element. A `transform-origin` that is not two lengths is reported (`FS-0034`), and a
+/// `perspective` of 0 or less (`FS-0053`); a value that is not a number is the form check's, and is left at its starting
+/// value here (a `perspective` that is not a number, at none).
 pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
     let mut movement = Movement {
         own: PROPS.map(Prop::own_value),
         origin: (Length::Percent(50.0), Length::Percent(50.0)),
+        perspective: None,
         lines: Vec::new(),
     };
     let mut found = Vec::new();
@@ -55,6 +72,21 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
                         attribute.shown()
                     ),
                 )),
+            }
+            continue;
+        }
+        if name == "perspective" {
+            match attribute.number() {
+                Some(distance) if distance > 0.0 => movement.perspective = Some(distance),
+                Some(_) => found.push((
+                    Code::SizeNotAboveZero,
+                    attribute.line(),
+                    format!(
+                        "`perspective=\"{}\"` is not above 0: a perspective is the distance of the eye from the frame, in pixels",
+                        attribute.shown()
+                    ),
+                )),
+                None => {}
             }
             continue;
         }
@@ -101,7 +133,7 @@ pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found
                         Code::FormNotSupported,
                         attribute.line(),
                         format!(
-                            "<tween> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y and opacity",
+                            "<tween> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y, opacity, rotate-x and rotate-y",
                             project::shown(property)
                         ),
                     )),
@@ -147,7 +179,7 @@ pub(crate) fn read_set(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>)
                 Code::FormNotSupported,
                 attribute.line(),
                 format!(
-                    "<set> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y and opacity",
+                    "<set> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y, opacity, rotate-x and rotate-y",
                     project::shown(name)
                 ),
             )),
@@ -171,14 +203,16 @@ pub(crate) fn moves(element: Element) -> bool {
 }
 
 /// An element that moves, as the scene keeps it (`docs/spec/timeline.md` section 5): its entries, from `first` up to `end`,
-/// its own values, its origin in the frame, its tracks, and the rectangle of the canvas it stands on when that is shown
-/// from another file.
+/// its own values, its rectangle and its origin in the frame, its `perspective`, its tracks, and the rectangle of the canvas
+/// it stands on when that is shown from another file.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Mover {
     pub(crate) first: usize,
     pub(crate) end: usize,
     pub(crate) own: [f64; PROP_COUNT],
+    pub(crate) rect: Rect,
     pub(crate) origin: (f64, f64),
+    pub(crate) perspective: Option<f64>,
     pub(crate) motion: Option<ElementMotion>,
     pub(crate) clip: Option<Rect>,
 }
@@ -209,8 +243,9 @@ impl Mover {
         values
     }
 
-    /// The element's map and opacity at `time` (`docs/spec/render-command.md`, section 4.5, rules 3 and 6).
-    pub(crate) fn at(&self, time: Time) -> (Map, f64) {
+    /// The element's map, opacity and turn in space at `time` (`docs/spec/render-command.md`, section 4.5, rules 3, 6 and
+    /// 10). The turn is `None` without a `perspective`, and when both its angles are 0.
+    pub(crate) fn at(&self, time: Time) -> (Map, f64, Option<Turn>) {
         let values = self.values(time);
         let value = |prop: Prop| values[prop.index()];
         let (across, down) = (value(Prop::Scale) * value(Prop::ScaleX), value(Prop::Scale));
@@ -231,6 +266,16 @@ impl Mover {
             f: value(Prop::Y) + (oy - (b * ox + d * oy)),
         };
         let opacity = value(Prop::Opacity);
-        (map, if opacity.is_nan() { 0.0 } else { opacity.clamp(0.0, 1.0) })
+        let turn = self
+            .perspective
+            .map(|perspective| Turn {
+                rect: self.rect,
+                origin: self.origin,
+                perspective,
+                rotate_x: value(Prop::RotateX),
+                rotate_y: value(Prop::RotateY),
+            })
+            .filter(|turn| !turn.is_none());
+        (map, if opacity.is_nan() { 0.0 } else { opacity.clamp(0.0, 1.0) }, turn)
     }
 }

@@ -11,7 +11,9 @@
 use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
-use draw::{Background, Colour, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Step, TextMark};
+use draw::{
+    Background, Colour, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Step, TextMark, Turn,
+};
 use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
@@ -31,6 +33,7 @@ const GLYPH_SHADER: &str = include_str!("glyph.wgsl");
 
 /// The shader of the layers of a background: `place_layer_corner` for a corner, `paint_layer` for its colour (section 11).
 const PAINT_SHADER: &str = include_str!("paint.wgsl");
+const TURN_SHADER: &str = include_str!("turn.wgsl");
 
 /// The format of the picture: 8 bits a channel, with no conversion between colour spaces, so that
 /// the colour value `v` is drawn as `v / 255` and stored as `v`.
@@ -90,8 +93,10 @@ pub struct CardRenderer {
     glyph_pipeline: wgpu::RenderPipeline,
     picture_pipeline: wgpu::RenderPipeline,
     paint_pipeline: wgpu::RenderPipeline,
+    turn_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
     paint_layout: wgpu::BindGroupLayout,
+    turn_layout: wgpu::BindGroupLayout,
     masks: Masks,
 }
 
@@ -264,14 +269,75 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let turn_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("turn"),
+            source: wgpu::ShaderSource::Wgsl(TURN_SHADER.into()),
+        });
+        let turn_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("turned group"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let turn_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("turn"),
+            bind_group_layouts: &[Some(&turn_layout)],
+            immediate_size: 0,
+        });
+        let turn_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("turn"),
+            layout: Some(&turn_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &turn_shader,
+                entry_point: Some("place_turn_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &turn_shader,
+                entry_point: Some("paint_turned"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: Some(GLYPH_BLEND),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         Ok(CardRenderer {
             card,
             pipeline,
             glyph_pipeline,
             picture_pipeline,
             paint_pipeline,
+            turn_pipeline,
             glyph_layout,
             paint_layout,
+            turn_layout,
             masks: Masks::new(),
         })
     }
@@ -384,6 +450,13 @@ impl CardRenderer {
                     Source::Layer(layer) => {
                         pass.set_pipeline(&self.picture_pipeline);
                         pass.set_bind_group(0, &layers[*layer].bind_group, &[]);
+                    }
+                    Source::Turned(layer) => {
+                        let Some(turned) = &layers[*layer].turned else {
+                            return Err(Error::new("a turned group was drawn with no numbers"));
+                        };
+                        pass.set_pipeline(&self.turn_pipeline);
+                        pass.set_bind_group(0, turned, &[]);
                     }
                     Source::Paint => {
                         let Some(group) = &paint_group else {
@@ -530,6 +603,9 @@ impl CardRenderer {
                 None => return Ok(()),
             },
         };
+        if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
+            return self.plan_turned(plan, target, scissor, group, map, opacity, turn.about(map));
+        }
         if opacity == 1.0 {
             return self.plan_marks(plan, target, scissor, &group.marks, map);
         }
@@ -547,6 +623,84 @@ impl CardRenderer {
             source: Source::Layer(layer),
         });
         Ok(())
+    }
+
+    /// The draws of a group turned in space (section 10.6): its marks with `map` into a texture of its own, cleared to
+    /// transparent, which one quad over the frame lays through the inverse of `turn`, with the opacity. Nothing is drawn
+    /// when the turn does not draw the group (`render-command.md` section 4.5, rule 10).
+    #[allow(clippy::too_many_arguments)]
+    fn plan_turned(
+        &mut self,
+        plan: &mut Planned,
+        target: Target,
+        scissor: [u32; 4],
+        group: &Group,
+        map: Map,
+        opacity: f64,
+        turn: Turn,
+    ) -> Result<(), Error> {
+        if !turn.draws(map) {
+            return Ok(());
+        }
+        let Some(inverse) = turn.inverse() else {
+            return Ok(());
+        };
+        let sin_a = turn.rotate_x.to_radians().sin();
+        let (sin_b, cos_b) = turn.rotate_y.to_radians().sin_cos();
+        let after = [turn.origin.0, turn.origin.1, opacity];
+        let mut numbers = [0.0_f32; 20];
+        for (row, values) in inverse.iter().enumerate() {
+            for (column, value) in values.iter().enumerate() {
+                numbers[row * 4 + column] = *value as f32;
+            }
+            numbers[row * 4 + 3] = after[row] as f32;
+        }
+        numbers[12..15].copy_from_slice(&[sin_b as f32, (-sin_a * cos_b) as f32, turn.perspective as f32]);
+        numbers[16] = plan.width as f32;
+        numbers[17] = plan.height as f32;
+        let layer = plan.layers.len();
+        let mut turned = self.layer(plan.width, plan.height);
+        turned.turned = Some(self.turn_numbers(&turned, &numbers));
+        plan.layers.push(turned);
+        let whole = [0, 0, plan.width, plan.height];
+        self.plan_marks(plan, Target::Layer(layer), whole, &group.marks, map)?;
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        let corners = (0.0, 0.0, plan.width as f32, plan.height as f32);
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], [1.0; 4]);
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Turned(layer),
+        });
+        Ok(())
+    }
+
+    /// The bind group that reads a turned group's texture and the numbers of its turn.
+    fn turn_numbers(&self, layer: &Layer, numbers: &[f32; 20]) -> wgpu::BindGroup {
+        let device = self.card.device();
+        let bytes: Vec<u8> = numbers.iter().flat_map(|value| value.to_ne_bytes()).collect();
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("turn"),
+            size: bytes.len() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        self.card.queue().write_buffer(&buffer, 0, &bytes);
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("turned group"),
+            layout: &self.turn_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&layer.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: buffer.as_entire_binding(),
+                },
+            ],
+        })
     }
 
     /// A texture of the frame's size for a group that fades, and the bind group that reads it.
@@ -579,6 +733,7 @@ impl CardRenderer {
             _texture: texture,
             view,
             bind_group,
+            turned: None,
         }
     }
 
@@ -816,6 +971,8 @@ struct Layer {
     _texture: wgpu::Texture,
     view: wgpu::TextureView,
     bind_group: wgpu::BindGroup,
+    /// For a group turned in space, the bind group of its texture and the numbers of its turn (section 10.6).
+    turned: Option<wgpu::BindGroup>,
 }
 
 /// One draw call of a frame: where it draws, the rectangle it is clipped to (left, top, width, height), the vertices of its
@@ -836,6 +993,8 @@ enum Source {
     Layer(usize),
     /// A layer of a background, whose numbers the quad's origin points to.
     Paint,
+    /// The texture of a group turned in space, laid through its turn (section 10.6).
+    Turned(usize),
 }
 
 /// Begins a render pass on a view, with what it starts from.

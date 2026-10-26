@@ -93,7 +93,13 @@ fn about(origin: (f64, f64), moved: (f64, f64), scale: (f64, f64), slant_degrees
 }
 
 fn group(map: Map, opacity: f64, clip: Option<Rect>, marks: Vec<Mark>) -> Mark {
-    Mark::Group(Group { map, opacity, clip, marks })
+    Mark::Group(Group {
+        map,
+        opacity,
+        clip,
+        marks,
+        turn: None,
+    })
 }
 
 fn frame(marks: Vec<Mark>) -> Frame {

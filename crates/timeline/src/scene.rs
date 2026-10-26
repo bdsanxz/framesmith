@@ -146,6 +146,7 @@ impl Fill {
                         opacity: 1.0,
                         clip: Some(held),
                         marks: vec![background],
+                        turn: None,
                     }),
                 }
             }
@@ -333,8 +334,8 @@ impl Scene {
             if let Some(mover) = movers.get(next).filter(|mover| mover.first == index) {
                 let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
                 let inner = &movers[next + 1..inner_end];
-                let (map, opacity) = mover.at(time);
-                if map.is_identity() && opacity == 1.0 {
+                let (map, opacity, turn) = mover.at(time);
+                if map.is_identity() && opacity == 1.0 && turn.is_none() {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false);
@@ -344,6 +345,7 @@ impl Scene {
                             opacity,
                             clip: mover.clip,
                             marks: held,
+                            turn,
                         }));
                     }
                 }
@@ -910,7 +912,9 @@ fn gather_movers(
             first,
             end: entries_before[after],
             own: movement.own,
+            rect,
             origin: Mover::origin_in(rect, movement.origin),
+            perspective: movement.perspective,
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
         });

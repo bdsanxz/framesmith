@@ -10,8 +10,10 @@ use std::sync::Arc;
 use layout::Rect;
 
 mod background;
+mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
+pub use turn::Turn;
 
 /// An opaque colour: red, green and blue, each from 0 to 255.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -214,6 +216,9 @@ pub struct Group {
     pub opacity: f64,
     pub clip: Option<Rect>,
     pub marks: Vec<Mark>,
+    /// The turn in space of the group's flat picture, done before its clip (`docs/spec/render-command.md`, section 4.5,
+    /// rule 10); `None` for a group that is not turned.
+    pub turn: Option<Turn>,
 }
 
 impl TextMark {

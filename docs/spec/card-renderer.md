@@ -192,6 +192,28 @@ The shadows and the outline of a paragraph under a map, and its colour pictures 
 - `crates/draw-gpu/tests/card_motion.rs`: groups with a turned, scaled and slanted fill, a turned text, a faded group over another fill and a group cut to a rectangle each agree with the processor's picture within section 4; the kept coverage of a text that turns in every frame stops rising at the bound of section 9.6. Reference machine only.
 - `crates/render/tests/motion_fixtures_on_the_card.rs`: the frames of the motion fixtures (`timeline.md` section 5) at their chosen times agree with the processor's within section 4. Reference machine only.
 
+### 10.6 Groups turned in space
+
+A group with a turn in space (`render-command.md` section 4.5, rule 10) is drawn in two steps, as on the processor.
+
+1. Its marks are drawn, under the group's full map, into a picture of their own the size of the frame, which starts clear.
+2. One quad over the whole frame lays that picture on the frame. For each pixel, its centre is taken back through the inverse of the turn to the flat picture. A centre taken to a point at the eye or behind it, or outside the flat picture, gives clear. Otherwise the flat picture is sampled bilinearly, with each sample's channels first faded by the group's opacity and rounded, as the processor does. Each channel is rounded to a whole level, and the result is laid over the frame like the glyphs of section 9.4. Then the clip of the canvas is applied.
+
+The shader is given:
+- the three rows of the inverse;
+- the origin in the frame;
+- the opacity;
+- the depth row of the turn, which tells whether a point is in front of the eye;
+- the size of the frame.
+
+All the numbers are worked in double precision on the processor and passed as single-precision numbers, which keeps every pixel within the agreement of section 4.
+
+An edge-on group, and one with a corner at the eye or behind it, draws nothing on either renderer, and so no layer is drawn.
+
+Tests:
+- `crates/render/tests/turn_in_space.rs`: edges, edge-on, mirrored, both turns and no perspective, measured the same way on both renderers. The card's tests are reference machine only.
+- `crates/render/tests/turn_fixture_on_the_card.rs`: every frame of `turn-in-space` agrees with the processor within section 4. Reference machine only.
+
 ## 11. Backgrounds on the card
 
 The layers of a box's background (`render-command.md` section 4.6) are drawn by the card in a shader of their own, `paint.wgsl`.

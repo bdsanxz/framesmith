@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use draw::{
     level, Background, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, ResolvedLayer,
-    Shadow, Step, TextMark,
+    Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, Stroke};
@@ -100,6 +100,9 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
             None => return Ok(()),
         },
     };
+    if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
+        return draw_turned(bytes, width, height, group, map, opacity, turn.about(map), region);
+    }
     if opacity == 1.0 {
         return draw_marks(bytes, width, height, &group.marks, map, region);
     }
@@ -118,6 +121,69 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
             let kept = 255 - faded[3];
             for channel in 0..4 {
                 pixel[channel] = (faded[channel] + divide_by_255(u32::from(pixel[channel]) * kept)) as u8;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Draws a group turned in space (`docs/spec/render-command.md`, section 4.5, rule 10): its marks with `map` and its
+/// opacity into a flat picture of the frame's size, which is then laid over the picture in `region` through the inverse
+/// of `turn`, each value taken bilinearly from the four pixels around the point and rounded to the nearest level, halves
+/// up. Nothing is drawn edge-on, or when a corner of the group's rectangle comes to the eye or behind it.
+#[allow(clippy::too_many_arguments)]
+fn draw_turned(
+    bytes: &mut [u8],
+    width: u32,
+    height: u32,
+    group: &Group,
+    map: Map,
+    opacity: f64,
+    turn: Turn,
+    region: Region,
+) -> Result<(), Error> {
+    if !turn.draws(map) {
+        return Ok(());
+    }
+    let Some(inverse) = turn.inverse() else {
+        return Ok(());
+    };
+    let mut flat = vec![0_u8; bytes.len()];
+    draw_marks(&mut flat, width, height, &group.marks, map, (0, 0, width, height))?;
+    if opacity < 1.0 {
+        for value in &mut flat {
+            *value = (f64::from(*value) * opacity + 0.5).floor() as u8;
+        }
+    }
+    let value_at = |x: i64, y: i64, channel: usize| -> f64 {
+        if x < 0 || y < 0 || x >= i64::from(width) || y >= i64::from(height) {
+            return 0.0;
+        }
+        f64::from(flat[(y as usize * width as usize + x as usize) * 4 + channel])
+    };
+    let (left, top, right, bottom) = region;
+    for row in top..bottom {
+        for column in left..right {
+            let Some((x, y)) = turn.back(&inverse, (f64::from(column) + 0.5, f64::from(row) + 0.5)) else {
+                continue;
+            };
+            let (x, y) = (x - 0.5, y - 0.5);
+            let (x0, y0) = (x.floor(), y.floor());
+            let (fx, fy) = (x - x0, y - y0);
+            let (x0, y0) = (x0 as i64, y0 as i64);
+            let taken = [0, 1, 2, 3].map(|channel| {
+                let top_row = value_at(x0, y0, channel) * (1.0 - fx) + value_at(x0 + 1, y0, channel) * fx;
+                let bottom_row = value_at(x0, y0 + 1, channel) * (1.0 - fx) + value_at(x0 + 1, y0 + 1, channel) * fx;
+                ((top_row * (1.0 - fy) + bottom_row * fy + 0.5).floor()).clamp(0.0, 255.0) as u32
+            });
+            if taken[3] == 0 {
+                continue;
+            }
+            let at = (row as usize * width as usize + column as usize) * 4;
+            let pixel = &mut bytes[at..at + 4];
+            let kept = 255 - taken[3];
+            for channel in 0..4 {
+                pixel[channel] = (taken[channel] + divide_by_255(u32::from(pixel[channel]) * kept)).min(255) as u8;
             }
         }
     }
