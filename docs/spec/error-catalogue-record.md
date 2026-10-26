@@ -72,3 +72,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0064` | A background layer, or a size, place or repeat of one, is not in the form the notation gives for it. |
 | `FS-0065` | A list of background settings has neither one entry nor one for each layer of the background. |
 | `FS-0066` | A background setting is written on an element with no background. |
+| `FS-0068` | The picture file that `<image src>` names does not exist. |
+| `FS-0069` | The picture file that `<image src>` names is damaged, or cannot be read. |

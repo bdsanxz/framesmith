@@ -223,3 +223,7 @@ The layers of a box's background (`render-command.md` section 4.6) are drawn by 
 3. **Agreement.** The card's picture agrees with the processor's within section 4. The two differ by the rounding of 32-bit against 64-bit arithmetic and of the blend.
 4. **Tests.** `crates/render/tests/background_colours.rs` (each layer kind, tiles, a hard edge and a fade to transparent, at worked colours within 4 levels) and `crates/render/tests/background_fixtures_on_the_card.rs` (the background fixtures at their chosen times). Reference machine only.
 
+
+## 12. Still pictures on the card
+
+The picture of an `<image>` (`still-pictures.md` section 5) is drawn by the processor into a picture of the frame's size (`draw_cpu::picture_layer`): its premultiplied values times their coverage, transparent elsewhere. The card lays that picture over its target by src-over, in the mark's place in the order, within the clip in force, as section 11 lays a background drawn under a map. It makes no mask. The card's picture differs from the processor's by the rounding of the blend alone, measured by section 4. The tests are in `crates/draw-gpu/tests/card_still_pictures.rs` and in the fixtures' tests on the card, reference machine only.

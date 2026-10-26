@@ -112,6 +112,8 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0064` | invalid | A background layer, or a size, place or repeat of one, is not in the form the notation gives for it. | Write the value in the form the message names. |
 | `FS-0065` | invalid | A list of background settings has neither one entry nor one for each layer of the background. | Write one entry for all the layers, or one for each layer in the order of `background`. |
 | `FS-0066` | invalid | A background setting is written on an element with no background. | Write a `background` on the element, or remove the setting. |
+| `FS-0068` | invalid | The picture file that `<image src>` names does not exist. | Write the path of a picture file, from the project folder or beginning with `/`. |
+| `FS-0069` | invalid | The picture file that `<image src>` names is damaged, or cannot be read. | Replace the file with one that opens, or write the path of another. |
 
 Notes on the rows:
 
@@ -134,6 +136,7 @@ Notes on the rows:
 - `FS-0061` and `FS-0062` were added with the sets (`notation.md` section 8.3): a set that changes no property, and one that changes a property the element it moves does not take. They are new codes, not wider meanings of `FS-0059` and `FS-0060`, since a meaning is never changed (section 5). `FS-0061` is on the line of the set, `FS-0062` on the line of the attribute. An attribute of a set that is not an animated property, such as `width`, is `FS-0030`, and counts as the set's property for `FS-0061`.
 - `FS-0063` was added with the easings (`notation.md` section 8.4; `motion.md`): an `ease` that is not one of the nineteen names or `out-back(n)`. It is of the kind invalid, on the line of the attribute, and its message lists the names taken.
 - `FS-0064` to `FS-0066` were added with the backgrounds of several layers (`render-command.md` section 4.6, rule 10): a layer or setting not in its form, a list of settings of the wrong length, and a setting with no background. They are new codes rather than a wider meaning of `FS-0052`, whose meaning is a text attribute's.
+- `FS-0068` and `FS-0069` were added with the still pictures (`still-pictures.md` section 3): a picture file that is not there, and one that frx7 finds damaged or cannot read. They are new codes rather than a wider meaning of `FS-0049` and its neighbours, whose meaning is a font's file. A picture of a kind not read, and one that stores a turn, are `FS-0035`.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list
