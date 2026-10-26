@@ -70,6 +70,8 @@ pub fn written(element: Element) -> String {
         Element::Tween => "<tween duration=\"1\" to-x=\"1\"/>".to_string(),
         // A set needs a property (section 8.3); `x` is one every element that holds a set takes.
         Element::Set => "<set x=\"1\"/>".to_string(),
+        // A video needs its file and its size (`render-command.md` section 4.7).
+        Element::Video => "<video src=\"a.mp4\" width=\"2\" height=\"2\"/>".to_string(),
         other => format!("<{}/>", other.name()),
     }
 }

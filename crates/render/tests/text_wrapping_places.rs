@@ -38,7 +38,7 @@ fn glyphs_of_frame_zero(folder: &Path) -> Vec<Glyph> {
         .into_iter()
         .flat_map(|mark| match mark {
             Mark::Text(text) => text.runs.into_iter().flat_map(|run| run.glyphs).collect(),
-            Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) => Vec::new(),
+            Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) | Mark::Picture(_) => Vec::new(),
         })
         .collect()
 }

@@ -170,6 +170,7 @@ fn names_of_forms_the_support_table_names_are_unsupported_with_their_entry() {
     ] {
         let body = match element {
             "tween" => format!("<box>\n<tween duration=\"1\" to-x=\"1\" {attribute}=\"1\"/>\n</box>"),
+            "video" => format!("<video src=\"a.mp4\" width=\"2\" height=\"2\" {attribute}=\"1\"/>"),
             other => format!("<{other} {attribute}=\"1\"/>"),
         };
         let problem = only_problem_in(&body);

@@ -50,11 +50,10 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
     // Each element with the entry of the support table that names it (section 14): S60 a rect, S40 a still picture,
-    // S67 footage, S42 a shape.
+    // S42 a shape. Footage (`<video>`) is drawn in this version, so it is not refused here.
     for (index, (element, tag, entry)) in [
         ("<rect/>", "<rect>", "S60"),
         ("<image src=\"i.png\"/>", "<image>", "S40"),
-        ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>", "S67"),
         ("<shape src=\"s.svg\"/>", "<shape>", "S42"),
     ]
     .into_iter()
@@ -420,4 +419,41 @@ fn a_length_whose_digits_are_too_far_apart_to_add_is_reported_with_its_line() {
         only("digits-too-far-apart", "<box left=\"1e-100001%\" width=\"10\"/>"),
         "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
+}
+
+#[test]
+fn a_video_in_a_row_or_a_set_of_columns_is_refused_with_its_line() {
+    for (index, flow) in ["flex-direction=\"row\"", "flex-direction=\"column\"", "columns=\"1fr 1fr\""].into_iter().enumerate() {
+        assert_eq!(
+            only(
+                &format!("video-in-flow-{index}"),
+                &format!("<box {flow} width=\"40\" height=\"20\">\n<video src=\"v.mp4\" width=\"8\" height=\"8\"/>\n</box>")
+            ),
+            "composition.xml 3 FS-0035 <box> holds <video> in a flow, which this version does not support (support table S52: Footage is placed by its own edges; not yet planned)",
+            "{flow}"
+        );
+    }
+}
+
+#[test]
+fn an_element_inside_a_video_is_refused_with_its_line() {
+    // The notation lets a <tween> and a <set> stand in a <video>; their motion waits on the picture-motion order (S64).
+    for (index, (child, tag)) in [("<tween duration=\"1\" to-x=\"1\"/>", "<tween>"), ("<set x=\"1\"/>", "<set>")].into_iter().enumerate() {
+        assert_eq!(
+            only(&format!("inside-video-{index}"), &format!("<video src=\"v.mp4\" width=\"8\" height=\"8\">\n{child}\n</video>")),
+            format!("composition.xml 3 FS-0035 <video> holds {tag}, which this version does not support (support table S64: So far footage and a shown composition are drawn in their place only; waits until Sprint 1, the order picture-motion)")
+        );
+    }
+}
+
+#[test]
+fn a_video_in_the_root_and_in_a_box_placed_by_its_edges_has_a_scene() {
+    let folder = project_with(
+        "refusals",
+        "video-drawn",
+        &composition("<video src=\"v.mp4\" width=\"8\" height=\"8\"/>\n<box width=\"40\" height=\"20\">\n<video src=\"v.mp4\" left=\"4\" width=\"8\" height=\"8\"/>\n</box>"),
+    );
+    let scene = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs())
+        .unwrap_or_else(|reports| panic!("{reports:?}"));
+    assert_eq!(scene.sources().len(), 1, "one file named twice is one source");
 }

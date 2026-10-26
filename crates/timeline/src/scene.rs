@@ -947,8 +947,23 @@ fn walk_canvas(
             places.push(None);
             continue;
         }
-        // A `<video>` is drawn in this version (`docs/spec/render-command.md`, section 4.8), so it is judged as drawn,
-        // like a box or a text; footage in a flow is still refused (S52).
+        // Footage in a row, a column or a set of columns is refused (S52): a flow places its items by a rule that
+        // does not take footage. Any other `<video>` is drawn in this version (`docs/spec/render-command.md`, section 4.8)
+        // and judged as drawn, like a box or a text.
+        if node.element() == Element::Video && in_flow(&tree[parent]) {
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                node.line(),
+                Unsupported::FootageInFlow.message(&format!("{} holds <video> in a flow", tree[parent].element().tag())),
+            ));
+            refusals.extend(
+                forms_of_unsupported(node)
+                    .into_iter()
+                    .map(|(line, message)| Refusal::of_drawing(Code::FormNotSupported, line, message)),
+            );
+            places.push(None);
+            continue;
+        }
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text | Element::Video) {
             refusals.push(Refusal::of_drawing(
                 Code::FormNotSupported,
@@ -957,14 +972,6 @@ fn walk_canvas(
             ));
             // Each form of the support table is listed on its own, also on an element that is itself not drawn, so that
             // its line stays when the element's entry goes (`docs/spec/check-command.md` section 3d).
-            // Footage in a row, a column or a set of columns is placed by a flow this version does not give it (S52).
-            if node.element() == Element::Video && in_flow(&tree[parent]) {
-                refusals.push(Refusal::of_drawing(
-                    Code::FormNotSupported,
-                    node.line(),
-                    Unsupported::FootageInFlow.message(&format!("{} holds <video> in a flow", tree[parent].element().tag())),
-                ));
-            }
             refusals.extend(
                 forms_of_unsupported(node)
                     .into_iter()

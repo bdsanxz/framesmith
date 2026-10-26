@@ -446,6 +446,18 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             Code::ColumnsWithDirection,
             2,
         ),
+        (
+            "video-without-height",
+            format!("<composition version=\"1\" {good}>\n<video src=\"clip.mp4\" width=\"32\"\n left=\"0\"/>\n</composition>").into_bytes(),
+            Code::VideoSize,
+            2,
+        ),
+        (
+            "video-without-src",
+            format!("<composition version=\"1\" {good}>\n\n<video width=\"32\" height=\"18\"/>\n</composition>").into_bytes(),
+            Code::VideoSourceMissing,
+            3,
+        ),
     ]
 }
 
