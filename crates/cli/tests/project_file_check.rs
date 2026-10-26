@@ -69,21 +69,48 @@ fn a_project_file_that_sets_every_key_to_a_value_of_its_list_exits_0() {
     assert_eq!(err(&output), "");
 }
 
+/// A value of a list, with the entry of the support table that names it, if one does.
+type Value<'a> = (&'a str, Option<&'a str>);
+
 #[test]
 fn every_value_of_every_list_is_accepted_by_the_command() {
-    let lists: [(&str, &[&str]); 5] = [
-        ("backend", &["auto", "cpu", "gpu"]),
-        ("quality", &["draft", "standard", "high"]),
-        ("encoder", &["hardware", "software"]),
-        ("codec", &["h264", "hevc"]),
-        ("workers", &["auto", "1", "2", "4", "8", "16"]),
+    // Each value with the entry of the support table that names it (section 14 of the notation spec), if one does: such
+    // a value is valid and refused as unsupported, with exit 2; any other is ready, with exit 0.
+    let lists: [(&str, &[Value]); 5] = [
+        ("backend", &[("auto", None), ("cpu", None), ("gpu", None)]),
+        ("quality", &[("draft", Some("S49")), ("standard", None), ("high", Some("S49"))]),
+        ("encoder", &[("hardware", None), ("software", Some("S49"))]),
+        ("codec", &[("h264", None), ("hevc", Some("S48"))]),
+        (
+            "workers",
+            &[
+                ("auto", None),
+                ("1", None),
+                ("2", Some("S50")),
+                ("4", Some("S50")),
+                ("8", Some("S50")),
+                ("16", Some("S50")),
+            ],
+        ),
     ];
     for (key, values) in lists {
-        for value in values {
+        for (value, entry) in values {
             let yaml = format!("render:\n  {key}: {value}\n");
             let (project, cwd) = make("every-value", &[("framesmith.yaml", &yaml), ("composition.xml", FIVE_SECONDS)]);
             let output = check(&project, &cwd);
-            assert_eq!(output.status.code(), Some(0), "{key}: {value}: {}", out(&output));
+            match entry {
+                None => assert_eq!(output.status.code(), Some(0), "{key}: {value}: {}", out(&output)),
+                Some(entry) => {
+                    assert_eq!(output.status.code(), Some(2), "{key}: {value}: {}", out(&output));
+                    assert!(
+                        out(&output).starts_with(&format!(
+                            "framesmith.yaml, line 2: FS-0035: unsupported: `render.{key}: {value}` is written, which this version does not support (support table {entry}: "
+                        )),
+                        "{key}: {value}: {}",
+                        out(&output)
+                    );
+                }
+            }
         }
     }
 }
