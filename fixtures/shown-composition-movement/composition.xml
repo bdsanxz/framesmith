@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A shown composition that moves. Top: shown.xml at (10, 10), moved by a tween of x to 60 over 1 s from 1 s: at its place
+     on frame 30, 30 to the right on frame 45, 60 to the right on frame 60. Bottom: shown.xml at (10, 60), turned 90 degrees
+     about its centre (30, 75): it covers x 15 to 45 and y 55 to 95, red above and blue below. Each is cut to its file's
+     rectangle before it moves, so the green box ends at the file's right edge. -->
+<composition version="1" width="160" height="100" fps="30" duration="3" background="#000000">
+  <composition src="shown.xml" left="10" top="10">
+    <tween at="1" duration="1" to-x="60"/>
+  </composition>
+  <composition src="shown.xml" left="10" top="60" rotation="90"/>
+</composition>

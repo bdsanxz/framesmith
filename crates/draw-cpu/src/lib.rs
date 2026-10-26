@@ -96,10 +96,11 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
     Ok(())
 }
 
-/// Draws the marks of an element that moves (`docs/spec/render-command.md`, section 4.5, rules 6, 7 and 11): with its map put
-/// after `map`, cut to its clip; with an opacity below 1, or a blur or brightness, into a transparent layer, which is blurred
-/// and brightened over the whole frame and then laid over the picture in its clip with each of its values times the
-/// opacity, rounded to the nearest level, halves up. At opacity 0 nothing is drawn.
+/// Draws the marks of an element that moves (`docs/spec/render-command.md`, section 4.5, rules 6, 7, 11 and 12): with its map put
+/// after `map`, cut to its clip, which is a rectangle in the space of its parent and so is taken by `map`; with an opacity
+/// below 1, or a blur or brightness, into a transparent layer, which is blurred and brightened over the whole frame and then
+/// laid over the picture in its clip with each of its values times the opacity, rounded to the nearest level, halves up. At
+/// opacity 0 nothing is drawn.
 fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
     let opacity = if group.opacity.is_nan() {
         0.0
@@ -109,16 +110,13 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
     if opacity == 0.0 {
         return Ok(());
     }
+    let parent = map;
     let map = map.then_after(group.map);
     if !map.is_finite() {
         return Err(Error::new("an element is moved by a map that is not finite"));
     }
-    let region = match &group.clip {
-        None => region,
-        Some(clip) => match within(region, clip, width, height) {
-            Some(region) => region,
-            None => return Ok(()),
-        },
+    let Some(clip) = &group.clip else {
+        return draw_held(bytes, width, height, group, map, opacity, region);
     };
     if let Some(shadow) = &group.shadow {
         // The finished picture with its shadow under it, then cut and faded as one (section 4.7, rule 5).
@@ -126,6 +124,60 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
         lay_faded(bytes, width, &layer, opacity, region);
         return Ok(());
     }
+    if let Some((across, down)) = parent.whole_move() {
+        let moved = moved_rect(clip, across, down);
+        return match within(region, &moved, width, height) {
+            Some(region) => draw_held(bytes, width, height, group, map, opacity, region),
+            None => Ok(()),
+        };
+    }
+    // A cut under a map that is not a whole move: the group's picture times the coverage of the mapped rectangle.
+    let Some(coverage) = fill_coverage(*clip, parent, width, height)? else {
+        return Ok(());
+    };
+    let boxed = Rect {
+        left: coverage.left as i32,
+        top: coverage.top as i32,
+        width: coverage.width,
+        height: coverage.height,
+    };
+    let Some(region) = within(region, &boxed, width, height) else {
+        return Ok(());
+    };
+    let mut layer = vec![0_u8; bytes.len()];
+    draw_held(&mut layer, width, height, group, map, opacity, region)?;
+    let (left, top, right, bottom) = region;
+    for row in top..bottom {
+        for column in left..right {
+            let at = (row as usize * width as usize + column as usize) * 4;
+            let held = coverage.alpha[((row - coverage.top) * coverage.width + (column - coverage.left)) as usize];
+            let source = [0, 1, 2, 3].map(|channel| divide_by_255(u32::from(layer[at + channel]) * u32::from(held)));
+            if source[3] == 0 {
+                continue;
+            }
+            let kept = 255 - source[3];
+            for channel in 0..4 {
+                bytes[at + channel] = (source[channel] + divide_by_255(u32::from(bytes[at + channel]) * kept)).min(255) as u8;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The rectangle moved by whole pixels.
+fn moved_rect(rect: &Rect, across: i64, down: i64) -> Rect {
+    let clamp = |value: i64| value.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
+    Rect {
+        left: clamp(i64::from(rect.left) + across),
+        top: clamp(i64::from(rect.top) + down),
+        ..*rect
+    }
+}
+
+/// Draws a group whose cut is already applied to `region`, with `map` its full map: turned in space, straight onto the
+/// picture at an opacity of 1, or faded or filtered through a layer of its own.
+#[allow(clippy::too_many_arguments)]
+fn draw_held(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, opacity: f64, region: Region) -> Result<(), Error> {
     if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
         return draw_turned(bytes, width, height, group, map, opacity, turn.about(map), region);
     }

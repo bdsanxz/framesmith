@@ -263,9 +263,10 @@ pub(crate) fn read_set(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>)
     (set, found)
 }
 
-/// Whether an element of this kind is moved by this version.
+/// Whether an element of this kind is moved by this version: a `<box>`, a `<text>`, and a `<composition src>`, which moves
+/// as one picture cut to its rectangle (`docs/spec/render-command.md`, section 4.5, rule 11).
 pub(crate) fn moves(element: Element) -> bool {
-    matches!(element, Element::Box | Element::Text)
+    matches!(element, Element::Box | Element::Text | Element::Nested)
 }
 
 /// An element that moves, as the scene keeps it (`docs/spec/timeline.md` section 5): its entries, from `first` up to `end`,
@@ -284,6 +285,8 @@ pub(crate) struct Mover {
     pub(crate) clip: Option<Rect>,
     /// The shadow that follows the element's finished picture.
     pub(crate) shadow: Option<Shadow>,
+    /// For a `<composition src>`, the rectangle its file is cut to before it moves.
+    pub(crate) cut: Option<Rect>,
 }
 
 impl Mover {

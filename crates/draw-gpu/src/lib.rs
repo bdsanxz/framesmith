@@ -40,6 +40,9 @@ const TURN_SHADER: &str = include_str!("turn.wgsl");
 /// pixel of the next texture (section 10.7).
 const FILTER_SHADER: &str = include_str!("filter.wgsl");
 
+/// The shader of a group cut under its parent's map by a coverage mask (`docs/spec/card-renderer.md`, section 10.1).
+const COVERAGE_SHADER: &str = include_str!("coverage.wgsl");
+
 /// The format of the picture: 8 bits a channel, with no conversion between colour spaces, so that
 /// the colour value `v` is drawn as `v / 255` and stored as `v`.
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -116,10 +119,12 @@ pub struct CardRenderer {
     turn_pipeline: wgpu::RenderPipeline,
     cut_pipeline: wgpu::RenderPipeline,
     filter_pipeline: wgpu::RenderPipeline,
+    coverage_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
     paint_layout: wgpu::BindGroupLayout,
     turn_layout: wgpu::BindGroupLayout,
     filter_layout: wgpu::BindGroupLayout,
+    coverage_layout: wgpu::BindGroupLayout,
     masks: Masks,
 }
 
@@ -376,6 +381,65 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let coverage_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("coverage"),
+            source: wgpu::ShaderSource::Wgsl(COVERAGE_SHADER.into()),
+        });
+        let coverage_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("coverage group"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let coverage_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("coverage"),
+            bind_group_layouts: &[Some(&coverage_layout)],
+            immediate_size: 0,
+        });
+        let coverage_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("coverage"),
+            layout: Some(&coverage_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &coverage_shader,
+                entry_point: Some("place_coverage_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &coverage_shader,
+                entry_point: Some("paint_coverage"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: Some(GLYPH_BLEND),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         let filter_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("filter"),
             source: wgpu::ShaderSource::Wgsl(FILTER_SHADER.into()),
@@ -455,10 +519,12 @@ impl CardRenderer {
             turn_pipeline,
             cut_pipeline,
             filter_pipeline,
+            coverage_pipeline,
             glyph_layout,
             paint_layout,
             turn_layout,
             filter_layout,
+            coverage_layout,
             masks: Masks::new(),
         })
     }
@@ -592,6 +658,13 @@ impl CardRenderer {
                         };
                         pass.set_pipeline(&self.paint_pipeline);
                         pass.set_bind_group(0, group, &[]);
+                    }
+                    Source::Coverage(layer) => {
+                        let Some(coverage) = &layers[*layer].coverage else {
+                            return Err(Error::new("a coverage group was drawn with no mask"));
+                        };
+                        pass.set_pipeline(&self.coverage_pipeline);
+                        pass.set_bind_group(0, coverage, &[]);
                     }
                     Source::KeepInside(key) => {
                         let Some(placed) = self.masks.placed(key) else {
@@ -759,12 +832,9 @@ impl CardRenderer {
         if !map.is_finite() {
             return Err(Error::new("an element is moved by a map that is not finite"));
         }
-        let scissor = match &group.clip {
-            None => scissor,
-            Some(clip) => match cut(scissor, clip, plan.width, plan.height) {
-                Some(scissor) => scissor,
-                None => return Ok(()),
-            },
+        // The group's cut is a rectangle in its parent's space (section 10.1).
+        let Some(clip) = &group.clip else {
+            return self.plan_held(plan, target, scissor, group, map, opacity);
         };
         if group.shadow.is_some() {
             // A shadow that follows is drawn by the processor's renderer, with the finished picture over it, and the card lays
@@ -772,6 +842,56 @@ impl CardRenderer {
             let layer = draw_cpu::shadowed_group_layer(plan.width, plan.height, group, around)?;
             return self.push_layer(plan, target, scissor, layer);
         }
+        if let Some((across, down)) = around.whole_move() {
+            let moved = moved_rect(clip, across, down);
+            return match cut(scissor, &moved, plan.width, plan.height) {
+                Some(scissor) => self.plan_held(plan, target, scissor, group, map, opacity),
+                None => Ok(()),
+            };
+        }
+        // A cut under a map that is not a whole move: the group's picture times the coverage of the mapped rectangle.
+        let Some(coverage) = draw_cpu::fill_coverage(*clip, around, plan.width, plan.height)? else {
+            return Ok(());
+        };
+        let boxed = Rect {
+            left: coverage.left as i32,
+            top: coverage.top as i32,
+            width: coverage.width,
+            height: coverage.height,
+        };
+        let Some(scissor) = cut(scissor, &boxed, plan.width, plan.height) else {
+            return Ok(());
+        };
+        let layer = plan.layers.len();
+        let mut held = self.layer(plan.width, plan.height);
+        held.coverage = Some(self.coverage_mask(&held, &coverage));
+        plan.layers.push(held);
+        let whole = [0, 0, plan.width, plan.height];
+        self.plan_held(plan, Target::Layer(layer), whole, group, map, opacity)?;
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        let (left, top) = (coverage.left as f32, coverage.top as f32);
+        let corners = (left, top, left + coverage.width as f32, top + coverage.height as f32);
+        push_quad(&mut plan.floats, plan.width, plan.height, corners, [left, top], [1.0; 4]);
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Coverage(layer),
+        });
+        Ok(())
+    }
+
+    /// The draws of a group whose cut is already in `scissor`, with `map` its full map: turned in space, straight onto
+    /// `target` at an opacity of 1, or through a texture of its own when it fades or is filtered (section 10.1).
+    fn plan_held(
+        &mut self,
+        plan: &mut Planned,
+        target: Target,
+        scissor: [u32; 4],
+        group: &Group,
+        map: Map,
+        opacity: f64,
+    ) -> Result<(), Error> {
         if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
             return self.plan_turned(plan, target, scissor, group, map, opacity, turn.about(map));
         }
@@ -799,6 +919,50 @@ impl CardRenderer {
             source: Source::Layer(layer),
         });
         Ok(())
+    }
+
+    /// The bind group that reads a cut group's texture and the coverage of its cut, kept in a texture of one byte a pixel.
+    fn coverage_mask(&self, layer: &Layer, coverage: &draw_cpu::Coverage) -> wgpu::BindGroup {
+        let device = self.card.device();
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("coverage"),
+            size: wgpu::Extent3d {
+                width: coverage.width,
+                height: coverage.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::R8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        self.card.queue().write_texture(
+            texture.as_image_copy(),
+            &coverage.alpha,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(coverage.width),
+                rows_per_image: None,
+            },
+            texture.size(),
+        );
+        let mask = texture.create_view(&Default::default());
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("coverage group"),
+            layout: &self.coverage_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&layer.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&mask),
+                },
+            ],
+        })
     }
 
     /// The draws of a group turned in space (section 10.6): its marks with `map` into a texture of its own, cleared to
@@ -1084,6 +1248,7 @@ impl CardRenderer {
             bind_group,
             turned: None,
             filtered: None,
+            coverage: None,
         }
     }
 
@@ -1326,6 +1491,8 @@ struct Layer {
     /// For a pass of the blur and brightness of a group, the bind group of the texture it reads, its numbers and its weights
     /// (section 10.7).
     filtered: Option<wgpu::BindGroup>,
+    /// For a group cut under its parent's map, the bind group of its texture and the coverage of the cut (section 10.1).
+    coverage: Option<wgpu::BindGroup>,
 }
 
 /// One draw call of a frame: where it draws, the rectangle it is clipped to (left, top, width, height), the vertices of its
@@ -1352,6 +1519,8 @@ enum Source {
     KeepInside(MaskKey),
     /// A pass of the blur and brightness of a group, written into the texture of that index (section 10.7).
     Filtered(usize),
+    /// The texture of a group cut under its parent's map, laid through the coverage of the cut (section 10.1).
+    Coverage(usize),
 }
 
 /// Begins a render pass on a view, with what it starts from.
@@ -1386,6 +1555,16 @@ fn cut([x, y, w, h]: [u32; 4], clip: &Rect, width: u32, height: u32) -> Option<[
     let right = (x + w).min(visible.right);
     let bottom = (y + h).min(visible.bottom);
     (left < right && top < bottom).then_some([left, top, right - left, bottom - top])
+}
+
+/// The rectangle moved by whole pixels.
+fn moved_rect(rect: &Rect, across: i64, down: i64) -> Rect {
+    let clamp = |value: i64| value.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
+    Rect {
+        left: clamp(i64::from(rect.left) + across),
+        top: clamp(i64::from(rect.top) + down),
+        ..*rect
+    }
 }
 
 /// The whole pixel nearest to a coordinate, halves up.

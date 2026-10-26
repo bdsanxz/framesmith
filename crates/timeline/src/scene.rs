@@ -469,7 +469,20 @@ impl Scene {
                 if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() && mover.shadow.is_none() {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped, footage)?);
                 } else if opacity > 0.0 {
-                    let held = self.marks(mover.first..mover.end, inner, number, time, false, footage)?;
+                    let mut held = self.marks(mover.first..mover.end, inner, number, time, false, footage)?;
+                    // A shown composition is cut to its rectangle before it moves: the cut of a group is in the space of its
+                    // parent, here the moving element's (`docs/spec/render-command.md`, section 4.5, rule 12).
+                    if let (Some(cut), false) = (mover.cut, held.is_empty()) {
+                        held = vec![Mark::Group(Group {
+                            map: Map::IDENTITY,
+                            opacity: 1.0,
+                            clip: Some(cut),
+                            marks: held,
+                            turn: None,
+                            filter: Filter::NONE,
+                            shadow: None,
+                        })];
+                    }
                     if !held.is_empty() {
                         marks.push(Mark::Group(Group {
                             map,
@@ -912,8 +925,9 @@ fn walk_canvas(
             places.push(None);
             continue;
         }
-        if tree[parent].element() == Element::Nested {
-            // A composition shown from another file takes no element of its own: its file is drawn in its place.
+        if tree[parent].element() == Element::Nested && !matches!(node.element(), Element::Tween | Element::Set) {
+            // A composition shown from another file takes no element of its own but its tweens and sets: its file is drawn
+            // in its place.
             refusals.push(Refusal::of_drawing(
                 Code::FormNotSupported,
                 node.line(),
@@ -1218,6 +1232,8 @@ fn walk_canvas(
             places.push(None);
             continue;
         };
+        entry_at[index] = Some(entries.len());
+        rect_of[index] = Some(rect);
         // The file is cut to the clip of the element and to its own length (`docs/spec/notation.md` section 10).
         let file_window = Window::of_clip(slot.origin, slot.origin + file.root().duration, fps);
         let clip = match canvas.clip {
@@ -1292,8 +1308,12 @@ fn walk_canvas(
         fps,
     );
     refusals.extend(own.1);
-    movers.extend(own.0);
-    movers.sort_by_key(|mover| mover.first);
+    // An element comes before the elements inside it; a moving `<composition src>` and a mover of its file that starts at the
+    // same entry are ordered by their ends, the one holding the other first.
+    let mut all = own.0;
+    all.append(&mut movers);
+    movers = all;
+    movers.sort_by_key(|mover| (mover.first, std::cmp::Reverse(mover.end)));
 
     // A row or column reads its items ahead, so the reports are put in the order of the file by their lines; a
     // stable sort keeps the order of the reports of one line.
@@ -1372,6 +1392,7 @@ fn gather_movers(
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
             shadow: movement.shadow.and_then(|(shadow, _)| shadow),
+            cut: (tree[index].element() == Element::Nested).then_some(rect),
         });
     }
     (movers, refusals)
@@ -1459,6 +1480,10 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
     let mut src: Option<&str> = None;
     for attribute in node.attributes() {
         let name = attribute.name();
+        // The movement attributes are read with the element's motion (`moving::read_movement`).
+        if MOVEMENT.contains(&name) {
+            continue;
+        }
         if !NESTED_TAKES.contains(&name) {
             let (code, message) = unsupported_attribute(node, attribute);
             refusals.push(Refusal::of_attribute(code, attribute, message));
