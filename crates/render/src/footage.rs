@@ -31,6 +31,7 @@ impl Sources {
         for source in scene.sources() {
             let opened =
                 open_one(source, &formats, &codecs).map_err(|error| format!("`{}` could not be opened: {error}", source.written))?;
+            tracing::debug!(source = open.len(), pictures = opened.pictures.count(), "decoder started");
             open.push(opened);
         }
         Ok(Sources { open })
@@ -94,4 +95,12 @@ fn opaque_rows(rgba: &Picture) -> Vec<u8> {
         pixel[3] = 255;
     }
     pixels
+}
+
+impl Drop for Sources {
+    fn drop(&mut self) {
+        for source in 0..self.open.len() {
+            tracing::debug!(source, "decoder finished");
+        }
+    }
 }
