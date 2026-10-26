@@ -17,10 +17,14 @@ pub enum Prop {
     Opacity,
     RotateX,
     RotateY,
+    /// The number a counting text shows (`docs/spec/text.md` section 7.1).
+    Count,
+    /// How many of its own characters a text or a span shows (`docs/spec/text.md` section 7.2).
+    Typed,
 }
 
 /// The number of properties.
-pub const PROP_COUNT: usize = 9;
+pub const PROP_COUNT: usize = 11;
 
 pub const PROPS: [Prop; PROP_COUNT] = [
     Prop::X,
@@ -32,6 +36,8 @@ pub const PROPS: [Prop; PROP_COUNT] = [
     Prop::Opacity,
     Prop::RotateX,
     Prop::RotateY,
+    Prop::Count,
+    Prop::Typed,
 ];
 
 impl Prop {
@@ -46,6 +52,8 @@ impl Prop {
             Prop::Opacity => "opacity",
             Prop::RotateX => "rotate-x",
             Prop::RotateY => "rotate-y",
+            Prop::Count => "count",
+            Prop::Typed => "typed",
         }
     }
 
@@ -57,11 +65,14 @@ impl Prop {
         self as usize
     }
 
-    /// The value the element has when no tween touches the property.
+    /// The value the element has when no tween touches the property. That of `count` and of `typed` is the element's own:
+    /// its `count` attribute, and its `typed` attribute or the number of its characters, which the caller gives; here
+    /// `count` is 0, and `typed` is every character, without end.
     pub fn own_value(self) -> f64 {
         match self {
-            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY | Prop::RotateX | Prop::RotateY => 0.0,
+            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY | Prop::RotateX | Prop::RotateY | Prop::Count => 0.0,
             Prop::Scale | Prop::ScaleX | Prop::Opacity => 1.0,
+            Prop::Typed => f64::INFINITY,
         }
     }
 }

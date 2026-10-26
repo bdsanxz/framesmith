@@ -13,7 +13,7 @@ use timebase::Time;
 
 use crate::background;
 use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
-use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
+use crate::paragraph::{self, read_text_attributes, Clock, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 use motion::{ElementMotion, Tween};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
@@ -361,8 +361,8 @@ impl Scene {
             let mark = match entry {
                 Entry::Box(placed) if clipped => fill_mark(placed),
                 Entry::Box(placed) => placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, None)),
-                Entry::Text(text) if clipped => text_mark(text),
-                Entry::Text(text) => text_mark(text).map(|mark| match mark {
+                Entry::Text(text) if clipped => text_mark(text, number, time),
+                Entry::Text(text) => text_mark(text, number, time).map(|mark| match mark {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
                     other => other,
                 }),
@@ -384,15 +384,15 @@ fn fill_mark(placed: &Placed) -> Option<Mark> {
     placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, placed.clip))
 }
 
-/// The glyph runs of a paragraph, moved to its place in the frame, and the mark that draws them.
-fn text_mark(text: &PlacedText) -> Option<Mark> {
+/// The glyph runs of a paragraph at frame `number`, at `time`, moved to its place in the frame, and the mark that draws them.
+fn text_mark(text: &PlacedText, number: u64, time: Time) -> Option<Mark> {
     let paragraph = &text.paragraph;
-    if paragraph.block.runs.is_empty() && paragraph.block.pictures.is_empty() {
+    let (block, offset) = paragraph.block_at(number, time);
+    if block.runs.is_empty() && block.pictures.is_empty() {
         return None;
     }
-    let (left, top) = (paragraph.rect.left as f32, paragraph.rect.top as f32);
-    let runs = paragraph
-        .block
+    let (left, top) = (paragraph.rect.left as f32 + offset, paragraph.rect.top as f32);
+    let runs = block
         .runs
         .iter()
         .map(|run| GlyphRun {
@@ -418,8 +418,7 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
                 .collect(),
         })
         .collect();
-    let pictures = paragraph
-        .block
+    let pictures = block
         .pictures
         .iter()
         .map(|picture| GlyphPicture {
@@ -503,6 +502,7 @@ fn walk(project: &Project, place_only: bool) -> (Vec<Entry>, Vec<Mover>, Vec<Rep
             },
             clip: None,
             translucent: root.background.alpha != 255,
+            frames: root.frames,
         },
         root.fps,
         place_only,
@@ -520,6 +520,8 @@ struct Canvas<'a> {
     slot: Slot,
     clip: Option<Rect>,
     translucent: bool,
+    /// The number of frames of the composition.
+    frames: u64,
 }
 
 /// Walks one canvas: its root, then each element after its parent (`docs/spec/timeline.md` section 4). A box or a
@@ -555,7 +557,28 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     // The rectangle and the measured axes that the flow of a row or column gives each of its items.
     let mut assigned: Vec<Option<(Rect, Measured)>> = vec![None; tree.len()];
     // The size and the first baseline of each row, column, set of columns and text that is an item, from the inside out.
-    let sizes = measures(project, tree, &inside, &mut fonts);
+    // The time the children of each element count their `start` from: the start of its clip, or its parent's time.
+    let mut origin_in: Vec<Time> = vec![canvas.slot.origin; tree.len()];
+    for (index, node) in tree.iter().enumerate() {
+        let Some(parent) = node.parent() else {
+            continue;
+        };
+        origin_in[index] = origin_in[parent];
+        if matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
+            if let (Read::Valid(form), _) = read_element(project, node) {
+                if let Some((start, _)) = form.clip {
+                    origin_in[index] = origin_in[parent] + start;
+                }
+            }
+        }
+    }
+    let clock_of = |index: usize| Clock {
+        fps,
+        frames: canvas.frames,
+        origin: tree[index].parent().map_or(canvas.slot.origin, |parent| origin_in[parent]),
+        inner: origin_in[index],
+    };
+    let sizes = measures(project, tree, &inside, &mut fonts, &clock_of);
     // The motion of each element (`docs/spec/render-command.md`, section 4.5): the number of entries before it, the entry
     // of its own box or text, its rectangle, the start of its parent's time, what it writes of its motion and its tweens,
     // with the line of each tween. The elements that move are gathered after the walk, when the entries inside each are known.
@@ -630,6 +653,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
+        if matches!(node.element(), Element::Tween | Element::Set) && tree[parent].element() == Element::Span {
+            // A tween or a set in a span changes `typed` alone; the paragraph reads it (`docs/spec/text.md`, section 7).
+            refusals.extend(span_motion_faults(node));
+            places.push(None);
+            continue;
+        }
         if node.element() == Element::Set && moving::moves(tree[parent].element()) {
             // A set is a tween of no length, kept in the order written with the element's tweens (`docs/spec/notation.md`
             // sections 8.3 and 8.5).
@@ -687,12 +716,15 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             // A text that is an item of a row, a column or a set takes the rectangle its flow gives it; any other is
             // placed in its parent.
             let placed = match assigned[index] {
-                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute).map(|item| Paragraph {
-                    rect,
-                    block: item.block,
-                    dressing: item.dressing,
-                }),
-                None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
+                Some((rect, _)) => {
+                    paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute, clock_of(index)).map(|item| Paragraph {
+                        rect,
+                        block: item.block,
+                        dressing: item.dressing,
+                        content: item.content,
+                    })
+                }
+                None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect, clock_of(index)),
             };
             match placed {
                 Ok(paragraph) => {
@@ -815,6 +847,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 },
                 clip: Some(clip),
                 translucent: false,
+                frames: canvas.frames,
             },
             fps,
             place_only,
@@ -920,6 +953,33 @@ fn gather_movers(
         });
     }
     (movers, refusals)
+}
+
+/// The refusals of a `<tween>` or a `<set>` in a `<span>`: each property it changes other than `typed`, on the line of its
+/// attribute (`docs/spec/text.md`, section 7).
+fn span_motion_faults(node: &Node) -> Vec<Refusal> {
+    let tag = node.element().tag();
+    node.attributes()
+        .iter()
+        .filter_map(|attribute| {
+            let name = attribute.name();
+            let property = match node.element() {
+                Element::Tween => name.strip_prefix("from-").or_else(|| name.strip_prefix("to-"))?,
+                _ if name == "at" => return None,
+                _ => name,
+            };
+            (property != "typed").then(|| {
+                Refusal::of_motion((
+                    Code::FormNotSupported,
+                    attribute.line(),
+                    format!(
+                        "{tag} in a <span> changes `{}`, which this version does not move there: a {tag} in a <span> changes `typed` alone",
+                        project::shown(property)
+                    ),
+                ))
+            })
+        })
+        .collect()
 }
 
 /// The slot of an element placed in `rect` inside `parent`: the origin and the window that its clip gives, or the
@@ -1574,7 +1634,13 @@ struct Measure {
 /// column or a set is measured from its children, which are measured first: an element comes after its parent, so the
 /// elements are worked through from the last to the first. `None` for an element that is not one of these or is refused,
 /// and for a row, a column or a set whose size does not work out.
-fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>], fonts: &mut Fonts) -> Vec<Option<Measure>> {
+fn measures(
+    project: &Project,
+    tree: &[Node],
+    inside: &[Vec<usize>],
+    fonts: &mut Fonts,
+    clock_of: &dyn Fn(usize) -> Clock,
+) -> Vec<Option<Measure>> {
     let forms: Vec<Option<Form>> = tree
         .iter()
         .map(|node| match node.element() {
@@ -1591,7 +1657,7 @@ fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>], fonts: &mut
             continue;
         };
         if tree[index].element() == Element::Text {
-            measures[index] = paragraph::lay_out_item(fonts, tree, index, form.written, form.absolute)
+            measures[index] = paragraph::lay_out_item(fonts, tree, index, form.written, form.absolute, clock_of(index))
                 .ok()
                 .map(|item| Measure {
                     size: Size {

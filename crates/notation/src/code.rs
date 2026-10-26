@@ -169,11 +169,14 @@ pub enum Code {
     BackgroundListLength,
     /// A background setting is written on an element with no background.
     BackgroundSettingAlone,
+    /// A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that
+    /// has no `count`, words or a `<span>` in a `<text>` that counts, or a tween or set of `count` on a text without it.
+    CountNotWritten,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 66] = [
+    pub const ALL: [Code; 67] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -240,6 +243,7 @@ impl Code {
         Code::BackgroundNotInForm,
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
+        Code::CountNotWritten,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -311,6 +315,7 @@ impl Code {
             Code::BackgroundNotInForm => "FS-0064",
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
+            Code::CountNotWritten => "FS-0067",
         }
     }
 
@@ -403,6 +408,9 @@ impl Code {
             Code::BackgroundNotInForm => "Write the value in the form the message names.",
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
+            Code::CountNotWritten => {
+                "Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists."
+            }
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

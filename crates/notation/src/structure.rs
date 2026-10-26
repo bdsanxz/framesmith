@@ -47,6 +47,9 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
         }
         attributes(node, element, &read, problems);
         clip_pair(&read, element, spot_at(node.range().start), problems);
+        if element == Element::Text {
+            counting(node, &read, spot_at(node.range().start), &spot_at, problems);
+        }
 
         for child in node.children().filter(roxmltree::Node::is_element) {
             let spot = spot_at(child.range().start);
@@ -133,6 +136,11 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
         }
         if attribute.prefixed || !element.takes(name) {
             let message = match &attribute.from {
+                // A number that counts is for a text alone (`docs/spec/notation.md` section 7.12 and the messages of
+                // section 13).
+                None if !attribute.prefixed && matches!(name, "count" | "count-format") => {
+                    format!("`{name}` is for a <text>, not {}", element.tag())
+                }
                 Some(style) => format!(
                     "{} has no attribute `{}`, which the style `{}` gives it",
                     element.tag(),
@@ -310,6 +318,63 @@ fn set<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot,
             spot,
             "<set> changes no property; a set needs at least one property, such as `x`".to_string(),
         ));
+    }
+}
+
+/// A `<text>` that counts (`docs/spec/notation.md` section 7.12): its `count-format` must be one of the forms and needs
+/// `count`, each reported on the attribute; a text with `count` holds no words other than white space and no `<span>`,
+/// reported once on the text's line; and a `<tween>` or `<set>` of `count` needs `count` on the text, reported on each of
+/// its attributes that changes `count`. Every report is `FS-0067`. What the text's styles give it counts as written.
+fn counting<F: Fn(usize) -> Spot>(node: roxmltree::Node, read: &[Effective], spot: Spot, spot_at: &F, problems: &mut Vec<Found>) {
+    let given = |name: &str| read.iter().find(|attribute| !attribute.prefixed && attribute.name == name);
+    let counts = given("count").is_some();
+    if let Some(format) = given("count-format") {
+        if crate::count::CountFormat::read(&format.value).is_none() {
+            problems.push(found(
+                Code::CountNotWritten,
+                format.spot,
+                format!(
+                    "`count-format=\"{}\"` is not a form of number; the forms are `0`, `0.00`, `0,0`, `0,0.00`, `m:ss` and `m:ss.0`, with up to six decimals",
+                    shown(&format.value)
+                ),
+            ));
+        }
+        if !counts {
+            problems.push(found(
+                Code::CountNotWritten,
+                format.spot,
+                "`count-format` needs `count`".to_string(),
+            ));
+        }
+    }
+    let words = node.children().any(|child| {
+        (child.is_text() && !child.text().unwrap_or("").trim().is_empty()) || (child.is_element() && child.tag_name().name() == "span")
+    });
+    if counts && words {
+        problems.push(found(
+            Code::CountNotWritten,
+            spot,
+            "a <text> that counts holds no words of its own: its text is the number".to_string(),
+        ));
+    }
+    if counts {
+        return;
+    }
+    for child in node.children().filter(roxmltree::Node::is_element) {
+        let (changes, kind): (&[&str], &str) = match child.tag_name().name() {
+            "tween" => (&["from-count", "to-count"], "tween"),
+            "set" => (&["count"], "set"),
+            _ => continue,
+        };
+        for attribute in child.attributes().filter(|attribute| attribute.namespace().is_none()) {
+            if changes.contains(&attribute.name()) {
+                problems.push(found(
+                    Code::CountNotWritten,
+                    spot_at(attribute.range().start),
+                    format!("a {kind} of `count` needs the attribute `count` on its <text>"),
+                ));
+            }
+        }
     }
 }
 
