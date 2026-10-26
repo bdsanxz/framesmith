@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use draw::{
-    Background, BoxShadow, Colour, Cut, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark,
-    Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
+    Background, Blend, BoxShadow, Colour, Cut, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map,
+    Mark, Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Element, Length, Node, Number, Problem, Project, Report, Unsupported, Workers};
@@ -189,6 +189,7 @@ impl Fill {
                         turn: None,
                         filter: Filter::NONE,
                         shadow: None,
+                        blend: Blend::Normal,
                     }),
                 }
             }
@@ -518,7 +519,13 @@ impl Scene {
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
                 let filter = mover.filter_at(time);
-                if map.is_identity() && opacity == 1.0 && turn.is_none() && filter.is_none() && mover.shadow.is_none() {
+                if map.is_identity()
+                    && opacity == 1.0
+                    && turn.is_none()
+                    && filter.is_none()
+                    && mover.shadow.is_none()
+                    && mover.blend == Blend::Normal
+                {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped, footage)?);
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false, footage)?;
@@ -531,6 +538,7 @@ impl Scene {
                             turn,
                             filter,
                             shadow: mover.shadow,
+                            blend: mover.blend,
                         }));
                     }
                 }
@@ -629,6 +637,7 @@ impl Scene {
                 turn: None,
                 filter: placed.filter,
                 shadow: None,
+                blend: Blend::Normal,
             })
         };
         // Round corners cut the footage to the rounded box, as of a box (`docs/spec/box-edges.md`, section 3).
@@ -652,6 +661,7 @@ impl Scene {
                     turn: None,
                     filter: Filter::NONE,
                     shadow: None,
+                    blend: Blend::Normal,
                 }))
             }
         })
@@ -716,6 +726,7 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
             turn: None,
             filter: Filter::NONE,
             shadow: None,
+            blend: Blend::Normal,
         })],
         _ => marks,
     }
@@ -741,6 +752,7 @@ fn image_mark(image: &PlacedImage) -> Option<Mark> {
             turn: None,
             filter: Filter::NONE,
             shadow: None,
+            blend: Blend::Normal,
         })),
     }
 }
@@ -1557,6 +1569,7 @@ fn gather_movers(
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
             shadow: movement.shadow.and_then(|(shadow, _)| shadow),
+            blend: movement.blend,
         });
     }
     (movers, refusals)

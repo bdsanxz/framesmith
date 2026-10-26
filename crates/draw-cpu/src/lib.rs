@@ -13,8 +13,8 @@ mod still;
 use std::sync::Arc;
 
 use draw::{
-    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline,
-    Picture, PlacedPicture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
+    blur_weights, level, Background, Blend, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark,
+    Outline, Picture, PlacedPicture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use skrifa::instance::{LocationRef, Size};
@@ -105,6 +105,32 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
 /// and brightened over the whole frame and then laid over the picture in its clip with each of its values times the
 /// opacity, rounded to the nearest level, halves up. At opacity 0 nothing is drawn.
 fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
+    if group.blend == Blend::Normal {
+        return draw_unblended(bytes, width, height, group, map, region);
+    }
+    draw_blended(bytes, width, height, group, map, region)
+}
+
+/// Draws a group whose blend is not `normal` (`docs/spec/blends.md`, section 6, rule 1): the group as it is drawn with no
+/// blend, its opacity, turn and cut included, into a transparent layer of the frame's size, which is then laid over the
+/// picture in `region` pixel by pixel by the blend (section 3).
+fn draw_blended(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
+    let mut layer = vec![0_u8; bytes.len()];
+    draw_unblended(&mut layer, width, height, group, map, region)?;
+    let (left, top, right, bottom) = region;
+    for row in top..bottom {
+        let start = (row as usize * width as usize + left as usize) * 4;
+        let end = (row as usize * width as usize + right as usize) * 4;
+        let over = layer[start..end].as_chunks::<4>().0;
+        for (pixel, source) in bytes[start..end].as_chunks_mut::<4>().0.iter_mut().zip(over) {
+            *pixel = group.blend.pixel(*source, *pixel);
+        }
+    }
+    Ok(())
+}
+
+/// Draws a group by src-over, whatever its blend.
+fn draw_unblended(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
     let opacity = if group.opacity.is_nan() {
         0.0
     } else {

@@ -12,8 +12,8 @@ use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
 use draw::{
-    blur_weights, Background, Colour, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer,
-    Rgba, Ring, RingMark, Step, TextMark, Turn,
+    blur_weights, Background, Blend, Colour, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture,
+    Renderer, Rgba, Ring, RingMark, Step, TextMark, Turn,
 };
 use draw_cpu::{background_layer, outline_layer, pictures_layer, placed_picture_layer, shadow_layer, still_layer};
 use gpu::{wgpu, Card};
@@ -39,6 +39,9 @@ const TURN_SHADER: &str = include_str!("turn.wgsl");
 /// The shader of a pass of the blur and brightness of a group: `place_filter_corner` for a corner, `paint_filtered` for each
 /// pixel of the next texture (section 10.7).
 const FILTER_SHADER: &str = include_str!("filter.wgsl");
+/// The shader of a group laid with a blend: `place_blend_corner` for a corner, `paint_blended` for the colour of each pixel
+/// (`docs/spec/blends.md`, section 6).
+const BLEND_SHADER: &str = include_str!("blend.wgsl");
 
 /// The format of the picture: 8 bits a channel, with no conversion between colour spaces, so that
 /// the colour value `v` is drawn as `v / 255` and stored as `v`.
@@ -116,6 +119,8 @@ pub struct CardRenderer {
     turn_pipeline: wgpu::RenderPipeline,
     cut_pipeline: wgpu::RenderPipeline,
     filter_pipeline: wgpu::RenderPipeline,
+    blend_pipeline: wgpu::RenderPipeline,
+    blend_layout: wgpu::BindGroupLayout,
     glyph_layout: wgpu::BindGroupLayout,
     paint_layout: wgpu::BindGroupLayout,
     turn_layout: wgpu::BindGroupLayout,
@@ -351,6 +356,55 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let blend_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("blend"),
+            source: wgpu::ShaderSource::Wgsl(BLEND_SHADER.into()),
+        });
+        let texture_entry = |binding: u32| wgpu::BindGroupLayoutEntry {
+            binding,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                view_dimension: wgpu::TextureViewDimension::D2,
+                multisampled: false,
+            },
+            count: None,
+        };
+        let blend_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("blended group"),
+            entries: &[texture_entry(0), texture_entry(1)],
+        });
+        let blend_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("blend"),
+            bind_group_layouts: &[Some(&blend_layout)],
+            immediate_size: 0,
+        });
+        // The shader writes the whole colour of each pixel, so nothing is blended by the card's own blending.
+        let blend_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("blend"),
+            layout: Some(&blend_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &blend_shader,
+                entry_point: Some("place_blend_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &blend_shader,
+                entry_point: Some("paint_blended"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         let cut_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("cut"),
             layout: Some(&glyph_pipeline_layout),
@@ -448,6 +502,8 @@ impl CardRenderer {
         });
         Ok(CardRenderer {
             card,
+            blend_pipeline,
+            blend_layout,
             pipeline,
             glyph_pipeline,
             picture_pipeline,
@@ -538,6 +594,17 @@ impl CardRenderer {
         let mut first = true;
         while index < draws.len() {
             let target = draws[index].target;
+            // A blended group reads what is under it: that is copied first, outside any pass (blends.md, section 6).
+            if let Source::Blended(layer) = draws[index].source {
+                let Some((under, _)) = &layers[layer].blended else {
+                    return Err(Error::new("a blended group was drawn with no copy of what is under it"));
+                };
+                let from = match target {
+                    Target::Picture => &texture,
+                    Target::Layer(parent) => &layers[parent].texture,
+                };
+                encoder.copy_texture_to_texture(from.as_image_copy(), under.as_image_copy(), from.size());
+            }
             let (target_view, load) = match target {
                 Target::Picture if first => (&view, wgpu::LoadOp::Clear(wgpu::Color::BLACK)),
                 Target::Picture => (&view, wgpu::LoadOp::Load),
@@ -548,9 +615,13 @@ impl CardRenderer {
             }
             let mut pass = begin_pass(&mut encoder, target_view, load);
             pass.set_vertex_buffer(0, vertices.slice(..));
-            while index < draws.len() && draws[index].target == target {
+            let mut drawn = 0;
+            // A blended group's quad is the first of a pass, after its copy.
+            while index < draws.len() && draws[index].target == target && (drawn == 0 || !matches!(draws[index].source, Source::Blended(_)))
+            {
                 let draw = &draws[index];
                 index += 1;
+                drawn += 1;
                 let [x, y, w, h] = draw.scissor;
                 pass.set_scissor_rect(x, y, w, h);
                 match &draw.source {
@@ -585,6 +656,13 @@ impl CardRenderer {
                         };
                         pass.set_pipeline(&self.filter_pipeline);
                         pass.set_bind_group(0, filtered, &[]);
+                    }
+                    Source::Blended(layer) => {
+                        let Some((_, blended)) = &layers[*layer].blended else {
+                            return Err(Error::new("a blended group was drawn with no copy of what is under it"));
+                        };
+                        pass.set_pipeline(&self.blend_pipeline);
+                        pass.set_bind_group(0, blended, &[]);
                     }
                     Source::Paint => {
                         let Some(group) = &paint_group else {
@@ -752,6 +830,77 @@ impl CardRenderer {
     /// The draws of a group (section 10.1): straight into `target` with an opacity of 1, otherwise into a texture of its
     /// own that is then laid over `target` with the opacity; nothing at opacity 0.
     fn plan_group(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], group: &Group, map: Map) -> Result<(), Error> {
+        if group.blend == Blend::Normal {
+            return self.plan_unblended(plan, target, scissor, group, map);
+        }
+        self.plan_blended(plan, target, scissor, group, map)
+    }
+
+    /// The draws of a group laid with a blend (`docs/spec/blends.md`, section 6, rule 2): the group as it is drawn with no
+    /// blend into a texture of its own, cleared to transparent, then one quad over `scissor` that writes the blend of that
+    /// texture with a copy of what is under it, made just before the quad is drawn.
+    fn plan_blended(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], group: &Group, map: Map) -> Result<(), Error> {
+        let layer = plan.layers.len();
+        let mut blended = self.layer(plan.width, plan.height);
+        blended.blended = Some(self.under(&blended, plan.width, plan.height));
+        plan.layers.push(blended);
+        self.plan_unblended(plan, Target::Layer(layer), scissor, group, map)?;
+        let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+        let corners = (0.0, 0.0, plan.width as f32, plan.height as f32);
+        push_quad(
+            &mut plan.floats,
+            plan.width,
+            plan.height,
+            corners,
+            [0.0, 0.0],
+            [group.blend.index() as f32, 0.0, 0.0, 0.0],
+        );
+        plan.draws.push(Draw {
+            target,
+            scissor,
+            vertices: first..first + CORNERS,
+            source: Source::Blended(layer),
+        });
+        Ok(())
+    }
+
+    /// The texture what lies under a blended group is copied into, and the bind group that reads the group's texture and it.
+    fn under(&self, layer: &Layer, width: u32, height: u32) -> (wgpu::Texture, wgpu::BindGroup) {
+        let device = self.card.device();
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("under a blended group"),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: FORMAT,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let view = texture.create_view(&Default::default());
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("blended group"),
+            layout: &self.blend_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&layer.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+            ],
+        });
+        (texture, bind_group)
+    }
+
+    /// The draws of a group by src-over, whatever its blend.
+    fn plan_unblended(&mut self, plan: &mut Planned, target: Target, scissor: [u32; 4], group: &Group, map: Map) -> Result<(), Error> {
         let opacity = if group.opacity.is_nan() {
             0.0
         } else {
@@ -1072,7 +1221,7 @@ impl CardRenderer {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: FORMAT,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
         let view = texture.create_view(&Default::default());
@@ -1085,11 +1234,12 @@ impl CardRenderer {
             }],
         });
         Layer {
-            _texture: texture,
+            texture,
             view,
             bind_group,
             turned: None,
             filtered: None,
+            blended: None,
         }
     }
 
@@ -1324,7 +1474,7 @@ struct Planned {
 
 /// The texture of a group that fades, its view as a target, and the bind group that reads it.
 struct Layer {
-    _texture: wgpu::Texture,
+    texture: wgpu::Texture,
     view: wgpu::TextureView,
     bind_group: wgpu::BindGroup,
     /// For a group turned in space, the bind group of its texture and the numbers of its turn (section 10.6).
@@ -1332,6 +1482,9 @@ struct Layer {
     /// For a pass of the blur and brightness of a group, the bind group of the texture it reads, its numbers and its weights
     /// (section 10.7).
     filtered: Option<wgpu::BindGroup>,
+    /// For a group laid with a blend, the texture what lies under it is copied into, and the bind group that reads the
+    /// group's texture and that copy (`docs/spec/blends.md`, section 6).
+    blended: Option<(wgpu::Texture, wgpu::BindGroup)>,
 }
 
 /// One draw call of a frame: where it draws, the rectangle it is clipped to (left, top, width, height), the vertices of its
@@ -1358,6 +1511,8 @@ enum Source {
     KeepInside(MaskKey),
     /// A pass of the blur and brightness of a group, written into the texture of that index (section 10.7).
     Filtered(usize),
+    /// The texture of a group laid with a blend over a copy of what is under it, written in place (`blends.md`, section 6).
+    Blended(usize),
 }
 
 /// Begins a render pass on a view, with what it starts from.

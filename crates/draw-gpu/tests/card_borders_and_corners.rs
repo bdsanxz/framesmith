@@ -158,6 +158,7 @@ fn reference_machine_only_cut_children_agree_with_the_processor() {
             turn: None,
             filter: Filter::NONE,
             shadow: None,
+            blend: draw::Blend::Normal,
         })]),
     );
 }

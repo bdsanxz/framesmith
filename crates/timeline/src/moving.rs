@@ -1,7 +1,7 @@
 //! The motion of an element (`docs/spec/render-command.md`, section 4.5): its movement attributes and its tweens as this
 //! version reads them, and its map and opacity at a time.
 
-use draw::{Filter, Map, Shadow, Turn};
+use draw::{Blend, Filter, Map, Shadow, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Attribute, Code, Element, Length, Node, Number};
@@ -10,8 +10,9 @@ use timebase::Time;
 use crate::support;
 
 /// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, the
-/// `perspective` of a turn in space, and the `blur` and `brightness` of its picture.
-pub(crate) const MOVEMENT: [&str; 13] = [
+/// `perspective` of a turn in space, and the `blur` and `brightness` of its picture, and the blend its finished picture
+/// is laid with (`docs/spec/blends.md`).
+pub(crate) const MOVEMENT: [&str; 14] = [
     "x",
     "y",
     "scale",
@@ -25,6 +26,7 @@ pub(crate) const MOVEMENT: [&str; 13] = [
     "perspective",
     "blur",
     "brightness",
+    "mix-blend-mode",
 ];
 
 /// A refusal found while reading motion: its code, its line and its message.
@@ -38,6 +40,7 @@ pub(crate) struct Movement {
     pub(crate) own: [f64; PROP_COUNT],
     pub(crate) origin: (Length, Length),
     pub(crate) perspective: Option<f64>,
+    pub(crate) blend: Blend,
     pub(crate) lines: Vec<u32>,
     /// The `drop-shadow` the element writes, and its line (`docs/spec/render-command.md` section 4.7, rule 5).
     pub(crate) shadow: Option<(Option<Shadow>, u32)>,
@@ -72,6 +75,7 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         own: PROPS.map(Prop::own_value),
         origin: (Length::Percent(Number::whole(50)), Length::Percent(Number::whole(50))),
         perspective: None,
+        blend: Blend::Normal,
         lines: Vec::new(),
         shadow: None,
     };
@@ -86,6 +90,25 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
             continue;
         }
         if !MOVEMENT.contains(&name) {
+            continue;
+        }
+        if name == "mix-blend-mode" {
+            match Blend::named(attribute.value()) {
+                Some(Blend::Normal) => {}
+                Some(blend) => {
+                    movement.blend = blend;
+                    movement.lines.push(attribute.line());
+                }
+                None => found.push((
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!(
+                        "`mix-blend-mode=\"{}\"` is not one of: {}",
+                        attribute.shown(),
+                        Blend::ALL.map(Blend::name).join(", ")
+                    ),
+                )),
+            }
             continue;
         }
         movement.lines.push(attribute.line());
@@ -304,6 +327,8 @@ pub(crate) struct Mover {
     pub(crate) clip: Option<Rect>,
     /// The shadow that follows the element's finished picture.
     pub(crate) shadow: Option<Shadow>,
+    /// How the element's finished picture is mixed with what is under it (`docs/spec/blends.md`).
+    pub(crate) blend: Blend,
 }
 
 impl Mover {

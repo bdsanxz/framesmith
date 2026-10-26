@@ -10,6 +10,7 @@ use std::sync::Arc;
 use layout::Rect;
 
 mod background;
+mod blend;
 mod edges;
 mod filter;
 mod still;
@@ -17,6 +18,7 @@ pub mod stroke;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
+pub use blend::Blend;
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
 pub use still::{Area, Fit, Still, StillMark};
@@ -237,6 +239,9 @@ pub struct Group {
     /// The shadow that follows the group's finished picture (`docs/spec/render-command.md`, section 4.7, rule 5): its
     /// offset and blur in the element's own pixels; `None` for none.
     pub shadow: Option<Shadow>,
+    /// How the group's finished picture is mixed with what is under it (`docs/spec/blends.md`); `Normal` lays it by
+    /// src-over.
+    pub blend: Blend,
 }
 
 /// A shadow of a box (`docs/spec/render-command.md`, section 4.7, rule 3): the box's outer edge, its rectangle with its
