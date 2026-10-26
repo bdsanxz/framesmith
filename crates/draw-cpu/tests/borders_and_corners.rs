@@ -310,3 +310,58 @@ fn a_border_with_alpha_lays_its_colour_over_the_fill() {
     // 200 * 128 / 255 + 240 * 127 / 255, each rounded: 100 + 120 = 220 of red; 240 * 127 / 255 = 120 of green and blue.
     assert_eq!(rgb(&picture, 11, 30), [220, 120, 120]);
 }
+
+#[test]
+fn a_box_taller_than_wide_with_a_radius_past_half_its_width_has_round_ends_of_half_its_width() {
+    // 30 wide and 86 high at (30, 5): the radius used is 15, the ends are half circles about (45, 20) and (45, 76), and between
+    // rows 20 and 76 the sides are straight on columns 30 and 59.
+    let place = rect(30, 5, 30, 86);
+    let capsule = draw(
+        Edges {
+            radius: 400.0,
+            border: None,
+            cut: false,
+        }
+        .marks(place, vec![fill(place, FILL)], Vec::new()),
+    );
+    for y in [20, 48, 75] {
+        assert_eq!(rgb(&capsule, 29, y), of(UNDER), "row {y}");
+        assert_eq!(rgb(&capsule, 30, y), of(FILL), "row {y}");
+        assert_eq!(rgb(&capsule, 59, y), of(FILL), "row {y}");
+        assert_eq!(rgb(&capsule, 60, y), of(UNDER), "row {y}");
+    }
+    // The corners of the box lie outside the ends: from (31, 7) to the centre (45, 20) is more than 19.
+    for (x, y) in [(30, 5), (30, 6), (59, 6), (30, 89), (59, 90)] {
+        assert_eq!(rgb(&capsule, x, y), of(UNDER), "pixel {x}, {y}");
+    }
+    // Two rows below the top of the end, the farthest corner of the pixel is 13.04 from the centre: inside.
+    assert_eq!(rgb(&capsule, 45, 7), of(FILL));
+    assert_eq!(rgb(&capsule, 45, 88), of(FILL));
+    // Where row 13 crosses the end: from the centre, 15 across makes x = 45 ± sqrt(225 - 49), 31.73 and 58.27.
+    assert_eq!(rgb(&capsule, 30, 13), of(UNDER));
+    assert_eq!(rgb(&capsule, 33, 13), of(FILL));
+    assert_eq!(rgb(&capsule, 59, 13), of(UNDER));
+}
+
+#[test]
+fn a_border_of_two_lines_wider_than_half_the_box_is_drawn_at_half_with_its_gap() {
+    // 60 by 40 with `30 double`: the width used is 20, so each third is 20/3. Along row 30: the outer line from column 10 to
+    // 16.67, the gap to 23.33, the inner line to 30, and no inside: the middle is the inner line.
+    let picture = draw(boxed(
+        Edges {
+            radius: 0.0,
+            border: border(30.0, true),
+            cut: false,
+        },
+        Vec::new(),
+    ));
+    for x in [10, 13, 15] {
+        assert_eq!(rgb(&picture, x, 30), RED, "column {x}");
+    }
+    for x in [17, 19, 22] {
+        assert_eq!(rgb(&picture, x, 30), of(FILL), "column {x}, in the gap");
+    }
+    for x in [24, 27, 40, 45] {
+        assert_eq!(rgb(&picture, x, 30), RED, "column {x}");
+    }
+}

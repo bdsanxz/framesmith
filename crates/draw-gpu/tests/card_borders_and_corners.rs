@@ -109,6 +109,15 @@ fn reference_machine_only_rounded_corners_and_border_agree_with_the_processor() 
     the_card_agrees_with_the_processor("rounded", &frame(boxed(24.0, None, false, Vec::new())));
     the_card_agrees_with_the_processor("rounded border", &frame(boxed(24.0, Some((5.5, false)), false, Vec::new())));
     the_card_agrees_with_the_processor("capsule", &frame(boxed(500.0, Some((4.0, false)), false, Vec::new())));
+    let tall = rect(80, 10, 30, 100);
+    let standing = Edges {
+        radius: 400.0,
+        border: Some((Line { width: 4.0, double: false }, BORDER)),
+        cut: false,
+    }
+    .marks(tall, vec![fill(tall, colour(235, 230, 220))], Vec::new());
+    the_card_agrees_with_the_processor("standing capsule", &frame(standing));
+    the_card_agrees_with_the_processor("wide double", &frame(boxed(0.0, Some((60.0, true)), false, Vec::new())));
 }
 
 #[test]

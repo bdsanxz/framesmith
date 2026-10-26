@@ -97,3 +97,29 @@ fn a_square_shape_on_whole_pixels_is_a_rectangle() {
     assert_eq!(Rounded::of_box(rect(3, 4, 20, 10), 2.0).unwrap().whole_rect(), None);
     assert_eq!(outer.inset(0.5).unwrap().whole_rect(), None);
 }
+
+#[test]
+fn a_box_taller_than_wide_is_held_to_half_of_its_width() {
+    // 30 wide, 110 high: half the width, 15, is the shorter half.
+    assert_eq!(Rounded::of_box(rect(0, 0, 30, 110), 400.0).unwrap().radius, 15.0);
+    assert_eq!(Rounded::of_box(rect(0, 0, 30, 110), 16.0).unwrap().radius, 15.0);
+    assert_eq!(Rounded::of_box(rect(0, 0, 30, 110), 14.0).unwrap().radius, 14.0);
+    // Its inner edge under a border of 4 is 4 inside, with the radius 15 less 4.
+    let outer = Rounded::of_box(rect(0, 0, 30, 110), 400.0).unwrap();
+    let inner = Line { width: 4.0, double: false }.inner_edge(outer).unwrap();
+    assert_eq!((inner.left, inner.right, inner.radius), (4.0, 26.0, 11.0));
+}
+
+#[test]
+fn a_border_of_two_lines_wider_than_half_the_box_is_held_to_half_and_keeps_its_gap() {
+    // 20 by 10 with `50 double`: the width used is 5, a third of it 5/3; the gap runs from 5/3 to 10/3, the inner line from
+    // 10/3 to the middle, which leaves no inside.
+    let outer = Rounded::of_box(rect(0, 0, 20, 10), 0.0).unwrap();
+    let rings = Line { width: 50.0, double: true }.rings(outer);
+    assert_eq!(rings.len(), 2);
+    assert_eq!(rings[0].outer, outer);
+    assert_eq!(rings[0].inner, outer.inset(5.0 / 3.0));
+    assert!(rings[0].inner.is_some(), "the outer line leaves room for the gap");
+    assert_eq!(rings[1].outer, outer.inset(10.0 / 3.0).unwrap());
+    assert_eq!(rings[1].inner, None);
+}
