@@ -956,9 +956,10 @@ fn gather_movers(
 }
 
 /// The refusals of a `<tween>` or a `<set>` in a `<span>`: each property it changes other than `typed`, on the line of its
-/// attribute (`docs/spec/text.md`, section 7).
+/// first attribute (`docs/spec/text.md`, section 7): a tween's `from-` and `to-` of one property are one report.
 fn span_motion_faults(node: &Node) -> Vec<Refusal> {
     let tag = node.element().tag();
+    let mut named: Vec<&str> = Vec::new();
     node.attributes()
         .iter()
         .filter_map(|attribute| {
@@ -968,16 +969,18 @@ fn span_motion_faults(node: &Node) -> Vec<Refusal> {
                 _ if name == "at" => return None,
                 _ => name,
             };
-            (property != "typed").then(|| {
-                Refusal::of_motion((
-                    Code::FormNotSupported,
-                    attribute.line(),
-                    format!(
-                        "{tag} in a <span> changes `{}`, which this version does not move there: a {tag} in a <span> changes `typed` alone",
-                        project::shown(property)
-                    ),
-                ))
-            })
+            if property == "typed" || named.contains(&property) {
+                return None;
+            }
+            named.push(property);
+            Some(Refusal::of_motion((
+                Code::FormNotSupported,
+                attribute.line(),
+                format!(
+                    "{tag} in a <span> changes `{}`, which this version does not move there: a {tag} in a <span> changes `typed` alone",
+                    project::shown(property)
+                ),
+            )))
         })
         .collect()
 }

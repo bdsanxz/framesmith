@@ -7,7 +7,7 @@
 mod common;
 
 use common::scripts::{mac_fonts, mac_style};
-use text::{layout, layout_pieces, Align, Piece, TextError};
+use text::{layout, layout_pieces, Align, Block, Piece, TextError};
 
 const BLACK: [u8; 4] = [0, 0, 0, 255];
 
@@ -67,5 +67,17 @@ fn a_room_of_0_between_two_ideographs_is_not_refused() {
         Some(width),
     )
     .unwrap();
-    assert_eq!(with_room, plain, "a room of 0 changes nothing");
+    // The same glyphs at the same places, on the same lines: the pieces differ, so their counts of characters do too.
+    let drawn = |block: &Block| -> Vec<(u32, f32, f32)> {
+        block
+            .runs
+            .iter()
+            .flat_map(|run| run.glyphs.iter().map(|glyph| (glyph.id, glyph.x, glyph.y)))
+            .collect()
+    };
+    assert_eq!(drawn(&with_room), drawn(&plain), "a room of 0 changes nothing");
+    assert_eq!(
+        (with_room.width, with_room.height, &with_room.lines),
+        (plain.width, plain.height, &plain.lines)
+    );
 }
