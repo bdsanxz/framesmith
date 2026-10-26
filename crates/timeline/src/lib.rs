@@ -4,6 +4,7 @@
 
 mod background;
 mod edges;
+mod image;
 mod moving;
 mod paragraph;
 mod scene;

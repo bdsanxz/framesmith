@@ -1597,6 +1597,8 @@ dependencies = [
 name = "timeline"
 version = "0.1.0"
 dependencies = [
+ "backend-os",
+ "base",
  "codec",
  "draw",
  "draw-cpu",

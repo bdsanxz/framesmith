@@ -49,11 +49,10 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
-    // Each element with the entry of the support table that names it (section 14): S60 a rect, S40 a still picture,
-    // S42 a shape. Footage (`<video>`) is drawn in this version, so it is not refused here.
+    // Each element with the entry of the support table that names it (section 14): S60 a rect, S42 a shape.
+    // Footage (`<video>`) and still pictures (`<image>`) are drawn in this version, so they are not refused here.
     for (index, (element, tag, entry)) in [
         ("<rect/>", "<rect>", "S60"),
-        ("<image src=\"i.png\"/>", "<image>", "S40"),
         ("<shape src=\"s.svg\"/>", "<shape>", "S42"),
     ]
     .into_iter()
@@ -72,8 +71,8 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 #[test]
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
-        only("in-box", "<box>\n<image src=\"i.png\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <box> holds <image>, which this version does not support (support table S40: Still pictures are not read or drawn yet; waits until Sprint 1, T059)"
+        only("in-box", "<box>\n<shape src=\"s.svg\"/>\n</box>"),
+        "composition.xml 3 FS-0035 <box> holds <shape>, which this version does not support (support table S42: Path data is not drawn yet; waits until Sprint 1, T062)"
     );
     // A tween inside a box moves it (section 4.5), so it is not refused.
     assert_eq!(
@@ -292,7 +291,7 @@ fn a_project_the_notation_does_not_accept_is_not_opened_so_nothing_is_drawn_from
 fn the_refusals_of_a_composition_come_in_the_order_of_its_lines() {
     let reports = refused(
         "order",
-        "<rect/>\n<box left=\"abc\" clip-path=\"4\"/>\n<box>\n<image src=\"j.png\"/>\n</box>\n<image src=\"i.png\"/>",
+        "<rect/>\n<box left=\"abc\" clip-path=\"4\"/>\n<box>\n<shape src=\"j.svg\"/>\n</box>\n<shape src=\"i.svg\"/>",
     );
     let places: Vec<(String, String)> = reports
         .iter()

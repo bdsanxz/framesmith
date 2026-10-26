@@ -15,7 +15,7 @@ use draw::{
     blur_weights, Background, Colour, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer,
     Rgba, Ring, RingMark, Step, TextMark, Turn,
 };
-use draw_cpu::{background_layer, outline_layer, pictures_layer, placed_picture_layer, shadow_layer};
+use draw_cpu::{background_layer, outline_layer, pictures_layer, placed_picture_layer, shadow_layer, still_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
@@ -738,6 +738,12 @@ impl CardRenderer {
                         self.push_layer(plan, target, scissor, layer)?;
                     }
                 },
+                Mark::Still(still) => {
+                    // The processor draws the picture into a layer of the frame's size, which the card lays over its
+                    // target (`docs/spec/card-renderer.md`, section 13).
+                    let layer = still_layer(plan.width, plan.height, still, map)?;
+                    self.push_layer(plan, target, scissor, layer)?;
+                }
             }
         }
         Ok(())

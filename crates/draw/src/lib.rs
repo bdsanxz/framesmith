@@ -13,11 +13,13 @@ mod background;
 mod edges;
 mod filter;
 pub mod stroke;
+mod still;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
+pub use still::{Area, Fit, Still, StillMark};
 pub use turn::Turn;
 
 /// The one outline tolerance, in pixels: the curves of a glyph's outline are flattened to it, and its stroke is expanded from the
@@ -304,6 +306,8 @@ pub enum Mark {
     BoxShadow(BoxShadow),
     /// A picture laid on the frame, such as a picture of footage (`docs/spec/render-command.md`, section 4.8).
     Picture(PlacedPicture),
+    /// A still picture in its box (`docs/spec/still-pictures.md`).
+    Still(StillMark),
 }
 
 /// A picture laid on the frame one pixel for one (`docs/spec/render-command.md`, section 4.8): `width` by `height` pixels of
@@ -317,6 +321,8 @@ pub struct PlacedPicture {
     pub pixels: Arc<Vec<u8>>,
     pub x: f32,
     pub y: f32,
+    /// A still picture in its box (`docs/spec/still-pictures.md`).
+    Still(StillMark),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -358,7 +364,8 @@ impl Frame {
                 | Mark::Ring(_)
                 | Mark::Cut(_)
                 | Mark::BoxShadow(_)
-                | Mark::Picture(_) => None,
+                | Mark::Picture(_)
+                | Mark::Still(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {

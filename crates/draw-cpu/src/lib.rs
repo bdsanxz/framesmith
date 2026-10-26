@@ -8,6 +8,8 @@
 //! the frame. The marks of an element that moves are drawn with its map, and those of one that fades into a layer
 //! of their own, which is laid over the picture with its opacity (`docs/spec/render-command.md`, section 4.5).
 
+mod still;
+
 use std::sync::Arc;
 
 use draw::{
@@ -27,6 +29,7 @@ mod shadows;
 
 pub use edges::{cut_weights, ring_coverage, rounded_coverage};
 pub use shadows::{box_shadow_layer, shadowed, shadowed_group_layer};
+pub use still::still_layer;
 
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
@@ -91,6 +94,7 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
                     composite(bytes, width, &layer, region);
                 }
             },
+            Mark::Still(still) => still::lay_still(bytes, width, height, still, map, region)?,
         }
     }
     Ok(())

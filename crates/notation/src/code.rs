@@ -171,6 +171,10 @@ pub enum Code {
     BackgroundSettingAlone,
     /// A `border` is not a width and a colour, or a width, `double` and a colour.
     BorderNotInForm,
+    /// The picture file that `<image src>` names does not exist.
+    PictureMissing,
+    /// The picture file that `<image src>` names is damaged, or cannot be read.
+    PictureDamaged,
     /// A `box-shadow` or `drop-shadow` is not `X Y BLUR COLOUR`, a list of them for `box-shadow`.
     ShadowNotInForm,
     /// The folder of the output path cannot be made or written, so `render` refuses the video before the first frame.
@@ -206,7 +210,7 @@ pub enum Code {
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 82] = [
+    pub const ALL: [Code; 84] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -274,6 +278,8 @@ impl Code {
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
         Code::BorderNotInForm,
+        Code::PictureMissing,
+        Code::PictureDamaged,
         Code::ShadowNotInForm,
         Code::OutputNotWritten,
         Code::HardwareSizeNotTaken,
@@ -361,6 +367,8 @@ impl Code {
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
             Code::BorderNotInForm => "FS-0067",
+            Code::PictureMissing => "FS-0068",
+            Code::PictureDamaged => "FS-0069",
             Code::ShadowNotInForm => "FS-0070",
             Code::OutputNotWritten => "FS-0072",
             Code::HardwareSizeNotTaken => "FS-0073",
@@ -493,6 +501,8 @@ impl Code {
             Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
+            Code::PictureMissing => "Write the path of a picture file, from the project folder or beginning with `/`.",
+            Code::PictureDamaged => "Replace the file with one that opens, or write the path of another.",
             Code::CountNotWritten => {
                 "Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists."
             }
