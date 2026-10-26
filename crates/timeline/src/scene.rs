@@ -431,6 +431,7 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
             opacity: 1.0,
             clip: Some(clip),
             marks,
+            turn: None,
         })],
         _ => marks,
     }

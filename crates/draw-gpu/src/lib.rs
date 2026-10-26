@@ -12,8 +12,8 @@ use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
 use draw::{
-    Background, Colour, Cut, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Rgba, Ring,
-    RingMark, Step, TextMark, Turn,
+    Background, Colour, Cut, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Rgba, Ring, RingMark,
+    Step, TextMark, Turn,
 };
 use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
 use gpu::{wgpu, Card};

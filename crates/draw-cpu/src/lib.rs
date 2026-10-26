@@ -11,8 +11,8 @@
 use std::sync::Arc;
 
 use draw::{
-    level, Background, Cut, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer,
-    ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
+    level, Background, Cut, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, ResolvedLayer,
+    RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, Stroke};
