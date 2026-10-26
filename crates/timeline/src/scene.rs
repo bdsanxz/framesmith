@@ -178,7 +178,7 @@ struct PlacedText {
 #[derive(Clone, Debug, PartialEq)]
 enum Entry {
     Box(Placed),
-    Text(PlacedText),
+    Text(Box<PlacedText>),
 }
 
 impl Entry {
@@ -731,13 +731,13 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                     let slot = slot_of(form.clip, parent_place, paragraph.rect, fps);
                     entry_at[index] = Some(entries.len());
                     rect_of[index] = Some(paragraph.rect);
-                    entries.push(Entry::Text(PlacedText {
+                    entries.push(Entry::Text(Box::new(PlacedText {
                         slot,
                         clip: canvas.clip,
                         paragraph,
                         file: canvas.file.to_string(),
                         line: node.line(),
-                    }));
+                    })));
                     places.push(Some(slot));
                 }
                 Err(fault) => {

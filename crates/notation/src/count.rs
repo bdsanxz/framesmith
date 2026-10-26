@@ -114,7 +114,7 @@ fn rounded(value: f64, decimals: usize) -> (String, String) {
 fn grouped(whole: &str) -> String {
     let mut words = String::new();
     for (index, figure) in whole.chars().enumerate() {
-        if index > 0 && (whole.len() - index) % 3 == 0 {
+        if index > 0 && (whole.len() - index).is_multiple_of(3) {
             words.push(',');
         }
         words.push(figure);
