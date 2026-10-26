@@ -1279,7 +1279,6 @@ pub(crate) fn span_faults(tree: &[Node], index: usize) -> Vec<Fault> {
 /// The fault of one attribute of a `<span>`, if it has one.
 fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
     let name = attribute.name();
-    let value = attribute.value();
     let style = attribute.given_by().is_some();
     let fault = |code: Code, message: String| Fault {
         code,
