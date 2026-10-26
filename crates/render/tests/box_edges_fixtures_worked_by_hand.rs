@@ -253,6 +253,7 @@ fn the_pictures_of_rounded_corners_show_the_ground_outside_each_worked_corner() 
     let judged = judge("box-corners", 0, GROUND, &corners(false));
     assert!(judged > 320 * 180 * 90 / 100, "{judged} pixels judged");
     judge("box-corners", 5, GROUND, &corners(false));
+    judge("box-corners", 10, GROUND, &corners(true));
     judge("box-corners", 19, GROUND, &corners(true));
 }
 
@@ -293,4 +294,224 @@ fn the_pictures_of_cut_children_hold_nothing_of_a_child_outside_the_worked_inner
     assert!(judged > 320 * 180 * 90 / 100, "{judged} pixels judged");
     judge("box-cut", 5, GROUND, &cut(0.0));
     judge("box-cut", 19, GROUND, &cut(60.0));
+}
+
+/// Whether a point of the box's own coordinates lies inside a rounded rectangle.
+fn holds(shape: &Rounded, x: f64, y: f64) -> bool {
+    x >= shape.left && x <= shape.right && y >= shape.top && y <= shape.bottom && shape.distance_to_centres(x, y) <= shape.radius
+}
+
+/// Lays an opaque colour over a pixel with the share `k` of 255, rounded to the nearest level (section 5).
+fn laid(under: [f64; 3], colour: [u8; 4], k: f64) -> [f64; 3] {
+    let mut out = under;
+    for channel in 0..3 {
+        out[channel] = (f64::from(colour[channel]) * k + under[channel] * (255.0 - k)) / 255.0;
+    }
+    out
+}
+
+#[test]
+fn the_turned_rounded_box_is_weighed_once_at_its_edge() {
+    // Frame 10 of box-corners: the box at (220, 100), 80 by 60, radius 18, with `9 double`, turned 22.5 degrees (half of its
+    // linear tween to 45) about its centre (260, 130). Each pixel's share of the box's outer edge and of its two lines is
+    // measured here by 64 by 64 points across the pixel, taken back through the turn to the box's own coordinates; the
+    // background is laid with the share of the outer edge alone, and then each line with its share, over the stripes.
+    let picture = expected("box-corners", 10);
+    let angle = 22.5_f64.to_radians();
+    let (sin, cos) = angle.sin_cos();
+    let edge = |inset: f64| Rounded::of(220.0, 100.0, 80.0, 60.0, 18.0, inset);
+    let (outer, gap_outer, gap_inner, inner) = (edge(0.0), edge(3.0), edge(6.0), edge(9.0));
+    const POINTS: u32 = 64;
+    let (mut judged, mut wrong, mut worst) = (0, Vec::new(), 0_u8);
+    for y in 75..186_u32.min(180) {
+        for x in 205..316_u32.min(320) {
+            let (mut fill, mut first, mut second) = (0_u32, 0_u32, 0_u32);
+            for j in 0..POINTS {
+                for i in 0..POINTS {
+                    let px = f64::from(x) + (f64::from(i) + 0.5) / f64::from(POINTS) - 260.0;
+                    let py = f64::from(y) + (f64::from(j) + 0.5) / f64::from(POINTS) - 130.0;
+                    // Back through a clockwise turn on the screen, whose y runs down.
+                    let (bx, by) = (260.0 + px * cos + py * sin, 130.0 - px * sin + py * cos);
+                    if holds(&outer, bx, by) {
+                        fill += 1;
+                        if !holds(&gap_outer, bx, by) {
+                            first += 1;
+                        } else if holds(&gap_inner, bx, by) && !holds(&inner, bx, by) {
+                            second += 1;
+                        }
+                    }
+                }
+            }
+            if fill == 0 {
+                continue;
+            }
+            let share = |count: u32| (f64::from(count) * 255.0 / f64::from(POINTS * POINTS)).round();
+            let ground = if (120..150).contains(&y) { rgb(0x4a6a8a) } else { rgb(GROUND) };
+            let under = [f64::from(ground[0]), f64::from(ground[1]), f64::from(ground[2])];
+            let worked = laid(
+                laid(laid(under, rgb(PAPER), share(fill)), rgb(0x2050c0), share(first)),
+                rgb(0x2050c0),
+                share(second),
+            );
+            let held = picture.pixel(x, y).unwrap();
+            judged += 1;
+            let apart = (0..3).map(|c| (f64::from(held[c]) - worked[c]).abs().round() as u8).max().unwrap();
+            worst = worst.max(apart);
+            if apart > 3 {
+                wrong.push((x, y, held, worked.map(|v| v.round() as u8)));
+            }
+        }
+    }
+    println!("{judged} pixels of the turned box judged; the farthest is {worst} levels from the worked colour");
+    assert!(judged > 4000, "{judged} pixels judged");
+    assert!(
+        wrong.is_empty(),
+        "{} pixels lie more than 3 levels from the worked colour, the first: {:?}",
+        wrong.len(),
+        &wrong[..wrong.len().min(8)]
+    );
+}
+
+impl Region {
+    /// Whether a point lies in the region; `None` in a part that is not judged.
+    fn holds(&self, x: f64, y: f64) -> Option<bool> {
+        Some(match self {
+            Region::Shape(shape) => holds(shape, x, y),
+            Region::Less(a, b) => a.holds(x, y)? && !b.holds(x, y)?,
+            Region::Both(a, b) => a.holds(x, y)? && b.holds(x, y)?,
+            Region::Unjudged(shape) => {
+                if holds(shape, x, y) {
+                    return None;
+                }
+                false
+            }
+        })
+    }
+}
+
+/// One layer of the every-pixel model: a region laid in its colour, or layers drawn into a picture of their own, transparent
+/// at first, that is then weighed by the share of a cut and laid over what is there (section 4).
+enum Layer {
+    Paint(Region, [u8; 4]),
+    Cut(Region, Vec<Layer>),
+}
+
+fn painted(layers: Vec<(Region, [u8; 4])>) -> Vec<Layer> {
+    layers.into_iter().map(|(region, colour)| Layer::Paint(region, colour)).collect()
+}
+
+/// The share of a pixel that a region holds, as a whole level, measured by 32 by 32 points; `None` in a part not judged.
+fn share_of(region: &Region, x: u32, y: u32) -> Option<f64> {
+    const POINTS: u32 = 32;
+    // A pixel wholly inside or outside needs no points.
+    match region.side(f64::from(x), f64::from(y)) {
+        Side::In => return Some(1.0),
+        Side::Out => return Some(0.0),
+        Side::Edge => {}
+    }
+    let mut inside = 0_u32;
+    for j in 0..POINTS {
+        for i in 0..POINTS {
+            let px = f64::from(x) + (f64::from(i) + 0.5) / f64::from(POINTS);
+            let py = f64::from(y) + (f64::from(j) + 0.5) / f64::from(POINTS);
+            if region.holds(px, py)? {
+                inside += 1;
+            }
+        }
+    }
+    Some((f64::from(inside) * 255.0 / f64::from(POINTS * POINTS)).round() / 255.0)
+}
+
+/// Lays the layers over a premultiplied pixel `[red, green, blue, alpha]`, each value from 0 to 1, by src-over.
+fn laid_layers(mut pixel: [f64; 4], layers: &[Layer], x: u32, y: u32) -> Option<[f64; 4]> {
+    for layer in layers {
+        let (source, weight) = match layer {
+            Layer::Paint(region, paint) => {
+                let share = share_of(region, x, y)? * f64::from(paint[3]) / 255.0;
+                let colour = [0, 1, 2].map(|c| f64::from(paint[c]) / 255.0);
+                ([colour[0], colour[1], colour[2], 1.0], share)
+            }
+            Layer::Cut(region, inside) => {
+                let weight = share_of(region, x, y)?;
+                (laid_layers([0.0; 4], inside, x, y)?, weight)
+            }
+        };
+        let kept = 1.0 - source[3] * weight;
+        pixel = [0, 1, 2, 3].map(|c| source[c] * weight + pixel[c] * kept);
+    }
+    Some(pixel)
+}
+
+/// Holds every pixel of a checked-in picture, edges included, to the layers laid in order over the ground, each with its
+/// share of the pixel: at most `levels` apart in any value.
+fn judge_every_pixel(fixture: &str, number: u64, layers: &[Layer], levels: f64) {
+    let picture = expected(fixture, number);
+    let ground = [GROUND >> 16, (GROUND >> 8) & 0xff, GROUND & 0xff].map(|v| f64::from(v) / 255.0);
+    let (mut wrong, mut worst, mut judged) = (Vec::new(), 0.0_f64, 0);
+    for y in 0..180_u32 {
+        for x in 0..320_u32 {
+            let Some(colour) = laid_layers([ground[0], ground[1], ground[2], 1.0], layers, x, y) else {
+                continue;
+            };
+            judged += 1;
+            let held = picture.pixel(x, y).unwrap();
+            let apart = (0..3).map(|c| (f64::from(held[c]) - colour[c] * 255.0).abs()).fold(0.0, f64::max);
+            worst = worst.max(apart);
+            if apart > levels {
+                wrong.push((x, y, held, colour.map(|v| (v * 255.0).round() as u8)));
+            }
+        }
+    }
+    println!("{fixture} frame {number}: {judged} pixels judged, the farthest {worst:.1} levels from the worked colour");
+    assert!(judged > 320 * 180 * 8 / 10, "{fixture} frame {number}: {judged} pixels judged");
+    assert!(
+        wrong.is_empty(),
+        "{fixture} frame {number}: {} pixels lie more than {levels} levels from the worked colour, the first: {:?}",
+        wrong.len(),
+        &wrong[..wrong.len().min(8)]
+    );
+}
+
+/// The layers of box-cut as section 4 draws them: each box that cuts draws its children into a layer of their own.
+fn cut_layers(bar_down: f64) -> Vec<Layer> {
+    let (red, blue, green, gold) = (rgb(0xc02020), rgb(0x2050c0), rgb(0x208040), rgb(0xe0a020));
+    let plain = |left: f64, top: f64, width: f64, height: f64| shape(Rounded::of(left, top, width, height, 0.0, 0.0));
+    let left = |inset: f64| Rounded::of(20.0, 30.0, 100.0, 120.0, 24.0, inset);
+    let middle = |inset: f64| Rounded::of(140.0, 30.0, 70.0, 120.0, 24.0, inset);
+    let right = Rounded::of(230.0, 30.0, 80.0, 120.0, 12.0, 0.0);
+    let circle = Rounded::of(240.0, 50.0, 60.0, 60.0, 30.0, 0.0);
+    vec![
+        Layer::Paint(shape(left(0.0)), rgb(PAPER)),
+        Layer::Paint(ring(left(0.0), left(4.0)), red),
+        Layer::Cut(
+            shape(left(4.0)),
+            vec![
+                Layer::Paint(plain(-10.0, 50.0 + bar_down, 160.0, 24.0), blue),
+                Layer::Paint(plain(20.0, 30.0, 30.0, 30.0), green),
+            ],
+        ),
+        Layer::Paint(shape(middle(0.0)), rgb(PAPER)),
+        Layer::Paint(ring(middle(0.0), middle(4.0)), red),
+        Layer::Paint(plain(125.0, 80.0, 100.0, 24.0), blue),
+        Layer::Paint(plain(140.0, 30.0, 30.0, 30.0), green),
+        Layer::Paint(shape(right), rgb(PAPER)),
+        Layer::Cut(
+            shape(right),
+            vec![
+                Layer::Paint(shape(circle), gold),
+                Layer::Cut(shape(circle), vec![Layer::Paint(plain(220.0, 75.0, 100.0, 10.0), blue)]),
+                Layer::Paint(plain(220.0, 130.0, 100.0, 10.0), green),
+            ],
+        ),
+    ]
+}
+
+#[test]
+fn every_pixel_of_the_rounded_corners_and_cuts_holds_its_worked_share_of_each_edge() {
+    for number in [0, 5] {
+        judge_every_pixel("box-corners", number, &painted(corners(false)), 3.0);
+        judge_every_pixel("box-cut", number, &cut_layers(0.0), 3.0);
+    }
+    judge_every_pixel("box-corners", 19, &painted(corners(true)), 3.0);
+    judge_every_pixel("box-cut", 19, &cut_layers(60.0), 3.0);
 }

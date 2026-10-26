@@ -3,14 +3,18 @@
 //! covers is read back. The processor and the card both take a shape's coverage from here.
 
 use draw::{Error, Map, Ring, Rounded};
+use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, BezPath, Shape};
 use vello_cpu::peniko::{Color, Fill};
 use vello_cpu::{Pixmap, RenderContext, Resources};
 
-use crate::{affine, Coverage};
+use crate::{affine, fill_coverage, Coverage};
 
 /// How far, in pixels before the map, a quarter circle's curve may lie from the true circle.
 const TOLERANCE: f64 = 0.01;
+
+/// How far, in pixels of the frame, a straight piece of a flattened curve may lie from the curve.
+const FLAT: f64 = 0.01;
 
 /// The coverage of a ring mapped by `map`: the share of each pixel inside its outer edge and not inside its inner edge.
 /// `None` when the ring holds no pixel of the frame.
@@ -25,6 +29,40 @@ pub fn ring_coverage(ring: Ring, map: Map, width: u32, height: u32) -> Result<Op
 /// The coverage of a rounded rectangle mapped by `map`; `None` when it holds no pixel of the frame.
 pub fn rounded_coverage(shape: Rounded, map: Map, width: u32, height: u32) -> Result<Option<Coverage>, Error> {
     coverage(&path_of(shape), shape, map, width, height)
+}
+
+/// The weights of a cut of `shape` under `map` (`docs/spec/box-edges.md`, sections 3 and 4): the coverage of the shape, or,
+/// for a box's own background whose layers already carry the coverage `k₁` of its rectangle `own`, the shape's coverage `k₂`
+/// divided by it, `min(255, round(255 · k₂ / k₁))`, 0 where `k₁` is 0, so that each pixel is weighed once. `None` when the cut
+/// holds no pixel of the frame.
+pub fn cut_weights(shape: Rounded, own: Option<Rect>, map: Map, width: u32, height: u32) -> Result<Option<Coverage>, Error> {
+    let Some(mut weights) = rounded_coverage(shape, map, width, height)? else {
+        return Ok(None);
+    };
+    let Some(rect) = own else {
+        return Ok(Some(weights));
+    };
+    let Some(box_coverage) = fill_coverage(rect, map, width, height)? else {
+        return Ok(None);
+    };
+    for line in 0..weights.height {
+        for column in 0..weights.width {
+            let (x, y) = (weights.left + column, weights.top + line);
+            let inside = x >= box_coverage.left
+                && x < box_coverage.left + box_coverage.width
+                && y >= box_coverage.top
+                && y < box_coverage.top + box_coverage.height;
+            let k1 = if inside {
+                u32::from(box_coverage.alpha[((y - box_coverage.top) * box_coverage.width + (x - box_coverage.left)) as usize])
+            } else {
+                0
+            };
+            let weight = &mut weights.alpha[(line * weights.width + column) as usize];
+            let k2 = u32::from(*weight);
+            *weight = if k1 == 0 { 0 } else { ((255 * k2 + k1 / 2) / k1).min(255) as u8 };
+        }
+    }
+    Ok(Some(weights))
 }
 
 /// The outline of a rounded rectangle: its sides and its quarter circles, as kurbo makes a circular arc.
@@ -59,8 +97,13 @@ fn coverage(path: &BezPath, bounds: Rounded, map: Map, width: u32, height: u32) 
     let mut resources = Resources::new();
     context.set_paint(Color::from_rgba8(255, 255, 255, 255));
     context.set_fill_rule(Fill::EvenOdd);
-    context.set_transform(Affine::translate((-left, -top)) * affine(map));
-    context.fill_path(path);
+    // The curves are flattened here, after the map, to straight pieces within `FLAT` of a pixel of the frame, so that the
+    // rasteriser, which flattens curves more coarsely, fills straight lines only (section 5).
+    let mut flat = BezPath::new();
+    kurbo::flatten(Affine::translate((-left, -top)) * affine(map) * path.clone(), FLAT, |element| {
+        flat.push(element)
+    });
+    context.fill_path(&flat);
     context.flush();
     let mut pixmap = Pixmap::new(box_width as u16, box_height as u16);
     context.render(&mut pixmap, &mut resources);

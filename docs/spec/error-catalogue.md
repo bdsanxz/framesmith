@@ -79,7 +79,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0031` | invalid | An element of the composition file stands in a place where the notation does not allow it. | Move the element to a place the message names, or remove it. |
 | `FS-0032` | invalid | A value in the composition file that must be a number is not one. | Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign. |
 | `FS-0033` | invalid | A value in the composition file that must be a time in seconds is not one. | Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit. |
-| `FS-0034` | invalid | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. | Write the length as a number of pixels, such as 40, or as a percentage, such as 50%, and not below 0 where the message says 0 or more. |
+| `FS-0034` | invalid | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. | Write the value in a form the attribute takes (`notation.md` section 6), and not below 0 where the message says 0 or more. |
 | `FS-0035` | unsupported | The project uses a form that is known and that this version does not draw or apply. | Remove what the message names, or wait for the sprint that brings it. |
 | `FS-0036` | failure | The video could not be made. | Put right what the message names (the folder, the disk or the system's video encoder), then run the command again. |
 | `FS-0037` | invalid | An option of `render`, or its value, is not one the command takes. | Give one of the options the message lists, with one of the values it names, or leave the option out. |

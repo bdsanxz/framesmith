@@ -20,6 +20,9 @@ pub struct RingMark {
 pub struct Cut {
     pub shape: Rounded,
     pub marks: Vec<Mark>,
+    /// The box's rectangle when the marks are its own background, which already carry that rectangle's coverage: the cut
+    /// then weighs each pixel so that it is weighed once, by the shape alone (`docs/spec/box-edges.md`, section 3, rule 1).
+    pub own: Option<Rect>,
 }
 
 /// A rectangle with each corner replaced by a quarter circle of `radius` that touches both of its sides, in pixels of the
@@ -171,6 +174,7 @@ impl Edges {
                 marks.push(Mark::Cut(Cut {
                     shape: outer,
                     marks: background,
+                    own: Some(rect),
                 }));
             }
         }
@@ -187,7 +191,11 @@ impl Edges {
         };
         if let Some(shape) = inner {
             if !children.is_empty() {
-                marks.push(Mark::Cut(Cut { shape, marks: children }));
+                marks.push(Mark::Cut(Cut {
+                    shape,
+                    marks: children,
+                    own: None,
+                }));
             }
         }
         marks

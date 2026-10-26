@@ -86,6 +86,16 @@ fn a_border_in_no_listed_form_is_reported_with_its_line_and_the_forms_taken() {
 #[test]
 fn a_negative_radius_and_an_unknown_overflow_are_reported_with_their_line() {
     assert_one_report("radius-negative", "border-radius=\"-4\"", "FS-0034", &["must be 0 or more"], 1);
+    // The radius is a plain number: the report names no form the radius does not take, and a percentage is not a number.
+    let (_, report, _, _) = check_and_render("radius-negative-words", "border-radius=\"-4\"");
+    assert!(!report.contains('%') && !report.contains("percentage"), "{report}");
+    assert_one_report(
+        "radius-percentage",
+        "border-radius=\"50%\"",
+        "FS-0032",
+        &["`border-radius=\"50%\"` is not a number"],
+        1,
+    );
     assert_one_report("radius-word", "border-radius=\"round\"", "FS-0032", &["is not a number"], 1);
     assert_one_report(
         "overflow-clip",

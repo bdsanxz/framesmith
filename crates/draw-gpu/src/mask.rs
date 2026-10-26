@@ -46,10 +46,12 @@ pub enum MaskKey {
         frame: (u32, u32),
     },
     /// A rounded rectangle or a ring of a border (`docs/spec/box-edges.md`, section 7): the five numbers of its outer edge and
-    /// of its inner edge (none for a rounded rectangle), the map and the size of the frame, each exactly.
+    /// of its inner edge (none for a rounded rectangle), the box's rectangle when it cuts the box's own background (section 3,
+    /// rule 1), the map and the size of the frame, each exactly.
     Shape {
         outer: [u64; 5],
         inner: Option<[u64; 5]>,
+        own: Option<(i32, i32, u32, u32)>,
         map: [u64; 6],
         frame: (u32, u32),
     },
@@ -288,6 +290,7 @@ impl Masks {
         queue: &wgpu::Queue,
         layout: &wgpu::BindGroupLayout,
         ring: Ring,
+        own: Option<Rect>,
         map: Map,
         (width, height): (u32, u32),
     ) -> Result<MaskKey, Error> {
@@ -295,6 +298,7 @@ impl Masks {
         let key = MaskKey::Shape {
             outer: numbers(ring.outer),
             inner: ring.inner.map(numbers),
+            own: own.map(|rect| (rect.left, rect.top, rect.width, rect.height)),
             map: [map.a, map.b, map.c, map.d, map.e, map.f].map(f64::to_bits),
             frame: (width, height),
         };
@@ -302,7 +306,11 @@ impl Masks {
             self.touch(key);
             return Ok(key);
         }
-        let placed = match draw_cpu::ring_coverage(ring, map, width, height)? {
+        let found = match (own, ring.inner) {
+            (Some(_), None) => draw_cpu::cut_weights(ring.outer, own, map, width, height)?,
+            _ => draw_cpu::ring_coverage(ring, map, width, height)?,
+        };
+        let placed = match found {
             Some(found) => Some(upload(
                 device,
                 queue,

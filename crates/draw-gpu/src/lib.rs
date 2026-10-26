@@ -736,6 +736,7 @@ impl CardRenderer {
             self.card.queue(),
             &self.glyph_layout,
             mark.ring,
+            None,
             map,
             (plan.width, plan.height),
         )?;
@@ -787,6 +788,7 @@ impl CardRenderer {
             self.card.queue(),
             &self.glyph_layout,
             shape,
+            cut.own,
             map,
             (plan.width, plan.height),
         )?;

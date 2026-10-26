@@ -21,7 +21,7 @@ use vello_cpu::{Glyph, Image, ImageSource, PixelMetadata, Pixmap, RenderContext,
 
 mod edges;
 
-pub use edges::{ring_coverage, rounded_coverage};
+pub use edges::{cut_weights, ring_coverage, rounded_coverage};
 
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
@@ -253,7 +253,7 @@ fn draw_cut(bytes: &mut [u8], width: u32, height: u32, cut: &Cut, map: Map, regi
             None => Ok(()),
         };
     }
-    let Some(coverage) = rounded_coverage(cut.shape, map, width, height)? else {
+    let Some(coverage) = cut_weights(cut.shape, cut.own, map, width, height)? else {
         return Ok(());
     };
     let held = Rect {

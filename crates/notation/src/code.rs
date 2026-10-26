@@ -374,7 +374,7 @@ impl Code {
             Code::NotANumber => "Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign.",
             Code::NotATime => "Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit.",
             Code::LengthNotAccepted => {
-                "Write the length as a number of pixels, such as 40, or as a percentage, such as 50%, and not below 0 where the message says 0 or more."
+                "Write the value in a form the attribute takes (`notation.md` section 6), and not below 0 where the message says 0 or more."
             }
             Code::FormNotSupported => "Remove what the message names, or wait for the sprint that brings it.",
             Code::VideoNotMade => "Put right what the message names (the folder, the disk or the system's video encoder), then run the command again.",
