@@ -83,6 +83,11 @@ pub(crate) const SPAN_TAKES: &[&str] = &[
     "color",
     "white-space",
     "text-transform",
+    "font-variant-numeric",
+    "text-shadow",
+    "text-stroke",
+    "start",
+    "duration",
     "typed",
 ];
 
@@ -139,13 +144,30 @@ pub(crate) struct Dressing {
     pub(crate) outline: Option<Outline>,
 }
 
-/// A paragraph placed in its place: its rectangle in the frame, its lines and its shadows and outline. The colour of each
-/// run is in the block.
+/// What each piece of a text draws around its glyphs, and when it is shown (`docs/spec/text.md`, sections 6.5 and 6.6):
+/// the dressings of the pieces, each once, in the order of the first piece that has it; and for each piece of the block,
+/// the dressing it has, as an index of `dressings`, and the clips of the spans around it, the outermost first. A glyph of a
+/// piece past the end of `pieces` has the first dressing and no clip.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Looks {
+    pub(crate) dressings: Vec<Dressing>,
+    pub(crate) pieces: Vec<(usize, Vec<(Time, Time)>)>,
+}
+
+impl Looks {
+    /// The dressing of piece `piece`, as an index of `dressings`.
+    pub(crate) fn dressing_of(&self, piece: usize) -> usize {
+        self.pieces.get(piece).map_or(0, |(dressing, _)| *dressing)
+    }
+}
+
+/// A paragraph placed in its place: its rectangle in the frame, its lines and what its pieces draw around their glyphs.
+/// The colour of each run is in the block.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Paragraph {
     pub(crate) rect: Rect,
     pub(crate) block: Block,
-    pub(crate) dressing: Dressing,
+    pub(crate) looks: Looks,
     pub(crate) content: Content,
 }
 
@@ -587,6 +609,42 @@ pub(crate) fn dressing_of(tree: &[Node], index: usize) -> Dressing {
     Dressing { shadows, outline }
 }
 
+/// What each piece of the `<text>` at `index` draws around its glyphs, and the clips of the spans around it
+/// (`docs/spec/text.md`, sections 6.5, rules 1 and 10, and 6.6, rule 5). Each piece of words has the dressing of the element
+/// it is in, the text or a span, which takes what it does not write from the elements above it; a room has the text's.
+pub(crate) fn looks_of(tree: &[Node], index: usize) -> Looks {
+    let (_, _, owners) = pieces_of(tree, index);
+    let mut dressings: Vec<Dressing> = Vec::new();
+    let mut pieces = Vec::with_capacity(owners.len());
+    let index_of = |dressings: &mut Vec<Dressing>, dressing: Dressing| match dressings.iter().position(|known| *known == dressing) {
+        Some(at) => at,
+        None => {
+            dressings.push(dressing);
+            dressings.len() - 1
+        }
+    };
+    for owner in &owners {
+        let element = owner.unwrap_or(index);
+        let dressing = index_of(&mut dressings, dressing_of(tree, element));
+        let mut clips = Vec::new();
+        let mut at = Some(element);
+        while let Some(current) = at.filter(|current| *current != index) {
+            let node = &tree[current];
+            let time = |name: &str| node.attribute(name).and_then(|attribute| attribute.time());
+            if let (Some(start), Some(duration)) = (time("start"), time("duration")) {
+                clips.push((start, duration));
+            }
+            at = node.parent();
+        }
+        clips.reverse();
+        pieces.push((dressing, clips));
+    }
+    if dressings.is_empty() {
+        dressings.push(dressing_of(tree, index));
+    }
+    Looks { dressings, pieces }
+}
+
 /// The style of the text at `index` (`text.md` section 8): each text attribute that the element, or the nearest
 /// element above it, writes, and the defaults of the table where none does. A letter spacing in ems is taken in
 /// pixels of the font size of the element that writes it. Gives the style and the colour, which is black where
@@ -771,7 +829,7 @@ pub(crate) fn place_text(
     Ok(Paragraph {
         rect,
         block,
-        dressing: dressing_of(tree, index),
+        looks: looks_of(tree, index),
         content,
     })
 }
@@ -785,7 +843,7 @@ pub(crate) struct ItemText {
     pub(crate) width: f64,
     pub(crate) height: f64,
     pub(crate) baseline: Option<f64>,
-    pub(crate) dressing: Dressing,
+    pub(crate) looks: Looks,
     pub(crate) content: Content,
 }
 
@@ -835,7 +893,7 @@ pub(crate) fn lay_out_item(
         width,
         height,
         baseline,
-        dressing: dressing_of(tree, index),
+        looks: looks_of(tree, index),
         content,
     })
 }
@@ -1241,14 +1299,13 @@ fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
         // The notation's check judges `typed` (`docs/spec/notation.md` section 7.12).
         "typed" => None,
         "margin" | "padding" => sides_refusal(name, attribute).map(|(code, message)| fault(code, message)),
-        "white-space" if value != "normal" => Some(fault(
-            Code::FormNotSupported,
-            format!("`white-space=\"{value}\"` on <span> is not a form this version supports: normal"),
-        )),
-        "text-transform" if value != "none" => Some(fault(
-            Code::FormNotSupported,
-            format!("`text-transform=\"{value}\"` on <span> is not a form this version supports: none"),
-        )),
+        // A span's window is read as a box's is (`docs/spec/text.md` section 6.5, rule 10); the notation judges the pair.
+        "start" | "duration" => attribute.time().is_none().then(|| {
+            fault(
+                Code::NotATime,
+                format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
+            )
+        }),
         _ => match read_text_attribute(attribute, &mut TextAttrs::default()) {
             Err((code, message)) => Some(fault(code, message)),
             Ok(()) => None,

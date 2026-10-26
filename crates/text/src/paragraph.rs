@@ -6,7 +6,9 @@ use std::fmt;
 use std::ops::Range;
 use std::sync::Arc;
 
-use parley::{BaseDirection, FontFamily, FontFamilyName, FontFeatures, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
+use parley::{
+    BaseDirection, FontFamily, FontFamilyName, FontFeatures, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty, TextWrapMode,
+};
 
 use crate::fonts::Fonts;
 use crate::picture;
@@ -353,11 +355,38 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             builder.push(StyleProperty::LetterSpacing(style.letter_spacing + width), range);
         }
     }
-    let mut layout = builder.build(&flat.text);
-    // A paragraph with `white-space: nowrap` is one line whatever its width (section 6.6, rule 3).
-    let nowrap = pieces
+    // A paragraph whose words are all `white-space: nowrap` is one line whatever its width (section 6.6, rule 3). Where only
+    // some are, no line ends inside them: the engine takes the mode of the character before each place a line may end.
+    // The white space a piece begins with keeps the mode of the piece before it, since the collapse of section 5.1 moved
+    // it there from the words before the piece.
+    let words: Vec<bool> = pieces
         .iter()
-        .any(|piece| matches!(piece, Piece::Words { style, .. } if style.nowrap));
+        .filter_map(|piece| match piece {
+            Piece::Words { style, .. } => Some(style.nowrap),
+            _ => None,
+        })
+        .collect();
+    let nowrap = !words.is_empty() && words.iter().all(|nowrap| *nowrap);
+    if !nowrap && words.iter().any(|nowrap| *nowrap) {
+        let mut before = false;
+        for (range, number) in runs_of(&flat.owner) {
+            let Piece::Words { style, .. } = &pieces[number] else {
+                continue;
+            };
+            let lead = flat.text[range.clone()]
+                .char_indices()
+                .find(|(_, character)| !character.is_whitespace())
+                .map_or(range.len(), |(at, _)| at);
+            if before && lead > 0 {
+                builder.push(StyleProperty::TextWrapMode(TextWrapMode::NoWrap), range.start..range.start + lead);
+            }
+            if style.nowrap && lead < range.len() {
+                builder.push(StyleProperty::TextWrapMode(TextWrapMode::NoWrap), range.start + lead..range.end);
+            }
+            before = style.nowrap;
+        }
+    }
+    let mut layout = builder.build(&flat.text);
     layout.break_all_lines(if nowrap { None } else { width });
 
     // First pass: every character must come from a face of its own piece, and the width of each line is taken without

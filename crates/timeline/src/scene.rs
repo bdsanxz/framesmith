@@ -168,6 +168,9 @@ struct Placed {
 #[derive(Clone, Debug, PartialEq)]
 struct PlacedText {
     slot: Slot,
+    /// The frames each piece of the paragraph is shown in: the text's window, cut to that of each span around the piece
+    /// (`docs/spec/render-command.md` section 4.2, rule 5). A piece past the end is shown with the text.
+    windows: Vec<Window>,
     clip: Option<Rect>,
     paragraph: Paragraph,
     file: String,
@@ -359,15 +362,23 @@ impl Scene {
                 continue;
             }
             let mark = match entry {
-                Entry::Box(placed) if clipped => fill_mark(placed),
-                Entry::Box(placed) => placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, None)),
-                Entry::Text(text) if clipped => text_mark(text, number, time),
-                Entry::Text(text) => text_mark(text, number, time).map(|mark| match mark {
-                    Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
-                    other => other,
-                }),
+                Entry::Box(placed) if clipped => fill_mark(placed).into_iter().collect(),
+                Entry::Box(placed) => placed
+                    .fill
+                    .as_ref()
+                    .and_then(|fill| fill.mark(placed.slot.rect, None))
+                    .into_iter()
+                    .collect(),
+                Entry::Text(text) if clipped => text_marks(text, number, time),
+                Entry::Text(text) => text_marks(text, number, time)
+                    .into_iter()
+                    .map(|mark| match mark {
+                        Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
+                        other => other,
+                    })
+                    .collect(),
             };
-            marks.extend(mark);
+            marks.extend::<Vec<Mark>>(mark);
         }
         marks
     }
@@ -384,58 +395,73 @@ fn fill_mark(placed: &Placed) -> Option<Mark> {
     placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, placed.clip))
 }
 
-/// The glyph runs of a paragraph at frame `number`, at `time`, moved to its place in the frame, and the mark that draws them.
-fn text_mark(text: &PlacedText, number: u64, time: Time) -> Option<Mark> {
+/// The glyph runs of a paragraph at frame `number`, at `time`, moved to its place in the frame, and the marks that draw
+/// them: one for each dressing among the pieces shown, in the order of the first piece that has it, each with the glyphs and
+/// the pictures of its own pieces (`docs/spec/text.md` section 6.6, rule 5). A piece of a span whose window does not hold
+/// the frame is left out; its room stays (`docs/spec/render-command.md` section 4.2, rule 5).
+fn text_marks(text: &PlacedText, number: u64, time: Time) -> Vec<Mark> {
     let paragraph = &text.paragraph;
+    let looks = &paragraph.looks;
     let (block, offset) = paragraph.block_at(number, time);
-    if block.runs.is_empty() && block.pictures.is_empty() {
-        return None;
-    }
     let (left, top) = (paragraph.rect.left as f32 + offset, paragraph.rect.top as f32);
-    let runs = block
-        .runs
-        .iter()
-        .map(|run| GlyphRun {
-            font: Font {
-                data: run.font.clone(),
-                index: run.index,
-            },
-            size: run.size,
-            skew_degrees: run.skew_degrees,
-            colour: Colour {
-                red: run.colour[0],
-                green: run.colour[1],
-                blue: run.colour[2],
-            },
-            glyphs: run
-                .glyphs
-                .iter()
-                .map(|glyph| Glyph {
-                    id: glyph.id,
-                    x: glyph.x + left,
-                    y: glyph.y + top,
+    let shown = |piece: usize| text.windows.get(piece).is_none_or(|window| window.contains(number));
+    let mut marks = Vec::new();
+    for (index, dressing) in looks.dressings.iter().enumerate() {
+        let held = |piece: usize| shown(piece) && looks.dressing_of(piece) == index;
+        let runs: Vec<GlyphRun> = block
+            .runs
+            .iter()
+            .filter_map(|run| {
+                let glyphs: Vec<Glyph> = run
+                    .glyphs
+                    .iter()
+                    .filter(|glyph| held(glyph.source.piece))
+                    .map(|glyph| Glyph {
+                        id: glyph.id,
+                        x: glyph.x + left,
+                        y: glyph.y + top,
+                    })
+                    .collect();
+                (!glyphs.is_empty()).then(|| GlyphRun {
+                    font: Font {
+                        data: run.font.clone(),
+                        index: run.index,
+                    },
+                    size: run.size,
+                    skew_degrees: run.skew_degrees,
+                    colour: Colour {
+                        red: run.colour[0],
+                        green: run.colour[1],
+                        blue: run.colour[2],
+                    },
+                    glyphs,
                 })
-                .collect(),
-        })
-        .collect();
-    let pictures = block
-        .pictures
-        .iter()
-        .map(|picture| GlyphPicture {
-            width: picture.width,
-            height: picture.height,
-            pixels: picture.pixels.clone(),
-            x: picture.x + left,
-            y: picture.y + top,
-        })
-        .collect();
-    Some(Mark::Text(TextMark {
-        runs,
-        pictures,
-        clip: text.clip,
-        shadows: paragraph.dressing.shadows.clone(),
-        outline: paragraph.dressing.outline,
-    }))
+            })
+            .collect();
+        let pictures: Vec<GlyphPicture> = block
+            .pictures
+            .iter()
+            .filter(|picture| held(picture.source.piece))
+            .map(|picture| GlyphPicture {
+                width: picture.width,
+                height: picture.height,
+                pixels: picture.pixels.clone(),
+                x: picture.x + left,
+                y: picture.y + top,
+            })
+            .collect();
+        if runs.is_empty() && pictures.is_empty() {
+            continue;
+        }
+        marks.push(Mark::Text(TextMark {
+            runs,
+            pictures,
+            clip: text.clip,
+            shadows: dressing.shadows.clone(),
+            outline: dressing.outline,
+        }));
+    }
+    marks
 }
 
 /// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, and a `<box>` what
@@ -720,7 +746,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                     paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute, clock_of(index)).map(|item| Paragraph {
                         rect,
                         block: item.block,
-                        dressing: item.dressing,
+                        looks: item.looks,
                         content: item.content,
                     })
                 }
@@ -729,10 +755,24 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             match placed {
                 Ok(paragraph) => {
                     let slot = slot_of(form.clip, parent_place, paragraph.rect, fps);
+                    // A span's start counts from the nearest clip around it, and its window is cut to its text's and to
+                    // that of each span around it (`docs/spec/render-command.md` section 4.2, rules 1, 3 and 5).
+                    let windows = paragraph
+                        .looks
+                        .pieces
+                        .iter()
+                        .map(|(_, clips)| {
+                            clips
+                                .iter()
+                                .fold(slot, |around, clip| slot_of(Some(*clip), around, paragraph.rect, fps))
+                                .window
+                        })
+                        .collect();
                     entry_at[index] = Some(entries.len());
                     rect_of[index] = Some(paragraph.rect);
                     entries.push(Entry::Text(Box::new(PlacedText {
                         slot,
+                        windows,
                         clip: canvas.clip,
                         paragraph,
                         file: canvas.file.to_string(),
