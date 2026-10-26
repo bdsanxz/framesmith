@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use draw::{
-    Background, Colour, DisplayList, Edges, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer, Step,
-    TextMark,
+    Background, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer,
+    Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
@@ -160,6 +160,7 @@ impl Fill {
                         clip: Some(held),
                         marks: vec![background],
                         turn: None,
+                        filter: Filter::NONE,
                     }),
                 }
             }
@@ -351,7 +352,7 @@ impl Scene {
                 let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
-                if map.is_identity() && opacity == 1.0 && turn.is_none() {
+                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false);
@@ -362,6 +363,7 @@ impl Scene {
                             clip: mover.clip,
                             marks: held,
                             turn,
+                            filter: mover.filter,
                         }));
                     }
                 }
@@ -432,6 +434,7 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
             clip: Some(clip),
             marks,
             turn: None,
+            filter: Filter::NONE,
         })],
         _ => marks,
     }
@@ -998,6 +1001,7 @@ fn gather_movers(
             rect,
             origin: Mover::origin_in(rect, movement.origin),
             perspective: movement.perspective,
+            filter: movement.filter,
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
         });

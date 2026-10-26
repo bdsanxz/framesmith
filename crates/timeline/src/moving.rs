@@ -1,15 +1,15 @@
 //! The motion of an element (`docs/spec/render-command.md`, section 4.5): its movement attributes and its tweens as this
 //! version reads them, and its map and opacity at a time.
 
-use draw::{Map, Turn};
+use draw::{Filter, Map, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Code, Element, Length, Node};
 use timebase::Time;
 
-/// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, and the
-/// `perspective` of a turn in space.
-pub(crate) const MOVEMENT: [&str; 11] = [
+/// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, the
+/// `perspective` of a turn in space, and the `blur` and `brightness` of its picture.
+pub(crate) const MOVEMENT: [&str; 13] = [
     "x",
     "y",
     "scale",
@@ -21,19 +21,22 @@ pub(crate) const MOVEMENT: [&str; 11] = [
     "rotate-y",
     "transform-origin",
     "perspective",
+    "blur",
+    "brightness",
 ];
 
 /// A refusal found while reading motion: its code, its line and its message.
 pub(crate) type Found = (Code, u32, String);
 
 /// What an element writes of its motion: its own value of each property (the attribute, or the starting value of
-/// `docs/spec/notation.md` section 8.1), its origin, its `perspective` if it writes one, and the lines of the attributes
-/// that write them.
+/// `docs/spec/notation.md` section 8.1), its origin, its `perspective` if it writes one, the blur and brightness of its
+/// picture, and the lines of the attributes that write them.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Movement {
     pub(crate) own: [f64; PROP_COUNT],
     pub(crate) origin: (Length, Length),
     pub(crate) perspective: Option<f64>,
+    pub(crate) filter: Filter,
     pub(crate) lines: Vec<u32>,
 }
 
@@ -45,13 +48,14 @@ impl Movement {
 }
 
 /// Reads the movement attributes of an element. A `transform-origin` that is not two lengths is reported (`FS-0034`), and a
-/// `perspective` of 0 or less (`FS-0053`); a value that is not a number is the form check's, and is left at its starting
-/// value here (a `perspective` that is not a number, at none).
+/// `perspective` of 0 or less (`FS-0053`), and a `blur` or a `brightness` below 0 (`FS-0034`); a value that is not a number
+/// is the form check's, and is left at its starting value here (a `perspective` that is not a number, at none).
 pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
     let mut movement = Movement {
         own: PROPS.map(Prop::own_value),
         origin: (Length::Percent(50.0), Length::Percent(50.0)),
         perspective: None,
+        filter: Filter::NONE,
         lines: Vec::new(),
     };
     let mut found = Vec::new();
@@ -84,6 +88,29 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
                     format!(
                         "`perspective=\"{}\"` is not above 0: a perspective is the distance of the eye from the frame, in pixels",
                         attribute.shown()
+                    ),
+                )),
+                None => {}
+            }
+            continue;
+        }
+        if name == "blur" || name == "brightness" {
+            match attribute.number() {
+                Some(value) if value >= 0.0 => match name {
+                    "blur" => movement.filter.blur = value,
+                    _ => movement.filter.brightness = value,
+                },
+                Some(_) => found.push((
+                    Code::LengthNotAccepted,
+                    attribute.line(),
+                    format!(
+                        "`{name}=\"{}\"` is below 0: {}",
+                        attribute.shown(),
+                        if name == "blur" {
+                            "a blur is a standard deviation in pixels, 0 or more"
+                        } else {
+                            "a brightness is a factor the colours are multiplied by, 0 or more"
+                        }
                     ),
                 )),
                 None => {}
@@ -203,8 +230,8 @@ pub(crate) fn moves(element: Element) -> bool {
 }
 
 /// An element that moves, as the scene keeps it (`docs/spec/timeline.md` section 5): its entries, from `first` up to `end`,
-/// its own values, its rectangle and its origin in the frame, its `perspective`, its tracks, and the rectangle of the canvas
-/// it stands on when that is shown from another file.
+/// its own values, its rectangle and its origin in the frame, its `perspective`, the blur and brightness of its picture, its
+/// tracks, and the rectangle of the canvas it stands on when that is shown from another file.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Mover {
     pub(crate) first: usize,
@@ -213,6 +240,7 @@ pub(crate) struct Mover {
     pub(crate) rect: Rect,
     pub(crate) origin: (f64, f64),
     pub(crate) perspective: Option<f64>,
+    pub(crate) filter: Filter,
     pub(crate) motion: Option<ElementMotion>,
     pub(crate) clip: Option<Rect>,
 }

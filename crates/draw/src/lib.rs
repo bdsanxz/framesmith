@@ -11,10 +11,12 @@ use layout::Rect;
 
 mod background;
 mod edges;
+mod filter;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
+pub use filter::{blur_weights, Filter};
 pub use turn::Turn;
 
 /// An opaque colour: red, green and blue, each from 0 to 255.
@@ -221,6 +223,9 @@ pub struct Group {
     /// The turn in space of the group's flat picture, done before its clip (`docs/spec/render-command.md`, section 4.5,
     /// rule 10); `None` for a group that is not turned.
     pub turn: Option<Turn>,
+    /// The blur and brightness of the group's picture, done before its turn and its clip (`docs/spec/render-command.md`,
+    /// section 4.5, rule 11); [`Filter::NONE`] for a group that is not filtered.
+    pub filter: Filter,
 }
 
 impl TextMark {

@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 
 pub mod agreement;
+pub mod gaussian;
 pub mod png;
 pub mod worked;
 

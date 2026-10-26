@@ -3,7 +3,7 @@
 //! `docs/spec/card-renderer.md` section 4, and a square border of whole pixels is the processor's picture exactly. Each test
 //! needs a graphics card that frx7 can draw with, so each is reference machine only (`docs/dev/gates.md` section 4).
 
-use draw::{Colour, Edges, Frame, Group, Line, Map, Mark, Picture, Renderer, Rgba, Step};
+use draw::{Colour, Edges, Filter, Frame, Group, Line, Map, Mark, Picture, Renderer, Rgba, Step};
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
 use layout::Rect;
@@ -156,6 +156,7 @@ fn reference_machine_only_cut_children_agree_with_the_processor() {
             clip: None,
             marks: boxed(24.0, Some((6.0, true)), true, children),
             turn: None,
+            filter: Filter::NONE,
         })]),
     );
 }

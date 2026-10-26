@@ -12,8 +12,8 @@ use std::ops::Range;
 use std::sync::{mpsc, Arc};
 
 use draw::{
-    Background, Colour, Cut, DisplayList, Error, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer, Rgba, Ring, RingMark,
-    Step, TextMark, Turn,
+    blur_weights, Background, Colour, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer,
+    Rgba, Ring, RingMark, Step, TextMark, Turn,
 };
 use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
 use gpu::{wgpu, Card};
@@ -35,6 +35,10 @@ const GLYPH_SHADER: &str = include_str!("glyph.wgsl");
 /// The shader of the layers of a background: `place_layer_corner` for a corner, `paint_layer` for its colour (section 11).
 const PAINT_SHADER: &str = include_str!("paint.wgsl");
 const TURN_SHADER: &str = include_str!("turn.wgsl");
+
+/// The shader of a pass of the blur and brightness of a group: `place_filter_corner` for a corner, `paint_filtered` for each
+/// pixel of the next texture (section 10.7).
+const FILTER_SHADER: &str = include_str!("filter.wgsl");
 
 /// The format of the picture: 8 bits a channel, with no conversion between colour spaces, so that
 /// the colour value `v` is drawn as `v / 255` and stored as `v`.
@@ -111,9 +115,11 @@ pub struct CardRenderer {
     paint_pipeline: wgpu::RenderPipeline,
     turn_pipeline: wgpu::RenderPipeline,
     cut_pipeline: wgpu::RenderPipeline,
+    filter_pipeline: wgpu::RenderPipeline,
     glyph_layout: wgpu::BindGroupLayout,
     paint_layout: wgpu::BindGroupLayout,
     turn_layout: wgpu::BindGroupLayout,
+    filter_layout: wgpu::BindGroupLayout,
     masks: Masks,
 }
 
@@ -370,6 +376,76 @@ impl CardRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let filter_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("filter"),
+            source: wgpu::ShaderSource::Wgsl(FILTER_SHADER.into()),
+        });
+        let filter_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("filtered group"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let filter_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("filter"),
+            bind_group_layouts: &[Some(&filter_layout)],
+            immediate_size: 0,
+        });
+        // Each pass writes every pixel of its texture: nothing is blended.
+        let filter_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("filter"),
+            layout: Some(&filter_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &filter_shader,
+                entry_point: Some("place_filter_corner"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &buffers,
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &filter_shader,
+                entry_point: Some("paint_filtered"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: FORMAT,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
         Ok(CardRenderer {
             card,
             pipeline,
@@ -378,9 +454,11 @@ impl CardRenderer {
             paint_pipeline,
             turn_pipeline,
             cut_pipeline,
+            filter_pipeline,
             glyph_layout,
             paint_layout,
             turn_layout,
+            filter_layout,
             masks: Masks::new(),
         })
     }
@@ -500,6 +578,13 @@ impl CardRenderer {
                         };
                         pass.set_pipeline(&self.turn_pipeline);
                         pass.set_bind_group(0, turned, &[]);
+                    }
+                    Source::Filtered(layer) => {
+                        let Some(filtered) = &layers[*layer].filtered else {
+                            return Err(Error::new("a pass of a filtered group was drawn with no numbers"));
+                        };
+                        pass.set_pipeline(&self.filter_pipeline);
+                        pass.set_bind_group(0, filtered, &[]);
                     }
                     Source::Paint => {
                         let Some(group) = &paint_group else {
@@ -658,12 +743,19 @@ impl CardRenderer {
         if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
             return self.plan_turned(plan, target, scissor, group, map, opacity, turn.about(map));
         }
-        if opacity == 1.0 {
+        let filtered = !group.filter.is_none();
+        if opacity == 1.0 && !filtered {
             return self.plan_marks(plan, target, scissor, &group.marks, map);
         }
-        let layer = plan.layers.len();
+        let mut layer = plan.layers.len();
         plan.layers.push(self.layer(plan.width, plan.height));
-        self.plan_marks(plan, Target::Layer(layer), scissor, &group.marks, map)?;
+        if filtered {
+            // The blur reaches across the clip, which cuts the picture only after it (section 10.7).
+            self.plan_marks(plan, Target::Layer(layer), [0, 0, plan.width, plan.height], &group.marks, map)?;
+            layer = self.plan_filter(plan, layer, group.filter, map);
+        } else {
+            self.plan_marks(plan, Target::Layer(layer), scissor, &group.marks, map)?;
+        }
         let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
         let corners = (0.0, 0.0, plan.width as f32, plan.height as f32);
         let faded = opacity as f32;
@@ -710,12 +802,15 @@ impl CardRenderer {
         numbers[12..15].copy_from_slice(&[sin_b as f32, (-sin_a * cos_b) as f32, turn.perspective as f32]);
         numbers[16] = plan.width as f32;
         numbers[17] = plan.height as f32;
-        let layer = plan.layers.len();
-        let mut turned = self.layer(plan.width, plan.height);
-        turned.turned = Some(self.turn_numbers(&turned, &numbers));
-        plan.layers.push(turned);
+        let mut layer = plan.layers.len();
+        plan.layers.push(self.layer(plan.width, plan.height));
         let whole = [0, 0, plan.width, plan.height];
         self.plan_marks(plan, Target::Layer(layer), whole, &group.marks, map)?;
+        if !group.filter.is_none() {
+            layer = self.plan_filter(plan, layer, group.filter, map);
+        }
+        let turned = self.turn_numbers(&plan.layers[layer], &numbers);
+        plan.layers[layer].turned = Some(turned);
         let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
         let corners = (0.0, 0.0, plan.width as f32, plan.height as f32);
         push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], [1.0; 4]);
@@ -830,6 +925,74 @@ impl CardRenderer {
         Ok(())
     }
 
+    /// The passes of the blur and brightness of a group whose marks are drawn in the texture `layer`, drawn with `map`
+    /// (section 10.7): a pass across and a pass down that also brightens, or with no blur one pass that only brightens, each
+    /// into a new texture. Gives the texture of the last pass.
+    fn plan_filter(&mut self, plan: &mut Planned, layer: usize, filter: Filter, map: Map) -> usize {
+        let weights = blur_weights(filter.sigma(map), plan.width.max(plan.height));
+        let reach = (weights.len() / 2) as f32;
+        let passes: &[(f32, f32)] = if reach > 0.0 { &[(0.0, 0.0), (1.0, 1.0)] } else { &[(0.0, 1.0)] };
+        let weights: Vec<f32> = weights.iter().map(|weight| *weight as f32).collect();
+        let mut from = layer;
+        for &(direction, brightens) in passes {
+            let into = plan.layers.len();
+            let mut next = self.layer(plan.width, plan.height);
+            next.filtered = Some(self.filter_numbers(
+                &plan.layers[from],
+                [direction, reach, filter.brightness as f32, brightens],
+                &weights,
+            ));
+            plan.layers.push(next);
+            let first = (plan.floats.len() / VERTEX_FLOATS) as u32;
+            let corners = (0.0, 0.0, plan.width as f32, plan.height as f32);
+            push_quad(&mut plan.floats, plan.width, plan.height, corners, [0.0, 0.0], [1.0; 4]);
+            plan.draws.push(Draw {
+                target: Target::Layer(into),
+                scissor: [0, 0, plan.width, plan.height],
+                vertices: first..first + CORNERS,
+                source: Source::Filtered(into),
+            });
+            from = into;
+        }
+        from
+    }
+
+    /// The bind group of a pass of a filter: the texture it reads, the numbers of the pass and the weights.
+    fn filter_numbers(&self, from: &Layer, numbers: [f32; 4], weights: &[f32]) -> wgpu::BindGroup {
+        let device = self.card.device();
+        let buffer = |label: &str, values: &[f32], usage: wgpu::BufferUsages| {
+            let bytes: Vec<u8> = values.iter().flat_map(|value| value.to_ne_bytes()).collect();
+            let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                size: bytes.len() as u64,
+                usage: usage | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            self.card.queue().write_buffer(&buffer, 0, &bytes);
+            buffer
+        };
+        let numbers = buffer("filter pass", &numbers, wgpu::BufferUsages::UNIFORM);
+        let weights = buffer("filter weights", weights, wgpu::BufferUsages::STORAGE);
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("filtered group"),
+            layout: &self.filter_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&from.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: numbers.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: weights.as_entire_binding(),
+                },
+            ],
+        })
+    }
+
     /// The bind group that reads a turned group's texture and the numbers of its turn.
     fn turn_numbers(&self, layer: &Layer, numbers: &[f32; 20]) -> wgpu::BindGroup {
         let device = self.card.device();
@@ -888,6 +1051,7 @@ impl CardRenderer {
             view,
             bind_group,
             turned: None,
+            filtered: None,
         }
     }
 
@@ -1127,6 +1291,9 @@ struct Layer {
     bind_group: wgpu::BindGroup,
     /// For a group turned in space, the bind group of its texture and the numbers of its turn (section 10.6).
     turned: Option<wgpu::BindGroup>,
+    /// For a pass of the blur and brightness of a group, the bind group of the texture it reads, its numbers and its weights
+    /// (section 10.7).
+    filtered: Option<wgpu::BindGroup>,
 }
 
 /// One draw call of a frame: where it draws, the rectangle it is clipped to (left, top, width, height), the vertices of its
@@ -1151,6 +1318,8 @@ enum Source {
     Turned(usize),
     /// A mask that keeps a cut's texture only inside its shape.
     KeepInside(MaskKey),
+    /// A pass of the blur and brightness of a group, written into the texture of that index (section 10.7).
+    Filtered(usize),
 }
 
 /// Begins a render pass on a view, with what it starts from.

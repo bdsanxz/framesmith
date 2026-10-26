@@ -11,8 +11,8 @@
 use std::sync::Arc;
 
 use draw::{
-    level, Background, Cut, DisplayList, Error, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture, Renderer, ResolvedLayer,
-    RingMark, Shadow, Step, TextMark, Turn,
+    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture,
+    Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, Stroke};
@@ -83,9 +83,10 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
     Ok(())
 }
 
-/// Draws the marks of an element that moves (`docs/spec/render-command.md`, section 4.5, rules 6 and 7): with its map put
-/// after `map`, cut to its clip; with an opacity below 1 into a transparent layer, which is then laid over the picture with
-/// each of its values times the opacity, rounded to the nearest level, halves up. At opacity 0 nothing is drawn.
+/// Draws the marks of an element that moves (`docs/spec/render-command.md`, section 4.5, rules 6, 7 and 11): with its map put
+/// after `map`, cut to its clip; with an opacity below 1, or a blur or brightness, into a transparent layer, which is blurred
+/// and brightened over the whole frame and then laid over the picture in its clip with each of its values times the
+/// opacity, rounded to the nearest level, halves up. At opacity 0 nothing is drawn.
 fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map, region: Region) -> Result<(), Error> {
     let opacity = if group.opacity.is_nan() {
         0.0
@@ -109,11 +110,18 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
     if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
         return draw_turned(bytes, width, height, group, map, opacity, turn.about(map), region);
     }
-    if opacity == 1.0 {
+    let filtered = !group.filter.is_none();
+    if opacity == 1.0 && !filtered {
         return draw_marks(bytes, width, height, &group.marks, map, region);
     }
     let mut layer = vec![0_u8; bytes.len()];
-    draw_marks(&mut layer, width, height, &group.marks, map, region)?;
+    if filtered {
+        // The blur reaches across the clip, which cuts the picture only after it (rule 11).
+        draw_marks(&mut layer, width, height, &group.marks, map, (0, 0, width, height))?;
+        filter_layer(&mut layer, width as usize, height as usize, group.filter, map);
+    } else {
+        draw_marks(&mut layer, width, height, &group.marks, map, region)?;
+    }
     let (left, top, right, bottom) = region;
     for row in top..bottom {
         let start = (row as usize * width as usize + left as usize) * 4;
@@ -156,6 +164,9 @@ fn draw_turned(
     };
     let mut flat = vec![0_u8; bytes.len()];
     draw_marks(&mut flat, width, height, &group.marks, map, (0, 0, width, height))?;
+    if !group.filter.is_none() {
+        filter_layer(&mut flat, width as usize, height as usize, group.filter, map);
+    }
     if opacity < 1.0 {
         for value in &mut flat {
             *value = (f64::from(*value) * opacity + 0.5).floor() as u8;
@@ -279,6 +290,60 @@ fn draw_cut(bytes: &mut [u8], width: u32, height: u32, cut: &Cut, map: Map, regi
     }
     composite(bytes, width, &layer, region);
     Ok(())
+}
+
+/// Blurs and then brightens the premultiplied layer of a group drawn with `map`, of `width` by `height` pixels
+/// (`docs/spec/render-command.md`, section 4.5, rule 11): across and then down with the weights of [`blur_weights`], what
+/// lies outside the layer taken as clear, then each colour value times the brightness, kept at most the pixel's alpha. The
+/// values are kept unrounded until the end, then rounded to the nearest level, halves up.
+fn filter_layer(layer: &mut [u8], width: usize, height: usize, filter: Filter, map: Map) {
+    let weights = blur_weights(filter.sigma(map), width.max(height) as u32);
+    let reach = (weights.len() / 2) as i64;
+    let mut values: Vec<f64> = layer.iter().map(|value| f64::from(*value)).collect();
+    if reach > 0 {
+        let mut across = vec![0.0_f64; values.len()];
+        for row in 0..height {
+            for column in 0..width {
+                let first = (column as i64 - reach).max(0);
+                let last = (column as i64 + reach).min(width as i64 - 1);
+                let mut sum = [0.0_f64; 4];
+                for x in first..=last {
+                    let weight = weights[(x - column as i64 + reach) as usize];
+                    let at = (row * width + x as usize) * 4;
+                    for channel in 0..4 {
+                        sum[channel] += weight * values[at + channel];
+                    }
+                }
+                across[(row * width + column) * 4..][..4].copy_from_slice(&sum);
+            }
+        }
+        for column in 0..width {
+            for row in 0..height {
+                let first = (row as i64 - reach).max(0);
+                let last = (row as i64 + reach).min(height as i64 - 1);
+                let mut sum = [0.0_f64; 4];
+                for y in first..=last {
+                    let weight = weights[(y - row as i64 + reach) as usize];
+                    let at = (y as usize * width + column) * 4;
+                    for channel in 0..4 {
+                        sum[channel] += weight * across[at + channel];
+                    }
+                }
+                values[(row * width + column) * 4..][..4].copy_from_slice(&sum);
+            }
+        }
+    }
+    for (pixel, worked) in layer.as_chunks_mut::<4>().0.iter_mut().zip(values.as_chunks::<4>().0) {
+        let alpha = worked[3];
+        for channel in 0..4 {
+            let value = if channel == 3 {
+                alpha
+            } else {
+                (worked[channel] * filter.brightness).min(alpha)
+            };
+            pixel[channel] = (value + 0.5).floor().clamp(0.0, 255.0) as u8;
+        }
+    }
 }
 
 /// The part of `region` that a clip holds, inside the frame; `None` when it holds no pixel.
