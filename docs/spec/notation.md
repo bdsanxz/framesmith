@@ -1344,8 +1344,9 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S68 | A margin or a padding of a span as a percentage, or a negative margin of a span | `margin` or `padding` with `%` on `<span>`, or a `margin` of `<span>` below 0 | A span's room is a number of pixels, 0 or more | Not assigned |
 | S69 | Room of a span with no word to hold it, or at a line break after a character that is not a space or a hyphen | A `margin` or `padding` of a `<span>` in a `<text>` with no word, or one that falls where the line may break before the span after such a character | The room has no place in the line there | Not assigned |
 | S70 | A percentage in the size or the room of a text inside a flow | `width`, `height`, `padding` or `margin` with `%` on a `<text>` that is an item of a row, a column or a set of columns | Inside a flow a text is measured in whole pixels | Not assigned |
-| S71 | A character no font of the composition draws, on a system whose fonts are not read, or from a face the text engine chose | A `<text>` whose `font-family` names no font of the composition on such a system, or a character the engine draws from a face of its own choice | Only the composition's fonts and the Mac's are drawn | Not assigned |
 | S72 | An emoji whose colour picture is not a PNG, or that frx7 cannot read | A character drawn from a colour font with no PNG picture for it, or one whose picture frx7 refuses | Only PNG colour pictures are drawn | Not assigned |
+
+S71 is left free: its form, a character no font of the composition draws, is not reached on macOS, where the machine's fonts are read. It comes back with the sprint for another system (DEFERS.md); the refusal stays in the program meanwhile.
 
 **Entries that wait on Sprint 1.** An entry whose sprint is "Sprint 1, T0xx" or "Sprint 1, the order ..." is temporary (decisions B42 and B43): it leaves this table when that ticket or order closes, and its fixture then becomes a test of the supported form. The entries "Not assigned" are limits no ticket plans (decision B42). S33 is added by T054 (decision B35).
 

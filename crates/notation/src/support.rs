@@ -78,13 +78,12 @@ pub enum Unsupported {
     SpanRoomForm = 68,
     SpanRoomWithoutPlace = 69,
     TextPercentInFlow = 70,
-    CharacterWithoutFont = 71,
     EmojiPicture = 72,
 }
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 71] = [
+    pub const ALL: [Unsupported; 70] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -154,7 +153,6 @@ impl Unsupported {
         Unsupported::SpanRoomForm,
         Unsupported::SpanRoomWithoutPlace,
         Unsupported::TextPercentInFlow,
-        Unsupported::CharacterWithoutFont,
         Unsupported::EmojiPicture,
     ];
 
@@ -240,7 +238,6 @@ impl Unsupported {
             Unsupported::SpanRoomForm => "A span's room is a number of pixels, 0 or more",
             Unsupported::SpanRoomWithoutPlace => "The room has no place in the line there",
             Unsupported::TextPercentInFlow => "Inside a flow a text is measured in whole pixels",
-            Unsupported::CharacterWithoutFont => "Only the composition's fonts and the Mac's are drawn",
             Unsupported::EmojiPicture => "Only PNG colour pictures are drawn",
         }
     }
@@ -317,7 +314,6 @@ impl Unsupported {
             Unsupported::SpanRoomForm => "Not assigned",
             Unsupported::SpanRoomWithoutPlace => "Not assigned",
             Unsupported::TextPercentInFlow => "Not assigned",
-            Unsupported::CharacterWithoutFont => "Not assigned",
             Unsupported::EmojiPicture => "Not assigned",
         }
     }
@@ -408,6 +404,11 @@ pub(crate) fn expression(element: Element, value: &str) -> Option<Unsupported> {
     (matches!(element, Element::Tween | Element::Set) && value.trim().starts_with('=')).then_some(Unsupported::Expressions)
 }
 
+/// The entry that names a number written as a percentage where the notation has a number of pixels: a `gap` (S55).
+pub(crate) fn percentage(name: &str, value: &str) -> Option<Unsupported> {
+    (name == "gap" && value.trim().ends_with('%')).then_some(Unsupported::GapPercentage)
+}
+
 /// The entry that names an `ease` that is not on the list of section 8.4 and is built from the names of the easings that
 /// wait (S16).
 pub(crate) fn ease(value: &str) -> Option<Unsupported> {
@@ -417,10 +418,9 @@ pub(crate) fn ease(value: &str) -> Option<Unsupported> {
         .or_else(|| value.strip_prefix("in-"))
         .or_else(|| value.strip_prefix("out-"))
         .unwrap_or(value);
-    let built = value != bare
-        || ["bounce", "elastic", "back", "circ"].contains(&bare)
-        || value.starts_with("steps(")
-        || value.starts_with("cubic-bezier(");
+    // A curve of the names that wait, alone or after `in-`, `out-` or `in-out-`; a value that merely begins so, such as
+    // `out-back()`, is not one and is reported as an easing not known.
+    let built = ["bounce", "elastic", "back", "circ"].contains(&bare) || value.starts_with("steps(") || value.starts_with("cubic-bezier(");
     built.then_some(Unsupported::MoreEasings)
 }
 

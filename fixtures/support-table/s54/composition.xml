@@ -1,0 +1,7 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S54: A text between its edges in a row. -->
+<font src="fonts/framesmith-test-stroke-400.ttf" family="Stroke"/>
+<box left="0" top="0" width="64" height="16" flex-direction="row">
+<text position="absolute" left="2" right="2" font-family="Stroke" font-size="10" color="#ffffff">H</text>
+</box>
+</composition>

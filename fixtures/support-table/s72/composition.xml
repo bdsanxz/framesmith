@@ -1,0 +1,5 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S72: An emoji with no colour picture. -->
+<font src="/System/Library/Fonts/Apple Color Emoji.ttc" family="Apple Color Emoji"/>
+<text left="0" top="0" font-family="Apple Color Emoji" font-size="20" color="#ffffff">♀</text>
+</composition>

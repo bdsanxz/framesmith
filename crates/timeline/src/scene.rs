@@ -814,6 +814,14 @@ fn walk_canvas(
             ));
             // Each form of the support table is listed on its own, also on an element that is itself not drawn, so that
             // its line stays when the element's entry goes (`docs/spec/check-command.md` section 3d).
+            // Footage in a row, a column or a set of columns is placed by a flow this version does not give it (S52).
+            if node.element() == Element::Video && in_flow(&tree[parent]) {
+                refusals.push(Refusal::of_drawing(
+                    Code::FormNotSupported,
+                    node.line(),
+                    Unsupported::FootageInFlow.message(&format!("{} holds <video> in a flow", tree[parent].element().tag())),
+                ));
+            }
             refusals.extend(
                 forms_of_unsupported(node)
                     .into_iter()
@@ -2072,6 +2080,11 @@ fn forms_of_unsupported(node: &Node) -> Vec<(u32, String)> {
         }
     }
     found
+}
+
+/// Whether an element places what it holds in a row, a column or a set of columns.
+fn in_flow(node: &Node) -> bool {
+    node.attribute("flex-direction").is_some() || node.attribute("columns").is_some()
 }
 
 /// Whether a `mask` names a picture and not a gradient (support table S18): it ends in the name of a picture file.

@@ -339,6 +339,7 @@ impl Judge {
             "output" => {
                 if let Some(path) = self.path_value("render.output", value) {
                     self.settings.output = Some(path);
+                    self.note_line("render.output", value);
                 }
             }
             "backend" => {

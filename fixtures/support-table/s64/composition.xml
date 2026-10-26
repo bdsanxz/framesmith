@@ -1,0 +1,4 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S64: A shown composition that moves. -->
+<composition src="shown.xml" left="0" top="0" x="5"/>
+</composition>

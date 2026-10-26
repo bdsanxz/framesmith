@@ -111,6 +111,16 @@ The rules are those of `notation.md` section 9 and N5. A style belongs to its fi
 | `FS-0031` | An element inside a `<style>` | ``the style `x` holds <box>, and a style holds attributes only; a <box> stands directly in <composition>, <box> or <rect>`` |
 | `FS-0035` | An attribute a style gives that this version does not draw, such as `x` or `opacity` on a `<box>` | ``<box> has an attribute this version does not support: `x`, which the style `moving` gives it`` |
 
+## 3d. Every refusal, in one run
+
+`check` lists every refusal that `render` makes, found by the same walk of the project, and `render` refuses with the same list (sources: decision B42, `notation.md` section 14).
+
+- **Unsupported or invalid.** A form is reported as unsupported (`FS-0035`, or `FS-0023` for a key of the project file) only when an entry of the support table (`notation.md` section 14) names it. A form that no entry names is invalid, with the code of its mistake.
+- **The message of an unsupported form** names what was written, the entry, its reason and when it is brought: `{what}, which this version does not support (support table S{nn}: {reason}; waits until {waits})`, where `{what}` is the element and the attribute as written (`<box> has `box-shadow="0 0 4px #000000"``), with the name of the style that gives it when one does (section 3c), and `{reason}` and `{waits}` are the entry's cells word for word. For example: ``<box> has `box-shadow`, which this version does not support (support table S36: Shadows are not drawn yet; waits until Sprint 1, T055)``.
+- **Each form on its own.** Every form an entry names is listed on its own line, also on an element that is itself not drawn: an `<image>` with a picture `mask` lists S40 for the element and S18 for the mask. When the element's entry is struck, the line of the other form stays.
+- **Both kinds in one run.** A file with invalid problems is still walked for what it does not support. The tree that is walked leaves out each element an invalid problem was found on, with what it holds, and each attribute already reported as unsupported; a clip whose `start` or `duration` is reported leaves out both. The reports of the reader and those of the walk are printed as one list: by file, in the order the files are first reported, and by line within a file. A run with any invalid report ends `Invalid` with exit code 1; a run whose reports are all unsupported ends `Unsupported` with exit code 2 (section 5).
+- **Told by reading a media file.** An entry whose recognition reads the file a `src` names (S26 to S30 and S32) is not listed by this version; T089 brings it.
+
 ## 4. The reports
 
 **A report** is one line of plain text with six parts, in this order: the file, the line, the code, the kind, the message and the remedy (`error-catalogue.md` section 3).

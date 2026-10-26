@@ -26,7 +26,8 @@ pub(crate) fn attribute_entry(element: Element, name: &str) -> Option<Unsupporte
     Some(found)
 }
 
-/// The entries that depend on the element: the forms of a span, and the movement and the item forms of a shown composition.
+/// The entries that depend on the element: the forms of a span, the movement and the item forms of a shown composition, and
+/// the forms of footage.
 fn per_element(element: Element, name: &str) -> Option<Unsupported> {
     let moving = matches!(
         name,
@@ -43,6 +44,14 @@ fn per_element(element: Element, name: &str) -> Option<Unsupported> {
         Element::Nested => match name {
             "max-width" | "align-self" | "flex-grow" => Some(Unsupported::ItemFormsOfLeaf),
             "opacity" => Some(Unsupported::PictureMotion),
+            _ if moving => Some(Unsupported::PictureMotion),
+            _ => None,
+        },
+        Element::Video => match name {
+            "media-start" => Some(Unsupported::MediaStart),
+            "lut" | "filter" => Some(Unsupported::FootageFilter),
+            "max-width" | "align-self" | "flex-grow" => Some(Unsupported::ItemFormsOfLeaf),
+            "opacity" => Some(Unsupported::BlurBrightnessOpacity),
             _ if moving => Some(Unsupported::PictureMotion),
             _ => None,
         },

@@ -14,7 +14,7 @@ use crate::schema::{Element, Form};
 use crate::styles::{self, Effective, Styles};
 use std::collections::{HashMap, HashSet};
 
-use crate::support;
+use crate::support::{self, Unsupported};
 use crate::value::{self, NotANumber};
 
 /// Judges every element under the root, and the attributes of the root that it does not take.
@@ -139,7 +139,17 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
                 ));
                 continue;
             }
-            if !element.children().contains(&kind) {
+            if !element.children().contains(&kind) && matches!(element, Element::Text | Element::Nested | Element::Video) && kind.drawn() {
+                // An element inside a text, a shown composition or footage, other than what they hold: support table S51. It is
+                // left out of the tree, since nothing draws it there.
+                problems.push(found(
+                    Code::FormNotSupported,
+                    spot,
+                    Unsupported::ElementInsideLeaf.message(&format!("{} holds {}", element.tag(), kind.tag())),
+                ));
+                // Left out of the tree, and still judged with what it holds, as an element in the wrong place is.
+                faulty.insert(child.id());
+            } else if !element.children().contains(&kind) {
                 problems.push(found(Code::ElementNotHere, spot, misplaced(kind, element)));
             } else if kind == Element::Tween {
                 tween(child, element, spot, &spot_at, problems);
@@ -261,7 +271,7 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
         }
         let value = attribute.value.as_str();
         let unsupported = match element.form(name) {
-            Form::Number => support::expression(element, value),
+            Form::Number => support::expression(element, value).or_else(|| support::percentage(name, value)),
             Form::Time if value::time(value).is_none() => support::time(element, name, value),
             _ => None,
         };

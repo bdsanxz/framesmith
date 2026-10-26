@@ -943,7 +943,8 @@ fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextErro
         text::TextError::NoFamily | text::TextError::MissingCharacter(_) => Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message: Unsupported::CharacterWithoutFont.message(&format!("<text> is written so that {error}")),
+            // Not reached on macOS, where the machine's fonts are read; it has no entry of the support table (S71 is left free).
+            message: format!("<text> is written so that {error}, which this version does not support on this system"),
             style: false,
         },
     }
