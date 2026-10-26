@@ -45,7 +45,7 @@ impl Rounded {
     }
 
     /// The distance from a point to the rectangle that the corner circles' centres span.
-    fn from_centres(&self, x: f64, y: f64) -> f64 {
+    fn distance_to_centres(&self, x: f64, y: f64) -> f64 {
         let across = (self.left + self.radius - x).max(x - (self.right - self.radius)).max(0.0);
         let down = (self.top + self.radius - y).max(y - (self.bottom - self.radius)).max(0.0);
         (across * across + down * down).sqrt()
@@ -60,7 +60,7 @@ impl Rounded {
         // The shape is convex: a pixel whose four corners are inside is inside.
         let inside = |px: f64, py: f64| {
             px >= self.left && px <= self.right && py >= self.top && py <= self.bottom && {
-                let d = self.from_centres(px, py);
+                let d = self.distance_to_centres(px, py);
                 d == 0.0 || d <= self.radius - MARGIN
             }
         };
