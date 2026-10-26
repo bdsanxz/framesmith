@@ -7,8 +7,8 @@
 //! its near margin (B41).
 
 use layout::{
-    columns, flow, flow_absolute, frame, place, place_absolute, Across, Along, Amount, Cell, Columns, Direction, Flex, Item, Rect, Sides, Track,
-    Written,
+    columns, flow, flow_absolute, frame, place, place_absolute, Across, Along, Amount, Cell, Columns, Direction, Flex, Item, Rect, Sides,
+    Track, Written,
 };
 
 fn rect(left: i32, top: i32, width: u32, height: u32) -> Rect {

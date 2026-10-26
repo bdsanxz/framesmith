@@ -273,7 +273,15 @@ fn place_cells(
                     measured: None,
                     ..cell.clone()
                 };
-                let flowed = inside_columns(container, Measured { width: false, height: false }, set, &[lone])?;
+                let flowed = inside_columns(
+                    container,
+                    Measured {
+                        width: false,
+                        height: false,
+                    },
+                    set,
+                    &[lone],
+                )?;
                 flowed.items.first().copied().ok_or(Beyond)
             })?);
             continue;

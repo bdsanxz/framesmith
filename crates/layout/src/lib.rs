@@ -555,7 +555,15 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
                     measured_across: None,
                     ..item.clone()
                 };
-                let flowed = inside(container, Measured { width: false, height: false }, flex, &[lone])?;
+                let flowed = inside(
+                    container,
+                    Measured {
+                        width: false,
+                        height: false,
+                    },
+                    flex,
+                    &[lone],
+                )?;
                 flowed.items.first().copied().ok_or(Beyond)
             })?
         } else {

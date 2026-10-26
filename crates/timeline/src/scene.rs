@@ -864,14 +864,10 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             }
             (Some((rect, _)), None, None) => Ok((rect, Vec::new())),
             // A row or column, or a set, with no place of its own: its size is worked out with its children.
-            (None, Some(flex), _) => {
-                layout::flow_absolute(parent_place.rect, &form.written, absolute_margin(&form), &flex, &items)
-                    .map(|flowed| (flowed.container, flowed.items))
-            }
-            (None, None, Some(set)) => {
-                layout::columns_absolute(parent_place.rect, &form.written, absolute_margin(&form), set, &cells)
-                    .map(|flowed| (flowed.container, flowed.items))
-            }
+            (None, Some(flex), _) => layout::flow_absolute(parent_place.rect, &form.written, absolute_margin(&form), &flex, &items)
+                .map(|flowed| (flowed.container, flowed.items)),
+            (None, None, Some(set)) => layout::columns_absolute(parent_place.rect, &form.written, absolute_margin(&form), set, &cells)
+                .map(|flowed| (flowed.container, flowed.items)),
             (None, None, None) => {
                 layout::place_absolute(parent_place.rect, &form.written, absolute_margin(&form)).map(|rect| (rect, Vec::new()))
             }
