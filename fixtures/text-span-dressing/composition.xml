@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Spans dressed among plain words (text.md section 6.6): one shadow, two shadows (the first on top), an outline, tabular
+     figures (each 560 units, so "111" is 3 x 120 units wider than with lining figures and " B" moves 7.2 pixels), old-style
+     figures, upper case on the middle word only, and no wrapping: in a text 70 pixels wide, "AB CD" would fit on the first
+     line, but no line may end inside the span "CD EF", so the line ends after "AB" and the span starts the next line whole.
+     Each dressed span starts its line, so the words before it do not move. 160 by 220 pixels, 10 frames a second. -->
+<composition version="1" id="text-span-dressing" width="160" height="220" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="4" font-family="Framesmith Test Stroke" font-size="20" color="#202020"><span text-shadow="3px 2px #c03020">HI</span> HI</text>
+  <text left="10" top="30" font-family="Framesmith Test Stroke" font-size="20" color="#202020"><span text-shadow="3px 2px #c03020, 5px 4px #2050c0">HI</span> HI</text>
+  <text left="10" top="56" font-family="Framesmith Test Stroke" font-size="20" color="#202020"><span text-stroke="2px #c03020">HI</span> HI</text>
+  <text left="10" top="82" font-family="Framesmith Test Stroke" font-size="20" color="#202020">A<span font-variant-numeric="tabular-nums">111</span> B</text>
+  <text left="10" top="108" font-family="Framesmith Test Stroke" font-size="20" color="#202020">A<span font-variant-numeric="oldstyle-nums">395</span> B</text>
+  <text left="10" top="134" font-family="Framesmith Test Stroke" font-size="20" color="#202020">low <span text-transform="uppercase">low</span> low</text>
+  <text left="10" top="160" width="70" font-family="Framesmith Test Stroke" font-size="20" color="#202020">AB <span white-space="nowrap">CD EF</span></text>
+</composition>

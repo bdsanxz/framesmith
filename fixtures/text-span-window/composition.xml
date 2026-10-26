@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Spans with windows (render-command.md section 4.2, rule 5), at 30 frames a second, 4 seconds.
+     First text: CD shows on frames 30 to 89 (from 1 s for 2 s); EF has no window and shows on every frame.
+     Second text, shown from 1 s for 3 s (frames 30 to 119): CD starts 0.5 s after its text, so it shows on frames 45 to 74.
+     Third text, shown from 1 s for 1 s (frames 30 to 59): CD's own window runs past its text's and is cut to it; EF starts
+     0.5 s after CD, the span it stands in, so it shows on frames 45 to 59.
+     Fourth text: AB and CD start at 0.33333 s and 0.33334 s and first show on frame 10; EF starts at 0.34 s and first shows
+     on frame 11. A span not shown keeps its room: the words after it stay where they are. 160 by 110 pixels. -->
+<composition version="1" id="text-span-window" width="160" height="110" fps="30" duration="4" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="4" font-family="Framesmith Test Stroke" font-size="20" color="#202020">AB <span start="1" duration="2" color="#c03020">CD</span> <span color="#2050c0">EF</span> GH</text>
+  <text left="10" top="30" start="1" duration="3" font-family="Framesmith Test Stroke" font-size="20" color="#202020">AB <span start="0.5" duration="1" color="#c03020">CD</span> EF</text>
+  <text left="10" top="56" start="1" duration="1" font-family="Framesmith Test Stroke" font-size="20" color="#202020">AB <span start="0" duration="3" color="#c03020">CD <span start="0.5" duration="3" color="#2050c0">EF</span></span> GH</text>
+  <text left="10" top="82" font-family="Framesmith Test Stroke" font-size="20" color="#202020"><span start="0.33333" duration="1" color="#c03020">AB</span> <span start="0.33334" duration="1" color="#2050c0">CD</span> <span start="0.34" duration="1" color="#208040">EF</span> GH</text>
+</composition>
