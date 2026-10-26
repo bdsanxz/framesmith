@@ -1299,13 +1299,9 @@ fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
         // The notation's check judges `typed` (`docs/spec/notation.md` section 7.12).
         "typed" => None,
         "margin" | "padding" => sides_refusal(name, attribute).map(|(code, message)| fault(code, message)),
-        // A span's window is read as a box's is (`docs/spec/text.md` section 6.5, rule 10); the notation judges the pair.
-        "start" | "duration" => attribute.time().is_none().then(|| {
-            fault(
-                Code::NotATime,
-                format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
-            )
-        }),
+        // A span's window is read as a box's is, and the notation's check judges it before the scene is made
+        // (`docs/spec/text.md` section 6.5, rule 10; `docs/spec/notation.md` section 5.2).
+        "start" | "duration" => None,
         _ => match read_text_attribute(attribute, &mut TextAttrs::default()) {
             Err((code, message)) => Some(fault(code, message)),
             Ok(()) => None,
