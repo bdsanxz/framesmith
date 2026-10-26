@@ -1,0 +1,6 @@
+<composition version="1" width="96" height="54" fps="10" duration="3" background="#102040">
+<video src="numbered.mp4" left="4" top="4" width="40" height="24" start="1" duration="1.5"/>
+<box left="50" top="6" width="40" height="40" background="#e0a030">
+<video src="split.mp4" left="4" top="4" width="32" height="16"/>
+</box>
+</composition>

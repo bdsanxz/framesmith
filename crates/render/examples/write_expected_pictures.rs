@@ -11,7 +11,7 @@ mod png;
 
 use draw_cpu::CpuRenderer;
 use project::Project;
-use render::Scene;
+use render::{Scene, Sources};
 use std::path::Path;
 
 fn main() {
@@ -26,9 +26,10 @@ fn main() {
     let folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(&name);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
     let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let mut sources = Sources::open(&scene).unwrap_or_else(|error| panic!("{error}"));
     std::fs::create_dir_all(folder.join("expected")).unwrap();
     for number in numbers {
-        let picture = scene.picture(number, &mut CpuRenderer).unwrap_or_else(|error| panic!("{error}"));
+        let picture = scene.picture_with(number, &mut CpuRenderer, &mut sources).unwrap_or_else(|error| panic!("{error}"));
         let path = folder.join("expected").join(format!("frame-{number:04}.png"));
         std::fs::write(&path, png::encode(picture.width(), picture.height(), picture.pixels())).unwrap();
         println!("{}", path.display());
