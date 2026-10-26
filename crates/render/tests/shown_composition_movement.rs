@@ -167,9 +167,17 @@ fn holds_the_rotation(on: On) {
 /// cut, the pixel (47, 52) is black. The green inside the file at u = 15, v = 0 is at (40.61, 45.61): pixel (40, 45).
 fn holds_the_cut_of_a_turn_by_45(on: On) {
     let picture = picture(&scene("rotation-45", &shown("rotation=\"45\"", "")), 0, on);
-    assert!(is(&picture, 40, 45, GREEN), "the green inside the file: {:?}", picture.pixel(40, 45).unwrap());
+    assert!(
+        is(&picture, 40, 45, GREEN),
+        "the green inside the file: {:?}",
+        picture.pixel(40, 45).unwrap()
+    );
     for (x, y) in [(47, 52), (46, 52), (48, 53), (50, 50)] {
-        assert!(is(&picture, x, y, BLACK), "({x}, {y}) lies outside the file: {:?}", picture.pixel(x, y).unwrap());
+        assert!(
+            is(&picture, x, y, BLACK),
+            "({x}, {y}) lies outside the file: {:?}",
+            picture.pixel(x, y).unwrap()
+        );
     }
 }
 
