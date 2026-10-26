@@ -799,7 +799,10 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                         dressing: item.dressing,
                     })
                 }
-                None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
+                None => {
+                    let margin = absolute_margin(&form);
+                    paragraph::place_text(&mut fonts, tree, index, form.written, margin, parent_place.rect)
+                }
             };
             match placed {
                 Ok(paragraph) => {
@@ -867,7 +870,9 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             (None, None, Some(set)) => {
                 layout::columns(parent_place.rect, &form.written, set, &cells).map(|flowed| (flowed.container, flowed.items))
             }
-            (None, None, None) => layout::place(parent_place.rect, &form.written).map(|rect| (rect, Vec::new())),
+            (None, None, None) => {
+                layout::place_absolute(parent_place.rect, &form.written, absolute_margin(&form)).map(|rect| (rect, Vec::new()))
+            }
         };
         let (rect, item_rects) = match laid {
             Ok(laid) => laid,
@@ -1792,6 +1797,16 @@ fn whole_rect(size: Size) -> Rect {
         top: 0,
         width: size.width.round().max(0.0) as u32,
         height: size.height.round().max(0.0) as u32,
+    }
+}
+
+/// The margin that moves a box or a text placed in its parent: its own when it is `position="absolute"`
+/// (`render-command.md` section 4.1, rule 8), and none otherwise (`notation.md` N10).
+fn absolute_margin(form: &Form) -> Sides {
+    if form.absolute {
+        form.margin
+    } else {
+        Sides::default()
     }
 }
 

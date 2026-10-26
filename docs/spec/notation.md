@@ -756,7 +756,7 @@ A box with `flex-direction` lays its children out as a row or a column; a box wi
 - **`align-items`** (default `stretch`) places the items across; `stretch` makes an item as wide (column) or as tall (row) as the container when that is known; a row or column with no size across has the size its items give it, and `stretch` fills that. `align-self` overrides it for one item. `baseline`, in a row, sets the items that have it so that the baselines of their first lines lie on one line and the highest touches the top of the row. The baseline of a `<text>` or `<span>` is that of its first line; of a box that is a row, column or set of columns, that of its first item, counted from its top; of anything else, its bottom edge. A row with no height is as high as its items need. In a column and in a cell of a set of columns, `baseline` is the same as `flex-start`.
 - **`gap`** (default `0`) is the space between items, and in a set of columns between columns and between rows.
 - **`padding`** is the space inside the edge of a flex container, a set of columns, a `<text>` or a `<span>`. On a plain box (no `flex-direction`, no `columns`) it has no effect. A written `width` or `height` of a row or column includes its padding, as CSS's `border-box` does (B17, `DECISIONS.md`): `width="80" padding="8"` is 80 wide, and its items have the 64 that remain.
-- **`margin`** is the space around an item of a flex container or of a set of columns, and around a `<span>`. On any other element it has no effect (N10).
+- **`margin`** is the space around an item of a flex container or of a set of columns, and around a `<span>`. On an item with `position="absolute"` (a `<box>`, a `<text>` or a `<composition src>`) it moves the item in from each edge it is placed by (N10). On any other element it has no effect (N10).
 - **`flex-grow`** (default `0`): an item with a value above 0 takes a share of the spare room along the direction, in proportion to the values. Only when the container has a width (row) or a height (column).
 - **`columns`** is a list of column widths separated by spaces, each a number of pixels (`640`) or a share of what is left (`1fr`, `2fr`): the room the pixel columns and the gaps leave is divided among the `fr` columns in proportion to their numbers. The children fill the first row from left to right, then the next. An item is as wide as its column less its margins, unless it has a `width` of its own; then it lies at the left of its column. A row is as high as its tallest item; when the box has a height and the rows need less, the rest is shared equally among the rows. In its row an item stands as `align-items` or its `align-self` says. A box with no width of its own: an `fr` column is as wide as its widest item. Every width must be above 0.
 - **Not in the notation:** `space-around`, `space-evenly`, `flex-wrap`, `flex-basis`, `flex-shrink`, `order`, `display`, `grid` (section 14).
@@ -1122,7 +1122,7 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 `margin`, `left`, `top`, `right`, `bottom` and `letter-spacing` may be negative. A text whose `width` is 0 wraps at every place a line may end. A reported value is reported with the element's line, the attribute, the value and what is taken.
 
-**Settled by.** Maintainer draft: the proofs did not check these and described no result; the rule only refuses what has no meaning and draws what has one.
+**Settled by.** B63 (`DECISIONS.md`, 2026-10-27): the owner confirmed this rule as written. The proofs did not check these and described no result; the rule only refuses what has no meaning and draws what has one.
 
 ### N7. Whether an `id` must be unique
 
@@ -1144,15 +1144,26 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 ### N10. `margin` on an absolutely placed item
 
-**Rule.** It has no effect and is accepted. An item with `position="absolute"` is placed by `left`, `top`, `right`, `bottom` only; its own `margin` is ignored. So is the `margin` of an item of a plain box. `margin` acts on the items of a row, a column or a set of columns, and on a `<span>`.
+**Rule.** It acts as in CSS. The `margin` of an item with `position="absolute"` (a `<box>`, a `<text>` or a `<composition src>`) is read as the sides of section 4, and it moves the item in from each edge of its parent that places it, by the margin of that side, a number of pixels. The edges of the parent are its outer edges, as Q2 says.
 
-**Settled by.** Maintainer draft: the proofs' layout code ignores it; it was not exercised.
+- With `left`, the item's left edge lies at `left` plus its left margin from the parent's left edge.
+- With `right` and no `left`, its right edge lies at `right` plus its right margin from the parent's right edge.
+- With `top`, its top edge lies at `top` plus its top margin from the parent's top edge.
+- With `bottom` and no `top`, its bottom edge lies at `bottom` plus its bottom margin from the parent's bottom edge.
+- With `left` and `right` and no `width`, its width is what lies between the two edges less the left and the right margins; with `top` and `bottom` and no `height`, its height is what lies between them less the top and the bottom margins. A size that comes out below 0 is 0.
+- A side whose edge places nothing (no `left`, `right`, `top` or `bottom` on that side, or an edge that a written size and the other edge make unused, as Q1 says) moves nothing.
+
+So `left="50" top="10" margin="30"` places the item's top left corner at (80, 40) of its parent, and `right="0" bottom="0" margin="2 4"` places its bottom right corner 4 in from the parent's right edge and 2 up from its bottom edge.
+
+The `margin` of a child placed by `left`, `top`, `right` or `bottom` in a plain box with no `position="absolute"` still has no effect: this rule is for absolutely placed items only.
+
+**Settled by.** B37 (`DECISIONS.md`, 2026-10-26): the owner chose that `margin` on an absolutely placed item acts as in CSS. Source: CSS 2.1, sections 10.3.7 and 10.6.4 (the widths, heights and offsets of absolutely positioned boxes, where the margins lie between the containing block's edges and the box), and CSS Positioned Layout Level 3, read for their meaning only and written here in our own words.
 
 ### Q1. Whether `bottom` places a box that has a height
 
 **Rule.** Yes. With `bottom` and no `top`, the box's bottom edge lies `bottom` from the parent's bottom edge, and its top edge is the parent's height less `bottom` less the box's height. The same holds for `right` and `width`. When `top` is also written, `top` places the box and `bottom` changes nothing if a `height` is written; with no `height`, `top` and `bottom` together give the height (7.1).
 
-**Settled by.** Maintainer draft, following the proofs' placement code.
+**Settled by.** B63 (`DECISIONS.md`, 2026-10-27): the owner confirmed this rule as written.
 
 ### Q2. Where an absolutely placed child is drawn and counted from
 
@@ -1309,12 +1320,11 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 
 ### What is a maintainer draft
 
-These rules were not settled by a decision; the maintainer wrote them from what the proofs did (decision B4), and the owner may change any: N1; the note of N2; the picture list of N3; N4; N5; N6; N7; N8; N9; N10; Q1; Q2; Q3; Q4; Q5; the whole support table of section 14 (decision A28); and these further choices: a style may hold `typed` (N5); a `<composition src>` file shorter than its clip shows nothing after its end (section 10); a mix is lowered by the least amount to reach the peak limit within 0.1 dB (section 11); a `class` is not taken by `<tween>`, `<set>`, `<volume>` or `<style>`; non-finite numbers are refused (N9); a `<span>` does not take the place attributes.
+These rules were not settled by a decision; the maintainer wrote them from what the proofs did (decision B4), and the owner may change any: N1; the note of N2; the picture list of N3; N4; N5; N6; N7; N8; N9; Q1; Q2; Q3; Q4; Q5; the whole support table of section 14 (decision A28); and these further choices: a style may hold `typed` (N5); a `<composition src>` file shorter than its clip shows nothing after its end (section 10); a mix is lowered by the least amount to reach the peak limit within 0.1 dB (section 11); a `class` is not taken by `<tween>`, `<set>`, `<volume>` or `<style>`; non-finite numbers are refused (N9); a `<span>` does not take the place attributes.
 
 ### Open questions this text leaves to the owner
 
 - Whether holding a video's last picture (N4) is wanted, or the case is refused.
-- Whether `margin` on an absolutely placed item should act as in CSS (N10) and not be ignored.
 - Whether ids should stay free until Sprint 2 (N7).
 - The support table (section 14): each entry, its recognition rule, its sprint, and S21 which has no sprint.
 

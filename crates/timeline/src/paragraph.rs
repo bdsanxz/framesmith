@@ -3,7 +3,7 @@
 //! declares, and the lines of a `<text>` laid out in its place.
 
 use draw::{Colour, Outline, Shadow};
-use layout::{place, Amount, Beyond, Rect, Written, LIMIT};
+use layout::{place_absolute, Amount, Beyond, Rect, Sides, Written, LIMIT};
 use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
 use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
 
@@ -618,8 +618,16 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
 /// Lays out the `<text>` at `index` in its place (`text.md` sections 4, 5 and 8). Its width is the one written, or the
 /// one that `left` and `right` leave in its container, and its lines wrap inside it. Without either it is as wide as
 /// its widest line, or, with a `max-width`, its lines are broken so that none is wider than that (section 5.3). Its
-/// height is the one written, or the height of its lines. Gives the rectangle and the lines, or the fault that stops it.
-pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, parent: Rect) -> Result<Paragraph, Fault> {
+/// height is the one written, or the height of its lines. An absolute text is moved in by its `margin` from each edge it
+/// is placed by (`render-command.md` section 4.1, rule 8). Gives the rectangle and the lines, or the fault that stops it.
+pub(crate) fn place_text(
+    fonts: &mut Fonts,
+    tree: &[Node],
+    index: usize,
+    written: Written,
+    margin: Sides,
+    parent: Rect,
+) -> Result<Paragraph, Fault> {
     let node = &tree[index];
     let beyond = |Beyond| {
         Fault {
@@ -634,12 +642,13 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
     let known = written.width.is_some() || (written.left.is_some() && written.right.is_some());
     let wrap = if known {
         // The width the place gives, with the height left out: it depends on the width alone.
-        let across = place(
+        let across = place_absolute(
             parent,
             &Written {
                 height: Some(Amount::Pixels(0.0.into())),
                 ..written.clone()
             },
+            margin,
         )
         .map_err(beyond)?;
         Some(across.width as f32)
@@ -654,7 +663,7 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
     if sized.height.is_none() {
         sized.height = Some(Amount::Pixels(f64::from(block.height).ceil().into()));
     }
-    let rect = place(parent, &sized).map_err(beyond)?;
+    let rect = place_absolute(parent, &sized, margin).map_err(beyond)?;
     Ok(Paragraph {
         rect,
         block,

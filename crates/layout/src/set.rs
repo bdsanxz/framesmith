@@ -3,7 +3,7 @@
 //! column a new row. The rules of section 4.3 for padding, margins, gaps and absolute cells apply as they
 //! are stated there.
 
-use super::{cap, place, span, written_size, Across, Beyond, Flowed, Measured, Rect, Sides, Size, Span, Written};
+use super::{cap, place_absolute, span, written_size, Across, Beyond, Flowed, Measured, Rect, Sides, Size, Span, Written};
 
 /// The width of one column of a set.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -35,7 +35,8 @@ pub struct Columns {
 pub struct Cell {
     /// What the cell writes. A cell with a written `width` stands at the start edge of its column at that width.
     pub written: Written,
-    /// The margin of the cell, in pixels. An absolute cell has none (`notation.md` N10).
+    /// The margin of the cell, in pixels. An absolute cell is moved in by it from each edge it is placed by
+    /// (`render-command.md` section 4.1, rule 8).
     pub margin: Sides,
     /// The cell's own `align-self`, or `None` to take the set's `align-items`.
     pub across: Option<Across>,
@@ -253,7 +254,7 @@ fn place_cells(
     let mut flow_index = 0_usize;
     for cell in cells {
         if cell.absolute {
-            rects.push(place(container, &cell.written)?);
+            rects.push(place_absolute(container, &cell.written, cell.margin)?);
             continue;
         }
         let column = flow_index % count;

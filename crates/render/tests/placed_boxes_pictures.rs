@@ -129,12 +129,14 @@ fn a_box_placed_from_its_far_edges_is_placed_from_the_far_edge_it_writes() {
 }
 
 #[test]
-fn a_margin_and_a_position_move_no_box() {
+fn a_margin_moves_the_absolute_box_in_from_its_edges_and_no_other_box() {
+    // The absolute box, at left 50 and top 10 with a margin of 30, lies at 80, 40 and the frame cuts it at its right
+    // edge and foot; the plain and the static box keep their places (`render-command.md` section 4.1, rule 8).
     drawn_as_worked_out(
         "placement-margin-and-position",
         &[
             shown(10, 30, 10, 30, OCHRE),
-            shown(50, 70, 10, 30, TEAL),
+            shown(80, 96, 40, 54, TEAL),
             shown(10, 30, 40, 50, VIOLET),
         ],
     );

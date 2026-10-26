@@ -106,8 +106,24 @@ pub fn frame(width: u32, height: u32) -> Rect {
 /// section 4.1). A size below 0 is 0: the scene reports a written one before it is placed, and a
 /// size that two distances leave below 0 is 0.
 pub fn place(parent: Rect, written: &Written) -> Result<Rect, Beyond> {
-    let (left, width) = Span::across(parent, written).place(f64::from(parent.width))?;
-    let (top, height) = Span::down(parent, written).place(f64::from(parent.height))?;
+    placed_in(parent, written, Sides::default())
+}
+
+/// The place of an absolutely placed item in `parent`, moved in by its `margin` from each edge it is placed by
+/// (`render-command.md` section 4.1, rule 8; `notation.md` N10). On each axis a side's margin is added to the edge
+/// written on that side, so that with both edges and no size the size is what lies between them less the two margins.
+/// A margin on a side with no edge written moves nothing.
+pub fn place_absolute(parent: Rect, written: &Written, margin: Sides) -> Result<Rect, Beyond> {
+    placed_in(parent, written, margin)
+}
+
+fn placed_in(parent: Rect, written: &Written, margin: Sides) -> Result<Rect, Beyond> {
+    let mut across = Span::across(parent, written);
+    across.margins = (margin.left, margin.right);
+    let mut down = Span::down(parent, written);
+    down.margins = (margin.top, margin.bottom);
+    let (left, width) = across.place(f64::from(parent.width))?;
+    let (top, height) = down.place(f64::from(parent.height))?;
     Ok(Rect { left, top, width, height })
 }
 
@@ -217,7 +233,8 @@ pub struct Item {
     /// What the child writes. An absolute child is placed by all of it; a flowed child uses only its
     /// `width` and `height`, and takes no notice of its own `left`, `top`, `right` and `bottom`.
     pub written: Written,
-    /// The margin of the child, in pixels. An absolute child has none (`notation.md` N10).
+    /// The margin of the child, in pixels. An absolute child is moved in by it from each edge it is placed by
+    /// (`render-command.md` section 4.1, rule 8).
     pub margin: Sides,
     /// The child's own `align-self`, or `None` to take the container's `align-items`.
     pub across: Option<Across>,
@@ -518,7 +535,7 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
     let mut out = Vec::with_capacity(items.len());
     for item in items {
         let rect = if item.absolute {
-            place(container, &item.written)?
+            place_absolute(container, &item.written, item.margin)?
         } else {
             flowed.next().ok_or(Beyond)?
         };
@@ -683,6 +700,8 @@ struct Span {
     size: Option<Amount>,
     /// The widest the box may be on this axis, when it has no size of its own there (`max-width`).
     max: Option<f64>,
+    /// The margins of an absolutely placed item on the near and the far side (rule 8), or 0.
+    margins: (f64, f64),
 }
 
 impl Span {
@@ -695,6 +714,7 @@ impl Span {
             far: written.right.clone(),
             size: written.width.clone(),
             max: written.max_width,
+            margins: (0.0, 0.0),
         }
     }
 
@@ -707,6 +727,7 @@ impl Span {
             far: written.bottom.clone(),
             size: written.height.clone(),
             max: None,
+            margins: (0.0, 0.0),
         }
     }
 
@@ -726,6 +747,7 @@ impl Span {
             self.size.as_ref(),
             fallback,
             self.max,
+            self.margins,
         )
     }
 }
@@ -734,7 +756,8 @@ impl Span {
 /// `length` pixels long. `near` is the distance of the near edge (`left` or `top`), `far` that of
 /// the far edge (`right` or `bottom`). Without a size written, or two edges, the size is `fallback`
 /// pixels, or the space between the two edges, and `max` caps it (`max-width`, section 4.1, rule 7);
-/// a size written is kept as it is.
+/// a size written is kept as it is. `margins` are added to the near and the far edge where each is written (rule 8).
+#[allow(clippy::too_many_arguments)]
 fn axis(
     start: i32,
     length: u32,
@@ -743,10 +766,17 @@ fn axis(
     size: Option<&Amount>,
     fallback: f64,
     max: Option<f64>,
+    margins: (f64, f64),
 ) -> Result<(i32, u32), Beyond> {
     let length = Decimal::whole(i128::from(length));
-    let near = near.map(|amount| pixels(amount, &length)).transpose()?;
-    let far = far.map(|amount| pixels(amount, &length)).transpose()?;
+    let near_margin = Decimal::of(margins.0).ok_or(Beyond)?;
+    let far_margin = Decimal::of(margins.1).ok_or(Beyond)?;
+    let near = near
+        .map(|amount| pixels(amount, &length)?.plus(near_margin.clone()).ok_or(Beyond))
+        .transpose()?;
+    let far = far
+        .map(|amount| pixels(amount, &length)?.plus(far_margin.clone()).ok_or(Beyond))
+        .transpose()?;
     let written = size.map(|amount| pixels(amount, &length)).transpose()?;
     let max = max.map(|limit| Decimal::of(limit).ok_or(Beyond)).transpose()?;
     let fallback = Decimal::of(fallback).ok_or(Beyond)?;
