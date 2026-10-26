@@ -46,7 +46,9 @@ fn scene(name: &str, inside: &str) -> Scene {
     let text = format!(
         "<composition version=\"1\" width=\"160\" height=\"100\" fps=\"30\" duration=\"3\" background=\"#000000\">\n{inside}\n</composition>\n"
     );
-    let folder = project_with("shown-composition-movement", name, &text);
+    // Each test has its own folder: the processor's and the card's cases of one name run at the same time.
+    let test = std::thread::current().name().unwrap_or("main").replace("::", "-");
+    let folder = project_with("shown-composition-movement", &format!("{test}-{name}"), &text);
     fs::write(folder.join("shown.xml"), SHOWN).unwrap();
     fs::write(folder.join("windowed.xml"), WINDOWED).unwrap();
     Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{name}: {reports:?}"))
