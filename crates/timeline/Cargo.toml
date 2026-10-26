@@ -15,6 +15,9 @@ draw = { workspace = true }
 timebase = { workspace = true }
 motion = { workspace = true }
 text = { workspace = true }
+base = { workspace = true }
+codec = { workspace = true }
+backend-os = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]

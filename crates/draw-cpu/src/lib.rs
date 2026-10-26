@@ -8,6 +8,8 @@
 //! the frame. The marks of an element that moves are drawn with its map, and those of one that fades into a layer
 //! of their own, which is laid over the picture with its opacity (`docs/spec/render-command.md`, section 4.5).
 
+mod still;
+
 use std::sync::Arc;
 
 use draw::{
@@ -18,6 +20,8 @@ use layout::Rect;
 use vello_cpu::kurbo::{self, Affine, Stroke};
 use vello_cpu::peniko::{Blob, Color, FontData, ImageAlphaType, ImageQuality, ImageSampler};
 use vello_cpu::{Glyph, Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
+
+pub use still::still_layer;
 
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
@@ -72,6 +76,7 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
             },
             Mark::Group(group) => draw_group(bytes, width, height, group, map, region)?,
             Mark::Background(background) => draw_background(bytes, width, height, background, map, region)?,
+            Mark::Still(still) => still::lay_still(bytes, width, height, still, map, region)?,
         }
     }
     Ok(())

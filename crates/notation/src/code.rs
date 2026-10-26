@@ -169,11 +169,15 @@ pub enum Code {
     BackgroundListLength,
     /// A background setting is written on an element with no background.
     BackgroundSettingAlone,
+    /// The picture file that `<image src>` names does not exist.
+    PictureMissing,
+    /// The picture file that `<image src>` names is damaged, or cannot be read.
+    PictureDamaged,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 66] = [
+    pub const ALL: [Code; 68] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -240,6 +244,8 @@ impl Code {
         Code::BackgroundNotInForm,
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
+        Code::PictureMissing,
+        Code::PictureDamaged,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -311,6 +317,8 @@ impl Code {
             Code::BackgroundNotInForm => "FS-0064",
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
+            Code::PictureMissing => "FS-0068",
+            Code::PictureDamaged => "FS-0069",
         }
     }
 
@@ -403,6 +411,8 @@ impl Code {
             Code::BackgroundNotInForm => "Write the value in the form the message names.",
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
+            Code::PictureMissing => "Write the path of a picture file, from the project folder or beginning with `/`.",
+            Code::PictureDamaged => "Replace the file with one that opens, or write the path of another.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

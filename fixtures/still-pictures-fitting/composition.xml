@@ -1,0 +1,12 @@
+<composition version="1" width="160" height="120" fps="10" duration="1" background="#202020">
+<image src="pictures/marked.png" left="4" top="4" width="40" height="40"/>
+<image src="pictures/marked.png" left="52" top="4" width="40" height="40" object-fit="cover"/>
+<image src="pictures/marked.png" left="100" top="4" width="40" height="40" object-fit="cover" object-position="0% 0%"/>
+<image src="pictures/marked.png" left="4" top="52" width="40" height="40" object-fit="contain"/>
+<image src="pictures/marked.png" left="52" top="52" width="40" height="40" object-fit="contain" object-position="100% 100%"/>
+<image src="pictures/marked.png" left="100" top="52"/>
+<box left="112" top="64" width="40" height="40" background="#ffffff"/>
+<image src="pictures/glass.png" left="122" top="74" width="20"/>
+<image src="pictures/quarters.jpg" left="4" top="96" width="24"/>
+<image src="pictures/quarters.png" left="40" top="96" height="24"/>
+</composition>

@@ -10,9 +10,11 @@ use std::sync::Arc;
 use layout::Rect;
 
 mod background;
+mod still;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
+pub use still::{Area, Fit, Still, StillMark};
 pub use turn::Turn;
 
 /// An opaque colour: red, green and blue, each from 0 to 255.
@@ -270,6 +272,8 @@ pub enum Mark {
     Group(Group),
     /// The layers of a box's background that are not one opaque colour (`docs/spec/render-command.md`, section 4.6).
     Background(Background),
+    /// A still picture in its box (`docs/spec/still-pictures.md`).
+    Still(StillMark),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -305,7 +309,7 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) => None,
+                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Still(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {

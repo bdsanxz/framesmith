@@ -52,7 +52,6 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
     for (index, (element, tag)) in [
         ("<audio src=\"a.wav\" duration=\"1\"/>", "<audio>"),
         ("<rect/>", "<rect>"),
-        ("<image src=\"i.png\"/>", "<image>"),
         ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
         ("<shape src=\"s.svg\"/>", "<shape>"),
     ]
@@ -62,7 +61,7 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
         assert_eq!(
             only(&format!("element-{index}"), element),
             format!(
-                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <text> and <composition src> only"
+                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <text>, <image> and <composition src> only"
             ),
             "{element}"
         );
@@ -72,8 +71,8 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 #[test]
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
-        only("in-box", "<box>\n<image src=\"i.png\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <image> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        only("in-box", "<box>\n<shape src=\"s.svg\"/>\n</box>"),
+        "composition.xml 3 FS-0035 <shape> inside a <box> is not supported by this version, which draws a <box>, a <text>, an <image> or a <composition src> inside a <box> and no other element"
     );
     // A tween inside a box moves it (section 4.5), so it is not refused.
     assert_eq!(
@@ -99,7 +98,7 @@ fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         reports[0],
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text>, an <image> or a <composition src> inside a <box> and no other element"
     );
 }
 
@@ -109,14 +108,14 @@ fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
     let root = only("names-root", "<rect/>");
     assert_eq!(
         root,
-        "composition.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
+        "composition.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text>, <image> and <composition src> only"
     );
     assert!(root.contains("<box>") && root.contains("<composition src>"), "{root}");
     // Inside a box it draws a <box> or a <composition src>, and no other element.
     let inside = only("names-box", "<box>\n<rect/>\n</box>");
     assert_eq!(
         inside,
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text>, an <image> or a <composition src> inside a <box> and no other element"
     );
     assert!(inside.contains("<box>") && inside.contains("<composition src>"), "{inside}");
 }
@@ -289,7 +288,7 @@ fn a_project_the_notation_does_not_accept_is_not_opened_so_nothing_is_drawn_from
 fn the_refusals_of_a_composition_come_in_the_order_of_its_lines() {
     let reports = refused(
         "order",
-        "<rect/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<image src=\"j.png\"/>\n</box>\n<image src=\"i.png\"/>",
+        "<rect/>\n<box left=\"abc\" border-radius=\"4\"/>\n<box>\n<shape src=\"j.svg\"/>\n</box>\n<shape src=\"i.svg\"/>",
     );
     let places: Vec<(String, String)> = reports
         .iter()
@@ -362,7 +361,7 @@ fn the_composition_that_is_read_is_the_one_the_project_names() {
     let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
     assert_eq!(
         shown(&reports[0]),
-        "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
+        "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text>, <image> and <composition src> only"
     );
 }
 

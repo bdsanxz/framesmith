@@ -12,6 +12,7 @@ use text::Fonts;
 use timebase::Time;
 
 use crate::background;
+use crate::image::{self, ImageForm, Stills, IMAGE_TAKES};
 use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 use motion::{ElementMotion, Tween};
@@ -174,11 +175,20 @@ struct PlacedText {
     line: u32,
 }
 
-/// A box or a paragraph that is placed, in document order: the order its marks are drawn in.
+/// An `<image>` that is placed: its slot, the rectangle it is cut to (as a box is), and its picture in its box.
+#[derive(Clone, Debug, PartialEq)]
+struct PlacedImage {
+    slot: Slot,
+    clip: Option<Rect>,
+    still: draw::StillMark,
+}
+
+/// A box, a paragraph or a picture that is placed, in document order: the order its marks are drawn in.
 #[derive(Clone, Debug, PartialEq)]
 enum Entry {
     Box(Placed),
     Text(PlacedText),
+    Image(PlacedImage),
 }
 
 impl Entry {
@@ -187,6 +197,7 @@ impl Entry {
         match self {
             Entry::Box(placed) => placed.slot.window,
             Entry::Text(text) => text.slot.window,
+            Entry::Image(image) => image.slot.window,
         }
     }
 }
@@ -288,7 +299,7 @@ impl Scene {
     pub fn first_text(&self) -> Option<(&str, u32)> {
         self.entries.iter().find_map(|entry| match entry {
             Entry::Text(text) => Some((text.file.as_str(), text.line)),
-            Entry::Box(_) => None,
+            Entry::Box(_) | Entry::Image(_) => None,
         })
     }
 
@@ -366,6 +377,8 @@ impl Scene {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
                     other => other,
                 }),
+                Entry::Image(image) if clipped => image_mark(image),
+                Entry::Image(image) => Some(image.still.clone().mark()),
             };
             marks.extend(mark);
         }
@@ -382,6 +395,22 @@ impl Scene {
 /// the part is not empty (`docs/spec/timeline.md` section 4).
 fn fill_mark(placed: &Placed) -> Option<Mark> {
     placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, placed.clip))
+}
+
+/// The picture of an `<image>` in its box, cut to the canvas it stands on when there is one (`docs/spec/still-pictures.md`,
+/// section 5): a group that does not move, whose clip is the canvas's rectangle.
+fn image_mark(image: &PlacedImage) -> Option<Mark> {
+    let mark = image.still.clone().mark();
+    match image.clip {
+        None => Some(mark),
+        Some(clip) => Some(Mark::Group(Group {
+            map: Map::IDENTITY,
+            opacity: 1.0,
+            clip: Some(clip),
+            marks: vec![mark],
+            turn: None,
+        })),
+    }
 }
 
 /// The glyph runs of a paragraph, moved to its place in the frame, and the mark that draws them.
@@ -546,6 +575,8 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
     // The reports of the files shown from this one, each once.
     let mut shown: Vec<Report> = Vec::new();
     let mut entries: Vec<Entry> = Vec::new();
+    // The picture files of this file's images, each read once.
+    let mut stills = Stills::default();
     // For each element, in document order: the slot its box is placed in, and `None` for an element that is
     // reported and for one inside it, which is not looked into. An element comes after its parent in the tree,
     // so the parent's entry is already known.
@@ -648,6 +679,56 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 tweens_of[parent].push((tween, node.line()));
             }
             places.push(None);
+            continue;
+        }
+        if node.element() == Element::Image && !matches!(tree[parent].element(), Element::Text | Element::Span) {
+            if image::in_a_flow(&tree[parent]) {
+                refusals.push(Refusal::of_place(
+                    Code::FormNotSupported,
+                    node.line(),
+                    "<image> in a row, a column or a set of columns is not supported by this version, which places an <image> by its edges in a <box> without `flex-direction` or `columns`".to_string(),
+                ));
+                places.push(None);
+                continue;
+            }
+            let (form, found) = read_image(node);
+            refusals.extend(found);
+            let Some(form) = form else {
+                places.push(None);
+                continue;
+            };
+            let still = match stills.picture(project, &form.src) {
+                Ok(still) => still,
+                Err(refused) => {
+                    refusals.push(Refusal::of_place(refused.code, node.line(), refused.reason));
+                    places.push(None);
+                    continue;
+                }
+            };
+            let rect = match image::image_rect(parent_place.rect, form.written, (still.width, still.height)) {
+                Ok(rect) => rect,
+                Err(Beyond) => {
+                    let message =
+                        format!("a place or a size of <image> works out beyond {LIMIT} pixels, which this version does not place");
+                    refusals.push(Refusal::of_place(Code::FormNotSupported, node.line(), message));
+                    places.push(None);
+                    continue;
+                }
+            };
+            let slot = slot_of(form.clip, parent_place, rect, fps);
+            entry_at[index] = Some(entries.len());
+            rect_of[index] = Some(rect);
+            entries.push(Entry::Image(PlacedImage {
+                slot,
+                clip: canvas.clip,
+                still: draw::StillMark {
+                    rect,
+                    still,
+                    fit: form.fit,
+                    position: form.position,
+                },
+            }));
+            places.push(Some(slot));
             continue;
         }
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
@@ -962,6 +1043,93 @@ fn read_element(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         Element::Nested => read_nested(project, node),
         _ => read_box(node),
     }
+}
+
+/// Reads an `<image>` (`docs/spec/still-pictures.md`, sections 1 and 4): what it takes, its place and size, its file, its
+/// fit and its place in the box. Gives no form when any of it is refused.
+fn read_image(node: &Node) -> (Option<ImageForm>, Vec<Refusal>) {
+    let mut refusals: Vec<Refusal> = Vec::new();
+    let mut written = Written::default();
+    let mut absolute = false;
+    let mut margin = Sides::default();
+    let mut start: Option<Time> = None;
+    let mut duration: Option<Time> = None;
+    let mut src: Option<String> = None;
+    let mut fit = draw::Fit::Fill;
+    let mut position = (0.5, 0.5);
+    for attribute in node.attributes() {
+        let name = attribute.name();
+        if !IMAGE_TAKES.contains(&name) {
+            refusals.push(Refusal::of_attribute(
+                Code::FormNotSupported,
+                attribute,
+                unsupported_attribute(node, attribute),
+            ));
+            continue;
+        }
+        let value = attribute.shown();
+        match name {
+            "id" | "class" => {}
+            "src" => src = Some(attribute.value().to_string()),
+            "width" | "height" => match amount(attribute.length(), &value, name, node.element().tag()) {
+                Ok(found) => match name {
+                    "width" => written.width = Some(found),
+                    _ => written.height = Some(found),
+                },
+                Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
+            },
+            "object-fit" => match image::fit(attribute.value()) {
+                Some(found) => fit = found,
+                None => refusals.push(Refusal::of_place(
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!("`object-fit=\"{value}\"` is not one of: fill, cover, contain"),
+                )),
+            },
+            "object-position" => match image::position(attribute.value()) {
+                Some(found) => position = found,
+                None => refusals.push(Refusal::of_place(
+                    Code::WordNotTaken,
+                    attribute.line(),
+                    format!("`object-position=\"{value}\"` is not two percentages, across and then down, such as 50% 0%"),
+                )),
+            },
+            "start" | "duration" => match attribute.time() {
+                Some(time) if name == "start" => start = Some(time),
+                Some(time) => duration = Some(time),
+                None => refusals.push(Refusal::of_attribute(
+                    Code::NotATime,
+                    attribute,
+                    format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
+                )),
+            },
+            _ => read_place(node, attribute, &mut written, &mut absolute, &mut margin, &mut refusals),
+        }
+    }
+    let clip = match (start, duration) {
+        (Some(start), Some(duration)) => Some((start, duration)),
+        (None, None) => None,
+        _ => {
+            refusals.push(Refusal::of_drawing(
+                Code::ClipNotPaired,
+                node.line(),
+                "<image> needs both start and duration, or neither".to_string(),
+            ));
+            None
+        }
+    };
+    // The notation reports an `<image>` without `src` (`docs/spec/notation.md` section 13).
+    let (true, Some(src)) = (refusals.is_empty(), src) else {
+        return (None, refusals);
+    };
+    let form = ImageForm {
+        written,
+        src,
+        fit,
+        position,
+        clip,
+    };
+    (Some(form), refusals)
 }
 
 /// Reads a `<composition src>` (`docs/spec/render-command.md` section 3): the places a box has, and its clip, which
@@ -1794,7 +1962,7 @@ fn not_a_length(name: &str, value: &str) -> String {
 
 fn unsupported_element(element: Element) -> String {
     format!(
-        "{} is not supported by this version, which draws <box>, <text> and <composition src> only",
+        "{} is not supported by this version, which draws <box>, <text>, <image> and <composition src> only",
         element.tag()
     )
 }
@@ -1819,7 +1987,7 @@ fn unsupported_inside_text(element: Element) -> String {
 /// The message for an element written inside a `<box>`: a `<box>`, a `<text>` or a `<composition src>` is drawn there.
 fn unsupported_inside_box(element: Element) -> String {
     format!(
-        "{} inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element",
+        "{} inside a <box> is not supported by this version, which draws a <box>, a <text>, an <image> or a <composition src> inside a <box> and no other element",
         element.tag()
     )
 }
