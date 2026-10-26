@@ -160,6 +160,19 @@ fn holds_the_rotation(on: On) {
     row_is(&picture, 25, 45, 160, BLACK, "row 25");
 }
 
+/// Criterion 9, the cut under a turn that leaves the rectangle's box: `rotation="45"`, clockwise about (30, 35). A point
+/// (u, v) from the origin goes to (30 + (u - v) cos 45, 35 + (u + v) cos 45). The file's corners, (±20, ±15), reach 24.75
+/// along each axis: its picture lies in the box x 5.25 to 54.75, y 10.25 to 59.75. The green outside the file, at u 20 to
+/// 40 and v -5 to 5, would cover (30 + 25 cos 45, 35 + 25 cos 45) = (47.68, 52.68), inside that box but outside the file:
+/// cut, the pixel (47, 52) is black. The green inside the file at u = 15, v = 0 is at (40.61, 45.61): pixel (40, 45).
+fn holds_the_cut_of_a_turn_by_45(on: On) {
+    let picture = picture(&scene("rotation-45", &shown("rotation=\"45\"", "")), 0, on);
+    assert!(is(&picture, 40, 45, GREEN), "the green inside the file: {:?}", picture.pixel(40, 45).unwrap());
+    for (x, y) in [(47, 52), (46, 52), (48, 53), (50, 50)] {
+        assert!(is(&picture, x, y, BLACK), "({x}, {y}) lies outside the file: {:?}", picture.pixel(x, y).unwrap());
+    }
+}
+
 /// Criterion 9, `skew-y`: a tween to `skew-y="90"` over 1 s is at 45 degrees on frame 15, so a point d pixels right of the
 /// origin's x, 30, moves down by d. Column 12, its centre at 12.5, moves by -17.5: red from y 2.5 to 32.5, whole from 3 to
 /// 32. Column 35, at 35.5, moves by 5.5: blue from 25.5 to 55.5, whole from 26 to 55.
@@ -296,6 +309,8 @@ on_both! {
         reference_machine_only_a_scale_about_the_centre_cuts_the_file_before_it_scales_on_the_card;
     holds_the_rotation: a_rotation_turns_the_cut_file_about_its_centre_on_the_processor,
         reference_machine_only_a_rotation_turns_the_cut_file_about_its_centre_on_the_card;
+    holds_the_cut_of_a_turn_by_45: a_turn_by_45_degrees_cuts_the_file_inside_its_box_on_the_processor,
+        reference_machine_only_a_turn_by_45_degrees_cuts_the_file_inside_its_box_on_the_card;
     holds_the_slant: a_slant_moves_each_column_down_by_its_distance_on_the_processor,
         reference_machine_only_a_slant_moves_each_column_down_by_its_distance_on_the_card;
     holds_the_order: scale_comes_before_the_turn_on_the_processor,
