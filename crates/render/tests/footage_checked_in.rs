@@ -64,14 +64,22 @@ fn holds_the_worked_values(number: u64, picture: &Picture) {
         assert_eq!(picture.pixel(24, 28), Some(CANVAS), "frame {number}: below the footage");
     } else {
         for point in footage {
-            assert_eq!(picture.pixel(point.0, point.1), Some(CANVAS), "frame {number} at {point:?}: outside the window");
+            assert_eq!(
+                picture.pixel(point.0, point.1),
+                Some(CANVAS),
+                "frame {number} at {point:?}: outside the window"
+            );
         }
     }
 }
 
 #[test]
 fn the_checked_in_pictures_of_the_footage_fixture_hold_the_worked_values() {
-    assert_eq!(numbers_with_a_picture(FIXTURE), CHECKED.to_vec(), "{FIXTURE}: the frames with a picture");
+    assert_eq!(
+        numbers_with_a_picture(FIXTURE),
+        CHECKED.to_vec(),
+        "{FIXTURE}: the frames with a picture"
+    );
     for number in CHECKED {
         holds_the_worked_values(number, &expected(FIXTURE, number));
     }

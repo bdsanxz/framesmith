@@ -9,7 +9,11 @@ use draw::{Colour, Frame, Group, Map, Mark, PlacedPicture, Renderer};
 use draw_cpu::CpuRenderer;
 use layout::Rect;
 
-const GROUND: Colour = Colour { red: 100, green: 200, blue: 40 };
+const GROUND: Colour = Colour {
+    red: 100,
+    green: 200,
+    blue: 40,
+};
 const GROUND_PIXEL: [u8; 4] = [100, 200, 40, 255];
 
 /// A picture of `width` by `height` whose pixel (x, y) is opaque and has red 10 + x, green 20 + y and blue 30.
@@ -20,7 +24,13 @@ fn counted(width: u32, height: u32, x: f32, y: f32) -> PlacedPicture {
             pixels.extend_from_slice(&[10 + column as u8, 20 + row as u8, 30, 255]);
         }
     }
-    PlacedPicture { width, height, pixels: Arc::new(pixels), x, y }
+    PlacedPicture {
+        width,
+        height,
+        pixels: Arc::new(pixels),
+        x,
+        y,
+    }
 }
 
 fn drawn(marks: Vec<Mark>) -> draw::Picture {
@@ -55,7 +65,13 @@ fn a_pixel_that_is_not_opaque_is_laid_by_source_over_with_premultiplied_values()
     // Source (64, 0, 32, 128), premultiplied, over (100, 200, 40, 255): each value is the source's plus the ground's times
     // 127 / 255, rounded to the nearest: 100 * 127 / 255 = 49.80 -> 50, 200 * 127 / 255 = 99.61 -> 100,
     // 40 * 127 / 255 = 19.92 -> 20, 255 * 127 / 255 = 127. So (114, 100, 52, 255).
-    let half = PlacedPicture { width: 1, height: 1, pixels: Arc::new(vec![64, 0, 32, 128]), x: 5.0, y: 5.0 };
+    let half = PlacedPicture {
+        width: 1,
+        height: 1,
+        pixels: Arc::new(vec![64, 0, 32, 128]),
+        x: 5.0,
+        y: 5.0,
+    };
     let picture = drawn(vec![Mark::Picture(half)]);
     assert_eq!(picture.pixel(5, 5), Some([114, 100, 52, 255]));
     assert_eq!(picture.pixel(4, 5), Some(GROUND_PIXEL));
@@ -68,7 +84,12 @@ fn the_picture_is_laid_only_inside_the_cut_of_its_group() {
     let group = Mark::Group(Group {
         map: Map::IDENTITY,
         opacity: 1.0,
-        clip: Some(Rect { left: 4, top: 3, width: 3, height: 2 }),
+        clip: Some(Rect {
+            left: 4,
+            top: 3,
+            width: 3,
+            height: 2,
+        }),
         marks: vec![Mark::Picture(counted(8, 8, 2.0, 2.0))],
     });
     let picture = drawn(vec![group]);
@@ -104,7 +125,14 @@ fn under_a_quarter_turn_the_mapped_path_samples_each_pixel_of_the_picture_exactl
     // The map (x, y) -> (10 - y, 2 + x) turns a quarter clockwise. The picture's pixel (i, j) covers [i, i+1] x [j, j+1] and
     // goes to [9 - j, 10 - j] x [2 + i, 3 + i]: the frame pixel (9 - j, 2 + i), whose centre falls on the centre of that
     // picture pixel, so it takes that pixel's values exactly.
-    let turn = Map { a: 0.0, b: 1.0, c: -1.0, d: 0.0, e: 10.0, f: 2.0 };
+    let turn = Map {
+        a: 0.0,
+        b: 1.0,
+        c: -1.0,
+        d: 0.0,
+        e: 10.0,
+        f: 2.0,
+    };
     let group = Mark::Group(Group {
         map: turn,
         opacity: 1.0,
@@ -115,7 +143,11 @@ fn under_a_quarter_turn_the_mapped_path_samples_each_pixel_of_the_picture_exactl
     for j in 0..3u32 {
         for i in 0..4u32 {
             let (x, y) = (9 - j, 2 + i);
-            assert_eq!(picture.pixel(x, y), Some([10 + i as u8, 20 + j as u8, 30, 255]), "picture ({i}, {j}) at ({x}, {y})");
+            assert_eq!(
+                picture.pixel(x, y),
+                Some([10 + i as u8, 20 + j as u8, 30, 255]),
+                "picture ({i}, {j}) at ({x}, {y})"
+            );
         }
     }
     assert_eq!(picture.pixel(10, 2), Some(GROUND_PIXEL));

@@ -61,8 +61,18 @@ fn the_profile_refuses_to_start_another_program() {
     let refused = sandboxed(&profile, Path::new("/usr/bin/true"), &[], &cwd);
     assert!(!refused.status.success(), "/usr/bin/true is not started under the profile");
     // framesmith itself starts: it answers a word that is not a command with its own report.
-    let allowed = sandboxed(&profile, Path::new(env!("CARGO_BIN_EXE_framesmith")), &["no-such-command".as_ref()], &cwd);
-    assert!(err(&allowed).contains("FS-0017"), "framesmith is started under the profile: {}{}", out(&allowed), err(&allowed));
+    let allowed = sandboxed(
+        &profile,
+        Path::new(env!("CARGO_BIN_EXE_framesmith")),
+        &["no-such-command".as_ref()],
+        &cwd,
+    );
+    assert!(
+        err(&allowed).contains("FS-0017"),
+        "framesmith is started under the profile: {}{}",
+        out(&allowed),
+        err(&allowed)
+    );
 }
 
 #[test]
@@ -72,7 +82,11 @@ fn a_render_of_footage_under_the_profile_writes_a_film_that_shows_it() {
     }
     let composition = "<composition version=\"1\" width=\"96\" height=\"54\" fps=\"10\" duration=\"1\" background=\"#102040\">\n<video src=\"clip.mp4\" left=\"8\" top=\"4\" width=\"40\" height=\"24\"/>\n</composition>\n";
     let (folder, cwd) = project("no-program", "render", composition);
-    let picture = Frame { width: 40, height: 24, rgb: TEAL.iter().copied().cycle().take(40 * 24 * 3).collect() };
+    let picture = Frame {
+        width: 40,
+        height: 24,
+        rgb: TEAL.iter().copied().cycle().take(40 * 24 * 3).collect(),
+    };
     measure::write_video(&folder.join("clip.mp4"), (10, 1), &vec![picture; 10]).unwrap();
     let profile = profile(folder.parent().unwrap());
     let output = folder.parent().unwrap().join("film.mp4");
@@ -86,7 +100,13 @@ fn a_render_of_footage_under_the_profile_writes_a_film_that_shows_it() {
     let mut reader = measure::open_pictures(&output).unwrap();
     let first = reader.next_frame().unwrap().unwrap();
     let pixel = first.pixel(28, 16);
-    assert!((0..3).all(|i| pixel[i].abs_diff(TEAL[i]) <= 12), "the film shows {pixel:?} where the footage is");
+    assert!(
+        (0..3).all(|i| pixel[i].abs_diff(TEAL[i]) <= 12),
+        "the film shows {pixel:?} where the footage is"
+    );
     let canvas = first.pixel(2, 2);
-    assert!((0..3).all(|i| canvas[i].abs_diff([0x10, 0x20, 0x40][i]) <= 12), "the canvas is {canvas:?}");
+    assert!(
+        (0..3).all(|i| canvas[i].abs_diff([0x10, 0x20, 0x40][i]) <= 12),
+        "the canvas is {canvas:?}"
+    );
 }

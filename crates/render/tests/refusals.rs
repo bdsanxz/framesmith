@@ -423,7 +423,10 @@ fn a_length_whose_digits_are_too_far_apart_to_add_is_reported_with_its_line() {
 
 #[test]
 fn a_video_in_a_row_or_a_set_of_columns_is_refused_with_its_line() {
-    for (index, flow) in ["flex-direction=\"row\"", "flex-direction=\"column\"", "columns=\"1fr 1fr\""].into_iter().enumerate() {
+    for (index, flow) in ["flex-direction=\"row\"", "flex-direction=\"column\"", "columns=\"1fr 1fr\""]
+        .into_iter()
+        .enumerate()
+    {
         assert_eq!(
             only(
                 &format!("video-in-flow-{index}"),

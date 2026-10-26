@@ -29,7 +29,9 @@ fn main() {
     let mut sources = Sources::open(&scene).unwrap_or_else(|error| panic!("{error}"));
     std::fs::create_dir_all(folder.join("expected")).unwrap();
     for number in numbers {
-        let picture = scene.picture_with(number, &mut CpuRenderer, &mut sources).unwrap_or_else(|error| panic!("{error}"));
+        let picture = scene
+            .picture_with(number, &mut CpuRenderer, &mut sources)
+            .unwrap_or_else(|error| panic!("{error}"));
         let path = folder.join("expected").join(format!("frame-{number:04}.png"));
         std::fs::write(&path, png::encode(picture.width(), picture.height(), picture.pixels())).unwrap();
         println!("{}", path.display());

@@ -8,12 +8,15 @@ use base::{Color, Error, Picture, PixelFormat};
 use codec::{Hardware, Pictures};
 use timeline::{Footage, FootageSource, Scene};
 
+/// The picture given last: its number, its size and its pixels.
+type Given = (u64, (u32, u32), Arc<Vec<u8>>);
+
 /// One source, open: its pictures, what its stream says its colours mean, and the picture given last with its number and
 /// size, since a frame of the scene and the next often show the same picture.
 struct Open {
     pictures: Pictures,
     color: Option<Color>,
-    last: Option<(u64, (u32, u32), Arc<Vec<u8>>)>,
+    last: Option<Given>,
 }
 
 /// The sources of a scene, opened.
@@ -91,7 +94,7 @@ fn opaque_rows(rgba: &Picture) -> Vec<u8> {
     for row in plane.data.chunks(plane.stride).take(rgba.height as usize) {
         pixels.extend_from_slice(&row[..line]);
     }
-    for pixel in pixels.chunks_exact_mut(4) {
+    for pixel in pixels.as_chunks_mut::<4>().0 {
         pixel[3] = 255;
     }
     pixels

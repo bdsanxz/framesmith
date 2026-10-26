@@ -33,7 +33,10 @@ fn a_video_with_neither_size_is_reported_for_each() {
 fn a_size_below_two_is_reported_on_the_line_of_its_attribute() {
     let problems = problems_in("<video src=\"a.mp4\" width=\"32\"\n height=\"1\"/>");
     assert_eq!(problems.len(), 1, "{problems:#?}");
-    assert_eq!(worded(&problems[0]), "line 3: FS-0067: `height` of a <video> must be a whole number of 2 or more, not 1");
+    assert_eq!(
+        worded(&problems[0]),
+        "line 3: FS-0067: `height` of a <video> must be a whole number of 2 or more, not 1"
+    );
 }
 
 #[test]
