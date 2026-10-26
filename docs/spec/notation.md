@@ -1340,6 +1340,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S64 | Movement of footage: `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `transform-origin`, `rotate-x`, `rotate-y`, `perspective` on `<video>`, or a tween or set of them | The attribute, or a `<tween>` or `<set>` of it, on `<video>` | So far footage is drawn in its place only | Sprint 1, the order footage-motion |
 | S65 | A span's window and dressing: `start`, `duration`, `text-shadow`, `text-stroke`, `font-variant-numeric` on `<span>` | Any of those attributes on `<span>` | So far a span is drawn for its text's whole life and in its plain ink only | Sprint 1, the order span-forms |
 | S66 | The item forms of a video or a shown composition: `flex-grow`, `max-width`, `align-self` on `<video>` or `<composition src>` | Any of those attributes on such an element | So far these are taken on boxes and texts only | Sprint 1, the order item-forms |
+| S67 | Footage: `<video>` | The element `<video>` | Footage is not read or drawn yet | Sprint 1, T073 |
 
 **Entries that wait on Sprint 1.** An entry whose sprint is "Sprint 1, T0xx" or "Sprint 1, the order ..." is temporary (decisions B42 and B43): it leaves this table when that ticket or order closes, and its fixture then becomes a test of the supported form. The entries "Not assigned" are limits no ticket plans (decision B42). S33 is added by T054 (decision B35).
 >>>>>>> 63dce24 (Support table: S34 to S66 under B40, B42 and B43, S21 in Sprint 5, N7 no longer open)
