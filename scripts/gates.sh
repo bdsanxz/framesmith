@@ -53,6 +53,12 @@ never a pass of the gates. Exit codes: 0 all gates passed, 1 a gate failed, 2 wr
 EOF
 }
 
+# git's own repository variables (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE and the rest of its list), which git
+# sets for a hook and which a worktree makes absolute, are cleared, so that a test that runs git in a folder of
+# its own works on that folder and never on this repository (docs/dev/gates.md, section 3).
+# shellcheck disable=SC2046
+unset $(git rev-parse --local-env-vars 2>/dev/null)
+
 ROOT=$(cd "$(dirname "$0")/.." && pwd) || exit 2
 cd "$ROOT" || exit 2
 
