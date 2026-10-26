@@ -7,7 +7,7 @@ use draw::{
     Background, Colour, DisplayList, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
-use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
+use project::{Attribute, Code, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
 use text::Fonts;
 use timebase::Time;
 
@@ -1890,13 +1890,6 @@ fn settings(project: &Project) -> Vec<Report> {
         settings.encoder() == Encoder::Hardware,
         settings.encoder().to_string(),
         "hardware",
-    );
-    check(
-        "render.codec",
-        Some("--codec"),
-        settings.codec() == Codec::H264,
-        settings.codec().to_string(),
-        "h264",
     );
     check(
         "render.workers",

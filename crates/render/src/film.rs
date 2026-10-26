@@ -1,5 +1,5 @@
 //! The film: the frames of a scene, drawn in order, brought to the planes the encoder takes, encoded
-//! by the system's H.264 encoder, and written as an MP4 file with the scene's mix as its one sound
+//! by the system's H.264 or HEVC encoder, and written as an MP4 file with the scene's mix as its one sound
 //! track, encoded by the system's AAC encoder, all through frx7's public traits
 //! (`docs/spec/render-command.md` sections 5 and 5.2).
 
@@ -69,18 +69,20 @@ fn codecs() -> codec::Registry {
 /// Draws every frame of `scene` with `renderer` and writes the film to `output`, making the
 /// folder it is in when that is missing, with the sound encoded at `audio_bitrate` kbit/s
 /// (`render.audio-bitrate`, section 5.2). A film that cannot be finished leaves no file at
-/// `output`.
+/// `output`. The picture is H.264, the default of `render.codec`.
 pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32) -> Result<Written, Failure> {
-    write_film_marked(scene, renderer, output, audio_bitrate, None)
+    write_film_marked(scene, renderer, output, audio_bitrate, project::Codec::H264, None)
 }
 
-/// Writes the film as `write_film` does and, when `marks` is given, puts in it the mark of each frame drawn, in the order of
-/// the frames (`docs/spec/render-command.md`, section 7.1). A film that is not finished leaves the marks it gave so far.
+/// Writes the film as `write_film` does, with its picture in `codec` (`render.codec`, section 5.3), and, when `marks` is
+/// given, puts in it the mark of each frame drawn, in the order of the frames (`docs/spec/render-command.md`, section 7.1).
+/// A film that is not finished leaves the marks it gave so far.
 pub fn write_film_marked(
     scene: &Scene,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
+    codec: project::Codec,
     marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
     if let Some(folder) = output.parent().filter(|folder| !folder.as_os_str().is_empty()) {
@@ -93,9 +95,10 @@ pub fn write_film_marked(
         height = scene.height(),
         fps = scene.fps(),
         renderer = renderer.name(),
+        codec = %codec,
         "render started"
     );
-    let written = make(scene, renderer, output, audio_bitrate, began, marks).inspect_err(|_| {
+    let written = make(scene, renderer, output, audio_bitrate, picture_codec(codec), began, marks).inspect_err(|_| {
         // A film that was not finished leaves no file that looks finished.
         let _ = fs::remove_file(output);
     })?;
@@ -108,6 +111,7 @@ fn make(
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
+    picture: Codec,
     began: Instant,
     mut marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
@@ -117,7 +121,7 @@ fn make(
         .ok_or_else(|| Failure::new(format!("a sound bit rate of {audio_bitrate} kbit/s is too large")))?;
     let rate = Rational::new(scene.fps(), 1);
     let setup = VideoEncoderSetup {
-        codec: Codec::H264,
+        codec: picture,
         width: scene.width(),
         height: scene.height(),
         rate,
@@ -153,7 +157,7 @@ fn make(
     let mut muxer = formats().create(output).map_err(named)?;
     let track = muxer
         .add_track(TrackSetup {
-            codec: Codec::H264,
+            codec: picture,
             config: Vec::new(),
             timescale,
             media: Media::Video(Video {
@@ -233,6 +237,14 @@ fn make(
         seconds: began.elapsed().as_secs_f64(),
         hardware,
     })
+}
+
+/// frx7's codec for the picture of `render.codec`: HEVC is written in 8 bits, as H.264 is (section 5.3).
+fn picture_codec(codec: project::Codec) -> Codec {
+    match codec {
+        project::Codec::H264 => Codec::H264,
+        project::Codec::Hevc => Codec::Hevc,
+    }
 }
 
 /// Moves the packets the encoder has ready into the file, giving the track its configuration with
