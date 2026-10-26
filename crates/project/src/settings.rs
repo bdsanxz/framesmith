@@ -85,7 +85,7 @@ words! {
 }
 
 words! {
-    /// Which H.264 encoder writes the picture: `render.encoder`.
+    /// Which encoder writes the picture: `render.encoder`.
     Encoder { Hardware => "hardware", Software => "software" } default Hardware
 }
 
