@@ -17,6 +17,7 @@ Sources: `notation.md` sections 3 (the drawing order inside one element), 4 (the
 - A `border-radius` that is not a number, or that is below 0, is invalid, reported with its line and the form taken (a number of 0 or more).
 - An `overflow` other than the two words is invalid, reported with its line and the words taken.
 - A border by side (`border-top`, `border-right`, `border-bottom`, `border-left`, `border-width`, `border-color`, `border-style`) is known and not supported in this version: entry S20 of `notation.md` section 14. It is reported as unsupported with the line of the attribute, and `render` refuses the project before the first frame.
+- A corner written as an ellipse (`border-radius="24 / 12"` or `"24 12"`: two numbers, apart or with a `/` between them) is known and not supported in this version: entry S33 of `notation.md` section 14 (decision B35). It is reported as unsupported with the line of the attribute, in the same way.
 - A border of width 0 draws nothing. A `border-radius` of 0 is a square corner.
 
 ## 2. The geometry of a box
@@ -65,6 +66,7 @@ A box that moves, scales, turns, slants or fades (`render-command.md` section 4.
 | `FS-0034` | invalid | A `border-radius` below 0 (`notation.md` N6). |
 | `FS-0039` | invalid | An `overflow` that is not `visible` or `hidden`. |
 | `FS-0035` | unsupported | A border by side, S20. |
+| `FS-0035` | unsupported | A corner written as an ellipse, S33. |
 
 `check` lists every one with the line of its attribute; `render` refuses the project before the first frame and writes no file.
 
@@ -81,6 +83,6 @@ The card draws the same shapes from the same coverage. The processor makes the c
 
 ## 9. What is not covered
 
-- A corner written as an ellipse (`border-radius="24 / 12"`, two radii): waits for the owner's answer on a support-table entry (B33); until then it is invalid as a `border-radius` that is not one number.
+- A corner written as an ellipse (S33): not in this version.
 - Borders by side (S20), dashed and dotted borders (not listed by the notation), and a radius per corner: not in this version.
 - The shadows that follow the corners: T055.

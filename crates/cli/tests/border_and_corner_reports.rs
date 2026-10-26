@@ -1,5 +1,5 @@
 //! `framesmith check` and `framesmith render` report a border, a corner radius or an `overflow` in a form the notation does
-//! not list, each on the line of its attribute with the forms taken, and a border by side as unsupported (S20), with the same
+//! not list, each on the line of its attribute with the forms taken, and a border by side (S20) and a corner written as an ellipse (S33) as unsupported, with the same
 //! reports and the same exit status; a box with a border, rounded corners and a cut is ready for both
 //! (`docs/spec/box-edges.md`, sections 1 and 6).
 
@@ -115,6 +115,21 @@ fn a_border_by_side_is_reported_as_unsupported_with_its_line() {
             2,
         );
     }
+}
+
+#[test]
+fn a_corner_written_as_an_ellipse_is_reported_as_unsupported_with_its_line() {
+    for (name, value) in [("ellipse-slash", "24 / 12"), ("ellipse-two", "24 12"), ("ellipse-tight", "24/12")] {
+        assert_one_report(
+            name,
+            &format!("border-radius=\"{value}\""),
+            "FS-0035",
+            &[&format!("`border-radius=\"{value}\"`"), "a corner written as an ellipse"],
+            2,
+        );
+    }
+    // Three numbers are no ellipse: a `border-radius` that is not a number.
+    assert_one_report("radius-three", "border-radius=\"24 12 6\"", "FS-0032", &["is not a number"], 1);
 }
 
 #[test]

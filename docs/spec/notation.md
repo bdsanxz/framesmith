@@ -811,7 +811,7 @@ A cross drawn from two bars, each drawn once:
 - **`box-shadow`**: a shadow list, following the box's radius; the first listed is on top. The blur is counted as CSS counts it. A box with `clip-path` shows no `box-shadow`.
 - **`overflow`**: `hidden` cuts the element's children and its own content at the box, inside its border, following the inner rounded corners.
 
-How a box draws its border, corners and cut, pixel by pixel, and the reports of a value in another form, are in `box-edges.md`. A border by side is S20 (section 14) and is reported as unsupported on the line of the attribute.
+How a box draws its border, corners and cut, pixel by pixel, and the reports of a value in another form, are in `box-edges.md`. A border by side is S20 and a corner written as an ellipse is S33 (section 14); each is reported as unsupported on the line of the attribute.
 - **`clip-path`**: `polygon(x% y%, x% y%, ...)`, three or more corners, each in percent of the box; it cuts the element and its children to the polygon.
 
 ### 7.6 Blur, brightness, torn edges, uneven ink and shadows that follow
@@ -1292,6 +1292,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S30 | Animated pictures: GIF, animated PNG, animated WebP in `<image>` | An `<image src>` of such a file | A still picture is one frame | Sprint 7 |
 | S31 | A remote source: `src="https://..."` | A `src` that begins with a scheme and `://` | Nothing is read from a network (decision P6) | Sprint 7 |
 | S32 | Footage whose edit list has more than one playing entry or a media rate other than 1; footage in fragments | The file, when it is looked at | Refused by name (decision P12) | Sprint 7 |
+| S33 | A corner written as an ellipse: `border-radius="24 / 12"` or `"24 12"` | A `border-radius` of two numbers, or of two numbers with a `/` between them | One circular radius per corner only | Sprint 5 |
 
 **Not unsupported, but limited.** A shader opening is supported on the card's renderer only (7.8). A character drawn from a font of the machine (N2) is drawn. Repeated `id`s are accepted (N7). These are not refused.
 
