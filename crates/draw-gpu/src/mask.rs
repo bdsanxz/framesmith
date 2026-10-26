@@ -289,8 +289,7 @@ impl Masks {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         layout: &wgpu::BindGroupLayout,
-        ring: Ring,
-        own: Option<Rect>,
+        (ring, own): (Ring, Option<Rect>),
         map: Map,
         (width, height): (u32, u32),
     ) -> Result<MaskKey, Error> {

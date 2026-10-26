@@ -59,7 +59,7 @@ pub fn cut_weights(shape: Rounded, own: Option<Rect>, map: Map, width: u32, heig
             };
             let weight = &mut weights.alpha[(line * weights.width + column) as usize];
             let k2 = u32::from(*weight);
-            *weight = if k1 == 0 { 0 } else { ((255 * k2 + k1 / 2) / k1).min(255) as u8 };
+            *weight = (255 * k2 + k1 / 2).checked_div(k1).map_or(0, |share| share.min(255) as u8);
         }
     }
     Ok(Some(weights))

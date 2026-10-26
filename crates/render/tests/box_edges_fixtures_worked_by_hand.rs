@@ -323,8 +323,8 @@ fn the_turned_rounded_box_is_weighed_once_at_its_edge() {
     let (outer, gap_outer, gap_inner, inner) = (edge(0.0), edge(3.0), edge(6.0), edge(9.0));
     const POINTS: u32 = 64;
     let (mut judged, mut wrong, mut worst) = (0, Vec::new(), 0_u8);
-    for y in 75..186_u32.min(180) {
-        for x in 205..316_u32.min(320) {
+    for y in 75..180_u32 {
+        for x in 205..316_u32 {
             let (mut fill, mut first, mut second) = (0_u32, 0_u32, 0_u32);
             for j in 0..POINTS {
                 for i in 0..POINTS {
