@@ -417,6 +417,8 @@ A piece of a text. It stands inside a `<text>` or another `<span>` and nowhere e
 
 A still picture. Children: `<tween>`, `<set>`.
 
+What this version reads and draws of an `<image>`, how its file is read and what stops a run are in `still-pictures.md`: in this version it takes its place, its size, `src`, `object-fit` and `object-position`, and the other attributes of the table are reported (section 1 there).
+
 | Attribute | Value form | Default | See |
 |---|---|---|---|
 | `id` | text | none | 12 (N7) |

@@ -246,3 +246,7 @@ The layers of a box's background (`render-command.md` section 4.6) are drawn by 
 2. **Under any other map.** The picture is drawn through the map by the processor into a picture of the frame's size (`draw_cpu::placed_picture_layer`) and laid by the card as section 10.4 lays the emoji of a text under a map.
 3. **Agreement.** The card's picture agrees with the processor's within section 4.
 4. **Tests.** `crates/draw-gpu/tests/placed_pictures_on_the_card.rs`, `crates/render/tests/footage_on_the_card.rs`, and `crates/render/tests/source_picture_rule.rs` (the card shows the same source pictures the processor shows, at the composition's and at other rates). Reference machine only.
+
+## 13. Still pictures on the card
+
+The picture of an `<image>` (`still-pictures.md` section 5) is drawn by the processor into a picture of the frame's size (`draw_cpu::still_layer`): its premultiplied values times their coverage, transparent elsewhere. The card lays that picture over its target by src-over, in the mark's place in the order, within the clip in force, as section 11 lays a background drawn under a map. It makes no mask. The card's picture differs from the processor's by the rounding of the blend alone, measured by section 4. The tests are in `crates/draw-gpu/tests/card_still_pictures.rs` and in the fixtures' tests on the card, reference machine only.
