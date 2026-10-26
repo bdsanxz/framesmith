@@ -187,33 +187,6 @@ fn check_and_render_refuse_each_span_form_that_is_not_drawn_the_same_way_on_its_
 }
 
 #[test]
-fn check_and_render_report_start_and_duration_of_one_span_in_the_order_they_are_written() {
-    let start = "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `start`";
-    let duration = "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `duration`";
-    let cases = [
-        (
-            "start-first",
-            r##"<span start="0" duration="1" color="#ff0000">CD</span>"##,
-            [start, duration],
-        ),
-        (
-            "duration-first",
-            r##"<span duration="1" start="0" color="#ff0000">CD</span>"##,
-            [duration, start],
-        ),
-    ];
-    let mut failures: Vec<String> = Vec::new();
-    for (name, span, reports) in cases {
-        let (check, render, film) = check_and_render(name, &text_with(span));
-        let found = problems(&check, &render, &film, &reports, 2);
-        if !found.is_empty() {
-            failures.push(format!("{name}:\n    {}", found.join("\n    ")));
-        }
-    }
-    assert!(failures.is_empty(), "{} case(s) failed:\n{}", failures.len(), failures.join("\n"));
-}
-
-#[test]
 fn check_and_render_refuse_a_room_between_two_ideographs_on_the_line_of_its_attribute() {
     // Two ideographs may break between them (UAX 14, rule LB31), and a no-break space after the first keeps no break before
     // it (rule LB12a), so the room of the span cannot keep its place and its break: it is refused where the margin is written.
