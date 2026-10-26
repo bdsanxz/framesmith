@@ -435,7 +435,15 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard,
     }
     let mut drawn_marks = Vec::new();
     let asked = marks.then_some(&mut drawn_marks);
-    match render::write_film_marked(&scene, sounds, choice.renderer_mut(), &output, settings.audio_bitrate(), asked) {
+    match render::write_film_marked(
+        &scene,
+        sounds,
+        choice.renderer_mut(),
+        &output,
+        settings.audio_bitrate(),
+        settings.codec(),
+        asked,
+    ) {
         Ok(written) => {
             let mut lines = vec![
                 format!("Rendered {}", output.display()),
