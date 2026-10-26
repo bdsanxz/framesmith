@@ -190,6 +190,10 @@ pub enum Code {
     /// A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that
     /// has no `count`, words or a `<span>` in a `<text>` that counts, or a tween or set of `count` on a text without it.
     CountNotWritten,
+    /// The machine's own encoder does not take the film's size.
+    HardwareSizeNotTaken,
+    /// The system's encoder on the processor does not take the film's size.
+    SoftwareSizeNotTaken,
     /// A `<video>` has no `width` or no `height`, or one below 2.
     VideoSize,
     /// A `<video>` has no `src`.
@@ -275,6 +279,8 @@ impl Code {
         Code::SoundDamaged,
         Code::SoundStartPastEnd,
         Code::CountNotWritten,
+        Code::HardwareSizeNotTaken,
+        Code::SoftwareSizeNotTaken,
         Code::VideoSize,
         Code::VideoSourceMissing,
     ];
@@ -358,6 +364,8 @@ impl Code {
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
             Code::CountNotWritten => "FS-0084",
+            Code::HardwareSizeNotTaken => "FS-0073",
+            Code::SoftwareSizeNotTaken => "FS-0074",
             Code::VideoSize => "FS-0085",
             Code::VideoSourceMissing => "FS-0086",
         }
@@ -375,9 +383,13 @@ impl Code {
             | Code::ShownUnreadable
             | Code::FontUnreadable
             | Code::SoundUnreadable => Kind::Failure,
-            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable | Code::EmojiNotDrawn | Code::SoundNotRead => {
-                Kind::Unsupported
-            }
+            Code::KeyNotSupported
+            | Code::FormNotSupported
+            | Code::RendererNotAvailable
+            | Code::EmojiNotDrawn
+            | Code::SoundNotRead
+            | Code::HardwareSizeNotTaken
+            | Code::SoftwareSizeNotTaken => Kind::Unsupported,
             _ => Kind::Invalid,
         }
     }
@@ -469,6 +481,13 @@ impl Code {
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
             Code::CountNotWritten => {
                 "Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists."
+            }
+            Code::HardwareSizeNotTaken => {
+                "Set the setting the message names: `render.codec` (or `--codec`) to `hevc` where the message offers it, or `render.encoder` (or `--encoder`) to `software`."
+            }
+            Code::SoftwareSizeNotTaken => {
+                "Make the film smaller, then run the command again."
+            }
             }
             Code::VideoSize => "Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more.",
             Code::VideoSourceMissing => "Write `src` on the <video>: the path of its file from the project folder.",

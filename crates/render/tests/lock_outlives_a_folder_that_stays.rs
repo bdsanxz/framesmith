@@ -10,8 +10,8 @@ use std::path::Path;
 
 use common::{project_from_fixture, scratch};
 use draw_cpu::CpuRenderer;
-use project::{Codec, Project};
-use render::{remove_stale_staging, staging_folder_of, write_film_stepped, Scene, Step};
+use project::Project;
+use render::{remove_stale_staging, staging_folder_of, write_film_stepped, Encoding, Scene, Step};
 
 /// Makes a folder that its own holder cannot empty: a subfolder with no permissions, holding a file.
 fn stuck_folder(folder: &Path) -> std::path::PathBuf {
@@ -32,7 +32,7 @@ fn a_run_whose_folder_cannot_be_removed_keeps_its_lock_file() {
     let folder = staging_folder_of(&output);
     let lock = base.join(format!(".framesmith-{}.lock", std::process::id()));
     let mut stuck = None;
-    let written = write_film_stepped(&scene, Vec::new(), &mut CpuRenderer, &output, 128, Codec::H264, None, &mut |step| {
+    let written = write_film_stepped(&scene, Vec::new(), &mut CpuRenderer, &output, 128, Encoding::default(), None, &mut |step| {
         // Once the hidden folder is made, one of its subfolders is made that the run cannot empty at its end.
         if step == Step::Made {
             stuck = Some(stuck_folder(&folder));

@@ -13,6 +13,7 @@ use codec::{AudioEncoder, AudioEncoderSetup, Hardware, RateControl, VideoEncoder
 use draw::Renderer;
 use format::{Audio, Media, Muxer, TrackSetup, Video};
 use mix::Mix;
+use project::{Codec as PictureCodec, Encoder, Quality, Settings};
 
 use timeline::Scene;
 
@@ -20,6 +21,19 @@ use crate::footage::Sources;
 
 /// The quality `render.quality: standard` asks the encoder for, from 0 to 1 (decision D22).
 const STANDARD_QUALITY: f32 = 0.65;
+/// The quality each `render.quality` asks the machine's own encoder for, from 0 to 1 (`docs/spec/render-command.md`
+/// section 5.4; `standard` is decision D22's).
+const HARDWARE_QUALITY: [(Quality, f32); 3] = [(Quality::Draft, 0.45), (Quality::Standard, 0.65), (Quality::High, 0.85)];
+/// The bits for each pixel of each picture that each `render.quality` asks the system's encoder on the processor for, which
+/// takes a bit rate and no quality (section 5.4).
+const SOFTWARE_BITS_PER_PIXEL: [(Quality, f64); 3] = [(Quality::Draft, 0.025), (Quality::Standard, 0.05), (Quality::High, 0.1)];
+/// The fewest bits a second each `render.quality` asks the system's encoder on the processor for, so that a small film
+/// keeps its pictures and the three qualities stay in order (section 5.4).
+const SOFTWARE_LEAST_BITRATE: [(Quality, f64); 3] = [
+    (Quality::Draft, 250_000.0),
+    (Quality::Standard, 500_000.0),
+    (Quality::High, 1_000_000.0),
+];
 /// The most seconds between two key pictures (decision D22).
 const KEY_SECONDS: f64 = 2.0;
 /// Sample frames of AAC in one packet (ISO/IEC 14496-3).
@@ -36,6 +50,98 @@ pub struct Written {
     pub seconds: f64,
     /// Whether the machine's hardware encoded the pictures.
     pub hardware: bool,
+}
+
+/// How the picture is encoded: `render.codec`, `render.encoder` and `render.quality` (`docs/spec/render-command.md`
+/// sections 5.3 and 5.4).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Encoding {
+    pub codec: PictureCodec,
+    pub encoder: Encoder,
+    pub quality: Quality,
+}
+
+impl Encoding {
+    /// The encoding the settings in use ask for.
+    pub fn of(settings: &Settings) -> Encoding {
+        Encoding {
+            codec: settings.codec(),
+            encoder: settings.encoder(),
+            quality: settings.quality(),
+        }
+    }
+
+    /// The setup of the picture encoder for a film of `width` by `height` at `fps`: the machine's own encoder only, or
+    /// the system's encoder on the processor only, never left to the system (section 5.4).
+    fn setup(&self, width: u32, height: u32, fps: u32) -> VideoEncoderSetup {
+        let rate = Rational::new(fps, 1);
+        let (hardware, rate_control) = match self.encoder {
+            Encoder::Hardware => (Hardware::Required, RateControl::Quality(pick(&HARDWARE_QUALITY, self.quality))),
+            Encoder::Software => {
+                let bits = pick(&SOFTWARE_BITS_PER_PIXEL, self.quality) * f64::from(width) * f64::from(height) * f64::from(fps);
+                let bits = bits.round().clamp(pick(&SOFTWARE_LEAST_BITRATE, self.quality), f64::from(u32::MAX)) as u32;
+                (Hardware::Refused, RateControl::Bitrate(bits))
+            }
+        };
+        VideoEncoderSetup {
+            codec: picture_codec(self.codec),
+            width,
+            height,
+            rate,
+            bits: 8,
+            rate_control,
+            key_distance: VideoEncoderSetup::key_distance_within(KEY_SECONDS, rate),
+            reorder: true,
+            color: Color::BT709,
+            hdr: Hdr::default(),
+            hardware,
+        }
+    }
+}
+
+fn pick<T: Copy>(table: &[(Quality, T); 3], quality: Quality) -> T {
+    table.iter().find(|(each, _)| *each == quality).map(|(_, value)| *value).unwrap()
+}
+
+/// The encoder's refusal of a film's size, before the first frame (`docs/spec/render-command.md` section 5.4): which
+/// encoder, the size, the settings in effect, and the setting that makes the film render, as one sentence.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SizeRefused(pub String);
+
+/// Makes the encoder `encoding` names for a film of `width` by `height` at `fps`, and gives its refusal when it does not
+/// take that size. Nothing is drawn or written. An encoder that cannot be made for another reason is not a refusal of the
+/// size: the render reports it when it makes the encoder.
+pub fn size_refused(encoding: Encoding, width: u32, height: u32, fps: u32) -> Option<SizeRefused> {
+    let takes = |encoding: Encoding| {
+        !matches!(
+            codecs().video_encoder(&encoding.setup(width, height, fps)),
+            Err(Error::Unsupported(_))
+        )
+    };
+    if takes(encoding) {
+        return None;
+    }
+    let (who, codec) = match (encoding.encoder, encoding.codec) {
+        (Encoder::Hardware, PictureCodec::H264) => ("the machine's own H.264 encoder", "h264"),
+        (Encoder::Hardware, PictureCodec::Hevc) => ("the machine's own HEVC encoder", "hevc"),
+        (Encoder::Software, PictureCodec::H264) => ("the system's H.264 encoder on the processor", "h264"),
+        (Encoder::Software, PictureCodec::Hevc) => ("the system's HEVC encoder on the processor", "hevc"),
+    };
+    let hevc = Encoding {
+        codec: PictureCodec::Hevc,
+        ..encoding
+    };
+    let remedy = match encoding.encoder {
+        Encoder::Hardware if encoding.codec == PictureCodec::H264 && takes(hevc) => {
+            "set codec: hevc, which the machine's own encoder takes at this size, or encoder: software"
+        }
+        Encoder::Hardware => "set encoder: software",
+        Encoder::Software => "make the film smaller",
+    };
+    Some(SizeRefused(format!(
+        "{who} does not take a film of {width}x{height} (render.encoder: {}, render.codec: {codec}); {remedy}",
+        encoding.encoder
+    )))
 }
 
 /// Why the film could not be made: the reason, as one sentence without a full stop.
@@ -260,29 +366,29 @@ pub(crate) fn codecs() -> codec::Registry {
 /// folder it is in when that is missing, with the sound encoded at `audio_bitrate` kbit/s
 /// (`render.audio-bitrate`, section 5.2). A film that cannot be finished leaves no file at
 /// `output`. The scene's sounds are opened first (`docs/spec/sound.md`); one that cannot be is the failure.
-/// The picture is H.264, the default of `render.codec`.
+/// The picture is encoded as the defaults of the settings ask: H.264 by the machine's own encoder at `standard`.
 pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32) -> Result<Written, Failure> {
     let sounds = crate::open_sounds("", scene.sounds()).map_err(|reports| {
         let messages: Vec<String> = reports.iter().map(|report| report.problem().message().to_string()).collect();
         Failure::new(messages.join("; "))
     })?;
-    write_film_marked(scene, sounds, renderer, output, audio_bitrate, project::Codec::H264, None)
+    write_film_marked(scene, sounds, renderer, output, audio_bitrate, Encoding::default(), None)
 }
 
 /// Writes the film as `write_film` does, with `sounds` (the scene's, as [`crate::open_sounds`] opens them) placed in its
-/// mix, with its picture in `codec` (`render.codec`, section 5.3) and, when `marks` is given, puts in it the mark of each
-/// frame drawn, in the order of the frames (`docs/spec/render-command.md`, section 7.1). A film that is not finished
-/// leaves the marks it gave so far. (Write HEVC when the author asks for it: render.codec and --codec hevc encode the picture as HEVC of 8 bits marked hvc1, h264 stays the default, and the summary and the log name the codec)
+/// mix, with its picture encoded as `encoding` asks (sections 5.3 and 5.4) and, when `marks` is given, puts in it the mark
+/// of each frame drawn, in the order of the frames (`docs/spec/render-command.md`, section 7.1). A film that is not finished
+/// leaves the marks it gave so far.
 pub fn write_film_marked(
     scene: &Scene,
     sounds: Vec<mix::Sound>,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
-    codec: project::Codec,
+    encoding: Encoding,
     marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
-    write_film_stepped(scene, sounds, renderer, output, audio_bitrate, codec, marks, &mut |_| {})
+    write_film_stepped(scene, sounds, renderer, output, audio_bitrate, encoding, marks, &mut |_| {})
 }
 
 /// The points of a render's start at which `write_film_stepped` stops to let its caller look at the folders.
@@ -303,7 +409,7 @@ pub fn write_film_stepped(
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
-    codec: project::Codec,
+    encoding: Encoding,
     marks: Option<&mut Vec<u64>>,
     on_step: &mut dyn FnMut(Step),
 ) -> Result<Written, Failure> {
@@ -320,7 +426,9 @@ pub fn write_film_stepped(
         height = scene.height(),
         fps = scene.fps(),
         renderer = renderer.name(),
-        codec = %codec,
+        codec = %encoding.codec,
+        encoder = %encoding.encoder,
+        quality = %encoding.quality,
         "render started"
     );
     let staging = staging_of(output);
@@ -330,7 +438,7 @@ pub fn write_film_stepped(
     on_step(Step::Locked);
     fs::create_dir(&run.folder).map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))?;
     on_step(Step::Made);
-    let written = make(scene, sounds, renderer, &staging, audio_bitrate, picture_codec(codec), began, marks).and_then(|written| {
+    let written = make(scene, sounds, renderer, &staging, audio_bitrate, encoding, began, marks).and_then(|written| {
         fs::rename(&staging, output)
             .map_err(|error| Failure::new(format!("the finished video could not be moved to its place: {error}")))?;
         Ok(written)
@@ -347,7 +455,7 @@ fn make(
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
-    picture: Codec,
+    encoding: Encoding,
     began: Instant,
     mut marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
@@ -358,22 +466,18 @@ fn make(
     // The footage is opened, and the first picture of each source decoded, before the encoder starts (section 4.8, rule 5).
     let mut footage = Sources::open(scene).map_err(Failure::new)?;
     let rate = Rational::new(scene.fps(), 1);
-    let setup = VideoEncoderSetup {
-        codec: picture,
-        width: scene.width(),
-        height: scene.height(),
-        rate,
-        bits: 8,
-        rate_control: RateControl::Quality(STANDARD_QUALITY),
-        key_distance: VideoEncoderSetup::key_distance_within(KEY_SECONDS, rate),
-        reorder: true,
-        color: Color::BT709,
-        hdr: Hdr::default(),
-        hardware: Hardware::Any,
-    };
+    let setup = encoding.setup(scene.width(), scene.height(), scene.fps());
+    let picture = setup.codec;
     let codecs = codecs();
     let mut encoder = codecs.video_encoder(&setup).map_err(named)?;
     tracing::debug!(hardware = encoder.hardware(), "encoder started");
+    // The film is encoded by the encoder the author chose, or not at all (section 5.4).
+    if encoder.hardware() != (encoding.encoder == Encoder::Hardware) {
+        return Err(Failure::new(format!(
+            "the system gave another encoder than the {} one that render.encoder names",
+            encoding.encoder
+        )));
+    }
     let mut mix = Mix::for_picture(scene.frames(), scene.fps());
     for sound in sounds {
         mix.place(sound).map_err(named)?;

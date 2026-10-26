@@ -259,11 +259,11 @@ fn a_length_that_is_wrong_is_invalid_with_fs_0034_and_a_form_that_is_not_drawn_i
 #[test]
 fn a_setting_that_is_not_applied_is_refused_with_the_line_of_its_value_in_the_project_file() {
     let (project, cwd) = make(GROUP, "setting", FIRST);
-    fs::write(project.join("framesmith.yaml"), "name: demo\nrender:\n  quality: high\n").unwrap();
+    fs::write(project.join("framesmith.yaml"), "name: demo\nrender:\n  workers: 4\n").unwrap();
     let output = render(&cwd, &project);
     assert_eq!(output.status.code(), Some(2));
     assert!(
-        out(&output).starts_with("framesmith.yaml, line 3: FS-0035: unsupported: `render.quality: high` is written, which this version does not support (support table S49: "),
+        out(&output).starts_with("framesmith.yaml, line 3: FS-0035: unsupported: `render.workers: 4` is written, which this version does not support (support table S50: "),
         "{}",
         out(&output)
     );

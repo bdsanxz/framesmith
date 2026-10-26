@@ -54,7 +54,7 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `render::sound` | `sound placed` | `line` (the line of its `<audio>`), `first` (its first sample frame in the mix), `frames` (its length in sample frames) | A sound file was opened through frx7 and its sound placed (`sound.md`), once for each `<audio>`, in the order of the lines; by `check` as by `render` |
 | debug | `render::sound` | `sounds placed` | `sounds` (how many) | Every sound file of the composition was opened, before the renderer is chosen; not written when the composition has no `<audio>` |
 | debug | `cli` | `renderer chosen` | `renderer` (`processor` or `card`, the one that draws), `chosen_by` (`setting` for `cpu` or `gpu`, `auto card` when `auto` took the card, `auto no card` when `auto` took the processor because no card started) | `render` chose its renderer by the rule of `render-command.md` section 1.2, after the card was started when the choice needs it and before the film is opened |
-| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor` or `card`, the one that draws: `render-command.md` section 1.2), `codec` (`h264` or `hevc`, the codec of the picture: `render-command.md` section 5.3) | The first frame is about to be drawn |
+| info | `render::film` | `render started` | `frames`, `width`, `height`, `fps`, `renderer` (`processor` or `card`, the one that draws: `render-command.md` section 1.2), `codec` (`h264` or `hevc`, the codec of the picture: `render-command.md` section 5.3), `encoder` (`hardware` or `software`) and `quality` (`draft`, `standard` or `high`: section 5.4) | The first frame is about to be drawn |
 | debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |
 | debug | `render::film` | `sound encoder started` | `sample_frames` (the length of the mix), `bitrate` (bits a second) | The system's AAC encoder was started for the sound track (`render-command.md` section 5.2) |
 | debug | `render::film` | `sound encoder finished` | none | The AAC encoder gave its last packets |
@@ -71,7 +71,7 @@ The outcome and the level of the last line:
 | `ready` | info | 0 | `check` found the project valid |
 | `rendered` | info | 0 | `render` wrote the film; `frames` is how many frames it holds |
 | `video not made` | error | 1 | `render` could not make the film; `code` is `FS-0036` |
-| `refused` | warn | 2 | `render` refused the film before the first frame because the card that `--backend gpu` asks for is not there; `code` is `FS-0038`; no file was written |
+| `refused` | warn | 2 | `render` refused the film before the first frame because the card that `--backend gpu` asks for is not there (`code` is `FS-0038`), or `render` or `check` found that the chosen encoder does not take the film's size (`code` is `FS-0073` or `FS-0074`); no file was written |
 | `invalid` | warn | 1 | The project file or the composition has problems (for `render` also `FS-0034`); the reports were printed |
 | `unsupported` | warn | 2 | The only reports are of the kind unsupported (`FS-0023`, and `FS-0035` for `render`); they were printed |
 | `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028`) |

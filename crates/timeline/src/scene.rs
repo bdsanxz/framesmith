@@ -9,7 +9,7 @@ use draw::{
     Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
-use project::{Attribute, Code, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Unsupported, Workers};
+use project::{Attribute, Code, Element, Length, Node, Problem, Project, Report, Workers};
 use text::Fonts;
 use timebase::Time;
 
@@ -2428,20 +2428,6 @@ fn settings(project: &Project) -> Vec<Report> {
         matches!(kind.as_deref(), Some("mp4" | "m4v")),
         output.clone(),
         Unsupported::FilmNotMp4,
-    );
-    check(
-        "render.quality",
-        Some("--quality"),
-        settings.quality() == Quality::Standard,
-        settings.quality().to_string(),
-        Unsupported::EncoderOrQuality,
-    );
-    check(
-        "render.encoder",
-        Some("--encoder"),
-        settings.encoder() == Encoder::Hardware,
-        settings.encoder().to_string(),
-        Unsupported::EncoderOrQuality,
     );
     check(
         "render.workers",
