@@ -57,6 +57,10 @@ fn cover_scales_evenly_until_the_box_is_covered_and_cuts_what_reaches_beyond() {
     for position in [(0.0, 0.0), (0.5, 0.5), (1.0, 1.0)] {
         assert_eq!(mark(40, 80, Fit::Cover, position).shown(), Some(area(10.0, 20.0, 100.0, 50.0)));
     }
+    // The portrait again, at positions whose two numbers differ: only the one down counts, as the picture reaches beyond
+    // down alone. At (0, 1), dy = 20 + (50 - 200) * 1 = -130; at (1, 0), dy = 20 + (50 - 200) * 0 = 20; dx = 10 at both.
+    assert_eq!(mark(40, 80, Fit::Cover, (0.0, 1.0)).place(), Some(area(10.0, -130.0, 100.0, 200.0)));
+    assert_eq!(mark(40, 80, Fit::Cover, (1.0, 0.0)).place(), Some(area(10.0, 20.0, 100.0, 200.0)));
     // A landscape of 400 by 100: the scale is max(0.25, 0.5) = 0.5, so 200 by 50, and 100 reach beyond across.
     assert_eq!(mark(400, 100, Fit::Cover, (1.0, 0.0)).place(), Some(area(-90.0, 20.0, 200.0, 50.0)));
 }
@@ -69,6 +73,16 @@ fn contain_scales_evenly_until_all_of_the_picture_is_in_the_box() {
     assert_eq!(mark(200, 200, Fit::Contain, (1.0, 1.0)).place(), Some(area(60.0, 20.0, 50.0, 50.0)));
     // A portrait of 40 by 80: the scale is min(2.5, 0.625) = 0.625, so 25 by 50, and its left edge between pixels.
     assert_eq!(mark(40, 80, Fit::Contain, (0.5, 0.5)).place(), Some(area(47.5, 20.0, 25.0, 50.0)));
+    // A landscape of 400 by 100: the scale is min(0.25, 0.5) = 0.25, so 100 by 25, with 25 of room down. At (0, 1),
+    // dy = 20 + 25 * 1 = 45; at (1, 0), dy = 20 + 25 * 0 = 20; dx = 10 at both.
+    assert_eq!(
+        mark(400, 100, Fit::Contain, (0.0, 1.0)).place(),
+        Some(area(10.0, 45.0, 100.0, 25.0))
+    );
+    assert_eq!(
+        mark(400, 100, Fit::Contain, (1.0, 0.0)).place(),
+        Some(area(10.0, 20.0, 100.0, 25.0))
+    );
     // What is drawn is the whole picture.
     assert_eq!(mark(40, 80, Fit::Contain, (0.5, 0.5)).shown(), Some(area(47.5, 20.0, 25.0, 50.0)));
 }

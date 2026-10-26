@@ -105,6 +105,20 @@ fn a_picture_drawn_smaller_is_averaged_over_the_pixels_its_pixel_spans() {
 }
 
 #[test]
+fn a_picture_drawn_smaller_down_is_averaged_over_the_rows_its_pixel_spans() {
+    // The same four values in a column, 1 by 4 drawn in 1 by 2: the reach down is 4 / 2 = 2; at y = 0, v = 1.0, and the
+    // weights of the four rows are 0.75, 0.75, 0.25, 0: (0.25 * 255) / 1.75 = 36.43, so 36. At y = 1, v = 3.0: 0, 0.25,
+    // 0.75, 0.75, so (1.5 * 255) / 1.75 = 218.57, 219. With a reach of 1 down it would be 0 and 255.
+    let picture = drawn(
+        1,
+        2,
+        BLUE,
+        vec![placed(0, 0, 1, 2, still(1, 4, grey(&[0, 0, 255, 255])), Fit::Fill, (0.5, 0.5))],
+    );
+    assert_eq!([red_of(&picture, 0, 0), red_of(&picture, 0, 1)], [36, 219]);
+}
+
+#[test]
 fn a_transparent_part_shows_what_is_under_it() {
     // Straight (255, 0, 0, 128) is premultiplied to (128, 0, 0, 128) and laid over blue: red 128 + 0, blue 0 +
     // round(255 * 127 / 255) = 127. A pixel of alpha 0 changes nothing.
