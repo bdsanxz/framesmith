@@ -89,7 +89,7 @@ fn an_audio_with_no_duration_is_reported_with_its_line_its_file_and_the_reason()
         ),
         1,
     );
-    assert!(line.starts_with("composition.xml, line 2: FS-0067: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0076: invalid:"), "{line}");
     assert!(line.contains("`<audio src=\"tone.wav\">` needs a `duration` above 0"), "{line}");
 }
 
@@ -103,7 +103,7 @@ fn an_audio_with_a_duration_of_0_is_reported_with_its_file_and_the_value() {
         ),
         1,
     );
-    assert!(line.starts_with("composition.xml, line 2: FS-0067: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0076: invalid:"), "{line}");
     assert!(
         line.contains("`<audio src=\"tone.wav\">` needs a `duration` above 0, the seconds the sound plays, not `duration=\"0\"`"),
         "{line}"
@@ -119,13 +119,13 @@ fn an_audio_with_no_src_and_no_duration_gets_two_reports_on_its_line() {
         assert!(
             lines
                 .iter()
-                .any(|line| line.starts_with("composition.xml, line 2: FS-0067: invalid: `<audio>` needs a `duration` above 0")),
+                .any(|line| line.starts_with("composition.xml, line 2: FS-0076: invalid: `<audio>` needs a `duration` above 0")),
             "{lines:?}"
         );
         assert!(
             lines
                 .iter()
-                .any(|line| line.starts_with("composition.xml, line 2: FS-0068: invalid: `<audio>` needs the attribute `src`")),
+                .any(|line| line.starts_with("composition.xml, line 2: FS-0077: invalid: `<audio>` needs the attribute `src`")),
             "{lines:?}"
         );
     }
@@ -137,7 +137,7 @@ fn an_audio_whose_file_is_missing_is_reported_with_its_line_its_file_and_the_rea
         &check_and_render("missing", "<audio src=\"sounds/gone.wav\" start=\"0\" duration=\"1\"/>", &[]),
         1,
     );
-    assert!(line.starts_with("composition.xml, line 2: FS-0068: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0077: invalid:"), "{line}");
     assert!(line.contains("`src=\"sounds/gone.wav\"` names no file"), "{line}");
 }
 
@@ -153,7 +153,7 @@ fn an_audio_whose_file_cannot_be_decoded_is_reported_with_its_line_its_file_and_
         ),
         1,
     );
-    assert!(line.starts_with("composition.xml, line 2: FS-0071: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0080: invalid:"), "{line}");
     assert!(line.contains("`src=\"cut.wav\"` cannot be decoded:"), "{line}");
     assert!(line.contains("`<project>/cut.wav` is damaged"), "{line}");
 }
@@ -170,7 +170,7 @@ fn a_sound_file_of_a_kind_not_read_is_reported_with_its_line_and_the_kinds_read(
         ),
         2,
     );
-    assert!(line.starts_with("composition.xml, line 2: FS-0070: unsupported:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0079: unsupported:"), "{line}");
     assert!(line.contains("`src=\"ulaw.wav\"` is not sound this version reads"), "{line}");
     assert!(line.contains("The kinds read are wav, aiff, mp3 and aac-in-mp4."), "{line}");
 }
@@ -186,7 +186,7 @@ fn a_media_start_past_the_end_of_the_source_is_reported() {
         ),
         1,
     );
-    assert!(line.starts_with("composition.xml, line 2: FS-0072: invalid:"), "{line}");
+    assert!(line.starts_with("composition.xml, line 2: FS-0081: invalid:"), "{line}");
     assert!(
         line.contains("`media-start=\"0.5\"` is at or past the end of `src=\"tone.wav\"`, which lasts 0.021 s"),
         "{line}"
