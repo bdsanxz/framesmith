@@ -85,3 +85,13 @@ fn a_percentage_inside_a_box_that_starts_on_a_whole_pixel_adds_exactly() {
         (49, 10)
     );
 }
+
+#[test]
+fn a_far_edge_half_in_percent_rounds_up_from_the_exact_sum() {
+    // right 64.4% of 125 is exactly 80.5, so the near edge is 125 - 80.5 - 10 = 34.5, which rounds up to 35. A float gives
+    // 80.50000000000001 for the inset and 34.49999999999999 for the edge, which rounds down to 34.
+    assert_eq!(
+        across(frame(125, 10), None, Some(Amount::Pixels(10.0)), Some(Amount::Percent(64.4))),
+        (35, 10)
+    );
+}
