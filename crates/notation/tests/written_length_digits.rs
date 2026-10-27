@@ -69,3 +69,22 @@ fn a_number_too_large_for_a_float_is_still_not_a_length() {
     assert_eq!(length("inf"), None);
     assert_eq!(length("nan%"), None);
 }
+
+#[test]
+fn a_fraction_of_zeros_is_whole_and_one_nonzero_digit_after_them_is_not() {
+    // 1.0000000000000000000000 has 22 places after the point, all zeros: the digits are 1 followed by 22 zeros, at the
+    // exponent -22, and the value is whole. 1.0000000000000000000001 has a 1 in the 22nd place: the digits are 1,
+    // 21 zeros and a 1 (23 digits) at the exponent -22, and the value has a fraction, so it is not a whole number.
+    let whole = match length("1.0000000000000000000000") {
+        Some(Length::Pixels(number)) => number,
+        other => panic!("1.0000000000000000000000 is not a length in pixels: {other:?}"),
+    };
+    assert_eq!((whole.digits(), whole.exponent()), ("10000000000000000000000", -22));
+    assert!(whole.is_whole());
+    let fraction = match length("1.0000000000000000000001") {
+        Some(Length::Pixels(number)) => number,
+        other => panic!("1.0000000000000000000001 is not a length in pixels: {other:?}"),
+    };
+    assert_eq!((fraction.digits(), fraction.exponent()), ("10000000000000000000001", -22));
+    assert!(!fraction.is_whole());
+}

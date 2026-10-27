@@ -121,7 +121,7 @@ fn a_percentage_of_a_child_is_0_on_an_axis_the_row_is_measured_on() {
         height: false,
     };
     let known_width = Measured::default();
-    let on_measured = inside(rect(4, 4, 30, 10), measured_width, &Flex::default(), &[half.clone()]).expect("placed");
+    let on_measured = inside(rect(4, 4, 30, 10), measured_width, &Flex::default(), std::slice::from_ref(&half)).expect("placed");
     assert_eq!(on_measured.items, vec![rect(4, 4, 0, 10)]);
     let on_known = inside(rect(4, 4, 30, 10), known_width, &Flex::default(), &[half]).expect("placed");
     assert_eq!(on_known.items, vec![rect(4, 4, 15, 10)]);

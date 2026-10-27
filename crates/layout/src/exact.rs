@@ -66,7 +66,7 @@ impl Decimal {
         text.parse().unwrap_or(f64::NAN)
     }
 
-    pub fn add(self, other: Decimal) -> Option<Decimal> {
+    pub fn plus(self, other: Decimal) -> Option<Decimal> {
         let (mine, theirs, exponent) = aligned(&self, &other)?;
         if self.negative == other.negative {
             return Some(Decimal::from_digits(self.negative, add_digits(&mine, &theirs), exponent));
@@ -77,8 +77,8 @@ impl Decimal {
         })
     }
 
-    pub fn sub(self, other: Decimal) -> Option<Decimal> {
-        self.add(other.negated())
+    pub fn minus(self, other: Decimal) -> Option<Decimal> {
+        self.plus(other.negated())
     }
 
     pub fn times(self, other: Decimal) -> Option<Decimal> {
@@ -132,7 +132,7 @@ impl Decimal {
     /// The whole number nearest to this amount, a half up: the larger whole number when the amount lies exactly half way.
     /// That is the floor of this amount plus a half, which is worked out exactly.
     pub fn round_half_up(self) -> Option<i128> {
-        self.add(Decimal::from_digits(false, vec![5], -1))?.floor()
+        self.plus(Decimal::from_digits(false, vec![5], -1))?.floor()
     }
 
     /// The whole number at or below this amount. `None` when it is beyond an `i128`.
@@ -160,7 +160,7 @@ impl Decimal {
     }
 
     fn less_than(&self, other: &Decimal) -> Option<bool> {
-        Some(self.clone().sub(other.clone())?.negative)
+        Some(self.clone().minus(other.clone())?.negative)
     }
 
     /// The amount from its sign, its digits (least significant first) and its exponent, in the one form every amount has.

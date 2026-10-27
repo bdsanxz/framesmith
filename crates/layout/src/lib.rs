@@ -430,12 +430,12 @@ fn group_exact(flex: &Flex, children: &[Child]) -> Option<Decimal> {
     let mut total = Decimal::whole(0);
     for child in children {
         total = total
-            .add(Decimal::of(child.main)?)?
-            .add(Decimal::of(child.main_margin.0)?)?
-            .add(Decimal::of(child.main_margin.1)?)?;
+            .plus(Decimal::of(child.main)?)?
+            .plus(Decimal::of(child.main_margin.0)?)?
+            .plus(Decimal::of(child.main_margin.1)?)?;
     }
     let gaps = Decimal::whole(children.len().saturating_sub(1) as i128);
-    total.add(Decimal::of(flex.gap)?.times(gaps)?)
+    total.plus(Decimal::of(flex.gap)?.times(gaps)?)
 }
 
 /// The part of the cross axis above and below the common baseline of the children that lie on one
@@ -467,15 +467,15 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
     // The content box: the container less its padding. Along the main axis the sums are exact (`render-command.md`,
     // section 4.1, rule 3): a share of divided room is the one amount worked in floats.
     let main_from = Decimal::whole(i128::from(main_start))
-        .add(Decimal::of(pad_main.0).ok_or(Beyond)?)
+        .plus(Decimal::of(pad_main.0).ok_or(Beyond)?)
         .ok_or(Beyond)?;
     let main_length = Decimal::whole(i128::from(main_size))
-        .sub(Decimal::of(pad_main.0).ok_or(Beyond)?)
-        .and_then(|rest| rest.sub(Decimal::of(pad_main.1)?))
+        .minus(Decimal::of(pad_main.0).ok_or(Beyond)?)
+        .and_then(|rest| rest.minus(Decimal::of(pad_main.1)?))
         .ok_or(Beyond)?;
     let cross_from = f64::from(cross_start) + pad_cross.0;
     let cross_length = f64::from(cross_size) - pad_cross.0 - pad_cross.1;
-    let room = main_length.sub(group_exact(flex, children).ok_or(Beyond)?).ok_or(Beyond)?;
+    let room = main_length.minus(group_exact(flex, children).ok_or(Beyond)?).ok_or(Beyond)?;
     // The place of the first child along the main axis, and the space between two neighbours.
     let gap = Decimal::of(flex.gap).ok_or(Beyond)?;
     let (offset, spacing) = match flex.along {
@@ -488,22 +488,22 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
             } else {
                 Decimal::whole(0)
             };
-            (Decimal::whole(0), gap.add(extra).ok_or(Beyond)?)
+            (Decimal::whole(0), gap.plus(extra).ok_or(Beyond)?)
         }
     };
     let line = baseline_block(children).map_or(0.0, |(above, _)| above);
 
-    let mut cursor = main_from.add(offset).ok_or(Beyond)?;
+    let mut cursor = main_from.plus(offset).ok_or(Beyond)?;
     let mut flowed = Vec::with_capacity(children.len());
     for child in children {
-        let start = cursor.clone().add(Decimal::of(child.main_margin.0).ok_or(Beyond)?).ok_or(Beyond)?;
+        let start = cursor.clone().plus(Decimal::of(child.main_margin.0).ok_or(Beyond)?).ok_or(Beyond)?;
         let size = Decimal::of(child.main).ok_or(Beyond)?;
         let (across_start, across_size) = across_place(child, cross_from, cross_length, line);
         flowed.push(to_rect(flex.direction, (start.clone(), size.clone()), (across_start, across_size))?);
         cursor = start
-            .add(size)
-            .and_then(|end| end.add(Decimal::of(child.main_margin.1)?))
-            .and_then(|end| end.add(spacing.clone()))
+            .plus(size)
+            .and_then(|end| end.plus(Decimal::of(child.main_margin.1)?))
+            .and_then(|end| end.plus(spacing.clone()))
             .ok_or(Beyond)?;
     }
 
@@ -753,7 +753,7 @@ fn axis(
     // The size: as written, or the space between two written edges, or the fallback; capped unless written.
     let size = match (written, near.clone(), far.clone()) {
         (Some(size), _, _) => size,
-        (None, Some(near), Some(far)) => cap_exact(length.clone().sub(near).and_then(|rest| rest.sub(far)), max)?,
+        (None, Some(near), Some(far)) => cap_exact(length.clone().minus(near).and_then(|rest| rest.minus(far)), max)?,
         _ => cap_exact(Some(fallback), max)?,
     };
     let size = size.max(Decimal::whole(0)).ok_or(Beyond)?;
@@ -761,10 +761,10 @@ fn axis(
     // lies that distance from the parent's far edge; or the parent's near edge.
     let relative = match (near, far) {
         (Some(near), _) => near,
-        (None, Some(far)) => length.clone().sub(far).and_then(|rest| rest.sub(size.clone())).ok_or(Beyond)?,
+        (None, Some(far)) => length.clone().minus(far).and_then(|rest| rest.minus(size.clone())).ok_or(Beyond)?,
         (None, None) => Decimal::whole(0),
     };
-    span_exact(Decimal::whole(i128::from(start)).add(relative).ok_or(Beyond)?, size)
+    span_exact(Decimal::whole(i128::from(start)).plus(relative).ok_or(Beyond)?, size)
 }
 
 /// A size capped at `limit` when there is one, the cap as the amount is worked out (`None` when it does not fit).
@@ -787,7 +787,7 @@ fn span(start: f64, size: f64) -> Result<(i32, u32), Beyond> {
 /// [`span`] for amounts worked out exactly (`render-command.md`, section 4.1, rule 3).
 fn span_exact(start: Decimal, size: Decimal) -> Result<(i32, u32), Beyond> {
     let near = whole(start.clone())?;
-    let far = whole(start.add(size).ok_or(Beyond)?)?;
+    let far = whole(start.plus(size).ok_or(Beyond)?)?;
     let width = (far - near).max(0);
     if width > LIMIT {
         return Err(Beyond);
