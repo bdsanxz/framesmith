@@ -77,6 +77,25 @@ The shape is a circle of radius 40 centred at (50, 50).
 - True left edge at pixel-row centres, for the edge check: y 50.5 gives x 10.0031; y 60.5 gives x 11.4027; y 70.5 gives x 15.6525; y 80.5 gives x 24.1205. Each row's edge in the picture is within 0.25 pixel of its true x.
 - Largest flat piece: a straight piece of the drawn curve may not be longer than 8.93 pixels at this radius (the longest chord within 0.25 pixel of a circle of radius 40: 2 × 40 × sin(θ / 2) with cos(θ / 2) = 1 − 0.25 ÷ 40).
 
+## 6. shadow (the offset and the blur of a shadow)
+
+Worked by hand from `shape.md` section 8, with the blur of `text.md` section 6.6 rule 7 (three passes, each a horizontal average and then a vertical one, rounded to the nearest level with halves up). The shadow is the layer of a shape alone, premultiplied, before any picture is laid under it.
+
+Case A, the offset: frame 48 by 48, nothing under the shape. One shape: box 0, 0, 48, 48; `view-box="0 0 24 24"` (scale 2); `d="M 4 4 H 20 V 20 H 4 Z"`, filled in ink. `drop-shadow="1 1 0 #000000"`: one view-box unit is 2 pixels, so the shadow covers pixels 10 to 41 on each axis, and the shape covers pixels 8 to 39.
+
+- Ink (exact): (9, 9), (10, 10), (39, 39).
+- Shadow only, black at alpha 255 (exact): (40, 40), (41, 41), (41, 10).
+- Clear (exact): (42, 42), (9, 42), (5, 5).
+
+Case B, the blur: frame 64 by 64, nothing under the shape. One shape: box 0, 0, 64, 64; `view-box="0 0 64 64"` (scale 1); `d="M 16 16 H 48 V 48 H 16 Z"`, filled in ink. `drop-shadow="0 0 2 #285078"`. The blur is 2 pixels, so the standard deviation is 1 and the span is `floor(1 * 3 * sqrt(2 * pi) / 4 + 0.5)` = 2: each pixel becomes the average of itself and the pixel after it. Row 32 lies far from the top and bottom edges, so the vertical passes leave it as the horizontal ones make it:
+
+- Pass 1: x 14 0, x 15 128 (127.5 rounds up), x 16 255.
+- Pass 2: x 13 0, x 14 64, x 15 192 (191.5 rounds up), x 16 255.
+- Pass 3: x 12 0, x 13 32, x 14 128, x 15 224 (223.5 rounds up), x 16 255.
+
+- Shadow alpha along row 32 (exact): x 12 0, x 13 32, x 14 128, x 15 224; the shape's ink from x 16 covers the shadow.
+- Premultiplied colour at (15, 32) is `#285078` times 224 / 255, to the level: (35, 70, 105, 224).
+
 ## Method and limits
 
 - The exact pixel values (corners, fill and stroke, view box, dash runs) are worked by hand from the integer geometry of `shape.md` sections 3 to 5.
