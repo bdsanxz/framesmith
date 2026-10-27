@@ -1,7 +1,7 @@
 //! The motion of an element (`docs/spec/render-command.md`, section 4.5): its movement attributes and its tweens as this
 //! version reads them, and its map and opacity at a time.
 
-use draw::{Filter, Map, Turn};
+use draw::{Filter, Map, Shadow, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Code, Element, Length, Node, Number};
@@ -38,12 +38,14 @@ pub(crate) struct Movement {
     pub(crate) perspective: Option<f64>,
     pub(crate) filter: Filter,
     pub(crate) lines: Vec<u32>,
+    /// The `drop-shadow` the element writes, and its line (`docs/spec/render-command.md` section 4.7, rule 5).
+    pub(crate) shadow: Option<(Option<Shadow>, u32)>,
 }
 
 impl Movement {
     /// Whether the element writes any movement attribute.
     pub(crate) fn written(&self) -> bool {
-        !self.lines.is_empty()
+        !self.lines.is_empty() || self.shadow.is_some()
     }
 }
 
@@ -57,10 +59,18 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         perspective: None,
         filter: Filter::NONE,
         lines: Vec::new(),
+        shadow: None,
     };
     let mut found = Vec::new();
     for attribute in node.attributes() {
         let name = attribute.name();
+        if name == "drop-shadow" {
+            match crate::shadows::drop_shadow(attribute.value()) {
+                Ok(shadow) => movement.shadow = Some((shadow, attribute.line())),
+                Err((code, message)) => found.push((code, attribute.line(), message)),
+            }
+            continue;
+        }
         if !MOVEMENT.contains(&name) {
             continue;
         }
@@ -243,6 +253,8 @@ pub(crate) struct Mover {
     pub(crate) filter: Filter,
     pub(crate) motion: Option<ElementMotion>,
     pub(crate) clip: Option<Rect>,
+    /// The shadow that follows the element's finished picture.
+    pub(crate) shadow: Option<Shadow>,
 }
 
 impl Mover {

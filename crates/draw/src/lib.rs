@@ -90,7 +90,8 @@ pub struct GlyphPicture {
     pub y: f32,
 }
 
-/// A shadow of a paragraph (`docs/spec/text.md`, section 6.6): the alpha of its glyphs moved by `across` pixels to the
+/// A shadow of a paragraph (`docs/spec/text.md`, section 6.6), and of a box or a finished picture (`docs/spec/render-command.md`,
+/// section 4.7): the alpha of its glyphs moved by `across` pixels to the
 /// right and `down` pixels down, blurred by `blur` as notation 7.6 blurs a picture, and laid in `colour` under the glyphs.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Shadow {
@@ -231,6 +232,18 @@ pub struct Group {
     /// The blur and brightness of the group's picture, done before its turn and its clip (`docs/spec/render-command.md`,
     /// section 4.5, rule 11); [`Filter::NONE`] for a group that is not filtered.
     pub filter: Filter,
+    /// The shadow that follows the group's finished picture (`docs/spec/render-command.md`, section 4.7, rule 5): its
+    /// offset and blur in the element's own pixels; `None` for none.
+    pub shadow: Option<Shadow>,
+}
+
+/// A shadow of a box (`docs/spec/render-command.md`, section 4.7, rule 3): the box's outer edge, its rectangle with its
+/// corners rounded (`docs/spec/box-edges.md`, section 3), moved by the shadow's offset in the box's own pixels, mapped,
+/// blurred and laid in the shadow's colour, outside the box only.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BoxShadow {
+    pub shape: Rounded,
+    pub shadow: Shadow,
 }
 
 impl TextMark {
@@ -287,6 +300,8 @@ pub enum Mark {
     /// Marks cut to a rounded rectangle: a rounded background, or the children of a box that cuts them (`docs/spec/box-edges.md`,
     /// sections 3 and 4).
     Cut(Cut),
+    /// One shadow of a box (`docs/spec/render-command.md`, section 4.7).
+    BoxShadow(BoxShadow),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -322,7 +337,7 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) => None,
+                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {

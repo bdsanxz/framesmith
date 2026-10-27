@@ -23,8 +23,10 @@ use vello_cpu::peniko::{Color, ImageAlphaType, ImageQuality, ImageSampler};
 use vello_cpu::{Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
 
 mod edges;
+mod shadows;
 
 pub use edges::{cut_weights, ring_coverage, rounded_coverage};
+pub use shadows::{box_shadow_layer, shadowed, shadowed_group_layer};
 
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
@@ -81,6 +83,7 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
             Mark::Background(background) => draw_background(bytes, width, height, background, map, region)?,
             Mark::Ring(ring) => draw_ring(bytes, width, height, ring, map, region)?,
             Mark::Cut(cut) => draw_cut(bytes, width, height, cut, map, region)?,
+            Mark::BoxShadow(shadow) => lay_faded(bytes, width, &box_shadow_layer(width, height, shadow, map)?, 1.0, region),
         }
     }
     Ok(())
@@ -110,6 +113,12 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
             None => return Ok(()),
         },
     };
+    if let Some(shadow) = &group.shadow {
+        // The finished picture with its shadow under it, then cut and faded as one (section 4.7, rule 5).
+        let layer = shadows::group_with_shadow(width, height, group, shadow, map)?;
+        lay_faded(bytes, width, &layer, opacity, region);
+        return Ok(());
+    }
     if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
         return draw_turned(bytes, width, height, group, map, opacity, turn.about(map), region);
     }
@@ -125,6 +134,13 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
     } else {
         draw_marks(&mut layer, width, height, &group.marks, map, region)?;
     }
+    lay_faded(bytes, width, &layer, opacity, region);
+    Ok(())
+}
+
+/// Lays a layer of premultiplied pixels of the frame's size over the picture in `region`, each of its values times `opacity`,
+/// rounded to the nearest level, halves up.
+fn lay_faded(bytes: &mut [u8], width: u32, layer: &[u8], opacity: f64, region: Region) {
     let (left, top, right, bottom) = region;
     for row in top..bottom {
         let start = (row as usize * width as usize + left as usize) * 4;
@@ -141,7 +157,6 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
             }
         }
     }
-    Ok(())
 }
 
 /// Draws a group turned in space (`docs/spec/render-command.md`, section 4.5, rule 10): its marks with `map` and its

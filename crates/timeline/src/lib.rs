@@ -7,6 +7,7 @@ mod edges;
 mod moving;
 mod paragraph;
 mod scene;
+mod shadows;
 mod sound;
 
 pub use scene::{place_reports, place_reports_and_notes, PictureError, Scene};

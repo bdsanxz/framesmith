@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Box shadows and a shadow that follows a finished element, on a white ground. Top left: a square box with a hard shadow 10
+     pixels across and down. Top middle: a rounded box with a radius of 8 and a shadow of two colours, the first listed on top.
+     Bottom left: a box with a blurred shadow, blur 3. Bottom right: a group of two children with a gap between them, whose
+     drop-shadow follows each child and not the box that holds them. 96 by 64 pixels, 10 frames a second, one second long. -->
+<composition version="1" id="shadows" width="96" height="64" fps="10" duration="1" background="#ffffff">
+  <box left="8" top="8" width="24" height="24" background="#cc3333" box-shadow="10 10 0 #000000"/>
+  <box left="48" top="8" width="24" height="24" background="#3366cc" border-radius="8" box-shadow="6 6 0 #00aa00, 14 2 0 #ff0000"/>
+  <box left="8" top="40" width="24" height="16" background="#ffcc00" box-shadow="6 6 3 #000000"/>
+  <box left="60" top="40" width="30" height="16" drop-shadow="4 4 0 #000000">
+    <box left="0" top="0" width="10" height="10" background="#ff00ff"/>
+    <box left="20" top="0" width="10" height="10" background="#00ffff"/>
+  </box>
+</composition>

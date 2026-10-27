@@ -25,7 +25,7 @@ fn a_movement_attribute_a_style_gives_a_box_is_taken_beside_a_refused_one_that_n
         "shared-style-motion-refusals",
         "style-gives-movement",
         "<composition version=\"1\" width=\"160\" height=\"90\" fps=\"10\" duration=\"1\">\n\
-         <style id=\"moving\" x=\"20\" opacity=\"0.5\" box-shadow=\"1\"/>\n\
+         <style id=\"moving\" x=\"20\" opacity=\"0.5\" grain=\"0.5\"/>\n\
          <box class=\"moving\" left=\"90\" top=\"50\" width=\"20\" height=\"16\" background=\"#ffffff\"/>\n\
          </composition>\n",
     );
@@ -33,7 +33,7 @@ fn a_movement_attribute_a_style_gives_a_box_is_taken_beside_a_refused_one_that_n
     let shown: Vec<String> = reports.iter().map(shown).collect();
     assert_eq!(
         shown,
-        ["composition.xml 3 FS-0035 <box> has an attribute this version does not support: `box-shadow`, which the style `moving` gives it"]
+        ["composition.xml 3 FS-0035 <box> has an attribute this version does not support: `grain`, which the style `moving` gives it"]
     );
 }
 

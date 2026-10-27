@@ -808,7 +808,7 @@ A cross drawn from two bars, each drawn once:
 
 - **`border-radius`**: the corner radius in pixels. It rounds the background, the border, the shadow, a picture and footage and, with `overflow="hidden"`, the cut of the children.
 - **`border`**: a line (`width colour`) round the box, inside its edge. It does not change the box's size. `width double colour` draws two lines with a gap between them in the room one line of that width takes: the outer line, the gap and the inner line are each a third of the width. The word `double` stands between the width and the colour and no other word is taken there.
-- **`box-shadow`**: a shadow list, following the box's radius; the first listed is on top. The blur is counted as CSS counts it. A box with `clip-path` shows no `box-shadow`.
+- **`box-shadow`**: a shadow list, following the box's radius; the first listed is on top. The blur is counted as CSS counts it: a Gaussian blur whose standard deviation is half the blur, drawn as `drop-shadow` is drawn in 7.6 (three passes of an average over the span given there). A box with `clip-path` shows no `box-shadow`.
 - **`overflow`**: `hidden` cuts the element's children and its own content at the box, inside its border, following the inner rounded corners.
 
 How a box draws its border, corners and cut, pixel by pixel, and the reports of a value in another form, are in `box-edges.md`. A border by side is S20 and a corner written as an ellipse is S33 (section 14); each is reported as unsupported on the line of the attribute.
@@ -1293,6 +1293,8 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S31 | A remote source: `src="https://..."` | A `src` that begins with a scheme and `://` | Nothing is read from a network (decision P6) | Sprint 7 |
 | S32 | Footage whose edit list has more than one playing entry or a media rate other than 1; footage in fragments | The file, when it is looked at | Refused by name (decision P12) | Sprint 7 |
 | S33 | A corner written as an ellipse: `border-radius="24 / 12"` or `"24 12"` | A `border-radius` of two numbers, or of two numbers with a `/` between them | One circular radius per corner only | Sprint 5 |
+| S73 | An inner shadow: a shadow written with the word `inset`, in `box-shadow` | The word `inset` in a shadow of a `box-shadow` | Only shadows outside the box are drawn (ROADMAP 5.13) | Sprint 5 |
+| S74 | A shadow with a spread: a fifth value, a length, between the blur and the colour: `box-shadow="0 24 70 8 #00000099"` | A shadow of five values, the fourth a length | Only the four values `X Y BLUR COLOUR` are drawn (ROADMAP 5.13) | Sprint 5 |
 
 **Not unsupported, but limited.** A shader opening is supported on the card's renderer only (7.8). A character drawn from a font of the machine (N2) is drawn. Repeated `id`s are accepted (N7). These are not refused.
 

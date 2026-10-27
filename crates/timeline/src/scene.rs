@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use draw::{
-    Background, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer,
-    Step, TextMark,
+    Background, BoxShadow, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark,
+    Picture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Workers};
@@ -31,7 +31,7 @@ const ROOT_TAKES: [&str; 8] = ["id", "class", "version", "width", "height", "fps
 /// `columns` for a set of columns (section 4.4), its `max-width` and `flex-grow` as an item (sections 4.1 and 4.3), and its
 /// border, corner radius and cut (`docs/spec/box-edges.md`).
 /// The text attributes pass to the elements inside a box (`docs/spec/text.md` section 8).
-const BOX_TAKES: [&str; 28] = [
+const BOX_TAKES: [&str; 29] = [
     "id",
     "class",
     "left",
@@ -60,6 +60,7 @@ const BOX_TAKES: [&str; 28] = [
     "border",
     "border-radius",
     "overflow",
+    "box-shadow",
 ];
 
 /// The edges of an element that writes none: square corners, no border, no cut.
@@ -162,6 +163,7 @@ impl Fill {
                         marks: vec![background],
                         turn: None,
                         filter: Filter::NONE,
+                        shadow: None,
                     }),
                 }
             }
@@ -178,6 +180,8 @@ struct Placed {
     fill: Option<Fill>,
     clip: Option<Rect>,
     edges: Edges,
+    /// The box's shadows, the first listed on top (`docs/spec/render-command.md`, section 4.7).
+    shadows: Vec<Shadow>,
     cut_end: Option<usize>,
 }
 
@@ -361,7 +365,7 @@ impl Scene {
                 let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
-                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() {
+                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() && mover.shadow.is_none() {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false);
@@ -373,6 +377,7 @@ impl Scene {
                             marks: held,
                             turn,
                             filter: mover.filter,
+                            shadow: mover.shadow,
                         }));
                     }
                 }
@@ -425,7 +430,7 @@ impl Scene {
 /// A box with square corners, no border and no cut is its fill alone, as before.
 fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
     let edges = placed.edges;
-    if edges.radius == 0.0 && edges.border.is_none() && !edges.cut {
+    if edges.radius == 0.0 && edges.border.is_none() && !edges.cut && placed.shadows.is_empty() {
         let fill = if clipped {
             fill_mark(placed)
         } else {
@@ -435,7 +440,17 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
     }
     let rect = placed.slot.rect;
     let background = placed.fill.as_ref().and_then(|fill| fill.mark(rect, None));
-    let marks = edges.marks(rect, background.into_iter().collect(), children);
+    // The shadows lie under the box, the last listed first (`docs/spec/render-command.md`, section 4.7, rule 4).
+    let shadows = Rounded::of_box(rect, edges.radius).into_iter().flat_map(|shape| {
+        placed
+            .shadows
+            .iter()
+            .rev()
+            .map(move |&shadow| Mark::BoxShadow(BoxShadow { shape, shadow }))
+    });
+    let marks: Vec<Mark> = shadows
+        .chain(edges.marks(rect, background.into_iter().collect(), children))
+        .collect();
     match placed.clip {
         Some(clip) if clipped && !marks.is_empty() => vec![Mark::Group(Group {
             map: Map::IDENTITY,
@@ -444,6 +459,7 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
             marks,
             turn: None,
             filter: Filter::NONE,
+            shadow: None,
         })],
         _ => marks,
     }
@@ -513,7 +529,7 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
 /// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, and a `<box>` what
 /// `BOX_TAKES` lists and the text attributes, which pass to the elements inside it (`docs/spec/text.md`, section 8).
 fn takes(node: &Node, name: &str) -> bool {
-    if MOVEMENT.contains(&name) && moving::moves(node.element()) {
+    if (MOVEMENT.contains(&name) || name == "drop-shadow") && moving::moves(node.element()) {
         return true;
     }
     match node.element() {
@@ -896,6 +912,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                 fill: form.fill.clone(),
                 clip: canvas.clip,
                 edges: form.edges,
+                shadows: form.shadows.clone(),
                 cut_end: None,
             }));
             places.push(Some(slot));
@@ -1036,6 +1053,15 @@ fn gather_movers(
                     ),
                 )));
             }
+            if let Some((_, line)) = movement.shadow {
+                refusals.push(Refusal::of_motion((
+                    Code::FormNotSupported,
+                    line,
+                    format!(
+                        "drop-shadow of {tag} that holds a <composition src> is not supported by this version, which draws it on a <box> or a <text> that holds no <composition src>"
+                    ),
+                )));
+            }
             continue;
         }
         let written: Vec<Tween> = tweens.iter().map(|(tween, _)| tween.clone()).collect();
@@ -1049,6 +1075,7 @@ fn gather_movers(
             filter: movement.filter,
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
+            shadow: movement.shadow.and_then(|(shadow, _)| shadow),
         });
     }
     (movers, refusals)
@@ -1160,6 +1187,7 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         text: false,
         fill: None,
         edges: NO_EDGES,
+        shadows: Vec::new(),
         clip: Some((start.unwrap_or(Time::ZERO), duration.unwrap_or(file.duration))),
         shown: Some(name.to_string()),
     };
@@ -1325,6 +1353,8 @@ struct Form {
     fill: Option<Fill>,
     /// The border, corners and cut of a box (`docs/spec/box-edges.md`); none for a text and a `<composition src>`.
     edges: Edges,
+    /// The shadows of a box (`docs/spec/render-command.md`, section 4.7); none for a text and a `<composition src>`.
+    shadows: Vec<Shadow>,
     clip: Option<(Time, Time)>,
     /// The file a `<composition src>` shows, as written; `None` for a box.
     shown: Option<String>,
@@ -1556,6 +1586,17 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
             }
         }
     };
+    // The shadows of a box (`docs/spec/render-command.md`, section 4.7, rule 8 for the reports).
+    let shadows = match node.attribute("box-shadow").filter(|_| node.element() != Element::Text) {
+        Some(attribute) => match crate::shadows::box_shadows(attribute.value()) {
+            Ok(shadows) => shadows,
+            Err((code, message)) => {
+                refusals.push(Refusal::of_place(code, attribute.line(), message));
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    };
     // A `<box>` lays its children out in a row or a column, or in a set of columns, and not in both (`FS-0055`).
     let columns = match tracks {
         Some(_) if direction.is_some() => {
@@ -1612,6 +1653,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         text: node.element() == Element::Text,
         fill,
         edges,
+        shadows,
         clip,
         shown: None,
     };

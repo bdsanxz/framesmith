@@ -171,6 +171,8 @@ pub enum Code {
     BackgroundSettingAlone,
     /// A `border` is not a width and a colour, or a width, `double` and a colour.
     BorderNotInForm,
+    /// A `box-shadow` or `drop-shadow` is not `X Y BLUR COLOUR`, a list of them for `box-shadow`.
+    ShadowNotInForm,
     /// The folder of the output path cannot be made or written, so `render` refuses the video before the first frame.
     OutputNotWritten,
     /// An `<audio>` without a `duration` above 0.
@@ -189,7 +191,7 @@ pub enum Code {
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 74] = [
+    pub const ALL: [Code; 75] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -257,6 +259,7 @@ impl Code {
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
         Code::BorderNotInForm,
+        Code::ShadowNotInForm,
         Code::OutputNotWritten,
         Code::SoundNoDuration,
         Code::SoundMissing,
@@ -343,6 +346,7 @@ impl Code {
             Code::SoundNotRead => "FS-0079",
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
+            Code::ShadowNotInForm => "FS-0070",
         }
     }
 
@@ -449,6 +453,7 @@ impl Code {
             Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
+            Code::ShadowNotInForm => "Write the shadow as an offset across, an offset down, a blur and a colour, such as `10 10 8 #000000`.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }
