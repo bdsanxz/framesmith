@@ -1,58 +1,57 @@
-//! The sweep of the hidden staging folders of renders: a folder whose process no longer runs is removed, and a folder
-//! whose process still runs, the process of the caller included, is left as it is; a name that is not a staging folder
-//! is never touched (`docs/spec/render-command.md`, section 6).
+//! The sweep of the hidden staging folders of renders: a folder whose lock no render holds is removed, a folder whose lock
+//! a render holds is left as it is, the caller's own folder is never touched, and a name that is not a staging folder, or
+//! a staging folder with no lock file, is never touched (`docs/spec/render-command.md`, section 6).
 
 mod common;
 
-use std::fs;
-use std::process::{Command, Stdio};
+use std::fs::{self, File};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use common::scratch;
-use render::{process_runs, remove_stale_staging};
+use render::remove_stale_staging;
 
-/// A hidden staging folder of the process `pid` in `folder`, holding a staging file.
-fn staging_folder(folder: &std::path::Path, pid: u32) -> std::path::PathBuf {
+/// A hidden staging folder of the process `pid` in `folder`, with its lock file and a staging file.
+fn staging_folder(folder: &Path, pid: u32) -> PathBuf {
     let hidden = folder.join(format!(".framesmith-{pid}"));
     fs::create_dir_all(&hidden).unwrap();
+    File::create(hidden.join("lock")).unwrap();
     fs::write(hidden.join("film.part.mp4"), b"what a killed render left").unwrap();
     hidden
 }
 
-#[test]
-fn a_staging_folder_whose_process_no_longer_runs_is_removed() {
-    let folder = scratch("staging-folder-sweep", "dead-process");
+/// The process id of a program that has been waited for: it does not run any more.
+fn finished_pid() -> u32 {
     let mut finished = Command::new("/usr/bin/true").spawn().unwrap();
     let pid = finished.id();
     finished.wait().unwrap();
-    assert!(!process_runs(pid), "a process that has been waited for does not run");
-    let hidden = staging_folder(&folder, pid);
-
-    remove_stale_staging(&folder);
-
-    assert!(!hidden.exists(), "the staging folder of a process that does not run is still there");
+    pid
 }
 
 #[test]
-fn a_staging_folder_whose_process_still_runs_is_left_as_it_is() {
-    let folder = scratch("staging-folder-sweep", "live-process");
-    let mut running = Command::new("/bin/sleep")
-        .arg("30")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    let pid = running.id();
-    assert!(process_runs(pid), "a process that runs is seen running");
-    let hidden = staging_folder(&folder, pid);
+fn a_staging_folder_that_no_render_holds_is_removed() {
+    let folder = scratch("staging-folder-sweep", "no-holder");
+    let hidden = staging_folder(&folder, finished_pid());
 
     remove_stale_staging(&folder);
-    running.kill().unwrap();
-    running.wait().unwrap();
+
+    assert!(!hidden.exists(), "a staging folder that no render holds is still there");
+}
+
+#[test]
+fn a_staging_folder_whose_lock_a_render_holds_is_left_as_it_is() {
+    let folder = scratch("staging-folder-sweep", "held");
+    let hidden = staging_folder(&folder, finished_pid());
+    let held = File::open(hidden.join("lock")).unwrap();
+    held.try_lock().unwrap();
+
+    remove_stale_staging(&folder);
 
     assert!(
         hidden.join("film.part.mp4").is_file(),
-        "the staging folder of a running process was touched"
+        "the staging folder of a render that holds its lock was touched"
     );
+    drop(held);
 }
 
 #[test]
@@ -69,17 +68,28 @@ fn the_staging_folder_of_the_caller_is_left_as_it_is() {
 }
 
 #[test]
+fn a_staging_folder_with_no_lock_file_is_left_as_it_is() {
+    let folder = scratch("staging-folder-sweep", "no-lock-file");
+    let hidden = folder.join(format!(".framesmith-{}", finished_pid()));
+    fs::create_dir_all(&hidden).unwrap();
+
+    remove_stale_staging(&folder);
+
+    assert!(hidden.is_dir(), "a folder with no lock file was removed");
+}
+
+#[test]
 fn a_name_that_is_not_a_staging_folder_is_never_touched() {
     let folder = scratch("staging-folder-sweep", "other-names");
-    let mut finished = Command::new("/usr/bin/true").spawn().unwrap();
-    let pid = finished.id();
-    finished.wait().unwrap();
+    let pid = finished_pid();
     let as_a_file = folder.join(format!(".framesmith-{pid}"));
     fs::write(&as_a_file, b"a file, not a folder").unwrap();
     let not_a_number = folder.join(".framesmith-soon");
     fs::create_dir_all(&not_a_number).unwrap();
+    fs::write(not_a_number.join("lock"), b"").unwrap();
     let other = folder.join("notes");
     fs::create_dir_all(&other).unwrap();
+    fs::write(other.join("lock"), b"").unwrap();
 
     remove_stale_staging(&folder);
 

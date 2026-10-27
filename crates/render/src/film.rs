@@ -94,8 +94,11 @@ pub fn staging_of(output: &Path) -> PathBuf {
     staging_folder_of(output).join(name)
 }
 
-/// Removes the hidden folders of renders into `folder` whose process no longer runs, and logs each one: what a render
-/// killed outright left behind. A hidden folder whose process still runs is left as it is.
+/// The name of the lock file in the hidden folder of a run: the run holds an exclusive lock on it while it renders.
+const LOCK_NAME: &str = "lock";
+
+/// Removes the hidden folders of renders into `folder` that no render holds, and logs each one: what a render killed
+/// outright left behind. A folder whose lock a render holds is left as it is, and so is the folder of the caller.
 pub fn remove_stale_staging(folder: &Path) {
     let Ok(entries) = fs::read_dir(folder) else {
         return;
@@ -109,25 +112,16 @@ pub fn remove_stale_staging(folder: &Path) {
         let Some(pid) = pid else {
             continue;
         };
-        if !entry.file_type().is_ok_and(|kind| kind.is_dir()) || pid == std::process::id() || process_runs(pid) {
+        if !entry.file_type().is_ok_and(|kind| kind.is_dir()) || pid == std::process::id() {
             continue;
         }
-        if fs::remove_dir_all(entry.path()).is_ok() {
+        let Ok(lock) = fs::File::open(entry.path().join(LOCK_NAME)) else {
+            continue;
+        };
+        if lock.try_lock().is_ok() && fs::remove_dir_all(entry.path()).is_ok() {
             tracing::info!(pid, "removed the staging folder of a render that is no longer running");
         }
     }
-}
-
-/// Whether a process with this id runs. When the process table cannot be asked, the process is taken to run, so that
-/// its folder is then left alone.
-pub fn process_runs(pid: u32) -> bool {
-    std::process::Command::new("/bin/ps")
-        .args(["-p", &pid.to_string()])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|status| status.success())
-        .unwrap_or(true)
 }
 
 /// Checks, before the first frame, that the output path can be made and written: its folder is made when it is missing,
@@ -210,6 +204,10 @@ pub fn write_film_marked(
     let staging = staging_of(output);
     let run_folder = staging_folder_of(output);
     fs::create_dir_all(&run_folder).map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))?;
+    // The lock is held until the render ends, and the system releases it however the process ends.
+    let _lock = fs::File::create(run_folder.join(LOCK_NAME))
+        .and_then(|lock| lock.try_lock().map(|()| lock).map_err(std::io::Error::other))
+        .map_err(|error| Failure::new(format!("the staging folder could not be locked: {error}")))?;
     let written = make(scene, sounds, renderer, &staging, audio_bitrate, began, marks)
         .and_then(|written| {
             fs::rename(&staging, output)
@@ -219,6 +217,8 @@ pub fn write_film_marked(
         .inspect_err(|_| {
             let _ = fs::remove_dir_all(&run_folder);
         })?;
+    drop(_lock);
+    let _ = fs::remove_file(run_folder.join(LOCK_NAME));
     let _ = fs::remove_dir(&run_folder);
     tracing::info!(frames = written.frames, bytes = written.bytes, "render finished");
     Ok(written)
