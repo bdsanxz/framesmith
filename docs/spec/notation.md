@@ -938,7 +938,7 @@ The same names are used as attributes (the starting value, section 6), in `from-
 | `draw` | 0 to 1 | `1` | On a `<shape>` with `stroke-width` only: the share of each outline drawn (7.11). |
 | `typed` | characters | all of them | On a `<text>` or `<span>`: how many of its own characters show (7.12). |
 
-Fractions of `typed` are rounded down. `opacity` and the properties marked 0 to 1 are clamped to their range; a number outside it is not reported. A `<tween>` that gives `blur` or `brightness` a value below 0 holds the value at 0 for the time it gives it; a `<set>` or an attribute with a value below 0 is reported (`FS-0034`, `render-command.md` section 4.5, rule 11).
+Fractions of `typed` are rounded down. `opacity` and the properties marked 0 to 1 are clamped to their range; a number outside it is not reported. `blur` and `brightness` take a value of 0 or more wherever they are written: as an attribute, as the value of a `<set>`, and as the `from` or `to` of a `<tween>`. A value below 0 there is reported with its line as `FS-0034` (`render-command.md` section 4.5, rule 11). Only the eased value of a `<tween>` can go below 0, with an easing that overshoots, such as `out-back(n)` (`motion.md`); that value is held at 0 for the time it gives it.
 
 ### 8.2 `<tween>`
 

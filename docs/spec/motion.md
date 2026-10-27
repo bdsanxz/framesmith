@@ -44,7 +44,7 @@ This is the behaviour of the motion engine, the `motion` crate: what a tween is,
 | `count` | the number a text shows | the element's `count` attribute |
 | `typed` | characters, rounded down when used | the number of the element's own characters, or its `typed` attribute |
 
-A value is a number. `opacity` outside 0 to 1 is not a value of the engine. The engine does not round `typed`, and gives `count` as the tween's curve gives it: how the two are shown is the text's rule (`text.md` sections 7.1 and 7.2). `blur` and `brightness` below 0 are not values of the engine either: where a tween gives one, the engine gives 0 for that time (`notation.md` section 8.1).
+A value is a number. `opacity` outside 0 to 1 is not a value of the engine. The engine does not round `typed`, and gives `count` as the tween's curve gives it: how the two are shown is the text's rule (`text.md` sections 7.1 and 7.2). `blur` and `brightness` are 0 or more wherever they are written (`notation.md` section 8.1). An eased value of a tween on them that is below 0, which an easing that overshoots gives, is held at 0 for that time.
 
 The engine gives each property's value at a time. How the values move the element's picture (the transform origin, the order scale, slant, turn, move, fading as one picture, and the turn in space after them) is the notation's rule (`notation.md` section 8).
 

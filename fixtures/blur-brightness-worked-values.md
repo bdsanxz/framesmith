@@ -1,8 +1,10 @@
 # Blur and brightness tweens: the values their pictures must hold (T067)
 
-Written before any fixture exists. Each fixture is a one-second composition on a 64 by 64 frame at 30 frames a second. Its checked-in pictures go in `fixtures/<name>/expected/frame-NNNN.png` for the frames listed in the table at the end, and each checked-in picture is held to the values below, not only to our own output.
+Written before any fixture exists. Each fixture is a 64 by 64 frame at 30 frames a second. The linear fixtures are one second long, frames 0 to 29. The two held-at-zero fixtures are 1.5 seconds long, frames 0 to 44, so that frame 30, where their eased value is back at its end value, is inside them. Each checked-in picture goes in `fixtures/<name>/expected/frame-NNNN.png` for the frames listed in the table at the end, and each is held to the values below, not only to our own output.
 
-Times and tweens: frame `n` is at time `n ÷ 30` s. A linear tween from 0 s to 1 s has progress `p = n ÷ 30`, so its value at frame `n` is `start + (end − start) × n ÷ 30`. A one-second composition has frames 0 to 29, so the last frame of a tween is frame 29, at progress 29 ÷ 30.
+Times and tweens: frame `n` is at time `n ÷ 30` s. A linear tween from 0 s to 1 s has progress `p = n ÷ 30`, so its value at frame `n` is `start + (end − start) × n ÷ 30`. The last frame of a one-second tween is frame 29, at progress 29 ÷ 30.
+
+Overshoot: the held-at-zero fixtures use `out-back(1.7)` (`motion.md`). With `q = p − 1`, its eased value is `e(p) = q² ((n + 1) q + n) + 1`, which is 0 at `p = 0`, rises above 1, and comes back to exactly 1 at `p = 1`. A tween from 4 to 0 has the value `4 − 4 e(p)`, and a tween from 1 to 0 has `1 − e(p)`. The value is below 0 from `p ≈ 0.370` on (frame 12 and after), its lowest point is at `p = 47/81` (frame 17), and it is exactly 0 at `p = 1` (frame 30). Where the value is below 0 the picture is drawn at 0.
 
 Frame and element: background `#102040` = (16, 32, 64). Each fixture has one box, left 16, top 0, width 40, height 64, so it covers columns 16 to 55 and every row, coloured `#E0A030` = (224, 160, 48) (the ink). Its edges are whole pixels while it is sharp, so an unblurred pixel is exact.
 
@@ -24,9 +26,9 @@ The edge sits between columns 15 and 16. The value at 15 and 16 is the one that 
 
 Progress 29 ÷ 30 gives 20 × 1/30 = 2/3. Row 32, columns 13 to 18: x 13 (16, 32, 64); 14 (19, 34, 64); 15 (63, 61, 60); 16 (177, 131, 52); 17 (221, 158, 48); 18 (224, 160, 48). Columns 19 to 24 are ink.
 
-## Blur of 2, the start of blur 2 to −2 (frame 0 of `blur-tween-held-at-zero`)
+## Blur of 4, the start of blur 4 to 0 (frame 0 of `blur-tween-held-at-zero`)
 
-Row 32, columns 8 to 20: x 8 (16, 32, 64); 9 (16, 32, 64); 10 (17, 32, 64); 11 (19, 34, 64); 12 (24, 37, 63); 13 (38, 46, 62); 14 (63, 61, 60); 15 (99, 83, 58); 16 (141, 109, 54); 17 (177, 131, 52); 18 (202, 146, 50); 19 (216, 155, 49); 20 (221, 158, 48).
+Row 32, columns 8 to 24: x 8 (22, 36, 64); 9 (27, 39, 63); 10 (34, 43, 63); 11 (43, 49, 62); 12 (56, 56, 61); 13 (71, 66, 60); 14 (90, 77, 58); 15 (110, 90, 57); 16 (130, 102, 55); 17 (150, 115, 54); 18 (169, 126, 52); 19 (184, 136, 51); 20 (197, 143, 50); 21 (206, 149, 49); 22 (213, 153, 49); 23 (218, 156, 48); 24 (221, 158, 48).
 
 ## Sharp edges (every chosen frame that is not blurred)
 
@@ -50,10 +52,13 @@ Box `blur="0"` (sharp), with a `<set at="0.5" blur="10"/>`. The set lands on fra
 
 ## 3. blur-tween-held-at-zero
 
-Box `blur="2"` at 0 s, with a `<tween>` of `blur` to −2 over 1 s. The linear value is 0 at frame 15 and below 0 from frame 16 on: −0.9333 at frame 22 and −1.8667 at frame 29. Those frames are held at 0. Frames 0, 15, 22 and 29.
+1.5 seconds. Box `blur="4"` at 0 s, with a `<tween>` of `blur` to 0 over 1 s and `ease="out-back(1.7)"`. Frames 0, 11, 17, 29 and 30.
 
-- Frame 0: the blur of 2 values above.
-- Frames 15, 22 and 29: sharp, the sharp edges above. A picture that took the absolute value of a negative blur would be blurred at frames 22 and 29, so these frames must equal the sharp picture. This is criterion 4.
+- Frame 0 (progress 0, blur 4): the blur of 4 table above.
+- Frame 11 (progress 11 ÷ 30 ≈ 0.367, the last frame before the value goes below 0): the eased value is 0.99599, so the blur is 0.016. Sharp to the level: the sharp edges above.
+- Frame 17 (progress 17 ÷ 30 ≈ 0.567, the lowest point of the curve): the eased value is 1.09952, so the value is −0.398 and is held at 0. Sharp: the sharp edges above. A picture that took the absolute value would be blurred here: x 15 (38, 45, 62) and x 16 (202, 147, 50). This is criterion 4.
+- Frame 29 (progress 29 ÷ 30, still below 0): the value is −0.007 and is held at 0. Sharp.
+- Frame 30 (progress 1, the end of the tween): the value is exactly 0. Sharp.
 
 ## 4. brightness-tween-linear
 
@@ -67,20 +72,22 @@ Interior probes (30, 10) and (40, 50), both in the box, which is sharp and so ex
 
 ## 5. brightness-tween-held-at-zero
 
-Box `brightness="1"` at 0 s, with a `<tween>` of `brightness` to −1 over 1 s. The linear value is 0 at frame 15 and below 0 from frame 16 on: −0.4667 at frame 22 and −0.9333 at frame 29. Those frames are held at 0. Frames 0, 15, 22 and 29.
+1.5 seconds. Box `brightness="1"` at 0 s, with a `<tween>` of `brightness` to 0 over 1 s and `ease="out-back(1.7)"`. Frames 0, 11, 17, 29 and 30. Background (16, 32, 64) in every frame. Interior probes (30, 10) and (40, 50).
 
-- Frame 0: interior (224, 160, 48).
-- Frames 15, 22 and 29: interior (0, 0, 0). The box is opaque, so it is black over the background. A picture that took the absolute value would show about (209, 149, 45) at frame 29. This is criterion 4.
-- Background (16, 32, 64) at every frame.
+- Frame 0: (224, 160, 48).
+- Frame 11 (the eased value is 0.99599, so the brightness is 0.0040): (1, 1, 0).
+- Frame 17 (the lowest point, the brightness −0.0995): held at 0, so (0, 0, 0). This is criterion 4. A picture that took the absolute value would show (22, 16, 5).
+- Frame 29 (the brightness −0.0018): held at 0, so (0, 0, 0).
+- Frame 30 (the brightness exactly 0): (0, 0, 0).
 
 ## Chosen frames
 
-| Fixture | Chosen frames | Criterion |
-|---|---|---|
-| `blur-tween-linear` | 0, 15, 29 | 1 |
-| `blur-set-at-an-instant` | 0, 14, 15, 29 | 3 |
-| `blur-tween-held-at-zero` | 0, 15, 22, 29 | 4 |
-| `brightness-tween-linear` | 0, 15, 29 | 2 |
-| `brightness-tween-held-at-zero` | 0, 15, 22, 29 | 4 |
+| Fixture | Length | Chosen frames | Criterion |
+|---|---|---|---|
+| `blur-tween-linear` | 1 s | 0, 15, 29 | 1 |
+| `blur-set-at-an-instant` | 1 s | 0, 14, 15, 29 | 3 |
+| `blur-tween-held-at-zero` | 1.5 s | 0, 11, 17, 29, 30 | 4 |
+| `brightness-tween-linear` | 1 s | 0, 15, 29 | 2 |
+| `brightness-tween-held-at-zero` | 1.5 s | 0, 11, 17, 29, 30 | 4 |
 
 Criterion 5 is met when each chosen frame of each fixture equals its checked-in picture to the byte. Criterion 6 (the card) is held to the processor's picture, and is not worked here.
