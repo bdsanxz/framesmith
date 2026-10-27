@@ -1,6 +1,6 @@
-//! A small cargo workspace of its own, with a copy of `scripts/gates.sh` in it, and a way to run
-//! that copy cut off from the real runner: the tests of the gate script that need a gate to pass or
-//! to fail on purpose use it (`docs/dev/gates.md`, sections 2 and 12).
+//! A small cargo workspace of its own, with a copy of `scripts/gates.sh` and of `scripts/gates/records.sh`
+//! in it, and a way to run that copy cut off from the real runner: the tests of the gate script that need a
+//! gate to pass or to fail on purpose use it (`docs/dev/gates.md`, sections 2 and 12).
 
 use super::{isolate_from_runner, Run};
 use std::path::{Path, PathBuf};
@@ -25,6 +25,11 @@ impl Scratch {
         scratch.write("crates/user/src/lib.rs", "//! A scratch crate that holds nothing.\n");
         let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../scripts/gates.sh");
         scratch.write("scripts/gates.sh", &std::fs::read_to_string(script).expect("the script is read"));
+        let records = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../scripts/gates/records.sh");
+        scratch.write(
+            "scripts/gates/records.sh",
+            &std::fs::read_to_string(records).expect("the record script is read"),
+        );
         scratch
     }
 
