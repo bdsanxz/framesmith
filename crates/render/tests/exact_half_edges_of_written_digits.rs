@@ -46,7 +46,8 @@ fn a_box_written_with_an_exponent_covers_the_same_columns_as_its_decimal() {
 #[test]
 fn a_percentage_just_below_a_half_with_21_digits_keeps_its_digits_and_rounds_down() {
     // 1.39999999999999999999% of 2750 is 38.499999999999999999725: the near edge rounds down to 38 and the far edge,
-    // 48.499999999999999999725, rounds down to 48, so columns 38 to 47. A float reads 1.4 and places the box at 39.
+    // 48.499999999999999999725, rounds down to 48, so columns 38 to 47. A reader that kept only 1.4 would place the
+    // box at 39.
     let frame = drawn_frame(0);
     assert_eq!(extent_of(&frame, JUST_BELOW), Some((38, 4, 48, 6)));
     assert_eq!(count_of(&frame, JUST_BELOW), 20);
