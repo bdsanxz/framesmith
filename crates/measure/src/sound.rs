@@ -189,29 +189,3 @@ pub fn made_sound(rate: u32, channels: u16, frames: usize, level: f32, delay: us
     }
     Sound { rate, channels, samples }
 }
-
-/// Writes `samples` (the channels in turn, full scale ±1) to `path` as a WAV file of 16-bit linear PCM at `rate`
-/// sample frames a second: the RIFF/WAVE layout of a `fmt ` chunk of format 1 and one `data` chunk, every number
-/// little-endian. A sample is rounded to the nearest step of 1/32768 and held within the range. It is a test-only
-/// writer, for the sound files tests place in a film; nothing that ships uses it.
-pub fn write_wav(path: &Path, rate: u32, channels: u16, samples: &[f32]) -> Result<(), String> {
-    let data = (samples.len() * 2) as u32;
-    let mut bytes = Vec::with_capacity(44 + samples.len() * 2);
-    bytes.extend_from_slice(b"RIFF");
-    bytes.extend_from_slice(&(36 + data).to_le_bytes());
-    bytes.extend_from_slice(b"WAVEfmt ");
-    bytes.extend_from_slice(&16u32.to_le_bytes());
-    bytes.extend_from_slice(&1u16.to_le_bytes());
-    bytes.extend_from_slice(&channels.to_le_bytes());
-    bytes.extend_from_slice(&rate.to_le_bytes());
-    bytes.extend_from_slice(&(rate * u32::from(channels) * 2).to_le_bytes());
-    bytes.extend_from_slice(&(channels * 2).to_le_bytes());
-    bytes.extend_from_slice(&16u16.to_le_bytes());
-    bytes.extend_from_slice(b"data");
-    bytes.extend_from_slice(&data.to_le_bytes());
-    for sample in samples {
-        let step = (sample * 32_768.0).round().clamp(-32_768.0, 32_767.0) as i16;
-        bytes.extend_from_slice(&step.to_le_bytes());
-    }
-    std::fs::write(path, bytes).map_err(|error| format!("`{}` could not be written: {error}", path.display()))
-}

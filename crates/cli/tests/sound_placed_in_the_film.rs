@@ -8,6 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use common::{err, framesmith, out, project};
+use testkit::sound_files::{write_wav, Pcm};
 
 const RATE: u32 = 48_000;
 
@@ -20,7 +21,7 @@ fn render(name: &str, audio: &str, files: &[(&str, u16, Vec<f32>)]) -> (PathBuf,
     );
     let (project, cwd) = project("sound-placed", name, &text);
     for (file, channels, samples) in files {
-        measure::write_wav(&project.join(file), RATE, *channels, samples).unwrap();
+        write_wav(&project.join(file), RATE, *channels, Pcm::Int(16), samples).unwrap();
     }
     let output = framesmith(&cwd, ["render", project.to_str().unwrap(), "--backend", "cpu"], &[]);
     assert_eq!(output.status.code(), Some(0), "{}{}", out(&output), err(&output));

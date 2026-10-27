@@ -28,3 +28,4 @@ tracing-appender = { workspace = true }
 
 [dev-dependencies]
 measure = { workspace = true }
+testkit = { workspace = true }

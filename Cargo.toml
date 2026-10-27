@@ -61,6 +61,8 @@ format = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf50
 mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
 probe = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
 codec = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
+# frx7's test-only writers of sound files and pictures, for the tests only (frx7 docs/spec/test-writers.md).
+testkit = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
 audio = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
 backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
 pixel = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
