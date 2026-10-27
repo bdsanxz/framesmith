@@ -1,6 +1,6 @@
-//! The sweep of the hidden staging folders of renders: a folder whose lock no render holds is removed, a folder whose lock
-//! a render holds is left as it is, the caller's own folder is never touched, and a name that is not a staging folder, or
-//! a staging folder with no lock file, is never touched (`docs/spec/render-command.md`, section 6).
+//! The sweep of the hidden staging folders of renders: a folder whose lock no render holds is removed, whatever process id
+//! its name carries, a folder whose lock a render holds is left as it is, and a name that is not a staging folder, or a
+//! staging folder with no lock file, is never touched (`docs/spec/render-command.md`, section 6).
 
 mod common;
 
@@ -55,15 +55,15 @@ fn a_staging_folder_whose_lock_a_render_holds_is_left_as_it_is() {
 }
 
 #[test]
-fn the_staging_folder_of_the_caller_is_left_as_it_is() {
-    let folder = scratch("staging-folder-sweep", "own-process");
+fn a_dead_render_whose_process_id_a_live_process_has_now_is_removed() {
+    let folder = scratch("staging-folder-sweep", "reused-process-id");
     let hidden = staging_folder(&folder, std::process::id());
 
     remove_stale_staging(&folder);
 
     assert!(
-        hidden.join("film.part.mp4").is_file(),
-        "the staging folder of the running caller was touched"
+        !hidden.exists(),
+        "a staging folder whose lock no render holds was kept because its process id is running"
     );
 }
 

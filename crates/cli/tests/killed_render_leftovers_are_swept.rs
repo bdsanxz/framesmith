@@ -92,8 +92,8 @@ fn a_render_killed_in_its_frames_stage_leaves_nothing_the_next_render_does_not_s
     );
 
     let log = fs::read_to_string(cwd.join("logs").join("framesmith.log")).unwrap();
-    let swept = log.lines().any(|line| {
-        line.contains("removed the staging folder of a render that is no longer running") && line.contains(&format!("pid={pid}"))
-    });
+    let swept = log
+        .lines()
+        .any(|line| line.contains("removed a staging folder that no render holds") && line.contains(&format!("pid={pid}")));
     assert!(swept, "the sweep of the killed run is not in the log:\n{log}");
 }

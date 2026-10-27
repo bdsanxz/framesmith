@@ -9,7 +9,7 @@ use draw::{DisplayList, Error, Picture, Renderer};
 use draw_cpu::CpuRenderer;
 use measure::video_facts;
 use project::Project;
-use render::{check_place, staging_folder_of, write_film, Scene};
+use render::{check_place, remove_stale_staging, staging_folder_of, write_film, write_film_stepped, Scene, Step};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -74,6 +74,41 @@ impl Renderer for Probe {
     fn draws_text(&self) -> bool {
         true
     }
+}
+
+#[test]
+fn a_sweep_at_each_step_of_a_start_never_removes_the_folder_of_the_render_that_starts() {
+    let folder = scratch("staged-output", "sweep-during-start");
+    let output = folder.join("film.mp4");
+    let scene = scene_of("first-render");
+    let mut renderer = Probe::new(&output, None);
+    let mut seen: Vec<(Step, Vec<String>)> = Vec::new();
+    let written = write_film_stepped(&scene, Vec::new(), &mut renderer, &output, 128, None, &mut |step| {
+        // A second render into the same folder sweeps while the first one stands at this step.
+        remove_stale_staging(&folder);
+        let hidden = names_in(&folder)
+            .into_iter()
+            .filter(|name| name.starts_with(".framesmith-"))
+            .collect();
+        seen.push((step, hidden));
+    })
+    .unwrap_or_else(|failure| panic!("{failure}"));
+
+    let own = staging_folder_of(&output).file_name().unwrap().to_str().unwrap().to_string();
+    assert_eq!(
+        seen.iter().map(|(step, _)| *step).collect::<Vec<_>>(),
+        vec![Step::Locked, Step::Moved],
+        "the steps of a start are not the ones the render takes"
+    );
+    assert_eq!(seen[0].1.len(), 1, "while starting, the hidden folders are {:?}", seen[0].1);
+    assert_ne!(seen[0].1[0], own, "the folder had its own name before its lock was held");
+    assert_eq!(
+        seen[1].1,
+        vec![own],
+        "the sweep of another render removed the folder of the render that starts"
+    );
+    assert_eq!(written.frames, scene.frames());
+    assert!(output.is_file(), "the film is not at its output path");
 }
 
 #[test]

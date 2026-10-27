@@ -10,8 +10,8 @@ mod film;
 mod sound;
 
 pub use film::{
-    check_place, process_runs, remove_stale_staging, staging_folder_of, staging_of, write_film, write_film_marked, Failure,
-    Refusal, Written,
+    check_place, remove_stale_staging, staging_folder_of, staging_of, write_film, write_film_marked, write_film_stepped, Failure, Refusal,
+    Step, Written,
 };
 pub use sound::open_sounds;
 pub use timeline::{place_reports, place_reports_and_notes, sounds, PictureError, Scene, Sound};
