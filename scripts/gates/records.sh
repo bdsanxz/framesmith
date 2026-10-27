@@ -7,18 +7,6 @@ RECORDS="${CARGO_TARGET_DIR:-$ROOT/target}/gate-records"
 RECORD_KEY=""
 RECORD_REASON=""
 
-# The title of each gate in the summary lines, as the gates name it.
-gate_title() {
-    case "$1" in
-        format) echo "formatting" ;;
-        lint) echo "static analysis" ;;
-        test) echo "tests" ;;
-        core) echo "core suite without FFmpeg" ;;
-        licence) echo "licence gate" ;;
-        pin) echo "frx7 pin" ;;
-    esac
-}
-
 # Sets RECORD_KEY to the key of the tree now checked out, or sets RECORD_KEY empty and RECORD_REASON to why no
 # record is read or written for this run.
 record_setup() {

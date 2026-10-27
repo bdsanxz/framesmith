@@ -188,18 +188,30 @@ compiler_problems() {
 
 # --- the gates --------------------------------------------------------------------------------
 
+# The title of each gate, as the summary lines name it. This is the one table of titles: a gate's title is looked up
+# here, whether the gate runs or is taken from its record, so a gate added to the script adds a line here.
+GATE_TITLE_format="formatting"
+GATE_TITLE_lint="static analysis"
+GATE_TITLE_test="tests"
+GATE_TITLE_core="core suite without FFmpeg"
+GATE_TITLE_licence="licence gate"
+GATE_TITLE_pin="frx7 pin"
+
+# The title of the gate $1, from the table above.
+gate_title() {
+    local name="GATE_TITLE_$1"
+    echo "${!name}"
+}
+
 gate_format() {
-    NAME="formatting"
     run format cargo fmt "${FMT_SCOPE[@]}" -- --check
 }
 
 gate_lint() {
-    NAME="static analysis"
     run lint cargo clippy "${SCOPE[@]}" --all-targets -- -D warnings
 }
 
 gate_test() {
-    NAME="tests"
     run test cargo test "${SCOPE[@]}" --no-fail-fast
 }
 
@@ -207,7 +219,6 @@ gate_test() {
 # that misbehave on purpose must be failed by name, or the trap is not closed. Then the real suite.
 # The control's deliberate failures are printed here and reach no runner (docs/dev/gates.md, section 12).
 gate_core() {
-    NAME="core suite without FFmpeg"
     local suite=(bash "$ROOT/scripts/gates/core-suite.sh")
     [ "$HOSTED" -eq 1 ] && suite+=(--hosted)
     for crate in $CRATES; do suite+=(-p "$crate"); done
@@ -219,7 +230,6 @@ gate_core() {
 }
 
 gate_licence() {
-    NAME="licence gate"
     if ! cargo deny --version >/dev/null 2>&1; then
         echo "cargo-deny is not installed. Install it with: cargo install --locked cargo-deny --version 0.20.2"
         RUN_CODE=127
@@ -230,7 +240,6 @@ gate_licence() {
 }
 
 gate_pin() {
-    NAME="frx7 pin"
     run pin bash "$ROOT/scripts/gates/frx7.sh" check
 }
 
@@ -345,6 +354,7 @@ record_setup
 for gate in $WANTED; do
     SECONDS=0
     echo "== $gate"
+    NAME=$(gate_title "$gate")
     if record_decide "$gate"; then
         echo "PASS $(gate_title "$gate") (from its record)"
         say_summary "PASS $(gate_title "$gate") (from its record)"
