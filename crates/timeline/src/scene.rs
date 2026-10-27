@@ -2053,7 +2053,6 @@ fn unsupported_inside(element: Element, parent: Element) -> String {
         (Element::Image, _) => Unsupported::StillPictures,
         (Element::Video, _) => Unsupported::Footage,
         (Element::Shape, _) => Unsupported::Shapes,
-        (Element::Audio, _) => Unsupported::Sound,
         (Element::Tween | Element::Set, Element::Span) => Unsupported::CountingTypingSpanMotion,
         (Element::Tween | Element::Set, Element::Nested | Element::Video) => Unsupported::PictureMotion,
         _ => Unsupported::ElementInsideLeaf,

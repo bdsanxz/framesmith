@@ -55,7 +55,6 @@ pub enum Unsupported {
     Transitions = 44,
     MediaStart = 45,
     FootageFilter = 46,
-    Sound = 47,
     Hevc = 48,
     EncoderOrQuality = 49,
     Workers = 50,
@@ -84,7 +83,7 @@ pub enum Unsupported {
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 71] = [
+    pub const ALL: [Unsupported; 70] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -131,7 +130,6 @@ impl Unsupported {
         Unsupported::Transitions,
         Unsupported::MediaStart,
         Unsupported::FootageFilter,
-        Unsupported::Sound,
         Unsupported::Hevc,
         Unsupported::EncoderOrQuality,
         Unsupported::Workers,
@@ -217,7 +215,6 @@ impl Unsupported {
             Unsupported::Transitions => "Openings over the scene are not drawn yet",
             Unsupported::MediaStart => "The start in the source is not applied yet",
             Unsupported::FootageFilter => "Not applied yet",
-            Unsupported::Sound => "Sound is not placed in the film yet; every film has its silent track",
             Unsupported::Hevc => "So far the film is written in H.264 only",
             Unsupported::EncoderOrQuality => "So far the film is made by the system's hardware encoder at its standard quality only",
             Unsupported::Workers => "So far one worker draws and encodes",
@@ -294,7 +291,6 @@ impl Unsupported {
             Unsupported::Transitions => "Sprint 1, T072",
             Unsupported::MediaStart => "Sprint 1, T075",
             Unsupported::FootageFilter => "Sprint 1, T078",
-            Unsupported::Sound => "Sprint 1, T080",
             Unsupported::Hevc => "Sprint 1, T084",
             Unsupported::EncoderOrQuality => "Sprint 1, T085",
             Unsupported::Workers => "Sprint 1, T096",
