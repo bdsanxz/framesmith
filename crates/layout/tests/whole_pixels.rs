@@ -8,9 +8,9 @@ fn an_edge_that_lies_half_way_rounds_to_the_larger_whole_pixel() {
     // 12.5% of 100 is 12.5, which rounds to 13.
     let rect = place(
         frame(100, 10),
-        Written {
-            left: Some(Amount::Percent(12.5)),
-            width: Some(Amount::Pixels(10.0)),
+        &Written {
+            left: Some(Amount::Percent((12.5).into())),
+            width: Some(Amount::Pixels((10.0).into())),
             ..Written::default()
         },
     )
@@ -31,9 +31,9 @@ fn a_negative_half_pixel_rounds_to_the_larger_whole_pixel_too() {
     // -0.5 rounds to 0 and 0.5 to 1: the box covers the one pixel at 0.
     let rect = place(
         frame(100, 10),
-        Written {
-            left: Some(Amount::Pixels(-0.5)),
-            width: Some(Amount::Pixels(1.0)),
+        &Written {
+            left: Some(Amount::Pixels((-0.5).into())),
+            width: Some(Amount::Pixels((1.0).into())),
             ..Written::default()
         },
     )
@@ -55,17 +55,17 @@ fn two_boxes_that_meet_at_a_fraction_share_one_edge() {
     // so the second starts where the first ends (33 to 67 in whole pixels) and neither leaves a gap.
     let first = place(
         frame(100, 10),
-        Written {
-            width: Some(Amount::Percent(33.3)),
+        &Written {
+            width: Some(Amount::Percent((33.3).into())),
             ..Written::default()
         },
     )
     .unwrap();
     let second = place(
         frame(100, 10),
-        Written {
-            left: Some(Amount::Percent(33.3)),
-            width: Some(Amount::Percent(33.3)),
+        &Written {
+            left: Some(Amount::Percent((33.3).into())),
+            width: Some(Amount::Percent((33.3).into())),
             ..Written::default()
         },
     )
@@ -78,9 +78,9 @@ fn two_boxes_that_meet_at_a_fraction_share_one_edge() {
 fn a_box_of_no_width_covers_no_pixel_wherever_it_lies() {
     let rect = place(
         frame(100, 10),
-        Written {
-            left: Some(Amount::Percent(33.4)),
-            width: Some(Amount::Percent(0.0)),
+        &Written {
+            left: Some(Amount::Percent((33.4).into())),
+            width: Some(Amount::Percent((0.0).into())),
             ..Written::default()
         },
     )

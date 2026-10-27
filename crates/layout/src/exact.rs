@@ -1,28 +1,33 @@
-//! Exact amounts for the edges of a box (`docs/spec/render-command.md`, section 4.1, rule 3). A written amount is the decimal
+//! Decimal amounts for the edges of a box (`docs/spec/render-command.md`, section 4.1, rule 3). A written amount is the decimal
 //! it is written as: `1.4%` is 14 tenths of a percent, so 1.4% of 2750 pixels is exactly 38.5 pixels, and a half is found
 //! without a float's error. A value a float computed (a measured size, for one) is read from its shortest decimal form.
-//! The arithmetic is in whole numbers; an amount too large for it is beyond the limit, as an amount beyond
-//! [`crate::LIMIT`] is.
+//! The arithmetic is in decimal digits, so no amount is too large or too small for it: an edge beyond the limit is
+//! refused by [`crate::LIMIT`], not by the arithmetic.
 
-/// A number as a fraction: `numerator` over `denominator`, which is above 0 and shares no factor with it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct Exact {
-    numerator: i128,
-    denominator: i128,
+use std::cmp::Ordering;
+
+/// The most digits an amount may be shifted by before the arithmetic stops (a guard against an amount that asks for
+/// a row of zeros it cannot hold, beyond any written value).
+const MAX_DIGITS: usize = 100_000;
+
+/// A decimal number: `sign × digits × 10^exponent`. The digits are kept least significant first, with no zero at
+/// either end, so each amount has one form; zero has no digits and no sign.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Decimal {
+    negative: bool,
+    digits: Vec<u8>,
+    exponent: i32,
 }
 
-impl Exact {
+impl Decimal {
     /// A whole number of pixels.
-    pub(crate) fn whole(value: i128) -> Exact {
-        Exact {
-            numerator: value,
-            denominator: 1,
-        }
+    pub fn whole(value: i128) -> Decimal {
+        Decimal::from_digits(value < 0, digits_of(value.unsigned_abs()), 0)
     }
 
-    /// The decimal a float stands for, as its shortest form writes it (`{:e}`): `1.4` is 14 tenths, and a value written
-    /// with at most 15 significant digits is read exactly. `None` for a value that is not finite or whose digits do not fit.
-    pub(crate) fn of(value: f64) -> Option<Exact> {
+    /// The decimal a float stands for, as its shortest form writes it (`{:e}`): `1.4` is 14 tenths, and `1e-40` is one
+    /// part in 10^40. `None` for a value that is not finite.
+    pub fn of(value: f64) -> Option<Decimal> {
         if !value.is_finite() {
             return None;
         }
@@ -30,99 +35,225 @@ impl Exact {
         let (mantissa, exponent) = text.split_once('e')?;
         let exponent: i32 = exponent.parse().ok()?;
         let negative = mantissa.starts_with('-');
-        let digits: String = mantissa
-            .trim_start_matches('-')
-            .chars()
-            .filter(|character| *character != '.')
-            .collect();
-        let magnitude: i128 = digits.parse().ok()?;
-        // The value is `digits` times ten to the power `shift`.
-        let shift = exponent - (digits.len() as i32 - 1);
-        let exact = if shift >= 0 {
-            Exact::whole(magnitude.checked_mul(10_i128.checked_pow(u32::try_from(shift).ok()?)?)?)
-        } else {
-            Exact {
-                numerator: magnitude,
-                denominator: 10_i128.checked_pow(u32::try_from(-shift).ok()?)?,
-            }
-        };
-        Some(if negative { exact.negated()? } else { exact })
+        let digits: Vec<u8> = mantissa.bytes().filter(u8::is_ascii_digit).map(|byte| byte - b'0').rev().collect();
+        // The mantissa's digits are a whole number; its first digit stands for 10 to the power of the exponent.
+        let shift = exponent.checked_sub(i32::try_from(digits.len()).ok()?.checked_sub(1)?)?;
+        Some(Decimal::from_digits(negative, digits, shift))
+    }
+
+    /// The decimal a written amount stands for: its sign, its digits as written (most significant first, `0` to `9`), and
+    /// its exponent, so `38.5` is `false`, `"385"`, `-1`. `None` for a text that is not digits.
+    pub fn from_parts(negative: bool, digits: &str, exponent: i32) -> Option<Decimal> {
+        let digits = digits
+            .bytes()
+            .map(|byte| byte.is_ascii_digit().then(|| byte - b'0'))
+            .rev()
+            .collect::<Option<Vec<u8>>>()?;
+        Some(Decimal::from_digits(negative, digits, exponent))
     }
 
     /// The nearest float, for a size that a float is to carry on (a value a row or a column computes in floats).
-    pub(crate) fn to_f64(self) -> f64 {
-        self.numerator as f64 / self.denominator as f64
+    pub fn to_f64(&self) -> f64 {
+        if self.digits.is_empty() {
+            return 0.0;
+        }
+        let mut text = String::new();
+        if self.negative {
+            text.push('-');
+        }
+        text.extend(self.digits.iter().rev().map(|digit| char::from(b'0' + digit)));
+        text.push_str(&format!("e{}", self.exponent));
+        text.parse().unwrap_or(f64::NAN)
     }
 
-    pub(crate) fn add(self, other: Exact) -> Option<Exact> {
-        let numerator = self
-            .numerator
-            .checked_mul(other.denominator)?
-            .checked_add(other.numerator.checked_mul(self.denominator)?)?;
-        let denominator = self.denominator.checked_mul(other.denominator)?;
-        Some(Exact::reduced(numerator, denominator))
-    }
-
-    pub(crate) fn sub(self, other: Exact) -> Option<Exact> {
-        self.add(other.negated()?)
-    }
-
-    pub(crate) fn times(self, other: Exact) -> Option<Exact> {
-        Some(Exact::reduced(
-            self.numerator.checked_mul(other.numerator)?,
-            self.denominator.checked_mul(other.denominator)?,
-        ))
-    }
-
-    /// This amount over a whole number above 0.
-    pub(crate) fn over(self, divisor: i128) -> Option<Exact> {
-        Some(Exact::reduced(self.numerator, self.denominator.checked_mul(divisor)?))
-    }
-
-    pub(crate) fn is_below_zero(self) -> bool {
-        self.numerator < 0
-    }
-
-    /// The smaller of two amounts, or `None` when the comparison does not fit.
-    pub(crate) fn min(self, other: Exact) -> Option<Exact> {
-        Some(if self.less_than(other)? { self } else { other })
-    }
-
-    pub(crate) fn max(self, other: Exact) -> Option<Exact> {
-        Some(if other.less_than(self)? { self } else { other })
-    }
-
-    /// The whole number nearest to this amount, a half up: the larger whole number when the amount lies exactly half way.
-    /// That is the floor of `(2 * numerator + denominator) / (2 * denominator)`.
-    pub(crate) fn round_half_up(self) -> Option<i128> {
-        let twice = self.numerator.checked_mul(2)?.checked_add(self.denominator)?;
-        Some(twice.div_euclid(self.denominator.checked_mul(2)?))
-    }
-
-    fn negated(self) -> Option<Exact> {
-        Some(Exact {
-            numerator: self.numerator.checked_neg()?,
-            denominator: self.denominator,
+    pub fn add(self, other: Decimal) -> Option<Decimal> {
+        let (mine, theirs, exponent) = aligned(&self, &other)?;
+        if self.negative == other.negative {
+            return Some(Decimal::from_digits(self.negative, add_digits(&mine, &theirs), exponent));
+        }
+        Some(match compare_digits(&mine, &theirs) {
+            Ordering::Less => Decimal::from_digits(other.negative, subtract_digits(&theirs, &mine), exponent),
+            _ => Decimal::from_digits(self.negative, subtract_digits(&mine, &theirs), exponent),
         })
     }
 
-    fn less_than(self, other: Exact) -> Option<bool> {
-        Some(self.numerator.checked_mul(other.denominator)? < other.numerator.checked_mul(self.denominator)?)
+    pub fn sub(self, other: Decimal) -> Option<Decimal> {
+        self.add(other.negated())
     }
 
-    /// The fraction with its common factor taken out, so that its numbers stay as small as they can.
-    fn reduced(numerator: i128, denominator: i128) -> Exact {
-        let factor = greatest_common_divisor(numerator.unsigned_abs(), denominator.unsigned_abs()).max(1) as i128;
-        Exact {
-            numerator: numerator / factor,
-            denominator: denominator / factor,
+    pub fn times(self, other: Decimal) -> Option<Decimal> {
+        if self.digits.len() + other.digits.len() > MAX_DIGITS {
+            return None;
+        }
+        let mut products = vec![0_u32; self.digits.len() + other.digits.len()];
+        for (at, mine) in self.digits.iter().enumerate() {
+            for (to, theirs) in other.digits.iter().enumerate() {
+                products[at + to] += u32::from(mine * theirs);
+            }
+        }
+        let mut digits = Vec::with_capacity(products.len() + 1);
+        let mut carry = 0_u32;
+        for product in products {
+            let total = product + carry;
+            digits.push((total % 10) as u8);
+            carry = total / 10;
+        }
+        while carry > 0 {
+            digits.push((carry % 10) as u8);
+            carry /= 10;
+        }
+        let exponent = self.exponent.checked_add(other.exponent)?;
+        Some(Decimal::from_digits(self.negative != other.negative, digits, exponent))
+    }
+
+    /// This amount divided by 100: a percentage's share of the length, once multiplied (`render-command.md`, section 4.1).
+    pub fn per_hundred(self) -> Option<Decimal> {
+        let exponent = self.exponent.checked_sub(2)?;
+        Some(Decimal::from_digits(self.negative, self.digits, exponent))
+    }
+
+    pub fn is_below_zero(&self) -> bool {
+        self.negative
+    }
+
+    pub fn is_above_zero(&self) -> bool {
+        !self.negative && !self.digits.is_empty()
+    }
+
+    /// The smaller of two amounts, or `None` when the arithmetic does not fit.
+    pub fn min(self, other: Decimal) -> Option<Decimal> {
+        Some(if self.less_than(&other)? { self } else { other })
+    }
+
+    pub fn max(self, other: Decimal) -> Option<Decimal> {
+        Some(if other.less_than(&self)? { self } else { other })
+    }
+
+    /// The whole number nearest to this amount, a half up: the larger whole number when the amount lies exactly half way.
+    /// That is the floor of this amount plus a half, which is worked out exactly.
+    pub fn round_half_up(self) -> Option<i128> {
+        self.add(Decimal::from_digits(false, vec![5], -1))?.floor()
+    }
+
+    /// The whole number at or below this amount. `None` when it is beyond an `i128`.
+    fn floor(&self) -> Option<i128> {
+        let places = usize::try_from(self.exponent.checked_neg()?.max(0)).ok()?;
+        let whole_digits = self.digits.get(places..).unwrap_or(&[]);
+        let fraction_nonzero = self.digits.iter().take(places).any(|digit| *digit != 0);
+        let mut magnitude = whole_digits
+            .iter()
+            .rev()
+            .try_fold(0_u128, |sum, digit| sum.checked_mul(10)?.checked_add(u128::from(*digit)))?;
+        if self.exponent > 0 {
+            magnitude = magnitude.checked_mul(10_u128.checked_pow(u32::try_from(self.exponent).ok()?)?)?;
+        }
+        let magnitude = i128::try_from(magnitude).ok()?;
+        match (self.negative, fraction_nonzero) {
+            (false, _) => Some(magnitude),
+            (true, false) => magnitude.checked_neg(),
+            (true, true) => magnitude.checked_add(1)?.checked_neg(),
+        }
+    }
+
+    fn negated(self) -> Decimal {
+        Decimal::from_digits(!self.negative, self.digits, self.exponent)
+    }
+
+    fn less_than(&self, other: &Decimal) -> Option<bool> {
+        Some(self.clone().sub(other.clone())?.negative)
+    }
+
+    /// The amount from its sign, its digits (least significant first) and its exponent, in the one form every amount has.
+    fn from_digits(negative: bool, mut digits: Vec<u8>, mut exponent: i32) -> Decimal {
+        while digits.last() == Some(&0) {
+            digits.pop();
+        }
+        let zeros = digits.iter().take_while(|digit| **digit == 0).count();
+        if zeros == digits.len() {
+            return Decimal {
+                negative: false,
+                digits: Vec::new(),
+                exponent: 0,
+            };
+        }
+        digits.drain(..zeros);
+        exponent = exponent.saturating_add(zeros as i32);
+        Decimal {
+            negative,
+            digits,
+            exponent,
         }
     }
 }
 
-fn greatest_common_divisor(mut a: u128, mut b: u128) -> u128 {
-    while b != 0 {
-        (a, b) = (b, a % b);
+/// The digits of a whole number, least significant first.
+fn digits_of(mut value: u128) -> Vec<u8> {
+    let mut digits = Vec::new();
+    while value > 0 {
+        digits.push((value % 10) as u8);
+        value /= 10;
     }
-    a
+    digits
+}
+
+/// The digits of two amounts, each shifted to the smaller of the two exponents, with that exponent.
+fn aligned(first: &Decimal, second: &Decimal) -> Option<(Vec<u8>, Vec<u8>, i32)> {
+    let exponent = first.exponent.min(second.exponent);
+    Some((shifted(first, exponent)?, shifted(second, exponent)?, exponent))
+}
+
+fn shifted(value: &Decimal, exponent: i32) -> Option<Vec<u8>> {
+    let zeros = usize::try_from(i64::from(value.exponent) - i64::from(exponent)).ok()?;
+    if zeros + value.digits.len() > MAX_DIGITS {
+        return None;
+    }
+    let mut digits = vec![0; zeros];
+    digits.extend_from_slice(&value.digits);
+    Some(digits)
+}
+
+fn add_digits(mine: &[u8], theirs: &[u8]) -> Vec<u8> {
+    let mut digits = Vec::with_capacity(mine.len().max(theirs.len()) + 1);
+    let mut carry = 0_u8;
+    for at in 0..mine.len().max(theirs.len()) {
+        let total = mine.get(at).copied().unwrap_or(0) + theirs.get(at).copied().unwrap_or(0) + carry;
+        digits.push(total % 10);
+        carry = total / 10;
+    }
+    if carry > 0 {
+        digits.push(carry);
+    }
+    digits
+}
+
+/// The digits of `larger` less those of `smaller`, which must not be the larger.
+fn subtract_digits(larger: &[u8], smaller: &[u8]) -> Vec<u8> {
+    let mut digits = Vec::with_capacity(larger.len());
+    let mut borrow = 0_i8;
+    for (at, digit) in larger.iter().enumerate() {
+        let mut total = i8::try_from(*digit).unwrap_or(0) - borrow - smaller.get(at).map_or(0, |d| i8::try_from(*d).unwrap_or(0));
+        borrow = 0;
+        if total < 0 {
+            total += 10;
+            borrow = 1;
+        }
+        digits.push(total as u8);
+    }
+    digits
+}
+
+fn compare_digits(mine: &[u8], theirs: &[u8]) -> Ordering {
+    let length = |digits: &[u8]| digits.iter().rposition(|digit| *digit != 0).map_or(0, |top| top + 1);
+    let (mine_top, theirs_top) = (length(mine), length(theirs));
+    mine_top
+        .cmp(&theirs_top)
+        .then_with(|| mine[..mine_top].iter().rev().cmp(theirs[..theirs_top].iter().rev()))
+}
+
+impl From<f64> for Decimal {
+    /// The decimal a finite float stands for, as [`Decimal::of`] reads it. A written amount is always finite (the notation
+    /// refuses any other before it is placed), so the conversion is for finite values; it panics on any other.
+    fn from(value: f64) -> Decimal {
+        Decimal::of(value).expect("an amount is a finite number")
+    }
 }

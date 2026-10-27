@@ -6,7 +6,7 @@ use layout::{frame, place, Amount, Rect, Visible, Written};
 #[test]
 fn a_box_with_nothing_written_is_as_large_as_the_frame_at_its_corner() {
     assert_eq!(
-        place(frame(640, 360), Written::default()),
+        place(frame(640, 360), &Written::default()),
         Ok(Rect {
             left: 0,
             top: 0,
@@ -20,10 +20,10 @@ fn a_box_with_nothing_written_is_as_large_as_the_frame_at_its_corner() {
 fn what_is_written_is_taken_and_what_is_not_is_the_default() {
     let rect = place(
         frame(640, 360),
-        Written {
-            left: Some(Amount::Pixels(-5.0)),
-            top: Some(Amount::Pixels(12.0)),
-            height: Some(Amount::Pixels(0.0)),
+        &Written {
+            left: Some(Amount::Pixels((-5.0).into())),
+            top: Some(Amount::Pixels((12.0).into())),
+            height: Some(Amount::Pixels((0.0).into())),
             ..Written::default()
         },
     );
@@ -42,11 +42,11 @@ fn what_is_written_is_taken_and_what_is_not_is_the_default() {
 fn a_box_with_its_four_edges_in_pixels_has_them_where_they_are_written() {
     let rect = place(
         frame(96, 54),
-        Written {
-            left: Some(Amount::Pixels(12.0)),
-            top: Some(Amount::Pixels(8.0)),
-            width: Some(Amount::Pixels(40.0)),
-            height: Some(Amount::Pixels(30.0)),
+        &Written {
+            left: Some(Amount::Pixels((12.0).into())),
+            top: Some(Amount::Pixels((8.0).into())),
+            width: Some(Amount::Pixels((40.0).into())),
+            height: Some(Amount::Pixels((30.0).into())),
             ..Written::default()
         },
     )

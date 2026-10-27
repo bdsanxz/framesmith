@@ -20,7 +20,7 @@ fn frame_of(width: u32, height: u32) -> Rect {
 fn cell(height: f64) -> Cell {
     Cell {
         written: Written {
-            height: Some(Amount::Pixels(height)),
+            height: Some(Amount::Pixels((height).into())),
             ..Written::default()
         },
         ..Cell::default()
@@ -36,10 +36,10 @@ fn four_cells_lie_two_to_a_row_with_a_stated_column_and_a_share_of_the_rest() {
     let set = tracks(vec![Track::Pixels(640.0), Track::Share(1.0)]);
     let cells = [cell(30.0), cell(30.0), cell(30.0), cell(30.0)];
     let width_1000 = Written {
-        width: Some(Amount::Pixels(1000.0)),
+        width: Some(Amount::Pixels((1000.0).into())),
         ..Written::default()
     };
-    let flowed = columns(frame_of(1000, 300), width_1000, &set, &cells).expect("placed");
+    let flowed = columns(frame_of(1000, 300), &width_1000, &set, &cells).expect("placed");
     assert_eq!(
         flowed.items,
         vec![
@@ -67,10 +67,10 @@ fn the_padding_of_a_set_lies_inside_its_written_width() {
     first.baseline = Some(12.0);
     let cells = [first, cell(30.0), cell(30.0), cell(30.0)];
     let width_1000 = Written {
-        width: Some(Amount::Pixels(1000.0)),
+        width: Some(Amount::Pixels((1000.0).into())),
         ..Written::default()
     };
-    let flowed = columns(frame_of(1000, 300), width_1000, &set, &cells).expect("placed");
+    let flowed = columns(frame_of(1000, 300), &width_1000, &set, &cells).expect("placed");
     // Two rows of 30 with the padding of 8 above and below.
     assert_eq!(flowed.container, rect(0, 0, 1000, 76));
     assert_eq!(&flowed.items[..2], &[rect(8, 8, 640, 30), rect(648, 8, 344, 30)]);
