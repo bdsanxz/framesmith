@@ -86,8 +86,8 @@ fn each_checked_in_face_reads_back_as_its_family_style_and_weight() {
     }
 }
 
-/// The glyphs of a face: the 96 of section 2, and the ten tabular and ten old-style figures of section 7.
-const GLYPHS: u16 = 116;
+/// The glyphs of a face: the 96 of section 2, the ten tabular and ten old-style figures of section 7, and the corner glyph.
+const GLYPHS: u16 = 117;
 
 #[test]
 fn each_face_has_the_glyphs_of_the_spec() {
@@ -123,6 +123,22 @@ fn every_listed_character_maps_to_its_glyph_and_only_the_space_has_no_ink() {
                 assert!(!points.0.is_empty(), "U+{:04X} is empty in {}", character as u32, face.file_name());
             }
         }
+    }
+}
+
+#[test]
+fn the_corner_character_maps_to_the_corner_glyph_and_the_glyph_has_ink() {
+    for face in Face::ALL {
+        let bytes = checked_in(face);
+        let font = FontRef::new(&bytes).expect("the file is a font");
+        assert_eq!(
+            font.charmap().map('\u{e000}'),
+            Some(GlyphId::new(116)),
+            "U+E000 in {}",
+            face.file_name()
+        );
+        let points = draw(&font, GlyphId::new(116)).expect("the corner glyph has an outline");
+        assert!(!points.0.is_empty(), "the corner glyph is empty in {}", face.file_name());
     }
 }
 

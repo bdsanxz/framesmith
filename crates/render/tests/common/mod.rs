@@ -5,6 +5,7 @@
 
 pub mod agreement;
 pub mod gaussian;
+pub mod held;
 pub mod png;
 pub mod worked;
 

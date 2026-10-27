@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The glyph 8 of the test font at 250 pixels, filled black with no outline, on white, at the place of text-stroke-arcs. Its
+     holes are the two counters of the glyph: each is a contour that runs the other way from its outer contour, so the non-zero
+     fill leaves it empty (test-font.md, section 4, rule 5). On row 108 the ink lies at x 47 to 63 and 67 to 83, and the counter of
+     the upper loop at x 75 to 135 (radius below 30 pixels from its centre at x 105). 300 by 300 pixels, one frame. -->
+<composition version="1" id="text-fill-arcs" width="300" height="300" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="40" top="20" font-family="Framesmith Test Stroke" font-size="250" color="#000000">8</text>
+</composition>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The glyph 8 of the test font at 250 pixels, its fill white and its outline a black stroke of 16 pixels, on white. The glyph is
+     two full circles, so its outline is four contours: an outer contour and a hole for each loop (test-font.md, section 4, rules 3
+     and 5). The text's left is 40 and its top is 20, so the baseline is at 20 + 0.85 * 250 = 232.5, which halves up to 233. The
+     upper loop is centred at x = 40 + 260 * 0.25 = 105 and y = 233 - 500 * 0.25 = 108; the lower loop at (105, 185.5). The outline
+     circles of the upper loop have radii 50 and 30 pixels, and the stroke reaches 8 pixels to each side of them. So the row 108 holds
+     the stroke at x 47 to 63 and 67 to 83, and nothing at 64 to 66 or from 84; the seam of the old generator at angle 0 lay at
+     x 135 to 155 on that row. 300 by 300 pixels, one frame. -->
+<composition version="1" id="text-stroke-arcs" width="300" height="300" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="40" top="20" font-family="Framesmith Test Stroke" font-size="250" color="#ffffff" text-stroke="16px #000000">8</text>
+</composition>

@@ -12,12 +12,17 @@ use layout::Rect;
 mod background;
 mod edges;
 mod filter;
+pub mod stroke;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
 pub use turn::Turn;
+
+/// The one outline tolerance, in pixels: the curves of a glyph's outline are flattened to it, and its stroke is expanded from the
+/// flattened contours (`docs/spec/text.md`, section 6.6, rule 10). Every renderer takes it from here.
+pub const OUTLINE_TOLERANCE: f64 = 0.01;
 
 /// An opaque colour: red, green and blue, each from 0 to 255.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -1,7 +1,8 @@
 //! Turns the centreline pieces of a glyph into the contours of its outline, as
 //! `docs/spec/test-font.md`, section 4 sets out: a rectangle for each straight stroke (extended at a
-//! corner shared with another straight stroke), a square for each dot, and an annular sector of at
-//! most 30 degrees with quadratic edges for each arc. Every contour runs clockwise.
+//! corner shared with another straight stroke), a square for each dot, and an annular sector for each
+//! arc, its edges cut into pieces of at most 30 degrees with quadratic edges. Every contour runs
+//! clockwise, except the hole of a full circle, which runs counter-clockwise.
 
 use super::design::Piece;
 
@@ -41,28 +42,22 @@ pub fn centreline_span(pieces: &[Piece]) -> (f64, f64) {
 /// `shift` units and rounded to whole units.
 pub fn contours(pieces: &[Piece], stroke: f64, shift: f64) -> Vec<Vec<Point>> {
     let half = stroke / 2.0;
-    let mut raw: Vec<Vec<Raw>> = Vec::new();
+    let mut out: Vec<Vec<Point>> = Vec::new();
     for (index, piece) in pieces.iter().enumerate() {
         match *piece {
             Piece::Line { x1, y1, x2, y2 } if (x1, y1) == (x2, y2) => {
-                raw.push(square(f64::from(x1), f64::from(y1), half));
+                out.push(round(clockwise(square(f64::from(x1), f64::from(y1), half)), shift));
             }
             Piece::Line { x1, y1, x2, y2 } => {
-                raw.push(rectangle(pieces, index, (x1, y1), (x2, y2), half));
+                out.push(round(clockwise(rectangle(pieces, index, (x1, y1), (x2, y2), half)), shift));
             }
             Piece::Arc { cx, cy, r, from, to } => {
-                raw.extend(sectors(
-                    f64::from(cx),
-                    f64::from(cy),
-                    f64::from(r),
-                    f64::from(from),
-                    f64::from(to),
-                    half,
-                ));
+                let arc = sectors(f64::from(cx), f64::from(cy), f64::from(r), f64::from(from), f64::from(to), half);
+                out.extend(arc.into_iter().map(|contour| round(contour, shift)));
             }
         }
     }
-    raw.into_iter().map(|contour| round(clockwise(contour), shift)).collect()
+    out
 }
 
 /// The rectangle of a straight stroke from `a` to `b`. An end is pushed out by half the stroke width
@@ -103,49 +98,69 @@ fn square(x: f64, y: f64, half: f64) -> Vec<Raw> {
     ]
 }
 
-/// The annular sectors of an arc of radius `r` about `(cx, cy)` from `from` to `to` degrees, one for
-/// each part of at most 30 degrees. Each sector runs along its outer edge, across, back along its
-/// inner edge; each edge is one quadratic curve whose control point is where the tangents meet.
+/// The contours of an arc of radius `r` about `(cx, cy)` from `from` to `to` degrees (`docs/spec/test-font.md`, section 4,
+/// rule 3). An arc is one annular sector: its outer edge and its inner edge, each cut into pieces of at most 30 degrees, closed
+/// by its two radial ends. So the outline has no corner where the pieces of an arc meet. A full circle has no radial ends: its
+/// outer edge is one contour, and its inner edge, the hole, is a second contour that runs the other way, so that a nonzero fill
+/// leaves the hole empty.
 fn sectors(cx: f64, cy: f64, r: f64, from: f64, to: f64, half: f64) -> Vec<Vec<Raw>> {
     let steps = ((to - from).abs() / 30.0).ceil().max(1.0) as usize;
     let step = (to - from) / steps as f64;
-    let (outer, inner) = (r + half, r - half);
-    (0..steps)
-        .map(|k| {
-            let a0 = (from + step * k as f64).to_radians();
-            let a1 = (from + step * (k + 1) as f64).to_radians();
-            let mid = (a0 + a1) / 2.0;
-            let spread = 1.0 / ((a1 - a0) / 2.0).cos();
-            let at = |radius: f64, angle: f64| (cx + radius * angle.cos(), cy + radius * angle.sin());
-            let (o0, o1, om) = (at(outer, a0), at(outer, a1), at(outer * spread, mid));
-            let (i0, i1, im) = (at(inner, a0), at(inner, a1), at(inner * spread, mid));
-            vec![
-                (o0.0, o0.1, true),
-                (om.0, om.1, false),
-                (o1.0, o1.1, true),
-                (i1.0, i1.1, true),
-                (im.0, im.1, false),
-                (i0.0, i0.1, true),
-            ]
-        })
-        .collect()
+    let angles: Vec<f64> = (0..=steps).map(|k| (from + step * k as f64).to_radians()).collect();
+    let mut inner_angles = angles.clone();
+    inner_angles.reverse();
+    let mut outer = edge(cx, cy, r + half, &angles);
+    let mut inner = edge(cx, cy, r - half, &inner_angles);
+    if (to - from).abs() >= 360.0 {
+        // a closed edge ends on its first point, which the contour closes on
+        outer.pop();
+        inner.pop();
+        let outer = clockwise(outer);
+        if area2(&inner) < 0.0 {
+            inner.reverse();
+        }
+        return vec![outer, inner];
+    }
+    outer.extend(inner);
+    vec![clockwise(outer)]
+}
+
+/// One edge of an arc at `radius` through `angles` (radians), starting on the outline. Each piece is one quadratic curve whose
+/// control point lies on the piece's bisecting radius, at the radius divided by the cosine of half the piece's angle.
+fn edge(cx: f64, cy: f64, radius: f64, angles: &[f64]) -> Vec<Raw> {
+    let at = |radius: f64, angle: f64| (cx + radius * angle.cos(), cy + radius * angle.sin());
+    let start = at(radius, angles[0]);
+    let mut points = vec![(start.0, start.1, true)];
+    for pair in angles.windows(2) {
+        let (a0, a1) = (pair[0], pair[1]);
+        let spread = 1.0 / ((a1 - a0) / 2.0).cos();
+        let control = at(radius * spread, (a0 + a1) / 2.0);
+        let end = at(radius, a1);
+        points.push((control.0, control.1, false));
+        points.push((end.0, end.1, true));
+    }
+    points
 }
 
 /// The contour with its points in clockwise order: the shoelace sum is negative for a clockwise
 /// contour in a y-up plane, and a contour that comes out counter-clockwise is turned round.
 fn clockwise(mut contour: Vec<Raw>) -> Vec<Raw> {
+    if area2(&contour) > 0.0 {
+        contour.reverse();
+    }
+    contour
+}
+
+/// Twice the signed area of a contour by the shoelace sum: negative for a clockwise contour in a y-up plane.
+fn area2(contour: &[Raw]) -> f64 {
     let count = contour.len();
-    let area: f64 = (0..count)
+    (0..count)
         .map(|i| {
             let (x0, y0, _) = contour[i];
             let (x1, y1, _) = contour[(i + 1) % count];
             x0 * y1 - x1 * y0
         })
-        .sum();
-    if area > 0.0 {
-        contour.reverse();
-    }
-    contour
+        .sum()
 }
 
 /// Moves a contour sideways by `shift` and rounds it to whole units.

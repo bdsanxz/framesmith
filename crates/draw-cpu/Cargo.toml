@@ -19,3 +19,5 @@ draw = { workspace = true }
 layout = { workspace = true }
 # The glyph outlines of the text are filled by vello_cpu (docs/spec/text.md, section 10); multithreading stays off.
 vello_cpu = { workspace = true }
+# The outlines of the glyphs of a stroked text are read from the font (docs/spec/text.md, section 6.6).
+skrifa = "0.44.0"

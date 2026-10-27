@@ -15,7 +15,10 @@ use draw::{
     Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
-use vello_cpu::kurbo::{self, Affine, Stroke};
+use skrifa::instance::{LocationRef, Size};
+use skrifa::outline::{DrawSettings, OutlinePen};
+use skrifa::{FontRef, GlyphId, MetadataProvider};
+use vello_cpu::kurbo::{self, Affine, BezPath, PathEl};
 use vello_cpu::peniko::{Blob, Color, FontData, ImageAlphaType, ImageQuality, ImageSampler};
 use vello_cpu::{Glyph, Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
 
@@ -696,25 +699,150 @@ fn text_layer(width: u32, height: u32, text: &TextMark) -> Result<Vec<u8>, Error
     Ok(layer.data_as_u8_slice().to_vec())
 }
 
+/// The mitre limit of a text's outline, as a ratio of the width (`docs/spec/text.md`, section 6.6, rule 6).
+const OUTLINE_MITRE_LIMIT: f64 = 4.0;
+
 /// The outline of the glyph runs of a paragraph as a layer of premultiplied pixels of the frame's size: a line `outline.width`
-/// pixels wide, centred on the outline of each glyph, in `outline.colour` (`docs/spec/text.md`, section 6.6, rule 6), stroked in
-/// the paragraph's own coordinates and mapped by `map`.
+/// pixels wide, centred on the outline of each glyph, in `outline.colour` (`docs/spec/text.md`, section 6.6, rule 6). Each
+/// glyph's outline is read from its font, stroked in the paragraph's own coordinates and mapped by `map`; the stroke is
+/// flattened to straight lines before it is filled, so that the rasteriser only ever sees straight edges (rule 10).
 pub fn outline_layer(width: u32, height: u32, text: &TextMark, outline: &Outline, map: Map) -> Result<Vec<u8>, Error> {
     let mut context = RenderContext::new(width as u16, height as u16);
-    let mut resources = Resources::new();
-    if !map.is_identity() {
-        context.set_transform(affine(map));
-    }
+    // The stroke is drawn in opaque white, so that its alpha is the coverage alone; the colour is laid on it below.
+    context.set_paint(Color::from_rgba8(255, 255, 255, 255));
     let colour = outline.colour;
-    context.set_paint(Color::from_rgba8(colour.red, colour.green, colour.blue, 255));
-    context.set_stroke(Stroke::new(f64::from(outline.width)));
+    let half = f64::from(outline.width) / 2.0;
+    let mapped = affine(map);
+    let scale = mapped.as_coeffs()[0].abs().max(mapped.as_coeffs()[3].abs()).max(1.0);
     for run in &text.runs {
-        stroke_run(&mut context, &mut resources, run)?;
+        for glyph in &run.glyphs {
+            let path = glyph_outline(run, glyph)?;
+            // the stroke is expanded in the paragraph's coordinates, by the draw crate's own expansion (`docs/spec/text.md`,
+            // section 6.6, rules 6 and 10), and the expanded polygons are mapped as the paragraph is
+            let contours = flattened_contours(&path, draw::OUTLINE_TOLERANCE / scale);
+            let mut lines = BezPath::new();
+            for polygon in draw::stroke::stroke_contours(&contours, half, OUTLINE_MITRE_LIMIT) {
+                for (at, &(x, y)) in polygon.iter().enumerate() {
+                    let point = mapped * kurbo::Point::new(x, y);
+                    if at == 0 {
+                        lines.move_to(point);
+                    } else {
+                        lines.line_to(point);
+                    }
+                }
+                lines.close_path();
+            }
+            context.fill_path(&lines);
+        }
     }
-    context.flush();
+    let mut resources = Resources::new();
     let mut layer = Pixmap::new(width as u16, height as u16);
+    context.flush();
     context.render(&mut layer, &mut resources);
-    Ok(layer.data_as_u8_slice().to_vec())
+    let mut pixels = layer.data_as_u8_slice().to_vec();
+    // The colour is laid on each pixel's coverage by the rule of `docs/spec/box-edges.md`: each channel is the colour times the
+    // alpha, rounded to the nearest whole level, halves up. The rasteriser's own premultiplication rounds differently.
+    for pixel in pixels.as_chunks_mut::<4>().0.iter_mut() {
+        let alpha = u32::from(pixel[3]);
+        for (channel, value) in [colour.red, colour.green, colour.blue].into_iter().enumerate() {
+            pixel[channel] = divide_by_255(u32::from(value) * alpha) as u8;
+        }
+    }
+    Ok(pixels)
+}
+
+/// The outline of one glyph of a run in the paragraph's coordinates: the glyph's outline in font units, scaled to the run's
+/// size by this function's own transform, the baseline at 0 and y down, sheared as the run is (`docs/spec/text.md`, section
+/// 6.6), and moved to the glyph's origin. The outline is read in font units so that no point is rounded by the reader: read
+/// at a size, the reader rounds each point to a 26.6 grid, a sixty-fourth of a pixel. A glyph with no outline (a space) is an
+/// empty path.
+fn glyph_outline(run: &GlyphRun, glyph: &draw::Glyph) -> Result<BezPath, Error> {
+    let font = FontRef::from_index(&run.font.data[..], run.font.index)
+        .map_err(|error| Error::new(format!("the font of an outline cannot be read: {error}")))?;
+    let Some(outline_glyph) = font.outline_glyphs().get(GlyphId::new(glyph.id)) else {
+        return Ok(BezPath::new());
+    };
+    let mut pen = Pen(BezPath::new());
+    outline_glyph
+        .draw(DrawSettings::unhinted(Size::unscaled(), LocationRef::default()), &mut pen)
+        .map_err(|error| Error::new(format!("the outline of a glyph cannot be read: {error}")))?;
+    let units_per_em = f64::from(font.metrics(Size::unscaled(), LocationRef::default()).units_per_em);
+    let scale = f64::from(run.size) / units_per_em;
+    let shear = f64::from(run.skew_degrees).to_radians().tan();
+    let upright = Affine::new([1.0, 0.0, 0.0, -1.0, 0.0, 0.0]);
+    let sheared = Affine::new([1.0, 0.0, -shear, 1.0, 0.0, 0.0]);
+    let placed = Affine::translate((f64::from(glyph.x), f64::from(glyph.y))) * sheared * upright * Affine::scale(scale);
+    Ok(placed * pen.0)
+}
+
+/// The contours of a glyph's outline as points, each quadratic piece flattened to the tolerance (`docs/spec/text.md`, section
+/// 6.6, rule 10). The outline has no cubic pieces: its font is a TrueType one.
+fn flattened_contours(path: &BezPath, tolerance: f64) -> Vec<Vec<draw::stroke::Point>> {
+    let mut contours = Vec::new();
+    let mut current: Vec<draw::stroke::Point> = Vec::new();
+    let (mut start, mut last) = ((0.0, 0.0), (0.0, 0.0));
+    for element in path.elements() {
+        match *element {
+            PathEl::MoveTo(p) => {
+                if !current.is_empty() {
+                    contours.push(std::mem::take(&mut current));
+                }
+                start = (p.x, p.y);
+                last = start;
+                current.push(start);
+            }
+            PathEl::LineTo(p) => {
+                last = (p.x, p.y);
+                current.push(last);
+            }
+            PathEl::QuadTo(control, p) => {
+                let end = (p.x, p.y);
+                draw::stroke::flatten_quadratic(last, (control.x, control.y), end, tolerance, &mut current);
+                last = end;
+            }
+            PathEl::CurveTo(..) => panic!("a glyph outline of a TrueType font has no cubic pieces"),
+            PathEl::ClosePath => {
+                if !current.is_empty() {
+                    contours.push(std::mem::take(&mut current));
+                }
+                last = start;
+            }
+        }
+    }
+    if !current.is_empty() {
+        contours.push(current);
+    }
+    contours
+}
+
+/// Collects a glyph's outline as a path in the coordinates it is drawn in.
+struct Pen(BezPath);
+
+impl OutlinePen for Pen {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.0.move_to((f64::from(x), f64::from(y)));
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.0.line_to((f64::from(x), f64::from(y)));
+    }
+
+    fn quad_to(&mut self, control_x: f32, control_y: f32, x: f32, y: f32) {
+        self.0
+            .quad_to((f64::from(control_x), f64::from(control_y)), (f64::from(x), f64::from(y)));
+    }
+
+    fn curve_to(&mut self, control_x0: f32, control_y0: f32, control_x1: f32, control_y1: f32, x: f32, y: f32) {
+        self.0.curve_to(
+            (f64::from(control_x0), f64::from(control_y0)),
+            (f64::from(control_x1), f64::from(control_y1)),
+            (f64::from(x), f64::from(y)),
+        );
+    }
+
+    fn close(&mut self) {
+        self.0.close_path();
+    }
 }
 
 /// The shadow of a paragraph as a layer of premultiplied pixels of the frame's size (`docs/spec/text.md`, section 6.6, rule 5):
@@ -871,18 +999,6 @@ fn fill_run(context: &mut RenderContext, resources: &mut Resources, run: &GlyphR
         .glyph_transform(transform)
         .fill_glyphs(glyphs.into_iter())
         .map_err(|error| Error::new(format!("the glyphs of a run cannot be drawn: {error}")))
-}
-
-/// Strokes the outline of the glyphs of one run, with the paint and the stroke the context already has.
-fn stroke_run(context: &mut RenderContext, resources: &mut Resources, run: &GlyphRun) -> Result<(), Error> {
-    let (font, transform, glyphs) = run_parts(run, (0.0, 0.0));
-    context
-        .glyph_run(resources, &font)
-        .hint(false)
-        .font_size(run.size)
-        .glyph_transform(transform)
-        .stroke_glyphs(glyphs.into_iter())
-        .map_err(|error| Error::new(format!("the outline of a run cannot be drawn: {error}")))
 }
 
 /// The font, the shear and the glyphs of one run, the glyphs moved by `offset`.
