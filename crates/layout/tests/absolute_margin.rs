@@ -7,8 +7,8 @@
 //! its near margin (B41).
 
 use layout::{
-    columns, flow, flow_absolute, frame, place, place_absolute, Across, Along, Amount, Cell, Columns, Direction, Flex, Item, Rect, Sides,
-    Track, Written,
+    columns, flow, flow_absolute, frame, place, place_absolute, Across, Along, Amount, Cell, Columns, Decimal, Direction, Flex, Item, Rect,
+    Sides, Track, Written,
 };
 
 fn rect(left: i32, top: i32, width: u32, height: u32) -> Rect {
@@ -16,7 +16,7 @@ fn rect(left: i32, top: i32, width: u32, height: u32) -> Rect {
 }
 
 fn px(value: f64) -> Option<Amount> {
-    Some(Amount::Pixels(value))
+    Some(Amount::Pixels(Decimal::of(value).expect("a finite value")))
 }
 
 fn sides(top: f64, right: f64, bottom: f64, left: f64) -> Sides {
@@ -34,15 +34,15 @@ fn a_margin_moves_an_item_placed_by_left_and_top_in_by_the_left_and_top_margins(
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(30.0, 30.0, 30.0, 30.0)),
+        place_absolute(frame(96, 54), &&written, sides(30.0, 30.0, 30.0, 30.0)),
         Ok(rect(80, 40, 20, 20))
     );
     // With no margin it lies where its edges put it, as `place` puts it.
     assert_eq!(
-        place_absolute(frame(96, 54), written, Sides::default()),
-        place(frame(96, 54), written)
+        place_absolute(frame(96, 54), &&written, Sides::default()),
+        place(frame(96, 54), &&written)
     );
-    assert_eq!(place(frame(96, 54), written), Ok(rect(50, 10, 20, 20)));
+    assert_eq!(place(frame(96, 54), &&written), Ok(rect(50, 10, 20, 20)));
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn a_margin_moves_an_item_placed_by_right_and_bottom_in_by_the_right_and_bottom_
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(1.0, 4.0, 5.0, 2.0)),
+        place_absolute(frame(96, 54), &&written, sides(1.0, 4.0, 5.0, 2.0)),
         Ok(rect(74, 36, 12, 10))
     );
 }
@@ -73,7 +73,7 @@ fn with_both_edges_and_no_size_the_size_is_what_lies_between_them_less_the_two_m
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(2.0, 3.0, 8.0, 7.0)),
+        place_absolute(frame(96, 54), &&written, sides(2.0, 3.0, 8.0, 7.0)),
         Ok(rect(17, 6, 56, 34))
     );
 }
@@ -91,7 +91,7 @@ fn with_both_edges_and_a_size_the_near_edge_and_its_margin_place_the_item() {
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(2.0, 3.0, 8.0, 7.0)),
+        place_absolute(frame(96, 54), &&written, sides(2.0, 3.0, 8.0, 7.0)),
         Ok(rect(17, 6, 5, 5))
     );
 }
@@ -107,7 +107,7 @@ fn margins_larger_than_the_room_between_two_edges_leave_a_size_of_zero() {
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(0.0, 10.0, 0.0, 10.0)),
+        place_absolute(frame(96, 54), &&written, sides(0.0, 10.0, 0.0, 10.0)),
         Ok(rect(50, 0, 0, 4))
     );
 }
@@ -123,7 +123,7 @@ fn on_an_axis_with_no_edge_the_near_margin_moves_the_item_from_the_parent_s_near
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(1.0, 9.0, 1.0, 9.0)),
+        place_absolute(frame(96, 54), &&written, sides(1.0, 9.0, 1.0, 9.0)),
         Ok(rect(9, 6, 20, 10))
     );
 }
@@ -132,14 +132,14 @@ fn on_an_axis_with_no_edge_the_near_margin_moves_the_item_from_the_parent_s_near
 fn a_margin_is_added_to_an_edge_written_as_a_share_of_the_parent() {
     // left 25 % of 96 = 24, + 6 = 30; top 50 % of 54 = 27, + 3 = 30.
     let written = Written {
-        left: Some(Amount::Percent(25.0)),
-        top: Some(Amount::Percent(50.0)),
+        left: Some(Amount::Percent(Decimal::of(25.0).expect("a finite value"))),
+        top: Some(Amount::Percent(Decimal::of(50.0).expect("a finite value"))),
         width: px(10.0),
         height: px(10.0),
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), written, sides(3.0, 0.0, 0.0, 6.0)),
+        place_absolute(frame(96, 54), &&written, sides(3.0, 0.0, 0.0, 6.0)),
         Ok(rect(30, 30, 10, 10))
     );
 }
@@ -170,9 +170,9 @@ fn an_absolute_item_of_a_row_is_moved_in_by_its_margin_and_a_flowed_one_keeps_it
     };
     let laid = flow(
         frame(400, 300),
-        Written::default(),
+        &Written::default(),
         &Flex::default(),
-        &[flowed_item, absolute, flowed_item],
+        &[flowed_item.clone(), absolute, flowed_item],
     )
     .expect("placed");
     assert_eq!(laid.container, rect(0, 0, 60, 10));
@@ -205,7 +205,7 @@ fn an_absolute_cell_of_a_set_is_moved_in_by_its_margin() {
         height: px(40.0),
         ..Written::default()
     };
-    let laid = columns(frame(300, 300), height_40, &set, &[cell]).expect("placed");
+    let laid = columns(frame(300, 300), &height_40, &set, &[cell]).expect("placed");
     assert_eq!(laid.items, vec![rect(7, 23, 10, 10)]);
 }
 
@@ -251,9 +251,9 @@ fn an_absolute_item_of_a_row_with_no_edge_lies_where_the_row_would_put_it_as_its
         ..Item::default()
     };
     let item = edgeless(sides(2.0, 0.0, 0.0, 4.0));
-    let mut topped = item;
+    let mut topped = item.clone();
     topped.written.top = px(0.0);
-    let laid = flow(frame(400, 300), sized, &row, &[flowed_item, item, topped]).expect("placed");
+    let laid = flow(frame(400, 300), &sized, &row, &[flowed_item, item, topped]).expect("placed");
     assert_eq!(laid.items[1], rect(47, 18, 10, 6));
     assert_eq!(laid.items[2], rect(47, 2, 10, 6));
 }
@@ -274,7 +274,7 @@ fn an_absolute_item_of_a_column_with_no_edge_lies_at_the_end_where_the_column_pu
         height: px(100.0),
         ..Written::default()
     };
-    let laid = flow(frame(400, 300), sized, &column, &[edgeless(sides(1.0, 2.0, 3.0, 4.0))]).expect("placed");
+    let laid = flow(frame(400, 300), &sized, &column, &[edgeless(sides(1.0, 2.0, 3.0, 4.0))]).expect("placed");
     assert_eq!(laid.items, vec![rect(28, 91, 10, 6)]);
 }
 
@@ -303,7 +303,7 @@ fn an_absolute_cell_of_a_set_with_no_edge_lies_where_the_set_would_put_it_as_its
         height: px(40.0),
         ..Written::default()
     };
-    let laid = columns(frame(300, 300), height_40, &set, &[cell]).expect("placed");
+    let laid = columns(frame(300, 300), &height_40, &set, &[cell]).expect("placed");
     assert_eq!(laid.items, vec![rect(5, 18, 10, 6)]);
 }
 
@@ -318,13 +318,13 @@ fn a_row_placed_in_a_plain_box_is_moved_in_by_its_margin() {
         ..Written::default()
     };
     let margin = sides(3.0, 0.0, 0.0, 5.0);
-    let laid = flow_absolute(frame(96, 54), written, margin, &Flex::default(), &[]).expect("placed");
+    let laid = flow_absolute(frame(96, 54), &&written, margin, &Flex::default(), &[]).expect("placed");
     assert_eq!(laid.container, rect(9, 5, 20, 10));
     let edgeless_row = Written {
         left: None,
         top: None,
         ..written
     };
-    let laid = flow_absolute(frame(96, 54), edgeless_row, margin, &Flex::default(), &[]).expect("placed");
+    let laid = flow_absolute(frame(96, 54), &edgeless_row, margin, &Flex::default(), &[]).expect("placed");
     assert_eq!(laid.container, rect(5, 3, 20, 10));
 }
