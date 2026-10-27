@@ -4,6 +4,7 @@ description = "Development only: runs the reference as a black box and compares 
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true

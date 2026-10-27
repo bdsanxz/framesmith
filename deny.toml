@@ -1,6 +1,8 @@
 # Licence gate (run with `cargo deny check licenses`; see scripts/gates.sh).
-# Closed-source distribution depends on every dependency allowing it, so only the
-# licences below are accepted. Anything else, and any unknown or missing licence, is denied.
+# The project is offered under GPL-3.0-or-later (LICENSE) and under a commercial licence. So that the
+# code can be offered under both, dependencies are limited to the permissive and MPL-2.0 licences
+# below, each compatible with GPL-3.0-or-later; no dependency of the GPL family (GPL, AGPL, LGPL) is
+# accepted. Anything else, and any unknown or missing licence, is denied.
 
 [graph]
 all-features = true

@@ -4,6 +4,7 @@ description = "The sound mix of a composition: 48,000 samples a second in two ch
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true

@@ -4,6 +4,7 @@ description = "The renderer on the graphics card: it draws a display list the wa
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true

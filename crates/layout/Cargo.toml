@@ -4,6 +4,7 @@ description = "Places and sizes: where an element lies in its parent, in whole p
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true
