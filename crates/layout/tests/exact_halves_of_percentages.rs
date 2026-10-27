@@ -1,5 +1,6 @@
 //! A percentage is worked out exactly, and a half of a pixel rounds up (`docs/spec/render-command.md`, section 4.1, rule 3):
-//! the values below are worked by hand from that rule, and each is one a float gets a whole pixel low.
+//! the values below are worked by hand from that rule. Most of them are ones a float gets a whole pixel low; the two that a
+//! float gets right (10.1% of 5, and the negative half) hold the rule where the product is not a half.
 
 use layout::{frame, place, Amount, Rect, Written};
 
@@ -138,5 +139,34 @@ fn a_far_edge_half_in_percent_rounds_up_from_the_exact_sum() {
             Some(Amount::Percent((64.4).into()))
         ),
         (35, 10)
+    );
+}
+
+#[test]
+fn seven_tenths_of_a_percent_of_5500_is_38_point_5_and_its_edge_rounds_up_to_39() {
+    // 0.7% of 5500 is exactly 38.5, which a half up rounds to 39. A float gives 38.49999999999999, which rounds to 38.
+    assert_eq!(
+        across(
+            frame(5500, 10),
+            Some(Amount::Percent((0.7).into())),
+            Some(Amount::Pixels((10.0).into())),
+            None
+        ),
+        (39, 10)
+    );
+}
+
+#[test]
+fn ten_point_one_percent_of_5_is_0_point_505_and_its_edge_rounds_to_1() {
+    // 10.1% of 5 is exactly 0.505, which is above a half, so it rounds up to 1. Both a float and the exact sum give 1: this
+    // is the case that is not a half.
+    assert_eq!(
+        across(
+            frame(5, 10),
+            Some(Amount::Percent((10.1).into())),
+            Some(Amount::Pixels((2.0).into())),
+            None
+        ),
+        (1, 2)
     );
 }
