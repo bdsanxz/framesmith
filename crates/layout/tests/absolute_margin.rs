@@ -34,15 +34,15 @@ fn a_margin_moves_an_item_placed_by_left_and_top_in_by_the_left_and_top_margins(
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(30.0, 30.0, 30.0, 30.0)),
+        place_absolute(frame(96, 54), &written, sides(30.0, 30.0, 30.0, 30.0)),
         Ok(rect(80, 40, 20, 20))
     );
     // With no margin it lies where its edges put it, as `place` puts it.
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, Sides::default()),
-        place(frame(96, 54), &&written)
+        place_absolute(frame(96, 54), &written, Sides::default()),
+        place(frame(96, 54), &written)
     );
-    assert_eq!(place(frame(96, 54), &&written), Ok(rect(50, 10, 20, 20)));
+    assert_eq!(place(frame(96, 54), &written), Ok(rect(50, 10, 20, 20)));
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn a_margin_moves_an_item_placed_by_right_and_bottom_in_by_the_right_and_bottom_
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(1.0, 4.0, 5.0, 2.0)),
+        place_absolute(frame(96, 54), &written, sides(1.0, 4.0, 5.0, 2.0)),
         Ok(rect(74, 36, 12, 10))
     );
 }
@@ -73,7 +73,7 @@ fn with_both_edges_and_no_size_the_size_is_what_lies_between_them_less_the_two_m
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(2.0, 3.0, 8.0, 7.0)),
+        place_absolute(frame(96, 54), &written, sides(2.0, 3.0, 8.0, 7.0)),
         Ok(rect(17, 6, 56, 34))
     );
 }
@@ -91,7 +91,7 @@ fn with_both_edges_and_a_size_the_near_edge_and_its_margin_place_the_item() {
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(2.0, 3.0, 8.0, 7.0)),
+        place_absolute(frame(96, 54), &written, sides(2.0, 3.0, 8.0, 7.0)),
         Ok(rect(17, 6, 5, 5))
     );
 }
@@ -107,7 +107,7 @@ fn margins_larger_than_the_room_between_two_edges_leave_a_size_of_zero() {
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(0.0, 10.0, 0.0, 10.0)),
+        place_absolute(frame(96, 54), &written, sides(0.0, 10.0, 0.0, 10.0)),
         Ok(rect(50, 0, 0, 4))
     );
 }
@@ -123,7 +123,7 @@ fn on_an_axis_with_no_edge_the_near_margin_moves_the_item_from_the_parent_s_near
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(1.0, 9.0, 1.0, 9.0)),
+        place_absolute(frame(96, 54), &written, sides(1.0, 9.0, 1.0, 9.0)),
         Ok(rect(9, 6, 20, 10))
     );
 }
@@ -139,7 +139,7 @@ fn a_margin_is_added_to_an_edge_written_as_a_share_of_the_parent() {
         ..Written::default()
     };
     assert_eq!(
-        place_absolute(frame(96, 54), &&written, sides(3.0, 0.0, 0.0, 6.0)),
+        place_absolute(frame(96, 54), &written, sides(3.0, 0.0, 0.0, 6.0)),
         Ok(rect(30, 30, 10, 10))
     );
 }
@@ -318,7 +318,7 @@ fn a_row_placed_in_a_plain_box_is_moved_in_by_its_margin() {
         ..Written::default()
     };
     let margin = sides(3.0, 0.0, 0.0, 5.0);
-    let laid = flow_absolute(frame(96, 54), &&written, margin, &Flex::default(), &[]).expect("placed");
+    let laid = flow_absolute(frame(96, 54), &written, margin, &Flex::default(), &[]).expect("placed");
     assert_eq!(laid.container, rect(9, 5, 20, 10));
     let edgeless_row = Written {
         left: None,
