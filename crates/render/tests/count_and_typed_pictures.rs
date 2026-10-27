@@ -186,7 +186,17 @@ fn a_typed_fraction_of_a_character_shows_only_the_characters_before_it() {
     // 1.5 characters typed at 0.3 s and 2.5 at 0.5 s: a fraction is not a character, so one and then two are shown.
     let scene = fraction_scene();
     let one = format!("<text left=\"10\" top=\"8\" {LOOK} color=\"#202020\">H{HIDDEN}ELLO</span></text>");
-    compare(3, &scene.picture(3, &mut CpuRenderer).unwrap(), &reference("type-a-fraction-3", 180, 40, &one)).unwrap();
+    compare(
+        3,
+        &scene.picture(3, &mut CpuRenderer).unwrap(),
+        &reference("type-a-fraction-3", 180, 40, &one),
+    )
+    .unwrap();
     let two = format!("<text left=\"10\" top=\"8\" {LOOK} color=\"#202020\">HE{HIDDEN}LLO</span></text>");
-    compare(5, &scene.picture(5, &mut CpuRenderer).unwrap(), &reference("type-a-fraction-5", 180, 40, &two)).unwrap();
+    compare(
+        5,
+        &scene.picture(5, &mut CpuRenderer).unwrap(),
+        &reference("type-a-fraction-5", 180, 40, &two),
+    )
+    .unwrap();
 }
