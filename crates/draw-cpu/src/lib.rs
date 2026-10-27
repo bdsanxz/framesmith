@@ -29,6 +29,11 @@ pub use edges::{cut_weights, ring_coverage, rounded_coverage};
 /// The most pixels of a frame this renderer holds (a frame of 8192 by 8192 has fewer).
 const MOST_PIXELS: u64 = 8192 * 8192;
 
+/// How far, in pixels of the frame, a straight piece of a curve may lie from the curve when the renderer flattens it
+/// (decision A29 asks for a quarter pixel; this is well inside it). At 0.01 a curve's edge pixel lay 2 levels inside its
+/// exact coverage (the inward pull of a chord); at 0.001 it is within 1 level. Every outline takes this one tolerance.
+pub(crate) const OUTLINE_FLATNESS: f64 = 0.001;
+
 /// The renderer on the processor.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CpuRenderer;
@@ -279,10 +284,10 @@ pub fn shape_layer(width: u32, height: u32, shape: &ShapeMark, map: Map) -> Resu
     }
     let fit = shape.fit();
     let transform = affine(map) * Affine::new([fit.scale, 0.0, 0.0, fit.scale, fit.across, fit.down]);
-    // The curves are flattened in the view box's units to within `SHAPE_FLAT` of a pixel of the frame, so that the
+    // The curves are flattened in the view box's units to within `OUTLINE_FLATNESS` of a pixel of the frame, so that the
     // rasteriser gets straight pieces only (a chord lies inside a curve, which would otherwise pull an edge inward).
     let device_scale = (fit.scale * map.area_scale().sqrt()).max(f64::MIN_POSITIVE);
-    let tolerance = SHAPE_FLAT / device_scale;
+    let tolerance = OUTLINE_FLATNESS / device_scale;
     let outlines = outlines(&shape.path, tolerance);
     let mut context = RenderContext::new(width as u16, height as u16);
     let mut resources = Resources::new();
@@ -343,11 +348,6 @@ pub fn shape_layer(width: u32, height: u32, shape: &ShapeMark, map: Map) -> Resu
     context.render(&mut layer, &mut resources);
     Ok(layer.data_as_u8_slice().to_vec())
 }
-
-/// How far, in pixels of the frame, a straight piece of a shape's flattened curve may lie from the curve (decision A29
-/// asks for a quarter pixel; this is well inside it). At 0.01 an edge's coverage was 2 levels from the exact coverage
-/// (the inward pull of a chord); at 0.001 it is within 1 level.
-const SHAPE_FLAT: f64 = 0.001;
 
 /// How far inside an outline's end its last dash is read, in view-box units: a dash that starts at the end holds no part of it.
 const END_INSET: f64 = 1e-9;
