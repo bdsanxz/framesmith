@@ -4,7 +4,7 @@
 use draw::{Filter, Map, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
-use project::{Code, Element, Length, Node};
+use project::{Code, Element, Length, Node, Number};
 use timebase::Time;
 
 /// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, the
@@ -53,7 +53,7 @@ impl Movement {
 pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
     let mut movement = Movement {
         own: PROPS.map(Prop::own_value),
-        origin: (Length::Percent(50.0), Length::Percent(50.0)),
+        origin: (Length::Percent(Number::whole(50)), Length::Percent(Number::whole(50))),
         perspective: None,
         filter: Filter::NONE,
         lines: Vec::new(),
@@ -67,7 +67,7 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         movement.lines.push(attribute.line());
         if name == "transform-origin" {
             match attribute.lengths().as_deref() {
-                Some(&[x, y]) => movement.origin = (x, y),
+                Some([x, y]) => movement.origin = (x.clone(), y.clone()),
                 _ => found.push((
                     Code::LengthNotAccepted,
                     attribute.line(),
@@ -249,8 +249,8 @@ impl Mover {
     /// The element's origin in the frame: its `transform-origin` from the top left corner of its rectangle.
     pub(crate) fn origin_in(rect: Rect, (x, y): (Length, Length)) -> (f64, f64) {
         let along = |length: Length, size: u32| match length {
-            Length::Pixels(pixels) => pixels,
-            Length::Percent(percent) => percent / 100.0 * f64::from(size),
+            Length::Pixels(pixels) => pixels.to_f64(),
+            Length::Percent(percent) => percent.to_f64() / 100.0 * f64::from(size),
         };
         (
             f64::from(rect.left) + along(x, rect.width),

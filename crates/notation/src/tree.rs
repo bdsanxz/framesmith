@@ -16,12 +16,69 @@ use crate::Colour;
 use timebase::Time;
 
 /// A written length (`docs/spec/notation.md` section 4): a number of pixels, or a percentage.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Length {
     /// A number of pixels, as written: `40`, `-4`, `.5`, `1e3`.
-    Pixels(f64),
-    /// A percentage of the parent's size, as written: `50%` is `Percent(50.0)`.
-    Percent(f64),
+    Pixels(Number),
+    /// A percentage of the parent's size, as written: `50%` is 50, with every digit it is written with.
+    Percent(Number),
+}
+
+/// A number as it is written (N9), in its parts, so that no digit is lost: the value is the digits, read as a
+/// whole number, times 10 to the power of the exponent (`1.4` is the digits `14` at the exponent -1).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Number {
+    negative: bool,
+    digits: String,
+    exponent: i32,
+}
+
+impl Number {
+    /// A number from its parts, the digits being ASCII digits, most significant first.
+    pub(crate) fn new(negative: bool, digits: String, exponent: i32) -> Number {
+        Number {
+            negative,
+            digits,
+            exponent,
+        }
+    }
+
+    /// A whole number.
+    pub fn whole(value: i64) -> Number {
+        Number::new(value < 0, value.unsigned_abs().to_string(), 0)
+    }
+
+    /// Whether the sign is minus.
+    pub fn negative(&self) -> bool {
+        self.negative
+    }
+
+    /// The digits as written, most significant first, with no point.
+    pub fn digits(&self) -> &str {
+        &self.digits
+    }
+
+    /// The exponent: the value is the digits times 10 to this power.
+    pub fn exponent(&self) -> i32 {
+        self.exponent
+    }
+
+    /// Whether the value has no fraction. A fraction written as zeros, such as `1.0`, is whole.
+    pub fn is_whole(&self) -> bool {
+        self.exponent >= 0
+            || self
+                .digits
+                .bytes()
+                .rev()
+                .take(self.exponent.unsigned_abs() as usize)
+                .all(|digit| digit == b'0')
+    }
+
+    /// The nearest float to the value, which is infinite for a value beyond a float's range.
+    pub fn to_f64(&self) -> f64 {
+        let sign = if self.negative { "-" } else { "" };
+        format!("{sign}{}e{}", self.digits, self.exponent).parse().unwrap_or(f64::NAN)
+    }
 }
 
 /// An attribute as it is written on an element.
@@ -64,8 +121,8 @@ impl Attribute {
     /// after it, and no unit.
     pub fn length(&self) -> Option<Length> {
         match self.value.strip_suffix('%') {
-            Some(number) => value::number(number).ok().map(Length::Percent),
-            None => value::number(&self.value).ok().map(Length::Pixels),
+            Some(number) => value::written_number(number).ok().map(Length::Percent),
+            None => value::written_number(&self.value).ok().map(Length::Pixels),
         }
     }
 
@@ -75,8 +132,8 @@ impl Attribute {
         self.value
             .split_whitespace()
             .map(|part| match part.strip_suffix('%') {
-                Some(number) => value::number(number).ok().map(Length::Percent),
-                None => value::number(part).ok().map(Length::Pixels),
+                Some(number) => value::written_number(number).ok().map(Length::Percent),
+                None => value::written_number(part).ok().map(Length::Pixels),
             })
             .collect()
     }

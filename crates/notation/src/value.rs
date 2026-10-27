@@ -1,6 +1,7 @@
 //! The value forms (`docs/spec/notation.md` section 4): a number, a number that is whole, a time, a
 //! colour. Each reads a written value that has already lost its surrounding white space.
 
+use crate::tree::Number;
 use timebase::Time;
 
 /// Why a written value is not a number.
@@ -17,34 +18,57 @@ pub(crate) enum NotANumber {
 /// are numbers), and an optional exponent. `inf`, `infinity` and `nan` are not numbers, and neither
 /// is a value that is too large to be finite.
 pub(crate) fn number(text: &str) -> Result<f64, NotANumber> {
+    written_number(text).map(|number| number.to_f64())
+}
+
+/// The exponent beyond which a written number is clamped: a value this far out is 0 or infinite for
+/// every digit count a notation can hold, and the clamp keeps the arithmetic on exponents in range.
+const MAX_EXPONENT: i64 = 1_000_000_000;
+
+/// A number as written (N9), in its parts: its sign, every digit it is written with (the point left
+/// out), and its exponent with the fraction's places taken off, so `2.5e1` is the digits `25` at the
+/// exponent 0. A number too large to be finite is `TooLarge`.
+pub(crate) fn written_number(text: &str) -> Result<Number, NotANumber> {
     let bytes = text.as_bytes();
+    let negative = bytes.first() == Some(&b'-');
     let mut at = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
-    let integer = take_digits(bytes, &mut at).len();
-    let mut fraction = 0;
+    let integer = take_digits(bytes, &mut at);
+    let mut fraction: &[u8] = &[];
     if bytes.get(at) == Some(&b'.') {
         at += 1;
-        fraction = take_digits(bytes, &mut at).len();
+        fraction = take_digits(bytes, &mut at);
     }
-    if integer == 0 && fraction == 0 {
+    if integer.is_empty() && fraction.is_empty() {
         return Err(NotANumber::Form);
     }
+    let mut exponent = 0_i64;
     if matches!(bytes.get(at), Some(b'e' | b'E')) {
         at += 1;
+        let exponent_negative = bytes.get(at) == Some(&b'-');
         if matches!(bytes.get(at), Some(b'+' | b'-')) {
             at += 1;
         }
-        if take_digits(bytes, &mut at).is_empty() {
+        let digits = take_digits(bytes, &mut at);
+        if digits.is_empty() {
             return Err(NotANumber::Form);
+        }
+        exponent = digits
+            .iter()
+            .fold(0_i64, |value, &digit| (value * 10 + i64::from(digit - b'0')).min(MAX_EXPONENT));
+        if exponent_negative {
+            exponent = -exponent;
         }
     }
     if at != bytes.len() {
         return Err(NotANumber::Form);
     }
-    // The text has the form of a decimal number, which the standard reader takes whole.
-    match text.parse::<f64>() {
-        Ok(value) if value.is_finite() => Ok(value),
-        Ok(_) => Err(NotANumber::TooLarge),
-        Err(_) => Err(NotANumber::Form),
+    let digits: String = integer.iter().chain(fraction).map(|&digit| char::from(digit)).collect();
+    let exponent = (exponent - fraction.len() as i64).clamp(-MAX_EXPONENT, MAX_EXPONENT) as i32;
+    let number = Number::new(negative, digits, exponent);
+    if number.to_f64().is_finite() {
+        Ok(number)
+    } else {
+        Err(NotANumber::TooLarge)
     }
 }
 

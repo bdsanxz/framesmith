@@ -22,7 +22,7 @@ pub use easing::{easing, Easing, EASINGS};
 pub use problem::Problem;
 pub use root::{read, read_root, shown, shows, Colour, Composition, Root, Show, Shows};
 pub use schema::{Element, Form};
-pub use tree::{Attribute, Length, Node, Part, Tree};
+pub use tree::{Attribute, Length, Node, Number, Part, Tree};
 
 /// A part of a value read as a number (N9), for a value whose parts are read by the crate that draws it, such as the layers
 /// of a `background`; `None` when it is not a number.

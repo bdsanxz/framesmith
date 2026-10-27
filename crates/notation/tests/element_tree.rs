@@ -99,16 +99,24 @@ fn length(value: &str) -> Option<Length> {
     composition.tree.nodes()[1].attribute("width").unwrap().length()
 }
 
+/// The length as its kind and its value: `(true, 50.0)` for `50%`, `(false, 40.0)` for `40`.
+fn as_float(value: &str) -> Option<(bool, f64)> {
+    match length(value)? {
+        Length::Pixels(number) => Some((false, number.to_f64())),
+        Length::Percent(number) => Some((true, number.to_f64())),
+    }
+}
+
 #[test]
 fn a_length_is_a_number_of_pixels_or_a_percentage() {
-    assert_eq!(length("40"), Some(Length::Pixels(40.0)));
-    assert_eq!(length("-4"), Some(Length::Pixels(-4.0)));
-    assert_eq!(length("+0.5"), Some(Length::Pixels(0.5)));
-    assert_eq!(length(".5"), Some(Length::Pixels(0.5)));
-    assert_eq!(length("1e3"), Some(Length::Pixels(1000.0)));
-    assert_eq!(length("50%"), Some(Length::Percent(50.0)));
-    assert_eq!(length("-10%"), Some(Length::Percent(-10.0)));
-    assert_eq!(length("2.5e1%"), Some(Length::Percent(25.0)));
+    assert_eq!(as_float("40"), Some((false, 40.0)));
+    assert_eq!(as_float("-4"), Some((false, -4.0)));
+    assert_eq!(as_float("+0.5"), Some((false, 0.5)));
+    assert_eq!(as_float(".5"), Some((false, 0.5)));
+    assert_eq!(as_float("1e3"), Some((false, 1000.0)));
+    assert_eq!(as_float("50%"), Some((true, 50.0)));
+    assert_eq!(as_float("-10%"), Some((true, -10.0)));
+    assert_eq!(as_float("2.5e1%"), Some((true, 25.0)));
 }
 
 #[test]

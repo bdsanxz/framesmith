@@ -8,7 +8,7 @@ use draw::{
     Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
-use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Problem, Project, Quality, Report, Workers};
+use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Workers};
 use text::Fonts;
 use timebase::Time;
 
@@ -792,11 +792,13 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             // A text that is an item of a row, a column or a set takes the rectangle its flow gives it; any other is
             // placed in its parent.
             let placed = match assigned[index] {
-                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written, form.absolute).map(|item| Paragraph {
-                    rect,
-                    block: item.block,
-                    dressing: item.dressing,
-                }),
+                Some((rect, _)) => {
+                    paragraph::lay_out_item(&mut fonts, tree, index, form.written.clone(), form.absolute).map(|item| Paragraph {
+                        rect,
+                        block: item.block,
+                        dressing: item.dressing,
+                    })
+                }
                 None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
             };
             match placed {
@@ -860,12 +862,12 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             (Some((rect, _)), None, None) => Ok((rect, Vec::new())),
             // A row or column, or a set, with no place of its own: its size is worked out with its children.
             (None, Some(flex), _) => {
-                layout::flow(parent_place.rect, form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
+                layout::flow(parent_place.rect, &form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
             }
             (None, None, Some(set)) => {
-                layout::columns(parent_place.rect, form.written, set, &cells).map(|flowed| (flowed.container, flowed.items))
+                layout::columns(parent_place.rect, &form.written, set, &cells).map(|flowed| (flowed.container, flowed.items))
             }
-            (None, None, None) => layout::place(parent_place.rect, form.written).map(|rect| (rect, Vec::new())),
+            (None, None, None) => layout::place(parent_place.rect, &form.written).map(|rect| (rect, Vec::new())),
         };
         let (rect, item_rects) = match laid {
             Ok(laid) => laid,
@@ -1042,7 +1044,7 @@ fn gather_movers(
             end: entries_before[after],
             own: movement.own,
             rect,
-            origin: Mover::origin_in(rect, movement.origin),
+            origin: Mover::origin_in(rect, movement.origin.clone()),
             perspective: movement.perspective,
             filter: movement.filter,
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
@@ -1145,8 +1147,8 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         return (Read::Refused, Vec::new());
     };
     let file = shown.root();
-    written.width = Some(Amount::Pixels(f64::from(file.width)));
-    written.height = Some(Amount::Pixels(f64::from(file.height)));
+    written.width = Some(Amount::Pixels(f64::from(file.width).into()));
+    written.height = Some(Amount::Pixels(f64::from(file.height).into()));
     let form = Form {
         written,
         margin,
@@ -1429,7 +1431,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 }
             }
             "max-width" => match attribute.length() {
-                Some(Length::Pixels(pixels)) if pixels > 0.0 => written.max_width = Some(pixels),
+                Some(Length::Pixels(pixels)) if pixels.to_f64() > 0.0 => written.max_width = Some(pixels.to_f64()),
                 Some(Length::Pixels(_)) => refusals.push(Refusal::of_place(
                     Code::LengthNotAccepted,
                     attribute.line(),
@@ -1442,7 +1444,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 )),
             },
             "flex-grow" => match attribute.length() {
-                Some(Length::Pixels(pixels)) if pixels >= 0.0 => grow = pixels,
+                Some(Length::Pixels(pixels)) if pixels.to_f64() >= 0.0 => grow = pixels.to_f64(),
                 Some(Length::Pixels(_)) => refusals.push(Refusal::of_place(
                     Code::LengthNotAccepted,
                     attribute.line(),
@@ -1462,12 +1464,12 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
             },
             "gap" => match attribute.length() {
-                Some(Length::Pixels(pixels)) if pixels < 0.0 => refusals.push(Refusal::of_place(
+                Some(Length::Pixels(pixels)) if pixels.to_f64() < 0.0 => refusals.push(Refusal::of_place(
                     Code::LengthNotAccepted,
                     attribute.line(),
                     format!("`gap=\"{value}\"` must be 0 or more"),
                 )),
-                Some(Length::Pixels(pixels)) => gap = pixels,
+                Some(Length::Pixels(pixels)) => gap = pixels.to_f64(),
                 Some(Length::Percent(_)) => refusals.push(Refusal::of_place(
                     Code::FormNotSupported,
                     attribute.line(),
@@ -1741,7 +1743,7 @@ fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>], fonts: &mut
             continue;
         };
         if tree[index].element() == Element::Text {
-            measures[index] = paragraph::lay_out_item(fonts, tree, index, form.written, form.absolute)
+            measures[index] = paragraph::lay_out_item(fonts, tree, index, form.written.clone(), form.absolute)
                 .ok()
                 .map(|item| Measure {
                     size: Size {
@@ -1799,12 +1801,12 @@ fn whole_rect(size: Size) -> Rect {
 /// stretches across writes no size across: its row or column gives it one. Its size across, as its own items
 /// give it, is kept for its row or column's size across (rule 1), whether it stretches or not.
 fn item_in(form: &Form, measure: Option<Measure>, parent: &Flex) -> Item {
-    let mut written = form.written;
+    let mut written = form.written.clone();
     let mut measured_across = None;
     if let Some(Measure { size, .. }) = measure {
         if form.absolute {
-            fill(&mut written.width, size.width, both(written.left, written.right));
-            fill(&mut written.height, size.height, both(written.top, written.bottom));
+            fill(&mut written.width, size.width, both(written.left.clone(), written.right.clone()));
+            fill(&mut written.height, size.height, both(written.top.clone(), written.bottom.clone()));
         } else if form.text {
             // A text is not stretched across: it takes its own size on both axes (`render-command.md` section 4.3, rule 14).
             fill(&mut written.width, size.width, false);
@@ -1850,12 +1852,12 @@ fn item_in(form: &Form, measure: Option<Measure>, parent: &Flex) -> Item {
 /// What a box or a `<text>` writes as a cell of a set of columns (`docs/spec/render-command.md` section 4.4). A text takes
 /// its own size on both axes, as an item does; a box keeps what it writes, with the size its own children give it.
 fn cell_in(form: &Form, measure: Option<Measure>) -> Cell {
-    let mut written = form.written;
+    let mut written = form.written.clone();
     let measured = measure.map(|found| found.size);
     if let (true, Some(size)) = (form.text, measured) {
         if form.absolute {
-            fill(&mut written.width, size.width, both(written.left, written.right));
-            fill(&mut written.height, size.height, both(written.top, written.bottom));
+            fill(&mut written.width, size.width, both(written.left.clone(), written.right.clone()));
+            fill(&mut written.height, size.height, both(written.top.clone(), written.bottom.clone()));
         } else {
             fill(&mut written.width, size.width, false);
             fill(&mut written.height, size.height, false);
@@ -1874,7 +1876,7 @@ fn cell_in(form: &Form, measure: Option<Measure>) -> Cell {
 /// Gives an unwritten size the measured value, unless the edges of the box give it one.
 fn fill(size: &mut Option<Amount>, measured: f64, edged: bool) {
     if size.is_none() && !edged {
-        *size = Some(Amount::Pixels(measured));
+        *size = Some(Amount::Pixels(measured.into()));
     }
 }
 
@@ -1888,8 +1890,8 @@ fn both(near: Option<Amount>, far: Option<Amount>) -> bool {
 /// column's size, not its own, and an absolute box's axis with both edges is given by them.
 fn measured_axes(form: &Form, parent: &Flex) -> Measured {
     let stretched = !form.absolute && form.across.unwrap_or(parent.across) == Across::Stretch;
-    let across_edged = form.absolute && both(form.written.left, form.written.right);
-    let down_edged = form.absolute && both(form.written.top, form.written.bottom);
+    let across_edged = form.absolute && both(form.written.left.clone(), form.written.right.clone());
+    let down_edged = form.absolute && both(form.written.top.clone(), form.written.bottom.clone());
     let column = parent.direction == Direction::Column;
     Measured {
         width: form.written.width.is_none() && !across_edged && !(stretched && column),
@@ -1903,8 +1905,8 @@ fn measured_axes(form: &Form, parent: &Flex) -> Measured {
 /// its edges do not give.
 fn set_measured_axes(form: &Form, set: &Columns) -> Measured {
     let stretched = !form.absolute && form.across.unwrap_or(set.across) == Across::Stretch;
-    let across_edged = form.absolute && both(form.written.left, form.written.right);
-    let down_edged = form.absolute && both(form.written.top, form.written.bottom);
+    let across_edged = form.absolute && both(form.written.left.clone(), form.written.right.clone());
+    let down_edged = form.absolute && both(form.written.top.clone(), form.written.bottom.clone());
     Measured {
         width: form.absolute && form.written.width.is_none() && !across_edged,
         height: form.written.height.is_none() && !down_edged && !stretched,
@@ -1918,12 +1920,14 @@ fn amount(length: Option<Length>, value: &str, name: &str, tag: &str) -> Result<
     let sized = matches!(name, "width" | "height");
     match length {
         None => Err((Code::LengthNotAccepted, not_a_length(name, value))),
-        Some(Length::Pixels(pixels) | Length::Percent(pixels)) if sized && pixels < 0.0 => Err((
+        Some(Length::Pixels(number) | Length::Percent(number)) if sized && number.to_f64() < 0.0 => Err((
             Code::LengthNotAccepted,
             format!("`{name}=\"{value}\"` is below 0; a size is 0 or more"),
         )),
-        Some(Length::Pixels(pixels)) if pixels.fract() == 0.0 && pixels.abs() <= LIMIT as f64 => Ok(Amount::Pixels(pixels)),
-        Some(Length::Percent(percent)) => Ok(Amount::Percent(percent)),
+        Some(Length::Pixels(number)) if number.is_whole() && number.to_f64().abs() <= LIMIT as f64 => {
+            Ok(Amount::Pixels(decimal(&number, name, value)?))
+        }
+        Some(Length::Percent(number)) => Ok(Amount::Percent(decimal(&number, name, value)?)),
         Some(_) => Err((
             Code::FormNotSupported,
             format!(
@@ -1936,6 +1940,12 @@ fn amount(length: Option<Length>, value: &str, name: &str, tag: &str) -> Result<
             ),
         )),
     }
+}
+
+/// The exact decimal of a written length: every digit it is written with, and its exponent (`render-command.md`, section 4.1).
+fn decimal(number: &Number, name: &str, value: &str) -> Result<layout::Decimal, (Code, String)> {
+    layout::Decimal::from_parts(number.negative(), number.digits(), number.exponent())
+        .ok_or_else(|| (Code::LengthNotAccepted, not_a_length(name, value)))
 }
 
 fn not_a_length(name: &str, value: &str) -> String {

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Exact halves of percentages, and the digits they are written with (render-command.md section 4.1, rule 3, and section 4.3,
+     rule 9), in a frame 2750 pixels wide. Each case is a band of 2 rows, so no two cases share a row. 10 frames a second.
+     Worked by hand; the columns each box covers are these.
+     Band 0, top 0: left 1.4% is exactly 38.5, and the edges 38.5 and 48.5 round half up to 39 and 49: columns 39 to 48.
+     Band 1, top 2: left 14e-1% is the same 1.4%, written with an exponent: columns 39 to 48.
+     Band 2, top 4: left 1.39999999999999999999% is 38.499999999999999999725 (21 digits written, every one kept): its near
+       edge rounds down to 38 and its far edge, 48.499999999999999999725, rounds down to 48: columns 38 to 47. A float would
+       read 1.4 and place it at 39.
+     Band 3, top 6: a row 2750 wide with two items of width 1.4%, each 38.5. The first runs from 0 to 38.5 (columns 0 to 38), the
+       second from 38.5 to 77 (its edges round to 39 and 77, columns 39 to 76). The shared edge at 38.5 rounds to 39 for both.
+     The background is #102040; the bands are the only boxes. -->
+<composition version="1" id="box-edges-exact-half" width="2750" height="12" fps="10" duration="1" background="#102040">
+  <box id="lead" left="1.4%" width="10" top="0" height="2" background="#e0a030"/>
+  <box id="written-with-exponent" left="14e-1%" width="10" top="2" height="2" background="#30c0a0"/>
+  <box id="just-below-a-half" left="1.39999999999999999999%" width="10" top="4" height="2" background="#a050d0"/>
+  <box id="row" top="6" height="2" left="0" width="2750" flex-direction="row">
+    <box id="first-item" width="1.4%" height="2" background="#d05030"/>
+    <box id="second-item" width="1.4%" height="2" background="#f0d040"/>
+  </box>
+</composition>
