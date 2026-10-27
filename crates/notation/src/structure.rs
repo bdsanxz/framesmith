@@ -223,27 +223,16 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
         }
         if !attribute.prefixed && !element.takes(name) && element.takes("border") && BORDERS_BY_SIDE.contains(&name) {
             // A border by side is known and waits for a later sprint: entry S20 of `notation.md` section 14.
-            problems.push(found(
-                Code::FormNotSupported,
-                spot,
-                format!(
-                    "{} has `{}`, a border by side, which this version does not draw; write `border`, one line round the whole box",
-                    element.tag(),
-                    shown(&attribute.written)
-                ),
-            ));
+            let what = format!("{} has `{}`, a border by side", element.tag(), shown(&attribute.written));
+            problems.push(found(Code::FormNotSupported, spot, Unsupported::BordersBySide.message(&what)));
+            refused.push(attribute.name.clone());
             continue;
         }
         if !attribute.prefixed && name == "border-radius" && element.takes(name) && is_elliptical(&attribute.value) {
             // A corner written as an ellipse is known and waits for a later sprint: entry S33 of `notation.md` section 14.
-            problems.push(found(
-                Code::FormNotSupported,
-                spot,
-                format!(
-                    "`border-radius=\"{}\"` is a corner written as an ellipse, which this version does not draw; write one number, the radius of a circular corner",
-                    shown(&attribute.value)
-                ),
-            ));
+            let what = format!("`border-radius=\"{}\"` is a corner written as an ellipse", shown(&attribute.value));
+            problems.push(found(Code::FormNotSupported, spot, Unsupported::EllipticalCorner.message(&what)));
+            refused.push(attribute.name.clone());
             continue;
         }
         if attribute.prefixed || !element.takes(name) {

@@ -8,9 +8,10 @@ use project::{shown, Attribute, Code, Element, Unsupported};
 /// `None` when no entry names it.
 pub(crate) fn attribute_entry(element: Element, name: &str) -> Option<Unsupported> {
     let found = match name {
-        "border" | "border-radius" | "overflow" => Unsupported::BordersCornersAndCut,
+        "border" | "border-radius" | "overflow" if matches!(element, Element::Text | Element::Span) => Unsupported::TextAndSpanLook,
+        "blur" | "brightness" if element == Element::Span => Unsupported::TextAndSpanLook,
         "box-shadow" | "drop-shadow" => Unsupported::Shadows,
-        "blur" | "brightness" => Unsupported::BlurBrightnessOpacity,
+        "blur" | "brightness" => Unsupported::AnimatedBlurBrightness,
         "mix-blend-mode" => Unsupported::Blends,
         "displace" | "grain" => Unsupported::TornEdgesAndGrain,
         "clip-path" => Unsupported::PolygonCut,
@@ -37,7 +38,7 @@ fn per_element(element: Element, name: &str) -> Option<Unsupported> {
         Element::Span => match name {
             "start" | "duration" | "text-shadow" | "text-stroke" | "font-variant-numeric" => Some(Unsupported::SpanWindowAndDressing),
             "text-align" => Some(Unsupported::SpanTextAlign),
-            "opacity" => Some(Unsupported::BlurBrightnessOpacity),
+            "opacity" => Some(Unsupported::TextAndSpanLook),
             _ if moving => Some(Unsupported::CountingTypingSpanMotion),
             _ => None,
         },
@@ -51,7 +52,6 @@ fn per_element(element: Element, name: &str) -> Option<Unsupported> {
             "media-start" => Some(Unsupported::MediaStart),
             "lut" | "filter" => Some(Unsupported::FootageFilter),
             "max-width" | "align-self" | "flex-grow" => Some(Unsupported::ItemFormsOfLeaf),
-            "opacity" => Some(Unsupported::BlurBrightnessOpacity),
             _ if moving => Some(Unsupported::PictureMotion),
             _ => None,
         },
