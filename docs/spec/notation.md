@@ -1298,7 +1298,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S23 | Expressions: `from-x="=width/2"` | A value of a `<tween>` or `<set>` that begins with `=` | A composition carries no code | Sprint 4 |
 | S24 | Animated size and colour: `to-width`, `from-color`, `to-background`, `<set width="...">` | A `from-`, `to-` or `<set>` attribute named as any attribute of the element tables that is not one of the fifteen of 8.1 | Layout does not follow motion and colours are not mixed by the engine | Sprint 4 |
 | S25 | Hiding the back of a turned element: `backface-visibility` | The attribute | A turned element is drawn mirrored (decision A23) | Sprint 4 |
-| S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark; told by reading the media file (T089) | The turn must be applied to the picture (decision P10) | Sprint 7 |
+| S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark; told by reading the media file (T087) | The turn must be applied to the picture (decision P10) | Sprint 7 |
 | S27 | Footage in other kinds of file or other codecs: Matroska, WebM, VP9, AV1, ProRes | A `<video src>` whose file or codec is not on the list of N3; told by reading the media file (T089) | Their codecs are not written yet | Sprint 7 |
 | S28 | Sound in other kinds: Opus, FLAC and the like | An `<audio src>` of a kind not on the list of N3; told by reading the media file (T089) | Their decoders are not written yet | Sprint 7 |
 | S29 | Footage with transparency or HDR | A `<video src>` marked so; told by reading the media file (T089) | Both are held to 8 bits and opaque in this work | Sprint 7 |
@@ -1322,7 +1322,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S44 | Transitions: `transition`, `reveal` | Either attribute on an element | Openings over the scene are not drawn yet | Sprint 1, T072 |
 | S45 | Footage started inside its source: `media-start` | The attribute on `<video>` | The start in the source is not applied yet | Sprint 1, T075 |
 | S46 | A colour table or a filter on footage: `lut`, `filter` | Either attribute on `<video>` | Not applied yet | Sprint 1, T078 |
-| S47 | Sound: `<audio>` | The element `<audio>` | Sound is not placed in the film yet; every film has its silent track | Sprint 1, T080 |
 | S48 | HEVC output: `render.codec: hevc`, `--codec hevc` | The setting or the option with the value `hevc` | So far the film is written in H.264 only | Sprint 1, T084 |
 | S49 | Another encoder or quality: `render.encoder: software`, `render.quality` other than `standard`, and the options | The setting or option with such a value | So far the film is made by the system's hardware encoder at its standard quality only | Sprint 1, T085 |
 | S50 | Several workers: `render.workers` other than `auto` or `1`, and `--workers` | The setting or option with such a value | So far one worker draws and encodes | Sprint 1, T096 |

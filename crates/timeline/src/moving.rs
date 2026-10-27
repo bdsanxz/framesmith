@@ -169,9 +169,13 @@ pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found
                 match Prop::from_name(property) {
                     Some(prop) => values[prop.index()] = attribute.number(),
                     None => {
+                        // `from-` and `to-` name the one property: the refusal of it is reported once on the line.
                         let (code, message) =
                             support::refused_property(property, format!("<tween> changes `{}`", project::shown(property)));
-                        found.push((code, attribute.line(), message));
+                        let line = attribute.line();
+                        if !found.iter().any(|(_, at, text)| *at == line && *text == message) {
+                            found.push((code, line, message));
+                        }
                     }
                 }
             }

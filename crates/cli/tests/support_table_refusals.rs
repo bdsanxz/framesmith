@@ -13,8 +13,8 @@ use std::path::{Path, PathBuf};
 
 use common::{err, framesmith, out, scratch};
 
-/// The mark of an entry that is told by reading a media file, which T089 brings (section 14).
-const MEDIA_FILE_MARK: &str = "told by reading the media file (T089)";
+/// The mark of an entry that is told by reading a media file, which T087 or T089 brings (section 14).
+const MEDIA_FILE_MARK: &str = "told by reading the media file";
 
 /// An entry of section 14: its name (`S36`), how it is recognised, its reason and when it is brought, as written.
 struct Row {
@@ -65,9 +65,36 @@ fn fixture(row: &Row) -> PathBuf {
     repository().join("fixtures/support-table").join(row.name.to_lowercase())
 }
 
+/// The fixtures of an entry: its own folder, and each folder beside it named for another form of the entry, such as
+/// `s37-tween` beside `s37` (the `<set>` of animated blur), so that every form the entry names has a fixture.
+fn fixtures_of(row: &Row) -> Vec<PathBuf> {
+    let own = row.name.to_lowercase();
+    let mut found = vec![fixture(row)];
+    for entry in fs::read_dir(repository().join("fixtures/support-table")).unwrap() {
+        let path = entry.unwrap().path();
+        if path.file_name().unwrap().to_string_lossy().starts_with(&format!("{own}-")) {
+            found.push(path);
+        }
+    }
+    found.sort();
+    found
+}
+
+/// Each fixture of each entry, with its entry.
+fn cases_of(rows: &[Row]) -> Vec<(&Row, PathBuf)> {
+    rows.iter()
+        .flat_map(|row| fixtures_of(row).into_iter().map(move |folder| (row, folder)))
+        .collect()
+}
+
+/// The name of a fixture's folder, which names its project in a scratch folder.
+fn label(folder: &Path) -> String {
+    folder.file_name().unwrap().to_string_lossy().to_string()
+}
+
 /// The file and the line the fixture's report is expected on, as written in its `expected`.
-fn expected(row: &Row) -> (String, u32) {
-    let text = fs::read_to_string(fixture(row).join("expected")).unwrap();
+fn expected(folder: &Path) -> (String, u32) {
+    let text = fs::read_to_string(folder.join("expected")).unwrap();
     let (file, line) = text.trim().split_once(' ').unwrap();
     (file.to_string(), line.parse().unwrap())
 }
@@ -98,7 +125,7 @@ fn project_of(group: &str, name: &str, from: &Path) -> (PathBuf, PathBuf) {
     (project, cwd)
 }
 
-/// Every file under a folder, as paths from it.
+/// Every file and folder under a folder, as paths from it: a staging folder left empty counts too.
 fn files_under(folder: &Path) -> BTreeSet<PathBuf> {
     let mut found = BTreeSet::new();
     let mut pending = vec![folder.to_path_buf()];
@@ -106,10 +133,9 @@ fn files_under(folder: &Path) -> BTreeSet<PathBuf> {
         for entry in fs::read_dir(&dir).unwrap() {
             let path = entry.unwrap().path();
             if path.is_dir() {
-                pending.push(path);
-            } else {
-                found.insert(path.strip_prefix(folder).unwrap().to_path_buf());
+                pending.push(path.clone());
             }
+            found.insert(path.strip_prefix(folder).unwrap().to_path_buf());
         }
     }
     found
@@ -140,13 +166,18 @@ fn every_entry_of_the_support_table_has_a_fixture() {
 fn check_lists_each_entry_on_its_file_and_line_with_its_reason_and_exits_2() {
     let rows = with_fixtures();
     assert!(rows.len() > 60, "section 14 was read: {} rows", rows.len());
-    for row in &rows {
-        let (project, cwd) = project_of("support-table-check", &row.name, &fixture(row));
+    for (row, folder) in cases_of(&rows) {
+        let (project, cwd) = project_of("support-table-check", &label(&folder), &folder);
         let checked = framesmith(&cwd, ["check", project.to_str().unwrap()], &[("NO_COLOR", "1")]);
         let printed = out(&checked);
         assert_eq!(checked.status.code(), Some(2), "{}: {printed}{}", row.name, err(&checked));
-        let (file, line) = expected(row);
-        let entry = format!("(support table {}: {}; waits until {})", row.name, row.reason, row.waits);
+        let (file, line) = expected(&folder);
+        // The sprint as the message words it: an entry not assigned to a sprint is "not yet planned" (section 3d).
+        let waits = match row.waits.as_str() {
+            "Not assigned" => "not yet planned".to_string(),
+            sprint => format!("waits until {sprint}"),
+        };
+        let entry = format!("(support table {}: {}; {waits})", row.name, row.reason);
         assert!(
             printed.lines().any(|printed_line| printed_line
                 .starts_with(&format!("{file}, line {line}: FS-"))
@@ -163,10 +194,11 @@ fn check_lists_each_entry_on_its_file_and_line_with_its_reason_and_exits_2() {
 
 #[test]
 fn render_prints_the_same_list_exits_2_and_writes_nothing() {
-    for row in &with_fixtures() {
-        let (project, cwd) = project_of("support-table-check-for-render", &row.name, &fixture(row));
+    let rows = with_fixtures();
+    for (row, folder) in cases_of(&rows) {
+        let (project, cwd) = project_of("support-table-check-for-render", &label(&folder), &folder);
         let checked = framesmith(&cwd, ["check", project.to_str().unwrap()], &[("NO_COLOR", "1")]);
-        let (project, cwd) = project_of("support-table-render", &row.name, &fixture(row));
+        let (project, cwd) = project_of("support-table-render", &label(&folder), &folder);
         // A film already at the output path, whose bytes the refused render must keep.
         let film = output_of(&project);
         fs::create_dir_all(film.parent().unwrap()).unwrap();
@@ -177,8 +209,23 @@ fn render_prints_the_same_list_exits_2_and_writes_nothing() {
         assert_eq!(rendered.status.code(), Some(2), "{}: {}{}", row.name, out(&rendered), err(&rendered));
         assert_eq!(out(&rendered), out(&checked), "{}: render and check print different lists", row.name);
         assert!(!out(&rendered).contains("Rendered "), "{}: {}", row.name, out(&rendered));
-        assert_eq!(fs::read(&film).unwrap(), earlier, "{}: the film at the output path was changed", row.name);
-        assert_eq!(files_under(&project), before, "{}: the render left a file in the project", row.name);
+        assert_eq!(
+            fs::read(&film).unwrap(),
+            earlier,
+            "{}: the film at the output path was changed",
+            row.name
+        );
+        assert_eq!(
+            files_under(&project),
+            before,
+            "{}: the render left a file or a folder in the project",
+            row.name
+        );
+        let staging: Vec<PathBuf> = files_under(&project)
+            .into_iter()
+            .filter(|path| path.to_string_lossy().contains(".framesmith-"))
+            .collect();
+        assert!(staging.is_empty(), "{}: a staging folder is left: {staging:?}", row.name);
         let left: Vec<PathBuf> = files_under(&cwd).into_iter().filter(|path| !path.starts_with("logs")).collect();
         assert!(left.is_empty(), "{}: the render left files where it ran: {left:?}", row.name);
     }

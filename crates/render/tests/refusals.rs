@@ -49,21 +49,23 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
-    for (index, (element, tag)) in [
-        ("<rect/>", "<rect>"),
-        ("<image src=\"i.png\"/>", "<image>"),
-        ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
-        ("<shape src=\"s.svg\"/>", "<shape>"),
+    // Each element with the entry of the support table that names it (section 14): S60 a rect, S40 a still picture,
+    // S67 footage, S42 a shape.
+    for (index, (element, tag, entry)) in [
+        ("<rect/>", "<rect>", "S60"),
+        ("<image src=\"i.png\"/>", "<image>", "S40"),
+        ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>", "S67"),
+        ("<shape src=\"s.svg\"/>", "<shape>", "S42"),
     ]
     .into_iter()
     .enumerate()
     {
-        assert_eq!(
-            only(&format!("element-{index}"), element),
-            format!(
-                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <text> and <composition src> only"
-            ),
-            "{element}"
+        let report = only(&format!("element-{index}"), element);
+        assert!(
+            report.starts_with(&format!(
+                "composition.xml 2 FS-0035 the composition holds {tag}, which this version does not support (support table {entry}: "
+            )),
+            "{element}: {report}"
         );
     }
 }
@@ -188,12 +190,12 @@ fn a_place_that_works_out_beyond_the_limit_is_reported_with_its_line() {
     // The default size of a box at top 1000000 lies beyond the limit at its bottom edge.
     assert_eq!(
         only("beyond-default-size", "<box top=\"1000000\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
     // A near edge at the limit and a size that runs past it.
     assert_eq!(
         only("beyond-far-edge", "<box left=\"1000000\" width=\"1\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
 }
 
@@ -413,6 +415,6 @@ fn a_length_whose_digits_are_too_far_apart_to_add_is_reported_with_its_line() {
     // A percentage of 1e-100001 has its digits more than the work bound apart from the start edge, so it is not worked out.
     assert_eq!(
         only("digits-too-far-apart", "<box left=\"1e-100001%\" width=\"10\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
 }
