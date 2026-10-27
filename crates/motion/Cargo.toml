@@ -4,6 +4,7 @@ description = "The motion engine: tweens, easings and the pure evaluator that gi
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [lints]
 workspace = true

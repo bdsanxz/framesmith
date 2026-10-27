@@ -1,52 +1,145 @@
 # Framesmith
 
-Renders a composition (a folder of plain files: XML in our own notation, media, fonts, and an optional `framesmith.yaml`) to video on the user's own machine, with nothing else to install. Its media work is done by frx7, our own media stack, in a repository of its own.
+Framesmith renders video from compositions written in XML. A composition is a folder of plain files: an XML file in Framesmith's own notation, with the fonts and media it uses. Framesmith draws every frame itself, on the processor or on the graphics card, and writes an MP4 file. It runs on your own machine and needs no browser, no FFmpeg and no other program installed. Its media work (containers, codecs, sound and pixel conversion) is done by [frx7](https://github.com/bdsanxz/frx7), a media stack written for it in Rust.
 
-macOS only for now. One cargo workspace; every part is a crate under `crates/`, named by its role with no prefix. The behaviour of each is specified in `docs/spec/`, in our own words, before the code.
+## Status
 
-## Build and test
+Framesmith is in early development, and the notation and the command line may still change.
 
-```
-cargo build --workspace
-cargo test --workspace
-```
+- It runs on macOS only. It is developed and tested on macOS 27 on Apple silicon; older versions of macOS have not been tested.
+- `framesmith render` draws `<box>`, `<text>` and `<composition src>` elements today, animated with `<tween>` and `<set>`. The output is H.264 video in an MP4 file, with a stereo AAC sound track.
+- Pictures, footage, shapes, rectangles and sound (`<image>`, `<video>`, `<shape>`, `<rect>`, `<audio>`) are defined by the notation but not drawn yet, and HEVC output (`--codec hevc`) is not written yet. `render` refuses a composition or an option that needs them, names what it refuses, and writes no film. It never writes a film with part of the composition left out. `check` does not yet report these refusals itself.
 
-frx7, the media stack, is a repository of its own with a private remote. This repository takes it at one pinned revision (`Cargo.toml`, `docs/dev/frx7.md`), so a fresh copy builds on a machine with no frx7 folder: Cargo fetches the revision with the git credentials you already have for `github.com` (for example `gh auth setup-git`). To work on both at once, build against your local frx7 folder with an override that is never committed:
+## Requirements
 
-```
-scripts/gates/frx7.sh override /path/to/frx7    # writes .cargo/config.toml, which git ignores
-scripts/gates/frx7.sh drop-override             # back to the pin
-```
+- macOS on Apple silicon.
+- Rust, through [rustup](https://rustup.rs). The toolchain is set by `rust-toolchain.toml` (stable, with `rustfmt` and `clippy`); the minimum Rust version is the workspace's `rust-version` in `Cargo.toml`.
+- For the quality gates only: `cargo-deny` 0.20.2 (`cargo install --locked cargo-deny --version 0.20.2`).
 
-## The quality gates
+Cargo fetches frx7 from its public repository at the revision pinned in `Cargo.toml`. No credentials are needed.
 
-Six gates stand between a change and this repository: formatting, static analysis, the tests, the core suite without FFmpeg (the tests again with only the system's folders on the search path), the licence gate and the frx7 pin (no committed path override, one pinned revision, a moved pin carries its record). Their behaviour is specified in `docs/dev/gates.md` and `docs/dev/frx7.md`.
+## Build
 
 ```
-scripts/gates/install-hooks.sh    # once after cloning: a failing gate then stops every push
-scripts/gates.sh                  # the six gates, then the tests marked "reference machine only" and the yardstick tests
+cargo build -p cli
 ```
 
-`cargo-deny` is needed for the licence gate: `cargo install --locked cargo-deny --version 0.20.2`. No browser and no FFmpeg is needed by any gate.
+The command is `target/debug/framesmith`. Add `--release` for an optimised build in `target/release/`, which renders much faster.
 
-`scripts/gates.sh --gate lint`, `-p CRATE` and the like run a part and say they are narrowed; a narrowed run exits 3 at best and is never a pass of the gates. The hosted run (`.github/workflows/gates.yml`) runs on `main` and on pull requests only and reports the six gates each by name; its jobs that build fetch frx7 with a read-only deploy key kept in the Actions secret `FRX7_DEPLOY_KEY`. Work branches rely on the local gates.
+## Quick start
 
-The hosted run `.github/workflows/other-systems.yml` builds and tests, on a Linux and a Windows runner, exactly the crates that touch no system interface, as recorded in `scripts/gates/system-free.txt` (`scripts/gates/system-free.sh list` works them out, `check` holds the record to the workspace, `test` runs them). A crate added later that touches no system interface fails both jobs, by name, until it is in the record. These jobs build nothing for a user: Framesmith is offered for macOS only.
+Make a folder `hello` with one file, `hello/composition.xml`:
 
-### Tests that need the hardware encoder or a graphics card
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<composition version="1" id="hello" width="640" height="360" fps="30" duration="2" background="#101820">
+  <style id="card" background="#e0a030" border-radius="12"/>
+  <box class="card" left="40" top="130" width="160" height="100" opacity="0">
+    <tween duration="1" from-x="-40" to-x="0" to-opacity="1" ease="out-cubic"/>
+  </box>
+  <text left="240" top="160" font-family="Helvetica" font-size="36" color="#ffffff">Hello, Framesmith</text>
+</composition>
+```
 
-A test that needs the hardware encoder or a card cannot be judged on a hosted runner. Mark it in one way: its name starts with `reference_machine_only_` and it carries `#[ignore = "reference machine only: <the reason>"]`. The hosted run lists it as not run, by name, and never as passed; `scripts/gates.sh` runs it before every push.
+Check it:
 
-### Tests that compare with a program from outside
+```
+$ framesmith check hello
+Ready: the project is valid, 60 frames, 640x360, 30 fps
+```
 
-A test that starts a program the developer installed to compare (today `ffmpeg` and `ffprobe`, to make and read test videos, and the reference) is a yardstick test. Mark it in one way: its name starts with `yardstick_` (`yardstick_reference_` for one that needs the reference), it sits in a test file or folder whose name starts with `yardstick`, and its test target has `harness = false` with `measure::yardstick_tests!` as its `main`. A plain `cargo test` lists it as ignored; `cargo test --workspace -- --ignored yardstick_` runs it, and where its program is not installed it is reported as skipped, by name, and never as passed. The hosted run lists it as not run. A skipped comparison is never evidence that a line of the roadmap passes.
+Render it:
 
-`scripts/gates.sh --gate core` (part of every full run and a job of the hosted run) runs the core suite, every test but the yardstick tests, with only `/usr/bin:/bin:/usr/sbin:/sbin` on the search path, under a system sandbox that refuses to start `ffmpeg`, `ffprobe` or the reference, and fails with the name of the test that tries. Details: `docs/dev/gates.md`, sections 5, 10 and 11.
+```
+$ framesmith render hello
+Rendered hello/renders/hello.mp4
+frames: 60
+size: 640x360
+frame rate: 30 fps
+length: 2.000 s
+renderer: card (chosen by auto)
+output: renders/hello.mp4 (default)
+backend: auto (default)
+quality: standard (default)
+encoder: hardware (default)
+codec: h264 (default)
+workers: auto (default)
+audio bitrate: 192 kbit/s (default)
+elapsed: ...
+```
 
-### Tests stand alone
+The film is two seconds long. Over the first second, the orange card slides in from the left and fades in, and the text stays in place.
 
-A test never reads a file that another test writes and never relies on the order tests run in. It writes the files it reads, under names of its own.
+`check` and `render` take the project's folder, its project file, or its composition file. `render` takes these options:
 
-## Dependencies
+```
+framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high]
+                         [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]
+```
 
-Each dependency is recorded in `PROGRESS.md` of the workspace with its name, licence and reason. `scripts/gates/dependencies.sh list` prints the outside crates of `Cargo.lock` with their licences; `scripts/gates/dependencies.sh frx7` lists the crates of frx7 apart, with the revision; `scripts/gates/dependencies.sh compare FILE` shows which ones a record leaves out. The licence gate refuses GPL, AGPL, LGPL, SSPL and unknown licences.
+`--backend cpu` draws on the processor and `--backend gpu` on the graphics card. Both renderers give the same picture within a small, tested tolerance. The processor's renderer is the reference.
+
+`check` exits with 0 when the project is valid and 1 when something in it is invalid. Every message names the file and line, and carries a code such as `FS-0030`. Each command writes a log to `logs/framesmith.log` under the folder it is run from.
+
+## The notation in brief
+
+- The root element is `<composition>`. It gives the version (`1`), the size in pixels, the frame rate, the length in seconds and the background.
+- Drawn elements are placed with `left`, `top`, `right`, `bottom`, `width` and `height`, in pixels or percentages, or are laid out in rows and columns. Where CSS has a name for an attribute, the notation uses that name and its meaning.
+- Shared styles are `<style id="...">` elements, taken by `class`. There are no selectors and no cascade.
+- `<font src="..." family="...">` declares a font file of the project. The machine's own fonts can be named too.
+- Motion is written in the composition itself. A `<tween>` moves a property from one value to another over a time with an easing; a `<set>` changes it at an instant. This version animates `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `opacity`, `rotate-x` and `rotate-y`.
+- A frame depends only on the composition and the frame's number, so any frame can be drawn on its own.
+
+The full definition is in [`docs/spec/notation.md`](docs/spec/notation.md). The other files in [`docs/spec/`](docs/spec) specify the commands, the renderers, text, motion and timing.
+
+## Architecture
+
+One cargo workspace. Each crate under `crates/` is named after its role:
+
+| Crate | Role |
+|---|---|
+| `cli` | The `framesmith` command. |
+| `notation` | Reads a composition's XML and its values, and reports problems with their lines. |
+| `project` | Finds and reads the project folder. |
+| `timebase` | Exact times, frame rates and the frame grid. |
+| `motion` | The motion engine: tweens, easings, and the value of every animated property at any time. |
+| `layout` | Places and sizes, in whole pixels. |
+| `text` | Fonts, shaping, line breaking and the glyphs of each line. |
+| `timeline` | What is shown at a given frame. |
+| `draw` | The list of drawing steps, and the interface both renderers implement. |
+| `draw-cpu` | The renderer on the processor, which defines the correct picture. |
+| `draw-gpu` | The renderer on the graphics card, which is the default. |
+| `mix` | The sound mix: 48,000 samples a second, in two channels. |
+| `render` | The render job: draws each frame and writes the film through frx7. |
+| `measure`, `parity` | Development only: reading frames back, measuring them, and comparing with other renderers. Never part of the product. |
+
+frx7 is used through its public traits only: Framesmith hands it pictures and sound, and frx7 encodes them with the operating system's codecs and writes the MP4 file. Calls into the operating system's interfaces stay inside frx7.
+
+## Development
+
+```
+cargo test --workspace            # the tests
+scripts/gates/install-hooks.sh    # once after cloning: the gates then run before every push
+scripts/gates.sh                  # every gate
+```
+
+`scripts/gates.sh` runs formatting, static analysis (`clippy`, warnings denied), the tests, the core suite, the licence gate (`cargo deny`) and a check of the frx7 pin. The core suite runs the tests again with only the system's folders on the search path, in a sandbox that refuses to start FFmpeg or any program outside a short list of system tools. `--gate NAME` runs one gate. A narrowed run says so and is never reported as a full pass.
+
+- Tests that need the hardware encoder or a graphics card are named `reference_machine_only_...`. Hosted CI lists them as not run, and the local gates run them.
+- Yardstick tests (`yardstick_...`) compare with FFmpeg, run as a separate program, when it is installed. Without it, each is reported as skipped. No other test, build step or shipped code starts FFmpeg.
+- To build against a local copy of frx7, run `scripts/gates/frx7.sh override /path/to/frx7`. The override is never committed; `scripts/gates/frx7.sh drop-override` returns to the pin.
+
+The gates are specified in [`docs/dev/gates.md`](docs/dev/gates.md), and working with frx7 in [`docs/dev/frx7.md`](docs/dev/frx7.md).
+
+## Contributing
+
+Pull requests are not accepted for now, so that all of the code can also be offered under a commercial licence. Bug reports and suggestions are welcome as issues.
+
+## Licence
+
+Framesmith is available under two licences:
+
+- the GNU General Public License, version 3 or (at your option) any later version. See [`LICENSE`](LICENSE).
+- a commercial licence, for use in closed-source or proprietary work without the GPL's terms. To ask about one, see [github.com/bdsanxz](https://github.com/bdsanxz).
+
+Framesmith's dependencies are under permissive licences (MIT, Apache-2.0, BSD, ISC, Zlib and the like) or MPL-2.0. No dependency of the GPL family is accepted. The licence gate holds this.
