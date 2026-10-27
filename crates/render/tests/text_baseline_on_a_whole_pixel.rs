@@ -4,8 +4,8 @@
 //! ink ends 1.2 pixels above the baseline and its top lies 19.8 pixels above it; at 25 pixels, 1.0 and 16.5.
 //!
 //! The baseline of `H` at 30 pixels, with its top at 0, is 0.85 * 30 = 25.5, which rounds up to 26. The stem then covers 80
-//! per cent of row 6 (its top at 6.2) and of row 24 (its foot at 24.8). Without the rounding, at 25.5, both rows would hold
-//! 30 per cent, so the test tells the two apart. At 25 pixels the baseline is 0.85 * 25 = 21.25, which rounds down to 21: the
+//! per cent of row 6 (its top at 6.2) and of row 24 (its foot at 24.8). Without the rounding, at 25.5, row 5 would hold 30 per
+//! cent (its top at 5.7) and row 24 would hold 30 per cent (its foot at 24.3), so the test tells the two apart. At 25 pixels the baseline is 0.85 * 25 = 21.25, which rounds down to 21: the
 //! stem covers 50 per cent of row 4 (its top at 4.5) and ends at the foot of row 19.
 
 mod common;
@@ -49,7 +49,7 @@ fn the_baseline_of_a_text_at_30_pixels_rounds_half_up_to_row_26() {
 }
 
 #[test]
-fn the_baseline_of_a_text_at_25_pixels_rounds_down_to_row_21() {
+fn the_baseline_of_a_text_at_25_pixels_rounds_to_row_21() {
     let (_, rows) = frame_rows();
     // Column 62 lies inside the left stem of the `H` at 25 pixels, which starts at 60 pixels.
     let stem: Vec<u8> = (2..=22).map(|row| rows[row][62]).collect();
