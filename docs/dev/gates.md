@@ -204,3 +204,28 @@ Every line of the content is printed after the two characters `| `; `<n>` is the
 The script's own annotations (`::error title=...::...`, one for each failed gate) are printed earlier, where they are meant to act; they are not repeated in the printed part.
 
 **Reading it.** `evidence/T003/hosted-run.sh` of the workspace reads this part from the log of each job of a hosted run: for each job the lines of its summary, a finding when a line says a gate failed in a job whose conclusion is success, and a finding when a line names a gate the job did not run. A run made before this part existed has none, and the reader says so and does not fail. The part cannot be shown by a test of a hosted run; the tests start the script with the runner's variables set to files of their own, and the hosted part is read from the first real run after it.
+
+## 14. Records of passed gates
+
+**What is recorded.** When a gate passes, the script records that pass in the build folder (`target/gate-records/`, or `$CARGO_TARGET_DIR/gate-records/`): one file for each gate, holding the key of the tree that passed. The key has three lines:
+
+- `tree`: the output of `git rev-parse HEAD^{tree}`, the tree of the commit checked out;
+- `toolchain`: the toolchain line the gates print at the start of a run (`cargo --version`, `rustc --version`, `cargo deny --version`);
+- `pin`: the output of `scripts/gates/frx7.sh pin`, the pinned revision and the remote.
+
+Only a pass is recorded. A gate that fails writes nothing, and a record of an earlier key is replaced when the gate passes again.
+
+**What is taken from a record.** A run of `scripts/gates.sh`, with or without `--gate`, does not run a gate whose record holds the key of the tree now checked out, and prints `taken from its record` for it. Every other gate runs, and its line says `ran` with the reason: no pass recorded for this tree, or one of the cases below. So each gate of a run is either taken or run, and the run says which.
+
+**When nothing is taken or recorded.** Every gate runs, and no record is read or written, when:
+
+- the working tree has uncommitted changes (`git status --porcelain` is not empty, untracked files included): the tree checked out is not the tree committed;
+- the run is `--hosted`: the hosted runner runs every gate itself;
+- the run is narrowed to crates with `-p`: a pass of some crates is not a pass of the workspace;
+- there is no commit to key by, or the pin cannot be read.
+
+**What a change does.** The key holds the tree of the commit. A change to any tracked file changes the tree, so every gate of the next run is run again. Only a commit whose tree is the same as before (a change of message alone, for instance) keeps the records.
+
+**The hook.** The pre-push hook (`.githooks/pre-push`) runs `scripts/gates.sh` as it did, with no change. A push after the gates were run in parts on the same commit takes their passes from the records, so the full gates run once for that commit, not twice.
+
+**Checked by.** `crates/measure/tests/gate_records.rs`: a recorded gate is not run again on the same tree; a change to a tracked file runs it again; uncommitted changes run every gate and record nothing; a hosted run takes nothing from the records; a failed gate is not recorded. The tests run `scripts/gates.sh` on a fixture repository with a fake `cargo` on the search path, and count the calls the script makes.

@@ -37,6 +37,10 @@ options:
                 one job for each gate, so --hosted with --gate is not narrowed.
   -h, --help    this text
 
+A gate that passes is recorded for the tree checked out, and a later run takes its pass from the record
+when the tree is the same: the gate is then printed as taken from its record, not run. Nothing is taken from
+a record with --hosted, with uncommitted changes, or with -p (docs/dev/gates.md, section 14).
+
 On a hosted runner that has a job summary file (GITHUB_STEP_SUMMARY), the run ends by printing the
 content of that file into the log, between two marker lines (docs/dev/gates.md, section 13).
 
@@ -329,13 +333,25 @@ yardstick_run() {
 
 # --- run ----------------------------------------------------------------------------------------
 
+TOOLCHAIN_LINE="$(cargo --version 2>&1); $(rustc --version 2>&1); $(cargo deny --version 2>&1 | head -n 1)"
 echo "Framesmith gates in $ROOT"
-echo "$(cargo --version 2>&1); $(rustc --version 2>&1); $(cargo deny --version 2>&1 | head -n 1)"
+echo "$TOOLCHAIN_LINE"
 echo
+
+# The records of passed gates (docs/dev/gates.md, section 14).
+. "$ROOT/scripts/gates/records.sh"
+record_setup
 
 for gate in $WANTED; do
     SECONDS=0
     echo "== $gate"
+    if record_decide "$gate"; then
+        echo "PASS $(gate_title "$gate") (from its record)"
+        say_summary "PASS $(gate_title "$gate") (from its record)"
+        github_summary "- PASS $(gate_title "$gate") (from its record)"
+        echo
+        continue
+    fi
     case "$gate" in
         format) gate_format ;;
         lint) gate_lint ;;
@@ -444,6 +460,7 @@ for gate in $WANTED; do
         echo "PASS $NAME (${SECONDS} s)"
         say_summary "PASS $NAME"
         github_summary "- PASS $NAME"
+        record_pass "$gate"
     else
         FAILED=1
         if [ -z "$problems" ]; then
