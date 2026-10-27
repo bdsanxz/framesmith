@@ -10,3 +10,6 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+base = { workspace = true }
+codec = { workspace = true }
+audio = { workspace = true }

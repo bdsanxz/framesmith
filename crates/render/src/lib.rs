@@ -7,6 +7,8 @@
 //! reports of everything it refuses, before the first frame.
 
 mod film;
+mod sound;
 
 pub use film::{write_film, write_film_marked, Failure, Written};
-pub use timeline::{place_reports, place_reports_and_notes, PictureError, Scene};
+pub use sound::open_sounds;
+pub use timeline::{place_reports, place_reports_and_notes, sounds, PictureError, Scene, Sound};

@@ -113,6 +113,12 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0065` | invalid | A list of background settings has neither one entry nor one for each layer of the background. | Write one entry for all the layers, or one for each layer in the order of `background`. |
 | `FS-0066` | invalid | A background setting is written on an element with no background. | Write a `background` on the element, or remove the setting. |
 | `FS-0067` | invalid | A `border` is not a width and a colour, or a width, `double` and a colour. | Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`. |
+| `FS-0076` | invalid | An `<audio>` has no `duration`, or a `duration` of 0. | Write `duration` on the `<audio>` as the seconds the sound plays, above 0. |
+| `FS-0077` | invalid | The sound file that `<audio src>` names does not exist, or the `<audio>` has no `src`. | Write `src` as the path of a sound file that exists, from the project folder or from `/`. |
+| `FS-0078` | failure | The sound file that `<audio src>` names exists and could not be read. | Check that the path names a file, not a folder, and that it may be read. |
+| `FS-0079` | unsupported | The file that `<audio src>` names is not sound of a kind this version reads, or is of such a kind in a form it does not read. | Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples. |
+| `FS-0080` | invalid | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. | Replace the sound file with a copy that is not damaged. |
+| `FS-0081` | invalid | An `<audio>` has a `media-start` at or past the end of its sound file. | Write a `media-start` below the length of the sound file, or leave it out to start at the beginning. |
 
 Notes on the rows:
 
@@ -136,6 +142,8 @@ Notes on the rows:
 - `FS-0063` was added with the easings (`notation.md` section 8.4; `motion.md`): an `ease` that is not one of the nineteen names or `out-back(n)`. It is of the kind invalid, on the line of the attribute, and its message lists the names taken.
 - `FS-0064` to `FS-0066` were added with the backgrounds of several layers (`render-command.md` section 4.6, rule 10): a layer or setting not in its form, a list of settings of the wrong length, and a setting with no background. They are new codes rather than a wider meaning of `FS-0052`, whose meaning is a text attribute's.
 - `FS-0067` was added with borders (`box-edges.md` sections 1 and 6): a `border` in a form that is not `width colour` or `width double colour`. It is of the kind invalid, reported on the line of the attribute.
+
+- `FS-0076` to `FS-0081` were added with the sounds placed in the film (`sound.md` section 5). `FS-0076` and `FS-0077` are found from the file alone, as a font's are; `FS-0078` to `FS-0081` when frx7 opens the sound file before the first frame. A missing file and a file that cannot be decoded are invalid, since the author named the wrong or a damaged file; a file the machine would not give is a failure, as `FS-0050` is; a file of a kind not read is unsupported, and its message names the kinds read.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

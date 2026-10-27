@@ -265,7 +265,14 @@ enum Reply {
 fn check(path: PathBuf) -> Reply {
     match Project::open(&path) {
         Ok(project) => {
-            let (reports, notes) = render::place_reports_and_notes(&project);
+            let (mut reports, notes) = render::place_reports_and_notes(&project);
+            // The sound files are opened as `render` opens them, once the composition has no other problem, so that
+            // `check` names each one `render` refuses (`docs/spec/sound.md`, section 5).
+            if reports.is_empty() {
+                if let Err(found) = render::open_sounds(project.composition(), &render::sounds(&project)) {
+                    reports = found;
+                }
+            }
             if !notes.is_empty() {
                 tracing::debug!(notes = notes.len(), "notes");
             }
@@ -396,6 +403,12 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard)
         Ok(scene) => scene,
         Err(reports) => return reports_reply(&reports),
     };
+    // The sound files are opened before the renderer and the film, so that a sound that cannot be placed writes no
+    // file (`docs/spec/sound.md`, section 5).
+    let sounds = match render::open_sounds(project.composition(), scene.sounds()) {
+        Ok(sounds) => sounds,
+        Err(reports) => return reports_reply(&reports),
+    };
     let written_output = project.output();
     let output = project.resolve(&written_output);
     let settings = project.settings();
@@ -415,7 +428,7 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard)
     }
     let mut drawn_marks = Vec::new();
     let asked = marks.then_some(&mut drawn_marks);
-    match render::write_film_marked(&scene, choice.renderer_mut(), &output, settings.audio_bitrate(), asked) {
+    match render::write_film_marked(&scene, sounds, choice.renderer_mut(), &output, settings.audio_bitrate(), asked) {
         Ok(written) => {
             let mut lines = vec![
                 format!("Rendered {}", output.display()),

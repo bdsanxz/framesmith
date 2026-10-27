@@ -73,3 +73,9 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0065` | A list of background settings has neither one entry nor one for each layer of the background. |
 | `FS-0066` | A background setting is written on an element with no background. |
 | `FS-0067` | A `border` is not a width and a colour, or a width, `double` and a colour. |
+| `FS-0076` | An `<audio>` has no `duration`, or a `duration` of 0. |
+| `FS-0077` | The sound file that `<audio src>` names does not exist, or the `<audio>` has no `src`. |
+| `FS-0078` | The sound file that `<audio src>` names exists and could not be read. |
+| `FS-0079` | The file that `<audio src>` names is not sound of a kind this version reads, or is of such a kind in a form it does not read. |
+| `FS-0080` | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. |
+| `FS-0081` | An `<audio>` has a `media-start` at or past the end of its sound file. |

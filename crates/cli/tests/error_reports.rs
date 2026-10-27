@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use project::{Code, Kind};
+use testkit::sound_files::Pcm;
 
 /// A new folder named `name` for one test, under the tests' scratch folder.
 fn folder(name: &str) -> PathBuf {
@@ -271,6 +272,52 @@ fn catalogue() -> String {
         .join("..")
         .join("docs/spec/error-catalogue.md");
     fs::read_to_string(path).unwrap()
+}
+
+/// Projects of one `<audio>` that `check` refuses as invalid (`docs/spec/sound.md`, section 5).
+fn sound_problems() -> Vec<ShownProblem> {
+    let audio = |attributes: &str| inside_root(&format!("<audio {attributes}/>"));
+    let good = testkit::sound_files::wav_bytes(48_000, 2, Pcm::Int(16), &[0.0; 2_000]);
+    // The same file, cut short: its header still says it holds 4,000 bytes of sound, and 2,000 are there.
+    let cut = {
+        let mut bytes = good.clone();
+        bytes.truncate(good.len() - 2_000);
+        bytes
+    };
+    vec![
+        (
+            "sound-no-duration",
+            vec![
+                ("composition.xml".to_string(), audio(r#"src="tone.wav""#)),
+                ("tone.wav".to_string(), good.clone()),
+            ],
+            Code::SoundNoDuration,
+        ),
+        (
+            "sound-missing",
+            vec![("composition.xml".to_string(), audio(r#"src="gone.wav" duration="1""#))],
+            Code::SoundMissing,
+        ),
+        (
+            "sound-damaged",
+            vec![
+                ("composition.xml".to_string(), audio(r#"src="cut.wav" duration="1""#)),
+                ("cut.wav".to_string(), cut),
+            ],
+            Code::SoundDamaged,
+        ),
+        (
+            "sound-start-past-end",
+            vec![
+                (
+                    "composition.xml".to_string(),
+                    audio(r#"src="tone.wav" duration="1" media-start="1""#),
+                ),
+                ("tone.wav".to_string(), good),
+            ],
+            Code::SoundStartPastEnd,
+        ),
+    ]
 }
 
 /// A valid root with `body` inside it, starting on line 2.
@@ -704,7 +751,7 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
-    for (name, files, code) in shown_problems().into_iter().chain(font_problems()) {
+    for (name, files, code) in shown_problems().into_iter().chain(font_problems()).chain(sound_problems()) {
         let (project, cwd) = project_with_files(&format!("emit-{name}"), &files);
         let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
         let printed = text(&output.stdout);
@@ -730,6 +777,45 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     assert_eq!(output.status.code(), Some(1), "{printed}");
     assert!(printed.contains(&format!(": {}: ", Code::FontUnreadable.as_str())), "{printed}");
     emitted.insert(Code::FontUnreadable.as_str());
+
+    // A sound file that is there and cannot be read, in the same way; and one of a kind not read, which is unsupported.
+    let (locked, locked_cwd) = project_with_files(
+        "emit-sound-unreadable",
+        &[
+            (
+                "composition.xml".to_string(),
+                inside_root(r#"<audio src="locked.wav" duration="1"/>"#),
+            ),
+            (
+                "locked.wav".to_string(),
+                testkit::sound_files::wav_bytes(48_000, 2, Pcm::Int(16), &[0.0; 2_000]),
+            ),
+        ],
+    );
+    fs::set_permissions(locked.join("locked.wav"), fs::Permissions::from_mode(0o000)).unwrap();
+    let output = framesmith(&locked_cwd, Terminal::AsksForNone, [OsStr::new("check"), locked.as_os_str()]);
+    let printed = text(&output.stdout);
+    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::SoundUnreadable.as_str())), "{printed}");
+    emitted.insert(Code::SoundUnreadable.as_str());
+    let (ulaw, ulaw_cwd) = project_with_files(
+        "emit-sound-not-read",
+        &[
+            (
+                "composition.xml".to_string(),
+                inside_root(r#"<audio src="ulaw.wav" duration="1"/>"#),
+            ),
+            (
+                "ulaw.wav".to_string(),
+                testkit::sound_files::wav_bytes(48_000, 1, Pcm::MuLaw, &[0.0; 4_000]),
+            ),
+        ],
+    );
+    let output = framesmith(&ulaw_cwd, Terminal::AsksForNone, [OsStr::new("check"), ulaw.as_os_str()]);
+    let printed = text(&output.stdout);
+    assert_eq!(output.status.code(), Some(2), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::SoundNotRead.as_str())), "{printed}");
+    emitted.insert(Code::SoundNotRead.as_str());
 
     // The card's refusal is what a machine with no graphics card gives, and such a machine is not
     // needed to see it: the command runs in this process, through the same entry the binary runs, with
