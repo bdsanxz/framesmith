@@ -944,30 +944,20 @@ fn walk_canvas(
             continue;
         }
         if node.element() == Element::Audio {
-            // A sound is heard, not drawn: it is gathered from the root's canvas (`sound::gather`). Its level is not
-            // applied in this version, and a sound of a file shown from another file is not placed.
+            // A sound is heard, not drawn: it is gathered from the root's canvas (`sound::gather`), with its level. A sound
+            // of a file shown from another file is not placed.
             if canvas.clip.is_some() {
                 refusals.push(Refusal::of_drawing(
                     Code::FormNotSupported,
                     node.line(),
                     "<audio> in a composition shown from another file is not supported by this version, which places the sounds of the project's own composition only".to_string(),
                 ));
-            } else if let Some(attribute) = node.attribute("volume") {
-                refusals.push(Refusal::of_attribute(
-                    Code::FormNotSupported,
-                    attribute,
-                    unapplied_volume(attribute),
-                ));
             }
             places.push(Some(parent_place));
             continue;
         }
         if node.element() == Element::Volume {
-            refusals.push(Refusal::of_drawing(
-                Code::FormNotSupported,
-                node.line(),
-                "<volume> is not applied by this version, which plays a sound at the level of its file".to_string(),
-            ));
+            // A point of a sound's level: it is read with its `<audio>` (`sound::gather`) and draws nothing.
             places.push(None);
             continue;
         }
@@ -2394,18 +2384,6 @@ fn picture_mask(value: &str) -> bool {
         && [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".heic"]
             .iter()
             .any(|kind| value.ends_with(kind))
-}
-
-/// The message for a `volume` on an `<audio>`, which this version does not apply (`docs/spec/sound.md` section 1).
-fn unapplied_volume(attribute: &Attribute) -> String {
-    let message = format!(
-        "`volume=\"{}\"` on <audio> is not applied by this version, which plays a sound at the level of its file",
-        attribute.shown()
-    );
-    match attribute.given_by() {
-        None => message,
-        Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
-    }
 }
 
 /// The code and the message of an attribute this version does not take on its element, with the entry of the support table

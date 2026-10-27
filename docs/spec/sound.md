@@ -1,13 +1,13 @@
 # Sound placed in the film
 
-Status: in force from Sprint 1. This spec says how an `<audio>` of the composition becomes sound in the film's one sound track (`render-command.md` section 5.2): which sounds are read, where each one begins and ends to the sample, which part of its source is heard, how its channels and rate are brought to the mix, and what is reported before the first frame when a sound cannot be placed. The level of a sound (`volume`, `<volume>`) is not applied in this version; nor are fades, loops or the lowering of a loud mix.
+Status: in force from Sprint 1. This spec says how an `<audio>` of the composition becomes sound in the film's one sound track (`render-command.md` section 5.2): which sounds are read, where each one begins and ends to the sample, which part of its source is heard, how its channels and rate are brought to the mix, and what is reported before the first frame when a sound cannot be placed. The level of a sound (`volume`, and its `<volume>` points, section 3a) is applied to the sound as it is mixed. Fades by name, levels in decibels, loops and the lowering of a loud mix are not in this version.
 
-Sources: `notation.md` section 6.10 (the attributes of `<audio>`), section 11 (sound) and the points N3 and N4 of section 12 (the kinds read, a sound shorter than its clip); `render-command.md` section 5.2 (the mix: 48,000 sample frames a second, two channels, as long as the picture to the sample); `frx7/docs/spec/os-codecs.md`, the part on sound files (the kinds frx7 reads, its refusals and the length it gives), and `frx7/docs/spec/audio.md` (one channel brought to two, and the conversion of the rate), at the revision Framesmith pins (`docs/dev/frx7.md`); the proofs' `native-notation-reference.md`, read as a record of behaviour (decision B4): a sound placed by its time and not by the frame, from `media-start`, and a source that ends early followed by silence. The proofs reported a sound file they could not read with no line; here every report has one.
+Sources: `notation.md` section 6.10 (the attributes of `<audio>`), section 6.11 (the attributes of `<volume>`), section 11 (sound) and the points N3 and N4 of section 12 (the kinds read, a sound shorter than its clip); `render-command.md` section 5.2 (the mix: 48,000 sample frames a second, two channels, as long as the picture to the sample); `frx7/docs/spec/os-codecs.md`, the part on sound files (the kinds frx7 reads, its refusals and the length it gives), and `frx7/docs/spec/audio.md` (one channel brought to two, and the conversion of the rate), at the revision Framesmith pins (`docs/dev/frx7.md`); the proofs' `native-notation-reference.md`, read as a record of behaviour (decision B4): a sound placed by its time and not by the frame, from `media-start`, and a source that ends early followed by silence. The proofs reported a sound file they could not read with no line; here every report has one.
 
 ## 1. The sounds read
 
 - An `<audio>` that stands in the root of the project's composition is a sound of the film. It takes `src`, `start`, `duration` and `media-start`, and `id` and `class` (which name nothing and change nothing here; `notation.md` section 12, N7).
-- **Not applied in this version, and refused** (`FS-0035`, unsupported, on the line of the attribute or the element): a `volume` on an `<audio>`, a `<volume>` inside one (the level of a sound is a later ticket), and an `<audio>` in a file shown from another file (`<composition src>`), whose time would be that of its clip. A `class` whose style gives an `<audio>` a `volume` is refused the same way.
+- **Refused** (`FS-0035`, unsupported, on the line of the element): an `<audio>` in a file shown from another file (`<composition src>`), whose time would be that of its clip. A `volume` given by a `class` is read like a `volume` written on the element (section 3a).
 - The order of the sounds in the file changes nothing in what is heard: sounds that play at the same time are added sample by sample (section 4).
 
 ## 2. Where a sound is in the film
@@ -26,6 +26,20 @@ The mix counts sample frames from 0, at 48,000 a second (`render-command.md` sec
 - **A source shorter than its clip** is heard to its end and is silent after (`notation.md` N4): a source of 1 second in a sound of 3 seconds is heard for the first 48,000 sample frames of the sound and adds nothing to the other 96,000. Its end is where frx7's reader gives no more sound (frx7 gives the length of the real sound, without the padding of the last packet).
 - **The value of a sample** is the source's, as frx7 reads it (32-bit floating point, full scale ±1), through the conversion above, and nothing else in this version: no level, no fade.
 
+## 3a. The level of a sound
+
+The level of a sound is the **curve** of its points multiplied by its `volume` (`notation.md` sections 6.10, 6.11 and 11). Sources: `notation.md` section 11, which gives the rule of the level (the level is `volume` times the curve; between two points the level changes evenly; before the first point it holds the first value, after the last the last); decision B64 (a point with no `at` is at the start of the sound).
+
+- **The volume.** `volume` is a number, 0 or more; it is 1 when it is not written. A `volume` given by a style is read as one written on the element (`notation.md` section 9).
+- **The curve.** A sound with no `<volume>` point has the curve 1 at every time. Otherwise the points are taken in the order they are written, which must be the order of time (below). A point with no `at` is at 0. A point with the same `at` as the one before it is at the same time, and the level steps at that time to the later point's value.
+- **Before the first point and after the last**, the curve is the value of the nearest point: the first point's before it, the last point's from it on.
+- **Between two points** the curve is the straight line from the one point's value to the next's, over the time between them. Time is counted from the sound's first sample frame (section 2), in seconds, and the value is taken at every sample frame. The level therefore changes from sample frame to sample frame, not once a frame.
+- **Where it is applied.** The level multiplies every sample of the sound after its channels and rate are brought to the mix's form (section 3), before the sounds are added (section 4). A sample of value `v` at a level `L` is `v × L`, in 32-bit floating point; a level of 1 leaves a sample as it is, and a level of 0 makes it 0.
+- **Reports.** These are faults of the composition alone (section 5, the first step), each on the line of the element it names, and the sound is not placed:
+  - a point whose `at` is before that of the point before it is **out of time order**: `FS-0087`, invalid. Only the first point that is out of order of each sound is reported. The message names the sound's points: `the <volume> points of an <audio> must be in order of time`, with the time of the point and of the one before it;
+  - a point with no `value` is `FS-0088`, invalid: `` `<volume>` needs a `value`, the level at its time, 0 or more ``;
+  - a `value` below 0 on a point, and a `volume` below 0 on the `<audio>`, is `FS-0034`, invalid: `` `value="-0.5"` is below 0: a level is 0 or more ``, the same for `volume`.
+
 ## 4. More than one sound
 
 The mix at a sample frame is the sum of the samples that every sound gives at that frame, channel by channel. Nothing is limited or lowered in this version: a sum above full scale is handed to the encoder as it is (lowering a loud mix is a later ticket).
@@ -42,6 +56,9 @@ The judging is in two steps. What is found from the composition alone (no `src`,
 | no `duration`, or a `duration` of 0 | `FS-0076` | invalid | `` `<audio src="<as written>">` needs a `duration` above 0, the seconds the sound plays `` (with the value written, when there is one). An `<audio>` with no `src` has no file to name: it is named `` `<audio>` ``, and its missing `src` is reported on its own (`FS-0077`, the first row) |
 | the file is not there, or `src` names a folder | `FS-0077` | invalid | `` `src="<as written>"` names no file: a sound file, from the project folder or a path that begins with `/` `` |
 | the file is there and the machine does not give it (no permission) | `FS-0078` | failure | `` `src="<as written>"` could not be read: <the system's reason> `` |
+| a point out of time order (the first of each sound) | `FS-0087` | invalid | `` the <volume> points of an <audio> must be in order of time: the point at 1 s is before the one at 2 s `` (section 3a) |
+| a point with no `value` | `FS-0088` | invalid | `` `<volume>` needs a `value`, the level at its time, 0 or more `` (section 3a) |
+| a `value` of a point, or the `volume` of an `<audio>`, below 0 | `FS-0034` | invalid | `` `value="-0.5"` is below 0: a level is 0 or more `` (section 3a) |
 | the file is not sound of a kind frx7 reads, or a kind read in a form that is not (another number of channels, MP3 below 16,000 Hz) | `FS-0079` | unsupported | `` `src="<as written>"` is not sound this version reads: <frx7's reason>. The kinds read are wav, aiff, mp3 and aac-in-mp4 `` |
 | the file is of a kind read and cannot be decoded (damaged, cut short) | `FS-0080` | invalid | `` `src="<as written>"` cannot be decoded: <frx7's reason> `` |
 | `media-start` at or past the end of the source | `FS-0081` | invalid | `` `media-start="<as written>"` is at or past the end of `src="<as written>"`, which lasts <seconds, three decimals> s `` |
@@ -57,7 +74,7 @@ The `render` crate logs, at level debug and under the component `render::sound`,
 
 ## 7. Where the code lives
 
-- `timeline` gathers the sounds of the composition with the scene (`Scene::sounds`, and `timeline::sounds` for `check`): for each `<audio>`, its line, its `src` as written and as a path of the machine, its first sample frame and its end, and its `media-start`; it refuses what section 1 refuses and reports the faults found from the composition alone (section 5). It looks for the file, and does not open it.
+- `timeline` gathers the sounds of the composition with the scene (`Scene::sounds`, and `timeline::sounds` for `check`): for each `<audio>`, its line, its `src` as written and as a path of the machine, its first sample frame and its end, its `media-start` and its level (`volume` and its points, section 3a); it refuses what section 1 refuses and reports the faults found from the composition alone (section 5). It looks for the file, and does not open it.
 - `render` opens each sound file through frx7's `codec` registry with the system's backend (`render::open_sounds`), makes the reports of the second step of section 5, and hands the opened sources to the mix. `check` and `render` call it alike.
-- `mix` places the sounds: it reads each source from its `media-start`, brings it to the mix's form through frx7's `audio`, and adds it in its sample frames. It too is built without the system's interfaces: it knows a source only by frx7's `codec::AudioSource` trait.
+- `mix` places the sounds: it reads each source from its `media-start`, brings it to the mix's form through frx7's `audio`, multiplies it by its level at each sample frame (section 3a), and adds it in its sample frames. It too is built without the system's interfaces: it knows a source only by frx7's `codec::AudioSource` trait.
 - `timebase` gives the sample frame nearest a time (`Time::nearest_count`).

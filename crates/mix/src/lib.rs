@@ -13,13 +13,58 @@ pub const CHANNELS: u16 = 2;
 /// Source frames asked of a source at a time.
 const CHUNK: usize = 4_096;
 
+/// The level of a sound in the mix (`docs/spec/sound.md`, section 3a): its `volume` times the value of its curve, which is
+/// the straight line between its points, the value of the nearest point before the first and after the last.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Level {
+    /// The `volume` of the sound: 1 when none is written.
+    pub volume: f64,
+    /// The points of the curve as `(seconds from the sound's first sample frame, value)`, in order of time.
+    pub points: Vec<(f64, f64)>,
+}
+
+impl Default for Level {
+    /// A level of 1 at every time: a sound with no `volume` and no points.
+    fn default() -> Level {
+        Level {
+            volume: 1.0,
+            points: Vec::new(),
+        }
+    }
+}
+
+impl Level {
+    /// The level at `seconds` from the sound's first sample frame, in 32-bit floating point.
+    pub fn at(&self, seconds: f64) -> f32 {
+        (self.volume * self.curve(seconds)) as f32
+    }
+
+    /// The value of the curve at `seconds`.
+    fn curve(&self, seconds: f64) -> f64 {
+        let Some(last) = self.points.last() else {
+            return 1.0;
+        };
+        // The points are in order of time, so the ones at or before `seconds` come first.
+        let after = self.points.partition_point(|point| point.0 <= seconds);
+        if after == self.points.len() {
+            return last.1;
+        }
+        if after == 0 {
+            return self.points[0].1;
+        }
+        let (from, to) = (self.points[after - 1], self.points[after]);
+        from.1 + (to.1 - from.1) * (seconds - from.0) / (to.0 - from.0)
+    }
+}
+
 /// A sound to place: from sample frame `first` of the mix up to `end` (not on it), heard from
-/// sample frame `skip` of its source.
+/// sample frame `skip` of its source, at its `level`.
 pub struct Sound {
     pub first: u64,
     pub end: u64,
     pub skip: u64,
     pub source: Box<dyn AudioSource>,
+    pub level: Level,
 }
 
 /// A placed sound as it is read.
@@ -36,6 +81,8 @@ struct Placed {
     taken: usize,
     /// The source gave its last sample.
     ended: bool,
+    /// The level the sound is heard at, counted from its first sample frame `first`.
+    level: Level,
 }
 
 impl Placed {
@@ -85,6 +132,7 @@ impl Mix {
             end,
             skip,
             mut source,
+            level,
         } = sound;
         source.seek(skip)?;
         let converter = Converter::to_mix(source.sample_rate(), source.channels())?;
@@ -98,6 +146,7 @@ impl Mix {
             ready: Vec::new(),
             taken: 0,
             ended: false,
+            level,
         });
         Ok(())
     }
@@ -131,10 +180,14 @@ impl Mix {
             let wanted = (stop - start) as usize;
             sound.fill(wanted)?;
             let have = (sound.ready.len() / channels - sound.taken).min(wanted);
-            let source = &sound.ready[sound.taken * channels..(sound.taken + have) * channels];
-            let at = (start - from) as usize * channels;
-            for (out, value) in samples[at..at + have * channels].iter_mut().zip(source) {
-                *out += value;
+            for k in 0..have {
+                // The level is taken at each sample frame, so it moves from one sample to the next.
+                let frame = start + k as u64;
+                let level = sound.level.at((frame - sound.first) as f64 / f64::from(SAMPLE_RATE));
+                let at = (frame - from) as usize * channels;
+                for channel in 0..channels {
+                    samples[at + channel] += sound.ready[(sound.taken + k) * channels + channel] * level;
+                }
             }
             // What the source no longer gives is silence: the frames are counted as heard.
             sound.taken += have;

@@ -198,11 +198,15 @@ pub enum Code {
     VideoSize,
     /// A `<video>` has no `src`.
     VideoSourceMissing,
+    /// The `<volume>` points of an `<audio>` are not in order of time.
+    VolumeOutOfOrder,
+    /// A `<volume>` has no `value`.
+    VolumeNoValue,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 80] = [
+    pub const ALL: [Code; 82] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -283,6 +287,8 @@ impl Code {
         Code::CountNotWritten,
         Code::VideoSize,
         Code::VideoSourceMissing,
+        Code::VolumeOutOfOrder,
+        Code::VolumeNoValue,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -368,6 +374,8 @@ impl Code {
             Code::CountNotWritten => "FS-0084",
             Code::VideoSize => "FS-0085",
             Code::VideoSourceMissing => "FS-0086",
+            Code::VolumeOutOfOrder => "FS-0087",
+            Code::VolumeNoValue => "FS-0088",
         }
     }
 
@@ -490,6 +498,8 @@ impl Code {
             }
             Code::VideoSize => "Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more.",
             Code::VideoSourceMissing => "Write `src` on the <video>: the path of its file from the project folder.",
+            Code::VolumeOutOfOrder => "Write the points in the order of their `at`, from the start of the sound.",
+            Code::VolumeNoValue => "Write a `value` for the level at the point's time: a number, 0 or more.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

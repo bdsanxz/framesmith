@@ -126,6 +126,8 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0084` | invalid | A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that has no `count`, words or a `<span>` in a `<text>` that counts, or a `<tween>` or `<set>` of `count` on a `<text>` without `count`. | Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists. |
 | `FS-0085` | invalid | A `<video>` has no `width` or no `height`, or one below 2. | Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more. |
 | `FS-0086` | invalid | A `<video>` has no `src`. | Write `src` on the <video>: the path of its file from the project folder. |
+| `FS-0087` | invalid | The `<volume>` points of an `<audio>` are not in order of time: a point is before the one before it. | Write the points in the order of their `at`, from the start of the sound. |
+| `FS-0088` | invalid | A `<volume>` has no `value`. | Write a `value` for the level at the point's time: a number, 0 or more. |
 
 Notes on the rows:
 
@@ -152,6 +154,7 @@ Notes on the rows:
 - `FS-0067` was added with borders (`box-edges.md` sections 1 and 6): a `border` in a form that is not `width colour` or `width double colour`. It is of the kind invalid, reported on the line of the attribute.
 - `FS-0073` and `FS-0074` were added with the choice of the encoder (`render-command.md` section 5.4): the machine's own encoder (73), or the system's encoder on the processor (74), refuses the film's width and height when it is made. Like `FS-0038` they are of the kind unsupported and are not a form of the composition: the limit is this machine's encoder, and the same film renders on a machine whose encoder takes its size, or with the setting the message names. `render` and `check` both report them before the first frame and exit with 2, with the last line `Refused:`.
 
+- `FS-0085` and `FS-0086` were added with the level of a sound (`sound.md` section 3a): the order of its points and a point's `value`. A level below 0 is `FS-0034`, as a length below 0 is.
 - `FS-0076` to `FS-0081` were added with the sounds placed in the film (`sound.md` section 5). `FS-0076` and `FS-0077` are found from the file alone, as a font's are; `FS-0078` to `FS-0081` when frx7 opens the sound file before the first frame. A missing file and a file that cannot be decoded are invalid, since the author named the wrong or a damaged file; a file the machine would not give is a failure, as `FS-0050` is; a file of a kind not read is unsupported, and its message names the kinds read.
 
 - `FS-0070` was added with shadows (`render-command.md` section 4.7, rule 8): a `box-shadow` or `drop-shadow` that is not in the form `X Y BLUR COLOUR`. It is of the kind invalid, reported on the line of the attribute. It is a new code, not a wider meaning of `FS-0039` (a word out of a list) or `FS-0052` (a text attribute's form), since a meaning is never changed.
