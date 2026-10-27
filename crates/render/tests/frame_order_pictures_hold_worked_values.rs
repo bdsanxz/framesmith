@@ -13,7 +13,11 @@ const FIXTURE: &str = "frame-order";
 
 #[test]
 fn every_frame_of_the_order_proof_is_within_one_level_of_its_worked_picture_at_every_pixel() {
-    assert_eq!(numbers_with_a_picture(FIXTURE), [0, 20, 30, 36, 45, 59], "the frames with a picture");
+    assert_eq!(
+        numbers_with_a_picture(FIXTURE),
+        [0, 20, 30, 36, 45, 59],
+        "the frames with a picture"
+    );
     for number in [0, 20, 30, 36, 45, 59] {
         let (worked, held) = worked(FIXTURE, number);
         assert!(held.iter().all(|&h| h), "frame {number}: every pixel is held");

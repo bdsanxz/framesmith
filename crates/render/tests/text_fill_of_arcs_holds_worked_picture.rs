@@ -12,7 +12,7 @@ const FIXTURE: &str = "text-fill-arcs";
 #[test]
 fn the_frame_is_within_one_level_of_its_worked_picture() {
     let (worked, held) = worked(FIXTURE, 0);
-    let checked = within_levels_where_held(&drawn("text-fill-arcs-worked", FIXTURE, 0), &worked, &held, 1)
-        .unwrap_or_else(|error| panic!("{error}"));
+    let checked =
+        within_levels_where_held(&drawn("text-fill-arcs-worked", FIXTURE, 0), &worked, &held, 1).unwrap_or_else(|error| panic!("{error}"));
     assert_eq!(checked, 300 * 300);
 }

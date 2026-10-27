@@ -12,8 +12,7 @@ use std::sync::Arc;
 
 use draw::{
     blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline,
-    Picture,
-    Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
+    Picture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use skrifa::instance::{LocationRef, Size};
@@ -827,7 +826,14 @@ pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow, m
     let mapped = !map.is_identity();
     let mut layer = vec![0; width as usize * height as usize * 4];
     for run in &text.runs {
-        fill_run(width, height, run, (f64::from(shadow.across), f64::from(shadow.down)), affine(map), &mut layer)?;
+        fill_run(
+            width,
+            height,
+            run,
+            (f64::from(shadow.across), f64::from(shadow.down)),
+            affine(map),
+            &mut layer,
+        )?;
     }
     if mapped && !text.pictures.is_empty() {
         lay_layer(&mut layer, &pictures_layer(width, height, text, map, (shadow.across, shadow.down))?);
@@ -987,7 +993,13 @@ pub fn glyph_coverage(
     context.flush();
     let mut coverage = Pixmap::new(width as u16, height as u16);
     context.render(&mut coverage, &mut Resources::new());
-    Ok(coverage.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect())
+    Ok(coverage
+        .data_as_u8_slice()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|pixel| pixel[3])
+        .collect())
 }
 
 /// Lays a colour on the coverage of each pixel, which is its alpha: each channel is the colour times the alpha, halved up

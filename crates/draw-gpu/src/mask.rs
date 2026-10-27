@@ -332,12 +332,7 @@ impl Masks {
 /// Fills the glyph into its box with the processor's rasteriser, and reads the coverage of each pixel from the alpha
 /// of the layer. The origin of the glyph lies at a whole pixel of the box plus `fraction`. Under a map, the glyph is drawn
 /// with the map's linear part, and its box is the box of section 9.3 under that part (section 10.2).
-fn coverage(
-    run: &GlyphRun,
-    glyph: &Glyph,
-    map: Option<Map>,
-    (fraction_x, fraction_y): (f64, f64),
-) -> Result<Option<Coverage>, Error> {
+fn coverage(run: &GlyphRun, glyph: &Glyph, map: Option<Map>, (fraction_x, fraction_y): (f64, f64)) -> Result<Option<Coverage>, Error> {
     let size = run.size;
     if !size.is_finite() || size < 0.0 {
         return Err(Error::new(format!("a glyph of size {size} cannot be drawn on the card")));

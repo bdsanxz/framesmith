@@ -47,7 +47,11 @@ fn every_pixel_of_each_changed_text_picture_is_within_one_level_of_its_worked_pi
             assert!(held.iter().all(|&h| h), "{fixture}, frame {number}: every pixel is held");
             let checked = within_levels_where_held(&drawn("text-pictures-worked", fixture, number), &worked, &held, 1)
                 .unwrap_or_else(|error| panic!("{fixture}, frame {number}: {error}"));
-            assert_eq!(checked, (worked.width() * worked.height()) as usize, "{fixture}, frame {number}: every pixel is checked");
+            assert_eq!(
+                checked,
+                (worked.width() * worked.height()) as usize,
+                "{fixture}, frame {number}: every pixel is checked"
+            );
         }
     }
 }
