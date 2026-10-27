@@ -24,9 +24,12 @@ fn the_frames_equal_their_checked_in_pictures_on_the_processor() {
 }
 
 #[test]
-fn the_frame_is_within_one_level_of_its_worked_picture() {
-    let (worked, held) = worked(FIXTURE, 0);
-    let checked = within_levels_where_held(&drawn("text-dressing-outline-worked", FIXTURE, 0), &worked, &held, 1)
-        .unwrap_or_else(|error| panic!("{error}"));
-    assert_eq!(checked, 240 * 120);
+fn the_frames_are_within_one_level_of_their_worked_pictures() {
+    // The composition is static, so frame 9 is held to the same worked picture as frame 0 (its checked-in worked file is a copy).
+    for number in [0, 9] {
+        let (worked, held) = worked(FIXTURE, number);
+        let checked = within_levels_where_held(&drawn("text-dressing-outline-worked", FIXTURE, number), &worked, &held, 1)
+            .unwrap_or_else(|error| panic!("frame {number}: {error}"));
+        assert_eq!(checked, 240 * 120);
+    }
 }
