@@ -200,6 +200,7 @@ GATE_TITLE_test="tests"
 GATE_TITLE_core="core suite without FFmpeg"
 GATE_TITLE_licence="licence gate"
 GATE_TITLE_pin="frx7 pin"
+GATE_TITLE_free="system-free crates"
 
 # The title of the gate $1, from the table above.
 gate_title() {
@@ -250,7 +251,7 @@ gate_pin() {
 # The control first: the check must fail each wrong record of its own workspace by name, or the gate is not closed.
 # Then the check on the checked-in record.
 gate_free() {
-    NAME="system-free crates"
+    NAME=$(gate_title free)
     run free-selftest bash "$ROOT/scripts/gates/system-free-selftest.sh"
     local control=$RUN_CODE
     run free bash "$ROOT/scripts/gates/system-free.sh" check
