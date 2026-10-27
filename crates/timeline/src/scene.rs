@@ -162,6 +162,7 @@ impl Fill {
                         marks: vec![background],
                         turn: None,
                         filter: Filter::NONE,
+                        finish: None,
                     }),
                 }
             }
@@ -361,7 +362,7 @@ impl Scene {
                 let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
-                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() {
+                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() && mover.finish.is_none() {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false);
@@ -373,6 +374,7 @@ impl Scene {
                             marks: held,
                             turn,
                             filter: mover.filter,
+                            finish: mover.finish,
                         }));
                     }
                 }
@@ -444,6 +446,7 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
             marks,
             turn: None,
             filter: Filter::NONE,
+            finish: None,
         })],
         _ => marks,
     }
@@ -1050,6 +1053,7 @@ fn gather_movers(
             origin: Mover::origin_in(rect, movement.origin.clone()),
             perspective: movement.perspective,
             filter: movement.filter,
+            finish: movement.finish(rect),
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
         });

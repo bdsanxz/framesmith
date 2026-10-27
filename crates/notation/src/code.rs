@@ -171,6 +171,8 @@ pub enum Code {
     BackgroundSettingAlone,
     /// A `border` is not a width and a colour, or a width, `double` and a colour.
     BorderNotInForm,
+    /// A `displace` or a `grain` is not in its form, or has octaves outside 1 to 8.
+    FinishNotInForm,
     /// The folder of the output path cannot be made or written, so `render` refuses the video before the first frame.
     OutputNotWritten,
     /// An `<audio>` without a `duration` above 0.
@@ -189,7 +191,7 @@ pub enum Code {
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 74] = [
+    pub const ALL: [Code; 75] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -257,6 +259,7 @@ impl Code {
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
         Code::BorderNotInForm,
+        Code::FinishNotInForm,
         Code::OutputNotWritten,
         Code::SoundNoDuration,
         Code::SoundMissing,
@@ -336,6 +339,7 @@ impl Code {
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
             Code::BorderNotInForm => "FS-0067",
+            Code::FinishNotInForm => "FS-0071",
             Code::OutputNotWritten => "FS-0072",
             Code::SoundNoDuration => "FS-0076",
             Code::SoundMissing => "FS-0077",
@@ -440,6 +444,7 @@ impl Code {
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
             Code::BorderNotInForm => "Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`.",
+            Code::FinishNotInForm => "Write the value in the form the message names, with octaves from 1 to 8.",
             Code::OutputNotWritten => {
                 "Give `--output` a path in a folder that can be written, or make the folder writable, then run the command again."
             }

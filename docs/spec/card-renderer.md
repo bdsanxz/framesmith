@@ -229,6 +229,10 @@ Tests:
 - `crates/render/tests/blur_and_brightness.rs`: an edge against a Gaussian, colours halved and stopped at white, the order of the two, fading as one picture, and opacity 0, measured the same way on both renderers. The card's tests are reference machine only.
 - `crates/render/tests/blur_fixture_on_the_card.rs`: every frame of `blur-and-brightness` agrees with the processor within section 4. Reference machine only.
 
+### 10.8 Groups with a finish
+
+A group with a torn edge or grain (`finishes.md`) is the processor's picture: `draw_cpu::finished_layer` draws its marks with the group's full map into a clear picture of the frame's size, tears it, grains it and fades it by the group's opacity, and the card places that picture as section 9.9 gives, cut to the group's rectangle. The card makes no noise of its own, so the two pictures differ only by the rounding of the blend. Tests: `crates/render/tests/finishes_worked_by_hand.rs` and `crates/render/tests/finishes_fixture.rs`, reference machine only.
+
 ## 11. Backgrounds on the card
 
 The layers of a box's background (`render-command.md` section 4.6) are drawn by the card in a shader of their own, `paint.wgsl`.

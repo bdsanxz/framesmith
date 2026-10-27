@@ -198,6 +198,14 @@ fn shown_problems() -> Vec<ShownProblem> {
             Code::BackgroundSettingAlone,
         ),
         (
+            "finish-not-in-form",
+            vec![(
+                "composition.xml".to_string(),
+                inside_root(r#"<box width="10" height="10" grain="noise(0.5 9 1) 1 0"/>"#),
+            )],
+            Code::FinishNotInForm,
+        ),
+        (
             "shown-frame-rate",
             vec![
                 ("composition.xml".to_string(), at_30("inner.xml")),

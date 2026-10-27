@@ -12,12 +12,14 @@ use layout::Rect;
 mod background;
 mod edges;
 mod filter;
+mod finish;
 pub mod stroke;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
+pub use finish::{Field, Finish, Noise};
 pub use turn::Turn;
 
 /// The one outline tolerance, in pixels: the curves of a glyph's outline are flattened to it, and its stroke is expanded from the
@@ -231,6 +233,9 @@ pub struct Group {
     /// The blur and brightness of the group's picture, done before its turn and its clip (`docs/spec/render-command.md`,
     /// section 4.5, rule 11); [`Filter::NONE`] for a group that is not filtered.
     pub filter: Filter,
+    /// The torn edge and the grain of the group's picture (`docs/spec/finishes.md`), done before its opacity; `None` for
+    /// a group with neither.
+    pub finish: Option<Finish>,
 }
 
 impl TextMark {

@@ -110,6 +110,11 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
             None => return Ok(()),
         },
     };
+    if group.finish.is_some() {
+        let layer = finished(width, height, group, map, opacity)?;
+        lay_finished(bytes, width, &layer, region);
+        return Ok(());
+    }
     if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
         return draw_turned(bytes, width, height, group, map, opacity, turn.about(map), region);
     }
@@ -142,6 +147,103 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
         }
     }
     Ok(())
+}
+
+/// The picture of a group with a finish (`docs/spec/finishes.md`, sections 3 and 4) as the card lays it: its marks drawn
+/// with `map`, which is its parents' map with its own put after it, into a clear picture of the frame's size, torn and
+/// grained, then faded by its opacity. Its clip is not applied; the card cuts the picture to it.
+pub fn finished_layer(width: u32, height: u32, group: &Group, map: Map) -> Result<Vec<u8>, Error> {
+    let opacity = if group.opacity.is_nan() {
+        0.0
+    } else {
+        group.opacity.clamp(0.0, 1.0)
+    };
+    finished(width, height, group, map, opacity)
+}
+
+/// The finished picture of a group drawn with `map` (`docs/spec/finishes.md`, section 3): its marks, turned when it turns,
+/// into a clear picture of the frame's size; then the torn edge, each pixel taken whole from the place its noise names, or
+/// clear outside the frame; then the grain, each premultiplied value times the noise's share; then the opacity.
+fn finished(width: u32, height: u32, group: &Group, map: Map, opacity: f64) -> Result<Vec<u8>, Error> {
+    let whole = (0, 0, width, height);
+    let mut layer = vec![0_u8; width as usize * height as usize * 4];
+    match group.turn.filter(|turn| !turn.is_none()) {
+        Some(turn) => draw_turned(&mut layer, width, height, group, map, 1.0, turn.about(map), whole)?,
+        None => draw_marks(&mut layer, width, height, &group.marks, map, whole)?,
+    }
+    let Some(finish) = group.finish else {
+        return Ok(layer);
+    };
+    let Some(back) = map.inverse() else {
+        return Ok(vec![0_u8; layer.len()]);
+    };
+    // The point of the element's box that a pixel's centre comes from (section 1).
+    let local = |column: u32, row: u32| {
+        let (x, y) = back.apply(f64::from(column) + 0.5, f64::from(row) + 0.5);
+        (x - finish.origin.0, y - finish.origin.1)
+    };
+    let at = |column: u32, row: u32| (row as usize * width as usize + column as usize) * 4;
+    if let Some((amount, noise)) = finish.displace {
+        let field = noise.field();
+        let source = layer.clone();
+        for row in 0..height {
+            for column in 0..width {
+                let (x, y) = local(column, row);
+                let d = amount * (field.value(x, y) - 0.5);
+                let across = i64::from(column) + (map.a * d + map.c * d).round() as i64;
+                let down = i64::from(row) + (map.b * d + map.d * d).round() as i64;
+                let inside = (0..i64::from(width)).contains(&across) && (0..i64::from(height)).contains(&down);
+                let taken = if inside {
+                    let from = at(across as u32, down as u32);
+                    [source[from], source[from + 1], source[from + 2], source[from + 3]]
+                } else {
+                    [0; 4]
+                };
+                let to = at(column, row);
+                layer[to..to + 4].copy_from_slice(&taken);
+            }
+        }
+    }
+    if let Some((noise, slope, offset)) = finish.grain {
+        let field = noise.field();
+        for row in 0..height {
+            for column in 0..width {
+                let to = at(column, row);
+                if layer[to + 3] == 0 {
+                    continue;
+                }
+                let (x, y) = local(column, row);
+                let share = (slope * field.value(x, y) + offset).clamp(0.0, 1.0);
+                for value in &mut layer[to..to + 4] {
+                    *value = (f64::from(*value) * share + 0.5).floor() as u8;
+                }
+            }
+        }
+    }
+    if opacity < 1.0 {
+        for value in &mut layer {
+            *value = (f64::from(*value) * opacity + 0.5).floor() as u8;
+        }
+    }
+    Ok(layer)
+}
+
+/// Lays a picture of premultiplied values of the frame's size over the picture in `region`, by src-over.
+fn lay_finished(bytes: &mut [u8], width: u32, layer: &[u8], (left, top, right, bottom): Region) {
+    for row in top..bottom {
+        let start = (row as usize * width as usize + left as usize) * 4;
+        let end = (row as usize * width as usize + right as usize) * 4;
+        let over = layer[start..end].as_chunks::<4>().0;
+        for (pixel, source) in bytes[start..end].as_chunks_mut::<4>().0.iter_mut().zip(over) {
+            if source[3] == 0 {
+                continue;
+            }
+            let kept = 255 - u32::from(source[3]);
+            for channel in 0..4 {
+                pixel[channel] = (u32::from(source[channel]) + divide_by_255(u32::from(pixel[channel]) * kept)).min(255) as u8;
+            }
+        }
+    }
 }
 
 /// Draws a group turned in space (`docs/spec/render-command.md`, section 4.5, rule 10): its marks with `map` and its

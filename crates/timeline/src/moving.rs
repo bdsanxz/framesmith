@@ -1,15 +1,16 @@
 //! The motion of an element (`docs/spec/render-command.md`, section 4.5): its movement attributes and its tweens as this
 //! version reads them, and its map and opacity at a time.
 
-use draw::{Filter, Map, Turn};
+use draw::{Filter, Finish, Map, Noise, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Code, Element, Length, Node, Number};
 use timebase::Time;
 
 /// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, the
-/// `perspective` of a turn in space, and the `blur` and `brightness` of its picture.
-pub(crate) const MOVEMENT: [&str; 13] = [
+/// `perspective` of a turn in space, the `blur` and `brightness` of its picture, and its finishes, which make it a group as a
+/// movement does.
+pub(crate) const MOVEMENT: [&str; 15] = [
     "x",
     "y",
     "scale",
@@ -23,6 +24,8 @@ pub(crate) const MOVEMENT: [&str; 13] = [
     "perspective",
     "blur",
     "brightness",
+    "displace",
+    "grain",
 ];
 
 /// A refusal found while reading motion: its code, its line and its message.
@@ -37,6 +40,8 @@ pub(crate) struct Movement {
     pub(crate) origin: (Length, Length),
     pub(crate) perspective: Option<f64>,
     pub(crate) filter: Filter,
+    pub(crate) displace: Option<(f64, Noise)>,
+    pub(crate) grain: Option<(Noise, f64, f64)>,
     pub(crate) lines: Vec<u32>,
 }
 
@@ -44,6 +49,112 @@ impl Movement {
     /// Whether the element writes any movement attribute.
     pub(crate) fn written(&self) -> bool {
         !self.lines.is_empty()
+    }
+
+    /// The finishes of the element whose rectangle is `rect`, read from its top left corner; `None` when it has neither.
+    pub(crate) fn finish(&self, rect: Rect) -> Option<Finish> {
+        (self.displace.is_some() || self.grain.is_some()).then_some(Finish {
+            origin: (f64::from(rect.left), f64::from(rect.top)),
+            displace: self.displace,
+            grain: self.grain,
+        })
+    }
+}
+
+/// The words of `noise(F O S)` taken from `words`, which must start with it: the noise, or what is wrong with it (`None` when
+/// it is not in the form, the octaves when they are outside 1 to 8, or a frequency not above 0).
+enum Read<T> {
+    Taken(T),
+    NotInForm,
+    Octaves(f64),
+    NotAbove(&'static str),
+}
+
+fn read_noise(words: &[&str]) -> Read<Noise> {
+    let [first, octaves, last] = words else {
+        return Read::NotInForm;
+    };
+    let (Some(frequency), Some(seed)) = (first.strip_prefix("noise("), last.strip_suffix(')')) else {
+        return Read::NotInForm;
+    };
+    let number = project::number_value;
+    let (Some(frequency), Some(octaves), Some(seed)) = (number(frequency), number(octaves), number(seed)) else {
+        return Read::NotInForm;
+    };
+    if octaves.fract() != 0.0 || seed.fract() != 0.0 || seed.abs() > 1e15 {
+        return Read::NotInForm;
+    }
+    if !(1.0..=8.0).contains(&octaves) {
+        return Read::Octaves(octaves);
+    }
+    if frequency <= 0.0 {
+        return Read::NotAbove("a frequency");
+    }
+    Read::Taken(Noise {
+        frequency,
+        octaves: octaves as u32,
+        seed: seed as i64,
+    })
+}
+
+/// Reads `displace="AMOUNT noise(F O S)"` (`docs/spec/finishes.md`, section 2).
+fn read_displace(value: &str) -> Read<(f64, Noise)> {
+    let words: Vec<&str> = value.split_whitespace().collect();
+    let Some((amount, noise)) = words.split_first() else {
+        return Read::NotInForm;
+    };
+    let Some(amount) = project::number_value(amount) else {
+        return Read::NotInForm;
+    };
+    match read_noise(noise) {
+        Read::Taken(_) if amount <= 0.0 => Read::NotAbove("an amount"),
+        Read::Taken(noise) => Read::Taken((amount, noise)),
+        Read::NotInForm => Read::NotInForm,
+        Read::Octaves(octaves) => Read::Octaves(octaves),
+        Read::NotAbove(what) => Read::NotAbove(what),
+    }
+}
+
+/// Reads `grain="noise(F O S) SLOPE OFFSET"` (`docs/spec/finishes.md`, section 2).
+fn read_grain(value: &str) -> Read<(Noise, f64, f64)> {
+    let words: Vec<&str> = value.split_whitespace().collect();
+    let [noise @ .., slope, offset] = words.as_slice() else {
+        return Read::NotInForm;
+    };
+    let (Some(slope), Some(offset)) = (project::number_value(slope), project::number_value(offset)) else {
+        return Read::NotInForm;
+    };
+    match read_noise(noise) {
+        Read::Taken(noise) => Read::Taken((noise, slope, offset)),
+        Read::NotInForm => Read::NotInForm,
+        Read::Octaves(octaves) => Read::Octaves(octaves),
+        Read::NotAbove(what) => Read::NotAbove(what),
+    }
+}
+
+/// The report of a finish that is not read, on the line of its attribute.
+fn finish_report<T>(read: &Read<T>, name: &str, shown: &str, line: u32) -> Option<Found> {
+    let form = match name {
+        "displace" => "AMOUNT noise(FREQUENCY OCTAVES SEED)",
+        _ => "noise(FREQUENCY OCTAVES SEED) SLOPE OFFSET",
+    };
+    match read {
+        Read::Taken(_) => None,
+        Read::NotInForm => Some((
+            Code::FinishNotInForm,
+            line,
+            format!("`{name}=\"{shown}\"` is not in the form {form}"),
+        )),
+        Read::Octaves(octaves) => Some((
+            Code::FinishNotInForm,
+            line,
+            format!("`{name}=\"{shown}\"` has {octaves} octaves; the octaves are a whole number from 1 to 8"),
+        )),
+        Read::NotAbove(what) => Some((
+            Code::SizeNotAboveZero,
+            line,
+            format!("`{name}=\"{shown}\"` has {what} that is not above 0"),
+        )),
     }
 }
 
@@ -56,6 +167,8 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         origin: (Length::Percent(Number::whole(50)), Length::Percent(Number::whole(50))),
         perspective: None,
         filter: Filter::NONE,
+        displace: None,
+        grain: None,
         lines: Vec::new(),
     };
     let mut found = Vec::new();
@@ -76,6 +189,22 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
                         attribute.shown()
                     ),
                 )),
+            }
+            continue;
+        }
+        if name == "displace" {
+            let read = read_displace(attribute.value());
+            found.extend(finish_report(&read, name, &attribute.shown(), attribute.line()));
+            if let Read::Taken(displace) = read {
+                movement.displace = Some(displace);
+            }
+            continue;
+        }
+        if name == "grain" {
+            let read = read_grain(attribute.value());
+            found.extend(finish_report(&read, name, &attribute.shown(), attribute.line()));
+            if let Read::Taken(grain) = read {
+                movement.grain = Some(grain);
             }
             continue;
         }
@@ -241,6 +370,7 @@ pub(crate) struct Mover {
     pub(crate) origin: (f64, f64),
     pub(crate) perspective: Option<f64>,
     pub(crate) filter: Filter,
+    pub(crate) finish: Option<Finish>,
     pub(crate) motion: Option<ElementMotion>,
     pub(crate) clip: Option<Rect>,
 }

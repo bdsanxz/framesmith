@@ -740,6 +740,11 @@ impl CardRenderer {
                 None => return Ok(()),
             },
         };
+        if group.finish.is_some() {
+            // The processor's finished picture of the group (`docs/spec/finishes.md`, section 4), laid as a picture.
+            let layer = draw_cpu::finished_layer(plan.width, plan.height, group, map)?;
+            return self.push_layer(plan, target, scissor, layer);
+        }
         if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
             return self.plan_turned(plan, target, scissor, group, map, opacity, turn.about(map));
         }
