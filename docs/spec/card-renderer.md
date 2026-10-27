@@ -214,6 +214,21 @@ Tests:
 - `crates/render/tests/turn_in_space.rs`: edges, edge-on, mirrored, both turns and no perspective, measured the same way on both renderers. The card's tests are reference machine only.
 - `crates/render/tests/turn_fixture_on_the_card.rs`: every frame of `turn-in-space` agrees with the processor within section 4. Reference machine only.
 
+### 10.7 Groups blurred and brightened
+
+A group with a blur or a brightness (`render-command.md` section 4.5, rule 11) is drawn as on the processor:
+
+1. Its marks are drawn, under its full map, into a texture of its own the size of the frame, which starts clear. The group's clip does not cut them here.
+2. With a blur, one quad over the frame writes a second texture. Each pixel is the sum of the pixels of the first texture along its row, each times its weight. The weights are the processor's (`draw::blur_weights`), passed as single-precision numbers, and what lies outside the frame is clear.
+3. A second quad writes a third texture from the second in the same way, down each column, and brightens each pixel: each colour value times the brightness, kept at most the alpha. Each value is rounded to a whole level. With no blur, one pass with the single weight 1 only brightens.
+4. The last texture is laid over its target with the group's opacity, in the group's clip, as a fading group is (section 10.1). A turned group (section 10.6) turns the last texture.
+
+Each pass writes every pixel of its texture, with no blending. The textures between the passes keep 8 bits a channel, so a value can be half a level from the processor's before the second pass. Every pixel stays within the agreement of section 4.
+
+Tests:
+- `crates/render/tests/blur_and_brightness.rs`: an edge against a Gaussian, colours halved and stopped at white, the order of the two, fading as one picture, and opacity 0, measured the same way on both renderers. The card's tests are reference machine only.
+- `crates/render/tests/blur_fixture_on_the_card.rs`: every frame of `blur-and-brightness` agrees with the processor within section 4. Reference machine only.
+
 ## 11. Backgrounds on the card
 
 The layers of a box's background (`render-command.md` section 4.6) are drawn by the card in a shader of their own, `paint.wgsl`.

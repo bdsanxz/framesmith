@@ -125,15 +125,15 @@ fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
 fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
     let reports = refused(
         "attributes",
-        "<box id=\"a\" clip-path=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" blur=\"0.5\"/>",
+        "<box id=\"a\" clip-path=\"4\"\n     x=\"3\" box-shadow=\"1\" left=\"2\" reveal=\"0.5\"/>",
     );
-    // `x` moves the box (section 4.5) and is taken; `blur` is not drawn.
+    // `x` moves the box (section 4.5) and is taken; `reveal` is not drawn.
     assert_eq!(
         reports,
         vec![
             "composition.xml 2 FS-0035 <box> has an attribute this version does not support: `clip-path`",
             "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `box-shadow`",
-            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `blur`",
+            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `reveal`",
         ]
     );
     // The root takes its seven attributes and `class`, which names styles of the file: a name that no

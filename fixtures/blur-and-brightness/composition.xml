@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blur and brightness of an element with its children, and an element faded as one picture. Left: a yellow box with a
+     blur of 5 pixels, moving 30.5 pixels right over the second. Middle: an element blurred by 3 and brightened by 2 that
+     holds a grey of 200 beside a grey of 40. Right: an element at opacity 0.5 holding a red box and a blue one over it,
+     overlapping, the overlap as strong as the rest. 320 by 120 pixels, 30 frames a second, on dark blue. -->
+<composition version="1" id="blur-and-brightness" width="320" height="120" fps="30" duration="1" background="#102040">
+  <box left="20" top="20" width="60" height="80" background="#f0c040" blur="5">
+    <tween duration="1" to-x="30.5"/>
+  </box>
+  <box left="130" top="20" width="80" height="80" blur="3" brightness="2">
+    <box left="0" top="0" width="40" height="80" background="#c8c8c8"/>
+    <box left="40" top="0" width="40" height="80" background="#282828"/>
+  </box>
+  <box left="220" top="10" width="100" height="100" opacity="0.5">
+    <box left="0" top="20" width="60" height="60" background="#ff0000"/>
+    <box left="30" top="30" width="60" height="60" background="#0000ff"/>
+  </box>
+</composition>

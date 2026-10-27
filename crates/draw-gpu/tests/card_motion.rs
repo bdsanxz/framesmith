@@ -8,7 +8,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use draw::{Colour, Font, Frame, Glyph, GlyphRun, Group, Map, Mark, Picture, Renderer, Step, TextMark};
+use draw::{Colour, Filter, Font, Frame, Glyph, GlyphRun, Group, Map, Mark, Picture, Renderer, Step, TextMark};
 use draw_cpu::CpuRenderer;
 use draw_gpu::{CardRenderer, MASK_BOUND};
 use layout::Rect;
@@ -99,6 +99,7 @@ fn group(map: Map, opacity: f64, clip: Option<Rect>, marks: Vec<Mark>) -> Mark {
         clip,
         marks,
         turn: None,
+        filter: Filter::NONE,
     })
 }
 
