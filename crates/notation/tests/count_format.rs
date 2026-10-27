@@ -95,7 +95,7 @@ fn a_format_the_table_does_not_list_is_reported_on_the_line_of_its_attribute() {
         .collect();
     assert_eq!(
         problems,
-        ["line 3: FS-0082: `count-format=\"0.0.0\"` is not a form of number; the forms are `0`, `0.00`, `0,0`, `0,0.00`, `m:ss` and `m:ss.0`, with up to six decimals"]
+        ["line 3: FS-0084: `count-format=\"0.0.0\"` is not a form of number; the forms are `0`, `0.00`, `0,0`, `0,0.00`, `m:ss` and `m:ss.0`, with up to six decimals"]
     );
 }
 
@@ -109,9 +109,9 @@ fn a_counting_text_with_words_and_a_count_without_its_attribute_are_reported() {
     assert_eq!(
         problems,
         [
-            "line 2: FS-0082: a <text> that counts holds no words of its own: its text is the number",
-            "line 4: FS-0082: `count-format` needs `count`",
-            "line 6: FS-0082: a tween of `count` needs the attribute `count` on its <text>",
+            "line 2: FS-0084: a <text> that counts holds no words of its own: its text is the number",
+            "line 4: FS-0084: `count-format` needs `count`",
+            "line 6: FS-0084: a tween of `count` needs the attribute `count` on its <text>",
         ]
     );
 }

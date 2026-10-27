@@ -1052,18 +1052,16 @@ fn typing_of(tree: &[Node], owners: &[Option<usize>], block: &Block, clock: Cloc
         let at = match elements.iter().position(|known| *known == element) {
             Some(at) => at,
             None => {
-                // The attribute is the starting value of the element's tweens and sets of `typed`; with none, every
-                // character is drawn (section 7.2, point 2).
+                // The attribute is the starting value of the element's tweens and sets of `typed`, and the number drawn
+                // when it stands alone; with neither, every character is drawn (section 7.2, point 2; B58).
                 let written = tree[element].attribute("typed").and_then(|attribute| attribute.number());
                 let track = track_of(tree, element, Prop::Typed, written.unwrap_or(f64::INFINITY), clock);
-                let own = if track.is_some() {
-                    written.unwrap_or(f64::INFINITY)
-                } else {
-                    f64::INFINITY
-                };
-                types |= track.is_some();
+                types |= track.is_some() || written.is_some();
                 elements.push(element);
-                typing.push(Typing { own, track });
+                typing.push(Typing {
+                    own: written.unwrap_or(f64::INFINITY),
+                    track,
+                });
                 before.push(0);
                 elements.len() - 1
             }

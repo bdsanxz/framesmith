@@ -71,23 +71,18 @@ fn reference_of(fixture: &str, number: u64) -> Picture {
                 inside +=
                     &format!("<text left=\"10\" top=\"32\" width=\"140\" text-align=\"center\" {LOOK} color=\"#2050c0\">{centre}</text>\n");
             }
-            inside += &format!("<text left=\"10\" top=\"60\" {LOOK} color=\"#202020\">WHOLE TEXT</text>");
+            inside += &format!("<text left=\"10\" top=\"60\" {LOOK} color=\"#202020\">WHOLE{HIDDEN} TEXT</span></text>");
             reference(&name, 160, 90, &inside)
         }
         "type-a-span" => {
             // The text shows from 0.8 s. The span's tween runs from 0.8 + 0.2 = 1.0 s to 1.5 s, 5 characters: floor(5 (t -
-            // 1.0) / 0.5) at time t. The characters the span does not show take no room, so " END" follows what it shows.
-            let span = match number {
+            // 1.0) / 0.5) at time t. The characters the span does not show keep their room, so " END" stays at its place (B83).
+            let words = match number {
                 0 => return reference(&name, 180, 40, ""),
-                8 | 10 => "",
-                12 => " W",
-                13 => " WO",
-                _ => " WORD",
-            };
-            let words = if span.is_empty() {
-                "HELLO END".to_string()
-            } else {
-                format!("HELLO<span color=\"#c03020\">{span}</span> END")
+                8 | 10 => format!("HELLO{HIDDEN} WORD</span> END"),
+                12 => format!("HELLO<span color=\"#c03020\"> W</span>{HIDDEN}ORD</span> END"),
+                13 => format!("HELLO<span color=\"#c03020\"> WO</span>{HIDDEN}RD</span> END"),
+                _ => "HELLO<span color=\"#c03020\"> WORD</span> END".to_string(),
             };
             reference(
                 &name,
@@ -122,12 +117,12 @@ fn a_counting_text_shows_the_number_of_each_frame_s_time_in_its_form() {
 }
 
 #[test]
-fn a_typed_text_shows_its_first_characters_where_the_whole_text_has_them_and_typed_alone_shows_all() {
+fn a_typed_text_shows_its_first_characters_and_typed_alone_shows_its_number_of_them() {
     frames_show_what_is_worked_out("type-a-text", &[0, 5, 10, 14]);
 }
 
 #[test]
-fn a_span_types_its_own_words_in_its_text_s_time_and_the_words_after_it_close_up() {
+fn a_span_types_its_own_words_in_its_text_s_time_and_the_words_after_it_keep_their_places() {
     frames_show_what_is_worked_out("type-a-span", &[0, 8, 10, 12, 13, 15, 19]);
 }
 
@@ -172,4 +167,26 @@ fn a_counting_number_keeps_its_box_still_and_stands_in_it_by_its_alignment() {
         )),
     );
     compare(0, &scene.picture(0, &mut CpuRenderer).unwrap(), &zero).unwrap();
+}
+
+/// A text that types its five characters over one second, in a film of ten frames a second and one second.
+fn fraction_scene() -> Scene {
+    let text = format!(
+        "<composition version=\"1\" width=\"180\" height=\"40\" fps=\"10\" duration=\"1\" background=\"#ffffff\">\n{FONT}\n<text left=\"10\" top=\"8\" {LOOK} color=\"#202020\">HELLO<tween at=\"0\" duration=\"1\" from-typed=\"0\" to-typed=\"5\"/></text>\n</composition>\n"
+    );
+    let folder = project_with("count-and-typed-pictures", "type-a-fraction", &text);
+    fs::create_dir_all(folder.join("fonts")).unwrap();
+    let font = "framesmith-test-stroke-400.ttf";
+    fs::copy(common::fixtures().join("fonts").join(font), folder.join("fonts").join(font)).unwrap();
+    scene_of(&folder)
+}
+
+#[test]
+fn a_typed_fraction_of_a_character_shows_only_the_characters_before_it() {
+    // 1.5 characters typed at 0.3 s and 2.5 at 0.5 s: a fraction is not a character, so one and then two are shown.
+    let scene = fraction_scene();
+    let one = format!("<text left=\"10\" top=\"8\" {LOOK} color=\"#202020\">H{HIDDEN}ELLO</span></text>");
+    compare(3, &scene.picture(3, &mut CpuRenderer).unwrap(), &reference("type-a-fraction-3", 180, 40, &one)).unwrap();
+    let two = format!("<text left=\"10\" top=\"8\" {LOOK} color=\"#202020\">HE{HIDDEN}LLO</span></text>");
+    compare(5, &scene.picture(5, &mut CpuRenderer).unwrap(), &reference("type-a-fraction-5", 180, 40, &two)).unwrap();
 }

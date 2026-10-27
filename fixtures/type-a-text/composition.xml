@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Texts typed out (text.md section 7.2). The first types 10 of its 12 characters over the first second: none at frame
      0, "TYPED" at frame 5 and "TYPED TEXT" from frame 10 on. The second, centred in 140 pixels, types "CENTRE": "CEN" at
-     frame 5, each letter where the whole word puts it. The third writes typed="5" and has no tween: the whole text
-     shows. 160 by 90 pixels, 10 frames a second, 1.5 seconds. -->
+     frame 5, each letter where the whole word puts it. The third writes typed="5" and has no tween: "WHOLE", the five
+     characters it gives, shows (B58). 160 by 90 pixels, 10 frames a second, 1.5 seconds. -->
 <composition version="1" id="type-a-text" width="160" height="90" fps="10" duration="1.5" background="#ffffff">
   <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
   <text left="10" top="4" font-family="Framesmith Test Stroke" font-size="20" color="#202020">TYPED TEXT!!<tween at="0" duration="1" from-typed="0" to-typed="10"/></text>

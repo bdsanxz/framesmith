@@ -369,7 +369,7 @@ fn set<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot,
 /// A `<text>` that counts (`docs/spec/notation.md` section 7.12): its `count-format` must be one of the forms and needs
 /// `count`, each reported on the attribute; a text with `count` holds no words other than white space and no `<span>`,
 /// reported once on the text's line; and a `<tween>` or `<set>` of `count` needs `count` on the text, reported on each of
-/// its attributes that changes `count`. Every report is `FS-0082`. What the text's styles give it counts as written.
+/// its attributes that changes `count`. Every report is `FS-0084`. What the text's styles give it counts as written.
 fn counting<F: Fn(usize) -> Spot>(node: roxmltree::Node, read: &[Effective], spot: Spot, spot_at: &F, problems: &mut Vec<Found>) {
     let given = |name: &str| read.iter().find(|attribute| !attribute.prefixed && attribute.name == name);
     let counts = given("count").is_some();

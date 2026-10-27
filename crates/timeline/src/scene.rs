@@ -828,8 +828,8 @@ fn walk_canvas(
             // A text that is an item of a row, a column or a set takes the rectangle its flow gives it; any other is
             // placed in its parent.
             let placed = match assigned[index] {
-                Some((rect, _)) => {
-                    paragraph::lay_out_item(&mut fonts, tree, index, form.written.clone(), form.absolute, clock_of(index)).map(|item| Paragraph {
+                Some((rect, _)) => paragraph::lay_out_item(&mut fonts, tree, index, form.written.clone(), form.absolute, clock_of(index))
+                    .map(|item| Paragraph {
                         rect,
                         block: item.block,
                         dressing: item.dressing,

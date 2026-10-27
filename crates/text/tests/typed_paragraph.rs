@@ -68,7 +68,7 @@ fn a_centred_line_keeps_its_place_as_it_is_typed() {
 }
 
 #[test]
-fn the_words_after_a_piece_not_yet_typed_close_up_by_its_hidden_advances() {
+fn the_words_after_a_piece_not_yet_typed_keep_their_places() {
     let mut fonts = fonts();
     let block = layout_pieces(
         &mut fonts,
@@ -79,13 +79,11 @@ fn the_words_after_a_piece_not_yet_typed_close_up_by_its_hidden_advances() {
     .unwrap();
     let whole = placed(&block);
     assert_eq!(whole.len(), 15);
-    let advance = |index: usize| whole[index + 1].1 - whole[index].1;
-    // The red piece shows " W" (2 of its 6); its "ORLD", glyphs 7 to 10, are not drawn, so " END" moves left by their
-    // advances.
-    let hidden: f32 = (7..11).map(advance).sum();
+    // The red piece shows " W" (2 of its 6); its "ORLD", glyphs 7 to 10, are not drawn, and every glyph drawn keeps the
+    // place it has in the whole layout (B59).
     let typed = placed(&block.typed(&[5, 2, 4]));
     let mut want: Vec<(u32, f32, f32)> = whole[..7].to_vec();
-    want.extend(whole[11..].iter().map(|&(id, x, y)| (id, x - hidden, y)));
+    want.extend(whole[11..].iter().copied());
     assert_eq!(typed.len(), want.len());
     for (got, want) in typed.iter().zip(&want) {
         assert_eq!(got.0, want.0);
@@ -94,23 +92,22 @@ fn the_words_after_a_piece_not_yet_typed_close_up_by_its_hidden_advances() {
 }
 
 #[test]
-fn a_piece_typed_to_none_draws_nothing_and_the_others_close_up() {
+fn a_piece_typed_to_none_draws_nothing_and_the_others_keep_their_places() {
     let mut fonts = fonts();
     let block = layout_pieces(&mut fonts, &[words("AB", BLACK), words(" CD", RED)], Align::Left, None).unwrap();
     let whole = placed(&block);
     let typed = placed(&block.typed(&[0, 3]));
-    // "AB" is not drawn, and " CD" moves left by the advances of A and B: it starts where A started.
-    let shift = whole[2].1 - whole[0].1;
-    let want: Vec<(u32, f32)> = whole[2..].iter().map(|&(id, x, _)| (id, x - shift)).collect();
+    // "AB" is not drawn, and " CD" stays where the whole layout puts it (B59): it does not start where A started.
+    let want: Vec<(u32, f32)> = whole[2..].iter().map(|&(id, x, _)| (id, x)).collect();
     let got: Vec<(u32, f32)> = typed.iter().map(|&(id, x, _)| (id, x)).collect();
     assert_eq!(got, want);
 }
 
 #[test]
-fn each_line_closes_up_on_its_own() {
+fn each_line_keeps_its_places_as_the_first_piece_is_typed() {
     let mut fonts = fonts();
-    // Two lines at 24 pixels wrapped at 100: "AAAA" and "BBBB". With the first piece shown to 2, the second line is not
-    // moved by the hidden glyphs of the first.
+    // Two lines at 24 pixels wrapped at 100: "AAAA" and "BBBB". With the first piece shown to 2, the second line keeps its
+    // places as the hidden glyphs of the first are left out.
     let block = layout_pieces(&mut fonts, &[words("AAAA ", BLACK), words("BBBB", RED)], Align::Left, Some(100.0)).unwrap();
     assert_eq!(block.lines.len(), 2);
     let whole = placed(&block);

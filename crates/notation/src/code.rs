@@ -347,7 +347,7 @@ impl Code {
             Code::SoundNotRead => "FS-0079",
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
-            Code::CountNotWritten => "FS-0082",
+            Code::CountNotWritten => "FS-0084",
         }
     }
 

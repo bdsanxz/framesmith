@@ -580,52 +580,21 @@ fn glyph_sources(
 
 impl Block {
     /// The block typed (`docs/spec/text.md`, section 7.2): `shown[piece]` characters of each piece drawn, the others
-    /// left out, and each glyph drawn moved left by the advances of the glyphs left out before it in its line, in the
-    /// order of the text. The size, the lines and their places are those of the whole block.
+    /// left out. Every glyph drawn stays at its place in the layout, as it is with every character shown, so no shown
+    /// character moves as more appear (`docs/spec/notation.md` section 7.12, B59 and B83). The size, the lines and
+    /// their places are those of the whole block.
     pub fn typed(&self, shown: &[usize]) -> Block {
         let drawn = |source: &Source| source.character < shown.get(source.piece).copied().unwrap_or(usize::MAX);
-        // The glyphs left out, as (line, order, advance).
-        let mut hidden: Vec<(usize, usize, f32)> = Vec::new();
-        for run in &self.runs {
-            for glyph in &run.glyphs {
-                if !drawn(&glyph.source) {
-                    hidden.push((glyph.source.line, glyph.source.order, glyph.source.advance));
-                }
-            }
-        }
-        let shift = |source: &Source| -> f32 {
-            hidden
-                .iter()
-                .filter(|(line, order, _)| *line == source.line && *order < source.order)
-                .map(|(_, _, advance)| advance)
-                .sum()
-        };
         let runs = self
             .runs
             .iter()
             .map(|run| PositionedRun {
-                glyphs: run
-                    .glyphs
-                    .iter()
-                    .filter(|glyph| drawn(&glyph.source))
-                    .map(|glyph| PositionedGlyph {
-                        x: glyph.x - shift(&glyph.source),
-                        ..*glyph
-                    })
-                    .collect(),
+                glyphs: run.glyphs.iter().filter(|glyph| drawn(&glyph.source)).copied().collect(),
                 ..run.clone()
             })
             .filter(|run| !run.glyphs.is_empty())
             .collect();
-        let pictures = self
-            .pictures
-            .iter()
-            .filter(|picture| drawn(&picture.source))
-            .map(|picture| PositionedPicture {
-                x: picture.x - shift(&picture.source),
-                ..picture.clone()
-            })
-            .collect();
+        let pictures = self.pictures.iter().filter(|picture| drawn(&picture.source)).cloned().collect();
         Block {
             runs,
             pictures,
