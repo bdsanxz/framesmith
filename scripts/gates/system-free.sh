@@ -50,6 +50,16 @@ computed() {
 
 recorded() { grep -v '^#' "$RECORD" | grep -v '^[[:space:]]*$' | tr -d '\r'; }
 
+# The system crates a crate's dependency tree holds, by name, in the order of SYSTEM_CRATES.
+holds() {
+    local crate="$1" tree system found=""
+    tree=$(cargo tree -p "$crate" -e normal,build,dev --prefix none --format '{p}' 2>&1) || return 1
+    for system in $SYSTEM_CRATES; do
+        printf '%s\n' "$tree" | grep -q "^$system v" && found="$found $system"
+    done
+    echo "${found# }"
+}
+
 do_check() {
     local want have missing extra
     want=$(computed | sort) || return 1
@@ -65,8 +75,10 @@ do_check() {
         code=1
     done
     for crate in $extra; do
-        echo "FAIL: $crate is in scripts/gates/system-free.txt but is not a system-free crate of the workspace"
-        summary "- FAIL: $crate is in the list but is not a system-free crate of the workspace"
+        local held
+        held=$(holds "$crate") || held="(its tree could not be read)"
+        echo "FAIL: $crate is in scripts/gates/system-free.txt but is not a system-free crate of the workspace: it holds $held"
+        summary "- FAIL: $crate is in the list but is not a system-free crate of the workspace: it holds $held"
         code=1
     done
     [ "$code" -eq 0 ] && echo "PASS: the list equals the system-free crates of the workspace"
