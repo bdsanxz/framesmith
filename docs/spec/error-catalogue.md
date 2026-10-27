@@ -79,7 +79,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0031` | invalid | An element of the composition file stands in a place where the notation does not allow it. | Move the element to a place the message names, or remove it. |
 | `FS-0032` | invalid | A value in the composition file that must be a number is not one. | Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign. |
 | `FS-0033` | invalid | A value in the composition file that must be a time in seconds is not one. | Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit. |
-| `FS-0034` | invalid | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. | Write the length as a number of pixels, such as 40, or as a percentage, such as 50%, and not below 0 where the message says 0 or more. |
+| `FS-0034` | invalid | A length in the composition file is not a number of pixels or a percentage, or is below 0 where 0 or more is taken. | Write the value in a form the attribute takes (`notation.md` section 6), and not below 0 where the message says 0 or more. |
 | `FS-0035` | unsupported | The project uses a form that is known and that this version does not draw or apply. | Remove what the message names, or wait for the sprint that brings it. |
 | `FS-0036` | failure | The video could not be made. | Put right what the message names (the folder, the disk or the system's video encoder), then run the command again. |
 | `FS-0037` | invalid | An option of `render`, or its value, is not one the command takes. | Give one of the options the message lists, with one of the values it names, or leave the option out. |
@@ -112,6 +112,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0064` | invalid | A background layer, or a size, place or repeat of one, is not in the form the notation gives for it. | Write the value in the form the message names. |
 | `FS-0065` | invalid | A list of background settings has neither one entry nor one for each layer of the background. | Write one entry for all the layers, or one for each layer in the order of `background`. |
 | `FS-0066` | invalid | A background setting is written on an element with no background. | Write a `background` on the element, or remove the setting. |
+| `FS-0067` | invalid | A `border` is not a width and a colour, or a width, `double` and a colour. | Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`. |
 
 Notes on the rows:
 
@@ -134,6 +135,7 @@ Notes on the rows:
 - `FS-0061` and `FS-0062` were added with the sets (`notation.md` section 8.3): a set that changes no property, and one that changes a property the element it moves does not take. They are new codes, not wider meanings of `FS-0059` and `FS-0060`, since a meaning is never changed (section 5). `FS-0061` is on the line of the set, `FS-0062` on the line of the attribute. An attribute of a set that is not an animated property, such as `width`, is `FS-0030`, and counts as the set's property for `FS-0061`.
 - `FS-0063` was added with the easings (`notation.md` section 8.4; `motion.md`): an `ease` that is not one of the nineteen names or `out-back(n)`. It is of the kind invalid, on the line of the attribute, and its message lists the names taken.
 - `FS-0064` to `FS-0066` were added with the backgrounds of several layers (`render-command.md` section 4.6, rule 10): a layer or setting not in its form, a list of settings of the wrong length, and a setting with no background. They are new codes rather than a wider meaning of `FS-0052`, whose meaning is a text attribute's.
+- `FS-0067` was added with borders (`box-edges.md` sections 1 and 6): a `border` in a form that is not `width colour` or `width double colour`. It is of the kind invalid, reported on the line of the attribute.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

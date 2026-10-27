@@ -23,12 +23,21 @@ fn place_glyph_corner(
     return glyph;
 }
 
-// The colour is premultiplied by the coverage, so that the blend keeps the picture where the glyph is clear.
+// The colour, premultiplied by its own alpha (1 for a glyph), is multiplied by the coverage, so that the blend keeps the
+// picture where the glyph is clear. A ring of a border is drawn the same way (docs/spec/box-edges.md, section 7).
 @fragment
 fn paint_glyph(glyph: Glyph) -> @location(0) vec4<f32> {
     let texel = vec2<i32>(floor(glyph.place.xy - glyph.origin));
     let coverage = textureLoad(mask, texel, 0).r;
-    return vec4<f32>(glyph.colour.rgb * coverage, coverage);
+    return glyph.colour * coverage;
+}
+
+// The coverage of a cut's shape in all four channels: the blend multiplies what the cut's texture holds by it, so that nothing
+// is kept outside the shape (docs/spec/box-edges.md, section 7).
+@fragment
+fn keep_inside(glyph: Glyph) -> @location(0) vec4<f32> {
+    let texel = vec2<i32>(floor(glyph.place.xy - glyph.origin));
+    return vec4<f32>(textureLoad(mask, texel, 0).r);
 }
 
 // A colour picture of an emoji (docs/spec/text.md, section 12.4; docs/spec/card-renderer.md, section 9.8): each pixel is read

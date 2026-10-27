@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rounded corners over a striped ground, so that what lies under each corner shows. Top left: a box with a radius of 20
+     and no border. Top right: a radius of 16 with a border of 5, whose inner corner has a radius of 11. Bottom left: a box
+     30 pixels high with a radius of 400, more than half its height, which gives ends that are half circles. Bottom middle: a
+     square 50 by 50 with a radius of 300, a circle. Bottom right: a rounded box with a border of two lines that turns from
+     0.5 s to 1.5 s. 320 by 180 pixels, 10 frames a second. -->
+<composition version="1" id="box-corners" width="320" height="180" fps="10" duration="2" background="#203040">
+  <box left="0" top="0" width="320" height="30" background="#4a6a8a"/>
+  <box left="0" top="60" width="320" height="30" background="#4a6a8a"/>
+  <box left="0" top="120" width="320" height="30" background="#4a6a8a"/>
+  <box left="20" top="15" width="120" height="70" background="#f0e8d8" border-radius="20"/>
+  <box left="170" top="15" width="130" height="70" background="#f0e8d8" border="5 #c02020" border-radius="16"/>
+  <box left="20" top="110" width="110" height="30" background="#e0a020" border-radius="400"/>
+  <box left="150" top="100" width="50" height="50" background="#e0a020" border="3 #c02020" border-radius="300"/>
+  <box left="220" top="100" width="80" height="60" background="#f0e8d8" border="9 double #2050c0" border-radius="18">
+    <tween at="0.5" duration="1" from-rotation="0" to-rotation="45"/>
+  </box>
+</composition>

@@ -150,10 +150,14 @@ fn a_number_that_is_not_finite_or_not_written_as_a_number_is_reported() {
         "1/2",
     ] {
         for (place, text) in with_number(value) {
+            let name = place.split(' ').next().unwrap();
+            // Two numbers in a `border-radius` are a corner written as an ellipse: unsupported, S33 (`box-edges.md` section 1).
+            if name == "border-radius" && matches!(value, "1 2" | "1/2") {
+                continue;
+            }
             let problems = problems_of(&text);
             assert_eq!(problems.len(), 1, "{place}={value:?}: {problems:#?}");
             assert_eq!(problems[0].code(), Code::NotANumber, "{place}={value:?}");
-            let name = place.split(' ').next().unwrap();
             assert_eq!(
                 problems[0].message(),
                 format!(

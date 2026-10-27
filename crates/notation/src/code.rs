@@ -169,11 +169,13 @@ pub enum Code {
     BackgroundListLength,
     /// A background setting is written on an element with no background.
     BackgroundSettingAlone,
+    /// A `border` is not a width and a colour, or a width, `double` and a colour.
+    BorderNotInForm,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 66] = [
+    pub const ALL: [Code; 67] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -240,6 +242,7 @@ impl Code {
         Code::BackgroundNotInForm,
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
+        Code::BorderNotInForm,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -311,6 +314,7 @@ impl Code {
             Code::BackgroundNotInForm => "FS-0064",
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
+            Code::BorderNotInForm => "FS-0067",
         }
     }
 
@@ -370,7 +374,7 @@ impl Code {
             Code::NotANumber => "Write the value as a plain number, such as 12, -4, .5 or 1e3, with no unit and no percent sign.",
             Code::NotATime => "Write the time as digits with an optional point, such as 5, 0.5 or .5, with no sign, exponent or unit.",
             Code::LengthNotAccepted => {
-                "Write the length as a number of pixels, such as 40, or as a percentage, such as 50%, and not below 0 where the message says 0 or more."
+                "Write the value in a form the attribute takes (`notation.md` section 6), and not below 0 where the message says 0 or more."
             }
             Code::FormNotSupported => "Remove what the message names, or wait for the sprint that brings it.",
             Code::VideoNotMade => "Put right what the message names (the folder, the disk or the system's video encoder), then run the command again.",
@@ -403,6 +407,7 @@ impl Code {
             Code::BackgroundNotInForm => "Write the value in the form the message names.",
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
+            Code::BorderNotInForm => "Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

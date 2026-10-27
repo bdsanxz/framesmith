@@ -133,6 +133,11 @@ fn shown_problems() -> Vec<ShownProblem> {
         ),
         ("shown-too-deep", chain_files(17), Code::ShownTooDeep),
         (
+            "border-not-in-form",
+            vec![("composition.xml".to_string(), inside_root(r##"<box border="2px #ff0000"/>"##))],
+            Code::BorderNotInForm,
+        ),
+        (
             "tween-no-duration",
             vec![("composition.xml".to_string(), inside_root(r#"<box><tween to-x="5"/></box>"#))],
             Code::TweenNoDuration,

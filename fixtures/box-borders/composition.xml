@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Borders inside the edge of their box. Top left: a box 120 by 70 with a border of 6 pixels. Top right: a border of two
+     lines 9 pixels wide, three of line, three of gap, three of line. Bottom left: a border whose colour has alpha, over the
+     box's fill. Bottom right: a box with a border of 6 that moves 60 pixels to the right from 0.5 s to 1.5 s, by fractions of a
+     pixel between. 320 by 180 pixels, 10 frames a second. -->
+<composition version="1" id="box-borders" width="320" height="180" fps="10" duration="2" background="#203040">
+  <box left="20" top="20" width="120" height="70" background="#f0e8d8" border="6 #c02020"/>
+  <box left="170" top="20" width="130" height="70" background="#f0e8d8" border="9 double #2050c0"/>
+  <box left="20" top="110" width="120" height="50" background="#f0e8d8" border="8 #00000080"/>
+  <box left="170" top="110" width="60" height="50" background="#f0e8d8" border="6 #208040">
+    <tween at="0.5" duration="1" from-x="0" to-x="60"/>
+  </box>
+</composition>

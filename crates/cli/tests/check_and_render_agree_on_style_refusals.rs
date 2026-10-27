@@ -17,7 +17,7 @@ const CASES: [(&str, &str, &[u32]); 3] = [
     (
         "shadow-on-box",
         "<composition version=\"1\" width=\"160\" height=\"90\" fps=\"10\" duration=\"1\">\n\
-         <style id=\"moving\" x=\"20\" box-shadow=\"1\" border-radius=\"2\"/>\n\
+         <style id=\"moving\" x=\"20\" box-shadow=\"1\" clip-path=\"2\"/>\n\
          <box class=\"moving\" left=\"90\" top=\"50\" width=\"20\" height=\"16\" background=\"#ffffff\"/>\n\
          </composition>\n",
         &[3, 3],

@@ -113,6 +113,26 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
     }
 }
 
+/// The attributes of a border by side (`notation.md` section 14, S20), known and not supported in this version.
+const BORDERS_BY_SIDE: [&str; 7] = [
+    "border-top",
+    "border-right",
+    "border-bottom",
+    "border-left",
+    "border-width",
+    "border-color",
+    "border-style",
+];
+
+/// Whether a `border-radius` is written as an ellipse (entry S33): two numbers, apart or with a `/` between them.
+fn is_elliptical(value: &str) -> bool {
+    let parts: Vec<&str> = match value.split_once('/') {
+        Some((across, down)) => vec![across.trim(), down.trim()],
+        None => value.split_whitespace().collect(),
+    };
+    parts.len() == 2 && parts.iter().all(|part| value::number(part).is_ok())
+}
+
 /// The attributes of one element as it reads them: those it does not take, and the numbers and times
 /// it writes. A value a style gives is judged on the element, and reported on the element's place
 /// (`docs/spec/check-command.md` section 3c).
@@ -127,6 +147,31 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
                 format!(
                     "the style `{}` has `class`; a style cannot take another style",
                     shown(&style_id(node))
+                ),
+            ));
+            continue;
+        }
+        if !attribute.prefixed && !element.takes(name) && element.takes("border") && BORDERS_BY_SIDE.contains(&name) {
+            // A border by side is known and waits for a later sprint: entry S20 of `notation.md` section 14.
+            problems.push(found(
+                Code::FormNotSupported,
+                spot,
+                format!(
+                    "{} has `{}`, a border by side, which this version does not draw; write `border`, one line round the whole box",
+                    element.tag(),
+                    shown(&attribute.written)
+                ),
+            ));
+            continue;
+        }
+        if !attribute.prefixed && name == "border-radius" && element.takes(name) && is_elliptical(&attribute.value) {
+            // A corner written as an ellipse is known and waits for a later sprint: entry S33 of `notation.md` section 14.
+            problems.push(found(
+                Code::FormNotSupported,
+                spot,
+                format!(
+                    "`border-radius=\"{}\"` is a corner written as an ellipse, which this version does not draw; write one number, the radius of a circular corner",
+                    shown(&attribute.value)
                 ),
             ));
             continue;

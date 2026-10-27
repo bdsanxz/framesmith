@@ -3,6 +3,7 @@
 //! The crate touches no system interface.
 
 mod background;
+mod edges;
 mod moving;
 mod paragraph;
 mod scene;

@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-use draw::{Error, Glyph, GlyphRun, Map};
+use draw::{Error, Glyph, GlyphRun, Map, Ring, Rounded};
 use gpu::wgpu;
 use layout::Rect;
 use vello_cpu::kurbo::Affine;
@@ -42,6 +42,16 @@ pub enum MaskKey {
     },
     Fill {
         rect: (i32, i32, u32, u32),
+        map: [u64; 6],
+        frame: (u32, u32),
+    },
+    /// A rounded rectangle or a ring of a border (`docs/spec/box-edges.md`, section 7): the five numbers of its outer edge and
+    /// of its inner edge (none for a rounded rectangle), the box's rectangle when it cuts the box's own background (section 3,
+    /// rule 1), the map and the size of the frame, each exactly.
+    Shape {
+        outer: [u64; 5],
+        inner: Option<[u64; 5]>,
+        own: Option<(i32, i32, u32, u32)>,
         map: [u64; 6],
         frame: (u32, u32),
     },
@@ -272,6 +282,52 @@ impl Masks {
     }
 
     /// The mask of a key that `prepare` has made; `None` when it has no coverage.
+    /// Makes the mask of a ring under a map, a rounded rectangle when it has no inner edge, with the processor's coverage
+    /// (`draw_cpu::ring_coverage`), unless it is kept; its origin is the frame's top left corner, as a mapped fill's is.
+    pub fn prepare_shape(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        layout: &wgpu::BindGroupLayout,
+        (ring, own): (Ring, Option<Rect>),
+        map: Map,
+        (width, height): (u32, u32),
+    ) -> Result<MaskKey, Error> {
+        let numbers = |shape: Rounded| [shape.left, shape.top, shape.right, shape.bottom, shape.radius].map(f64::to_bits);
+        let key = MaskKey::Shape {
+            outer: numbers(ring.outer),
+            inner: ring.inner.map(numbers),
+            own: own.map(|rect| (rect.left, rect.top, rect.width, rect.height)),
+            map: [map.a, map.b, map.c, map.d, map.e, map.f].map(f64::to_bits),
+            frame: (width, height),
+        };
+        if self.entries.contains_key(&key) {
+            self.touch(key);
+            return Ok(key);
+        }
+        let found = match (own, ring.inner) {
+            (Some(_), None) => draw_cpu::cut_weights(ring.outer, own, map, width, height)?,
+            _ => draw_cpu::ring_coverage(ring, map, width, height)?,
+        };
+        let placed = match found {
+            Some(found) => Some(upload(
+                device,
+                queue,
+                layout,
+                Coverage {
+                    origin_x: -i64::from(found.left),
+                    origin_y: -i64::from(found.top),
+                    width: found.width,
+                    height: found.height,
+                    alpha: found.alpha,
+                },
+            )?),
+            None => None,
+        };
+        self.keep(key, None, placed);
+        Ok(key)
+    }
+
     pub fn placed(&self, key: &MaskKey) -> Option<&Placed> {
         self.entries.get(key)?.placed.as_ref()
     }
