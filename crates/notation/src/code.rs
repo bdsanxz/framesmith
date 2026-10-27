@@ -183,11 +183,15 @@ pub enum Code {
     SoundDamaged,
     /// An `<audio>` has a `media-start` at or past the end of its sound file.
     SoundStartPastEnd,
+    /// `init` was asked for a folder that is not empty, so it wrote nothing.
+    InitFolderNotEmpty,
+    /// `init` could not create its folder, or write a file of the starter, and the system gave the reason.
+    InitNotCreated,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 73] = [
+    pub const ALL: [Code; 75] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -261,6 +265,8 @@ impl Code {
         Code::SoundNotRead,
         Code::SoundDamaged,
         Code::SoundStartPastEnd,
+        Code::InitFolderNotEmpty,
+        Code::InitNotCreated,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -339,6 +345,8 @@ impl Code {
             Code::SoundNotRead => "FS-0079",
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
+            Code::InitFolderNotEmpty => "FS-0082",
+            Code::InitNotCreated => "FS-0083",
         }
     }
 
@@ -352,7 +360,9 @@ impl Code {
             | Code::VideoNotMade
             | Code::ShownUnreadable
             | Code::FontUnreadable
-            | Code::SoundUnreadable => Kind::Failure,
+            | Code::SoundUnreadable
+            | Code::InitFolderNotEmpty
+            | Code::InitNotCreated => Kind::Failure,
             Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable | Code::EmojiNotDrawn | Code::SoundNotRead => {
                 Kind::Unsupported
             }
@@ -441,6 +451,10 @@ impl Code {
             Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
+            Code::InitFolderNotEmpty => "Choose a folder that does not exist or is empty, and run the command again.",
+            Code::InitNotCreated => {
+                "Put right the cause the system names (the folder's parent, a file of that name, or the folder's permissions), then run the command again."
+            }
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

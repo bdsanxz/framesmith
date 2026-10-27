@@ -1,0 +1,6 @@
+# The project file of the starter (docs/spec/init-command.md, section 3.2). Each key may be left out; the values
+# written here are the defaults.
+composition: composition.xml
+render:
+  backend: auto
+  quality: standard

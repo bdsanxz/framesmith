@@ -336,7 +336,7 @@ fn no_command_and_an_unknown_command_are_told_with_both_usage_lines() {
         let output = framesmith(&base, args.clone(), &[]);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert!(
-            err(&output).ends_with("\nusage: framesmith check <path>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]\n"),
+            err(&output).ends_with("\nusage: framesmith check <path>\nusage: framesmith init <folder>\nusage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]\n"),
             "{args:?}: {}",
             err(&output)
         );

@@ -79,3 +79,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0079` | The file that `<audio src>` names is not sound of a kind this version reads, or is of such a kind in a form it does not read. |
 | `FS-0080` | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. |
 | `FS-0081` | An `<audio>` has a `media-start` at or past the end of its sound file. |
+| `FS-0082` | `init` was asked for a folder that is not empty, so it wrote nothing. |
+| `FS-0083` | `init` could not create its folder, or write a file of the starter, and the system gave the reason. |

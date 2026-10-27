@@ -119,6 +119,8 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0079` | unsupported | The file that `<audio src>` names is not sound of a kind this version reads, or is of such a kind in a form it does not read. | Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples. |
 | `FS-0080` | invalid | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. | Replace the sound file with a copy that is not damaged. |
 | `FS-0081` | invalid | An `<audio>` has a `media-start` at or past the end of its sound file. | Write a `media-start` below the length of the sound file, or leave it out to start at the beginning. |
+| `FS-0082` | failure | `init` was asked for a folder that is not empty, so it wrote nothing. | Choose a folder that does not exist or is empty, and run the command again. |
+| `FS-0083` | failure | `init` could not create its folder, or write a file of the starter, and the system gave the reason. | Put right the cause the system names (the folder's parent, a file of that name, or the folder's permissions), then run the command again. |
 
 Notes on the rows:
 

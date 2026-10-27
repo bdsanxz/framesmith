@@ -859,6 +859,25 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         emitted.insert(Code::EmojiNotDrawn.as_str());
     }
 
+    // The two refusals of `init` (`docs/spec/init-command.md`, section 5): a folder that is not empty, and a folder whose
+    // path runs through a file.
+    let (init_folder, init_cwd) = project(
+        "emit-init-folder-not-empty",
+        r#"<composition version="1" width="320" height="240" duration="1"/>"#.as_bytes(),
+    );
+    let output = framesmith(&init_cwd, Terminal::AsksForNone, [OsStr::new("init"), init_folder.as_os_str()]);
+    let printed = text(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::InitFolderNotEmpty.as_str())), "{printed}");
+    emitted.insert(Code::InitFolderNotEmpty.as_str());
+
+    let blocked = init_folder.join("composition.xml").join("demo");
+    let output = framesmith(&init_cwd, Terminal::AsksForNone, [OsStr::new("init"), blocked.as_os_str()]);
+    let printed = text(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::InitNotCreated.as_str())), "{printed}");
+    emitted.insert(Code::InitNotCreated.as_str());
+
     let mut all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
     if !cfg!(target_os = "macos") {
         all.remove(Code::EmojiNotDrawn.as_str());

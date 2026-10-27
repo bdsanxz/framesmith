@@ -70,7 +70,7 @@ fn reference_machine_only_two_renders_of_the_project_on_the_card_print_the_same_
 fn no_command_draws_a_single_frame_on_request() {
     let (project, cwd) = fixture_project(GROUP, "no-single-frame", FIXTURE);
     let path = project.to_str().unwrap();
-    // The usage names two commands, check and render, and render names no option that picks a frame.
+    // The usage names three commands, check, init and render, and render names no option that picks a frame.
     let usage = framesmith(&cwd, Vec::<String>::new(), &[]);
     let usage_text = err(&usage);
     let commands: Vec<&str> = usage_text
@@ -78,7 +78,7 @@ fn no_command_draws_a_single_frame_on_request() {
         .filter_map(|line| line.strip_prefix("usage: framesmith "))
         .map(|line| line.split(' ').next().unwrap())
         .collect();
-    assert_eq!(commands, ["check", "render"], "{usage_text}");
+    assert_eq!(commands, ["check", "init", "render"], "{usage_text}");
     let options: Vec<&str> = usage_text
         .split(['[', ']', ' ', '\n'])
         .filter(|word| word.starts_with("--"))

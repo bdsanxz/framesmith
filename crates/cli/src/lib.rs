@@ -1,7 +1,7 @@
 //! The `framesmith` command.
 //!
 //! Behaviour is specified in `docs/spec/check-command.md` and `docs/spec/render-command.md`. This
-//! version has two commands, `check` and `render`.
+//! version has three commands, `check`, `init` and `render`.
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -14,6 +14,7 @@ use project::{Backend, Code, Kind, OpenError, Options, Problem, Project, Report,
 use render::Scene;
 
 pub mod runlog;
+mod starter;
 
 /// The exit code of a command that found nothing wrong.
 pub const EXIT_OK: u8 = 0;
@@ -27,6 +28,7 @@ pub const EXIT_UNSUPPORTED: u8 = 2;
 const MARKS: &str = "--marks";
 
 const CHECK_USAGE: &str = "usage: framesmith check <path>";
+const INIT_USAGE: &str = "usage: framesmith init <folder>";
 const RENDER_USAGE: &str = "usage: framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality draft|standard|high] [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]";
 
 /// The starter of the renderer on the graphics card: `CardRenderer::new`, boxed as a renderer. It is
@@ -66,8 +68,9 @@ fn card_renderer() -> Result<Box<dyn Renderer>, draw::Error> {
 /// Reads the command line, runs the command, prints its reply and logs its result.
 fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_card: &StartCard) -> u8 {
     let reply = match args.split_first() {
-        None => Reply::Unreadable(Code::CommandLineNotRead, "no command is given".to_string(), BOTH_USAGES),
+        None => Reply::Unreadable(Code::CommandLineNotRead, "no command is given".to_string(), ALL_USAGES),
         Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, check),
+        Some((command, rest)) if command == "init" => init_line(rest),
         Some((command, rest)) if command == "render" => match render_line(rest) {
             Ok((path, options, marks)) => render(path, &options, marks, start_card),
             Err((code, why)) => Reply::Unreadable(code, why, &[RENDER_USAGE]),
@@ -75,7 +78,7 @@ fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_ca
         Some((command, _)) => Reply::Unreadable(
             Code::CommandLineNotRead,
             format!("`{}` is not a command", command.to_string_lossy()),
-            BOTH_USAGES,
+            ALL_USAGES,
         ),
     };
     let written = match &reply {
@@ -83,18 +86,20 @@ fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_ca
         Reply::Unreadable(code, why, usages) => {
             writeln!(err, "framesmith: {}", code.statement(why)).and_then(|()| usages.iter().try_for_each(|usage| writeln!(err, "{usage}")))
         }
+        Reply::Refused(code, why) => writeln!(err, "framesmith: {}", code.statement(why)),
     };
     let (code, outcome) = match (written, reply) {
         (Ok(()), Reply::Printed(_, code, outcome)) => (code, outcome),
         (Err(_), Reply::Printed(_, _, outcome)) => (EXIT_FAILED, outcome),
         (_, Reply::Unreadable(..)) => (EXIT_FAILED, Outcome::NotRead),
+        (_, Reply::Refused(code, _)) => (EXIT_FAILED, Outcome::NotInitialised { code }),
     };
     outcome.log(code);
     code
 }
 
 /// The usage lines of a command line that names no command of the program.
-const BOTH_USAGES: &[&str] = &[CHECK_USAGE, RENDER_USAGE];
+const ALL_USAGES: &[&str] = &[CHECK_USAGE, INIT_USAGE, RENDER_USAGE];
 
 /// A command that takes the path of one project and no option: reads the words after its name and
 /// runs it.
@@ -117,6 +122,32 @@ fn with_path(name: &str, usages: &'static [&'static str], rest: &[OsString], run
             ),
             usages,
         ),
+    }
+}
+
+/// `framesmith init <folder>`: the one folder the user names, and no option (`docs/spec/init-command.md`, section 1).
+fn init_line(rest: &[OsString]) -> Reply {
+    match rest {
+        [folder] if !folder.to_string_lossy().starts_with('-') => init(PathBuf::from(folder)),
+        _ => Reply::Unreadable(
+            Code::CommandLineNotRead,
+            "`init` takes the name of one folder, and no option".to_string(),
+            &[INIT_USAGE],
+        ),
+    }
+}
+
+/// Writes the starter project into `folder`, or says why it did not (`docs/spec/init-command.md`, sections 2 and 5).
+fn init(folder: PathBuf) -> Reply {
+    match starter::write(&folder) {
+        Ok(()) => Reply::Printed(starter::printed(&folder), EXIT_OK, Outcome::Initialised),
+        Err(starter::Refusal::NotEmpty) => Reply::Refused(
+            Code::InitFolderNotEmpty,
+            format!("`{}` is not empty, so nothing was written", folder.display()),
+        ),
+        Err(starter::Refusal::NotCreated { path, reason }) => {
+            Reply::Refused(Code::InitNotCreated, format!("`{}` cannot be created: {reason}", path.display()))
+        }
     }
 }
 
@@ -188,6 +219,12 @@ enum Outcome {
         problems: usize,
     },
     NotRead,
+    /// `init` wrote the starter project.
+    Initialised,
+    /// `init` wrote nothing, or stopped part-way through the starter; `code` is the reason.
+    NotInitialised {
+        code: Code,
+    },
     /// `render` wrote the film.
     Rendered {
         frames: u64,
@@ -239,6 +276,10 @@ impl Outcome {
                 )
             }
             Outcome::NotRead => tracing::warn!(outcome = "command line not read", exit, "command finished"),
+            Outcome::Initialised => tracing::info!(outcome = "initialised", exit, "command finished"),
+            Outcome::NotInitialised { code } => {
+                tracing::error!(outcome = "not initialised", exit, code = code.as_str(), "command finished")
+            }
             Outcome::Rendered { frames } => tracing::info!(outcome = "rendered", exit, frames = *frames, "command finished"),
             Outcome::VideoNotMade { code } => {
                 tracing::error!(outcome = "video not made", exit, code = code.as_str(), "command finished")
@@ -256,6 +297,8 @@ enum Reply {
     Printed(Vec<String>, u8, Outcome),
     /// A command line that cannot be read, with what is wrong with it and the usage lines to print.
     Unreadable(Code, String, &'static [&'static str]),
+    /// A command that was read and refused to do its work, with the code of the reason and what is wrong, as one line.
+    Refused(Code, String),
 }
 
 /// `framesmith check <path>`: opens the project that the path names (a folder, a project file or a

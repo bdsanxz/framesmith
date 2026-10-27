@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The starter composition of `framesmith init`: a sky, a sun, a title and a ball that rolls across it, with a tone
+     under them. 480 by 270 pixels, 30 frames a second, 3 seconds. See docs/spec/init-command.md, section 3.1. -->
+<composition version="1" width="480" height="270" fps="30" duration="3" background="#1b2a3a">
+  <audio id="tone" src="audio/tone.wav" start="0" duration="3"/>
+  <box id="sky" left="0" top="0" width="480" height="150" background="#2c5f8a"/>
+  <box id="sun" left="340" top="24" width="90" height="90" background="#f5c542"/>
+  <box id="ball" left="20" top="170" width="60" height="60" background="#e8553d">
+    <tween at="0" duration="3" to-x="340"/>
+  </box>
+  <text id="title" left="30" top="36" font-family="Helvetica, sans-serif" font-size="36" color="#ffffff">Hello, Framesmith</text>
+</composition>
