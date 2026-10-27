@@ -1,14 +1,14 @@
 # Framesmith
 
-Framesmith renders video from compositions written in XML. A composition is a folder of plain files: an XML file in Framesmith's own notation, with the fonts and media it uses. Framesmith draws every frame itself, on the processor or on the graphics card, and writes an MP4 file. It runs on your own machine and needs no browser, no FFmpeg and no other program installed. Its media work (containers, codecs, sound and pixel conversion) is done by [frx7](https://github.com/bdsanxz/frx7), a media stack written for it in Rust.
+Framesmith renders video from compositions written in XML. A composition is a folder of plain files: an XML file in Framesmith's own notation, with the fonts and media it uses. Framesmith draws every frame itself, on the CPU or on the GPU, and writes an MP4 file. It runs on your own machine, with nothing else to install. Its media work (containers, codecs, audio and pixel format conversion) is done by [frx7](https://github.com/bdsanxz/frx7), a media stack written for it in Rust.
 
 ## Status
 
 Framesmith is in early development, and the notation and the command line may still change.
 
 - It runs on macOS only. It is developed and tested on macOS 27 on Apple silicon; older versions of macOS have not been tested.
-- `framesmith render` draws `<box>`, `<text>` and `<composition src>` elements today, animated with `<tween>` and `<set>`. The output is H.264 video in an MP4 file, with a stereo AAC sound track.
-- Pictures, footage, shapes, rectangles and sound (`<image>`, `<video>`, `<shape>`, `<rect>`, `<audio>`) are defined by the notation but not drawn yet, and HEVC output (`--codec hevc`) is not written yet. `render` refuses a composition or an option that needs them, names what it refuses, and writes no film. It never writes a film with part of the composition left out. `check` does not yet report these refusals itself.
+- `framesmith render` draws `<box>`, `<text>` and `<composition src>` elements today, animated with `<tween>` and `<set>`. The output is H.264 video in an MP4 file, with a stereo AAC audio track.
+- Images, video, shapes, rectangles and audio (`<image>`, `<video>`, `<shape>`, `<rect>`, `<audio>`) are defined by the notation but not rendered yet, and HEVC output (`--codec hevc`) is not supported yet. `render` rejects a composition or an option that needs them, names what it rejects, and writes no video file. `check` does not yet report these itself.
 
 ## Requirements
 
@@ -68,7 +68,7 @@ audio bitrate: 192 kbit/s (default)
 elapsed: ...
 ```
 
-The film is two seconds long. Over the first second, the orange card slides in from the left and fades in, and the text stays in place.
+The video is two seconds long. Over the first second, the orange card slides in from the left and fades in, and the text stays in place.
 
 `check` and `render` take the project's folder, its project file, or its composition file. `render` takes these options:
 
@@ -77,7 +77,7 @@ framesmith render <path> [--output <path>] [--backend auto|cpu|gpu] [--quality d
                          [--encoder hardware|software] [--codec h264|hevc] [--workers auto|1-16] [--marks]
 ```
 
-`--backend cpu` draws on the processor and `--backend gpu` on the graphics card. Both renderers give the same picture within a small, tested tolerance. The processor's renderer is the reference.
+`--backend cpu` renders on the CPU and `--backend gpu` on the GPU (shown as `card` in the summary). Both renderers give the same image within a small, tested tolerance; the CPU renderer is the reference.
 
 `check` exits with 0 when the project is valid and 1 when something in it is invalid. Every message names the file and line, and carries a code such as `FS-0030`. Each command writes a log to `logs/framesmith.log` under the folder it is run from.
 
@@ -103,17 +103,17 @@ One cargo workspace. Each crate under `crates/` is named after its role:
 | `project` | Finds and reads the project folder. |
 | `timebase` | Exact times, frame rates and the frame grid. |
 | `motion` | The motion engine: tweens, easings, and the value of every animated property at any time. |
-| `layout` | Places and sizes, in whole pixels. |
+| `layout` | Layout: positions and sizes, in whole pixels. |
 | `text` | Fonts, shaping, line breaking and the glyphs of each line. |
 | `timeline` | What is shown at a given frame. |
-| `draw` | The list of drawing steps, and the interface both renderers implement. |
-| `draw-cpu` | The renderer on the processor, which defines the correct picture. |
-| `draw-gpu` | The renderer on the graphics card, which is the default. |
-| `mix` | The sound mix: 48,000 samples a second, in two channels. |
-| `render` | The render job: draws each frame and writes the film through frx7. |
-| `measure`, `parity` | Development only: reading frames back, measuring them, and comparing with other renderers. Never part of the product. |
+| `draw` | The list of drawing commands, and the interface both renderers implement. |
+| `draw-cpu` | The CPU renderer, the reference for the correct image. |
+| `draw-gpu` | The GPU renderer, the default. |
+| `mix` | The audio mix: 48 kHz, stereo. |
+| `render` | The render job: draws each frame and writes the video file through frx7. |
+| `measure`, `parity` | Reading frames back, measuring them, and comparing renderers. Used in development only. |
 
-frx7 is used through its public traits only: Framesmith hands it pictures and sound, and frx7 encodes them with the operating system's codecs and writes the MP4 file. Calls into the operating system's interfaces stay inside frx7.
+Framesmith hands the rendered frames and the audio to frx7, which encodes them with the operating system's codecs and writes the MP4 file.
 
 ## Development
 
@@ -123,11 +123,10 @@ scripts/gates/install-hooks.sh    # once after cloning: the gates then run befor
 scripts/gates.sh                  # every gate
 ```
 
-`scripts/gates.sh` runs formatting, static analysis (`clippy`, warnings denied), the tests, the core suite, the licence gate (`cargo deny`) and a check of the frx7 pin. The core suite runs the tests again with only the system's folders on the search path, in a sandbox that refuses to start FFmpeg or any program outside a short list of system tools. `--gate NAME` runs one gate. A narrowed run says so and is never reported as a full pass.
+`scripts/gates.sh` runs formatting, static analysis (`clippy`, warnings denied), the tests, the core suite, the licence check (`cargo deny`) and a check of the frx7 pin. The core suite runs the tests again in a clean environment, with only the system's folders on the search path. `--gate NAME` runs one gate.
 
 - Tests that need the hardware encoder or a graphics card are named `reference_machine_only_...`. Hosted CI lists them as not run, and the local gates run them.
-- Yardstick tests (`yardstick_...`) compare with FFmpeg, run as a separate program, when it is installed. Without it, each is reported as skipped. No other test, build step or shipped code starts FFmpeg.
-- To build against a local copy of frx7, run `scripts/gates/frx7.sh override /path/to/frx7`. The override is never committed; `scripts/gates/frx7.sh drop-override` returns to the pin.
+- To build against a local copy of frx7, run `scripts/gates/frx7.sh override /path/to/frx7`. It writes `.cargo/config.toml`, which is not to be committed; `scripts/gates/frx7.sh drop-override` removes it and returns to the pinned revision.
 
 The gates are specified in [`docs/dev/gates.md`](docs/dev/gates.md), and working with frx7 in [`docs/dev/frx7.md`](docs/dev/frx7.md).
 
@@ -141,5 +140,3 @@ Framesmith is available under two licences:
 
 - the GNU General Public License, version 3 or (at your option) any later version. See [`LICENSE`](LICENSE).
 - a commercial licence, for use in closed-source or proprietary work without the GPL's terms. To ask about one, see [github.com/bdsanxz](https://github.com/bdsanxz).
-
-Framesmith's dependencies are under permissive licences (MIT, Apache-2.0, BSD, ISC, Zlib and the like) or MPL-2.0. No dependency of the GPL family is accepted. The licence gate holds this.
