@@ -908,7 +908,7 @@ For an `<image>`. **`object-fit`**: `fill` (default) stretches the picture to th
 - The text is one line and never broken. Its box does not change while it counts: it is as wide as the widest number the text shows in any frame of the composition, so what stands beside it keeps still; within the box the number stands as `text-align` says. Everything else of a text holds: font, colour, shadow, its own tweens.
 - Reported: `count` or `count-format` on an element that is not a `<text>`; a `<text>` that counts and has words or a `<span>`; `count-format` without `count`; a `<tween>` or `<set>` of `count` on an element without the attribute `count`; a form not in the table.
 
-**`typed`.** On a `<text>` or `<span>`, `typed` is the number of characters of its own words that show; a fraction is rounded down; all of them by default. It counts the element's own words, not the words inside spans. Spans are always drawn; while the text is typed, a span sits right after the characters shown so far. `from-typed="0" to-typed="30"` types the text out. The attribute `typed` alone is the number of characters shown when no tween or set has started (N5).
+**`typed`.** On a `<text>` or `<span>`, `typed` is the number of characters of its own words that show; a fraction is rounded down; all of them by default. It counts the element's own words, not the words inside spans. Spans are always drawn; while the text is typed, a span sits right after the characters shown so far. `from-typed="0" to-typed="30"` types the text out. The attribute `typed` is the number of characters shown before the element's first tween or set of `typed` starts; alone, with neither, it changes nothing and the whole text shows (N5).
 
 ## 8. Motion: `<tween>` and `<set>`
 
@@ -1105,7 +1105,7 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 **Rule.** A `<style>` may hold the twelve movement attributes `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `opacity`, `blur`, `brightness`, `rotate-x`, `rotate-y` and `reveal`, and `typed`. Their value is the element's starting value, exactly as if written on the element; a value written on the element itself wins, and the `<tween>` and `<set>` children of the element move away from it as they do from a value written on the element. `<tween>` and `<set>` themselves are never shared (section 9). `count` and `draw` in a style are checked on the element that takes the style like any other attribute.
 
-**Settled by.** Maintainer draft: the proofs gave the same result by construction but had no example. The attribute `typed` alone had no effect in the proofs; here it is the number of characters shown before any tween or set of `typed` has started.
+**Settled by.** Maintainer draft: the proofs gave the same result by construction but had no example. The attribute `typed` alone had no effect in the proofs, and has none here (ticket T069, criterion 6): with no tween and no set of `typed`, every character is shown. On an element with one, it is the number of characters shown before the first of them has started.
 
 ### N6. A zero or negative size, gap or font size
 

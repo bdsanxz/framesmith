@@ -685,6 +685,13 @@ fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i
             Code::WordNotTaken,
             1,
         ),
+        (
+            "count-format-not-a-form",
+            root(r#"<text count="0" count-format="0.0.0"/>"#),
+            None,
+            Code::CountNotWritten,
+            1,
+        ),
         ("form-not-drawn", root("<rect/>"), None, Code::FormNotSupported, 2),
         (
             "output-not-made",

@@ -185,6 +185,9 @@ pub enum Code {
     SoundDamaged,
     /// An `<audio>` has a `media-start` at or past the end of its sound file.
     SoundStartPastEnd,
+    /// A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that
+    /// has no `count`, words or a `<span>` in a `<text>` that counts, or a tween or set of `count` on a text without it.
+    CountNotWritten,
 }
 
 impl Code {
@@ -264,6 +267,7 @@ impl Code {
         Code::SoundNotRead,
         Code::SoundDamaged,
         Code::SoundStartPastEnd,
+        Code::CountNotWritten,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -343,6 +347,7 @@ impl Code {
             Code::SoundNotRead => "FS-0079",
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
+            Code::CountNotWritten => "FS-0082",
         }
     }
 
@@ -449,6 +454,9 @@ impl Code {
             Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
+            Code::CountNotWritten => {
+                "Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists."
+            }
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

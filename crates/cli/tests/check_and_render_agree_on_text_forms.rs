@@ -27,7 +27,7 @@ const TEXT_FORMS: [(&str, &str, &str); 6] = [
     (
         "tween-inside-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB <span color="#ff0000">CD<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></span></text>"##,
-        "<tween> inside <text> is not supported by this version",
+        "<tween> in a <span> changes `opacity`, which this version does not move there",
     ),
     (
         "percentage-margin-on-span",
@@ -37,12 +37,12 @@ const TEXT_FORMS: [(&str, &str, &str); 6] = [
     (
         "tween-inside-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">A<span>B<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></span></text>"##,
-        "<tween> inside <text> is not supported by this version",
+        "<tween> in a <span> changes `opacity`, which this version does not move there",
     ),
     (
         "set-inside-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">A<span>B<set at="0" opacity="1"/></span></text>"##,
-        "<set> inside <text> is not supported by this version",
+        "<set> in a <span> changes `opacity`, which this version does not move there",
     ),
     (
         "background-of-text",

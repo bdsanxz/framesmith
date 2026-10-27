@@ -15,5 +15,5 @@ mod tables;
 pub use fonts::{one_face, FontError, Fonts, MachineFace};
 pub use paragraph::{
     layout, layout_fitted, layout_fitted_pieces, layout_pieces, Align, Block, Line, LineHeight, Piece, PositionedGlyph, PositionedPicture,
-    PositionedRun, Style, TextError,
+    PositionedRun, Source, Style, TextError,
 };
