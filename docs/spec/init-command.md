@@ -16,8 +16,8 @@ The folder is not read, opened or searched for a project: `init` writes into it 
 |---|---|---|
 | does not exist, and its parent folder exists and accepts a new folder | creates it and writes the starter (section 3) | 0 |
 | exists, is a folder, and has no entry of any kind (a hidden file counts as an entry) | writes the starter into it | 0 |
-| exists, is a folder, and has at least one entry | writes nothing; reports `FS-0082` | 1 |
-| cannot be created or read as a folder: its parent is missing, a file of that name is in the way, the system refuses it | writes nothing; reports `FS-0083` | 1 |
+| exists, is a folder, and has at least one entry | writes nothing; reports `FS-0082` | 2 |
+| cannot be created or read as a folder: its parent is missing, a file of that name is in the way, the system refuses it | writes nothing; reports `FS-0083` | 2 |
 
 The folder is created as one folder (its parent must exist). A failure part-way through the writing of the starter (for example a full disk) is reported as `FS-0083` with the path of the file that could not be written and the reason the system gives. The files already written are left as they are.
 
@@ -79,7 +79,7 @@ The first line says `Created` in both cases: the folder was made, or the starter
 
 ## 5. What the command refuses
 
-A refusal writes one line to standard error, in the form of `error-catalogue.md` (`FS-0082: failure: <what is wrong>. <remedy>`), and exits with code 1.
+A refusal writes one line to standard error, in the form of `error-catalogue.md` (`FS-0082: failure: <what is wrong>. <remedy>`), and exits with code 2: a folder `init` cannot use is a refusal, as an output place that cannot be written is for `render` (decisions A19, P4; owner decision B57).
 
 | What is wrong | Code | The message says | The remedy |
 |---|---|---|---|
@@ -97,7 +97,7 @@ A refusal writes one line to standard error, in the form of `error-catalogue.md`
 Every run logs its start and its end (`run-log.md`, sections 3 and 4). The end line carries one of two new outcomes:
 
 - `initialised` (info, exit 0): the starter was written;
-- `not initialised` (error, exit 1, with `code` `FS-0082` or `FS-0083`): nothing was written, or the writing stopped part-way.
+- `not initialised` (error, exit 2, with `code` `FS-0082` or `FS-0083`): nothing was written, or the writing stopped part-way.
 
 No other line is written by `init`, and the log holds no path or file content (`run-log.md`, section 6).
 

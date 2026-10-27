@@ -867,14 +867,14 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     );
     let output = framesmith(&init_cwd, Terminal::AsksForNone, [OsStr::new("init"), init_folder.as_os_str()]);
     let printed = text(&output.stderr);
-    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert_eq!(output.status.code(), Some(2), "{printed}");
     assert!(printed.contains(&format!(": {}: ", Code::InitFolderNotEmpty.as_str())), "{printed}");
     emitted.insert(Code::InitFolderNotEmpty.as_str());
 
     let blocked = init_folder.join("composition.xml").join("demo");
     let output = framesmith(&init_cwd, Terminal::AsksForNone, [OsStr::new("init"), blocked.as_os_str()]);
     let printed = text(&output.stderr);
-    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert_eq!(output.status.code(), Some(2), "{printed}");
     assert!(printed.contains(&format!(": {}: ", Code::InitNotCreated.as_str())), "{printed}");
     emitted.insert(Code::InitNotCreated.as_str());
 

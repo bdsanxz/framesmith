@@ -1,5 +1,5 @@
 //! `framesmith init` on a folder that exists and holds at least one entry writes nothing, says that the folder is not empty
-//! and exits with 1; the entries of the folder keep their bytes (`docs/spec/init-command.md`, sections 2 and 5).
+//! and exits with 2; the entries of the folder keep their bytes (`docs/spec/init-command.md`, sections 2 and 5).
 
 mod common;
 
@@ -15,7 +15,7 @@ fn init_of_a_folder_with_files_writes_nothing_and_keeps_their_bytes() {
     fs::write(folder.join("notes.txt"), b"keep these notes exactly\n").unwrap();
     fs::write(folder.join(".hidden"), [0_u8, 1, 2, 255]).unwrap();
     let output = framesmith(&cwd, ["init", "demo"], &[]);
-    assert_eq!(output.status.code(), Some(1), "{}{}", out(&output), err(&output));
+    assert_eq!(output.status.code(), Some(2), "{}{}", out(&output), err(&output));
     assert_eq!(out(&output), "", "nothing is printed on standard output");
     assert!(
         err(&output).starts_with("framesmith: FS-0082: failure: `demo` is not empty, so nothing was written. "),

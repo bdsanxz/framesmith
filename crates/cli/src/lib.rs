@@ -92,7 +92,7 @@ fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_ca
         (Ok(()), Reply::Printed(_, code, outcome)) => (code, outcome),
         (Err(_), Reply::Printed(_, _, outcome)) => (EXIT_FAILED, outcome),
         (_, Reply::Unreadable(..)) => (EXIT_FAILED, Outcome::NotRead),
-        (_, Reply::Refused(code, _)) => (EXIT_FAILED, Outcome::NotInitialised { code }),
+        (_, Reply::Refused(code, _)) => (EXIT_UNSUPPORTED, Outcome::NotInitialised { code }),
     };
     outcome.log(code);
     code

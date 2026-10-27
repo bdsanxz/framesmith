@@ -75,7 +75,7 @@ The outcome and the level of the last line:
 | `no project` | warn, or error when the code is of the kind `failure` | 1 | There is no composition to read; `code` is the code of the reason (`FS-0013` to `FS-0016`, `FS-0020`, `FS-0025` to `FS-0028`) |
 | `command line not read` | warn | 1 | The words after the program's name are not a command (`FS-0017`), or an option of `render` or its value is not taken (`FS-0037`) |
 | `initialised` | info | 0 | `init` wrote the starter project (`init-command.md`, section 7) |
-| `not initialised` | error | 1 | `init` wrote nothing, or stopped part-way through the starter; `code` is `FS-0082` (the folder is not empty) or `FS-0083` (the folder or a file could not be created or written) |
+| `not initialised` | error | 2 | `init` wrote nothing, or stopped part-way through the starter; `code` is `FS-0082` (the folder is not empty) or `FS-0083` (the folder or a file could not be created or written) |
 
 So a maintainer finds, for a `check`, a line for the command with its inputs and a line for its result under one run id, at the default level; the steps in between are there at `debug` and `trace`. A line states a code and a count, never a message: the messages of a report quote the file's values and are printed to the author, not kept (section 6).
 
