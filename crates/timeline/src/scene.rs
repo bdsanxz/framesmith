@@ -873,7 +873,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             Ok(laid) => laid,
             Err(Beyond) => {
                 let message = format!(
-                    "a place or a size of {} works out beyond {LIMIT} pixels, which this version does not place",
+                    "a place or a size of {} works out beyond {LIMIT} pixels, or needs more digits than this version works with, which this version does not place",
                     node.element().tag()
                 );
                 refusals.push(Refusal::of_place(Code::FormNotSupported, node.line(), message));

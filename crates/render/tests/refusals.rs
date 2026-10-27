@@ -188,12 +188,12 @@ fn a_place_that_works_out_beyond_the_limit_is_reported_with_its_line() {
     // The default size of a box at top 1000000 lies beyond the limit at its bottom edge.
     assert_eq!(
         only("beyond-default-size", "<box top=\"1000000\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
     );
     // A near edge at the limit and a size that runs past it.
     assert_eq!(
         only("beyond-far-edge", "<box left=\"1000000\" width=\"1\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
     );
 }
 
@@ -406,4 +406,13 @@ fn a_sound_bit_rate_the_system_encoder_takes_is_accepted_and_one_it_does_not_is_
             )]
         );
     }
+}
+
+#[test]
+fn a_length_whose_digits_are_too_far_apart_to_add_is_reported_with_its_line() {
+    // A percentage of 1e-100001 has its digits more than the work bound apart from the start edge, so it is not worked out.
+    assert_eq!(
+        only("digits-too-far-apart", "<box left=\"1e-100001%\" width=\"10\"/>"),
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+    );
 }
