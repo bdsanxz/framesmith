@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use crate::{Path, PathError, Rgba};
+use crate::{Colour, Path, PathError, Rgba};
 
 /// The view box of a shape: the rectangle of the path's coordinates that is drawn in the element's box.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -29,6 +29,18 @@ pub struct ShapeMark {
     pub stroke_width: Option<f64>,
     /// Pairs of a dash and a gap, in view-box units; empty for a solid line.
     pub dashes: Vec<f64>,
+    /// The shadow of the outlines; `None` for no shadow (`docs/spec/shape.md`, section 8).
+    pub shadow: Option<ShapeShadow>,
+}
+
+/// A shadow of a `<shape>` (`docs/spec/shape.md`, section 8): the coverage of its outlines, filled or stroked as the shape is,
+/// moved by `across` and `down` view-box units, blurred by `blur` view-box units, and laid in `colour` under the shape.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ShapeShadow {
+    pub across: f64,
+    pub down: f64,
+    pub blur: f64,
+    pub colour: Colour,
 }
 
 /// How a view box is put in its box (`docs/spec/shape.md`, section 3): the scale of one view-box unit in pixels, and the

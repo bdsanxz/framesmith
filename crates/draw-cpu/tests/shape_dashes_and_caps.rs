@@ -22,6 +22,7 @@ const UNDER_BYTES: [u8; 3] = [16, 32, 64];
 /// A 40 by 10 frame and a box of the same size, with a view box in the same units, so that one unit is one pixel.
 fn draw_line(data: &str, stroke_width: f64, dashes: Vec<f64>) -> Picture {
     let mark = Mark::Shape(ShapeMark {
+        shadow: None,
         left: 0.0,
         top: 0.0,
         width: 40.0,

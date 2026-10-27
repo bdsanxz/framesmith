@@ -21,7 +21,7 @@ pub use background::{level, Amount, Background, Gradient, Layer, Paint, Resolved
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
 pub use path::{Path, PathError, Point, Segment};
-pub use shape::{dashes_of, required_path, Fit, ShapeError, ShapeMark, ViewBox};
+pub use shape::{dashes_of, required_path, Fit, ShapeError, ShapeMark, ShapeShadow, ViewBox};
 pub use turn::Turn;
 
 /// The one outline tolerance, in pixels: the curves of a glyph's outline are flattened to it, and its stroke is expanded from the

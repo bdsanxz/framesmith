@@ -26,6 +26,7 @@ const TOLERANCE: i32 = 1;
 
 fn shape(width: f64, view_box: f64, data: &str, stroke_width: Option<f64>, dashes: Vec<f64>) -> Mark {
     Mark::Shape(ShapeMark {
+        shadow: None,
         left: 0.0,
         top: 0.0,
         width,
@@ -159,6 +160,7 @@ fn a_square_edge_on_a_whole_pixel_is_exact() {
     let picture = picture_of(
         64,
         Mark::Shape(ShapeMark {
+            shadow: None,
             left: f64::from(rect.left),
             top: f64::from(rect.top),
             width: f64::from(rect.width),

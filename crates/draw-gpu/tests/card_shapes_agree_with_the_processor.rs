@@ -3,7 +3,7 @@
 //! shape layer (`docs/spec/card-renderer.md`, section 9.9), so these frames check that placement. Each test needs a
 //! graphics card that frx7 can draw with, so each is reference machine only (`docs/dev/gates.md` section 4).
 
-use draw::{Colour, Frame, Mark, Path, Picture, Renderer, Rgba, ShapeMark, ViewBox};
+use draw::{Colour, Frame, Mark, Path, Picture, Renderer, Rgba, ShapeMark, ShapeShadow, ViewBox};
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
 use layout::Rect;
@@ -37,6 +37,7 @@ fn measured(picture: &Picture) -> measure::Frame {
 /// A shape in the box of `rect`, of a view box the same size as the box, so that one view-box unit is one pixel.
 fn shape(rect: Rect, data: &str, stroke_width: Option<f64>, dashes: Vec<f64>) -> Mark {
     Mark::Shape(ShapeMark {
+        shadow: None,
         left: f64::from(rect.left),
         top: f64::from(rect.top),
         width: f64::from(rect.width),
@@ -150,4 +151,46 @@ fn reference_machine_only_a_curve_agrees_with_the_processor() {
             Vec::new(),
         )]),
     );
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_a_shadow_of_a_filled_square_agrees_with_the_processor() {
+    let rect = Rect {
+        left: 20,
+        top: 20,
+        width: 60,
+        height: 40,
+    };
+    let Mark::Shape(mut mark) = shape(rect, "M 0 0 H 60 V 40 H 0 Z", None, Vec::new()) else {
+        unreachable!("the helper makes a shape")
+    };
+    mark.shadow = Some(ShapeShadow {
+        across: 6.0,
+        down: 6.0,
+        blur: 2.0,
+        colour: colour(0, 0, 0),
+    });
+    the_card_agrees_with_the_processor("shadowed square", &frame(vec![Mark::Shape(mark)]));
+}
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_a_shadow_of_a_stroked_curve_agrees_with_the_processor() {
+    let rect = Rect {
+        left: 10,
+        top: 10,
+        width: 180,
+        height: 100,
+    };
+    let Mark::Shape(mut mark) = shape(rect, "M 0 90 C 60 0 120 100 180 10", Some(6.0), Vec::new()) else {
+        unreachable!("the helper makes a shape")
+    };
+    mark.shadow = Some(ShapeShadow {
+        across: 4.0,
+        down: 4.0,
+        blur: 3.0,
+        colour: colour(0, 0, 0),
+    });
+    the_card_agrees_with_the_processor("shadowed curve", &frame(vec![Mark::Shape(mark)]));
 }

@@ -22,6 +22,7 @@ const UNDER_BYTES: [u8; 3] = [16, 32, 64];
 
 fn shape(rect: Rect, view_box: ViewBox, data: &str, stroke_width: Option<f64>, dashes: Vec<f64>) -> Mark {
     Mark::Shape(ShapeMark {
+        shadow: None,
         left: f64::from(rect.left),
         top: f64::from(rect.top),
         width: f64::from(rect.width),

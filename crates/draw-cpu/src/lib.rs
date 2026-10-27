@@ -11,8 +11,8 @@
 use std::sync::Arc;
 
 use draw::{
-    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture,
-    Renderer, ResolvedLayer, RingMark, Segment, Shadow, ShapeMark, Step, TextMark, Turn,
+    blur_weights, level, Background, Colour, Cut, DisplayList, Error, Filter, Fit, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark,
+    Outline, Picture, Renderer, ResolvedLayer, Rgba, RingMark, Segment, Shadow, ShapeMark, Step, TextMark, Turn,
 };
 use layout::Rect;
 use skrifa::instance::{LocationRef, Size};
@@ -274,30 +274,68 @@ fn draw_shape(bytes: &mut [u8], width: u32, height: u32, shape: &ShapeMark, map:
     Ok(())
 }
 
-/// The layer of a shape of the frame's size, premultiplied (`docs/spec/shape.md`, sections 3 to 5): the view box is put in
-/// its box, then the map of the element is applied. Each outline is filled or stroked on its own, in the order of the path
-/// data, so that a later outline lies over an earlier one. The line's width and dashes are in view-box units, and the curves
-/// are flattened by the rasteriser to within a quarter pixel of the true curve (decision A29).
+/// The layer of a shape of the frame's size, premultiplied (`docs/spec/shape.md`, sections 3 to 5 and 8): the view box is put in
+/// its box, then the map of the element is applied, and the shape's shadow, when it has one, lies under it. The line's width and
+/// dashes are in view-box units, and the curves are flattened by the rasteriser to within a quarter pixel of the true curve
+/// (decision A29).
 pub fn shape_layer(width: u32, height: u32, shape: &ShapeMark, map: Map) -> Result<Vec<u8>, Error> {
     if !map.is_finite() {
         return Err(Error::new("a shape is moved by a map that is not finite"));
     }
     let fit = shape.fit();
-    let transform = affine(map) * Affine::new([fit.scale, 0.0, 0.0, fit.scale, fit.across, fit.down]);
     // The curves are flattened in the view box's units to within `OUTLINE_FLATNESS` of a pixel of the frame, so that the
     // rasteriser gets straight pieces only (a chord lies inside a curve, which would otherwise pull an edge inward).
     let device_scale = (fit.scale * map.area_scale().sqrt()).max(f64::MIN_POSITIVE);
     let tolerance = OUTLINE_FLATNESS / device_scale;
     let outlines = outlines(&shape.path, tolerance);
+    let picture = painted_outlines((width, height), shape, &outlines, tolerance, fit, map, shape.colour)?;
+    let Some(shadow) = shape.shadow else {
+        return Ok(picture);
+    };
+    // The shadow is the coverage of the same outlines, moved by its offset in view-box units, blurred by the method of
+    // notation 7.6, and laid in its colour under the shape (`docs/spec/shape.md`, section 8).
+    let moved = Fit {
+        across: fit.across + shadow.across * fit.scale,
+        down: fit.down + shadow.down * fit.scale,
+        ..fit
+    };
+    let opaque = Rgba {
+        red: 0,
+        green: 0,
+        blue: 0,
+        alpha: 255,
+    };
+    let coverage = painted_outlines((width, height), shape, &outlines, tolerance, moved, map, opaque)?;
+    let mut alpha: Vec<u8> = coverage.as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
+    let blur = shadow.blur * fit.scale * map.area_scale().sqrt();
+    blur_alpha(&mut alpha, width as usize, height as usize, blur as f32);
+    let mut layer = tinted(&alpha, shadow.colour);
+    lay_layer(&mut layer, &picture);
+    Ok(layer)
+}
+
+/// The outlines of a shape painted in `colour` over a transparent layer of `size` pixels, premultiplied: each outline is filled
+/// or stroked on its own, in the order of the path data, so that a later outline lies over an earlier one. `fit` puts the view
+/// box in its box, and `map` is applied after it.
+fn painted_outlines(
+    size: (u32, u32),
+    shape: &ShapeMark,
+    outlines: &[ShapeOutline],
+    tolerance: f64,
+    fit: Fit,
+    map: Map,
+    colour: Rgba,
+) -> Result<Vec<u8>, Error> {
+    let (width, height) = size;
+    let transform = affine(map) * Affine::new([fit.scale, 0.0, 0.0, fit.scale, fit.across, fit.down]);
     let mut context = RenderContext::new(width as u16, height as u16);
     let mut resources = Resources::new();
     context.set_transform(transform);
-    let colour = shape.colour;
     context.set_paint(Color::from_rgba8(colour.red, colour.green, colour.blue, colour.alpha));
     match shape.stroke_width {
         None => {
             context.set_fill_rule(Fill::NonZero);
-            for outline in &outlines {
+            for outline in outlines {
                 context.fill_path(&outline.path);
             }
         }
@@ -307,7 +345,7 @@ pub fn shape_layer(width: u32, height: u32, shape: &ShapeMark, map: Map) -> Resu
             let dashed = !shape.dashes.is_empty();
             let cap = if dashed { Cap::Butt } else { Cap::Round };
             let dashes: Dashes = shape.dashes.iter().copied().collect();
-            for outline in &outlines {
+            for outline in outlines {
                 context.set_stroke(Stroke {
                     width: line,
                     join: Join::Miter,
@@ -347,6 +385,21 @@ pub fn shape_layer(width: u32, height: u32, shape: &ShapeMark, map: Map) -> Resu
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
     Ok(layer.data_as_u8_slice().to_vec())
+}
+
+/// The premultiplied pixels of a plane of alpha in `colour`: each colour level times the alpha, to the nearest whole level.
+fn tinted(alpha: &[u8], colour: Colour) -> Vec<u8> {
+    let mut picture = Vec::with_capacity(alpha.len() * 4);
+    for &value in alpha {
+        let level = u32::from(value);
+        picture.extend_from_slice(&[
+            divide_by_255(u32::from(colour.red) * level) as u8,
+            divide_by_255(u32::from(colour.green) * level) as u8,
+            divide_by_255(u32::from(colour.blue) * level) as u8,
+            value,
+        ]);
+    }
+    picture
 }
 
 /// How far inside an outline's end its last dash is read, in view-box units: a dash that starts at the end holds no part of it.

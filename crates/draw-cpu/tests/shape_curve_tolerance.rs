@@ -32,6 +32,7 @@ fn a_filled_circle_s_edge_lies_within_a_quarter_pixel_of_the_true_circle() {
     // A circle of radius 40 about (50, 50), drawn as two half circles. On each row the ink lies to the right of the left
     // edge, so the edge is 50 minus the ink of the row's pixels from 0 to 49.
     let mark = Mark::Shape(ShapeMark {
+        shadow: None,
         left: 0.0,
         top: 0.0,
         width: f64::from(SIZE),
