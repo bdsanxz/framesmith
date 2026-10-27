@@ -11,7 +11,8 @@
 use std::sync::Arc;
 
 use draw::{
-    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture,
+    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline,
+    Picture,
     Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
@@ -19,8 +20,8 @@ use skrifa::instance::{LocationRef, Size};
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::{FontRef, GlyphId, MetadataProvider};
 use vello_cpu::kurbo::{self, Affine, BezPath, PathEl};
-use vello_cpu::peniko::{Blob, Color, FontData, ImageAlphaType, ImageQuality, ImageSampler};
-use vello_cpu::{Glyph, Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
+use vello_cpu::peniko::{Color, ImageAlphaType, ImageQuality, ImageSampler};
+use vello_cpu::{Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
 
 mod edges;
 
@@ -609,22 +610,17 @@ fn draw_mapped_text(bytes: &mut [u8], width: u32, height: u32, text: &TextMark, 
         let layer = shadow_layer(width, height, text, shadow, map)?;
         composite(bytes, width, &layer, region);
     }
-    let mut context = RenderContext::new(width as u16, height as u16);
-    let mut resources = Resources::new();
-    context.set_transform(affine(map));
+    let mut layer = vec![0; width as usize * height as usize * 4];
     for run in &text.runs {
-        fill_run(&mut context, &mut resources, run, (0.0, 0.0))?;
+        fill_run(width, height, run, (0.0, 0.0), affine(map), &mut layer)?;
     }
-    context.flush();
-    let mut layer = Pixmap::new(width as u16, height as u16);
-    context.render(&mut layer, &mut resources);
     if let Some(outline) = &text.outline {
-        lay_layer(layer.data_as_u8_slice_mut(), &outline_layer(width, height, text, outline, map)?);
+        lay_layer(&mut layer, &outline_layer(width, height, text, outline, map)?);
     }
     if !text.pictures.is_empty() {
-        lay_layer(layer.data_as_u8_slice_mut(), &pictures_layer(width, height, text, map, (0.0, 0.0))?);
+        lay_layer(&mut layer, &pictures_layer(width, height, text, map, (0.0, 0.0))?);
     }
-    composite(bytes, width, layer.data_as_u8_slice(), region);
+    composite(bytes, width, &layer, region);
     Ok(())
 }
 
@@ -677,26 +673,19 @@ pub fn pictures_layer(width: u32, height: u32, text: &TextMark, map: Map, offset
 /// the fills of the glyph runs, the outline laid over them, and the pictures of the emoji over those (`docs/spec/text.md`,
 /// sections 6.6 and 12.4).
 fn text_layer(width: u32, height: u32, text: &TextMark) -> Result<Vec<u8>, Error> {
-    let mut context = RenderContext::new(width as u16, height as u16);
-    let mut resources = Resources::new();
+    let mut layer = vec![0; width as usize * height as usize * 4];
     for run in &text.runs {
-        fill_run(&mut context, &mut resources, run, (0.0, 0.0))?;
+        fill_run(width, height, run, (0.0, 0.0), Affine::IDENTITY, &mut layer)?;
     }
-    context.flush();
-    let mut layer = Pixmap::new(width as u16, height as u16);
-    context.render(&mut layer, &mut resources);
     if let Some(outline) = &text.outline {
-        lay_layer(
-            layer.data_as_u8_slice_mut(),
-            &outline_layer(width, height, text, outline, Map::IDENTITY)?,
-        );
+        lay_layer(&mut layer, &outline_layer(width, height, text, outline, Map::IDENTITY)?);
     }
     // The colour pictures of the emoji go into the same layer, after the glyph runs, in the order of the text
     // (`docs/spec/text.md`, section 12.4, point 10).
     for picture in &text.pictures {
-        lay_picture(layer.data_as_u8_slice_mut(), width, height, picture);
+        lay_picture(&mut layer, width, height, picture);
     }
-    Ok(layer.data_as_u8_slice().to_vec())
+    Ok(layer)
 }
 
 /// The mitre limit of a text's outline, as a ratio of the width (`docs/spec/text.md`, section 6.6, rule 6).
@@ -713,26 +702,15 @@ pub fn outline_layer(width: u32, height: u32, text: &TextMark, outline: &Outline
     let colour = outline.colour;
     let half = f64::from(outline.width) / 2.0;
     let mapped = affine(map);
-    let scale = mapped.as_coeffs()[0].abs().max(mapped.as_coeffs()[3].abs()).max(1.0);
+    let scale = scale_of(mapped);
     for run in &text.runs {
         for glyph in &run.glyphs {
             let path = glyph_outline(run, glyph)?;
             // the stroke is expanded in the paragraph's coordinates, by the draw crate's own expansion (`docs/spec/text.md`,
             // section 6.6, rules 6 and 10), and the expanded polygons are mapped as the paragraph is
             let contours = flattened_contours(&path, draw::OUTLINE_TOLERANCE / scale);
-            let mut lines = BezPath::new();
-            for polygon in draw::stroke::stroke_contours(&contours, half, OUTLINE_MITRE_LIMIT) {
-                for (at, &(x, y)) in polygon.iter().enumerate() {
-                    let point = mapped * kurbo::Point::new(x, y);
-                    if at == 0 {
-                        lines.move_to(point);
-                    } else {
-                        lines.line_to(point);
-                    }
-                }
-                lines.close_path();
-            }
-            context.fill_path(&lines);
+            let polygons = draw::stroke::stroke_contours(&contours, half, OUTLINE_MITRE_LIMIT);
+            context.fill_path(&polygons_path(&polygons, (0.0, 0.0), mapped));
         }
     }
     let mut resources = Resources::new();
@@ -742,12 +720,7 @@ pub fn outline_layer(width: u32, height: u32, text: &TextMark, outline: &Outline
     let mut pixels = layer.data_as_u8_slice().to_vec();
     // The colour is laid on each pixel's coverage by the rule of `docs/spec/box-edges.md`: each channel is the colour times the
     // alpha, rounded to the nearest whole level, halves up. The rasteriser's own premultiplication rounds differently.
-    for pixel in pixels.as_chunks_mut::<4>().0.iter_mut() {
-        let alpha = u32::from(pixel[3]);
-        for (channel, value) in [colour.red, colour.green, colour.blue].into_iter().enumerate() {
-            pixel[channel] = divide_by_255(u32::from(value) * alpha) as u8;
-        }
-    }
+    colour_by_coverage(&mut pixels, colour);
     Ok(pixels)
 }
 
@@ -851,23 +824,13 @@ impl OutlinePen for Pen {
 /// mapped with it, and the blur is scaled by the square root of how much the map scales an area (`docs/spec/render-command.md`,
 /// section 4.5, rule 7).
 pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow, map: Map) -> Result<Vec<u8>, Error> {
-    let mut context = RenderContext::new(width as u16, height as u16);
-    let mut resources = Resources::new();
     let mapped = !map.is_identity();
-    if mapped {
-        context.set_transform(affine(map));
-    }
+    let mut layer = vec![0; width as usize * height as usize * 4];
     for run in &text.runs {
-        fill_run(&mut context, &mut resources, run, (shadow.across, shadow.down))?;
+        fill_run(width, height, run, (f64::from(shadow.across), f64::from(shadow.down)), affine(map), &mut layer)?;
     }
-    context.flush();
-    let mut layer = Pixmap::new(width as u16, height as u16);
-    context.render(&mut layer, &mut resources);
     if mapped && !text.pictures.is_empty() {
-        lay_layer(
-            layer.data_as_u8_slice_mut(),
-            &pictures_layer(width, height, text, map, (shadow.across, shadow.down))?,
-        );
+        lay_layer(&mut layer, &pictures_layer(width, height, text, map, (shadow.across, shadow.down))?);
     }
     for picture in text.pictures.iter().filter(|_| !mapped) {
         let moved = GlyphPicture {
@@ -877,9 +840,9 @@ pub fn shadow_layer(width: u32, height: u32, text: &TextMark, shadow: &Shadow, m
             x: picture.x + shadow.across,
             y: picture.y + shadow.down,
         };
-        lay_picture(layer.data_as_u8_slice_mut(), width, height, &moved);
+        lay_picture(&mut layer, width, height, &moved);
     }
-    let mut alpha: Vec<u8> = layer.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
+    let mut alpha: Vec<u8> = layer.as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
     let blur = if mapped {
         (f64::from(shadow.blur) * map.area_scale().sqrt()) as f32
     } else {
@@ -988,35 +951,79 @@ fn whole_pixel(value: f32) -> i64 {
     (f64::from(value) + 0.5).floor() as i64
 }
 
-/// Fills the glyphs of one run in its colour, sheared by its skew about each glyph's origin, and moved by `offset`.
-fn fill_run(context: &mut RenderContext, resources: &mut Resources, run: &GlyphRun, offset: (f32, f32)) -> Result<(), Error> {
-    context.set_paint(Color::from_rgba8(run.colour.red, run.colour.green, run.colour.blue, 255));
-    let (font, transform, glyphs) = run_parts(run, offset);
-    context
-        .glyph_run(resources, &font)
-        .hint(false)
-        .font_size(run.size)
-        .glyph_transform(transform)
-        .fill_glyphs(glyphs.into_iter())
-        .map_err(|error| Error::new(format!("the glyphs of a run cannot be drawn: {error}")))
+/// Fills the glyphs of one run into `layer` in the run's colour, glyph after glyph. Each glyph's outline, moved by `offset` in the
+/// paragraph's own coordinates and mapped by `mapped`, is flattened by this renderer at the one tolerance of the outlines, and the
+/// flattened contours are handed to the rasteriser as straight lines (`docs/spec/text.md`, section 6.6, rule 10). The glyph's coverage
+/// is laid as a colour on whole levels, and the colour is laid over the layer by src-over (`docs/spec/text.md`, rule 10, and
+/// `docs/spec/box-edges.md`), so that a glyph is never laid with the rasteriser's own premultiplication.
+fn fill_run(width: u32, height: u32, run: &GlyphRun, offset: (f64, f64), mapped: Affine, layer: &mut [u8]) -> Result<(), Error> {
+    for glyph in &run.glyphs {
+        let alpha = glyph_coverage(width, height, run, glyph, offset, mapped)?;
+        let mut pixels: Vec<u8> = alpha.iter().flat_map(|&alpha| [0, 0, 0, alpha]).collect();
+        colour_by_coverage(&mut pixels, run.colour);
+        lay_layer(layer, &pixels);
+    }
+    Ok(())
 }
 
-/// The font, the shear and the glyphs of one run, the glyphs moved by `offset`.
-fn run_parts(run: &GlyphRun, offset: (f32, f32)) -> (FontData, Affine, Vec<Glyph>) {
-    let bytes: Arc<dyn AsRef<[u8]> + Send + Sync> = run.font.data.clone();
-    let font = FontData::new(Blob::new(bytes), run.font.index);
-    let shear = f64::from(run.skew_degrees).to_radians().tan();
-    let transform = Affine::new([1.0, 0.0, -shear, 1.0, 0.0, 0.0]);
-    let glyphs = run
-        .glyphs
-        .iter()
-        .map(|glyph| Glyph {
-            id: glyph.id,
-            x: glyph.x + offset.0,
-            y: glyph.y + offset.1,
-        })
-        .collect();
-    (font, transform, glyphs)
+/// The coverage of one glyph of a run, as the processor fills it and as the card masks it (`docs/spec/text.md`, section 6.6, rule
+/// 10; `docs/spec/card-renderer.md`, section 9.2): the outline of the glyph at its origin is flattened by this renderer at the one
+/// tolerance of the outlines, moved by `offset` in the paragraph's own coordinates, mapped by `mapped`, and filled in opaque white
+/// with the nonzero rule into a box of `width` by `height` pixels, as straight lines only. Returns the alpha of each pixel of the box,
+/// row by row, which is the glyph's coverage of that pixel.
+pub fn glyph_coverage(
+    width: u32,
+    height: u32,
+    run: &GlyphRun,
+    glyph: &Glyph,
+    offset: (f64, f64),
+    mapped: Affine,
+) -> Result<Vec<u8>, Error> {
+    let path = glyph_outline(run, glyph)?;
+    let contours = flattened_contours(&path, draw::OUTLINE_TOLERANCE / scale_of(mapped));
+    let mut context = RenderContext::new(width as u16, height as u16);
+    context.set_paint(Color::from_rgba8(255, 255, 255, 255));
+    context.fill_path(&polygons_path(&contours, offset, mapped));
+    context.flush();
+    let mut coverage = Pixmap::new(width as u16, height as u16);
+    context.render(&mut coverage, &mut Resources::new());
+    Ok(coverage.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect())
+}
+
+/// Lays a colour on the coverage of each pixel, which is its alpha: each channel is the colour times the alpha, halved up
+/// (`docs/spec/box-edges.md`).
+fn colour_by_coverage(pixels: &mut [u8], colour: draw::Colour) {
+    for pixel in pixels.as_chunks_mut::<4>().0.iter_mut() {
+        let alpha = u32::from(pixel[3]);
+        for (channel, value) in [colour.red, colour.green, colour.blue].into_iter().enumerate() {
+            pixel[channel] = divide_by_255(u32::from(value) * alpha) as u8;
+        }
+    }
+}
+
+/// The scale of a map: the larger of its two diagonal factors, and at least 1. A tolerance in pixels becomes one in the
+/// paragraph's own coordinates when it is divided by this.
+fn scale_of(mapped: Affine) -> f64 {
+    let coefficients = mapped.as_coeffs();
+    coefficients[0].abs().max(coefficients[3].abs()).max(1.0)
+}
+
+/// The closed polygons as one path of straight lines. Each point is moved by `offset` in the paragraph's own coordinates and
+/// then mapped by `mapped`.
+fn polygons_path(polygons: &[Vec<draw::stroke::Point>], offset: (f64, f64), mapped: Affine) -> BezPath {
+    let mut path = BezPath::new();
+    for polygon in polygons {
+        for (at, &(x, y)) in polygon.iter().enumerate() {
+            let point = mapped * kurbo::Point::new(x + offset.0, y + offset.1);
+            if at == 0 {
+                path.move_to(point);
+            } else {
+                path.line_to(point);
+            }
+        }
+        path.close_path();
+    }
+    path
 }
 
 /// Lays a layer of premultiplied red, green, blue and alpha over the picture's premultiplied bytes, in the region (`left`,
