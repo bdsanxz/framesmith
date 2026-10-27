@@ -115,3 +115,15 @@ fn a_counting_text_with_words_and_a_count_without_its_attribute_are_reported() {
         ]
     );
 }
+
+#[test]
+fn a_counting_text_with_a_span_is_reported_on_the_line_of_the_span() {
+    let problems: Vec<String> = problems_in("<text count=\"0\">\n<span color=\"#c03020\">12</span>\n</text>")
+        .iter()
+        .map(worded)
+        .collect();
+    assert_eq!(
+        problems,
+        ["line 2: FS-0084: a <text> that counts holds no words of its own: its text is the number"]
+    );
+}
