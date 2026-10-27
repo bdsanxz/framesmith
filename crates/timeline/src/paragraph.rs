@@ -2,6 +2,8 @@
 //! they are written and as they pass from a box to the elements inside it, the fonts that a composition
 //! declares, and the lines of a `<text>` laid out in its place.
 
+use std::collections::HashMap;
+
 use draw::{Colour, Outline, Shadow};
 use layout::{place_absolute, Amount, Beyond, Rect, Sides, Written, LIMIT};
 use motion::{ElementMotion, Prop, Track, PROPS};
@@ -992,15 +994,17 @@ fn count_blocks(
     let style = Style { nowrap: true, ..style };
     let track = track_of(tree, index, Prop::Count, own, clock);
     let mut words: Vec<String> = Vec::new();
+    let mut index: HashMap<String, usize> = HashMap::new();
     let mut shown: Vec<u32> = Vec::with_capacity(clock.frames as usize);
     for number in 0..clock.frames.max(1) {
         let value = track
             .as_ref()
             .map_or(own, |track| track.value(Time::of_frame(number as i64, clock.fps)));
         let written = format.write(value);
-        let at = match words.iter().position(|known| *known == written) {
-            Some(at) => at,
+        let at = match index.get(&written) {
+            Some(&at) => at,
             None => {
+                index.insert(written.clone(), words.len());
                 words.push(written);
                 words.len() - 1
             }
