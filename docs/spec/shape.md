@@ -52,9 +52,9 @@ Each is reported with its line and the element, as the other attribute reports a
 
 | Case | Report (the texts of `notation.md` section 13, and N6) |
 |---|---|
-| no `d` (and no `src`, which this version does not draw) | `<shape> needs `d` or a `src` with paths` |
-| `view-box` not four numbers, or with a width or height of 0 or less | `` `...` is not a view box of four numbers `` |
-| `dash` not an even count of numbers, a number below 0, or all zero | `` `dash="..."` is not pairs of lengths: a dash and a gap, in view-box units `` |
+| no `d`, or a `d` that is empty or only spaces (and no `src`, which this version does not draw) | `<shape> needs `d` or a `src` with paths` |
+| `view-box` not four numbers (each a finite number), or with a width or height of 0 or less | `` `...` is not a view box of four numbers `` |
+| `dash` with no numbers, an odd count, a number below 0, or all zero | `` `dash="..."` is not pairs of lengths: a dash and a gap, in view-box units `` |
 | `stroke-width` of 0 or less | the N6 report of `notation.md` (a zero or negative size) |
 | `d` that is not path data (section 2) | `` `d` is not path data: <reason> `` (new, see below) |
 
