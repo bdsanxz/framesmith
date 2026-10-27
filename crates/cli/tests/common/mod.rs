@@ -61,6 +61,29 @@ where
     command.output().unwrap()
 }
 
+/// The most blocks of 512 bytes that one file may grow to under `framesmith_with_file_limit`: 32 KB. The run log of a
+/// short command is smaller; the film of a few seconds is larger.
+pub const FILE_LIMIT_BLOCKS: u32 = 64;
+
+/// Runs `framesmith` with `args` from `cwd` through `/bin/sh`, with each file limited to `FILE_LIMIT_BLOCKS` and SIGXFSZ
+/// ignored, so that a write past the limit fails with an ordinary error and the command goes on with its own report.
+pub fn framesmith_with_file_limit<I, S>(cwd: &Path, args: I) -> Output
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let script = format!("trap '' XFSZ; ulimit -f {FILE_LIMIT_BLOCKS}; exec \"$0\" \"$@\"");
+    Command::new("/bin/sh")
+        .arg("-c")
+        .arg(script)
+        .arg(env!("CARGO_BIN_EXE_framesmith"))
+        .args(args)
+        .current_dir(cwd)
+        .env_remove("FRAMESMITH_LOG")
+        .output()
+        .unwrap()
+}
+
 pub fn out(output: &Output) -> String {
     String::from_utf8(output.stdout.clone()).unwrap()
 }

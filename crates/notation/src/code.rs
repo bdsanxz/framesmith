@@ -171,6 +171,8 @@ pub enum Code {
     BackgroundSettingAlone,
     /// A `border` is not a width and a colour, or a width, `double` and a colour.
     BorderNotInForm,
+    /// The folder of the output path cannot be made or written, so `render` refuses the video before the first frame.
+    OutputNotWritten,
     /// An `<audio>` without a `duration` above 0.
     SoundNoDuration,
     /// The sound file that `<audio src>` names does not exist, or the `<audio>` has no `src`.
@@ -187,7 +189,7 @@ pub enum Code {
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 73] = [
+    pub const ALL: [Code; 74] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -255,6 +257,7 @@ impl Code {
         Code::BackgroundListLength,
         Code::BackgroundSettingAlone,
         Code::BorderNotInForm,
+        Code::OutputNotWritten,
         Code::SoundNoDuration,
         Code::SoundMissing,
         Code::SoundUnreadable,
@@ -333,6 +336,7 @@ impl Code {
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
             Code::BorderNotInForm => "FS-0067",
+            Code::OutputNotWritten => "FS-0072",
             Code::SoundNoDuration => "FS-0076",
             Code::SoundMissing => "FS-0077",
             Code::SoundUnreadable => "FS-0078",
@@ -350,6 +354,7 @@ impl Code {
             | Code::NamedCompositionUnreadable
             | Code::PathUnreadable
             | Code::VideoNotMade
+            | Code::OutputNotWritten
             | Code::ShownUnreadable
             | Code::FontUnreadable
             | Code::SoundUnreadable => Kind::Failure,
@@ -435,6 +440,9 @@ impl Code {
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
             Code::BorderNotInForm => "Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`.",
+            Code::OutputNotWritten => {
+                "Give `--output` a path in a folder that can be written, or make the folder writable, then run the command again."
+            }
             Code::SoundNoDuration => "Write `duration` on the `<audio>` as the seconds the sound plays, above 0.",
             Code::SoundMissing => "Write `src` as the path of a sound file that exists, from the project folder or from `/`.",
             Code::SoundUnreadable => "Check that the path names a file, not a folder, and that it may be read.",

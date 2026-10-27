@@ -5,7 +5,7 @@
 
 use std::fmt;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use base::{Codec, Color, Error, Frame, Hdr, Packet, Picture, PixelFormat, Rational};
@@ -54,6 +54,109 @@ impl fmt::Display for Failure {
 
 impl std::error::Error for Failure {}
 
+/// An output path that `render` cannot make or write: the path and the system's reason, as one sentence without a
+/// full stop (`docs/spec/render-command.md`, section 6).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Refusal {
+    path: PathBuf,
+    reason: String,
+}
+
+impl Refusal {
+    /// The output path as the command was given it, resolved.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// The system's reason.
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
+}
+
+/// The hidden folder of a run: beside the output path and named with the process id of the run, so that the staging
+/// file of a render killed outright is found and removed by the next render (`docs/spec/render-command.md`, section 6).
+pub fn staging_folder_of(output: &Path) -> PathBuf {
+    output.with_file_name(format!(".framesmith-{}", std::process::id()))
+}
+
+/// The staging file of a film: the output's name with `.part` added before its extension, in the hidden folder of the
+/// run, so that the move to the output path is one rename and the file keeps the extension that names its container
+/// (`film.mp4` gives `.framesmith-<pid>/film.part.mp4`; `docs/spec/render-command.md`, section 6).
+pub fn staging_of(output: &Path) -> PathBuf {
+    let stem = output.file_stem().unwrap_or_default().to_os_string();
+    let mut name = stem;
+    name.push(".part");
+    if let Some(extension) = output.extension() {
+        name.push(".");
+        name.push(extension);
+    }
+    staging_folder_of(output).join(name)
+}
+
+/// Removes the hidden folders of renders into `folder` whose process no longer runs, and logs each one: what a render
+/// killed outright left behind. A hidden folder whose process still runs is left as it is.
+pub fn remove_stale_staging(folder: &Path) {
+    let Ok(entries) = fs::read_dir(folder) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let pid = name
+            .to_str()
+            .and_then(|name| name.strip_prefix(".framesmith-"))
+            .and_then(|pid| pid.parse::<u32>().ok());
+        let Some(pid) = pid else {
+            continue;
+        };
+        if !entry.file_type().is_ok_and(|kind| kind.is_dir()) || pid == std::process::id() || process_runs(pid) {
+            continue;
+        }
+        if fs::remove_dir_all(entry.path()).is_ok() {
+            tracing::info!(pid, "removed the staging folder of a render that is no longer running");
+        }
+    }
+}
+
+/// Whether a process with this id runs. When the process table cannot be asked, the process is taken to run, so that
+/// its folder is then left alone.
+pub fn process_runs(pid: u32) -> bool {
+    std::process::Command::new("/bin/ps")
+        .args(["-p", &pid.to_string()])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(true)
+}
+
+/// Checks, before the first frame, that the output path can be made and written: its folder is made when it is missing,
+/// and its staging file can be opened for writing; that staging file is removed again. A place that cannot be written gives
+/// a [`Refusal`] with the system's reason, and nothing is drawn.
+pub fn check_place(output: &Path) -> Result<(), Refusal> {
+    let refuse = |error: std::io::Error| Refusal {
+        path: output.to_path_buf(),
+        reason: error.to_string(),
+    };
+    if output.is_dir() {
+        return Err(refuse(std::io::ErrorKind::IsADirectory.into()));
+    }
+    if let Some(folder) = output.parent().filter(|folder| !folder.as_os_str().is_empty()) {
+        fs::create_dir_all(folder).map_err(refuse)?;
+    }
+    let staging = staging_of(output);
+    fs::create_dir_all(staging.parent().unwrap_or(Path::new("."))).map_err(refuse)?;
+    fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&staging)
+        .map_err(refuse)?;
+    let _ = fs::remove_file(&staging);
+    let _ = fs::remove_dir(staging_folder_of(output));
+    Ok(())
+}
+
 fn formats() -> format::Registry {
     let mut formats = format::Registry::new();
     formats.register(mp4::FORMAT);
@@ -89,9 +192,12 @@ pub fn write_film_marked(
     audio_bitrate: u32,
     marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
-    if let Some(folder) = output.parent().filter(|folder| !folder.as_os_str().is_empty()) {
-        fs::create_dir_all(folder).map_err(|error| Failure::new(format!("the folder for the file could not be made: {error}")))?;
-    }
+    let folder = output
+        .parent()
+        .filter(|folder| !folder.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    fs::create_dir_all(folder).map_err(|error| Failure::new(format!("the folder for the file could not be made: {error}")))?;
+    remove_stale_staging(folder);
     let began = Instant::now();
     tracing::info!(
         frames = scene.frames(),
@@ -101,10 +207,19 @@ pub fn write_film_marked(
         renderer = renderer.name(),
         "render started"
     );
-    let written = make(scene, sounds, renderer, output, audio_bitrate, began, marks).inspect_err(|_| {
-        // A film that was not finished leaves no file that looks finished.
-        let _ = fs::remove_file(output);
-    })?;
+    let staging = staging_of(output);
+    let run_folder = staging_folder_of(output);
+    fs::create_dir_all(&run_folder).map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))?;
+    let written = make(scene, sounds, renderer, &staging, audio_bitrate, began, marks)
+        .and_then(|written| {
+            fs::rename(&staging, output)
+                .map_err(|error| Failure::new(format!("the finished video could not be moved to its place: {error}")))?;
+            Ok(written)
+        })
+        .inspect_err(|_| {
+            let _ = fs::remove_dir_all(&run_folder);
+        })?;
+    let _ = fs::remove_dir(&run_folder);
     tracing::info!(frames = written.frames, bytes = written.bytes, "render finished");
     Ok(written)
 }
