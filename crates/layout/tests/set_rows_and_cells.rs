@@ -26,10 +26,10 @@ fn leftover_height_is_shared_equally_among_the_rows() {
         ..Cell::default()
     };
     let height_100 = Written {
-        height: Some(Amount::Pixels(100.0)),
+        height: Some(Amount::Pixels((100.0).into())),
         ..Written::default()
     };
-    let flowed = columns(layout::frame(300, 300), height_100, &set, &[cell, cell]).expect("placed");
+    let flowed = columns(layout::frame(300, 300), &height_100, &set, &[cell.clone(), cell]).expect("placed");
     assert_eq!(flowed.items, vec![rect(0, 0, 50, 50), rect(0, 50, 50, 50)]);
 }
 
@@ -47,12 +47,12 @@ fn a_cell_with_a_written_width_stands_at_the_start_of_its_column() {
     };
     let small = Cell {
         written: Written {
-            width: Some(Amount::Pixels(30.0)),
-            height: Some(Amount::Pixels(10.0)),
+            width: Some(Amount::Pixels((30.0).into())),
+            height: Some(Amount::Pixels((10.0).into())),
             ..Written::default()
         },
         ..Cell::default()
     };
-    let flowed = columns(layout::frame(300, 300), Written::default(), &set, &[tall, small]).expect("placed");
+    let flowed = columns(layout::frame(300, 300), &Written::default(), &set, &[tall, small]).expect("placed");
     assert_eq!(flowed.items, vec![rect(0, 0, 100, 40), rect(100, 30, 30, 10)]);
 }

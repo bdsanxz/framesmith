@@ -7,8 +7,8 @@ use layout::{flow, frame, Across, Along, Amount, Direction, Flex, Item, Rect, Si
 fn sized(width: f64, height: f64) -> Item {
     Item {
         written: Written {
-            width: Some(Amount::Pixels(width)),
-            height: Some(Amount::Pixels(height)),
+            width: Some(Amount::Pixels((width).into())),
+            height: Some(Amount::Pixels((height).into())),
             ..Written::default()
         },
         ..Item::default()
@@ -17,8 +17,8 @@ fn sized(width: f64, height: f64) -> Item {
 
 fn known(width: f64, height: f64) -> Written {
     Written {
-        width: Some(Amount::Pixels(width)),
-        height: Some(Amount::Pixels(height)),
+        width: Some(Amount::Pixels((width).into())),
+        height: Some(Amount::Pixels((height).into())),
         ..Written::default()
     }
 }
@@ -97,7 +97,7 @@ fn padding_moves_the_children_in_from_the_edges_of_a_row_or_column() {
         },
         ..Flex::default()
     };
-    let flowed = flow(frame(400, 300), known(100.0, 50.0), &flex, &[sized(20.0, 10.0)]).expect("placed");
+    let flowed = flow(frame(400, 300), &known(100.0, 50.0), &flex, &[sized(20.0, 10.0)]).expect("placed");
     assert_eq!(flowed.container, rect(0, 0, 100, 50));
     assert_eq!(flowed.items, vec![rect(10, 5, 20, 10)]);
 }
@@ -114,7 +114,7 @@ fn a_centred_group_is_centred_in_the_content_box_inside_the_padding() {
         },
         ..Flex::default()
     };
-    let flowed = flow(frame(400, 300), known(100.0, 10.0), &flex, &[sized(20.0, 10.0)]).expect("placed");
+    let flowed = flow(frame(400, 300), &known(100.0, 10.0), &flex, &[sized(20.0, 10.0)]).expect("placed");
     assert_eq!(flowed.items, vec![rect(30, 0, 20, 10)]);
 }
 
@@ -122,8 +122,8 @@ fn a_centred_group_is_centred_in_the_content_box_inside_the_padding() {
 fn a_margin_across_a_row_moves_the_child_and_counts_in_its_outer_size() {
     let margined = Item {
         written: Written {
-            width: Some(Amount::Pixels(20.0)),
-            height: Some(Amount::Pixels(10.0)),
+            width: Some(Amount::Pixels((20.0).into())),
+            height: Some(Amount::Pixels((10.0).into())),
             ..Written::default()
         },
         margin: Sides {
@@ -136,7 +136,7 @@ fn a_margin_across_a_row_moves_the_child_and_counts_in_its_outer_size() {
     };
     let flowed = flow(
         frame(400, 300),
-        Written::default(),
+        &Written::default(),
         &Flex::default(),
         &[margined, sized(10.0, 10.0)],
     )
@@ -160,7 +160,7 @@ fn a_margin_down_a_column_moves_the_child_and_counts_in_its_outer_size() {
         direction: Direction::Column,
         ..Flex::default()
     };
-    let flowed = flow(frame(400, 300), Written::default(), &flex, &[margined]).expect("placed");
+    let flowed = flow(frame(400, 300), &Written::default(), &flex, &[margined]).expect("placed");
     assert_eq!(flowed.container, rect(0, 0, 10, 20));
     assert_eq!(flowed.items, vec![rect(0, 4, 10, 10)]);
 }

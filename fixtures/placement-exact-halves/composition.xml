@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Exact halves of a percentage (render-command.md section 4.1, rule 3), in a frame 2750 pixels wide: 1.4% of it is exactly
+     38.5 pixels and 4.6% is exactly 126.5. The first box starts at 1.4% and is 10 wide: its edges lie at 38.5 and 48.5, which
+     round half up to 39 and 49, so it covers the columns 39 to 48. The second has no near edge: its size is 1.4%, 38.5, from
+     the frame's near edge, so it covers the columns 0 to 38. The third starts at 4.6%, 126.5, which rounds to 127, and covers
+     127 to 136. The fourth is placed from the far edge: 1.4% of 2750 (38.5) from the right, and 10 wide, so its near edge is
+     2750 - 38.5 - 10 = 2701.5, which rounds to 2702, and it covers 2702 to 2711. The gradient box, at columns 1000 to 1499,
+     is there only to give the picture variety for the card's similarity measure; no column checked above lies in it.
+     10 frames a second. -->
+<composition version="1" id="placement-exact-halves" width="2750" height="12" fps="10" duration="1" background="#102040">
+  <box id="variety" left="1000" width="500" top="0" height="12" background="linear-gradient(90deg, #203850 0%, #805020 100%)"/>
+  <box id="starts-at-one-point-four" left="1.4%" width="10" top="0" height="12" background="#e0a030"/>
+  <box id="sized-one-point-four" left="0" width="1.4%" top="0" height="12" background="#30c0a0"/>
+  <box id="starts-at-four-point-six" left="4.6%" width="10" top="0" height="12" background="#a050d0"/>
+  <box id="ends-at-one-point-four" right="1.4%" width="10" top="0" height="12" background="#d05030"/>
+</composition>

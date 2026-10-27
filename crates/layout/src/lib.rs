@@ -13,7 +13,10 @@
 //! axis is as large as its children there. The cells of a set of columns are placed by [`columns`]
 //! (module `set`, `render-command.md` section 4.4).
 
+mod exact;
 mod set;
+
+pub use exact::Decimal;
 
 pub use set::{columns, inside_columns, measure_columns, Cell, Columns, Track};
 
@@ -62,16 +65,16 @@ impl Rect {
 
 /// An amount written for one axis: a number of pixels, or a percentage of the parent's size on that
 /// axis (`notation.md` section 4: a length).
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Amount {
     /// A number of pixels, as written.
-    Pixels(f64),
+    Pixels(Decimal),
     /// A percentage of the parent's width (across) or height (down): `Percent(50.0)` is half of it.
-    Percent(f64),
+    Percent(Decimal),
 }
 
 /// What a box writes of its place and size. A value not written is `None`.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Written {
     pub left: Option<Amount>,
     pub top: Option<Amount>,
@@ -102,7 +105,7 @@ pub fn frame(width: u32, height: u32) -> Rect {
 /// The place of a box in its parent's rectangle `parent`, in whole pixels (`render-command.md`
 /// section 4.1). A size below 0 is 0: the scene reports a written one before it is placed, and a
 /// size that two distances leave below 0 is 0.
-pub fn place(parent: Rect, written: Written) -> Result<Rect, Beyond> {
+pub fn place(parent: Rect, written: &Written) -> Result<Rect, Beyond> {
     let (left, width) = Span::across(parent, written).place(f64::from(parent.width))?;
     let (top, height) = Span::down(parent, written).place(f64::from(parent.height))?;
     Ok(Rect { left, top, width, height })
@@ -209,7 +212,7 @@ pub struct Flex {
 
 /// A child of a row or a column: what it writes, its margin, its own `align-self`, and whether it is
 /// placed absolutely.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Item {
     /// What the child writes. An absolute child is placed by all of it; a flowed child uses only its
     /// `width` and `height`, and takes no notice of its own `left`, `top`, `right` and `bottom`.
@@ -288,7 +291,7 @@ pub struct Measured {
 /// as its `across` says, and one that writes no size there stretches to fill the content box less its
 /// margins. An absolute child is placed as [`place`] places a box, in the row or column's outer
 /// rectangle, and takes no room.
-pub fn flow(parent: Rect, written: Written, flex: &Flex, items: &[Item]) -> Result<Flowed, Beyond> {
+pub fn flow(parent: Rect, written: &Written, flex: &Flex, items: &[Item]) -> Result<Flowed, Beyond> {
     let across = Span::across(parent, written);
     let down = Span::down(parent, written);
     let (main, cross) = match flex.direction {
@@ -422,6 +425,19 @@ fn group(flex: &Flex, children: &[Child]) -> f64 {
     children.iter().map(Child::outer_main).sum::<f64>() + flex.gap * children.len().saturating_sub(1) as f64
 }
 
+/// The length of the group of children along the main axis, summed exactly: their outer sizes, and a gap between each two.
+fn group_exact(flex: &Flex, children: &[Child]) -> Option<Decimal> {
+    let mut total = Decimal::whole(0);
+    for child in children {
+        total = total
+            .plus(Decimal::of(child.main)?)?
+            .plus(Decimal::of(child.main_margin.0)?)?
+            .plus(Decimal::of(child.main_margin.1)?)?;
+    }
+    let gaps = Decimal::whole(children.len().saturating_sub(1) as i128);
+    total.plus(Decimal::of(flex.gap)?.times(gaps)?)
+}
+
 /// The part of the cross axis above and below the common baseline of the children that lie on one
 /// (`align-items="baseline"`): the highest part above the baseline and the lowest part below it. `None`
 /// when no child is aligned by its baseline.
@@ -448,35 +464,47 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
         Direction::Row => (container.left, container.width, container.top, container.height),
         Direction::Column => (container.top, container.height, container.left, container.width),
     };
-    // The content box: the container less its padding.
-    let main_from = f64::from(main_start) + pad_main.0;
-    let main_length = f64::from(main_size) - pad_main.0 - pad_main.1;
+    // The content box: the container less its padding. Along the main axis the sums are exact (`render-command.md`,
+    // section 4.1, rule 3): a share of divided room is the one amount worked in floats.
+    let main_from = Decimal::whole(i128::from(main_start))
+        .plus(Decimal::of(pad_main.0).ok_or(Beyond)?)
+        .ok_or(Beyond)?;
+    let main_length = Decimal::whole(i128::from(main_size))
+        .minus(Decimal::of(pad_main.0).ok_or(Beyond)?)
+        .and_then(|rest| rest.minus(Decimal::of(pad_main.1)?))
+        .ok_or(Beyond)?;
     let cross_from = f64::from(cross_start) + pad_cross.0;
     let cross_length = f64::from(cross_size) - pad_cross.0 - pad_cross.1;
-    let room = main_length - group(flex, children);
+    let room = main_length.minus(group_exact(flex, children).ok_or(Beyond)?).ok_or(Beyond)?;
     // The place of the first child along the main axis, and the space between two neighbours.
+    let gap = Decimal::of(flex.gap).ok_or(Beyond)?;
     let (offset, spacing) = match flex.along {
-        Along::Start => (0.0, flex.gap),
-        Along::Center => (room / 2.0, flex.gap),
-        Along::End => (room, flex.gap),
+        Along::Start => (Decimal::whole(0), gap),
+        Along::Center => (Decimal::of(room.to_f64() / 2.0).ok_or(Beyond)?, gap),
+        Along::End => (room.clone(), gap),
         Along::SpaceBetween => {
-            let extra = if children.len() > 1 && room > 0.0 {
-                room / (children.len() - 1) as f64
+            let extra = if children.len() > 1 && room.is_above_zero() {
+                Decimal::of(room.to_f64() / (children.len() - 1) as f64).ok_or(Beyond)?
             } else {
-                0.0
+                Decimal::whole(0)
             };
-            (0.0, flex.gap + extra)
+            (Decimal::whole(0), gap.plus(extra).ok_or(Beyond)?)
         }
     };
     let line = baseline_block(children).map_or(0.0, |(above, _)| above);
 
-    let mut cursor = main_from + offset;
+    let mut cursor = main_from.plus(offset).ok_or(Beyond)?;
     let mut flowed = Vec::with_capacity(children.len());
     for child in children {
-        let start = cursor + child.main_margin.0;
+        let start = cursor.clone().plus(Decimal::of(child.main_margin.0).ok_or(Beyond)?).ok_or(Beyond)?;
+        let size = Decimal::of(child.main).ok_or(Beyond)?;
         let (across_start, across_size) = across_place(child, cross_from, cross_length, line);
-        flowed.push(to_rect(flex.direction, (start, child.main), (across_start, across_size))?);
-        cursor = start + child.main + child.main_margin.1 + spacing;
+        flowed.push(to_rect(flex.direction, (start.clone(), size.clone()), (across_start, across_size))?);
+        cursor = start
+            .plus(size)
+            .and_then(|end| end.plus(Decimal::of(child.main_margin.1)?))
+            .and_then(|end| end.plus(spacing.clone()))
+            .ok_or(Beyond)?;
     }
 
     let baseline = match (children.first(), flowed.first()) {
@@ -490,7 +518,7 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
     let mut out = Vec::with_capacity(items.len());
     for item in items {
         let rect = if item.absolute {
-            place(container, item.written)?
+            place(container, &item.written)?
         } else {
             flowed.next().ok_or(Beyond)?
         };
@@ -500,7 +528,7 @@ fn place_items(container: Rect, flex: &Flex, children: &[Child], items: &[Item])
 }
 
 /// A child that is not absolute, with its sizes and margins worked out for its row or column.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct Child {
     /// The size on the main axis: as written, or 0 when none is written.
     main: f64,
@@ -529,8 +557,8 @@ struct Child {
 impl Child {
     fn new(item: &Item, flex: &Flex, main_base: Option<f64>, cross_base: Option<f64>) -> Result<Self, Beyond> {
         let (main_amount, cross_amount) = match flex.direction {
-            Direction::Row => (item.written.width, item.written.height),
-            Direction::Column => (item.written.height, item.written.width),
+            Direction::Row => (item.written.width.clone(), item.written.height.clone()),
+            Direction::Column => (item.written.height.clone(), item.written.width.clone()),
         };
         let (main_margin, cross_margin) = item.margin.split(flex.direction);
         // A baseline in a column is the start, since a column has no line of baselines (rule 7).
@@ -595,7 +623,11 @@ fn written_size(amount: Option<Amount>, base: Option<f64>) -> Result<Option<f64>
     match (amount, base) {
         (None, _) => Ok(None),
         (Some(Amount::Percent(_)), None) => Ok(Some(0.0)),
-        (Some(amount), base) => Ok(Some(pixels(amount, base.unwrap_or(0.0))?.max(0.0))),
+        (Some(amount), base) => {
+            let base = Decimal::of(base.unwrap_or(0.0)).ok_or(Beyond)?;
+            let size = pixels(&amount, &base)?;
+            Ok(Some(if size.is_below_zero() { 0.0 } else { size.to_f64() }))
+        }
     }
 }
 
@@ -621,13 +653,13 @@ fn across_place(child: &Child, start: f64, length: f64, line: f64) -> (f64, f64)
 }
 
 /// The rectangle of a child from its span on the main axis and on the cross axis.
-fn to_rect(direction: Direction, main: (f64, f64), cross: (f64, f64)) -> Result<Rect, Beyond> {
-    let (across, down) = match direction {
+fn to_rect(direction: Direction, main: (Decimal, Decimal), cross: (f64, f64)) -> Result<Rect, Beyond> {
+    let main = span_exact(main.0, main.1)?;
+    let cross = span(cross.0, cross.1)?;
+    let ((left, width), (top, height)) = match direction {
         Direction::Row => (main, cross),
         Direction::Column => (cross, main),
     };
-    let (left, width) = span(across.0, across.1)?;
-    let (top, height) = span(down.0, down.1)?;
     Ok(Rect { left, top, width, height })
 }
 
@@ -642,7 +674,7 @@ fn rect(across: (i32, u32), down: (i32, u32)) -> Rect {
 }
 
 /// One axis of a box: where its parent lies on that axis, and what the box writes there.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct Span {
     start: i32,
     length: u32,
@@ -655,25 +687,25 @@ struct Span {
 
 impl Span {
     /// The horizontal axis of a box in `parent`: `left`, `right`, `width` and `max-width`.
-    fn across(parent: Rect, written: Written) -> Self {
+    fn across(parent: Rect, written: &Written) -> Self {
         Span {
             start: parent.left,
             length: parent.width,
-            near: written.left,
-            far: written.right,
-            size: written.width,
+            near: written.left.clone(),
+            far: written.right.clone(),
+            size: written.width.clone(),
             max: written.max_width,
         }
     }
 
     /// The vertical axis of a box in `parent`: `top`, `bottom` and `height`.
-    fn down(parent: Rect, written: Written) -> Self {
+    fn down(parent: Rect, written: &Written) -> Self {
         Span {
             start: parent.top,
             length: parent.height,
-            near: written.top,
-            far: written.bottom,
-            size: written.height,
+            near: written.top.clone(),
+            far: written.bottom.clone(),
+            size: written.height.clone(),
             max: None,
         }
     }
@@ -686,7 +718,15 @@ impl Span {
     /// The whole-pixel start and size on this axis, with `fallback` pixels when the box has no size of
     /// its own there.
     fn place(&self, fallback: f64) -> Result<(i32, u32), Beyond> {
-        axis(self.start, self.length, self.near, self.far, self.size, fallback, self.max)
+        axis(
+            self.start,
+            self.length,
+            self.near.as_ref(),
+            self.far.as_ref(),
+            self.size.as_ref(),
+            fallback,
+            self.max,
+        )
     }
 }
 
@@ -698,41 +738,56 @@ impl Span {
 fn axis(
     start: i32,
     length: u32,
-    near: Option<Amount>,
-    far: Option<Amount>,
-    size: Option<Amount>,
+    near: Option<&Amount>,
+    far: Option<&Amount>,
+    size: Option<&Amount>,
     fallback: f64,
     max: Option<f64>,
 ) -> Result<(i32, u32), Beyond> {
-    let length = f64::from(length);
-    let near = near.map(|amount| pixels(amount, length)).transpose()?;
-    let far = far.map(|amount| pixels(amount, length)).transpose()?;
-    let written = size.map(|amount| pixels(amount, length)).transpose()?;
+    let length = Decimal::whole(i128::from(length));
+    let near = near.map(|amount| pixels(amount, &length)).transpose()?;
+    let far = far.map(|amount| pixels(amount, &length)).transpose()?;
+    let written = size.map(|amount| pixels(amount, &length)).transpose()?;
+    let max = max.map(|limit| Decimal::of(limit).ok_or(Beyond)).transpose()?;
+    let fallback = Decimal::of(fallback).ok_or(Beyond)?;
     // The size: as written, or the space between two written edges, or the fallback; capped unless written.
-    let size = match (written, near, far) {
+    let size = match (written, near.clone(), far.clone()) {
         (Some(size), _, _) => size,
-        (None, Some(near), Some(far)) => cap(length - near - far, max),
-        _ => cap(fallback, max),
+        (None, Some(near), Some(far)) => cap_exact(length.clone().minus(near).and_then(|rest| rest.minus(far)), max)?,
+        _ => cap_exact(Some(fallback), max)?,
     };
-    if !size.is_finite() {
-        return Err(Beyond);
-    }
-    let size = size.max(0.0);
+    let size = size.max(Decimal::whole(0)).ok_or(Beyond)?;
     // The near edge: as written from the parent's near edge; or, with only a far edge, the far edge
     // lies that distance from the parent's far edge; or the parent's near edge.
     let relative = match (near, far) {
         (Some(near), _) => near,
-        (None, Some(far)) => length - far - size,
-        (None, None) => 0.0,
+        (None, Some(far)) => length.clone().minus(far).and_then(|rest| rest.minus(size.clone())).ok_or(Beyond)?,
+        (None, None) => Decimal::whole(0),
     };
-    span(f64::from(start) + relative, size)
+    span_exact(Decimal::whole(i128::from(start)).plus(relative).ok_or(Beyond)?, size)
+}
+
+/// A size capped at `limit` when there is one, the cap as the amount is worked out (`None` when it does not fit).
+fn cap_exact(size: Option<Decimal>, limit: Option<Decimal>) -> Result<Decimal, Beyond> {
+    let size = size.ok_or(Beyond)?;
+    match limit {
+        Some(limit) => size.min(limit).ok_or(Beyond),
+        None => Ok(size),
+    }
 }
 
 /// The whole-pixel start and size of a span that starts at `start` and is `size` pixels long. Each
 /// of its two edges is rounded (`whole`), so two neighbours that meet meet on one pixel edge.
 fn span(start: f64, size: f64) -> Result<(i32, u32), Beyond> {
-    let near = whole(start)?;
-    let far = whole(start + size)?;
+    let start = Decimal::of(start).ok_or(Beyond)?;
+    let size = Decimal::of(size).ok_or(Beyond)?;
+    span_exact(start, size)
+}
+
+/// [`span`] for amounts worked out exactly (`render-command.md`, section 4.1, rule 3).
+fn span_exact(start: Decimal, size: Decimal) -> Result<(i32, u32), Beyond> {
+    let near = whole(start.clone())?;
+    let far = whole(start.plus(size).ok_or(Beyond)?)?;
     let width = (far - near).max(0);
     if width > LIMIT {
         return Err(Beyond);
@@ -740,25 +795,20 @@ fn span(start: f64, size: f64) -> Result<(i32, u32), Beyond> {
     Ok((near as i32, width as u32))
 }
 
-/// An amount in pixels: a percentage of the parent's length, `percent` times `length` divided by 100.
-fn pixels(amount: Amount, length: f64) -> Result<f64, Beyond> {
+/// An amount in pixels: a percentage of the parent's length, `percent` times `length` divided by 100, exactly.
+fn pixels(amount: &Amount, length: &Decimal) -> Result<Decimal, Beyond> {
     let value = match amount {
-        Amount::Pixels(pixels) => pixels,
-        Amount::Percent(percent) => percent * length / 100.0,
+        Amount::Pixels(pixels) => Some(pixels.clone()),
+        Amount::Percent(percent) => percent.clone().times(length.clone()).and_then(|share| share.per_hundred()),
     };
-    if value.is_finite() {
-        Ok(value)
-    } else {
-        Err(Beyond)
-    }
+    value.ok_or(Beyond)
 }
 
 /// A position in pixels rounded to a whole pixel, a half up: the larger whole number when it lies
 /// exactly half way. Beyond the limit it is not placed.
-fn whole(position: f64) -> Result<i64, Beyond> {
-    let floor = position.floor();
-    let rounded = if position - floor >= 0.5 { floor + 1.0 } else { floor };
-    if rounded.abs() <= LIMIT as f64 {
+fn whole(position: Decimal) -> Result<i64, Beyond> {
+    let rounded = position.round_half_up().ok_or(Beyond)?;
+    if rounded.abs() <= i128::from(LIMIT) {
         Ok(rounded as i64)
     } else {
         Err(Beyond)

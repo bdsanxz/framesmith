@@ -31,7 +31,7 @@ pub struct Columns {
 /// A cell of a set: what it writes, its margin, its own `align-self`, whether it is absolute, the size its own
 /// items give it when it writes none, and its baseline from its top edge (that of its first line, or of its first
 /// item, or `None` for its bottom edge).
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Cell {
     /// What the cell writes. A cell with a written `width` stands at the start edge of its column at that width.
     pub written: Written,
@@ -67,7 +67,7 @@ fn content(length: u32, before: f64, after: f64) -> f64 {
 /// box is (section 4.1), with a written `width` or `height` that includes its padding, and an axis with no size of its
 /// own is as large as its cells need: the pixel columns, the share columns at the widest of their cells, the gaps and
 /// the padding.
-pub fn columns(parent: Rect, written: Written, set: &Columns, cells: &[Cell]) -> Result<Flowed, Beyond> {
+pub fn columns(parent: Rect, written: &Written, set: &Columns, cells: &[Cell]) -> Result<Flowed, Beyond> {
     let across = Span::across(parent, written);
     let down = Span::down(parent, written);
     let known_w = across.known().then(|| across.place(0.0)).transpose()?;
@@ -198,7 +198,7 @@ fn outer_height(cell: &Cell, content_h: Option<f64>) -> Result<f64, Beyond> {
 /// The width a cell writes, or the width its own items give it, capped by its `max-width` when it writes none (rule 5).
 /// A percentage is of the content box, and is 0 where the set has no size of its own there.
 fn own_width(cell: &Cell, content_w: Option<f64>) -> Result<f64, Beyond> {
-    match written_size(cell.written.width, content_w)? {
+    match written_size(cell.written.width.clone(), content_w)? {
         Some(width) => Ok(width),
         None => Ok(cap(cell.measured.map_or(0.0, |size| size.width), cell.written.max_width)),
     }
@@ -206,7 +206,7 @@ fn own_width(cell: &Cell, content_w: Option<f64>) -> Result<f64, Beyond> {
 
 /// The height a cell writes, or the height its own items give it. A percentage is of the content box.
 fn own_height(cell: &Cell, content_h: Option<f64>) -> Result<f64, Beyond> {
-    match written_size(cell.written.height, content_h)? {
+    match written_size(cell.written.height.clone(), content_h)? {
         Some(height) => Ok(height),
         None => Ok(cell.measured.map_or(0.0, |size| size.height)),
     }
@@ -253,7 +253,7 @@ fn place_cells(
     let mut flow_index = 0_usize;
     for cell in cells {
         if cell.absolute {
-            rects.push(place(container, cell.written)?);
+            rects.push(place(container, &cell.written)?);
             continue;
         }
         let column = flow_index % count;
@@ -262,7 +262,7 @@ fn place_cells(
         let margin = cell.margin;
         let column_width = grid.widths[column];
         let row_height = grid.rows[row];
-        let width = match written_size(cell.written.width, content_w)? {
+        let width = match written_size(cell.written.width.clone(), content_w)? {
             Some(width) => width,
             None => cap((column_width - margin.left - margin.right).max(0.0), cell.written.max_width),
         };
@@ -272,7 +272,7 @@ fn place_cells(
         };
         let own = own_height(cell, content_h)?;
         let row_top = row_starts[row];
-        let (top, height) = match (across, cell.written.height) {
+        let (top, height) = match (across, cell.written.height.clone()) {
             (Across::Stretch, None) => (row_top + margin.top, (row_height - margin.top - margin.bottom).max(0.0)),
             (Across::Center, _) => (row_top + (row_height - (own + margin.top + margin.bottom)) / 2.0 + margin.top, own),
             (Across::End, _) => (row_top + row_height - margin.bottom - own, own),

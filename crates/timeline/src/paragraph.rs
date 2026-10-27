@@ -193,7 +193,7 @@ fn read_text_attribute(attribute: &Attribute, attrs: &mut TextAttrs) -> Result<(
         }
         "font-size" => {
             let size = match attribute.length() {
-                Some(Length::Pixels(pixels)) => pixels,
+                Some(Length::Pixels(pixels)) => pixels.to_f64(),
                 Some(Length::Percent(_)) => {
                     return Err((Code::ValueNotInForm, format!("`font-size=\"{value}\"` is not a number of pixels")))
                 }
@@ -621,11 +621,13 @@ pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>
 /// height is the one written, or the height of its lines. Gives the rectangle and the lines, or the fault that stops it.
 pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, parent: Rect) -> Result<Paragraph, Fault> {
     let node = &tree[index];
-    let beyond = |Beyond| Fault {
+    let beyond = |Beyond| {
+        Fault {
         code: Code::FormNotSupported,
         line: node.line(),
-        message: format!("a place or a size of <text> works out beyond {LIMIT} pixels, which this version does not place"),
+        message: format!("a place or a size of <text> works out beyond {LIMIT} pixels, or needs more digits than this version works with, which this version does not place"),
         style: false,
+    }
     };
     // A width is known with a written `width`, or with both `left` and `right`, which give the width of the
     // container less the two (`layout::place`). Without either, the text is as wide as its widest line.
@@ -634,9 +636,9 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
         // The width the place gives, with the height left out: it depends on the width alone.
         let across = place(
             parent,
-            Written {
-                height: Some(Amount::Pixels(0.0)),
-                ..written
+            &Written {
+                height: Some(Amount::Pixels(0.0.into())),
+                ..written.clone()
             },
         )
         .map_err(beyond)?;
@@ -647,12 +649,12 @@ pub(crate) fn place_text(fonts: &mut Fonts, tree: &[Node], index: usize, written
     let block = lay_block(fonts, tree, index, wrap, written.max_width)?;
     let mut sized = written;
     if sized.width.is_none() {
-        sized.width = Some(Amount::Pixels(f64::from(block.width).ceil()));
+        sized.width = Some(Amount::Pixels(f64::from(block.width).ceil().into()));
     }
     if sized.height.is_none() {
-        sized.height = Some(Amount::Pixels(f64::from(block.height).ceil()));
+        sized.height = Some(Amount::Pixels(f64::from(block.height).ceil().into()));
     }
-    let rect = place(parent, sized).map_err(beyond)?;
+    let rect = place(parent, &sized).map_err(beyond)?;
     Ok(Paragraph {
         rect,
         block,
@@ -725,12 +727,13 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
 fn flow_pixels(amount: Option<Amount>, name: &str, node: &Node) -> Result<Option<f64>, Fault> {
     match amount {
         None => Ok(None),
-        Some(Amount::Pixels(pixels)) => Ok(Some(pixels)),
+        Some(Amount::Pixels(pixels)) => Ok(Some(pixels.to_f64())),
         Some(Amount::Percent(percent)) => Err(Fault {
             code: Code::FormNotSupported,
             line: node.line(),
             message: format!(
-                "`{name}=\"{percent}%\"` on <text> inside a row or a column is not a form this version supports: a whole number of pixels"
+                "`{name}=\"{}%\"` on <text> inside a row or a column is not a form this version supports: a whole number of pixels",
+                percent.to_f64()
             ),
             style: false,
         }),
