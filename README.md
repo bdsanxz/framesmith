@@ -133,7 +133,7 @@ The gates are specified in [`docs/dev/gates.md`](docs/dev/gates.md), and working
 
 ## Contributing
 
-Pull requests are not accepted for now, so that all of the code can also be offered under a commercial licence. Bug reports and suggestions are welcome as issues.
+Bug reports and feature requests are welcome through [GitHub Issues](https://github.com/bdsanxz/framesmith/issues). As the project is dual-licensed, external code contributions are not accepted at this time.
 
 ## Licence
 
