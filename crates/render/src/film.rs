@@ -137,8 +137,22 @@ impl Run {
 
 impl Drop for Run {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.folder);
-        let _ = fs::remove_file(&self.lock_path);
+        if remove_folder(&self.folder) {
+            let _ = fs::remove_file(&self.lock_path);
+        }
+    }
+}
+
+/// Removes a hidden folder of a run, with what it holds. A folder that is already gone counts as removed. A folder that
+/// cannot be removed is reported and stays, and its lock file stays with it, so that the sweep takes both later.
+fn remove_folder(folder: &Path) -> bool {
+    match fs::remove_dir_all(folder) {
+        Ok(()) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => true,
+        Err(error) => {
+            tracing::warn!(error = %error, "a staging folder could not be removed; its lock file stays so that the next render sweeps both");
+            false
+        }
     }
 }
 
@@ -186,7 +200,9 @@ pub fn remove_stale_staging(folder: &Path) {
         if lock.try_lock().is_err() {
             continue;
         }
-        let _ = fs::remove_dir_all(folder.join(format!(".framesmith-{pid}")));
+        if !remove_folder(&folder.join(format!(".framesmith-{pid}"))) {
+            continue;
+        }
         if fs::remove_file(entry.path()).is_ok() {
             tracing::info!(
                 pid,
