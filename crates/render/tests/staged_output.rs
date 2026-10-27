@@ -95,17 +95,21 @@ fn a_sweep_at_each_step_of_a_start_never_removes_the_folder_of_the_render_that_s
     .unwrap_or_else(|failure| panic!("{failure}"));
 
     let own = staging_folder_of(&output).file_name().unwrap().to_str().unwrap().to_string();
+    let own_lock = format!("{own}.lock");
     assert_eq!(
         seen.iter().map(|(step, _)| *step).collect::<Vec<_>>(),
-        vec![Step::Locked, Step::Moved],
+        vec![Step::Locked, Step::Made],
         "the steps of a start are not the ones the render takes"
     );
-    assert_eq!(seen[0].1.len(), 1, "while starting, the hidden folders are {:?}", seen[0].1);
-    assert_ne!(seen[0].1[0], own, "the folder had its own name before its lock was held");
+    assert_eq!(
+        seen[0].1,
+        vec![own_lock.clone()],
+        "while starting, before its folder is made, the run's lock file is the only hidden name"
+    );
     assert_eq!(
         seen[1].1,
-        vec![own],
-        "the sweep of another render removed the folder of the render that starts"
+        vec![own.clone(), own_lock.clone()],
+        "the sweep of another render removed the lock or the folder of the render that starts"
     );
     assert_eq!(written.frames, scene.frames());
     assert!(output.is_file(), "the film is not at its output path");

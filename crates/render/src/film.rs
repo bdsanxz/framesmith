@@ -75,16 +75,71 @@ impl Refusal {
 }
 
 /// The hidden folder of a run: beside the output path and named with the process id of the run, so that a person can
-/// tell whose it is. The sweep decides by the lock in the folder and never by this name (`docs/spec/render-command.md`,
+/// tell whose it is. The sweep decides by the lock file of the run and never by this name (`docs/spec/render-command.md`,
 /// section 6).
 pub fn staging_folder_of(output: &Path) -> PathBuf {
     output.with_file_name(format!(".framesmith-{}", std::process::id()))
 }
 
-/// The folder a run makes before it takes its lock: a name the sweep never reads, so the sweep cannot see the folder
-/// before its lock is held. The run renames it to `staging_folder_of` once it is locked.
-fn starting_folder_of(output: &Path) -> PathBuf {
-    output.with_file_name(format!(".framesmith-starting-{}", std::process::id()))
+/// The lock file of a run: `.framesmith-<pid>.lock` beside the output path, named with the process id of the run. The
+/// sweep reads its name and decides by its lock (`docs/spec/render-command.md`, section 6).
+fn lock_of(output: &Path) -> PathBuf {
+    output.with_file_name(format!(".framesmith-{}.lock", std::process::id()))
+}
+
+/// Creates the lock file of a run already held, in one step: on macOS, `O_EXLOCK` of open(2) takes the lock of
+/// `flock(2)` as the file is opened, so no other render can see the file unlocked.
+#[cfg(target_os = "macos")]
+fn create_locked(path: &Path) -> std::io::Result<fs::File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    /// `O_EXLOCK` from the system's `fcntl.h`.
+    const O_EXLOCK: i32 = 0x0000_0020;
+    fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .custom_flags(O_EXLOCK)
+        .open(path)
+}
+
+/// Creates the lock file of a run and then takes its lock. Only macOS is offered for now, so this is the form for the
+/// systems that follow it, where the file is unlocked for an instant after it is made.
+#[cfg(not(target_os = "macos"))]
+fn create_locked(path: &Path) -> std::io::Result<fs::File> {
+    let file = fs::OpenOptions::new().write(true).create(true).truncate(false).open(path)?;
+    file.try_lock().map_err(std::io::Error::other)?;
+    Ok(file)
+}
+
+/// A run's hold on its lock. When it ends, whether it completes or fails, its hidden folder and its lock file are removed
+/// while the lock is still held, and the lock is released after them.
+struct Run {
+    folder: PathBuf,
+    lock_path: PathBuf,
+    _lock: fs::File,
+}
+
+impl Run {
+    /// Takes the lock of a run whose output is `output`. The folder of an earlier run with the same process id, which only
+    /// a killed run leaves, is removed: the lock is the run's own, so the folder is none of another run's.
+    fn lock(output: &Path) -> std::io::Result<Run> {
+        let lock_path = lock_of(output);
+        let lock = create_locked(&lock_path)?;
+        let run = Run {
+            folder: staging_folder_of(output),
+            lock_path,
+            _lock: lock,
+        };
+        let _ = fs::remove_dir_all(&run.folder);
+        Ok(run)
+    }
+}
+
+impl Drop for Run {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.folder);
+        let _ = fs::remove_file(&self.lock_path);
+    }
 }
 
 /// The staging file of a film: the output's name with `.part` added before its extension, in the hidden folder of the
@@ -105,12 +160,9 @@ fn staging_name(output: &Path) -> std::ffi::OsString {
     name
 }
 
-/// The name of the lock file in the hidden folder of a run: the run holds an exclusive lock on it while it renders.
-const LOCK_NAME: &str = "lock";
-
 /// Removes the hidden folders of renders into `folder` whose lock no render holds, and logs each one: what a render
-/// killed outright left behind. The lock alone decides. A folder whose lock is held is left as it is, the caller's own
-/// included, and the process id in a name is never asked about.
+/// killed outright left behind. The lock file of a run is read, and its lock alone decides. A lock that is held is left as
+/// it is, the caller's own included, and the process id in a name is never asked about.
 pub fn remove_stale_staging(folder: &Path) {
     let Ok(entries) = fs::read_dir(folder) else {
         return;
@@ -120,17 +172,22 @@ pub fn remove_stale_staging(folder: &Path) {
         let pid = name
             .to_str()
             .and_then(|name| name.strip_prefix(".framesmith-"))
+            .and_then(|name| name.strip_suffix(".lock"))
             .and_then(|pid| pid.parse::<u32>().ok());
         let Some(pid) = pid else {
             continue;
         };
-        if !entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+        if !entry.file_type().is_ok_and(|kind| kind.is_file()) {
             continue;
         }
-        let Ok(lock) = fs::File::open(entry.path().join(LOCK_NAME)) else {
+        let Ok(lock) = fs::File::open(entry.path()) else {
             continue;
         };
-        if lock.try_lock().is_ok() && fs::remove_dir_all(entry.path()).is_ok() {
+        if lock.try_lock().is_err() {
+            continue;
+        }
+        let _ = fs::remove_dir_all(folder.join(format!(".framesmith-{pid}")));
+        if fs::remove_file(entry.path()).is_ok() {
             tracing::info!(
                 pid,
                 "removed a staging folder that no render holds: its render was killed or has ended"
@@ -140,8 +197,8 @@ pub fn remove_stale_staging(folder: &Path) {
 }
 
 /// Checks, before the first frame, that the output path can be made and written: its folder is made when it is missing,
-/// and its staging file can be opened for writing; that staging file is removed again. A place that cannot be written gives
-/// a [`Refusal`] with the system's reason, and nothing is drawn.
+/// and its staging file can be opened for writing in the hidden folder of a run, under the run's lock; the probe and the
+/// lock are removed again. A place that cannot be written gives a [`Refusal`] with the system's reason, and nothing is drawn.
 pub fn check_place(output: &Path) -> Result<(), Refusal> {
     let refuse = |error: std::io::Error| Refusal {
         path: output.to_path_buf(),
@@ -153,19 +210,17 @@ pub fn check_place(output: &Path) -> Result<(), Refusal> {
     if let Some(folder) = output.parent().filter(|folder| !folder.as_os_str().is_empty()) {
         fs::create_dir_all(folder).map_err(refuse)?;
     }
-    // The probe is made in the folder a run makes before its lock, which the sweep never reads, so a sweep of another
-    // render cannot remove the folder while the probe is made or used.
-    let probe_folder = starting_folder_of(output);
-    fs::create_dir_all(&probe_folder).map_err(refuse)?;
-    let staging = probe_folder.join(staging_name(output));
-    let probed = fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .open(&staging)
+    let run = Run::lock(output).map_err(refuse)?;
+    let probed = fs::create_dir(&run.folder)
+        .and_then(|()| {
+            fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(staging_of(output))
+        })
         .map(drop);
-    let _ = fs::remove_file(&staging);
-    let _ = fs::remove_dir(&probe_folder);
+    drop(run);
     probed.map_err(refuse)
 }
 
@@ -210,10 +265,10 @@ pub fn write_film_marked(
 /// The points of a render's start at which `write_film_stepped` stops to let its caller look at the folders.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Step {
-    /// The run holds the lock in its folder, which is still under its starting name.
+    /// The run holds its lock, and its hidden folder is not made yet.
     Locked,
-    /// The folder has its name, `.framesmith-<pid>`, and the run still holds the lock. No frame is drawn yet.
-    Moved,
+    /// The hidden folder is made, and the run still holds its lock. No frame is drawn yet.
+    Made,
 }
 
 /// Writes the film as `write_film_marked` does and calls `on_step` at each `Step` of the start, in order. A test uses the
@@ -243,37 +298,18 @@ pub fn write_film_stepped(
         "render started"
     );
     let staging = staging_of(output);
-    let run_folder = staging_folder_of(output);
-    let starting = starting_folder_of(output);
-    // The folder is made and locked under a name the sweep never reads, and only then renamed to its own name, so the
-    // sweep sees it with its lock held or not at all. The lock is held until the render ends, and the system releases
-    // it however the process ends.
-    fs::create_dir_all(&starting).map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))?;
-    let lock = fs::File::create(starting.join(LOCK_NAME))
-        .and_then(|lock| lock.try_lock().map(|()| lock).map_err(std::io::Error::other))
-        .map_err(|error| Failure::new(format!("the staging folder could not be locked: {error}")))
-        .inspect_err(|_| {
-            let _ = fs::remove_dir_all(&starting);
-        })?;
+    // The lock file is created held before any folder is made, so a render killed at any point leaves a lock file that the
+    // sweep can take. The run's guard removes its folder and its lock file however the render ends.
+    let run = Run::lock(output).map_err(|error| Failure::new(format!("the staging folder could not be locked: {error}")))?;
     on_step(Step::Locked);
-    fs::rename(&starting, &run_folder)
-        .map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))
-        .inspect_err(|_| {
-            let _ = fs::remove_dir_all(&starting);
-        })?;
-    on_step(Step::Moved);
-    let written = make(scene, sounds, renderer, &staging, audio_bitrate, began, marks)
-        .and_then(|written| {
-            fs::rename(&staging, output)
-                .map_err(|error| Failure::new(format!("the finished video could not be moved to its place: {error}")))?;
-            Ok(written)
-        })
-        .inspect_err(|_| {
-            let _ = fs::remove_dir_all(&run_folder);
-        })?;
-    drop(lock);
-    let _ = fs::remove_file(run_folder.join(LOCK_NAME));
-    let _ = fs::remove_dir(&run_folder);
+    fs::create_dir(&run.folder).map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))?;
+    on_step(Step::Made);
+    let written = make(scene, sounds, renderer, &staging, audio_bitrate, began, marks).and_then(|written| {
+        fs::rename(&staging, output)
+            .map_err(|error| Failure::new(format!("the finished video could not be moved to its place: {error}")))?;
+        Ok(written)
+    })?;
+    drop(run);
     tracing::info!(frames = written.frames, bytes = written.bytes, "render finished");
     Ok(written)
 }
