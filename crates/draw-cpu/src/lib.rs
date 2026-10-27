@@ -11,15 +11,15 @@
 use std::sync::Arc;
 
 use draw::{
-    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline,
-    Picture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
+    blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline, Picture,
+    Renderer, ResolvedLayer, RingMark, Segment, Shadow, ShapeMark, Step, TextMark, Turn,
 };
 use layout::Rect;
 use skrifa::instance::{LocationRef, Size};
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::{FontRef, GlyphId, MetadataProvider};
-use vello_cpu::kurbo::{self, Affine, BezPath, PathEl};
-use vello_cpu::peniko::{Color, ImageAlphaType, ImageQuality, ImageSampler};
+use vello_cpu::kurbo::{self, Affine, BezPath, Cap, Dashes, Join, PathEl, Shape, Stroke};
+use vello_cpu::peniko::{Blob, Color, Fill, FontData, ImageAlphaType, ImageQuality, ImageSampler};
 use vello_cpu::{Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
 
 mod edges;
@@ -80,6 +80,7 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
             Mark::Group(group) => draw_group(bytes, width, height, group, map, region)?,
             Mark::Background(background) => draw_background(bytes, width, height, background, map, region)?,
             Mark::Ring(ring) => draw_ring(bytes, width, height, ring, map, region)?,
+            Mark::Shape(shape) => draw_shape(bytes, width, height, shape, map, region)?,
             Mark::Cut(cut) => draw_cut(bytes, width, height, cut, map, region)?,
         }
     }
@@ -249,6 +250,196 @@ fn draw_ring(
         }
     }
     Ok(())
+}
+
+/// Draws a shape over the region (`docs/spec/shape.md`): its layer of the frame's size is laid over the picture inside the
+/// region only.
+fn draw_shape(bytes: &mut [u8], width: u32, height: u32, shape: &ShapeMark, map: Map, region: Region) -> Result<(), Error> {
+    let mut layer = shape_layer(width, height, shape, map)?;
+    let (left, top, right, bottom) = region;
+    for y in 0..height {
+        for x in 0..width {
+            if x < left || x >= right || y < top || y >= bottom {
+                let at = (y as usize * width as usize + x as usize) * 4;
+                layer[at..at + 4].fill(0);
+            }
+        }
+    }
+    lay_layer(bytes, &layer);
+    Ok(())
+}
+
+/// The layer of a shape of the frame's size, premultiplied (`docs/spec/shape.md`, sections 3 to 5): the view box is put in
+/// its box, then the map of the element is applied. Each outline is filled or stroked on its own, in the order of the path
+/// data, so that a later outline lies over an earlier one. The line's width and dashes are in view-box units, and the curves
+/// are flattened by the rasteriser to within a quarter pixel of the true curve (decision A29).
+pub fn shape_layer(width: u32, height: u32, shape: &ShapeMark, map: Map) -> Result<Vec<u8>, Error> {
+    if !map.is_finite() {
+        return Err(Error::new("a shape is moved by a map that is not finite"));
+    }
+    let fit = shape.fit();
+    let transform = affine(map) * Affine::new([fit.scale, 0.0, 0.0, fit.scale, fit.across, fit.down]);
+    // The curves are flattened in the view box's units to within `SHAPE_FLAT` of a pixel of the frame, so that the
+    // rasteriser gets straight pieces only (a chord lies inside a curve, which would otherwise pull an edge inward).
+    let device_scale = (fit.scale * map.area_scale().sqrt()).max(f64::MIN_POSITIVE);
+    let outlines = outlines(&shape.path, SHAPE_FLAT / device_scale);
+    let mut context = RenderContext::new(width as u16, height as u16);
+    let mut resources = Resources::new();
+    context.set_transform(transform);
+    let colour = shape.colour;
+    context.set_paint(Color::from_rgba8(colour.red, colour.green, colour.blue, colour.alpha));
+    match shape.stroke_width {
+        None => {
+            context.set_fill_rule(Fill::NonZero);
+            for outline in &outlines {
+                context.fill_path(&outline.path);
+            }
+        }
+        Some(line) => {
+            // Every dash ends butt; the two ends of an open outline are round (`docs/spec/shape.md`, section 5): a dash that
+            // holds an end of the outline takes that end's round cap, as a dot of the line's width laid on the end.
+            let dashed = !shape.dashes.is_empty();
+            let cap = if dashed { Cap::Butt } else { Cap::Round };
+            let dashes: Dashes = shape.dashes.iter().copied().collect();
+            for outline in &outlines {
+                context.set_stroke(Stroke {
+                    width: line,
+                    join: Join::Miter,
+                    miter_limit: 4.0,
+                    start_cap: cap,
+                    end_cap: cap,
+                    dash_pattern: dashes.clone(),
+                    dash_offset: 0.0,
+                });
+                context.stroke_path(&outline.path);
+                let length = outline.path.perimeter(0.001);
+                let mut ends = Vec::new();
+                if length == 0.0 {
+                    ends.push(outline.start);
+                } else if dashed && !outline.closed {
+                    if inked_at(0.0, &shape.dashes) {
+                        ends.push(outline.start);
+                    }
+                    // Just inside the end: a dash that only starts at the end holds no part of the outline.
+                    if inked_at(length - END_INSET, &shape.dashes) {
+                        ends.push(outline.end);
+                    }
+                }
+                context.set_fill_rule(Fill::NonZero);
+                for end in ends {
+                    context.fill_path(&kurbo::Circle::new(end, line / 2.0).to_path(0.001));
+                }
+            }
+        }
+    }
+    context.flush();
+    let mut layer = Pixmap::new(width as u16, height as u16);
+    context.render(&mut layer, &mut resources);
+    Ok(layer.data_as_u8_slice().to_vec())
+}
+
+/// How far, in pixels of the frame, a straight piece of a shape's flattened curve may lie from the curve (decision A29
+/// asks for a quarter pixel; this is well inside it).
+const SHAPE_FLAT: f64 = 0.01;
+
+/// How far inside an outline's end its last dash is read, in view-box units: a dash that starts at the end holds no part of it.
+const END_INSET: f64 = 1e-9;
+
+/// Whether a dash holds the point at `distance` along a line dashed by `dashes` (pairs of a dash and a gap, repeated from the
+/// start). A dash that ends at the point holds it.
+fn inked_at(distance: f64, dashes: &[f64]) -> bool {
+    let period: f64 = dashes.iter().sum();
+    if period <= 0.0 {
+        return false;
+    }
+    let mut rest = distance.rem_euclid(period);
+    for pair in dashes.chunks(2) {
+        let dash = pair[0];
+        let gap = pair.get(1).copied().unwrap_or(0.0);
+        if rest <= dash {
+            return true;
+        }
+        rest -= dash;
+        if rest < gap {
+            return false;
+        }
+        rest -= gap;
+    }
+    true
+}
+
+/// An outline of a shape's path: its curves, its first and last points, and whether it is closed.
+struct ShapeOutline {
+    path: BezPath,
+    start: kurbo::Point,
+    end: kurbo::Point,
+    closed: bool,
+}
+
+/// The outlines of a path, one each, in the order the path data writes them. A segment after a close and before the next
+/// move continues the outline from its start, as the path data does.
+fn outlines(path: &draw::Path, tolerance: f64) -> Vec<ShapeOutline> {
+    let point = |point: draw::Point| kurbo::Point::new(point.x, point.y);
+    let mut outlines: Vec<ShapeOutline> = Vec::new();
+    let mut closed = false;
+    for segment in &path.segments {
+        match *segment {
+            Segment::Move(to) => {
+                let start = point(to);
+                let mut path = BezPath::new();
+                path.move_to(start);
+                outlines.push(ShapeOutline {
+                    path,
+                    start,
+                    end: start,
+                    closed: false,
+                });
+                closed = false;
+            }
+            Segment::Line(_) | Segment::Cubic(_, _, _) => {
+                let outline = outlines.last_mut().expect("a path starts with a move");
+                if closed {
+                    outline.path.move_to(outline.start);
+                    closed = false;
+                }
+                draw_segment(&mut outline.path, segment);
+                outline.end = segment_end(segment);
+            }
+            Segment::Close => {
+                closed = true;
+                if let Some(outline) = outlines.last_mut() {
+                    outline.path.close_path();
+                    outline.closed = true;
+                    outline.end = outline.start;
+                }
+            }
+        }
+    }
+    for outline in &mut outlines {
+        let mut flat = BezPath::new();
+        kurbo::flatten(outline.path.clone(), tolerance, |element| flat.push(element));
+        outline.path = flat;
+    }
+    outlines
+}
+
+/// The point a line or a cubic curve ends at.
+fn segment_end(segment: &Segment) -> kurbo::Point {
+    match *segment {
+        Segment::Line(to) | Segment::Cubic(_, _, to) => kurbo::Point::new(to.x, to.y),
+        Segment::Move(to) => kurbo::Point::new(to.x, to.y),
+        Segment::Close => kurbo::Point::ZERO,
+    }
+}
+
+/// Adds a straight line or a cubic curve to an outline.
+fn draw_segment(outline: &mut BezPath, segment: &Segment) {
+    let point = |point: draw::Point| kurbo::Point::new(point.x, point.y);
+    match *segment {
+        Segment::Line(to) => outline.line_to(point(to)),
+        Segment::Cubic(first, second, to) => outline.curve_to(point(first), point(second), point(to)),
+        Segment::Move(_) | Segment::Close => {}
+    }
 }
 
 /// Draws marks cut to a rounded rectangle (`docs/spec/box-edges.md`, sections 3 and 4). A shape of whole pixels under a move by

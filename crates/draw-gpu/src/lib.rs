@@ -15,7 +15,7 @@ use draw::{
     blur_weights, Background, Colour, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer,
     Rgba, Ring, RingMark, Step, TextMark, Turn,
 };
-use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
+use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer, shape_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
@@ -713,6 +713,10 @@ impl CardRenderer {
                 },
                 Mark::Ring(ring) => self.plan_ring(plan, target, scissor, ring, map)?,
                 Mark::Cut(cut) => self.plan_cut(plan, target, scissor, cut, map)?,
+                Mark::Shape(shape) => {
+                    let layer = shape_layer(plan.width, plan.height, shape, map)?;
+                    self.push_layer(plan, target, scissor, layer)?;
+                }
             }
         }
         Ok(())

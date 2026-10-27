@@ -12,12 +12,16 @@ use layout::Rect;
 mod background;
 mod edges;
 mod filter;
+mod path;
+mod shape;
 pub mod stroke;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};
 pub use edges::{Cut, Edges, Line, Ring, RingMark, Rounded};
 pub use filter::{blur_weights, Filter};
+pub use path::{Path, PathError, Point, Segment};
+pub use shape::{Fit, ShapeMark, ViewBox};
 pub use turn::Turn;
 
 /// The one outline tolerance, in pixels: the curves of a glyph's outline are flattened to it, and its stroke is expanded from the
@@ -287,6 +291,8 @@ pub enum Mark {
     /// Marks cut to a rounded rectangle: a rounded background, or the children of a box that cuts them (`docs/spec/box-edges.md`,
     /// sections 3 and 4).
     Cut(Cut),
+    /// A shape of path data, filled or stroked in its box (`docs/spec/shape.md`).
+    Shape(ShapeMark),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -322,7 +328,7 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) => None,
+                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::Shape(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {
