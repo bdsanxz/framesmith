@@ -13,7 +13,10 @@
 //! axis is as large as its children there. The cells of a set of columns are placed by [`columns`]
 //! (module `set`, `render-command.md` section 4.4).
 
+mod exact;
 mod set;
+
+use exact::Exact;
 
 pub use set::{columns, inside_columns, measure_columns, Cell, Columns, Track};
 
@@ -595,7 +598,11 @@ fn written_size(amount: Option<Amount>, base: Option<f64>) -> Result<Option<f64>
     match (amount, base) {
         (None, _) => Ok(None),
         (Some(Amount::Percent(_)), None) => Ok(Some(0.0)),
-        (Some(amount), base) => Ok(Some(pixels(amount, base.unwrap_or(0.0))?.max(0.0))),
+        (Some(amount), base) => {
+            let base = Exact::of(base.unwrap_or(0.0)).ok_or(Beyond)?;
+            let size = pixels(amount, base)?;
+            Ok(Some(if size.is_below_zero() { 0.0 } else { size.to_f64() }))
+        }
     }
 }
 
@@ -704,35 +711,50 @@ fn axis(
     fallback: f64,
     max: Option<f64>,
 ) -> Result<(i32, u32), Beyond> {
-    let length = f64::from(length);
+    let length = Exact::whole(i128::from(length));
     let near = near.map(|amount| pixels(amount, length)).transpose()?;
     let far = far.map(|amount| pixels(amount, length)).transpose()?;
     let written = size.map(|amount| pixels(amount, length)).transpose()?;
+    let max = max.map(|limit| Exact::of(limit).ok_or(Beyond)).transpose()?;
+    let fallback = Exact::of(fallback).ok_or(Beyond)?;
     // The size: as written, or the space between two written edges, or the fallback; capped unless written.
     let size = match (written, near, far) {
         (Some(size), _, _) => size,
-        (None, Some(near), Some(far)) => cap(length - near - far, max),
-        _ => cap(fallback, max),
+        (None, Some(near), Some(far)) => cap_exact(length.sub(near).and_then(|rest| rest.sub(far)), max)?,
+        _ => cap_exact(Some(fallback), max)?,
     };
-    if !size.is_finite() {
-        return Err(Beyond);
-    }
-    let size = size.max(0.0);
+    let size = size.max(Exact::whole(0)).ok_or(Beyond)?;
     // The near edge: as written from the parent's near edge; or, with only a far edge, the far edge
     // lies that distance from the parent's far edge; or the parent's near edge.
     let relative = match (near, far) {
         (Some(near), _) => near,
-        (None, Some(far)) => length - far - size,
-        (None, None) => 0.0,
+        (None, Some(far)) => length.sub(far).and_then(|rest| rest.sub(size)).ok_or(Beyond)?,
+        (None, None) => Exact::whole(0),
     };
-    span(f64::from(start) + relative, size)
+    span_exact(Exact::whole(i128::from(start)).add(relative).ok_or(Beyond)?, size)
+}
+
+/// A size capped at `limit` when there is one, the cap as the amount is worked out (`None` when it does not fit).
+fn cap_exact(size: Option<Exact>, limit: Option<Exact>) -> Result<Exact, Beyond> {
+    let size = size.ok_or(Beyond)?;
+    match limit {
+        Some(limit) => size.min(limit).ok_or(Beyond),
+        None => Ok(size),
+    }
 }
 
 /// The whole-pixel start and size of a span that starts at `start` and is `size` pixels long. Each
 /// of its two edges is rounded (`whole`), so two neighbours that meet meet on one pixel edge.
 fn span(start: f64, size: f64) -> Result<(i32, u32), Beyond> {
+    let start = Exact::of(start).ok_or(Beyond)?;
+    let size = Exact::of(size).ok_or(Beyond)?;
+    span_exact(start, size)
+}
+
+/// [`span`] for amounts worked out exactly (`render-command.md`, section 4.1, rule 3).
+fn span_exact(start: Exact, size: Exact) -> Result<(i32, u32), Beyond> {
     let near = whole(start)?;
-    let far = whole(start + size)?;
+    let far = whole(start.add(size).ok_or(Beyond)?)?;
     let width = (far - near).max(0);
     if width > LIMIT {
         return Err(Beyond);
@@ -740,25 +762,22 @@ fn span(start: f64, size: f64) -> Result<(i32, u32), Beyond> {
     Ok((near as i32, width as u32))
 }
 
-/// An amount in pixels: a percentage of the parent's length, `percent` times `length` divided by 100.
-fn pixels(amount: Amount, length: f64) -> Result<f64, Beyond> {
+/// An amount in pixels: a percentage of the parent's length, `percent` times `length` divided by 100, exactly.
+fn pixels(amount: Amount, length: Exact) -> Result<Exact, Beyond> {
     let value = match amount {
-        Amount::Pixels(pixels) => pixels,
-        Amount::Percent(percent) => percent * length / 100.0,
+        Amount::Pixels(pixels) => Exact::of(pixels),
+        Amount::Percent(percent) => Exact::of(percent)
+            .and_then(|percent| percent.times(length))
+            .and_then(|share| share.over(100)),
     };
-    if value.is_finite() {
-        Ok(value)
-    } else {
-        Err(Beyond)
-    }
+    value.ok_or(Beyond)
 }
 
 /// A position in pixels rounded to a whole pixel, a half up: the larger whole number when it lies
 /// exactly half way. Beyond the limit it is not placed.
-fn whole(position: f64) -> Result<i64, Beyond> {
-    let floor = position.floor();
-    let rounded = if position - floor >= 0.5 { floor + 1.0 } else { floor };
-    if rounded.abs() <= LIMIT as f64 {
+fn whole(position: Exact) -> Result<i64, Beyond> {
+    let rounded = position.round_half_up().ok_or(Beyond)?;
+    if rounded.abs() <= i128::from(LIMIT) {
         Ok(rounded as i64)
     } else {
         Err(Beyond)
