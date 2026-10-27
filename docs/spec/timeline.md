@@ -10,7 +10,7 @@ Status: in force from Sprint 1. Sources: `PLAN.md` section 3 (the table of Frame
 
 ## 2. No system interface
 
-The crate is built only on `project`, `layout`, `draw` and `timebase` (and `tracing` for its log line). It calls no interface of the operating system, holds no `unsafe` code and depends on no crate of frx7, so it builds and its tests run on any system (`scripts/gates/system-free.txt`).
+The crate is built on `project`, `layout`, `draw`, `timebase`, `motion` and `text` (and `tracing` for its log line). It calls no interface of the operating system itself and holds no `unsafe` code. It is not system-free: `text` reads its pictures and its fonts through frx7's codec registry, which uses the system's backend (`text.md`, section 12.4, point 4), so this crate reaches that backend through `text`. It is therefore not in `scripts/gates/system-free.txt`, and the hosted Windows and Linux jobs do not build or test it (`docs/dev/gates.md`, section 1, the gate `free`).
 
 ## 3. The checked-in pictures within one level
 

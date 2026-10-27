@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The quality gates of the Framesmith repository: formatting, static analysis, the tests, the core
-# suite with only the system on the search path, the licence gate and the frx7 pin. The same script runs them before a push (.githooks/pre-push) and
+# suite with only the system on the search path, the licence gate, the frx7 pin and the system-free crates. The same script runs them before a push (.githooks/pre-push) and
 # on the hosted runner (.github/workflows/gates.yml). The behaviour is specified in docs/dev/gates.md.
 #
 # Written for the bash 3.2 that macOS ships.
@@ -11,7 +11,7 @@ usage() {
     cat <<'EOF'
 usage: scripts/gates.sh [--hosted] [--gate NAME]... [-p CRATE]...
 
-  With no option it runs the six gates, then the tests marked "reference machine only" and the
+  With no option it runs the seven gates, then the tests marked "reference machine only" and the
   yardstick tests (which start ffmpeg and ffprobe, or the reference, from outside, to compare; where
   the program is not installed each is reported as skipped, by name, and never as passed).
   Each gate reports PASS, or FAIL with what failed. All of them run; the exit code is
@@ -26,11 +26,14 @@ gates (NAME):
                                (scripts/gates/core-selftest.sh, then scripts/gates/core-suite.sh)
   licence   licence gate       cargo deny check licenses
   pin       frx7 pin           scripts/gates/frx7.sh check (no path override committed, one pinned revision, the pin moved with its record)
+  free      system-free        scripts/gates/system-free-selftest.sh, then scripts/gates/system-free.sh check
+                               (the control fails each wrong record by name; the record matches the workspace)
 
 options:
   --gate NAME   run only this gate (may be given more than once). NARROWED.
   -p CRATE      narrow format, lint and test to this crate (may be given more than once).
-                The licence gate and the frx7 pin gate always look at the whole workspace. NARROWED.
+                The licence gate, the frx7 pin gate and the system-free gate always look at the whole
+                workspace. NARROWED.
   --hosted      the hosted runner's form: the tests marked "reference machine only" and the
                 yardstick tests are listed as not run and never run (in the core gate, the tests
                 marked "reference machine only" are not run). The hosted workflow runs
@@ -62,8 +65,8 @@ while [ $# -gt 0 ]; do
         --gate)
             [ $# -ge 2 ] || { echo "--gate needs a name" >&2; usage >&2; exit 2; }
             case "$2" in
-                format | lint | test | core | licence | pin) WANTED="$WANTED $2" ;;
-                *) echo "unknown gate: $2 (there are format, lint, test, core, licence, pin)" >&2; usage >&2; exit 2 ;;
+                format | lint | test | core | licence | pin | free) WANTED="$WANTED $2" ;;
+                *) echo "unknown gate: $2 (there are format, lint, test, core, licence, pin, free)" >&2; usage >&2; exit 2 ;;
             esac
             shift
             ;;
@@ -79,11 +82,12 @@ while [ $# -gt 0 ]; do
 done
 
 # A run is narrowed when it leaves out a gate or a crate. The hosted workflow runs each gate as a
-# job of its own, so a gate named under --hosted is not a narrowing: the five jobs are the gates.
+# job of its own, so a gate named under --hosted is not a narrowing: the workflow runs one job for each
+# gate.
 NARROWED=0
 [ -n "$CRATES" ] && NARROWED=1
 [ -n "$WANTED" ] && [ "$HOSTED" -eq 0 ] && NARROWED=1
-[ -z "$WANTED" ] && WANTED=" format lint test core licence pin"
+[ -z "$WANTED" ] && WANTED=" format lint test core licence pin free"
 
 # The scope of the cargo commands: the whole workspace, or the crates named with -p.
 if [ -z "$CRATES" ]; then
@@ -243,6 +247,17 @@ gate_pin() {
     run pin bash "$ROOT/scripts/gates/frx7.sh" check
 }
 
+# The control first: the check must fail each wrong record of its own workspace by name, or the gate is not closed.
+# Then the check on the checked-in record.
+gate_free() {
+    NAME="system-free crates"
+    run free-selftest bash "$ROOT/scripts/gates/system-free-selftest.sh"
+    local control=$RUN_CODE
+    run free bash "$ROOT/scripts/gates/system-free.sh" check
+    [ "$control" -ne 0 ] && RUN_CODE=1
+    return 0
+}
+
 # --- what a failure names ---------------------------------------------------------------------
 
 named_format() {
@@ -281,6 +296,11 @@ named_core() {
 }
 
 named_pin() { grep '^refused: ' "$LOGS/pin.log" | sed 's/^refused: //'; }
+
+named_free() {
+    grep -h '^control problem: ' "$LOGS/free-selftest.log" | sed 's/^control problem: /the control of this gate failed: /'
+    grep -h '^FAIL: ' "$LOGS/free.log" | sed 's/^FAIL: //'
+}
 
 # A fetch of frx7 that cargo could not make, from its "unable to update <remote>?rev=<revision>" line
 # (docs/dev/frx7.md, section 7). Any gate that builds can print it.
@@ -369,6 +389,7 @@ for gate in $WANTED; do
         core) gate_core ;;
         licence) gate_licence ;;
         pin) gate_pin ;;
+        free) gate_free ;;
     esac
     problems=""
     if [ "$RUN_CODE" -ne 0 ]; then
@@ -379,6 +400,7 @@ for gate in $WANTED; do
             core) problems=$(named_core) ;;
             licence) problems=$(named_licence) ;;
             pin) problems=$(named_pin) ;;
+            free) problems=$(named_free) ;;
         esac
         fetched=$(named_fetch "$gate")
         if [ -n "$fetched" ]; then

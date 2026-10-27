@@ -11,6 +11,4 @@ project
 layout
 draw
 draw-cpu
-timeline
-text
 mix

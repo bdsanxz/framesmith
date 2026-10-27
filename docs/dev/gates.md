@@ -2,9 +2,9 @@
 
 Status: in force from Sprint 1. Sources: `CLAUDE.md` rule 11 (licences, and where hosted jobs run); decisions A7 (hosted jobs on `main` and on pull requests only) and A27 (tests that need the hardware encoder or a card) of `DECISIONS.md`; decision D35 of `PLAN.md` (frx7 pinned by revision, a committed path override refused) and `PLAN.md` section 4; the documentation of `cargo fmt`, `cargo clippy`, `cargo test` and `cargo-deny` (its `licenses` check, and the `[graph]` and `[licenses]` tables of `deny.toml`, among them `include-dev`); the documentation of GitHub Actions workflow syntax for the events `push` and `pull_request` and for the files a step may write to (`GITHUB_STEP_SUMMARY`, `GITHUB_OUTPUT`, `GITHUB_ENV`, `GITHUB_PATH`); the manual pages `sandbox-exec(1)`, `sandbox(7)`, `log(1)` and `xcode-select(1)` of macOS; the options of the Rust test harness (`--list`, `--skip`, `--exact`, `--ignored`, `--include-ignored`) and the Cargo Book (`target.<cfg>.runner`, `harness = false`); `CLAUDE.md` rule 11 (FFmpeg is never needed to build or to test; a yardstick test may start it from outside) and decision A29 (the method of watching a process). The gates of the frx7 repository are specified the same way in its `docs/spec/gates.md`; a maintainer meets one way of working in both.
 
-Six gates stand between a change and the repository. Each reports a pass, or a failure that names what failed. They run on the maintainer's machine before a push and on a hosted macOS runner after it. The same script runs them in both places. None of them installs or needs a browser or FFmpeg.
+Seven gates stand between a change and the repository. Each reports a pass, or a failure that names what failed. They run on the maintainer's machine before a push and on a hosted macOS runner after it. The same script runs them in both places. None of them installs or needs a browser or FFmpeg.
 
-## 1. The six gates
+## 1. The seven gates
 
 | Gate | Short name | Command | Passes when | A failure names |
 |---|---|---|---|---|
@@ -14,6 +14,7 @@ Six gates stand between a change and the repository. Each reports a pass, or a f
 | Core suite without FFmpeg | `core` | `scripts/gates/core-selftest.sh`, then `scripts/gates/core-suite.sh` | the control fails each test that misbehaves on purpose by name and proves each refusal of a decoy program by its marker file, and the core suite passes with only the system's folders on the search path (section 10) | each failing test, each core test file that names `ffmpeg` or `ffprobe`, each program the system refused to start, and each failure of the control |
 | Licence gate | `licence` | `cargo deny check licenses` | every dependency, build and test dependencies included, is under a licence of the list in `deny.toml` | each dependency with its licence |
 | frx7 pin | `pin` | `scripts/gates/frx7.sh check` | frx7 is pinned at one revision, no path override is committed, and a moved pin carries its record (section 9) | each override, with its file and line, or each revision that disagrees |
+| System-free crates | `free` | `scripts/gates/system-free-selftest.sh`, then `scripts/gates/system-free.sh check` | the control fails each wrong record by name, and the record of the system-free crates (`scripts/gates/system-free.txt`) names exactly the workspace crates whose dependency tree, normal, build and development dependencies included, holds none of `backend-os`, `gpu` and `device` | each crate that is listed but holds a system crate, with the system crate it holds; each free crate that is left out; each failure of the control |
 
 A gate that builds can also fail because frx7, which Framesmith takes from its private remote, cannot be fetched; the failure then carries one more line that names the revision and the remote (`docs/dev/frx7.md`, section 7).
 
@@ -26,17 +27,17 @@ Two lines of `deny.toml` make the gate reach every dependency:
 
 ## 2. The script
 
-`scripts/gates.sh` runs the gates in the order of section 1, always all of those asked for, so that one report shows every failure. For each gate it prints the command, everything the command printed, and a verdict line: `PASS <gate>` or `FAIL <gate>: <what failed>`. It ends with a summary of the six verdicts, and under it a `note:` line for anything that was not run (sections 4 and 5).
+`scripts/gates.sh` runs the gates in the order of section 1, always all of those asked for, so that one report shows every failure. For each gate it prints the command, everything the command printed, and a verdict line: `PASS <gate>` or `FAIL <gate>: <what failed>`. It ends with a summary of the seven verdicts, and under it a `note:` line for anything that was not run (sections 4 and 5).
 
 | Call | Meaning | Exit code |
 |---|---|---|
-| `scripts/gates.sh` | all six gates, then the reference machine tests and the yardstick tests (sections 4 and 5) | 0 when all pass, 1 when any fails |
-| `scripts/gates.sh --hosted --gate NAME` | one gate as a job of the hosted workflow; the workflow runs the six jobs | 0 when it passes, 1 when it fails |
+| `scripts/gates.sh` | all seven gates, then the reference machine tests and the yardstick tests (sections 4 and 5) | 0 when all pass, 1 when any fails |
+| `scripts/gates.sh --hosted --gate NAME` | one gate as a job of the hosted workflow; the workflow runs the seven jobs | 0 when it passes, 1 when it fails |
 | `scripts/gates.sh --gate NAME` | one gate, **narrowed** | 3 when it passes, 1 when it fails |
 | `scripts/gates.sh -p CRATE` | every gate, the three that take a crate narrowed to it, **narrowed** | 3 when all pass, 1 when any fails |
 | wrong usage | the usage text | 2 |
 
-A narrowed run says on its first line and on its last that it is narrowed, and that the gates have not passed. It never exits 0, so that no script and no hook can take it for a pass. The licence gate and the frx7 pin gate always look at the whole workspace; `-p` does not narrow them.
+A narrowed run says on its first line and on its last that it is narrowed, and that the gates have not passed. It never exits 0, so that no script and no hook can take it for a pass. The licence gate, the frx7 pin gate and the system-free gate always look at the whole workspace; `-p` does not narrow them.
 
 **The verdict of the tests gate** is the verdict of three runs, and the gate fails when any of them failed: the plain test run (`cargo test`), the run of the tests marked "reference machine only" (section 4) and the run of the yardstick tests (section 5). Each failure is named: a failing test with the place of its panic, a failing marked test as `reference machine only test failed: <name>`, a failing yardstick test as `yardstick test failed: <name>`. A later run never wipes out the failure of an earlier one: a broken plain test gives `FAIL tests` also when the marked tests and the yardstick tests pass, in the whole run and in a run narrowed to the gate (`--gate test`, which then ends with 1 and not with 3). The tests of this are in `crates/measure/tests/tests_gate_verdict.rs`; each starts a copy of the script in a small workspace of its own, cut off from the real runner (section 12).
 
@@ -46,11 +47,11 @@ A failure the script itself finds, such as a missing tool, is a failure of the g
 
 **Before the push.** `.githooks/pre-push` is a git hook kept in the repository. One command installs it for a clone: `scripts/gates/install-hooks.sh`, which sets `core.hooksPath` to `.githooks`. The hook runs `scripts/gates.sh` whole and exits with its code, so a failing gate stops the push. A push that only deletes branches runs nothing. The gates look at the working tree, not at the commits pushed; the hook says so when the tree has uncommitted changes. `git push --no-verify` passes the hook; the hosted run is the check that cannot be passed that way for `main` and for pull requests.
 
-**After the push.** `.github/workflows/gates.yml` runs on a macOS runner on a push to `main` and on a pull request, and on nothing else (decision A7): work branches rely on the local gates. It has one job for each gate, named `formatting`, `static analysis`, `tests`, `core suite without FFmpeg`, `licence gate` and `frx7 pin`, so that the hosted run reports each by name. Each job calls `scripts/gates.sh --hosted --gate NAME`. On a failure the job prints an annotation that names what failed, and writes the same lines to the job summary.
+**After the push.** `.github/workflows/gates.yml` runs on a macOS runner on a push to `main` and on a pull request, and on nothing else (decision A7): work branches rely on the local gates. It has one job for each gate, named `formatting`, `static analysis`, `tests`, `core suite without FFmpeg`, `licence gate`, `frx7 pin` and `system-free crates`, so that the hosted run reports each by name. Each job calls `scripts/gates.sh --hosted --gate NAME`. On a failure the job prints an annotation that names what failed, and writes the same lines to the job summary.
 
 **What the job summary holds is printed into the job's log** (section 13), so that it can be read where the summary page cannot be: the page of a private repository is shown to a person who is signed in and to nobody else, while the log of the job can be read with the hosting service's command line.
 
-The workflow installs the Rust toolchain named by `rust-toolchain.toml` and, for the licence job, `cargo-deny` at the version named in the workflow. It installs no browser, no FFmpeg and nothing else, and every gate passes without them. Every job that builds (static analysis, tests, core suite, licence gate) first runs `scripts/gates/frx7.sh deploy-key` with the Actions secret `FRX7_DEPLOY_KEY`, so that Cargo can fetch frx7 from its private remote (`docs/dev/frx7.md`, section 2); formatting reads no dependency, and the `frx7 pin` job reads git only, fetching all of its history (`fetch-depth: 0`). The hosted tests job does not start the programs of section 5 even where the image has them.
+The workflow installs the Rust toolchain named by `rust-toolchain.toml` and, for the licence job, `cargo-deny` at the version named in the workflow. It installs no browser, no FFmpeg and nothing else, and every gate passes without them. Every job that builds (static analysis, tests, core suite, licence gate, system-free crates) first runs `scripts/gates/frx7.sh deploy-key` with the Actions secret `FRX7_DEPLOY_KEY`, so that Cargo can fetch frx7 from its private remote (`docs/dev/frx7.md`, section 2); formatting reads no dependency, and the `frx7 pin` job reads git only, fetching all of its history (`fetch-depth: 0`). The hosted tests job does not start the programs of section 5 even where the image has them.
 
 ## 4. Reference machine only (decision A27)
 
@@ -104,7 +105,7 @@ Every dependency of Framesmith is recorded in `PROGRESS.md` with its name, licen
 
 ## 8. FFmpeg and the browser
 
-No gate fetches, installs or needs FFmpeg or a browser. FFmpeg is a yardstick: tests named as yardstick tests may start a copy the developer installed, as a separate program (section 5). The six gates pass on a machine without it.
+No gate fetches, installs or needs FFmpeg or a browser. FFmpeg is a yardstick: tests named as yardstick tests may start a copy the developer installed, as a separate program (section 5). The seven gates pass on a machine without it.
 
 ## 9. The frx7 pin gate
 

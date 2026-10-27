@@ -35,7 +35,7 @@ fn the_hosted_workflow_runs_the_core_gate_on_main_and_on_pull_requests() {
 fn the_local_run_before_a_push_runs_the_core_gate_with_the_others() {
     let gates = text("scripts/gates.sh");
     assert!(
-        gates.contains("WANTED=\" format lint test core licence pin\""),
+        gates.contains("WANTED=\" format lint test core licence pin free\""),
         "the default run does not hold the core gate"
     );
     let hook = text(".githooks/pre-push");
