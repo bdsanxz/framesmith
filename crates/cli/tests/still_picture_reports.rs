@@ -228,3 +228,31 @@ fn what_an_image_does_not_take_in_this_version_is_reported_on_its_line() {
         &["`object-position=\"left top\"` is not two percentages"],
     );
 }
+
+#[test]
+fn a_picture_file_that_cannot_be_read_stops_check_and_render_as_damaged() {
+    // Mode 000: the file is there and is a picture, but no one may read it. It is damaged or cannot be read (FS-0069, exit
+    // code 1), not a kind this version does not read.
+    use std::os::unix::fs::PermissionsExt;
+    let (folder, cwd) = project(
+        GROUP,
+        "unreadable",
+        &composition("<image src=\"pictures/locked.png\" left=\"2\" top=\"2\"/>"),
+    );
+    let path = folder.join("pictures/locked.png");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(&path, small_png()).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o000)).unwrap();
+    let checked = framesmith(&cwd, ["check", folder.to_str().unwrap()], &[]);
+    let rendered = framesmith(&cwd, ["render", folder.to_str().unwrap(), "--backend", "cpu"], &[]);
+    for (command, output) in [("check", &checked), ("render", &rendered)] {
+        let printed = format!("{}{}", out(output), err(output));
+        assert_eq!(output.status.code(), Some(1), "{command}: {printed}");
+        assert!(printed.contains("line 2: FS-0069"), "{command}: {printed}");
+        assert!(
+            printed.contains("`src=\"pictures/locked.png\"` is damaged or cannot be read"),
+            "{command}: {printed}"
+        );
+    }
+    assert!(!has_a_film(&folder), "no film is written");
+}

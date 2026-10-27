@@ -17,11 +17,16 @@ fn png_of(width: u32, height: u32) -> Vec<u8> {
 /// The rectangles of the pictures of frame 0 of a composition of 200 by 100 holding `images`, which name `p.png`, a picture
 /// of 40 by 20.
 fn boxes(name: &str, images: &str) -> Vec<Rect> {
+    boxes_in_a_frame_of(200, name, images)
+}
+
+/// As `boxes`, in a frame `width` pixels wide.
+fn boxes_in_a_frame_of(width: u32, name: &str, images: &str) -> Vec<Rect> {
     let folder = project_with(
         "still-picture-boxes",
         name,
         &format!(
-            "<composition version=\"1\" width=\"200\" height=\"100\" fps=\"10\" duration=\"0.2\" background=\"#000000\">\n{images}\n</composition>\n"
+            "<composition version=\"1\" width=\"{width}\" height=\"100\" fps=\"10\" duration=\"0.2\" background=\"#000000\">\n{images}\n</composition>\n"
         ),
     );
     std::fs::write(folder.join("p.png"), png_of(40, 20)).unwrap();
@@ -87,5 +92,29 @@ fn with_both_sizes_the_box_is_as_written() {
     assert_eq!(
         boxes("both", "<image src=\"p.png\" left=\"3\" top=\"4\" width=\"17\" height=\"90\"/>"),
         vec![rect(3, 4, 17, 90)]
+    );
+}
+
+#[test]
+fn an_edge_exactly_half_a_pixel_out_rounds_up_when_it_comes_from_a_percentage() {
+    // A frame of 2750 pixels: 1.4% of it is 38.5 exactly, and the spec rounds a half up (render-command.md, section 4.1,
+    // rule 3). Its float form falls a hair under 38.5, so the edge is held to the exact value here.
+    // The left edge at 38.5 rounds to 39; the box of 10 from there ends at 48.5, which rounds to 49, so its width is 10.
+    assert_eq!(
+        boxes_in_a_frame_of(
+            2750,
+            "left-edge-on-a-half",
+            "<image src=\"p.png\" left=\"1.4%\" top=\"0\" width=\"10\" height=\"10\"/>"
+        ),
+        vec![rect(39, 0, 10, 10)]
+    );
+    // The right edge at 38.5 rounds to 39 too, so the box from 0 is 39 wide.
+    assert_eq!(
+        boxes_in_a_frame_of(
+            2750,
+            "right-edge-on-a-half",
+            "<image src=\"p.png\" left=\"0\" top=\"0\" width=\"1.4%\" height=\"10\"/>"
+        ),
+        vec![rect(0, 0, 39, 10)]
     );
 }
