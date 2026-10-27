@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use project::{Code, Kind};
+use testkit::sound_files::Pcm;
 
 /// A new folder named `name` for one test, under the tests' scratch folder.
 fn folder(name: &str) -> PathBuf {
@@ -273,31 +274,16 @@ fn catalogue() -> String {
     fs::read_to_string(path).unwrap()
 }
 
-/// A valid root with `body` inside it, starting on line 2.
-/// The bytes of a WAV file of 16-bit linear PCM (format 1) or µ-law (format 7) at 48,000 Hz, whose header says it holds
-/// `said` bytes of sound and which holds `data`: our own bytes, for the sound files a check must refuse.
-fn wav(format: u16, channels: u16, bits: u16, said: u32, data: &[u8]) -> Vec<u8> {
-    let width = channels * bits / 8;
-    let mut bytes = b"RIFF".to_vec();
-    bytes.extend_from_slice(&(36 + said).to_le_bytes());
-    bytes.extend_from_slice(b"WAVEfmt ");
-    bytes.extend_from_slice(&16u32.to_le_bytes());
-    bytes.extend_from_slice(&format.to_le_bytes());
-    bytes.extend_from_slice(&channels.to_le_bytes());
-    bytes.extend_from_slice(&48_000u32.to_le_bytes());
-    bytes.extend_from_slice(&(48_000 * u32::from(width)).to_le_bytes());
-    bytes.extend_from_slice(&width.to_le_bytes());
-    bytes.extend_from_slice(&bits.to_le_bytes());
-    bytes.extend_from_slice(b"data");
-    bytes.extend_from_slice(&said.to_le_bytes());
-    bytes.extend_from_slice(data);
-    bytes
-}
-
 /// Projects of one `<audio>` that `check` refuses as invalid (`docs/spec/sound.md`, section 5).
 fn sound_problems() -> Vec<ShownProblem> {
     let audio = |attributes: &str| inside_root(&format!("<audio {attributes}/>"));
-    let good = wav(1, 2, 16, 4_000, &[0; 4_000]);
+    let good = testkit::sound_files::wav_bytes(48_000, 2, Pcm::Int(16), &[0.0; 2_000]);
+    // The same file, cut short: its header still says it holds 4,000 bytes of sound, and 2,000 are there.
+    let cut = {
+        let mut bytes = good.clone();
+        bytes.truncate(good.len() - 2_000);
+        bytes
+    };
     vec![
         (
             "sound-no-duration",
@@ -316,7 +302,7 @@ fn sound_problems() -> Vec<ShownProblem> {
             "sound-damaged",
             vec![
                 ("composition.xml".to_string(), audio(r#"src="cut.wav" duration="1""#)),
-                ("cut.wav".to_string(), wav(1, 2, 16, 4_000, &[0; 2_000])),
+                ("cut.wav".to_string(), cut),
             ],
             Code::SoundDamaged,
         ),
@@ -334,6 +320,7 @@ fn sound_problems() -> Vec<ShownProblem> {
     ]
 }
 
+/// A valid root with `body` inside it, starting on line 2.
 fn inside_root(body: &str) -> Vec<u8> {
     format!("<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n{body}\n</composition>\n").into_bytes()
 }
@@ -799,7 +786,10 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
                 "composition.xml".to_string(),
                 inside_root(r#"<audio src="locked.wav" duration="1"/>"#),
             ),
-            ("locked.wav".to_string(), wav(1, 2, 16, 4_000, &[0; 4_000])),
+            (
+                "locked.wav".to_string(),
+                testkit::sound_files::wav_bytes(48_000, 2, Pcm::Int(16), &[0.0; 2_000]),
+            ),
         ],
     );
     fs::set_permissions(locked.join("locked.wav"), fs::Permissions::from_mode(0o000)).unwrap();
@@ -815,7 +805,10 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
                 "composition.xml".to_string(),
                 inside_root(r#"<audio src="ulaw.wav" duration="1"/>"#),
             ),
-            ("ulaw.wav".to_string(), wav(7, 1, 8, 4_000, &[0x7f; 4_000])),
+            (
+                "ulaw.wav".to_string(),
+                testkit::sound_files::wav_bytes(48_000, 1, Pcm::MuLaw, &[0.0; 4_000]),
+            ),
         ],
     );
     let output = framesmith(&ulaw_cwd, Terminal::AsksForNone, [OsStr::new("check"), ulaw.as_os_str()]);
