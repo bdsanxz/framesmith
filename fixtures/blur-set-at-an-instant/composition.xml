@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A blur set at an instant. The box is sharp until 0.5 s, when a set makes its blur 10 pixels, and it holds that to the
+     end. The set lands on frame 15 of 30 frames a second. The ink is 40 by 64 pixels at left 16 on dark blue, in a 64 by 64
+     frame. The values are in fixtures/blur-brightness-worked-values.md, section 2. -->
+<composition version="1" id="blur-set-at-an-instant" width="64" height="64" fps="30" duration="1" background="#102040">
+  <box left="16" top="0" width="40" height="64" background="#e0a030" blur="0">
+    <set at="0.5" blur="10"/>
+  </box>
+</composition>

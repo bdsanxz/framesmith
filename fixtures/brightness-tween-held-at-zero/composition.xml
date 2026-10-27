@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A brightness tweened with an overshoot. The box starts at brightness 1 and its brightness runs to 0 over one second with
+     out-back(1.7), which goes below 0 on the way and comes back to 0 at its end. The eased value below 0 is held at 0, so the
+     box is black from about 0.37 s on. The ink is 40 by 64 pixels at left 16 on dark blue, in a 64 by 64 frame at 30 frames a
+     second, 1.5 seconds long. The values are in fixtures/blur-brightness-worked-values.md, section 5. -->
+<composition version="1" id="brightness-tween-held-at-zero" width="64" height="64" fps="30" duration="1.5" background="#102040">
+  <box left="16" top="0" width="40" height="64" background="#e0a030" brightness="1">
+    <tween duration="1" to-brightness="0" ease="out-back(1.7)"/>
+  </box>
+</composition>

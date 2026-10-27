@@ -473,7 +473,8 @@ impl Scene {
                 let inner_end = next + 1 + movers[next + 1..].iter().take_while(|inner| inner.first < mover.end).count();
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
-                if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() && mover.shadow.is_none() {
+                let filter = mover.filter_at(time);
+                if map.is_identity() && opacity == 1.0 && turn.is_none() && filter.is_none() && mover.shadow.is_none() {
                     marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped, footage)?);
                 } else if opacity > 0.0 {
                     let held = self.marks(mover.first..mover.end, inner, number, time, false, footage)?;
@@ -484,7 +485,7 @@ impl Scene {
                             clip: mover.clip,
                             marks: held,
                             turn,
-                            filter: mover.filter,
+                            filter,
                             shadow: mover.shadow,
                         }));
                     }
@@ -1379,7 +1380,6 @@ fn gather_movers(
             rect,
             origin: Mover::origin_in(rect, movement.origin.clone()),
             perspective: movement.perspective,
-            filter: movement.filter,
             motion: (!written.is_empty()).then(|| ElementMotion::build(index, &written, movement.own, fps)),
             clip,
             shadow: movement.shadow.and_then(|(shadow, _)| shadow),

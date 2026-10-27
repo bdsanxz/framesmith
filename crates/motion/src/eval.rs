@@ -75,15 +75,21 @@ impl Track {
         }
     }
 
-    /// The property's value at time `t`.
+    /// The property's value at time `t`. A blur or a brightness that an easing carries below 0 is held at 0
+    /// (`docs/spec/motion.md`, Properties).
     pub fn value(&self, t: Time) -> f64 {
         let started = self.segments.partition_point(|segment| segment.at <= t);
-        match started {
+        let value = match started {
             0 => match self.segments.first() {
                 Some(first) if self.holds_before => first.from,
                 _ => self.own,
             },
             n => self.segments[n - 1].value(t),
+        };
+        if self.prop.is_filter() {
+            value.max(0.0)
+        } else {
+            value
         }
     }
 }
