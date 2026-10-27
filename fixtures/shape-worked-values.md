@@ -2,11 +2,11 @@
 
 Written before any fixture exists. Each fixture is a still (one frame, at 0 s, no motion), and its checked-in picture goes in `fixtures/<name>/expected/frame-0000.png`. The checked-in picture is held to the values below, not only to our own output.
 
-Worked from `docs/spec/shape.md` (sections 3 to 5) by hand, in whole pixels: a pixel's centre is at +0.5, and a pixel is inked when its whole area lies in the shape. Where an edge falls inside a pixel, the value is the model's coverage, worked by `scratch/t062/worked_model.py` (python3, standard library only, not shipped): exact circle membership for the curve, and dash runs with half-disc caps for the line, sampled 1000 by 1000 inside each pixel.
+Worked from `docs/spec/shape.md` (sections 3 to 5) by hand, in whole pixels: a pixel's centre is at +0.5, and a pixel is inked when its whole area lies in the shape. Where an edge falls inside a pixel, the value is the coverage worked by an independent model, which is not part of the repository: exact circle membership for the curve, and dash runs with half-disc caps for the line, sampled 1000 by 1000 inside each pixel.
 
 Colours: background `#102040` = (16, 32, 64); ink `#E0A030` = (224, 160, 48). Each channel of a partly covered pixel is `background + coverage × (ink − background)`, rounded.
 
-**Tolerance.** A pixel the model gives as fully inked or fully background is exact (0 levels). A partly covered pixel is within 2 levels per channel of the model's value (the tolerance the motion fixtures use, `crates/render/tests/common/worked.rs`).
+**Tolerance.** A pixel the model gives as fully inked or fully background is exact (0 levels). A partly covered pixel is within 1 level per channel of the model's value, the bound the text coverage keeps.
 
 ## 1. shape-corners
 
