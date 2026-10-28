@@ -30,7 +30,6 @@ fn the_shadows_of_the_fixture_are_the_worked_values() {
 }
 
 fn holds_worked_values(picture: &draw::Picture) {
-
     // Box A: 8 to 31 square, shadow 10 across and down: its moved shape covers 18 to 41, outside the box.
     assert_eq!(rgb(&picture, 36, 20), [0, 0, 0], "A's shadow right of the box");
     assert_eq!(rgb(&picture, 20, 36), [0, 0, 0], "A's shadow below the box");
