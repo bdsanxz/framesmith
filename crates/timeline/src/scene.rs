@@ -9,7 +9,7 @@ use draw::{
     Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
-use project::{Attribute, Code, Element, Length, Node, Problem, Project, Report, Workers};
+use project::{Attribute, Code, Element, Length, Node, Number, Problem, Project, Report, Unsupported, Workers};
 use text::Fonts;
 use timebase::Time;
 

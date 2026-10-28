@@ -488,7 +488,6 @@ impl Code {
             Code::SoftwareSizeNotTaken => {
                 "Make the film smaller, then run the command again."
             }
-            }
             Code::VideoSize => "Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more.",
             Code::VideoSourceMissing => "Write `src` on the <video>: the path of its file from the project folder.",
             Code::RendererNotAvailable => {

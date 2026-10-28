@@ -872,17 +872,19 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     // A film of the largest size the notation takes is more than the machine's own H.264 encoder takes on any machine
     // (`frx7/docs/spec/os-codecs.md` section 5: 4096 by 2306 at most on the reference machine), and a machine with no such
     // encoder refuses every size: `check` refuses it before the first frame (`docs/spec/render-command.md` section 5.4).
-    let composition = r##"<composition version="1" width="8192" height="8192" fps="1" duration="1" background="#ffffff"/>
+    {
+        let composition = r##"<composition version="1" width="8192" height="8192" fps="1" duration="1" background="#ffffff"/>
 "##;
-    let (project, cwd) = project("emit-encoder-size", composition.as_bytes());
-    let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
-    let printed = text(&output.stdout);
-    assert_eq!(output.status.code(), Some(2), "{printed}");
-    assert!(
-        printed.starts_with(&format!("{}: ", Code::HardwareSizeNotTaken.as_str())),
-        "{printed}"
-    );
-    emitted.insert(Code::HardwareSizeNotTaken.as_str());
+        let (project, cwd) = project("emit-encoder-size", composition.as_bytes());
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert_eq!(output.status.code(), Some(2), "{printed}");
+        assert!(
+            printed.starts_with(&format!("{}: ", Code::HardwareSizeNotTaken.as_str())),
+            "{printed}"
+        );
+        emitted.insert(Code::HardwareSizeNotTaken.as_str());
+    }
 
     // The one refusal of an emoji with no picture is emitted only where the Mac's emoji font is read: that font is a file of
     // the machine, so no other system reads it, and no emoji is drawn there (`docs/spec/text.md`, sections 2.6 and 12.4).
