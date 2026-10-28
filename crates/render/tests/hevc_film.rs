@@ -48,7 +48,10 @@ fn rendered(name: &str, codec: Codec) -> (PathBuf, Vec<u64>) {
         &mut CpuRenderer,
         &output,
         192,
-        Encoding { codec, ..Encoding::default() },
+        Encoding {
+            codec,
+            ..Encoding::default()
+        },
         Some(&mut marks),
     )
     .unwrap();

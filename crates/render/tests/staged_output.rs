@@ -83,15 +83,24 @@ fn a_sweep_at_each_step_of_a_start_never_removes_the_folder_of_the_render_that_s
     let scene = scene_of("first-render");
     let mut renderer = Probe::new(&output, None);
     let mut seen: Vec<(Step, Vec<String>)> = Vec::new();
-    let written = write_film_stepped(&scene, Vec::new(), &mut renderer, &output, 128, Encoding::default(), None, &mut |step| {
-        // A second render into the same folder sweeps while the first one stands at this step.
-        remove_stale_staging(&folder);
-        let hidden = names_in(&folder)
-            .into_iter()
-            .filter(|name| name.starts_with(".framesmith-"))
-            .collect();
-        seen.push((step, hidden));
-    })
+    let written = write_film_stepped(
+        &scene,
+        Vec::new(),
+        &mut renderer,
+        &output,
+        128,
+        Encoding::default(),
+        None,
+        &mut |step| {
+            // A second render into the same folder sweeps while the first one stands at this step.
+            remove_stale_staging(&folder);
+            let hidden = names_in(&folder)
+                .into_iter()
+                .filter(|name| name.starts_with(".framesmith-"))
+                .collect();
+            seen.push((step, hidden));
+        },
+    )
     .unwrap_or_else(|failure| panic!("{failure}"));
 
     let own = staging_folder_of(&output).file_name().unwrap().to_str().unwrap().to_string();

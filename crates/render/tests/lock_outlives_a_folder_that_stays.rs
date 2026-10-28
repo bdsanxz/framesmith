@@ -32,12 +32,21 @@ fn a_run_whose_folder_cannot_be_removed_keeps_its_lock_file() {
     let folder = staging_folder_of(&output);
     let lock = base.join(format!(".framesmith-{}.lock", std::process::id()));
     let mut stuck = None;
-    let written = write_film_stepped(&scene, Vec::new(), &mut CpuRenderer, &output, 128, Encoding::default(), None, &mut |step| {
-        // Once the hidden folder is made, one of its subfolders is made that the run cannot empty at its end.
-        if step == Step::Made {
-            stuck = Some(stuck_folder(&folder));
-        }
-    });
+    let written = write_film_stepped(
+        &scene,
+        Vec::new(),
+        &mut CpuRenderer,
+        &output,
+        128,
+        Encoding::default(),
+        None,
+        &mut |step| {
+            // Once the hidden folder is made, one of its subfolders is made that the run cannot empty at its end.
+            if step == Step::Made {
+                stuck = Some(stuck_folder(&folder));
+            }
+        },
+    );
     let lock_kept = lock.exists();
     let folder_kept = folder.exists();
     if let Some(stuck) = stuck {
