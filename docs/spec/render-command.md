@@ -265,7 +265,7 @@ Sources: `notation.md` section 4 (the form of a shadow: `X Y BLUR COLOUR`, four 
 8. **What is reported.** Each with the line of the attribute:
     - a shadow written with the word `inset`: `FS-0035`, unsupported (an inner shadow, `DEFERS.md`: Sprint 5);
     - a shadow of five values, the fourth a length (a spread): `FS-0035`, unsupported (Sprint 5);
-    - a colour with an alpha below `ff`: `FS-0035`, unsupported, as for a shadow of text;
+    - a colour with an alpha below `ff`: `FS-0035`, unsupported, as for a shadow of text (`docs/spec/notation.md` section 14, S75);
     - a blur below 0: `FS-0034`, invalid, `must be 0 or more`;
     - any other value that is not in the form of rule 1, or a `box-shadow` that is not a list of such shadows: `FS-0070`, invalid, with the form taken.
 9. **Tests.** `crates/draw-cpu/tests/box_shadows.rs` and `crates/render/tests/shadows_worked_by_hand.rs` (the place, the fade, the hard edge, the order, the outline of a group of two children, on both renderers), `crates/render/tests/shadows_fixture.rs` (the fixture `shadows` against its checked-in pictures and the card's agreement), and `crates/cli/tests/shadow_reports.rs` (the reports of rule 8).

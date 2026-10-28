@@ -1295,6 +1295,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S33 | A corner written as an ellipse: `border-radius="24 / 12"` or `"24 12"` | A `border-radius` of two numbers, or of two numbers with a `/` between them | One circular radius per corner only | Sprint 5 |
 | S73 | An inner shadow: a shadow written with the word `inset`, in `box-shadow` | The word `inset` in a shadow of a `box-shadow` | Only shadows outside the box are drawn (ROADMAP 5.13) | Sprint 5 |
 | S74 | A shadow with a spread: a fifth value, a length, between the blur and the colour: `box-shadow="0 24 70 8 #00000099"` | A shadow of five values, the fourth a length | Only the four values `X Y BLUR COLOUR` are drawn (ROADMAP 5.13) | Sprint 5 |
+| S75 | A shadow colour with an alpha below `ff`: a `box-shadow` or `drop-shadow` whose colour is `#rrggbbaa` with `aa` below `ff` | A shadow of four values whose colour is `#rrggbbaa` with `aa` below `ff` | Only opaque shadow colours are drawn | Not assigned |
 
 **Not unsupported, but limited.** A shader opening is supported on the card's renderer only (7.8). A character drawn from a font of the machine (N2) is drawn. Repeated `id`s are accepted (N7). These are not refused.
 
