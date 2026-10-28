@@ -141,6 +141,11 @@ fn shown_problems() -> Vec<ShownProblem> {
             Code::BorderNotInForm,
         ),
         (
+            "shadow-not-in-form",
+            vec![("composition.xml".to_string(), inside_root(r#"<box box-shadow="0 0 4 red"/>"#))],
+            Code::ShadowNotInForm,
+        ),
+        (
             "tween-no-duration",
             vec![("composition.xml".to_string(), inside_root(r#"<box><tween to-x="5"/></box>"#))],
             Code::TweenNoDuration,

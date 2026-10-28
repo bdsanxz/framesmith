@@ -390,13 +390,13 @@ fn outline(value: &str) -> Result<Outline, (Code, String)> {
 }
 
 /// A length of a shadow or an outline: a number of pixels with an optional `px` after it (notation N9).
-fn length_token(token: &str) -> Option<f32> {
+pub(crate) fn length_token(token: &str) -> Option<f32> {
     let text = token.strip_suffix("px").unwrap_or(token);
     number(text).map(|pixels| pixels as f32)
 }
 
 /// A colour written `#rrggbb` or `#rrggbbaa`, as red, green, blue and alpha (section 6.3).
-fn colour_token(token: &str) -> Option<[u8; 4]> {
+pub(crate) fn colour_token(token: &str) -> Option<[u8; 4]> {
     let hex = token.strip_prefix('#')?;
     if !matches!(hex.len(), 6 | 8) || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return None;

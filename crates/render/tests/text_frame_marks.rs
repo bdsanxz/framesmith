@@ -40,7 +40,7 @@ fn text_runs(folder: &Path) -> Vec<GlyphRun> {
         .into_iter()
         .flat_map(|mark| match mark {
             Mark::Text(text) => text.runs,
-            Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) => Vec::new(),
+            Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) => Vec::new(),
         })
         .collect()
 }

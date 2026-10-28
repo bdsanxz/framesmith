@@ -713,6 +713,11 @@ impl CardRenderer {
                 },
                 Mark::Ring(ring) => self.plan_ring(plan, target, scissor, ring, map)?,
                 Mark::Cut(cut) => self.plan_cut(plan, target, scissor, cut, map)?,
+                Mark::BoxShadow(shadow) => {
+                    // A box's shadow is drawn by the processor's renderer, and the card lays it (section 4.7, rule 6).
+                    let layer = draw_cpu::box_shadow_layer(plan.width, plan.height, shadow, map)?;
+                    self.push_layer(plan, target, scissor, layer)?;
+                }
             }
         }
         Ok(())
@@ -729,6 +734,7 @@ impl CardRenderer {
         if opacity == 0.0 {
             return Ok(());
         }
+        let around = map;
         let map = map.then_after(group.map);
         if !map.is_finite() {
             return Err(Error::new("an element is moved by a map that is not finite"));
@@ -740,6 +746,12 @@ impl CardRenderer {
                 None => return Ok(()),
             },
         };
+        if group.shadow.is_some() {
+            // A shadow that follows is drawn by the processor's renderer, with the finished picture over it, and the card lays
+            // that picture, cut to the group's clip (`docs/spec/render-command.md`, section 4.7, rule 6).
+            let layer = draw_cpu::shadowed_group_layer(plan.width, plan.height, group, around)?;
+            return self.push_layer(plan, target, scissor, layer);
+        }
         if let Some(turn) = group.turn.filter(|turn| !turn.is_none()) {
             return self.plan_turned(plan, target, scissor, group, map, opacity, turn.about(map));
         }

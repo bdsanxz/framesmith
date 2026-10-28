@@ -157,6 +157,7 @@ fn reference_machine_only_cut_children_agree_with_the_processor() {
             marks: boxed(24.0, Some((6.0, true)), true, children),
             turn: None,
             filter: Filter::NONE,
+            shadow: None,
         })]),
     );
 }

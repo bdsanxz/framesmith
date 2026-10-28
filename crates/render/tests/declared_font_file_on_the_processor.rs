@@ -46,7 +46,7 @@ fn a_text_naming_the_declared_family_is_drawn_with_the_declared_file_on_frame_0_
             .iter()
             .flat_map(|mark| match mark {
                 Mark::Text(text) => text.runs.clone(),
-                Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) => Vec::new(),
+                Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) => Vec::new(),
             })
             .collect();
         assert_eq!(runs.len(), 1, "frame {number} draws one run of glyphs");
