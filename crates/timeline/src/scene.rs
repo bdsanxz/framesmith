@@ -596,6 +596,7 @@ fn walk(project: &Project, place_only: bool, codecs: &codec::Registry) -> (Vec<E
             frames: root.frames,
         },
         root.fps,
+        place_only,
     )
 }
 
@@ -995,6 +996,7 @@ fn walk_canvas(
                 frames: canvas.frames,
             },
             fps,
+            place_only,
         );
         let offset = entries.len();
         let placed = placed.into_iter().map(|entry| match entry {

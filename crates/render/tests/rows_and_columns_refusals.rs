@@ -141,7 +141,11 @@ fn a_gap_below_zero_is_reported_by_check_as_well_as_by_render() {
     let inside = "<box/>\n<box flex-direction=\"row\" gap=\"-2\" background=\"#e0a030\"/>";
     let folder = project_with("rows-and-columns-refusals", "gap-check", &composition(inside));
     let project = Project::open(&folder).unwrap();
-    let checked: Vec<String> = place_reports_and_notes(&project, &render::system_codecs()).0.iter().map(shown).collect();
+    let checked: Vec<String> = place_reports_and_notes(&project, &render::system_codecs())
+        .0
+        .iter()
+        .map(shown)
+        .collect();
     assert_eq!(
         checked,
         vec!["composition.xml 3 FS-0034 `gap=\"-2\"` must be 0 or more".to_string()]
