@@ -277,6 +277,16 @@ fn catalogue() -> String {
 }
 
 /// Projects of one `<audio>` that `check` refuses as invalid (`docs/spec/sound.md`, section 5).
+/// A `<shape>` that draws `draw` or `dash` with no line to act on: no `stroke-width` and no `src` (`FS-0087`).
+fn shape_problems() -> Vec<ShownProblem> {
+    let shape = |attributes: &str| inside_root(&format!("<shape d=\"M0 0 L10 10\" width=\"10\" height=\"10\" {attributes}/>"));
+    vec![(
+        "shape-draw-without-stroke-width",
+        vec![("composition.xml".to_string(), shape("draw=\"0.5\""))],
+        Code::ShapeWithoutStroke,
+    )]
+}
+
 fn sound_problems() -> Vec<ShownProblem> {
     let audio = |attributes: &str| inside_root(&format!("<audio {attributes}/>"));
     let good = testkit::sound_files::wav_bytes(48_000, 2, Pcm::Int(16), &[0.0; 2_000]);
@@ -753,7 +763,12 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
-    for (name, files, code) in shown_problems().into_iter().chain(font_problems()).chain(sound_problems()) {
+    for (name, files, code) in shown_problems()
+        .into_iter()
+        .chain(font_problems())
+        .chain(sound_problems())
+        .chain(shape_problems())
+    {
         let (project, cwd) = project_with_files(&format!("emit-{name}"), &files);
         let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
         let printed = text(&output.stdout);

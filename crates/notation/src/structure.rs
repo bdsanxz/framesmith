@@ -47,6 +47,8 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
         }
         attributes(node, element, &read, problems);
         clip_pair(&read, element, spot_at(node.range().start), problems);
+        let lineless = shape_without_line(element, &read);
+        shape_lines(element, &read, problems);
 
         for child in node.children().filter(roxmltree::Node::is_element) {
             let spot = spot_at(child.range().start);
@@ -104,9 +106,9 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
             if !element.children().contains(&kind) {
                 problems.push(found(Code::ElementNotHere, spot, misplaced(kind, element)));
             } else if kind == Element::Tween {
-                tween(child, element, spot, &spot_at, problems);
+                tween(child, element, spot, &spot_at, lineless, problems);
             } else if kind == Element::Set {
-                set(child, element, spot, &spot_at, problems);
+                set(child, element, spot, &spot_at, lineless, problems);
             }
             pending.push((child, kind));
         }
@@ -233,6 +235,48 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
     }
 }
 
+/// Whether a `<shape>` draws no line for `draw` and `dash` to act on: it writes no `stroke-width` (its own or a style's) and no
+/// `src`, since the file's own stroke width may be the one used (`docs/spec/notation.md` section 7.11).
+fn shape_without_line(element: Element, read: &[Effective]) -> bool {
+    element == Element::Shape
+        && !read
+            .iter()
+            .any(|attribute| !attribute.prefixed && (attribute.name == "stroke-width" || attribute.name == "src"))
+}
+
+/// The attributes of a `<shape>` that need its line or its blur: `draw` and `dash` need a `stroke-width` (`FS-0087`), and a
+/// `blur` below 0 is refused as it is on a box (`FS-0034`). A shape with a `src` is not judged for the line.
+fn shape_lines(element: Element, read: &[Effective], problems: &mut Vec<Found>) {
+    if element != Element::Shape {
+        return;
+    }
+    let lineless = shape_without_line(element, read);
+    for attribute in read.iter().filter(|attribute| !attribute.prefixed) {
+        match attribute.name.as_str() {
+            "draw" | "dash" if lineless => problems.push(found(
+                Code::ShapeWithoutStroke,
+                attribute.spot,
+                format!("`{}` is for a <shape> with `stroke-width`", attribute.name),
+            )),
+            "blur" => {
+                if let Ok(value) = value::number(&attribute.value) {
+                    if value < 0.0 {
+                        problems.push(found(
+                            Code::LengthNotAccepted,
+                            attribute.spot,
+                            format!(
+                                "`blur=\"{}\"` is below 0: a blur is a standard deviation in pixels, 0 or more",
+                                shown(&attribute.value)
+                            ),
+                        ));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 /// The pair of a clip: an element that takes `start` and `duration` as a clip has both or neither
 /// (`docs/spec/notation.md` section 5.2). One report, on the line of the element, for an element
 /// with one of them and not the other. A value a style gives counts as written on the element.
@@ -255,7 +299,7 @@ fn clip_pair(read: &[Effective], element: Element, spot: Spot, problems: &mut Ve
 /// zero duration and a tween with no property are reported on the tween's line; a property its element does not take, on the
 /// attribute. A `duration` that is not a time is reported by the form check, and not again here. A tween takes no `class`, so
 /// its own attributes are all it reads.
-fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot, spot_at: &F, problems: &mut Vec<Found>) {
+fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot, spot_at: &F, lineless: bool, problems: &mut Vec<Found>) {
     let own = || node.attributes().filter(|attribute| attribute.namespace().is_none());
     match own().find(|attribute| attribute.name() == "duration") {
         None => problems.push(found(
@@ -297,6 +341,12 @@ fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spo
                     parent.tag()
                 ),
             ));
+        } else if lineless && property == "draw" {
+            problems.push(found(
+                Code::ShapeWithoutStroke,
+                spot_at(attribute.range().start),
+                "`draw` is for a <shape> with `stroke-width`".to_string(),
+            ));
         }
     }
     if let Some(ease) = own().find(|attribute| attribute.name() == "ease") {
@@ -325,7 +375,7 @@ fn tween<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spo
 /// other than `at` counts, since one that is not an animated property is reported on its own), and only properties that the
 /// element it moves takes as attributes (section 8.1). A set with no property is reported on the set's line; a property its
 /// element does not take, on the attribute. A set takes no `class`, so its own attributes are all it reads.
-fn set<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot, spot_at: &F, problems: &mut Vec<Found>) {
+fn set<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot, spot_at: &F, lineless: bool, problems: &mut Vec<Found>) {
     let mut changes = false;
     for attribute in node.attributes().filter(|attribute| attribute.namespace().is_none()) {
         let name = attribute.name();
@@ -346,6 +396,12 @@ fn set<F: Fn(usize) -> Spot>(node: roxmltree::Node, parent: Element, spot: Spot,
                     "`{name}` changes `{name}`, which {} does not take; a set changes only the properties of the element it moves",
                     parent.tag()
                 ),
+            ));
+        } else if lineless && name == "draw" {
+            problems.push(found(
+                Code::ShapeWithoutStroke,
+                spot_at(attribute.range().start),
+                "`draw` is for a <shape> with `stroke-width`".to_string(),
             ));
         }
     }

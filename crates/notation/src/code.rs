@@ -185,6 +185,8 @@ pub enum Code {
     SoundDamaged,
     /// An `<audio>` has a `media-start` at or past the end of its sound file.
     SoundStartPastEnd,
+    /// A `<shape>` has `draw` or `dash` and writes no `stroke-width`.
+    ShapeWithoutStroke,
 }
 
 impl Code {
@@ -264,6 +266,7 @@ impl Code {
         Code::SoundNotRead,
         Code::SoundDamaged,
         Code::SoundStartPastEnd,
+        Code::ShapeWithoutStroke,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -343,6 +346,7 @@ impl Code {
             Code::SoundNotRead => "FS-0079",
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
+            Code::ShapeWithoutStroke => "FS-0087",
         }
     }
 
@@ -449,6 +453,7 @@ impl Code {
             Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
+            Code::ShapeWithoutStroke => "Write `stroke-width` on the `<shape>`, with the width of its line in view-box units, or leave out `draw` and `dash`.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

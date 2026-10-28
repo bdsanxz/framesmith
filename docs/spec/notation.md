@@ -891,7 +891,9 @@ For an `<image>`. **`object-fit`**: `fill` (default) stretches the picture to th
 - **`dash`** (with `stroke-width` only): pairs of lengths, a dash and then a gap, in view-box units, repeated along each outline from its start: `dash="12 8"`. An even count of numbers, none below zero, not all zero.
 - **`draw`** (animated, with `stroke-width` only): the share of each outline that is drawn, counted from the outline's start along its length. At 1 or more the whole outline is drawn; below one thousandth nothing is drawn, not even the round end of the line, so that a line that starts to draw itself is not there as a dot in the frame before. Between, each outline is drawn from its start to that share of its own length; a `d` with several outlines (several `M`) has each drawn to the same share. An outline starts where its `d` starts and runs the way it runs; a closed outline is drawn round to its start. With both `dash` and `draw`, the dashes lie where they would on the whole outline and `draw` shows them up to its share.
 - **`drop-shadow`** on a `<shape>` follows the outlines and is in view-box units.
-- `draw` or `dash` on an element that is not a `<shape>` with `stroke-width`, as an attribute or in a `<tween>` or `<set>`, is reported.
+- **Reports.** `draw` or `dash` on an element that does not take it is reported as the element's attribute is (`FS-0030`; a `<tween>` or `<set>` of `draw` on such an element is `FS-0060` or `FS-0062`).
+- `draw` or `dash` on a `<shape>` that writes no `stroke-width`, as an attribute or in a `<tween>` or `<set>` (`to-draw`, `from-draw`, `draw`), is `FS-0087`, on the line of the attribute, with the message ``` `draw` is for a <shape> with `stroke-width` ``` (the same for `dash`). A `stroke-width` a style gives counts as written. A `<shape>` with a `src` is not judged for this, since the file's own stroke width may be the one used (`view-box` above); such a shape is judged when it is drawn.
+- **A negative blur.** A `blur` below 0 on a `<shape>` is `FS-0034` on the attribute's line, as on a `<box>` (`check-command.md` section 3a): a blur is 0 or more.
 
 ### 7.12 A number that counts, and typed text
 
