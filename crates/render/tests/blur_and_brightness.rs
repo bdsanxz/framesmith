@@ -20,7 +20,8 @@ fn drawn(name: &str, background: &str, inside: &str, renderer: &mut dyn Renderer
         "<composition version=\"1\" width=\"200\" height=\"100\" fps=\"10\" duration=\"1\" background=\"{background}\">\n{inside}\n</composition>\n"
     );
     let folder = project_with("blur-and-brightness", name, &text);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, renderer).unwrap()
 }
 

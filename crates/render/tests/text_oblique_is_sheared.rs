@@ -35,7 +35,8 @@ fn text_project(name: &str, attributes: &str) -> PathBuf {
 
 /// The picture of frame 0 that the processor draws for a project.
 fn picture_of(folder: &Path) -> Picture {
-    let scene = Scene::from_project(&Project::open(folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, &mut CpuRenderer).unwrap()
 }
 

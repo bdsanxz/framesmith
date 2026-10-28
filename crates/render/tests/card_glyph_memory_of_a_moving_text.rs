@@ -14,7 +14,8 @@ use render::Scene;
 fn reference_machine_only_the_glyph_masks_of_a_text_that_moves_for_a_minute_hold_level_at_the_bound() {
     let fixture = "motion-text-a-minute";
     let folder = project_copied_from_fixture("card-glyph-memory-of-a-moving-text", fixture, fixture);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     assert_eq!(scene.frames(), 1800);
     let mut card = CardRenderer::new().unwrap_or_else(|error| panic!("the card could not be started: {error}"));
     let mut kept = Vec::new();

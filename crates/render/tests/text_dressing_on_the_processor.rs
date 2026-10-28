@@ -41,13 +41,15 @@ fn text_body(attributes: &str, words: &str) -> String {
 
 /// The picture the processor draws for frame 0 of a project.
 fn picture_of(folder: &Path) -> Picture {
-    let scene = Scene::from_project(&Project::open(folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, &mut CpuRenderer).unwrap()
 }
 
 /// The number of distinct heights of the glyphs of the texts of frame 0: one for a text on one line.
 fn lines_of(folder: &Path) -> usize {
-    let scene = Scene::from_project(&Project::open(folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let mut heights: Vec<i64> = scene
         .frame(0)
         .unwrap()

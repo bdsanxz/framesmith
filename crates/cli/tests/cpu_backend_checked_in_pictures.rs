@@ -96,7 +96,7 @@ fn the_cpu_backend_draws_every_frame_to_its_checked_in_picture() {
     assert_eq!(choice.name(), "processor");
     assert_eq!(choice.chosen(), Chosen::Setting);
 
-    let Ok(scene) = Scene::from_project(&project) else {
+    let Ok(scene) = Scene::from_project(&project, &render::system_codecs()) else {
         panic!("{}: the composition is not a valid scene", folder.display());
     };
     assert_eq!(scene.frames(), 10);

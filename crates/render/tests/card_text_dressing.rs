@@ -14,7 +14,7 @@ use render::Scene;
 fn scene_of(fixture: &str) -> Scene {
     let folder = project_copied_from_fixture("card-text-dressing", fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn card() -> CardRenderer {

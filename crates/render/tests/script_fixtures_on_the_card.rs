@@ -20,7 +20,7 @@ const GROUP: &str = "script-fixtures-on-the-card";
 fn scene_of(fixture: &str) -> Scene {
     let folder = project_copied_from_fixture(GROUP, fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn card() -> CardRenderer {
@@ -123,7 +123,7 @@ fn reference_machine_only_the_card_draws_the_emoji_within_the_tolerance_whatever
         for (name, colour) in EMOJI_TEXT_COLOURS {
             let folder = project_with_text_colour(GROUP, name, "text-emoji", "#1e6fd9", colour);
             let project = Project::open(&folder).unwrap();
-            let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+            let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
             let (left, top, width, height) = first_picture_place(&scene, number);
             let whole = scene.picture(number, &mut renderer).unwrap();
             pictures.push((colour, crop(&whole, left, top, width, height)));

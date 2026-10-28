@@ -28,7 +28,7 @@ fn first_picture(name: &str, composition_change: Option<(&str, &str)>) -> Pictur
         fs::write(&path, text.replace(from, to)).unwrap();
     }
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, &mut CpuRenderer).unwrap_or_else(|error| panic!("{error}"))
 }
 

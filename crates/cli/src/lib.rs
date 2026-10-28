@@ -65,11 +65,13 @@ fn card_renderer() -> Result<Box<dyn Renderer>, draw::Error> {
 
 /// Reads the command line, runs the command, prints its reply and logs its result.
 fn command(args: &[OsString], out: &mut dyn Write, err: &mut dyn Write, start_card: &StartCard) -> u8 {
+    // The codecs of the scenes this command makes, with the system's backend registered once, here where the command starts.
+    let codecs = render::system_codecs();
     let reply = match args.split_first() {
         None => Reply::Unreadable(Code::CommandLineNotRead, "no command is given".to_string(), BOTH_USAGES),
-        Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, check),
+        Some((command, rest)) if command == "check" => with_path("check", &[CHECK_USAGE], rest, &|path| check(path, &codecs)),
         Some((command, rest)) if command == "render" => match render_line(rest) {
-            Ok((path, options, marks)) => render(path, &options, marks, start_card),
+            Ok((path, options, marks)) => render(path, &options, marks, start_card, &codecs),
             Err((code, why)) => Reply::Unreadable(code, why, &[RENDER_USAGE]),
         },
         Some((command, _)) => Reply::Unreadable(
@@ -98,7 +100,7 @@ const BOTH_USAGES: &[&str] = &[CHECK_USAGE, RENDER_USAGE];
 
 /// A command that takes the path of one project and no option: reads the words after its name and
 /// runs it.
-fn with_path(name: &str, usages: &'static [&'static str], rest: &[OsString], run: fn(PathBuf) -> Reply) -> Reply {
+fn with_path(name: &str, usages: &'static [&'static str], rest: &[OsString], run: &dyn Fn(PathBuf) -> Reply) -> Reply {
     if let Some(option) = rest.iter().find(|word| word.to_string_lossy().starts_with('-')) {
         return Reply::Unreadable(
             Code::CommandLineNotRead,
@@ -262,10 +264,10 @@ enum Reply {
 /// composition file) and says whether its project file and its composition are valid, or every
 /// problem they have. The forms of a place, a size, a margin and a position are judged by the code
 /// `render` uses, so that `check` names each one `render` refuses (`docs/spec/check-command.md`).
-fn check(path: PathBuf) -> Reply {
+fn check(path: PathBuf, codecs: &codec::Registry) -> Reply {
     match Project::open(&path) {
         Ok(project) => {
-            let (mut reports, notes) = render::place_reports_and_notes(&project);
+            let (mut reports, notes) = render::place_reports_and_notes(&project, codecs);
             // The sound files are opened as `render` opens them, once the composition has no other problem, so that
             // `check` names each one `render` refuses (`docs/spec/sound.md`, section 5).
             if reports.is_empty() {
@@ -392,14 +394,14 @@ pub fn renderer_for(settings: &Settings, start_card: &StartCard) -> Result<Choic
 /// draws, draws every frame on the renderer that the settings choose and writes the film to the
 /// project's output path. A project that does not open, or that uses what this version does not
 /// draw, is told as `check` tells it and nothing is written (`docs/spec/render-command.md`).
-fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard) -> Reply {
+fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard, codecs: &codec::Registry) -> Reply {
     let mut project = match Project::open(&path) {
         Ok(project) => project,
         Err(error) => return not_opened(error),
     };
     project.apply(options);
     tracing::debug!(options = options.count(), "settings chosen");
-    let scene = match Scene::from_project(&project) {
+    let scene = match Scene::from_project(&project, codecs) {
         Ok(scene) => scene,
         Err(reports) => return reports_reply(&reports),
     };

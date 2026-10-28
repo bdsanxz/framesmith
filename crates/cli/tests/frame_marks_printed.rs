@@ -28,7 +28,8 @@ fn every_frame_s_mark_is_printed_after_the_summary_and_is_the_mark_of_its_pictur
         "the marks follow the elapsed line, and nothing else does"
     );
 
-    let scene = Scene::from_project(&Project::open(&project).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&project).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     assert_eq!(marks.len() as u64, scene.frames(), "one mark for each frame");
     for (number, line) in marks.iter().enumerate() {
         let picture = scene.picture(number as u64, &mut CpuRenderer).unwrap();

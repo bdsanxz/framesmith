@@ -25,7 +25,7 @@ fn main() {
         .collect();
     let folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(&name);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     std::fs::create_dir_all(folder.join("expected")).unwrap();
     for number in numbers {
         let picture = scene.picture(number, &mut CpuRenderer).unwrap_or_else(|error| panic!("{error}"));

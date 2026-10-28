@@ -29,7 +29,7 @@ fn a_movement_attribute_a_style_gives_a_box_is_taken_beside_a_refused_one_that_n
          <box class=\"moving\" left=\"90\" top=\"50\" width=\"20\" height=\"16\" background=\"#ffffff\"/>\n\
          </composition>\n",
     );
-    let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
+    let reports = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_err();
     let shown: Vec<String> = reports.iter().map(shown).collect();
     assert_eq!(
         shown,
@@ -46,7 +46,7 @@ fn a_movement_attribute_the_box_writes_itself_is_taken() {
          <box left=\"90\" top=\"50\" width=\"20\" height=\"16\" x=\"20\"/>\n\
          </composition>\n",
     );
-    let scene = Scene::from_project(&Project::open(&folder).unwrap());
+    let scene = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs());
     assert!(
         scene.is_ok(),
         "{:?}",

@@ -12,3 +12,5 @@ layout
 draw
 draw-cpu
 mix
+text
+timeline

@@ -29,7 +29,7 @@ fn growing_text(group: &str) -> Scene {
 "##,
     )
     .unwrap();
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 /// Holds every frame's text to its map, drawn by one renderer.

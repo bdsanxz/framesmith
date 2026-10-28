@@ -23,7 +23,7 @@ fn picture_with_attributes(name: &str, plain: &str, absolute: &str, lower: &str)
     );
     let folder = project_with("margin-and-position", name, &text);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, &mut CpuRenderer).unwrap()
 }
 
@@ -31,7 +31,10 @@ fn picture_with_attributes(name: &str, plain: &str, absolute: &str, lower: &str)
 fn a_margin_and_a_position_change_no_pixel_of_the_boxes() {
     let folder = project_from_fixture("margin-and-position", "fixture", "placement-margin-and-position");
     let project = Project::open(&folder).unwrap();
-    let with_them = Scene::from_project(&project).unwrap().picture(0, &mut CpuRenderer).unwrap();
+    let with_them = Scene::from_project(&project, &render::system_codecs())
+        .unwrap()
+        .picture(0, &mut CpuRenderer)
+        .unwrap();
 
     let without_them = picture_with_attributes("without", "", "", "");
     assert_eq!(compare(0, &with_them, &without_them), Ok(()));

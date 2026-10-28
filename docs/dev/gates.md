@@ -25,6 +25,8 @@ Two lines of `deny.toml` make the gate reach every dependency:
 - `include-dev = true` (in `[licenses]`): a dependency used only by tests and tools is checked as well. Without it cargo-deny leaves development dependencies out, and a test dependency under GPL would pass.
 - No `targets` line (in `[graph]`): every package in `Cargo.lock` is checked, whatever system it is built for, so a dependency used only on Windows or Linux is refused before those systems are added. The line that named `aarch64-apple-darwin` is dropped.
 
+The picture check of the system-free crates (`scripts/gates/system-free.sh test`) is held to its own words: the run must print a `checked-in pictures compared: N` line and a `largest difference found:` line with N above 0, from the test of `timeline` (`timeline.md`, section 3); a run that prints neither, or a count of 0, fails with a `FAIL:` line that names what is missing. The picture check is what makes the hosted jobs compare the checked-in pictures, so a job that lost it must not pass.
+
 ## 2. The script
 
 `scripts/gates.sh` runs the gates in the order of section 1, always all of those asked for, so that one report shows every failure. For each gate it prints the command, everything the command printed, and a verdict line: `PASS <gate>` or `FAIL <gate>: <what failed>`. It ends with a summary of the seven verdicts, and under it a `note:` line for anything that was not run (sections 4 and 5).

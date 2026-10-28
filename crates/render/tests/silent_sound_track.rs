@@ -31,7 +31,8 @@ fn rendered(name: &str, fps: u32, duration: &str) -> PathBuf {
          </composition>\n"
     );
     let folder = project_with("silent-sound", &format!("{name}-in"), &composition);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let output = scratch("silent-sound", &format!("{name}-out")).join("film.mp4");
     write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     output
@@ -154,7 +155,7 @@ fn a_sound_bit_rate_of_128_kbit_s_gives_a_track_within_ten_percent_of_128_kbit_s
     std::fs::write(folder.join("framesmith.yaml"), "render:\n  audio-bitrate: 128\n").unwrap();
     let project = Project::open(&folder).unwrap();
     assert_eq!(project.settings().audio_bitrate(), 128);
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let output = scratch("silent-sound", "rate-128-out").join("film.mp4");
     write_film(&scene, &mut CpuRenderer, &output, project.settings().audio_bitrate()).unwrap();
     let info = probe::look(&output, &formats()).unwrap();

@@ -18,7 +18,7 @@ const CHECKED: [u64; 11] = [0, 15, 29, 30, 44, 45, 59, 60, 74, 75, 119];
 fn the_frames_of_the_shown_composition_fixture_equal_their_checked_in_pictures() {
     let folder = project_copied_from_fixture("shown-composition-checked-in", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     assert_eq!(
         numbers_with_a_picture(FIXTURE),
         CHECKED.to_vec(),

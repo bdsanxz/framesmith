@@ -51,7 +51,7 @@ fn two_renders_of_the_project_on_the_processor_print_the_same_mark_for_every_fra
     assert_eq!(first, second);
     // They are the marks of the frames drawn in order on request.
     let (project, _) = fixture_project(GROUP, "processor-in-order", FIXTURE);
-    let scene = Scene::from_project(&Project::open(&project).unwrap()).unwrap();
+    let scene = Scene::from_project(&Project::open(&project).unwrap(), &render::system_codecs()).unwrap();
     for (number, line) in first.iter().enumerate() {
         let mark = scene.picture(number as u64, &mut CpuRenderer).unwrap().mark();
         assert_eq!(line, &format!("mark {number:04}: {mark:016x}"));

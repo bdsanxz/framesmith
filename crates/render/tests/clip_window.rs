@@ -25,7 +25,7 @@ const INSIDE: [u8; 4] = [0xff, 0x40, 0xff, 255];
 fn scene(name: &str) -> Scene {
     let folder = project_from_fixture("clip-window", name, FIXTURE);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 /// The numbers, in order, of the frames in which the pixel at (x, y) has `colour`.

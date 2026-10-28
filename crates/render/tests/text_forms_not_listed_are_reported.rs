@@ -21,7 +21,7 @@ fn shown(report: &Report) -> String {
 fn reports_of(name: &str) -> Vec<String> {
     let folder = project_from_fixture("text-forms-not-listed", name, &format!("forms-not-listed/{name}"));
     let project = Project::open(&folder).unwrap();
-    match Scene::from_project(&project) {
+    match Scene::from_project(&project, &render::system_codecs()) {
         Ok(_) => Vec::new(),
         Err(reports) => reports.iter().map(shown).collect(),
     }

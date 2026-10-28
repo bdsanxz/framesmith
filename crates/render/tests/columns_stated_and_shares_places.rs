@@ -31,7 +31,7 @@ fn four_children_lie_two_to_a_row_in_a_stated_column_and_a_column_that_fills_the
         "columns-stated-and-shares",
     );
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     // The box is 120 wide: a column of 40, then the rest, 80. Its four children are 10 tall, in two rows of 10.
     assert_eq!(
         filled_in_frame(&scene, 0),
@@ -47,7 +47,7 @@ fn the_columns_are_the_same_in_every_frame() {
         "columns-stated-and-shares",
     );
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let first = filled_in_frame(&scene, 0);
     for number in 1..scene.frames() {
         assert_eq!(filled_in_frame(&scene, number), first, "frame {number}");

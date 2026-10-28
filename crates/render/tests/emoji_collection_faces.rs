@@ -5,6 +5,9 @@
 
 #![cfg(target_os = "macos")]
 
+// Moved from the text crate: the emoji pictures are read by frx7's backend, which only the render crate registers
+// (`docs/spec/text.md`, section 12.4, point 4; decision B87).
+
 use text::{layout, Align, FontError, Fonts, LineHeight, Style, TextError};
 
 const EMOJI_FILE: &str = "/System/Library/Fonts/Apple Color Emoji.ttc";
@@ -31,7 +34,7 @@ fn emoji_style(size: f32) -> Style {
 
 #[test]
 fn the_emoji_collection_registers_its_one_visible_face_and_not_the_hidden_one() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     fonts.register(emoji_bytes(), Some(EMOJI_FAMILY)).expect("the collection registers");
     assert_eq!(fonts.len(), 1, "one face is drawn from the collection");
     assert!(fonts.has_family(EMOJI_FAMILY));
@@ -40,7 +43,7 @@ fn the_emoji_collection_registers_its_one_visible_face_and_not_the_hidden_one() 
 
 #[test]
 fn a_collection_declared_under_another_family_is_refused_with_the_name_of_its_face() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     let error = fonts.register(emoji_bytes(), Some("Arial")).unwrap_err();
     assert_eq!(
         error,
@@ -51,14 +54,14 @@ fn a_collection_declared_under_another_family_is_refused_with_the_name_of_its_fa
 
 #[test]
 fn a_collection_declared_with_no_family_takes_the_name_of_its_face() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     fonts.register(emoji_bytes(), None).expect("the collection registers");
     assert!(fonts.has_family(EMOJI_FAMILY));
 }
 
 #[test]
 fn an_emoji_is_drawn_as_a_picture_in_its_own_colours() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     fonts.register(emoji_bytes(), Some(EMOJI_FAMILY)).expect("the collection registers");
     let block = layout(&mut fonts, "\u{1F600}", &emoji_style(20.0), None).expect("the emoji is drawn");
     assert_eq!(block.pictures.len(), 1, "the emoji is one picture");
@@ -78,7 +81,7 @@ fn an_emoji_is_drawn_as_a_picture_in_its_own_colours() {
 
 #[test]
 fn an_emoji_is_drawn_at_the_size_of_its_text() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     fonts.register(emoji_bytes(), Some(EMOJI_FAMILY)).expect("the collection registers");
     let small = layout(&mut fonts, "\u{1F600}", &emoji_style(20.0), None).expect("drawn at 20");
     let large = layout(&mut fonts, "\u{1F600}", &emoji_style(40.0), None).expect("drawn at 40");
@@ -99,7 +102,7 @@ fn an_emoji_is_drawn_at_the_size_of_its_text() {
 
 #[test]
 fn an_emoji_the_face_has_no_picture_for_is_refused_naming_it() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     fonts.register(emoji_bytes(), Some(EMOJI_FAMILY)).expect("the collection registers");
     let refused = layout(&mut fonts, "\u{2640}", &emoji_style(20.0), None);
     assert!(

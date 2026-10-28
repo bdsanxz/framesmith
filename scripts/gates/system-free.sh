@@ -4,6 +4,7 @@
 #   scripts/gates/system-free.sh list    the workspace crates that are system-free, worked out by cargo
 #   scripts/gates/system-free.sh check   the record scripts/gates/system-free.txt equals that list
 #   scripts/gates/system-free.sh test    check, then build and test exactly the recorded crates
+#   scripts/gates/system-free.sh verify-log FILE   the picture check's lines are in a log of a test run
 #
 # A crate touches a system interface when its dependency tree (normal, build and development
 # dependencies) holds one of frx7's system crates: backend-os, gpu, device.
@@ -96,14 +97,21 @@ do_test() {
     code=$(cat "$ROOT/target/system-free-test.code")
     summary "### System-free crates on $(uname -s)"
     summary "Crates: $(recorded | tr '\n' ' ')"
-    # What the picture check within one level printed (docs/spec/timeline.md, section 3).
+    # What the picture check within one level printed (docs/spec/timeline.md, section 3), and whether it printed it.
     grep -E '^(checked-in pictures compared|largest difference found): ' "$log" | while read -r line; do echo "$line"; summary "$line"; done
-    if [ "$code" -eq 0 ]; then
+    local picture=0
+    verify_log "$log" || picture=1
+    if [ "$code" -eq 0 ] && [ "$picture" -eq 0 ]; then
         echo "PASS: the system-free crates built and their tests passed"
         summary "PASS: built, and every test passed"
         return 0
     fi
     local failed
+    if [ "$code" -eq 0 ]; then
+        echo "FAIL: the picture check did not report its result"
+        summary "- FAIL: the picture check did not report its result"
+        return 1
+    fi
     failed=$(grep '^test .* \.\.\. FAILED$' "$log" | sed -e 's/^test //' -e 's/ \.\.\. FAILED$//')
     if [ -n "$failed" ]; then
         printf '%s\n' "$failed" | while read -r name; do echo "FAIL: test $name failed"; summary "- FAIL: test $name failed"; done
@@ -115,9 +123,38 @@ do_test() {
     return 1
 }
 
+# The picture check (docs/spec/timeline.md, section 3) must print its two lines, the first with a count above 0. A run
+# that prints neither, or a count of 0, is a failed check, whatever its tests say: this is what makes a job that lost the
+# picture check fail. Each missing or wrong line is named on a line "FAIL: ..." and summarised.
+verify_log() {
+    local log="$1" compared largest code=0
+    compared=$(grep -E '^checked-in pictures compared: ' "$log" | tail -n 1 | sed -e 's/^checked-in pictures compared: //')
+    largest=$(grep -E '^largest difference found: ' "$log" | tail -n 1)
+    if [ -z "$compared" ]; then
+        echo "FAIL: the test run printed no \"checked-in pictures compared:\" line"
+        summary "- FAIL: the test run printed no checked-in pictures compared line"
+        code=1
+    elif ! printf '%s' "$compared" | grep -Eq '^[0-9]+$' || [ "$compared" -eq 0 ]; then
+        echo "FAIL: the picture check compared $compared checked-in pictures; it must compare at least one"
+        summary "- FAIL: the picture check compared $compared checked-in pictures"
+        code=1
+    fi
+    if [ -z "$largest" ]; then
+        echo "FAIL: the test run printed no \"largest difference found:\" line"
+        summary "- FAIL: the test run printed no largest difference found line"
+        code=1
+    fi
+    if [ "$code" -eq 0 ]; then
+        echo "picture check: $compared checked-in pictures compared; $largest"
+        summary "Picture check: $compared checked-in pictures compared"
+    fi
+    return "$code"
+}
+
 case "${1:-}" in
     list) computed ;;
     check) do_check ;;
     test) do_test ;;
-    *) echo "usage: scripts/gates/system-free.sh list|check|test" >&2; exit 2 ;;
+    verify-log) verify_log "${2:-}" ;;
+    *) echo "usage: scripts/gates/system-free.sh list|check|test|verify-log FILE" >&2; exit 2 ;;
 esac

@@ -23,7 +23,8 @@ fn drawn(name: &str, attributes: &str, renderer: &mut dyn Renderer) -> Picture {
          <box left=\"50\" top=\"50\" width=\"100\" height=\"100\" background=\"#2050c0\" {attributes}/>\n</composition>\n"
     );
     let folder = project_with("turn-in-space", name, &text);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, renderer).unwrap()
 }
 

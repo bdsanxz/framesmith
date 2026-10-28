@@ -28,7 +28,7 @@ fn in_families(names: &[&str]) -> text::Style {
 fn a_new_collection_lists_no_family_and_resolves_no_family_of_the_machine() {
     // The engine's own collection, asked directly: it lists no family, and a family that every Mac has, or a generic
     // name, resolves to nothing in it. The machine's fonts join it only through section 2.7.
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&codec::Registry::new());
     assert_eq!(fonts.engine_family_names(), Vec::<String>::new(), "a new collection lists a family");
     for family in ["Helvetica", "Times New Roman", "Menlo", "sans-serif", "serif", "monospace"] {
         assert!(!fonts.engine_resolves(family), "{family} resolves in a new collection");
@@ -87,7 +87,7 @@ mod on_the_machine {
 
     #[test]
     fn a_family_of_the_machine_is_matched_without_regard_to_case_and_draws() {
-        let mut fonts = Fonts::new();
+        let mut fonts = Fonts::new(&codec::Registry::new());
         let block = layout(&mut fonts, "AB", &in_families(&["helvetica"]), None).unwrap();
         let drawn = faces(&fonts, &block);
         println!("`helvetica` drew with {drawn:?}");
@@ -104,7 +104,7 @@ mod on_the_machine {
             ("serif", "/System/Library/Fonts/Times.ttc"),
             ("monospace", "/System/Library/Fonts/Menlo.ttc"),
         ] {
-            let mut fonts = Fonts::new();
+            let mut fonts = Fonts::new(&codec::Registry::new());
             let block = layout(&mut fonts, "AB", &in_families(&[generic]), None).unwrap();
             let drawn = faces(&fonts, &block);
             println!("`{generic}` drew with {drawn:?}");
@@ -130,21 +130,14 @@ mod on_the_machine {
 
     #[test]
     fn the_fall_back_takes_the_first_family_in_its_stated_order_that_maps_the_character() {
-        // Helvetica has no Thai letter and Arial Unicode MS has, so the Thai letter goes to the second of the order. An
-        // emoji is in neither, and goes to the third, Apple Color Emoji.
+        // Helvetica has no Thai letter and Arial Unicode MS has, so the Thai letter goes to the second of the order. The emoji
+        // half of this case, which needs the system's codec backend, is in the render crate's tests.
         let mut fonts = fonts();
         let thai = layout(&mut fonts, "A\u{0e01}", &style(40.0), None).unwrap();
         let drawn = faces(&fonts, &thai);
         println!("A\u{0e01} drew with {drawn:?}");
         assert_eq!(drawn[0], None);
         assert_eq!(drawn[1].as_ref().map(|face| face.2.as_str()), Some("Arial Unicode MS"));
-
-        let mut fonts = super::fonts();
-        let emoji = layout(&mut fonts, "A\u{1f600}", &style(40.0), None).unwrap();
-        let families: Vec<String> = fonts.machine_faces().into_iter().map(|face| face.family).collect();
-        println!("A\u{1f600} took the machine families {families:?}");
-        assert_eq!(families, ["Apple Color Emoji"]);
-        assert_eq!(emoji.pictures.len(), 1, "the emoji is drawn as its picture");
     }
 
     #[test]
@@ -166,7 +159,7 @@ mod on_the_machine {
 
     #[test]
     fn a_text_whose_names_are_all_absent_is_drawn_with_helvetica() {
-        let mut fonts = Fonts::new();
+        let mut fonts = Fonts::new(&codec::Registry::new());
         let block = layout(&mut fonts, "AB", &in_families(&["Nowhere At All"]), None).unwrap();
         let drawn = faces(&fonts, &block);
         assert_eq!(drawn.len(), 1);

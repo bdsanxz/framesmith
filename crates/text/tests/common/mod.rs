@@ -21,7 +21,7 @@ pub fn font_file(name: &str) -> Vec<u8> {
 /// A collection with the Regular and the Bold face of the test font registered under its family name, the way a
 /// composition's two `<font>` elements register them.
 pub fn fonts() -> Fonts {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&codec::Registry::new());
     fonts
         .register(font_file("framesmith-test-stroke-400.ttf"), Some(FAMILY))
         .expect("the Regular face registers");

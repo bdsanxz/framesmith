@@ -34,7 +34,7 @@ fn a_chain_of_sixteen_files_is_drawn_through_every_file() {
     )
     .unwrap();
     let project = Project::open(&dir).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let picture = scene.picture(0, &mut CpuRenderer).unwrap_or_else(|error| panic!("{error}"));
     assert_eq!(
         picture.pixel(15, 15),

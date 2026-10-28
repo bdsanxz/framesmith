@@ -12,7 +12,7 @@ use std::fs;
 fn refused(name: &str, inside: &str) -> Vec<String> {
     let folder = project_with("refusals", name, &composition(inside));
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    match Scene::from_project(&project) {
+    match Scene::from_project(&project, &render::system_codecs()) {
         Ok(_) => Vec::new(),
         Err(reports) => reports.iter().map(shown).collect(),
     }
@@ -43,7 +43,7 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
             "<box id=\"a\" left=\"-5\" top=\"1e1\" width=\"+40\" height=\"0\" background=\"#aabbcc\"/>\n<box/>\n<box background=\"#aabbccff\" left=\"5.\" width=\"1.5e1\"/>",
         ),
     );
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap();
+    let scene = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap();
     assert_eq!(scene.boxes(), 3);
 }
 
@@ -264,7 +264,7 @@ fn a_root_background_with_an_alpha_below_ff_is_unsupported() {
         "root-alpha",
         "<composition version=\"1\" width=\"96\" height=\"54\" duration=\"1\"\n background=\"#10203080\"/>\n",
     );
-    let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
+    let reports = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_err();
     assert_eq!(reports.len(), 1);
     assert_eq!(
         shown(&reports[0]),
@@ -275,7 +275,7 @@ fn a_root_background_with_an_alpha_below_ff_is_unsupported() {
         "root-alpha-ff",
         "<composition version=\"1\" width=\"96\" height=\"54\" duration=\"1\" background=\"#102030ff\"/>\n",
     );
-    assert!(Scene::from_project(&Project::open(&folder).unwrap()).is_ok());
+    assert!(Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).is_ok());
 }
 
 #[test]
@@ -313,7 +313,7 @@ fn with_project_file(name: &str, yaml: &str) -> Result<Scene, Vec<String>> {
     let folder = project_with("refusals", name, &composition("<box background=\"#ff0000\"/>"));
     fs::write(folder.join(PROJECT_FILE), yaml).unwrap();
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    Scene::from_project(&project).map_err(|reports| reports.iter().map(shown).collect())
+    Scene::from_project(&project, &render::system_codecs()).map_err(|reports| reports.iter().map(shown).collect())
 }
 
 #[test]
@@ -346,7 +346,7 @@ fn the_reports_of_the_project_file_come_before_those_of_the_composition() {
     let folder = project_with("refusals", "both-files", &composition("<rect/>"));
     fs::write(folder.join(PROJECT_FILE), "render:\n  quality: draft\n").unwrap();
     let project = Project::open(&folder).unwrap();
-    let reports = Scene::from_project(&project).unwrap_err();
+    let reports = Scene::from_project(&project, &render::system_codecs()).unwrap_err();
     let files: Vec<&str> = reports.iter().map(Report::file).collect();
     assert_eq!(files, vec![PROJECT_FILE, COMPOSITION_FILE]);
     assert!(reports.iter().all(|report| report.problem().kind() == Kind::Unsupported));
@@ -358,7 +358,7 @@ fn the_composition_that_is_read_is_the_one_the_project_names() {
     fs::create_dir_all(folder.join("scenes")).unwrap();
     fs::write(folder.join("scenes/main.xml"), composition("<rect/>")).unwrap();
     fs::write(folder.join(PROJECT_FILE), "composition: scenes/main.xml\n").unwrap();
-    let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
+    let reports = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_err();
     assert_eq!(
         shown(&reports[0]),
         "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
@@ -375,7 +375,7 @@ fn a_setting_an_option_gives_that_this_version_does_not_apply_is_unsupported_on_
     options.set("--quality", "standard").unwrap();
     options.set("--workers", "4").unwrap();
     project.apply(&options);
-    let reports = Scene::from_project(&project).unwrap_err();
+    let reports = Scene::from_project(&project, &render::system_codecs()).unwrap_err();
     assert_eq!(
         reports.iter().map(shown).collect::<Vec<_>>(),
         vec![

@@ -18,7 +18,8 @@ const BACKGROUND: [u8; 4] = [0x10, 0x20, 0x40, 0xff];
 
 fn drawn_frame(number: u64) -> draw::Picture {
     let folder = project_from_fixture("exact-half-edges-pictures", FIXTURE, FIXTURE);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(number, &mut CpuRenderer).unwrap()
 }
 

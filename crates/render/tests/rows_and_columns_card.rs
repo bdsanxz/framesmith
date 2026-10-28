@@ -33,7 +33,7 @@ fn reference_machine_only_every_frame_of_the_row_and_column_fixtures_is_within_t
     for fixture in FIXTURES {
         let folder = project_from_fixture("rows-and-columns-card", fixture, fixture);
         let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-        let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+        let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
         let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card, None);
         let report = comparison.report();
         assert!(comparison.passed(), "{fixture}: {}", report.join("\n"));
