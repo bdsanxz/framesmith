@@ -12,6 +12,8 @@ use std::process::{Command, Output};
 use project::{Code, Kind};
 use testkit::sound_files::Pcm;
 
+mod common;
+
 /// A new folder named `name` for one test, under the tests' scratch folder.
 fn folder(name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("error-reports").join(name);
@@ -671,7 +673,7 @@ fn refusals() -> Vec<(&'static str, String, String, Code)> {
 
 /// Compositions and project files that `render` refuses or cannot carry out, with the code each
 /// must carry and the exit code: a length that is wrong, a form that is not drawn, a film that
-/// cannot be written (the place of the file is inside a file).
+/// cannot be made (the place of the file is inside a file).
 fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i32)> {
     let root = |inside: &str| format!(r#"<composition version="1" width="640" height="360" duration="2">{inside}</composition>"#);
     vec![
@@ -685,11 +687,11 @@ fn render_refusals() -> Vec<(&'static str, String, Option<&'static str>, Code, i
         ),
         ("form-not-drawn", root("<rect/>"), None, Code::FormNotSupported, 2),
         (
-            "video-not-made",
+            "output-not-made",
             root(r##"<box background="#ff0000"/>"##),
             Some("render:\n  output: composition.xml/film.mp4\n"),
-            Code::VideoNotMade,
-            1,
+            Code::OutputNotWritten,
+            2,
         ),
     ]
 }
@@ -858,6 +860,17 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!(": {}: ", Code::EmojiNotDrawn.as_str())), "{printed}");
         emitted.insert(Code::EmojiNotDrawn.as_str());
     }
+
+    // A film whose write stops after its first frames: no input of the list above reaches it, so the
+    // file-size limit of the shell stops the write, which the command meets as an ordinary write failure.
+    let composition = r##"<composition version="1" width="320" height="120" fps="30" duration="4" background="#ffffff"><box left="0" top="40" width="40" height="40" background="#ff0000"><tween duration="4" to-x="260"/></box></composition>"##;
+    let (project, cwd) = project("emit-film-write-stopped", composition.as_bytes());
+    let output = cwd.join("film.mp4");
+    let rendered = common::framesmith_with_file_limit(&cwd, ["render", project.to_str().unwrap(), "--output", output.to_str().unwrap()]);
+    let printed = text(&rendered.stdout);
+    assert_eq!(rendered.status.code(), Some(1), "{printed}");
+    assert!(printed.contains("FS-0036: failure: the video could not be made: "), "{printed}");
+    emitted.insert(Code::VideoNotMade.as_str());
 
     let mut all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
     if !cfg!(target_os = "macos") {

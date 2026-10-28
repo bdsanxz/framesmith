@@ -426,6 +426,11 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard)
             return reports_reply(&[text_not_drawn(file, line, choice.name())]);
         }
     }
+    // An output place that cannot be made or written is refused before the first frame, with no file written
+    // (`docs/spec/render-command.md`, section 6).
+    if let Err(refusal) = render::check_place(&output) {
+        return output_refused(&refusal);
+    }
     let mut drawn_marks = Vec::new();
     let asked = marks.then_some(&mut drawn_marks);
     match render::write_film_marked(&scene, sounds, choice.renderer_mut(), &output, settings.audio_bitrate(), asked) {
@@ -465,6 +470,25 @@ fn text_not_drawn(file: &str, line: u32, renderer: &str) -> Report {
                  the processor draws it: use `--backend cpu`"
             ),
         ),
+    )
+}
+
+/// The reply of a `render` whose output path cannot be made or written: the report of `FS-0072` with the path and the
+/// system's reason, then the closing line, and exit code 2, as decision A19 gives (`docs/spec/render-command.md`,
+/// sections 6 and 7). Nothing is written.
+fn output_refused(refusal: &render::Refusal) -> Reply {
+    let code = Code::OutputNotWritten;
+    Reply::Printed(
+        vec![
+            code.statement(&format!(
+                "the output path `{}` cannot be made or written: {}",
+                refusal.path().display(),
+                refusal.reason()
+            )),
+            "Refused: the video was not made, because its folder cannot be written".to_string(),
+        ],
+        EXIT_UNSUPPORTED,
+        Outcome::Refused { code },
     )
 }
 

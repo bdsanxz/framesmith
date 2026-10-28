@@ -283,18 +283,19 @@ fn a_path_that_is_not_a_project_gives_what_check_gives_with_no_file() {
 }
 
 #[test]
-fn a_film_that_cannot_be_written_is_a_failure_with_fs_0036_and_exit_1_and_no_file() {
-    let (project, cwd) = make(GROUP, "failure", FIRST);
+fn a_film_whose_folder_cannot_be_made_is_refused_before_the_first_frame_with_fs_0072_and_exit_2_and_no_file() {
+    let (project, cwd) = make(GROUP, "refused", FIRST);
     fs::write(project.join("framesmith.yaml"), "render:\n  output: composition.xml/film.mp4\n").unwrap();
     let output = render(&cwd, &project);
-    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(output.status.code(), Some(2));
     let printed = out(&output);
     let lines: Vec<&str> = printed.lines().collect();
     assert_eq!(lines.len(), 2, "{printed}");
-    assert!(lines[0].starts_with("FS-0036: failure: the video could not be made: "), "{printed}");
+    assert!(lines[0].starts_with("FS-0072: failure: the output path `"), "{printed}");
+    assert!(lines[0].contains("cannot be made or written: "), "{printed}");
     assert!(lines[0]
-        .ends_with("Put right what the message names (the folder, the disk or the system's video encoder), then run the command again."));
-    assert_eq!(lines[1], "Failed: the video could not be made");
+        .ends_with("Give `--output` a path in a folder that can be written, or make the folder writable, then run the command again."));
+    assert_eq!(lines[1], "Refused: the video was not made, because its folder cannot be written");
     assert_eq!(err(&output), "");
     assert!(!project.join("composition.xml/film.mp4").exists());
     assert_eq!(fs::read_to_string(project.join("composition.xml")).unwrap(), FIRST);
@@ -456,12 +457,11 @@ fn a_render_that_is_refused_or_fails_logs_its_outcome_at_the_level_of_the_spec()
 
     let (project, cwd) = make(GROUP, "log-failed", FIRST);
     fs::write(project.join("framesmith.yaml"), "render:\n  output: composition.xml/film.mp4\n").unwrap();
-    assert_eq!(render(&cwd, &project).status.code(), Some(1));
+    assert_eq!(render(&cwd, &project).status.code(), Some(2));
     let last = lines(&cwd).pop().unwrap();
-    assert_eq!(last.level, "ERROR");
+    assert_eq!(last.level, "WARN");
     assert!(
-        last.text.contains("outcome=\"video not made\"") && last.text.contains("exit=1") && last.text.contains("code=\"FS-0036\"")
-            || last.text.contains("code=FS-0036"),
+        last.text.contains("outcome=\"refused\"") && last.text.contains("exit=2") && last.text.contains("code=\"FS-0072\""),
         "{}",
         last.raw
     );
