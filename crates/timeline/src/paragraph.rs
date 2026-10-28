@@ -2,10 +2,17 @@
 //! they are written and as they pass from a box to the elements inside it, the fonts that a composition
 //! declares, and the lines of a `<text>` laid out in its place.
 
+use std::collections::HashMap;
+
 use draw::{Colour, Outline, Shadow};
 use layout::{place_absolute, Amount, Beyond, Rect, Sides, Written, LIMIT};
+use motion::{ElementMotion, Prop, Track, PROPS};
+use project::CountFormat;
 use project::{shown, Attribute, Code, Element, Length, Node, Part, Project};
 use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
+use timebase::Time;
+
+use crate::moving;
 
 /// The text attributes: a `<box>` and a `<text>` take them, and they pass to the elements inside (`text.md`
 /// section 8). A value a `<text>` writes is the one its words are drawn with. The last five are those of section 6.6.
@@ -57,6 +64,9 @@ pub(crate) const TEXT_TAKES: &[&str] = &[
     "align-self",
     "flex-grow",
     "max-width",
+    "count",
+    "count-format",
+    "typed",
 ];
 
 /// What a `<span>` takes (`docs/spec/text.md`, section 6.5): its id and class, its margin and padding, and the text
@@ -75,6 +85,7 @@ pub(crate) const SPAN_TAKES: &[&str] = &[
     "color",
     "white-space",
     "text-transform",
+    "typed",
 ];
 
 /// A fault of a text or a font, as the timeline reports it: its code, the line it is on, its message, and whether
@@ -137,6 +148,105 @@ pub(crate) struct Paragraph {
     pub(crate) rect: Rect,
     pub(crate) block: Block,
     pub(crate) dressing: Dressing,
+    pub(crate) content: Content,
+}
+
+/// The time a text's content is put at: the frame rate, the number of frames of the composition, the time the tweens of
+/// the text count their `at` from (the start of its parent's time), and the time the tweens of its spans count theirs
+/// from (the text's own start, Q4) (`docs/spec/text.md`, section 7).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Clock {
+    pub(crate) fps: u32,
+    pub(crate) frames: u64,
+    pub(crate) origin: Time,
+    pub(crate) inner: Time,
+}
+
+/// What a text shows from frame to frame (`docs/spec/text.md`, section 7).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Content {
+    /// The same words in every frame.
+    Still,
+    /// A number that counts (section 7.1): the block of each different number, the number shown in each frame of the
+    /// composition as an index of `blocks`, and where it stands in the text's width.
+    Count {
+        blocks: Vec<Block>,
+        shown: Vec<u32>,
+        align: Align,
+        width: f32,
+    },
+    /// Typed text (section 7.2): the track of `typed` of each element that types, or its own value when it has no tween,
+    /// and for each piece of the block, the element that types it and the characters of that element before the piece.
+    Typed {
+        typing: Vec<Typing>,
+        pieces: Vec<Option<(usize, usize)>>,
+    },
+}
+
+/// The value of `typed` of one element: its own value, and its track when a tween or a set changes it.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Typing {
+    own: f64,
+    track: Option<Track>,
+}
+
+impl Paragraph {
+    /// The block drawn at frame `number`, at `time`, and how far it is moved to the right in the text's box: the block of the
+    /// number shown, standing in the box by `text-align` (section 7.1, point 3); the block typed so far (section 7.2); or the
+    /// block itself.
+    pub(crate) fn block_at(&self, number: u64, time: Time) -> (std::borrow::Cow<'_, Block>, f32) {
+        match &self.content {
+            Content::Still => (std::borrow::Cow::Borrowed(&self.block), 0.0),
+            Content::Count {
+                blocks,
+                shown,
+                align,
+                width,
+            } => {
+                let index = shown.get(number as usize).or(shown.last()).copied().unwrap_or(0) as usize;
+                let Some(block) = blocks.get(index) else {
+                    return (std::borrow::Cow::Borrowed(&self.block), 0.0);
+                };
+                let room = width - block.width;
+                let offset = match align {
+                    Align::Left => 0.0,
+                    Align::Center => room / 2.0,
+                    Align::Right => room,
+                };
+                (std::borrow::Cow::Borrowed(block), offset)
+            }
+            Content::Typed { typing, pieces } => {
+                let drawn: Vec<usize> = typing
+                    .iter()
+                    .map(|typing| {
+                        let value = typing.track.as_ref().map_or(typing.own, |track| track.value(time));
+                        whole_characters(value)
+                    })
+                    .collect();
+                let shown: Vec<usize> = pieces
+                    .iter()
+                    .map(|piece| match piece {
+                        Some((element, before)) => drawn[*element].saturating_sub(*before),
+                        None => usize::MAX,
+                    })
+                    .collect();
+
+                (std::borrow::Cow::Owned(self.block.typed(&shown)), 0.0)
+            }
+        }
+    }
+}
+
+/// The number of characters a value of `typed` draws: rounded down, 0 at least, and every character for a value too large
+/// to count (section 7.2, point 2).
+fn whole_characters(value: f64) -> usize {
+    if value.is_nan() || value <= 0.0 {
+        0
+    } else if value >= usize::MAX as f64 {
+        usize::MAX
+    } else {
+        value.floor() as usize
+    }
 }
 
 /// Reads the text attributes that an element writes. A value that is not in the form the notation gives is a fault
@@ -627,6 +737,7 @@ pub(crate) fn place_text(
     written: Written,
     margin: Sides,
     parent: Rect,
+    clock: Clock,
 ) -> Result<Paragraph, Fault> {
     let node = &tree[index];
     let beyond = |Beyond| {
@@ -655,7 +766,7 @@ pub(crate) fn place_text(
     } else {
         None
     };
-    let block = lay_block(fonts, tree, index, wrap, written.max_width)?;
+    let (block, content) = lay_block(fonts, tree, index, wrap, written.max_width, clock)?;
     let mut sized = written;
     if sized.width.is_none() {
         sized.width = Some(Amount::Pixels(f64::from(block.width).ceil().into()));
@@ -668,6 +779,7 @@ pub(crate) fn place_text(
         rect,
         block,
         dressing: dressing_of(tree, index),
+        content,
     })
 }
 
@@ -681,6 +793,7 @@ pub(crate) struct ItemText {
     pub(crate) height: f64,
     pub(crate) baseline: Option<f64>,
     pub(crate) dressing: Dressing,
+    pub(crate) content: Content,
 }
 
 /// Lays out the `<text>` at `index` as an item of a row, a column or a set. Its width is the one written, or that of its
@@ -688,7 +801,14 @@ pub(crate) struct ItemText {
 /// its lines. A percentage width or height is not drawn in a row or a column (`text.md` section 8). An absolute text with
 /// both edges and no width is not drawn either, since its width would need the container's. Gives the layout, or the
 /// fault that stops it.
-pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, written: Written, absolute: bool) -> Result<ItemText, Fault> {
+pub(crate) fn lay_out_item(
+    fonts: &mut Fonts,
+    tree: &[Node],
+    index: usize,
+    written: Written,
+    absolute: bool,
+    clock: Clock,
+) -> Result<ItemText, Fault> {
     let node = &tree[index];
     if absolute && written.width.is_none() && written.left.is_some() && written.right.is_some() {
         return Err(Fault {
@@ -702,21 +822,16 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
     }
     let width = flow_pixels(written.width, "width", node)?;
     let height = flow_pixels(written.height, "height", node)?;
-    let mut block = lay_block(fonts, tree, index, width.map(|pixels| pixels as f32), written.max_width)?;
+    let (mut block, mut content) = lay_block(fonts, tree, index, width.map(|pixels| pixels as f32), written.max_width, clock)?;
     let first = block.lines.first().map(|line| f64::from(line.baseline));
     let baseline = first.map(|first| {
         let whole = (first + 0.5).floor();
         let shift = (whole - first) as f32;
-        for run in block.runs.iter_mut() {
-            for glyph in run.glyphs.iter_mut() {
-                glyph.y += shift;
+        lower(&mut block, shift);
+        if let Content::Count { blocks, .. } = &mut content {
+            for block in blocks.iter_mut() {
+                lower(block, shift);
             }
-        }
-        for picture in block.pictures.iter_mut() {
-            picture.y += shift;
-        }
-        for line in block.lines.iter_mut() {
-            line.baseline += shift;
         }
         whole
     });
@@ -728,7 +843,23 @@ pub(crate) fn lay_out_item(fonts: &mut Fonts, tree: &[Node], index: usize, writt
         height,
         baseline,
         dressing: dressing_of(tree, index),
+        content,
     })
+}
+
+/// Moves the glyphs, the pictures and the lines of a block down by `shift`.
+fn lower(block: &mut Block, shift: f32) {
+    for run in block.runs.iter_mut() {
+        for glyph in run.glyphs.iter_mut() {
+            glyph.y += shift;
+        }
+    }
+    for picture in block.pictures.iter_mut() {
+        picture.y += shift;
+    }
+    for line in block.lines.iter_mut() {
+        line.baseline += shift;
+    }
 }
 
 /// A `width` or `height` of a `<text>` in a row or a column as pixels: `None` where it is not written. A percentage is not
@@ -752,16 +883,33 @@ fn flow_pixels(amount: Option<Amount>, name: &str, node: &Node) -> Result<Option
 /// Lays out the paragraph of the `<text>` at `index` (`docs/spec/text.md`, section 6.5), its pieces in the style of each
 /// element: wrapped at `wrap` where a width is given, else broken so that no line is wider than `max` where a `max-width`
 /// is written (section 5.3), else one line. Gives the block, or the fault of a character that no family has.
-fn lay_block(fonts: &mut Fonts, tree: &[Node], index: usize, wrap: Option<f32>, max: Option<f64>) -> Result<Block, Fault> {
+fn lay_block(
+    fonts: &mut Fonts,
+    tree: &[Node],
+    index: usize,
+    wrap: Option<f32>,
+    max: Option<f64>,
+    clock: Clock,
+) -> Result<(Block, Content), Fault> {
     let node = &tree[index];
+    if let Some(value) = node.attribute("count").and_then(|attribute| attribute.number()) {
+        return count_blocks(fonts, tree, index, value, wrap, clock);
+    }
     let (style, _) = style_of(tree, index);
-    let (pieces, sources) = pieces_of(tree, index);
+    let (pieces, sources, owners) = pieces_of(tree, index);
     let laid = match (wrap, max) {
         (Some(width), _) => text::layout_pieces(fonts, &pieces, style.align, Some(width)),
         (None, Some(max)) => text::layout_fitted_pieces(fonts, &pieces, style.align, max as f32),
         (None, None) => text::layout_pieces(fonts, &pieces, style.align, None),
     };
-    laid.map_err(|error| match error {
+    let block = laid.map_err(|error| text_fault(node, &sources, error))?;
+    let content = typing_of(tree, &owners, &block, clock);
+    Ok((block, content))
+}
+
+/// The fault of a paragraph that cannot be laid out, on the line it is about.
+fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextError) -> Fault {
+    match error {
         // A room where a line may end before its span is reported on the line of the attribute that writes the room.
         text::TextError::RoomAtALineBreak { piece } => {
             let source = sources.get(piece).copied().flatten().unwrap_or(RoomSource {
@@ -789,14 +937,154 @@ fn lay_block(fonts: &mut Fonts, tree: &[Node], index: usize, wrap: Option<f32>, 
             message: format!("<text> is not drawn by this version: {error}"),
             style: false,
         },
-    })
+    }
+}
+
+/// The tweens and sets written inside the element at `index`, in the order written, with their `at` counted from `origin`.
+fn tweens_in(tree: &[Node], index: usize, origin: Time) -> Vec<motion::Tween> {
+    tree.iter()
+        .filter(|node| node.parent() == Some(index))
+        .filter_map(|node| match node.element() {
+            Element::Tween => moving::read_tween(node, origin).0,
+            Element::Set => moving::read_set(node, origin).0,
+            _ => None,
+        })
+        .collect()
+}
+
+/// The track of one property of the element at `index` from the tweens inside it, with its own value `own`; `None` when no
+/// tween changes it.
+fn track_of(tree: &[Node], index: usize, prop: Prop, own: f64, clock: Clock) -> Option<Track> {
+    let origin = if tree[index].element() == Element::Span {
+        clock.inner
+    } else {
+        clock.origin
+    };
+    let tweens = tweens_in(tree, index, origin);
+    let mut owns = PROPS.map(Prop::own_value);
+    owns[prop.index()] = own;
+    let [.., count, typed] = ElementMotion::build(index, &tweens, owns, clock.fps).tracks;
+    match prop {
+        Prop::Count => count,
+        Prop::Typed => typed,
+        _ => None,
+    }
+}
+
+/// The blocks of a number that counts (`docs/spec/text.md`, section 7.1): the number of each frame of the composition
+/// written in its form and laid out on one line in the text's style; the block of the widest number gives the size.
+fn count_blocks(
+    fonts: &mut Fonts,
+    tree: &[Node],
+    index: usize,
+    own: f64,
+    wrap: Option<f32>,
+    clock: Clock,
+) -> Result<(Block, Content), Fault> {
+    let node = &tree[index];
+    let format = node
+        .attribute("count-format")
+        .and_then(|attribute| CountFormat::read(attribute.value()))
+        .unwrap_or(CountFormat::Number {
+            decimals: 0,
+            thousands: false,
+        });
+    let (style, colour) = style_of(tree, index);
+    let align = style.align;
+    let style = Style { nowrap: true, ..style };
+    let track = track_of(tree, index, Prop::Count, own, clock);
+    let mut words: Vec<String> = Vec::new();
+    let mut index: HashMap<String, usize> = HashMap::new();
+    let mut shown: Vec<u32> = Vec::with_capacity(clock.frames as usize);
+    for number in 0..clock.frames.max(1) {
+        let value = track
+            .as_ref()
+            .map_or(own, |track| track.value(Time::of_frame(number as i64, clock.fps)));
+        let written = format.write(value);
+        let at = match index.get(&written) {
+            Some(&at) => at,
+            None => {
+                index.insert(written.clone(), words.len());
+                words.push(written);
+                words.len() - 1
+            }
+        };
+        shown.push(at as u32);
+    }
+    let mut blocks = Vec::with_capacity(words.len());
+    for written in words {
+        let piece = Piece::Words {
+            words: written,
+            style: style.clone(),
+            colour: rgba(colour),
+        };
+        let block = text::layout_pieces(fonts, &[piece], Align::Left, None).map_err(|error| text_fault(node, &[], error))?;
+        blocks.push(block);
+    }
+    let widest = blocks.iter().enumerate().fold(
+        0,
+        |widest, (at, block)| if block.width > blocks[widest].width { at } else { widest },
+    );
+    let sizing = blocks[widest].clone();
+    // The numbers stand in the text's width (section 6.2): its own, or the widest number's, before it is rounded up to
+    // the pixel.
+    let width = wrap.unwrap_or(sizing.width);
+    Ok((
+        sizing,
+        Content::Count {
+            blocks,
+            shown,
+            align,
+            width,
+        },
+    ))
+}
+
+/// How a text is typed (`docs/spec/text.md`, section 7.2): `Still` when neither the text nor a span inside it holds a
+/// tween or a set of `typed`. `owners` gives the element that holds each piece of `block`.
+fn typing_of(tree: &[Node], owners: &[Option<usize>], block: &Block, clock: Clock) -> Content {
+    let mut elements: Vec<usize> = Vec::new();
+    let mut typing: Vec<Typing> = Vec::new();
+    let mut pieces: Vec<Option<(usize, usize)>> = Vec::with_capacity(owners.len());
+    let mut before: Vec<usize> = Vec::new();
+    let mut types = false;
+    for (piece, owner) in owners.iter().enumerate() {
+        let Some(element) = *owner else {
+            pieces.push(None);
+            continue;
+        };
+        let at = match elements.iter().position(|known| *known == element) {
+            Some(at) => at,
+            None => {
+                // The attribute is the starting value of the element's tweens and sets of `typed`, and the number drawn
+                // when it stands alone; with neither, every character is drawn (section 7.2, point 2; B58).
+                let written = tree[element].attribute("typed").and_then(|attribute| attribute.number());
+                let track = track_of(tree, element, Prop::Typed, written.unwrap_or(f64::INFINITY), clock);
+                types |= track.is_some() || written.is_some();
+                elements.push(element);
+                typing.push(Typing {
+                    own: written.unwrap_or(f64::INFINITY),
+                    track,
+                });
+                before.push(0);
+                elements.len() - 1
+            }
+        };
+        pieces.push(Some((at, before[at])));
+        before[at] += block.characters.get(piece).copied().unwrap_or(0);
+    }
+    if types {
+        Content::Typed { typing, pieces }
+    } else {
+        Content::Still
+    }
 }
 
 /// The pieces of the `<text>` at `index` (`docs/spec/text.md`, section 6.5), in document order: its words and those of its
 /// `<span>`s, each in the style and the colour of the element that holds it (section 8), and the room of a span's margin and
 /// padding at each of its edges. A text with no span is one piece of words, as before. Gives the pieces, and beside each the
 /// attribute that gives its room (`None` for words), so that a refusal of a room is reported on the line of its attribute.
-pub(crate) fn pieces_of(tree: &[Node], index: usize) -> (Vec<Piece>, Vec<Option<RoomSource>>) {
+pub(crate) fn pieces_of(tree: &[Node], index: usize) -> (Vec<Piece>, Vec<Option<RoomSource>>, Vec<Option<usize>>) {
     // The work still to do, last first: the parts of an element from a position on, or the room after a span.
     enum Work {
         Parts(usize, usize),
@@ -804,12 +1092,14 @@ pub(crate) fn pieces_of(tree: &[Node], index: usize) -> (Vec<Piece>, Vec<Option<
     }
     let mut pieces: Vec<Piece> = Vec::new();
     let mut sources: Vec<Option<RoomSource>> = Vec::new();
+    let mut owners: Vec<Option<usize>> = Vec::new();
     let mut work = vec![Work::Parts(index, 0)];
     while let Some(next) = work.pop() {
         match next {
             Work::Room(width, source) => {
                 pieces.push(Piece::Room { width });
                 sources.push(Some(source));
+                owners.push(None);
             }
             Work::Parts(element, at) => {
                 let Some(part) = tree[element].parts().get(at) else {
@@ -825,12 +1115,14 @@ pub(crate) fn pieces_of(tree: &[Node], index: usize) -> (Vec<Piece>, Vec<Option<
                             colour: rgba(colour),
                         });
                         sources.push(None);
+                        owners.push(Some(element));
                     }
                     Part::Span(span) => {
                         let (left, right) = edge_room(&tree[*span]);
                         if left > 0.0 {
                             pieces.push(Piece::Lead { width: left });
                             sources.push(Some(room_source(&tree[*span], true)));
+                            owners.push(None);
                         }
                         if right > 0.0 {
                             work.push(Work::Room(right, room_source(&tree[*span], false)));
@@ -841,7 +1133,7 @@ pub(crate) fn pieces_of(tree: &[Node], index: usize) -> (Vec<Piece>, Vec<Option<
             }
         }
     }
-    (pieces, sources)
+    (pieces, sources, owners)
 }
 
 /// The spans inside the element at `index`, in document order: each is before the spans written inside it.
@@ -954,6 +1246,8 @@ fn span_attribute_fault(attribute: &Attribute) -> Option<Fault> {
         return Some(fault(Code::FormNotSupported, message));
     }
     match name {
+        // The notation's check judges `typed` (`docs/spec/notation.md` section 7.12).
+        "typed" => None,
         "margin" | "padding" => sides_refusal(name, attribute).map(|(code, message)| fault(code, message)),
         "white-space" if value != "normal" => Some(fault(
             Code::FormNotSupported,

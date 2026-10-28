@@ -121,6 +121,7 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0079` | unsupported | The file that `<audio src>` names is not sound of a kind this version reads, or is of such a kind in a form it does not read. | Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples. |
 | `FS-0080` | invalid | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. | Replace the sound file with a copy that is not damaged. |
 | `FS-0081` | invalid | An `<audio>` has a `media-start` at or past the end of its sound file. | Write a `media-start` below the length of the sound file, or leave it out to start at the beginning. |
+| `FS-0084` | invalid | A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that has no `count`, words or a `<span>` in a `<text>` that counts, or a `<tween>` or `<set>` of `count` on a `<text>` without `count`. | Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists. |
 
 Notes on the rows:
 
@@ -149,6 +150,7 @@ Notes on the rows:
 - `FS-0076` to `FS-0081` were added with the sounds placed in the film (`sound.md` section 5). `FS-0076` and `FS-0077` are found from the file alone, as a font's are; `FS-0078` to `FS-0081` when frx7 opens the sound file before the first frame. A missing file and a file that cannot be decoded are invalid, since the author named the wrong or a damaged file; a file the machine would not give is a failure, as `FS-0050` is; a file of a kind not read is unsupported, and its message names the kinds read.
 
 - `FS-0070` was added with shadows (`render-command.md` section 4.7, rule 8): a `box-shadow` or `drop-shadow` that is not in the form `X Y BLUR COLOUR`. It is of the kind invalid, reported on the line of the attribute. It is a new code, not a wider meaning of `FS-0039` (a word out of a list) or `FS-0052` (a text attribute's form), since a meaning is never changed.
+- `FS-0084` was added with the numbers that count (`notation.md` section 7.12; `text.md` section 7.1): the four ways of writing a counting text that the notation reports, other than `count` or `count-format` on an element that is not a `<text>`, which is `FS-0030` with the message of the notation's section 13. It is of the kind invalid: the form is written wrongly, not one this version leaves undrawn.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

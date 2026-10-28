@@ -61,6 +61,20 @@ pub struct PositionedGlyph {
     pub id: u32,
     pub x: f32,
     pub y: f32,
+    /// Where the glyph comes from in the text, for typing it (`docs/spec/text.md`, section 7.2).
+    pub source: Source,
+}
+
+/// The character a glyph (or a colour picture) is drawn for: the index of the piece that holds it, its number among the
+/// characters of that piece (`docs/spec/text.md`, section 7.2, point 1), the line it is on, its place in the order of the
+/// text, and the advance it takes in its line: the advance of its cluster on the cluster's first glyph, 0 on the others.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Source {
+    pub piece: usize,
+    pub character: usize,
+    pub line: usize,
+    pub order: usize,
+    pub advance: f32,
 }
 
 /// The glyphs of one run of the lines that share a face and a colour: the bytes of its font file, the index in them,
@@ -85,6 +99,9 @@ pub struct Block {
     pub pictures: Vec<PositionedPicture>,
     /// The lines in order, from the top of the block.
     pub lines: Vec<Line>,
+    /// The number of characters of each piece given, in the order of the pieces (`docs/spec/text.md`, section 7.2,
+    /// point 1): 0 for a piece of room.
+    pub characters: Vec<usize>,
     /// The first character of the block that no family of its list and no family of the machine maps, drawn as the
     /// missing-character mark (`docs/spec/text.md`, section 2.4, point 3), if there is one.
     pub missing: Option<char>,
@@ -100,6 +117,8 @@ pub struct PositionedPicture {
     pub pixels: Arc<Vec<u8>>,
     pub x: f32,
     pub y: f32,
+    /// The character of the glyph the picture is drawn for; its advance is 0, since its glyph carries it.
+    pub source: Source,
 }
 
 /// One line of a block: its left edge from the block's left edge, its width (which leaves out the space it ends
@@ -252,6 +271,7 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             runs: Vec::new(),
             pictures: Vec::new(),
             lines: Vec::new(),
+            characters: vec![0; pieces.len()],
             missing: None,
         });
     }
@@ -379,13 +399,17 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
     let mut placed_pictures: Vec<PositionedPicture> = Vec::new();
     let mut lines: Vec<Line> = Vec::new();
     let mut height = 0.0_f32;
-    for (line, line_width) in layout.lines().zip(widths.iter().copied()) {
+    let (numbers, characters) = character_numbers(&flat, pieces.len());
+    for (line_number, (line, line_width)) in layout.lines().zip(widths.iter().copied()).enumerate() {
         let offset = match align {
             Align::Left => 0.0,
             Align::Center => (block_width - line_width) / 2.0,
             Align::Right => block_width - line_width,
         };
         let mut baseline: Option<f32> = None;
+        // The clusters of each shaped run, and style, already given to a glyph run of the line: a run of the engine is cut
+        // into glyph runs by style, and its clusters are those of the whole run.
+        let mut consumed: BTreeMap<(usize, u16), usize> = BTreeMap::new();
         for item in line.items() {
             let PositionedLayoutItem::GlyphRun(glyph_run) = item else {
                 continue;
@@ -399,12 +423,17 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
             let Some(face) = faces.iter().find(|face| (face.blob, face.index) == key) else {
                 continue;
             };
+            let wanted = glyph_run.positioned_glyphs().count();
+            let taken = consumed.entry((run.text_range().start, glyph_run.style_index())).or_insert(0);
+            let sources = glyph_sources(&flat, &numbers, run, glyph_run.style_index(), taken, wanted, line_number);
             let glyphs: Vec<PositionedGlyph> = glyph_run
                 .positioned_glyphs()
-                .map(|glyph| PositionedGlyph {
+                .zip(sources)
+                .map(|(glyph, source)| PositionedGlyph {
                     id: glyph.id,
                     x: glyph.x + offset,
                     y: glyph.y,
+                    source,
                 })
                 .collect();
             if baseline.is_none() {
@@ -421,8 +450,16 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
                 });
                 continue;
             };
-            let characters = glyph_characters(&flat.text, run);
-            debug_assert_eq!(characters.len(), glyphs.len(), "every glyph has the character of its cluster");
+            // The character each glyph belongs to: the first of its cluster.
+            let characters: Vec<char> = glyphs
+                .iter()
+                .map(|glyph| {
+                    flat.text
+                        .get(glyph.source.order..)
+                        .and_then(|rest| rest.chars().next())
+                        .unwrap_or(' ')
+                })
+                .collect();
             let source = picture::Source {
                 blob: face.blob,
                 index: face.index,
@@ -453,6 +490,10 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
                     pixels: made.pixels.clone(),
                     x,
                     y,
+                    source: Source {
+                        advance: 0.0,
+                        ..glyph.source
+                    },
                 });
             }
         }
@@ -470,19 +511,96 @@ fn lay_out(fonts: &mut Fonts, pieces: &[Piece], align: Align, width: Option<f32>
         runs,
         pictures: placed_pictures,
         lines,
+        characters,
         missing: unmapped.first().copied(),
     })
 }
 
-/// The character each glyph of a run belongs to, in the order of the glyphs: the first character of the cluster the glyph
-/// is in.
-fn glyph_characters(text: &str, run: &parley::Run<'_, [u8; 4]>) -> Vec<char> {
-    let mut characters = Vec::new();
-    for cluster in run.clusters() {
-        let character = text[cluster.text_range()].chars().next().unwrap_or(' ');
-        characters.extend(std::iter::repeat_n(character, cluster.glyphs().count()));
+/// The number of the character that begins at each byte of the flat text among the characters of its piece, `None` for a
+/// carrier, which is not a character (`docs/spec/text.md`, section 7.2, point 1); and the count of characters of each piece.
+fn character_numbers(flat: &Flat, pieces: usize) -> (Vec<Option<usize>>, Vec<usize>) {
+    let mut numbers = vec![None; flat.text.len()];
+    let mut counts = vec![0; pieces];
+    for (start, _) in flat.text.char_indices() {
+        if flat.carriers.contains(&start) {
+            continue;
+        }
+        let piece = flat.owner[start];
+        numbers[start] = Some(counts[piece]);
+        counts[piece] += 1;
     }
-    characters
+    (numbers, counts)
+}
+
+/// The source of each of the `wanted` glyphs of a glyph run, in the order its glyphs are placed: the clusters of `run` in
+/// the style `style` after the `taken` ones already given to a glyph run before it. Each glyph's source is the character
+/// that begins its cluster (or the first character after it, for a cluster that begins with a carrier), with the cluster's
+/// advance on its first glyph.
+#[allow(clippy::too_many_arguments)]
+fn glyph_sources(
+    flat: &Flat,
+    numbers: &[Option<usize>],
+    run: &parley::Run<'_, [u8; 4]>,
+    style: u16,
+    taken: &mut usize,
+    wanted: usize,
+    line: usize,
+) -> Vec<Source> {
+    let mut clusters: Vec<Vec<Source>> = Vec::new();
+    let mut count = 0;
+    for cluster in run.clusters().filter(|cluster| cluster.style_index() == style).skip(*taken) {
+        if count >= wanted {
+            break;
+        }
+        *taken += 1;
+        let range = cluster.text_range();
+        let start = (range.start..range.end.max(range.start + 1))
+            .find(|byte| numbers.get(*byte).copied().flatten().is_some())
+            .unwrap_or(range.start);
+        let source = Source {
+            piece: flat.owner.get(start).copied().unwrap_or(0),
+            character: numbers.get(start).copied().flatten().unwrap_or(0),
+            line,
+            order: start,
+            advance: 0.0,
+        };
+        let glyph_count = cluster.glyphs().count();
+        count += glyph_count;
+        let mut glyphs = vec![source; glyph_count];
+        if let Some(first) = glyphs.first_mut() {
+            first.advance = cluster.advance();
+        }
+        clusters.push(glyphs);
+    }
+    if run.is_rtl() {
+        clusters.reverse();
+    }
+    clusters.into_iter().flatten().collect()
+}
+
+impl Block {
+    /// The block typed (`docs/spec/text.md`, section 7.2): `shown[piece]` characters of each piece drawn, the others
+    /// left out. Every glyph drawn stays at its place in the layout, as it is with every character shown, so no shown
+    /// character moves as more appear (`docs/spec/notation.md` section 7.12, B59 and B83). The size, the lines and
+    /// their places are those of the whole block.
+    pub fn typed(&self, shown: &[usize]) -> Block {
+        let drawn = |source: &Source| source.character < shown.get(source.piece).copied().unwrap_or(usize::MAX);
+        let runs = self
+            .runs
+            .iter()
+            .map(|run| PositionedRun {
+                glyphs: run.glyphs.iter().filter(|glyph| drawn(&glyph.source)).copied().collect(),
+                ..run.clone()
+            })
+            .filter(|run| !run.glyphs.is_empty())
+            .collect();
+        let pictures = self.pictures.iter().filter(|picture| drawn(&picture.source)).cloned().collect();
+        Block {
+            runs,
+            pictures,
+            ..self.clone()
+        }
+    }
 }
 
 /// The words of the pieces joined into one text, with the white space collapsed across the pieces (`docs/spec/text.md`,

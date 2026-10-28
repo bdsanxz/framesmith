@@ -19,8 +19,8 @@ use std::path::{Path, PathBuf};
 
 pub use nesting::{ShownFile, MAX_CHAIN_DEPTH};
 pub use notation::{
-    colour_value, easing, number_value, shown, Attribute, Code, Colour, Easing, Element, Kind, Length, Node, Number, Part, Problem, Root,
-    Tree,
+    colour_value, easing, number_value, shown, Attribute, Code, Colour, CountFormat, Easing, Element, Kind, Length, Node, Number, Part,
+    Problem, Root, Tree,
 };
 pub use options::{Options, OPTION_NAMES};
 pub use settings::{Backend, Codec, Encoder, Quality, Settings, Source, Workers, MAX_WORKERS, PROJECT_FILE};

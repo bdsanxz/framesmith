@@ -21,7 +21,7 @@ const HEAD: &str = r##"<composition version="1" id="film" width="160" height="60
 
 /// Each refused form of a `<span>`: a name for its folder, the span, the start of the report line that both commands
 /// give for it on line 3, and the exit code of its kind (1 for invalid, 2 for unsupported).
-const SPAN_FORMS: [(&str, &str, &str, i32); 20] = [
+const SPAN_FORMS: [(&str, &str, &str, i32); 19] = [
     (
         "negative-margin",
         r##"<span margin="-4" color="#ff0000">CD</span>"##,
@@ -62,12 +62,6 @@ const SPAN_FORMS: [(&str, &str, &str, i32); 20] = [
         "font-variant-numeric",
         r##"<span font-variant-numeric="tabular-nums" color="#ff0000">CD</span>"##,
         "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `font-variant-numeric`",
-        2,
-    ),
-    (
-        "typed",
-        r##"<span typed="1" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `typed`",
         2,
     ),
     (

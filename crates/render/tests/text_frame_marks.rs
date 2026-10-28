@@ -207,7 +207,7 @@ fn a_percentage_margin_on_a_span_is_refused_with_its_line() {
 }
 
 #[test]
-fn a_tween_inside_a_span_is_refused_with_its_line() {
+fn a_tween_inside_a_span_that_changes_more_than_typed_is_refused_once_with_its_line() {
     let folder = text_project(
         "tween-in-span",
         &format!(
@@ -221,7 +221,7 @@ fn a_tween_inside_a_span_is_refused_with_its_line() {
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         shown(&reports[0]),
-        "composition.xml 4 FS-0035 <tween> inside <text> is not supported by this version, which draws the words of a <text> and of its <span>s and no other element inside it"
+        "composition.xml 4 FS-0035 <tween> in a <span> changes `opacity`, which this version does not move there: a <tween> in a <span> changes `typed` alone"
     );
 }
 
