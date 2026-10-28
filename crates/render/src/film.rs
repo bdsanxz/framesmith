@@ -240,7 +240,9 @@ pub fn check_place(output: &Path) -> Result<(), Refusal> {
     probed.map_err(refuse)
 }
 
-fn formats() -> format::Registry {
+/// The container formats a film is written in: the formats `render` was built with, so that a test
+/// can read what the registry holds (`docs/spec/render-command.md`, section 6).
+pub fn formats() -> format::Registry {
     let mut formats = format::Registry::new();
     formats.register(mp4::FORMAT);
     formats
