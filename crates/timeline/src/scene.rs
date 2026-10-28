@@ -1133,9 +1133,9 @@ fn gather_movers(
 }
 
 /// The refusals of a `<tween>` or a `<set>` in a `<span>`: each property it changes other than `typed`, on the line of its
-/// first attribute (`docs/spec/text.md`, section 7): a tween's `from-` and `to-` of one property are one report.
+/// first attribute (`docs/spec/text.md`, section 7): a tween's `from-` and `to-` of one property are one report. The
+/// message is the entry's, as for a `<tween>` or a `<set>` the walk finds in a span (`unsupported_inside`).
 fn span_motion_faults(node: &Node) -> Vec<Refusal> {
-    let tag = node.element().tag();
     let mut named: Vec<&str> = Vec::new();
     node.attributes()
         .iter()
@@ -1153,10 +1153,7 @@ fn span_motion_faults(node: &Node) -> Vec<Refusal> {
             Some(Refusal::of_motion((
                 Code::FormNotSupported,
                 attribute.line(),
-                format!(
-                    "{tag} in a <span> changes `{}`, which this version does not move there: a {tag} in a <span> changes `typed` alone",
-                    project::shown(property)
-                ),
+                unsupported_inside(node.element(), Element::Span),
             )))
         })
         .collect()
