@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- A margin has no effect on a box, and neither has position="absolute" or position="static": each box lies
-     where its edges put it. The first box is at 10, 10 and is 20 by 20 with a margin of 8 4: the columns 10 to
-     29 and the rows 10 to 29. The second, absolutely placed, is at 50, 10 with a margin of 30. The third has
-     four margins and is at 10, 40. 96 by 54 pixels, 10 frames a second. -->
+<!-- A margin moves every box of a plain box in from each edge it is placed by, whatever its position (render-command.md
+     section 4.1, rule 8; notation.md N10, B41). The first box, with no position, is written at 10, 10 and is 20 by 20
+     with a margin of 8 4: it lies 4 right and 8 down, the columns 14 to 33 and the rows 18 to 37. The second,
+     absolutely placed, is written at 50, 10 with a margin of 30: it lies at 80, 40, and the frame cuts it to the columns
+     80 to 95 and the rows 40 to 53. The third, position="static" with the margin 1 2 3 4, is written at 10, 40 and is 20
+     by 10: it lies 4 right and 1 down, the columns 14 to 33 and the rows 41 to 50. 96 by 54 pixels, 10 frames a
+     second. -->
 <composition version="1" id="placement-margin-and-position" width="96" height="54" fps="10" duration="1" background="#102040">
   <box id="plain" left="10" top="10" width="20" height="20" margin="8 4" background="#e0a030"/>
   <box id="absolute" left="50" top="10" width="20" height="20" margin="30" position="absolute" background="#30c0a0"/>

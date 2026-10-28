@@ -799,7 +799,10 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
                         dressing: item.dressing,
                     })
                 }
-                None => paragraph::place_text(&mut fonts, tree, index, form.written, parent_place.rect),
+                None => {
+                    let margin = absolute_margin(&form);
+                    paragraph::place_text(&mut fonts, tree, index, form.written, margin, parent_place.rect)
+                }
             };
             match placed {
                 Ok(paragraph) => {
@@ -861,13 +864,13 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             }
             (Some((rect, _)), None, None) => Ok((rect, Vec::new())),
             // A row or column, or a set, with no place of its own: its size is worked out with its children.
-            (None, Some(flex), _) => {
-                layout::flow(parent_place.rect, &form.written, &flex, &items).map(|flowed| (flowed.container, flowed.items))
+            (None, Some(flex), _) => layout::flow_absolute(parent_place.rect, &form.written, absolute_margin(&form), &flex, &items)
+                .map(|flowed| (flowed.container, flowed.items)),
+            (None, None, Some(set)) => layout::columns_absolute(parent_place.rect, &form.written, absolute_margin(&form), set, &cells)
+                .map(|flowed| (flowed.container, flowed.items)),
+            (None, None, None) => {
+                layout::place_absolute(parent_place.rect, &form.written, absolute_margin(&form)).map(|rect| (rect, Vec::new()))
             }
-            (None, None, Some(set)) => {
-                layout::columns(parent_place.rect, &form.written, set, &cells).map(|flowed| (flowed.container, flowed.items))
-            }
-            (None, None, None) => layout::place(parent_place.rect, &form.written).map(|rect| (rect, Vec::new())),
         };
         let (rect, item_rects) = match laid {
             Ok(laid) => laid,
@@ -1793,6 +1796,12 @@ fn whole_rect(size: Size) -> Rect {
         width: size.width.round().max(0.0) as u32,
         height: size.height.round().max(0.0) as u32,
     }
+}
+
+/// The margin that moves a box or a text placed in a plain parent: its own, since every child of a plain box is
+/// absolutely placed, whether or not it writes `position` (`render-command.md` section 4.1, rule 8; `notation.md` N10, B41).
+fn absolute_margin(form: &Form) -> Sides {
+    form.margin
 }
 
 /// What a box writes as an item of its row or column's flow. Where it writes no size on an axis, and the

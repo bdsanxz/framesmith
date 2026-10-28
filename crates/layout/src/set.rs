@@ -3,7 +3,9 @@
 //! column a new row. The rules of section 4.3 for padding, margins, gaps and absolute cells apply as they
 //! are stated there.
 
-use super::{cap, place, span, written_size, Across, Beyond, Flowed, Measured, Rect, Sides, Size, Span, Written};
+use super::{
+    cap, lone_written, place_absolute, span, static_axes, written_size, Across, Beyond, Flowed, Measured, Rect, Sides, Size, Span, Written,
+};
 
 /// The width of one column of a set.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -35,7 +37,8 @@ pub struct Columns {
 pub struct Cell {
     /// What the cell writes. A cell with a written `width` stands at the start edge of its column at that width.
     pub written: Written,
-    /// The margin of the cell, in pixels. An absolute cell has none (`notation.md` N10).
+    /// The margin of the cell, in pixels. An absolute cell is moved in by it from each edge it is placed by
+    /// (`render-command.md` section 4.1, rule 8).
     pub margin: Sides,
     /// The cell's own `align-self`, or `None` to take the set's `align-items`.
     pub across: Option<Across>,
@@ -68,8 +71,17 @@ fn content(length: u32, before: f64, after: f64) -> f64 {
 /// own is as large as its cells need: the pixel columns, the share columns at the widest of their cells, the gaps and
 /// the padding.
 pub fn columns(parent: Rect, written: &Written, set: &Columns, cells: &[Cell]) -> Result<Flowed, Beyond> {
-    let across = Span::across(parent, written);
-    let down = Span::down(parent, written);
+    columns_absolute(parent, written, Sides::default(), set, cells)
+}
+
+/// Places a set of columns that is an absolutely placed item of a plain box, as [`columns`] does, with its own `margin`
+/// moving it in from each edge it is placed by, or from its static position on an axis with no edge (section 4.1, rule
+/// 8; `notation.md` N10).
+pub fn columns_absolute(parent: Rect, written: &Written, margin: Sides, set: &Columns, cells: &[Cell]) -> Result<Flowed, Beyond> {
+    let mut across = Span::across(parent, written);
+    across.margins = (margin.left, margin.right);
+    let mut down = Span::down(parent, written);
+    down.margins = (margin.top, margin.bottom);
     let known_w = across.known().then(|| across.place(0.0)).transpose()?;
     let known_h = down.known().then(|| down.place(0.0)).transpose()?;
     let content_w = known_w.map(|(_, length)| content(length, set.padding.left, set.padding.right));
@@ -253,7 +265,25 @@ fn place_cells(
     let mut flow_index = 0_usize;
     for cell in cells {
         if cell.absolute {
-            rects.push(place(container, &cell.written)?);
+            let placed = place_absolute(container, &cell.written, cell.margin)?;
+            rects.push(static_axes(placed, &cell.written, || {
+                let lone = Cell {
+                    written: lone_written(placed),
+                    absolute: false,
+                    measured: None,
+                    ..cell.clone()
+                };
+                let flowed = inside_columns(
+                    container,
+                    Measured {
+                        width: false,
+                        height: false,
+                    },
+                    set,
+                    &[lone],
+                )?;
+                flowed.items.first().copied().ok_or(Beyond)
+            })?);
             continue;
         }
         let column = flow_index % count;
