@@ -30,7 +30,8 @@ fn boxes_in_a_frame_of(width: u32, name: &str, images: &str) -> Vec<Rect> {
         ),
     );
     std::fs::write(folder.join("p.png"), png_of(40, 20)).unwrap();
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene
         .frame(0)
         .unwrap()
@@ -84,6 +85,16 @@ fn with_one_size_known_the_other_follows_the_pictures_proportions() {
             // 100 - 20 - 20 = 60 down, from its edges: 120 across.
             rect(0, 20, 120, 60),
         ]
+    );
+}
+
+#[test]
+fn a_proportion_that_lands_on_a_half_rounds_up() {
+    // The picture is 40 by 20: a width of 61 gives 61 * 20 / 40 = 30.5, which rounds up to 31 as a written size is
+    // rounded (still-pictures.md, section 2; render-command.md, section 4.1, rule 3).
+    assert_eq!(
+        boxes("half-proportion", "<image src=\"p.png\" left=\"0\" top=\"0\" width=\"61\"/>"),
+        vec![rect(0, 0, 61, 31)]
     );
 }
 

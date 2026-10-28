@@ -6,7 +6,7 @@ All four are our own material, made once by hand for this fixture; nothing here 
 - `glass.png` (4 by 4, RGBA): every pixel (255, 0, 0) at alpha 128.
 - `quarters.png` (16 by 16, RGBA, every alpha 255): four quarters of 8 by 8, (200, 40, 40) at the top left, (40, 200, 40) at the top right, (40, 40, 200) at the bottom left and (220, 220, 60) at the bottom right.
 
-The three PNG files were written by a short script with Python's `zlib` (filter 0 on every row, one `IDAT`). `crates/render/tests/still_pictures_fixtures_worked_by_hand.rs` reads them back and holds their pixels to the values above.
+The three PNG files were written by frx7's test-only picture writer (`testkit::pictures::write_png`, decision B47): a short throwaway program (run once, not kept) handed it the widths, heights and the row-by-row pixels above. `crates/render/tests/still_pictures_fixtures_worked_by_hand.rs` reads them back and holds their pixels to the values above.
 
 `quarters.jpg` was made from `quarters.png` by the system's own tool:
 

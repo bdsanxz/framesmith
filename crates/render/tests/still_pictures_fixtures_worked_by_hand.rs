@@ -82,7 +82,7 @@ fn the_pictures_of_the_fixture_hold_the_colours_its_notes_give() {
 
 fn scene() -> Scene {
     let folder = project_copied_from_fixture("still-pictures-worked", FIXTURE, FIXTURE);
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 #[test]

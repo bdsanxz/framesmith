@@ -12,8 +12,8 @@ use layout::Rect;
 mod background;
 mod edges;
 mod filter;
-pub mod stroke;
 mod still;
+pub mod stroke;
 mod turn;
 
 pub use background::{level, Amount, Background, Gradient, Layer, Paint, ResolvedLayer, Rgba, Shape, Size, Stop};

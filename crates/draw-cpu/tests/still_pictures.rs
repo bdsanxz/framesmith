@@ -194,6 +194,8 @@ fn a_picture_moved_by_whole_pixels_is_the_picture_drawn_there() {
             clip: None,
             marks: vec![placed(1, 1, 8, 6, still(4, 3, pixels.clone()), Fit::Fill, (0.5, 0.5))],
             turn: None,
+            filter: draw::Filter::NONE,
+            shadow: None,
         })],
     );
     let there = drawn(12, 10, BLUE, vec![placed(4, 3, 8, 6, still(4, 3, pixels), Fit::Fill, (0.5, 0.5))]);

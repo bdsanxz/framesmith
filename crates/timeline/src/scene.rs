@@ -702,6 +702,8 @@ fn image_mark(image: &PlacedImage) -> Option<Mark> {
             clip: Some(clip),
             marks: vec![mark],
             turn: None,
+            filter: Filter::NONE,
+            shadow: None,
         })),
     }
 }

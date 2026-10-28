@@ -802,7 +802,12 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
-    for (name, files, code) in shown_problems().into_iter().chain(font_problems()).chain(picture_problems()).chain(sound_problems()) {
+    for (name, files, code) in shown_problems()
+        .into_iter()
+        .chain(font_problems())
+        .chain(picture_problems())
+        .chain(sound_problems())
+    {
         let (project, cwd) = project_with_files(&format!("emit-{name}"), &files);
         let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
         let printed = text(&output.stdout);

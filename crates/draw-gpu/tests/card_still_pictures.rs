@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use draw::{Colour, Fit, Frame, Group, Map, Mark, Picture, Renderer, Still, StillMark};
+use draw::{Colour, Filter, Fit, Frame, Group, Map, Mark, Picture, Renderer, Still, StillMark};
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
 use layout::Rect;
@@ -48,6 +48,8 @@ fn group(map: Map, marks: Vec<Mark>) -> Mark {
         clip: None,
         marks,
         turn: None,
+        filter: Filter::NONE,
+        shadow: None,
     })
 }
 

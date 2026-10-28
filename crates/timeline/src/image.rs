@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use base::{Error, PixelFormat};
 use draw::{Fit, Still};
-use layout::{Amount, Beyond, Rect, Written};
+use layout::{Amount, Beyond, Decimal, Rect, Written};
 use project::{Code, Node, Project};
 use timebase::Time;
 
@@ -162,25 +162,33 @@ pub(crate) fn position(value: &str) -> Option<(f64, f64)> {
 pub(crate) fn image_rect(parent: Rect, mut written: Written, (width, height): (u32, u32)) -> Result<Rect, Beyond> {
     let across = written.width.is_some() || (written.left.is_some() && written.right.is_some());
     let down = written.height.is_some() || (written.top.is_some() && written.bottom.is_some());
-    let (width, height) = (f64::from(width), f64::from(height));
     match (across, down) {
         (false, false) => {
-            written.width = Some(Amount::Pixels(width));
-            written.height = Some(Amount::Pixels(height));
+            written.width = Some(Amount::Pixels(Decimal::whole(i128::from(width))));
+            written.height = Some(Amount::Pixels(Decimal::whole(i128::from(height))));
         }
         (true, false) => {
-            written.height = Some(Amount::Pixels(0.0));
-            let first = layout::place(parent, written)?;
-            written.height = Some(Amount::Pixels(f64::from(first.width) * height / width));
+            written.height = Some(Amount::Pixels(Decimal::whole(0)));
+            let first = layout::place(parent, &written)?;
+            written.height = Some(proportion(first.width, height, width)?);
         }
         (false, true) => {
-            written.width = Some(Amount::Pixels(0.0));
-            let first = layout::place(parent, written)?;
-            written.width = Some(Amount::Pixels(f64::from(first.height) * width / height));
+            written.width = Some(Amount::Pixels(Decimal::whole(0)));
+            let first = layout::place(parent, &written)?;
+            written.width = Some(proportion(first.height, width, height)?);
         }
         (true, true) => {}
     }
-    layout::place(parent, written)
+    layout::place(parent, &written)
+}
+
+/// `known * num / den`: the other size from the known one by the picture's proportions (section 2). A value a float
+/// computes is read from its shortest decimal form, which keeps an exact half exact, so the box rounds it as a written
+/// size is rounded, halves up.
+fn proportion(known: u32, num: u32, den: u32) -> Result<Amount, Beyond> {
+    Decimal::of(f64::from(known) * f64::from(num) / f64::from(den))
+        .map(Amount::Pixels)
+        .ok_or(Beyond)
 }
 
 /// Whether the element is an `<image>` in a box that lays its children out, which this version does not place

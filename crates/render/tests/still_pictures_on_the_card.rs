@@ -16,7 +16,8 @@ use render::Scene;
 fn reference_machine_only_the_card_agrees_with_the_processor_on_pictures_filled_covered_and_contained() {
     let fixture = "still-pictures-fitting";
     let folder = project_copied_from_fixture("still-pictures-on-the-card", fixture, fixture);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let mut card = CardRenderer::new().unwrap_or_else(|error| panic!("the card could not be started: {error}"));
     let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card, None);
     let report = comparison.report();
