@@ -28,8 +28,9 @@ fn a_check_logs_a_line_for_the_command_with_its_inputs_and_a_line_for_its_result
     assert_eq!(output.status.code(), Some(0));
 
     let lines = lines(&base);
-    assert_eq!(lines.len(), 2, "{}", log_text(&base));
-    let (started, finished) = (&lines[0], &lines[1]);
+    // The command, the size check's probe of the encoder, and the result.
+    assert_eq!(lines.len(), 4, "{}", log_text(&base));
+    let (started, finished) = (&lines[0], &lines[3]);
     assert!(started.text.starts_with("command started "), "{}", started.raw);
     assert!(started.text.contains(r#"args=["check","demo"]"#), "{}", started.raw);
     assert!(finished.text.starts_with("command finished "), "{}", finished.raw);
@@ -229,9 +230,9 @@ fn a_valid_check_is_silent_at_warn_and_a_level_is_read_in_any_case_with_white_sp
     check(&base, &[("FRAMESMITH_LOG", "warn")]);
     assert_eq!(lines(&base).len(), 0);
     check(&base, &[("FRAMESMITH_LOG", "  DeBuG ")]);
-    assert_eq!(lines(&base).len(), 5);
+    assert_eq!(lines(&base).len(), 7);
     check(&base, &[("FRAMESMITH_LOG", "")]);
-    assert_eq!(lines(&base).len(), 7, "an empty value is the default level, info");
+    assert_eq!(lines(&base).len(), 11, "an empty value is the default level, info");
 }
 
 #[test]
@@ -241,7 +242,7 @@ fn a_value_that_is_not_a_level_gives_the_default_level_and_one_warning_that_does
     assert_eq!(output.status.code(), Some(0));
     assert_eq!(err(&output), "");
     let lines = lines(&base);
-    assert_eq!(lines.len(), 3, "{}", log_text(&base));
+    assert_eq!(lines.len(), 5, "{}", log_text(&base));
     assert_eq!(lines[1].level, "WARN");
     assert_eq!(lines[1].component, "cli::runlog");
     assert!(lines[1].text.contains("info is used"), "{}", lines[1].raw);
@@ -254,7 +255,7 @@ fn the_log_is_kept_under_the_folder_the_command_is_run_from_and_not_in_a_project
     // The project is given by its full path and lies beside the folder the command is run from.
     let output = framesmith(&cwd, [std::ffi::OsStr::new("check"), project.as_os_str()], &[]);
     assert_eq!(output.status.code(), Some(0));
-    assert_eq!(lines(&cwd).len(), 2);
+    assert_eq!(lines(&cwd).len(), 4);
     let names: Vec<_> = fs::read_dir(&project).unwrap().map(|e| e.unwrap().file_name()).collect();
     assert_eq!(names, ["composition.xml"]);
     let names: Vec<_> = fs::read_dir(cwd.join("logs")).unwrap().map(|e| e.unwrap().file_name()).collect();
@@ -268,9 +269,9 @@ fn a_run_adds_its_lines_at_the_end_and_changes_none_that_is_there() {
     let first = log_text(&base);
     check(&base, &[]);
     let second = log_text(&base);
-    assert_eq!(first.lines().count(), 2);
+    assert_eq!(first.lines().count(), 4);
     assert!(second.starts_with(&first));
-    assert_eq!(second.lines().count(), 4);
+    assert_eq!(second.lines().count(), 8);
 }
 
 #[test]
@@ -290,7 +291,7 @@ fn a_log_file_larger_than_5_mib_is_rotated_and_three_older_files_are_kept() {
     assert_eq!(fs::read_to_string(logs.join("framesmith.log.3")).unwrap(), "two");
     assert!(!logs.join("framesmith.log.4").exists());
     let new = lines(&base);
-    assert_eq!(new.len(), 2, "the run starts a new file");
+    assert_eq!(new.len(), 4, "the run starts a new file");
 
     // A file of exactly 5 MiB is not rotated: the run adds to it.
     let exact = vec![b'y'; 5 * 1024 * 1024];
