@@ -8,7 +8,7 @@ use draw::{Colour, Outline, Shadow};
 use layout::{place_absolute, Amount, Beyond, Rect, Sides, Written, LIMIT};
 use motion::{ElementMotion, Prop, Track, PROPS};
 use project::CountFormat;
-use project::{shown, Attribute, Code, Element, Length, Node, Part, Project, Unsupported};
+use project::{Attribute, Code, Element, Length, Node, Part, Project, Unsupported};
 use text::{Align, Block, FontError, Fonts, LineHeight, Piece, Style};
 use timebase::Time;
 

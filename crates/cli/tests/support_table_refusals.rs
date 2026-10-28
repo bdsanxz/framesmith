@@ -54,9 +54,7 @@ fn rows() -> Vec<Row> {
 /// The entries that have a fixture: all but those marked as told by a media file, whose names are
 /// printed so that a run shows what it leaves out.
 fn with_fixtures() -> Vec<Row> {
-    let (left_out, kept): (Vec<Row>, Vec<Row>) = rows()
-        .into_iter()
-        .partition(|row| row.recognised.contains(MEDIA_FILE_MARK));
+    let (left_out, kept): (Vec<Row>, Vec<Row>) = rows().into_iter().partition(|row| row.recognised.contains(MEDIA_FILE_MARK));
     let names: Vec<&str> = left_out.iter().map(|row| row.name.as_str()).collect();
     println!("entries without a fixture, by their mark: {}", names.join(", "));
     kept
@@ -146,10 +144,15 @@ fn files_under(folder: &Path) -> BTreeSet<PathBuf> {
 /// file's `name`, else the folder's name (`docs/spec/render-command.md` section 6).
 fn output_of(project: &Path) -> PathBuf {
     let file = fs::read_to_string(project.join("framesmith.yaml")).unwrap_or_default();
-    let value = |key: &str| file.lines().find_map(|line| line.trim().strip_prefix(key).map(|rest| rest.trim().to_string()));
+    let value = |key: &str| {
+        file.lines()
+            .find_map(|line| line.trim().strip_prefix(key).map(|rest| rest.trim().to_string()))
+    };
     match value("output:") {
         Some(output) => project.join(output),
-        None => project.join("renders").join(format!("{}.mp4", value("name:").unwrap_or_else(|| "demo".to_string()))),
+        None => project
+            .join("renders")
+            .join(format!("{}.mp4", value("name:").unwrap_or_else(|| "demo".to_string()))),
     }
 }
 
@@ -160,7 +163,11 @@ fn every_entry_of_the_support_table_has_a_fixture() {
         .filter(|row| !fixture(row).join("composition.xml").is_file() || !fixture(row).join("expected").is_file())
         .map(|row| row.name.clone())
         .collect();
-    assert!(missing.is_empty(), "entries of the support table with no fixture: {}", missing.join(", "));
+    assert!(
+        missing.is_empty(),
+        "entries of the support table with no fixture: {}",
+        missing.join(", ")
+    );
 }
 
 #[test]
@@ -180,15 +187,20 @@ fn check_lists_each_entry_on_its_file_and_line_with_its_reason_and_exits_2() {
         };
         let entry = format!("(support table {}: {}; {waits})", row.name, row.reason);
         assert!(
-            printed.lines().any(|printed_line| printed_line
-                .starts_with(&format!("{file}, line {line}: FS-"))
-                && printed_line.contains(": unsupported: ")
-                && printed_line.contains(&entry)),
+            printed
+                .lines()
+                .any(|printed_line| printed_line.starts_with(&format!("{file}, line {line}: FS-"))
+                    && printed_line.contains(": unsupported: ")
+                    && printed_line.contains(&entry)),
             "{}: no line names the entry on {file}, line {line}: {printed}",
             row.name
         );
         for report in printed.lines().filter(|printed_line| printed_line.contains(": unsupported: ")) {
-            assert!(report.contains("(support table S"), "{}: an unsupported report names no entry: {report}", row.name);
+            assert!(
+                report.contains("(support table S"),
+                "{}: an unsupported report names no entry: {report}",
+                row.name
+            );
         }
     }
 }
@@ -206,9 +218,25 @@ fn render_prints_the_same_list_exits_2_and_writes_nothing() {
         let earlier = b"a film made before this run".to_vec();
         fs::write(&film, &earlier).unwrap();
         let before = files_under(&project);
-        let rendered = framesmith(&cwd, ["render", project.to_str().unwrap(), "--backend", "cpu"], &[("NO_COLOR", "1")]);
-        assert_eq!(rendered.status.code(), Some(2), "{}: {}{}", row.name, out(&rendered), err(&rendered));
-        assert_eq!(out(&rendered), out(&checked), "{}: render and check print different lists", row.name);
+        let rendered = framesmith(
+            &cwd,
+            ["render", project.to_str().unwrap(), "--backend", "cpu"],
+            &[("NO_COLOR", "1")],
+        );
+        assert_eq!(
+            rendered.status.code(),
+            Some(2),
+            "{}: {}{}",
+            row.name,
+            out(&rendered),
+            err(&rendered)
+        );
+        assert_eq!(
+            out(&rendered),
+            out(&checked),
+            "{}: render and check print different lists",
+            row.name
+        );
         assert!(!out(&rendered).contains("Rendered "), "{}: {}", row.name, out(&rendered));
         assert_eq!(
             fs::read(&film).unwrap(),

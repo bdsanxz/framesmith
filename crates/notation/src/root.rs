@@ -119,11 +119,14 @@ pub fn read_listing(source: &[u8]) -> (Option<Composition>, Vec<Problem>) {
         Ok(text) => text,
         Err(error) => {
             let line = 1 + source[..error.valid_up_to()].iter().filter(|&&byte| byte == b'\n').count();
-            return (None, vec![Problem::new(
-                Code::NotUtf8,
-                line as u32,
-                "the file is not well-formed XML: it is not valid UTF-8 text".to_string(),
-            )]);
+            return (
+                None,
+                vec![Problem::new(
+                    Code::NotUtf8,
+                    line as u32,
+                    "the file is not well-formed XML: it is not valid UTF-8 text".to_string(),
+                )],
+            );
         }
     };
     let document = match roxmltree::Document::parse(text) {
@@ -131,7 +134,11 @@ pub fn read_listing(source: &[u8]) -> (Option<Composition>, Vec<Problem>) {
         Err(error) => {
             return (
                 None,
-                vec![Problem::new(Code::NotXml, error.pos().row, format!("the file is not well-formed XML: {error}"))],
+                vec![Problem::new(
+                    Code::NotXml,
+                    error.pos().row,
+                    format!("the file is not well-formed XML: {error}"),
+                )],
             )
         }
     };
@@ -147,11 +154,14 @@ pub fn read_listing(source: &[u8]) -> (Option<Composition>, Vec<Problem>) {
     let root_spot = spot_at(element.range().start);
     let name = element.tag_name().name();
     if name != "composition" {
-        return (None, vec![Problem::new(
-            Code::RootNotComposition,
-            root_spot.line,
-            format!("the root element is <{name}>, not <composition>"),
-        )]);
+        return (
+            None,
+            vec![Problem::new(
+                Code::RootNotComposition,
+                root_spot.line,
+                format!("the root element is <{name}>, not <composition>"),
+            )],
+        );
     }
 
     let mut problems = Vec::new();
@@ -176,18 +186,20 @@ pub fn read_listing(source: &[u8]) -> (Option<Composition>, Vec<Problem>) {
     // Stable: two problems at one place stay in the order the attributes were judged.
     problems.sort_by_key(|found| (found.spot.line, found.spot.column));
     let composition = match (version, width, height, fps, duration, background) {
-        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if !judged.faulty.contains(&element.id()) => Some(Composition {
-            root: Root {
-                id: attribute("id").map(|(written, _)| written.to_string()),
-                width,
-                height,
-                fps,
-                duration,
-                frames: frame_count(duration, fps),
-                background,
-            },
-            tree: tree::build(&document, text, &table, &judged),
-        }),
+        (Some(()), Some(width), Some(height), Some(fps), Some(duration), Some(background)) if !judged.faulty.contains(&element.id()) => {
+            Some(Composition {
+                root: Root {
+                    id: attribute("id").map(|(written, _)| written.to_string()),
+                    width,
+                    height,
+                    fps,
+                    duration,
+                    frames: frame_count(duration, fps),
+                    background,
+                },
+                tree: tree::build(&document, text, &table, &judged),
+            })
+        }
         _ => None,
     };
     (composition, problems.into_iter().map(|found| found.problem).collect())

@@ -503,6 +503,8 @@ fn count_tweens<F: Fn(usize) -> Spot>(node: roxmltree::Node, why: &str, spot_at:
                 ));
             }
         }
+    }
+}
 /// What an author wrote, for the message of a refusal: the element and the attribute with its value, and the style that gives
 /// it when one does, since the place is then the element's (`docs/spec/check-command.md` section 3c).
 fn written(element: Element, attribute: &Effective) -> String {
