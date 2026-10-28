@@ -227,11 +227,11 @@ fn the_summary_names_each_setting_used_and_where_its_value_came_from() {
 #[test]
 fn a_value_an_option_gives_that_this_version_does_not_apply_is_refused_before_the_first_frame() {
     let (project, cwd) = make(GROUP, "unsupported-option", FILM);
-    let output = render(&cwd, &project, &["--codec", "hevc"]);
+    let output = render(&cwd, &project, &["--encoder", "software"]);
     assert_eq!(output.status.code(), Some(2), "{}", out(&output));
     assert_eq!(
         out(&output),
-        "command line: FS-0035: unsupported: `--codec hevc` is not supported by this version, which takes h264. \
+        "command line: FS-0035: unsupported: `--encoder software` is not supported by this version, which takes hardware. \
          Remove what the message names, or wait for the sprint that brings it.\n\
          Unsupported: the project uses what this version does not support (command line)\n"
     );

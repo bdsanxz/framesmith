@@ -1,5 +1,5 @@
 //! The film: the frames of a scene, drawn in order, brought to the planes the encoder takes, encoded
-//! by the system's H.264 encoder, and written as an MP4 file with the scene's mix as its one sound
+//! by the system's H.264 or HEVC encoder, and written as an MP4 file with the scene's mix as its one sound
 //! track, encoded by the system's AAC encoder, all through frx7's public traits
 //! (`docs/spec/render-command.md` sections 5 and 5.2).
 
@@ -258,26 +258,29 @@ fn codecs() -> codec::Registry {
 /// folder it is in when that is missing, with the sound encoded at `audio_bitrate` kbit/s
 /// (`render.audio-bitrate`, section 5.2). A film that cannot be finished leaves no file at
 /// `output`. The scene's sounds are opened first (`docs/spec/sound.md`); one that cannot be is the failure.
+/// The picture is H.264, the default of `render.codec`.
 pub fn write_film(scene: &Scene, renderer: &mut dyn Renderer, output: &Path, audio_bitrate: u32) -> Result<Written, Failure> {
     let sounds = crate::open_sounds("", scene.sounds()).map_err(|reports| {
         let messages: Vec<String> = reports.iter().map(|report| report.problem().message().to_string()).collect();
         Failure::new(messages.join("; "))
     })?;
-    write_film_marked(scene, sounds, renderer, output, audio_bitrate, None)
+    write_film_marked(scene, sounds, renderer, output, audio_bitrate, project::Codec::H264, None)
 }
 
 /// Writes the film as `write_film` does, with `sounds` (the scene's, as [`crate::open_sounds`] opens them) placed in its
-/// mix and, when `marks` is given, puts in it the mark of each frame drawn, in the order of the frames
-/// (`docs/spec/render-command.md`, section 7.1). A film that is not finished leaves the marks it gave so far.
+/// mix, with its picture in `codec` (`render.codec`, section 5.3) and, when `marks` is given, puts in it the mark of each
+/// frame drawn, in the order of the frames (`docs/spec/render-command.md`, section 7.1). A film that is not finished
+/// leaves the marks it gave so far. (Write HEVC when the author asks for it: render.codec and --codec hevc encode the picture as HEVC of 8 bits marked hvc1, h264 stays the default, and the summary and the log name the codec)
 pub fn write_film_marked(
     scene: &Scene,
     sounds: Vec<mix::Sound>,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
+    codec: project::Codec,
     marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
-    write_film_stepped(scene, sounds, renderer, output, audio_bitrate, marks, &mut |_| {})
+    write_film_stepped(scene, sounds, renderer, output, audio_bitrate, codec, marks, &mut |_| {})
 }
 
 /// The points of a render's start at which `write_film_stepped` stops to let its caller look at the folders.
@@ -291,12 +294,14 @@ pub enum Step {
 
 /// Writes the film as `write_film_marked` does and calls `on_step` at each `Step` of the start, in order. A test uses the
 /// steps to run the sweep of another render at each point of a start (`docs/spec/render-command.md`, section 6).
+#[allow(clippy::too_many_arguments)]
 pub fn write_film_stepped(
     scene: &Scene,
     sounds: Vec<mix::Sound>,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
+    codec: project::Codec,
     marks: Option<&mut Vec<u64>>,
     on_step: &mut dyn FnMut(Step),
 ) -> Result<Written, Failure> {
@@ -313,6 +318,7 @@ pub fn write_film_stepped(
         height = scene.height(),
         fps = scene.fps(),
         renderer = renderer.name(),
+        codec = %codec,
         "render started"
     );
     let staging = staging_of(output);
@@ -322,7 +328,7 @@ pub fn write_film_stepped(
     on_step(Step::Locked);
     fs::create_dir(&run.folder).map_err(|error| Failure::new(format!("the staging folder could not be made: {error}")))?;
     on_step(Step::Made);
-    let written = make(scene, sounds, renderer, &staging, audio_bitrate, began, marks).and_then(|written| {
+    let written = make(scene, sounds, renderer, &staging, audio_bitrate, picture_codec(codec), began, marks).and_then(|written| {
         fs::rename(&staging, output)
             .map_err(|error| Failure::new(format!("the finished video could not be moved to its place: {error}")))?;
         Ok(written)
@@ -332,12 +338,14 @@ pub fn write_film_stepped(
     Ok(written)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make(
     scene: &Scene,
     sounds: Vec<mix::Sound>,
     renderer: &mut dyn Renderer,
     output: &Path,
     audio_bitrate: u32,
+    picture: Codec,
     began: Instant,
     mut marks: Option<&mut Vec<u64>>,
 ) -> Result<Written, Failure> {
@@ -347,7 +355,7 @@ fn make(
         .ok_or_else(|| Failure::new(format!("a sound bit rate of {audio_bitrate} kbit/s is too large")))?;
     let rate = Rational::new(scene.fps(), 1);
     let setup = VideoEncoderSetup {
-        codec: Codec::H264,
+        codec: picture,
         width: scene.width(),
         height: scene.height(),
         rate,
@@ -386,7 +394,7 @@ fn make(
     let mut muxer = formats().create(output).map_err(named)?;
     let track = muxer
         .add_track(TrackSetup {
-            codec: Codec::H264,
+            codec: picture,
             config: Vec::new(),
             timescale,
             media: Media::Video(Video {
@@ -466,6 +474,14 @@ fn make(
         seconds: began.elapsed().as_secs_f64(),
         hardware,
     })
+}
+
+/// frx7's codec for the picture of `render.codec`: HEVC is written in 8 bits, as H.264 is (section 5.3).
+fn picture_codec(codec: project::Codec) -> Codec {
+    match codec {
+        project::Codec::H264 => Codec::H264,
+        project::Codec::Hevc => Codec::Hevc,
+    }
 }
 
 /// Moves the packets the encoder has ready into the file, giving the track its configuration with
