@@ -320,8 +320,7 @@ fn shape_problems() -> Vec<ShownProblem> {
 // A `<shape>` colour not in its form, and a `stroke-width` of 0 or less, are judged where the shape is drawn:
 // `render` reports them (`docs/spec/shape.md`, section 6; `docs/spec/check-command.md`, section 3a, last paragraph).
 fn shape_render_problems() -> Vec<(&'static str, String, Option<&'static str>, Code, i32)> {
-    let root =
-        |inside: &str| format!(r#"<composition version="1" width="640" height="360" duration="2">{inside}</composition>"#);
+    let root = |inside: &str| format!(r#"<composition version="1" width="640" height="360" duration="2">{inside}</composition>"#);
     vec![
         (
             "shape-color-not-a-colour",

@@ -252,7 +252,10 @@ fn shape_without_path(element: Element, read: &[Effective]) -> bool {
     if element != Element::Shape {
         return false;
     }
-    match read.iter().find(|attribute| !attribute.prefixed && (attribute.name == "d" || attribute.name == "src")) {
+    match read
+        .iter()
+        .find(|attribute| !attribute.prefixed && (attribute.name == "d" || attribute.name == "src"))
+    {
         None => true,
         Some(found) => found.name == "d" && found.value.trim().is_empty(),
     }

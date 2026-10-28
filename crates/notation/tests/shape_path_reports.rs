@@ -14,7 +14,8 @@ fn places(text: &str) -> Vec<(&'static str, u32)> {
 
 #[test]
 fn a_shape_with_no_d_and_no_src_is_reported_on_the_elements_line() {
-    let text = "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n<shape width=\"10\" height=\"10\"/>\n</composition>";
+    let text =
+        "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n<shape width=\"10\" height=\"10\"/>\n</composition>";
     assert_eq!(places(text), [("FS-0088", 2)]);
 }
 
