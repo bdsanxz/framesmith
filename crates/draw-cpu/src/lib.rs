@@ -11,8 +11,8 @@
 use std::sync::Arc;
 
 use draw::{
-    blur_weights, level, Background, Blend, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline,
-    Picture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
+    blur_weights, level, Background, Blend, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark,
+    Outline, Picture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use skrifa::instance::{LocationRef, Size};
