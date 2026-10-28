@@ -264,7 +264,7 @@ pub(crate) fn read_set(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>)
 }
 
 /// Whether an element of this kind is moved by this version: a `<box>`, a `<text>`, and a `<composition src>`, which moves
-/// as one picture cut to its rectangle (`docs/spec/render-command.md`, section 4.5, rule 11).
+/// as one picture cut to its rectangle (`docs/spec/render-command.md`, section 4.5, rule 12).
 pub(crate) fn moves(element: Element) -> bool {
     matches!(element, Element::Box | Element::Text | Element::Nested)
 }
