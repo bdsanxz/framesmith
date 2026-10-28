@@ -50,6 +50,13 @@ fn the_shadows_of_the_fixture_at_frame_zero_are_the_worked_values() {
     );
     assert_eq!(rgb(&picture, 44, 30), [255, 255, 255], "left of B, beyond its shadows");
     assert_eq!(rgb(&picture, 60, 20), [0x33, 0x66, 0xcc], "under B, its own fill");
+    // The moved red shadow covers 62 to 85 across and 10 to 33 down, so (75, 20) lies in both moved shapes and beyond
+    // the box: the first listed shadow, green, lies on top of the second, red.
+    assert_eq!(
+        rgb(&picture, 75, 20),
+        [0, 0xaa, 0],
+        "where the two shadows overlap, the first listed is on top"
+    );
 
     // The group at 60 to 89, 40 to 55, with children 60 to 69 and 80 to 89 (both 40 to 49 down). The shadow moves each child
     // 4 across and down: 64 to 73 and 84 to 93, 44 to 53. (70, 50) is under the first moved child and beyond the child: black.
