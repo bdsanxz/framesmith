@@ -972,6 +972,352 @@ fn fill_run(width: u32, height: u32, run: &GlyphRun, offset: (f64, f64), mapped:
     Ok(())
 }
 
+/// Whether the point is in the polygon or on its edge, by the even-odd rule: a ray to the right crosses an edge when the
+/// point's height lies strictly between the edge's ends, and a point on an edge counts as in.
+fn point_in_or_on(point: (f64, f64), polygon: &[(f64, f64)]) -> bool {
+    let (x, y) = point;
+    let mut inside = false;
+    let mut previous = polygon[polygon.len() - 1];
+    for &current in polygon {
+        if (previous.1 > y) != (current.1 > y) {
+            let at = previous.0 + (y - previous.1) * (current.0 - previous.0) / (current.1 - previous.1);
+            if x <= at {
+                inside = !inside;
+            }
+        }
+        previous = current;
+    }
+    inside
+}
+
+/// Whether every point of `inner` lies in `outer` or on its edge: the boxes nest first, then the even-odd rule holds each point.
+fn contains(outer: &[(f64, f64)], inner: &[(f64, f64)]) -> bool {
+    if outer.is_empty() || inner.is_empty() {
+        return false;
+    }
+    let (mut ox0, mut oy0, mut ox1, mut oy1) = (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for &(x, y) in outer {
+        ox0 = ox0.min(x);
+        oy0 = oy0.min(y);
+        ox1 = ox1.max(x);
+        oy1 = oy1.max(y);
+    }
+    const SLACK: f64 = 1e-9;
+    inner
+        .iter()
+        .all(|&(x, y)| x >= ox0 - SLACK && y >= oy0 - SLACK && x <= ox1 + SLACK && y <= oy1 + SLACK)
+        && inner.iter().all(|&point| point_in_or_on(point, outer))
+}
+
+/// The signed area of a polygon, halved: positive for one winding, negative for the other, zero for fewer than three points.
+fn signed_area(polygon: &[(f64, f64)]) -> f64 {
+    if polygon.len() < 3 {
+        return 0.0;
+    }
+    let mut sum = 0.0;
+    for i in 0..polygon.len() {
+        let (x0, y0) = polygon[i];
+        let (x1, y1) = polygon[(i + 1) % polygon.len()];
+        sum += x0 * y1 - x1 * y0;
+    }
+    sum / 2.0
+}
+
+/// The part of the polygon where `a * x + b * y + c` is not negative, by the Sutherland-Hodgman rule.
+fn clip_half(polygon: &[(f64, f64)], a: f64, b: f64, c: f64) -> Vec<(f64, f64)> {
+    let mut out = Vec::new();
+    if polygon.is_empty() {
+        return out;
+    }
+    let mut previous = polygon[polygon.len() - 1];
+    let mut fp = a * previous.0 + b * previous.1 + c;
+    for &current in polygon {
+        let fq = a * current.0 + b * current.1 + c;
+        if fq >= 0.0 {
+            if fp < 0.0 {
+                let t = fp / (fp - fq);
+                out.push((previous.0 + (current.0 - previous.0) * t, previous.1 + (current.1 - previous.1) * t));
+            }
+            out.push(current);
+        } else if fp >= 0.0 {
+            let t = fp / (fp - fq);
+            out.push((previous.0 + (current.0 - previous.0) * t, previous.1 + (current.1 - previous.1) * t));
+        }
+        previous = current;
+        fp = fq;
+    }
+    out
+}
+
+/// The polygon clipped to the square of the pixel `(x, y)`.
+fn clip_pixel(polygon: &[(f64, f64)], x: f64, y: f64) -> Vec<(f64, f64)> {
+    let mut out = polygon.to_vec();
+    for &(a, b, c) in &[(1.0, 0.0, -x), (-1.0, 0.0, x + 1.0), (0.0, 1.0, -y), (0.0, -1.0, y + 1.0)] {
+        if out.len() < 3 {
+            return Vec::new();
+        }
+        out = clip_half(&out, a, b, c);
+    }
+    out
+}
+
+/// The pieces of `piece` outside the polygon `q`: `q` runs the way its signed area is positive first, so the inside
+/// of each of its edges is on the left.
+fn subtract_piece(piece: &[(f64, f64)], q: &[(f64, f64)]) -> Vec<Vec<(f64, f64)>> {
+    // A `q` of no area takes nothing out: running its edges would slice the piece into outside chunks that add it back.
+    if signed_area(q).abs() <= 1e-12 {
+        return vec![piece.to_vec()];
+    }
+    let oriented: Vec<(f64, f64)> = if signed_area(q) >= 0.0 {
+        q.to_vec()
+    } else {
+        q.iter().rev().cloned().collect()
+    };
+    let mut out = Vec::new();
+    let mut rest = vec![piece.to_vec()];
+    for i in 0..oriented.len() {
+        let (x0, y0) = oriented[i];
+        let (x1, y1) = oriented[(i + 1) % oriented.len()];
+        // A zero-length edge clips nothing: its half-plane is the whole plane on both sides, which would copy
+        // the piece into both the outside and the rest.
+        if (x1 - x0).hypot(y1 - y0) < 1e-12 {
+            continue;
+        }
+        let (a, b) = (-(y1 - y0), x1 - x0);
+        let c = -(a * x0 + b * y0);
+        let mut next = Vec::new();
+        for part in rest {
+            let outside = clip_half(&part, -a, -b, -c);
+            if signed_area(&outside).abs() > 1e-12 {
+                out.push(outside);
+            }
+            let inside = clip_half(&part, a, b, c);
+            if signed_area(&inside).abs() > 1e-12 {
+                next.push(inside);
+            }
+        }
+        rest = next;
+        if rest.is_empty() {
+            break;
+        }
+    }
+    out
+}
+
+/// The polygons with the area of each of `qs` taken out.
+fn subtract_set(polygons: Vec<Vec<(f64, f64)>>, qs: &[Vec<(f64, f64)>]) -> Vec<Vec<(f64, f64)>> {
+    let mut out = polygons;
+    for q in qs {
+        let mut next = Vec::new();
+        for piece in out {
+            next.extend(subtract_piece(&piece, q));
+        }
+        out = next;
+        if out.is_empty() {
+            break;
+        }
+    }
+    out
+}
+
+/// The polygons with the area of each of `qs` added: what is already there is taken out of each first.
+fn union_set(mut polygons: Vec<Vec<(f64, f64)>>, qs: &[Vec<(f64, f64)>]) -> Vec<Vec<(f64, f64)>> {
+    for q in qs {
+        polygons.extend(subtract_set(vec![q.clone()], &polygons));
+    }
+    polygons
+}
+
+/// The area of the union of the polygons: each polygon but its overlap with the earlier ones.
+fn union_area(polygons: &[Vec<(f64, f64)>]) -> f64 {
+    let mut pieces: Vec<Vec<(f64, f64)>> = Vec::new();
+    for q in polygons {
+        let oriented: Vec<(f64, f64)> = if signed_area(q) >= 0.0 {
+            q.to_vec()
+        } else {
+            q.iter().rev().cloned().collect()
+        };
+        if signed_area(&oriented).abs() <= 1e-12 {
+            continue;
+        }
+        let mut new = vec![oriented];
+        for prior in &pieces {
+            let mut next = Vec::new();
+            for part in new {
+                next.extend(subtract_piece(&part, prior));
+            }
+            new = next;
+            if new.is_empty() {
+                break;
+            }
+        }
+        pieces.extend(new);
+    }
+    pieces.iter().map(|piece| signed_area(piece).abs()).sum()
+}
+
+/// Puts back the exact coverage where the contours of two or more trees meet in one pixel: laying the trees over one
+/// another unions their coverages as if they were independent, but where their edges cross the union of the pieces is
+/// smaller. Within one tree the nonzero rule already holds: a contour of the opposite winding to its parent cuts its
+/// hole, and one of the same winding adds its island back.
+fn exact_tree_overlaps(
+    alpha: &mut [u8],
+    width: u32,
+    height: u32,
+    device: &[Vec<(f64, f64)>],
+    trees: &[Vec<usize>],
+    parent: &[Option<usize>],
+    signs: &[f64],
+) {
+    if trees.len() < 2 {
+        return;
+    }
+    let mut boxes = vec![(f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY); trees.len()];
+    for (tree, bounds) in trees.iter().zip(boxes.iter_mut()) {
+        for member in tree {
+            for &(x, y) in &device[*member] {
+                bounds.0 = bounds.0.min(x);
+                bounds.1 = bounds.1.min(y);
+                bounds.2 = bounds.2.max(x);
+                bounds.3 = bounds.3.max(y);
+            }
+        }
+    }
+    let mut marked = vec![false; width as usize * height as usize];
+    let mut any = false;
+    for a in 0..trees.len() {
+        for b in (a + 1)..trees.len() {
+            let (x0, y0, x1, y1) = (
+                boxes[a].0.max(boxes[b].0),
+                boxes[a].1.max(boxes[b].1),
+                boxes[a].2.min(boxes[b].2),
+                boxes[a].3.min(boxes[b].3),
+            );
+            if x0 > x1 || y0 > y1 {
+                continue;
+            }
+            for y in (y0.floor() as i64).max(0)..=(y1.ceil() as i64).min(i64::from(height) - 1) {
+                for x in (x0.floor() as i64).max(0)..=(x1.ceil() as i64).min(i64::from(width) - 1) {
+                    marked[y as usize * width as usize + x as usize] = true;
+                    any = true;
+                }
+            }
+        }
+    }
+    if !any {
+        return;
+    }
+    let mut children = vec![Vec::new(); device.len()];
+    for (at, above) in parent.iter().enumerate() {
+        if let Some(next) = above {
+            children[*next].push(at);
+        }
+    }
+    let mut in_tree = vec![0; device.len()];
+    for (tree, members) in trees.iter().enumerate() {
+        for member in members {
+            in_tree[*member] = tree;
+        }
+    }
+    for y in 0..height {
+        for x in 0..width {
+            if !marked[y as usize * width as usize + x as usize] {
+                continue;
+            }
+            let mut pieces: Vec<Vec<Vec<(f64, f64)>>> = vec![Vec::new(); device.len()];
+            let mut touched = vec![false; trees.len()];
+            for (at, contour) in device.iter().enumerate() {
+                let clipped = clip_pixel(contour, f64::from(x), f64::from(y));
+                if signed_area(&clipped).abs() > 1e-12 {
+                    pieces[at].push(clipped);
+                    touched[in_tree[at]] = true;
+                }
+            }
+            if touched.iter().filter(|&&t| t).count() < 2 {
+                continue;
+            }
+            // The net pieces of every tree the pixel touches: their union is the pixel's exact coverage.
+            let mut net = Vec::new();
+            for (tree, members) in trees.iter().enumerate() {
+                if !touched[tree] {
+                    continue;
+                }
+                let root = members.iter().find(|member| parent[**member].is_none());
+                let Some(root) = root else { continue };
+                let mut tree_net = pieces[*root].clone();
+                let mut stack: Vec<(usize, f64)> = children[*root].iter().map(|&child| (child, signs[*root])).collect();
+                while let Some((at, above)) = stack.pop() {
+                    if signs[at] != 0.0 && !pieces[at].is_empty() {
+                        if signs[at] * above < 0.0 {
+                            tree_net = subtract_set(tree_net, &pieces[at]);
+                        } else {
+                            tree_net = union_set(tree_net, &pieces[at]);
+                        }
+                    }
+                    for &child in &children[at] {
+                        stack.push((child, signs[at]));
+                    }
+                }
+                net = union_set(net, &tree_net);
+            }
+            let covered = union_area(&net);
+            let level = ((255.0 * covered.min(1.0)) + 0.5).floor() as u8;
+            alpha[y as usize * width as usize + x as usize] = level;
+        }
+    }
+}
+
+/// Groups flattened contours into a forest by geometric containment: each contour joins the smallest contour that holds it,
+/// and the roots are the contours nothing holds. Contours that only meet in part are roots apart, so they are filled apart.
+fn coverage_forest(contours: &[Vec<draw::stroke::Point>]) -> (Vec<Vec<usize>>, Vec<Option<usize>>) {
+    let mut areas = vec![0.0; contours.len()];
+    for (at, contour) in contours.iter().enumerate() {
+        let (mut x0, mut y0, mut x1, mut y1) = (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+        for &(x, y) in contour {
+            x0 = x0.min(x);
+            y0 = y0.min(y);
+            x1 = x1.max(x);
+            y1 = y1.max(y);
+        }
+        areas[at] = (x1 - x0) * (y1 - y0);
+    }
+    let mut parent: Vec<Option<usize>> = vec![None; contours.len()];
+    for (at, contour) in contours.iter().enumerate() {
+        let mut best: Option<usize> = None;
+        for (other, candidate) in contours.iter().enumerate() {
+            // A greater area holds, or with the same area the earlier contour: this keeps the choice
+            // acyclic, so two contours that hold each other (a doubled contour) share one tree instead
+            // of dropping out of every tree.
+            if other != at && (areas[other] > areas[at] || (areas[other] == areas[at] && other < at)) && contains(candidate, contour) {
+                let smaller = best.is_none_or(|at| areas[other] < areas[at]);
+                if smaller {
+                    best = Some(other);
+                }
+            }
+        }
+        parent[at] = best;
+    }
+    // Each tree is its root with every contour the root holds, directly or through another: walk down from each root.
+    let mut trees = Vec::new();
+    for (at, above) in parent.iter().enumerate() {
+        if above.is_some() {
+            continue;
+        }
+        let mut tree = Vec::new();
+        let mut stack = vec![at];
+        while let Some(next) = stack.pop() {
+            tree.push(next);
+            for (child, child_above) in parent.iter().enumerate() {
+                if *child_above == Some(next) {
+                    stack.push(child);
+                }
+            }
+        }
+        trees.push(tree);
+    }
+    (trees, parent)
+}
+
 /// The coverage of one glyph of a run, as the processor fills it and as the card masks it (`docs/spec/text.md`, section 6.6, rule
 /// 10; `docs/spec/card-renderer.md`, section 9.2): the outline of the glyph at its origin is flattened by this renderer at the one
 /// tolerance of the outlines, moved by `offset` in the paragraph's own coordinates, mapped by `mapped`, and filled in opaque white
@@ -987,19 +1333,44 @@ pub fn glyph_coverage(
 ) -> Result<Vec<u8>, Error> {
     let path = glyph_outline(run, glyph)?;
     let contours = flattened_contours(&path, draw::OUTLINE_TOLERANCE / scale_of(mapped));
+    // The contours are filled as a forest of geometric containment, one nonzero path per tree, laid over one another:
+    // contours that only meet in part (the stem and the bar of an H) cover their union, while a contour inside another
+    // (a counter) still cuts its hole, because the hole is filled in the same nonzero path as its surround
+    // (`docs/spec/text.md`, section 6.6, rule 10: the exact coverage of the outline). Where the trees meet in one
+    // pixel their union is put back exactly, since laying them over one another unions them as if independent.
+    let (trees, parent) = coverage_forest(&contours);
     let mut context = RenderContext::new(width as u16, height as u16);
     context.set_paint(Color::from_rgba8(255, 255, 255, 255));
-    context.fill_path(&polygons_path(&contours, offset, mapped));
+    for tree in &trees {
+        let group: Vec<Vec<draw::stroke::Point>> = tree.iter().map(|at| contours[*at].clone()).collect();
+        context.fill_path(&polygons_path(&group, offset, mapped));
+    }
     context.flush();
     let mut coverage = Pixmap::new(width as u16, height as u16);
     context.render(&mut coverage, &mut Resources::new());
-    Ok(coverage
+    let mut alpha: Vec<u8> = coverage
         .data_as_u8_slice()
         .as_chunks::<4>()
         .0
         .iter()
         .map(|pixel| pixel[3])
-        .collect())
+        .collect();
+    // The device-space points of each contour, placed exactly as `polygons_path` places them, with their windings.
+    let device: Vec<Vec<(f64, f64)>> = contours
+        .iter()
+        .map(|contour| {
+            contour
+                .iter()
+                .map(|&(x, y)| {
+                    let point = mapped * kurbo::Point::new(x + offset.0, y + offset.1);
+                    (point.x, point.y)
+                })
+                .collect()
+        })
+        .collect();
+    let signs: Vec<f64> = device.iter().map(|contour| signed_area(contour)).collect();
+    exact_tree_overlaps(&mut alpha, width, height, &device, &trees, &parent, &signs);
+    Ok(alpha)
 }
 
 /// Lays a colour on the coverage of each pixel, which is its alpha: each channel is the colour times the alpha, halved up
@@ -1064,4 +1435,29 @@ fn composite(bytes: &mut [u8], width: u32, layer: &[u8], (left, top, right, bott
 fn divide_by_255(value: u32) -> u32 {
     let rounded = value + 128;
     (rounded + (rounded >> 8)) >> 8
+}
+
+#[cfg(test)]
+mod exact_coverage_tests {
+    use super::*;
+
+    fn square(x0: f64, y0: f64, x1: f64, y1: f64) -> Vec<(f64, f64)> {
+        vec![(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    }
+
+    #[test]
+    fn hole_piece_is_taken_out_of_its_surround() {
+        let surround = square(22.0, 106.0, 23.0, 107.0);
+        let hole = square(22.0, 106.0, 22.96, 107.0);
+        let left = subtract_piece(&surround, &hole);
+        let area: f64 = left.iter().map(|p| signed_area(p).abs()).sum();
+        assert!((area - 0.04).abs() < 1e-9, "left over: {area}");
+    }
+
+    #[test]
+    fn union_of_two_halves_is_whole() {
+        let left = square(22.0, 106.0, 22.5, 107.0);
+        let right = square(22.5, 106.0, 23.0, 107.0);
+        assert!((union_area(&[left, right]) - 1.0).abs() < 1e-9);
+    }
 }
