@@ -327,13 +327,16 @@ impl Unsupported {
     }
 
     /// The message of a refusal of this entry: what the author wrote, then the entry, its reason and the sprint it
-    /// waits for (`docs/spec/check-command.md` section 3d).
+    /// waits for, or "not yet planned" for an entry whose sprint is not assigned (`docs/spec/check-command.md` section 3d).
     pub fn message(self, what: &str) -> String {
+        let waits = match self.waits() {
+            "Not assigned" => "not yet planned".to_string(),
+            sprint => format!("waits until {sprint}"),
+        };
         format!(
-            "{what}, which this version does not support (support table {}: {}; waits until {})",
+            "{what}, which this version does not support (support table {}: {}; {waits})",
             self.name(),
-            self.reason(),
-            self.waits()
+            self.reason()
         )
     }
 }
@@ -355,7 +358,9 @@ fn drawn(element: Element) -> bool {
 /// The entry that names an attribute `element` does not take, as the table's column "How `check` recognises it" words it, when
 /// one does (S04, S05, S06 to S10, S13 to S15, S19 to S22, S24, S25).
 pub(crate) fn attribute(element: Element, name: &str) -> Option<Unsupported> {
-    let property = |name: &str| Element::ALL.iter().any(|element| element.takes(name));
+    // A property is an attribute of the element tables that is not a time: a clip's `start` and `duration` are not changed
+    // over time, and a `<set>` that writes one is a mistake in its own form.
+    let property = |name: &str| !matches!(name, "start" | "duration") && Element::ALL.iter().any(|element| element.takes(name));
     let found = match (element, name) {
         (Element::Composition, "canvas") => Unsupported::CanvasPreset,
         (Element::Tween, "stagger") => Unsupported::Stagger,
@@ -427,8 +432,11 @@ pub(crate) fn ease(value: &str) -> Option<Unsupported> {
         .or_else(|| value.strip_prefix("out-"))
         .unwrap_or(value);
     // A curve of the names that wait, alone or after `in-`, `out-` or `in-out-`; a value that merely begins so, such as
-    // `out-back()`, is not one and is reported as an easing not known.
-    let built = ["bounce", "elastic", "back", "circ"].contains(&bare) || value.starts_with("steps(") || value.starts_with("cubic-bezier(");
+    // `out-back()`, is not one and is reported as an easing not known; so is a bare `out-back`, which is the notation's
+    // `out-back(n)` without its number.
+    let built = (["bounce", "elastic", "back", "circ"].contains(&bare) && value != "out-back")
+        || value.starts_with("steps(")
+        || value.starts_with("cubic-bezier(");
     built.then_some(Unsupported::MoreEasings)
 }
 

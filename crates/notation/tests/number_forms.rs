@@ -160,6 +160,13 @@ fn a_number_that_is_not_finite_or_not_written_as_a_number_is_reported() {
             }
             let problems = problems_of(&text);
             assert_eq!(problems.len(), 1, "{place}={value:?}: {problems:#?}");
+            // A `gap` as a percentage (S55), and a value of a tween or a set that begins with `=` (S23), are forms the
+            // support table names.
+            let expression = (place.ends_with("of a tween") || place.ends_with("of a set")) && value.starts_with('=');
+            if (place == "gap of a box" && value.ends_with('%')) || expression {
+                assert_eq!(problems[0].code(), Code::FormNotSupported, "{place}={value:?}");
+                continue;
+            }
             assert_eq!(problems[0].code(), Code::NotANumber, "{place}={value:?}");
             assert_eq!(
                 problems[0].message(),
@@ -188,6 +195,13 @@ fn a_value_too_large_to_be_finite_is_reported_as_too_large() {
         for (place, text) in with_number(value) {
             let problems = problems_of(&text);
             assert_eq!(problems.len(), 1, "{place}={value:?}: {problems:#?}");
+            // A `gap` as a percentage (S55), and a value of a tween or a set that begins with `=` (S23), are forms the
+            // support table names.
+            let expression = (place.ends_with("of a tween") || place.ends_with("of a set")) && value.starts_with('=');
+            if (place == "gap of a box" && value.ends_with('%')) || expression {
+                assert_eq!(problems[0].code(), Code::FormNotSupported, "{place}={value:?}");
+                continue;
+            }
             assert_eq!(problems[0].code(), Code::NotANumber, "{place}={value:?}");
         }
     }

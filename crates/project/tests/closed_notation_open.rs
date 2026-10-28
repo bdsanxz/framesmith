@@ -35,7 +35,12 @@ fn a_composition_with_an_unknown_attribute_is_not_opened_and_its_valid_twin_is()
     for (name, body, code, line) in [
         ("attribute", valid.replace("/>", " glow=\"1\"/>"), Code::AttributeNotTaken, 2),
         ("element", format!("{valid}\n<circle/>"), Code::ElementNotKnown, 3),
-        ("place", format!("<text>\n{valid}\n</text>"), Code::ElementNotHere, 3),
+        (
+            "place",
+            format!("<box>\n<font src=\"f.ttf\"/>\n</box>\n{valid}"),
+            Code::ElementNotHere,
+            3,
+        ),
         ("number", valid.replace("/>", " x=\"inf\"/>"), Code::NotANumber, 2),
         ("time", valid.replace("/>", " start=\"5.\" duration=\"1\"/>"), Code::NotATime, 2),
     ] {

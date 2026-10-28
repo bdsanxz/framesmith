@@ -1,6 +1,7 @@
 //! `framesmith check` and `framesmith render` report an element other than `<span>` inside a `<text>` with its line, and
-//! print the same report for it: no film is written and both exit 1 (`docs/spec/check-command.md`, section 3b;
-//! `docs/spec/text.md`, section 1; `docs/spec/render-command.md`, section 3).
+//! print the same report for it: an element the support table names there (S51), so no film is written and both exit 2
+//! (`docs/spec/check-command.md`, sections 3b and 3d; `docs/spec/text.md`, section 1; `docs/spec/render-command.md`,
+//! section 3).
 
 mod common;
 
@@ -37,12 +38,12 @@ const ELEMENTS: [(&str, &str, &str); 2] = [
     (
         "box",
         "<box width=\"10\" height=\"10\" color=\"#ff0000\"/>",
-        "composition.xml, line 3: FS-0031: invalid: <box> is not known inside <text>",
+        "composition.xml, line 3: FS-0035: unsupported: <text> holds <box>, which this version does not support (support table S51: ",
     ),
     (
         "rect",
         "<rect width=\"10\" height=\"10\" color=\"#ff0000\"/>",
-        "composition.xml, line 3: FS-0031: invalid: <rect> is not known inside <text>",
+        "composition.xml, line 3: FS-0035: unsupported: <text> holds <rect>, which this version does not support (support table S51: ",
     ),
 ];
 
@@ -64,8 +65,8 @@ fn check_and_render_report_an_element_other_than_span_inside_text_with_its_line_
             ],
             &[("NO_COLOR", "1")],
         );
-        assert_eq!(check.status.code(), Some(1), "{name}: check: {}{}", out(&check), err(&check));
-        assert_eq!(render.status.code(), Some(1), "{name}: render: {}{}", out(&render), err(&render));
+        assert_eq!(check.status.code(), Some(2), "{name}: check: {}{}", out(&check), err(&check));
+        assert_eq!(render.status.code(), Some(2), "{name}: render: {}{}", out(&render), err(&render));
         assert_eq!(out(&check), out(&render), "{name}: check and render print different reports");
         assert_eq!(err(&check), err(&render), "{name}: check and render write different errors");
         assert!(
@@ -74,6 +75,9 @@ fn check_and_render_report_an_element_other_than_span_inside_text_with_its_line_
             out(&check),
             err(&check)
         );
-        assert!(!film.exists(), "{name}: a film was written for a project that is not valid");
+        assert!(
+            !film.exists(),
+            "{name}: a film was written for a project this version does not support"
+        );
     }
 }

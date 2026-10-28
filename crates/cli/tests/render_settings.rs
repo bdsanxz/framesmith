@@ -231,8 +231,8 @@ fn a_value_an_option_gives_that_this_version_does_not_apply_is_refused_before_th
     assert_eq!(output.status.code(), Some(2), "{}", out(&output));
     assert_eq!(
         out(&output),
-        "command line: FS-0035: unsupported: `--codec hevc` is not supported by this version, which takes h264. \
-         Remove what the message names, or wait for the sprint that brings it.\n\
+        "command line: FS-0035: unsupported: `--codec hevc` is given, which this version does not support \
+         (support table S48: So far the film is written in H.264 only; waits until Sprint 1, T084). Remove what the message names, or wait for the sprint that brings it.\n\
          Unsupported: the project uses what this version does not support (command line)\n"
     );
     assert_eq!(files(&project), ["composition.xml"]);

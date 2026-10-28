@@ -390,11 +390,11 @@ fn the_keys_compositions_and_timeline_are_reported_as_not_supported_and_their_va
     assert!(all.iter().all(|report| report.problem().kind() == Kind::Unsupported));
     assert_eq!(
         all[0].problem().message(),
-        "`compositions` is not supported in this version; it comes in Sprint 2"
+        "the project file has `compositions`, which this version does not support (support table S11: The project file names one composition; waits until Sprint 2)"
     );
     assert_eq!(
         all[1].problem().message(),
-        "`timeline` is not supported in this version; it comes in Sprint 2"
+        "the project file has `timeline`, which this version does not support (support table S11: The project file names one composition; waits until Sprint 2)"
     );
 }
 

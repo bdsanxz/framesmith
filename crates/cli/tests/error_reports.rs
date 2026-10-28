@@ -177,7 +177,7 @@ fn shown_problems() -> Vec<ShownProblem> {
             "ease-not-known",
             vec![(
                 "composition.xml".to_string(),
-                inside_root(r#"<box><tween duration="1" to-x="5" ease="bounce"/></box>"#),
+                inside_root(r#"<box><tween duration="1" to-x="5" ease="wobble"/></box>"#),
             )],
             Code::EaseNotKnown,
         ),
@@ -397,7 +397,7 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
         ),
         (
             "element-in-the-wrong-place",
-            inside_root("<text>\n<box/>\n</text>"),
+            inside_root("<box>\n<font src=\"a.ttf\" family=\"A\"/>\n</box>"),
             Code::ElementNotHere,
             3,
         ),

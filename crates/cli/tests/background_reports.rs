@@ -59,7 +59,10 @@ fn backgrounds_not_drawn_are_each_reported_on_their_line_by_check_and_render() {
             "`background-size=\"10 10\"` is written on <box>, which has no `background`",
         ),
         ("line 4: FS-0064", "a gradient needs two stops or more"),
-        ("line 5: FS-0035", "holds a conic gradient, which this version does not draw"),
+        (
+            "line 5: FS-0035",
+            "holds a conic gradient, which this version does not support (support table S17: ",
+        ),
     ];
     for (place, words) in wanted {
         assert!(

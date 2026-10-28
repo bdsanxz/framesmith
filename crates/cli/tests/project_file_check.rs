@@ -61,7 +61,8 @@ fn snapshot(dir: &Path) -> Vec<(PathBuf, Vec<u8>)> {
 
 #[test]
 fn a_project_file_that_sets_every_key_to_a_value_of_its_list_exits_0() {
-    let yaml = "name: launch-film\ncomposition: scenes/main.xml\npaths:\n  renders: out\nrender:\n  output: out/launch-film.mp4\n  backend: gpu\n  quality: high\n  encoder: software\n  codec: hevc\n  workers: 16\n  audio-bitrate: 320\n";
+    // Each value is one the support table (section 14 of the notation spec) does not name.
+    let yaml = "name: launch-film\ncomposition: scenes/main.xml\npaths:\n  renders: out\nrender:\n  output: out/launch-film.mp4\n  backend: gpu\n  quality: standard\n  encoder: hardware\n  codec: h264\n  workers: 1\n  audio-bitrate: 320\n";
     let (project, cwd) = make("every-key", &[("framesmith.yaml", yaml), ("scenes/main.xml", TWO_SECONDS)]);
     let output = check(&project, &cwd);
     assert_eq!(output.status.code(), Some(0), "{}", out(&output));
@@ -230,7 +231,7 @@ fn a_value_outside_its_list_is_reported_with_its_line_and_the_values_taken() {
         &[
             (
                 "framesmith.yaml",
-                "name: demo\nrender:\n  workers: 17\n  quality: high\n  codec: vp9\n",
+                "name: demo\nrender:\n  workers: 17\n  quality: standard\n  codec: vp9\n",
             ),
             ("composition.xml", FIVE_SECONDS),
         ],
@@ -335,11 +336,11 @@ fn the_keys_compositions_and_timeline_are_listed_as_not_supported_and_end_with_e
             "framesmith.yaml, line 2: {}\nframesmith.yaml, line 4: {}\nUnsupported: the project uses what this version does not support (framesmith.yaml)\n",
             statement(
                 Code::KeyNotSupported,
-                "`compositions` is not supported in this version; it comes in Sprint 2"
+                "the project file has `compositions`, which this version does not support (support table S11: The project file names one composition; waits until Sprint 2)"
             ),
             statement(
                 Code::KeyNotSupported,
-                "`timeline` is not supported in this version; it comes in Sprint 2"
+                "the project file has `timeline`, which this version does not support (support table S11: The project file names one composition; waits until Sprint 2)"
             )
         )
     );

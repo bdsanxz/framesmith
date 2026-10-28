@@ -29,7 +29,9 @@ fn a_tween_with_no_property_is_reported_on_its_line() {
 
 #[test]
 fn a_property_that_is_not_animated_is_reported_on_its_attribute_line() {
-    assert_eq!(places(&problems("<tween duration=\"1\"\n to-width=\"5\"/>")), [("FS-0030", 4)]);
+    assert_eq!(places(&problems("<tween duration=\"1\"\n to-nonsense=\"5\"/>")), [("FS-0030", 4)]);
+    // A property of the tables that the engine does not move is a form the support table names (S24).
+    assert_eq!(places(&problems("<tween duration=\"1\"\n to-width=\"5\"/>")), [("FS-0035", 4)]);
 }
 
 #[test]

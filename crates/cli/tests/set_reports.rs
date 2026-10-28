@@ -60,10 +60,18 @@ fn a_set_with_no_property_is_reported_on_its_line() {
 
 #[test]
 fn a_set_on_a_property_that_cannot_be_animated_is_reported_once_on_its_line() {
-    let lines = refused("width", "<set at=\"1\" width=\"300\"/>", 1);
+    // `width` is named by the support table (S24); a name no element takes is invalid.
+    let lines = refused("width", "<set at=\"1\" width=\"300\"/>", 2);
     assert_eq!(lines.len(), 1, "one report, not a second for the set with no property: {lines:?}");
     assert!(
-        lines[0].starts_with("composition.xml, line 3: FS-0030: invalid: <set> has no attribute `width`"),
+        lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: <set> has `width=\"300\"`, which this version does not support (support table S24: "),
+        "{}",
+        lines[0]
+    );
+    let lines = refused("z-index", "<set at=\"1\" z-index=\"2\"/>", 1);
+    assert_eq!(lines.len(), 1, "one report, not a second for the set with no property: {lines:?}");
+    assert!(
+        lines[0].starts_with("composition.xml, line 3: FS-0030: invalid: <set> has no attribute `z-index`"),
         "{}",
         lines[0]
     );
@@ -85,7 +93,9 @@ fn a_set_on_an_animated_property_this_version_does_not_move_is_refused_on_its_li
     let lines = refused("blur", "<set at=\"1\" blur=\"4\"/>", 2);
     assert_eq!(lines.len(), 1, "{lines:?}");
     assert!(
-        lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: <set> changes `blur`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y, opacity, rotate-x and rotate-y."),
+        lines[0].starts_with(
+            "composition.xml, line 3: FS-0035: unsupported: <set> changes `blur`, which this version does not support (support table S37: "
+        ),
         "{}",
         lines[0]
     );

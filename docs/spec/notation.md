@@ -966,7 +966,7 @@ The attributes are in the table of 6.15. A `<set>` changes properties at one ins
 
 - The frame at `at` is the first frame whose time is `at` or later, by the frame grid rule (5.3): a set written within a thousandth of a frame after a frame's time is on that frame; one written later than that is on the next frame.
 - A set is a tween of no length in the order of 8.5: a later tween with only `to-` starts from the set's value, and a set and a tween with the same `at` keep their document order, the later one controlling the property.
-- A set with no property is reported on its line (`FS-0061`). A property its element does not take as an attribute (8.1: `count` on a `<text>` only, `typed` on a `<text>` or `<span>`, `draw` on a `<shape>`) is reported on the attribute (`FS-0062`). An attribute that is not an animated property, such as `width`, is one the set does not take (`FS-0030`, S24); it counts as the set's property for `FS-0061`, so that the one mistake has one report.
+- A set with no property is reported on its line (`FS-0061`). A property its element does not take as an attribute (8.1: `count` on a `<text>` only, `typed` on a `<text>` or `<span>`, `draw` on a `<shape>`) is reported on the attribute (`FS-0062`). An attribute named as an attribute of the element tables that is not an animated property, such as `width`, is unsupported (`FS-0035`, S24); a name that no element takes, such as `z-index`, is one the set does not take (`FS-0030`). Either counts as the set's property for `FS-0061`, so that the one mistake has one report.
 
 ### 8.4 Easings
 
@@ -1296,7 +1296,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S21 | A paragraph that runs from right to left: `direction="rtl"` | The attribute `direction` or `dir` on a text | Lines are ordered inside, the paragraph runs left to right; the whole-paragraph direction is Sprint 5's (decision B36) | Sprint 5 |
 | S22 | Motion along a path: `motion-path` | The attribute on `<tween>` | The motion engine moves along straight lines | Sprint 4 |
 | S23 | Expressions: `from-x="=width/2"` | A value of a `<tween>` or `<set>` that begins with `=` | A composition carries no code | Sprint 4 |
-| S24 | Animated size and colour: `to-width`, `from-color`, `to-background`, `<set width="...">` | A `from-`, `to-` or `<set>` attribute named as any attribute of the element tables that is not one of the fifteen of 8.1 | Layout does not follow motion and colours are not mixed by the engine | Sprint 4 |
+| S24 | Animated size and colour: `to-width`, `from-color`, `to-background`, `<set width="...">` | A `from-`, `to-` or `<set>` attribute named as any attribute of the element tables that is not one of the fifteen of 8.1, nor the time `start` or `duration` | Layout does not follow motion and colours are not mixed by the engine | Sprint 4 |
 | S25 | Hiding the back of a turned element: `backface-visibility` | The attribute | A turned element is drawn mirrored (decision A23) | Sprint 4 |
 | S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark; told by reading the media file (T087) | The turn must be applied to the picture (decision P10) | Sprint 7 |
 | S27 | Footage in other kinds of file or other codecs: Matroska, WebM, VP9, AV1, ProRes | A `<video src>` whose file or codec is not on the list of N3; told by reading the media file (T089) | Their codecs are not written yet | Sprint 7 |

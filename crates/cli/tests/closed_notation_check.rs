@@ -54,7 +54,7 @@ fn an_element_the_spec_does_not_list_is_reported_with_its_file_and_line_and_the_
 fn an_attribute_its_element_does_not_take_is_reported_with_its_line_the_attribute_and_the_element() {
     let (output, printed) = check(
         "attribute",
-        &composition("<box>\n<tween duration=\"1\"\n  to-width=\"10\"/>\n</box>\n<rect colour=\"red\"/>"),
+        &composition("<box>\n<tween duration=\"1\"\n  to-nonsense=\"10\"/>\n</box>\n<rect colour=\"red\"/>"),
     );
     assert_eq!(output.status.code(), Some(1));
     assert_eq!(
@@ -63,7 +63,7 @@ fn an_attribute_its_element_does_not_take_is_reported_with_its_line_the_attribut
             report(
                 "composition.xml, line 4",
                 Code::AttributeNotTaken,
-                "<tween> has no attribute `to-width`"
+                "<tween> has no attribute `to-nonsense`"
             ),
             report(
                 "composition.xml, line 6",
@@ -79,7 +79,7 @@ fn an_attribute_its_element_does_not_take_is_reported_with_its_line_the_attribut
 fn an_element_in_a_place_it_may_not_stand_is_reported_with_its_line_and_the_place_where_it_may_stand() {
     let (output, printed) = check(
         "place",
-        &composition("<box>\n<style id=\"label\"/>\n</box>\n<text>\n<box/>\n</text>"),
+        &composition("<box>\n<style id=\"label\"/>\n</box>\n<box>\n<font src=\"a.ttf\" family=\"A\"/>\n</box>"),
     );
     assert_eq!(output.status.code(), Some(1));
     assert_eq!(
@@ -93,7 +93,7 @@ fn an_element_in_a_place_it_may_not_stand_is_reported_with_its_line_and_the_plac
             report(
                 "composition.xml, line 6",
                 Code::ElementNotHere,
-                "<box> is not known inside <text>; only <span>, <tween> and <set> are; a <box> stands directly in <composition>, <box> or <rect>"
+                "<font> is not known inside <box>; a <font> stands only directly in the <composition>, never inside an element"
             ),
             INVALID.to_string()
         ]
@@ -125,7 +125,7 @@ fn a_time_without_a_leading_digit_is_read_and_one_with_a_bare_point_is_reported(
 fn a_number_with_an_exponent_or_a_sign_is_read_and_a_non_finite_one_is_reported() {
     let (output, printed) = check(
         "number-read",
-        &composition("<box x=\"-4\" y=\"+0.5\" scale=\"1e3\" opacity=\"2.5E-1\" blur=\".5\"/>"),
+        &composition("<box x=\"-4\" y=\"+0.5\" scale=\"1e3\" opacity=\"2.5E-1\" rotation=\".5\"/>"),
     );
     assert_eq!(output.status.code(), Some(0), "{printed:?}");
     assert_eq!(printed.len(), 1);
@@ -196,7 +196,7 @@ fn the_reports_of_the_tree_and_of_the_root_come_in_the_order_of_the_file_and_the
 
 #[test]
 fn the_log_of_a_run_holds_the_codes_and_lines_of_these_reports_and_none_of_their_words() {
-    let text = composition("<needle-element/>\n<box needle-attribute=\"1\" x=\"needle-number\" start=\"needle-time\"/>");
+    let text = composition("<needle-element/>\n<box needle-attribute=\"1\" x=\"needle-number\" start=\"9needle-time\"/>");
     let (project, cwd) = project(GROUP, "log", &text);
     let mut printed = String::new();
     for level in ["trace", "debug", "info"] {

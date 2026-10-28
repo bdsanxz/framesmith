@@ -74,7 +74,7 @@ fn check_and_render_refuse_an_absolute_text_with_two_edges_and_no_width_in_a_row
     refused_the_same_way(
         "in-a-row",
         "<box flex-direction=\"row\" width=\"160\" height=\"30\" background=\"#202020\">",
-        "a <text> with `left` and `right` and no `width`, inside a row, a column or a set of columns, is not drawn by this version",
+        "a <text> with `left` and `right` and no `width` is inside a row, a column or a set of columns, which this version does not support (support table S54: ",
     );
 }
 
@@ -83,7 +83,7 @@ fn check_and_render_refuse_an_absolute_text_with_two_edges_and_no_width_in_a_col
     refused_the_same_way(
         "in-a-column",
         "<box flex-direction=\"column\" width=\"160\" height=\"60\" background=\"#202020\">",
-        "a <text> with `left` and `right` and no `width`, inside a row, a column or a set of columns, is not drawn by this version",
+        "a <text> with `left` and `right` and no `width` is inside a row, a column or a set of columns, which this version does not support (support table S54: ",
     );
 }
 
@@ -92,6 +92,6 @@ fn check_and_render_refuse_an_absolute_text_with_two_edges_and_no_width_in_a_set
     refused_the_same_way(
         "in-a-set-of-columns",
         "<box columns=\"80 1fr\" width=\"160\" height=\"60\" background=\"#202020\">",
-        "a <text> with `left` and `right` and no `width`, inside a row, a column or a set of columns, is not drawn by this version",
+        "a <text> with `left` and `right` and no `width` is inside a row, a column or a set of columns, which this version does not support (support table S54: ",
     );
 }

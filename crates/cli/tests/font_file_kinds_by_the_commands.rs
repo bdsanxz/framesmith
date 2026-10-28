@@ -9,6 +9,9 @@ use font_file::{check_and_render, composition, refused_the_same_way, test_font};
 
 const KINDS_TAKEN: &str = "The kinds taken are TrueType (`.ttf`) and font collection (`.ttc`).";
 
+/// The kinds taken, as the entry of the support table that names a font file of another kind gives them.
+const KINDS_OF_THE_ENTRY: &str = "(support table S58: Only `.ttf` and `.ttc` are read; ";
+
 #[test]
 fn a_truetype_file_whose_tag_is_true_is_read_and_drawn_by_check_and_by_render() {
     let mut font = test_font();
@@ -30,7 +33,7 @@ fn an_opentype_file_with_postscript_outlines_is_reported_with_its_file_and_the_k
         line.contains("`src=\"fonts/f.ttf\"` is OpenType with PostScript outlines"),
         "{line}"
     );
-    assert!(line.contains(KINDS_TAKEN), "{line}");
+    assert!(line.contains(KINDS_OF_THE_ENTRY), "{line}");
 }
 
 #[test]
@@ -41,7 +44,7 @@ fn a_woff2_file_is_reported_with_its_file_and_the_kinds_taken() {
     let line = refused_the_same_way(&check, &render, 2);
     assert!(line.starts_with("composition.xml, line 2: FS-0035: unsupported:"), "{line}");
     assert!(line.contains("`src=\"fonts/f.ttf\"` is WOFF2"), "{line}");
-    assert!(line.contains(KINDS_TAKEN), "{line}");
+    assert!(line.contains(KINDS_OF_THE_ENTRY), "{line}");
 }
 
 #[test]

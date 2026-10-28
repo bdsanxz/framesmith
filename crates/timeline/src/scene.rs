@@ -2144,7 +2144,6 @@ fn unapplied_volume(attribute: &Attribute) -> String {
         None => message,
         Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
     }
-}
 
 /// The code and the message of an attribute this version does not take on its element, with the entry of the support table
 /// that names it (`support::refused_attribute`).

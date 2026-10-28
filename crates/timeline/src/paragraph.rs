@@ -922,7 +922,9 @@ fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextErro
             Fault {
                 code: Code::FormNotSupported,
                 line: source.line,
-                message: Unsupported::SpanRoomWithoutPlace.message(&format!("<text> holds {error}")),
+                message: Unsupported::SpanRoomWithoutPlace.message(
+                    "<text> holds a margin or a padding of a <span> where the line may break before the span, after a character other than a space or a hyphen",
+                ),
                 style: false,
             }
         }
@@ -931,13 +933,14 @@ fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextErro
         text::TextError::NoPicture(_) | text::TextError::PictureRefused { .. } => Fault {
             code: Code::EmojiNotDrawn,
             line: node.line(),
-            message: Unsupported::EmojiPicture.message(&format!("<text> holds {error}")),
+            message: Unsupported::EmojiPicture.message(&format!("<text> holds a character whose picture is not drawn: {error}")),
             style: false,
         },
         text::TextError::RoomWithoutWords => Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message: Unsupported::SpanRoomWithoutPlace.message(&format!("<text> holds {error}")),
+            message: Unsupported::SpanRoomWithoutPlace
+                .message("<text> holds a margin or a padding of a <span> in a <text> with no word"),
             style: false,
         },
         text::TextError::NoFamily | text::TextError::MissingCharacter(_) => Fault {
