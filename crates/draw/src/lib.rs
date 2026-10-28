@@ -286,7 +286,7 @@ impl TextMark {
 }
 
 /// One mark of a frame: a drawing step, the glyph runs of a paragraph of text, the marks of an element that moves, the
-/// layers of a background, a ring of a border, or marks cut to a rounded rectangle. The
+/// layers of a background, a ring of a border, marks cut to a rounded rectangle, or a picture. The
 /// marks are carried out in order, each over what is there.
 #[derive(Clone, Debug)]
 pub enum Mark {
@@ -302,6 +302,21 @@ pub enum Mark {
     Cut(Cut),
     /// One shadow of a box (`docs/spec/render-command.md`, section 4.7).
     BoxShadow(BoxShadow),
+    /// A picture laid on the frame, such as a picture of footage (`docs/spec/render-command.md`, section 4.8).
+    Picture(PlacedPicture),
+}
+
+/// A picture laid on the frame one pixel for one (`docs/spec/render-command.md`, section 4.8): `width` by `height` pixels of
+/// premultiplied red, green, blue and alpha, row by row from the top with no padding, with its top-left corner at the whole
+/// pixel nearest to `(x, y)`, halves up. Each pixel is laid over what is there by src-over. It is never scaled: a picture is
+/// brought to its size before it is placed. Under a map that is not a whole move it is drawn through the map.
+#[derive(Clone, Debug)]
+pub struct PlacedPicture {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Arc<Vec<u8>>,
+    pub x: f32,
+    pub y: f32,
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same
@@ -337,7 +352,7 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) => None,
+                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) | Mark::Picture(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {

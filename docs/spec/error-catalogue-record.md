@@ -82,3 +82,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0080` | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. |
 | `FS-0081` | An `<audio>` has a `media-start` at or past the end of its sound file. |
 | `FS-0084` | A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that has no `count`, words or a `<span>` in a `<text>` that counts, or a `<tween>` or `<set>` of `count` on a `<text>` without `count`. |
+| `FS-0085` | A `<video>` has no `width` or no `height`, or one below 2. |
+| `FS-0086` | A `<video>` has no `src`. |

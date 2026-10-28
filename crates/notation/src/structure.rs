@@ -70,6 +70,9 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
         if invalid(problems) > before {
             faulty.insert(node.id());
         }
+        if element == Element::Video {
+            video_needs(&read, spot_at(node.range().start), problems);
+        }
 
         // The child judged last, with the number of problems before it: a child that added one is faulty. Kept so, since
         // a child's judgement ends in several places.
@@ -327,6 +330,42 @@ fn clip_pair(read: &[Effective], element: Element, spot: Spot, problems: &mut Ve
             spot,
             format!("{} needs both start and duration, or neither", element.tag()),
         ));
+    }
+}
+
+/// What a `<video>` needs (`docs/spec/notation.md` sections 6.7 and 7.1): a `src`, and a `width` and a `height`, each a whole
+/// number of 2 or more, since footage is stretched to the box and has no size of its own there. One report on the line of the
+/// element for no `src`, one for each size not written, and one on the attribute's line for a size below 2. A size that is not
+/// a whole number is reported by the form check, and not again here. A value a style gives counts as written on the element.
+fn video_needs(read: &[Effective], spot: Spot, problems: &mut Vec<Found>) {
+    let written = |name: &str| read.iter().find(|attribute| !attribute.prefixed && attribute.name == name);
+    if written("src").is_none() {
+        problems.push(found(
+            Code::VideoSourceMissing,
+            spot,
+            "<video> needs the attribute `src`, the path of its file from the project folder".to_string(),
+        ));
+    }
+    for name in ["width", "height"] {
+        match written(name) {
+            None => problems.push(found(
+                Code::VideoSize,
+                spot,
+                format!("<video> needs the attribute `{name}`, a whole number of 2 or more: footage is stretched to its box"),
+            )),
+            Some(attribute) => {
+                if value::whole_number(&attribute.value).is_some_and(|size| size < 2) {
+                    problems.push(found(
+                        Code::VideoSize,
+                        attribute.spot,
+                        format!(
+                            "`{name}` of a <video> must be a whole number of 2 or more, not {}",
+                            shown(&attribute.value)
+                        ),
+                    ));
+                }
+            }
+        }
     }
 }
 

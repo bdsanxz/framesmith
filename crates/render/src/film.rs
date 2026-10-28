@@ -16,6 +16,8 @@ use mix::Mix;
 
 use timeline::Scene;
 
+use crate::footage::Sources;
+
 /// The quality `render.quality: standard` asks the encoder for, from 0 to 1 (decision D22).
 const STANDARD_QUALITY: f32 = 0.65;
 /// The most seconds between two key pictures (decision D22).
@@ -248,7 +250,7 @@ pub fn formats() -> format::Registry {
     formats
 }
 
-fn codecs() -> codec::Registry {
+pub(crate) fn codecs() -> codec::Registry {
     let mut codecs = codec::Registry::new();
     codecs.register(backend_os::BACKEND);
     codecs
@@ -353,6 +355,8 @@ fn make(
     let sound_bitrate = audio_bitrate
         .checked_mul(1000)
         .ok_or_else(|| Failure::new(format!("a sound bit rate of {audio_bitrate} kbit/s is too large")))?;
+    // The footage is opened, and the first picture of each source decoded, before the encoder starts (section 4.8, rule 5).
+    let mut footage = Sources::open(scene).map_err(Failure::new)?;
     let rate = Rational::new(scene.fps(), 1);
     let setup = VideoEncoderSetup {
         codec: picture,
@@ -429,7 +433,7 @@ fn make(
     let mut configured = false;
     for number in 0..scene.frames() {
         let drawn = scene
-            .picture(number, renderer)
+            .picture_with(number, renderer, &mut footage)
             .map_err(|error| Failure::new(format!("frame {number}: {error}")))?;
         if let Some(marks) = marks.as_deref_mut() {
             marks.push(drawn.mark());

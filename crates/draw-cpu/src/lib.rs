@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use draw::{
     blur_weights, level, Background, Cut, DisplayList, Error, Filter, Frame, Glyph, GlyphPicture, GlyphRun, Group, Map, Mark, Outline,
-    Picture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
+    Picture, PlacedPicture, Renderer, ResolvedLayer, RingMark, Shadow, Step, TextMark, Turn,
 };
 use layout::Rect;
 use skrifa::instance::{LocationRef, Size};
@@ -84,6 +84,13 @@ fn draw_marks(bytes: &mut [u8], width: u32, height: u32, marks: &[Mark], map: Ma
             Mark::Ring(ring) => draw_ring(bytes, width, height, ring, map, region)?,
             Mark::Cut(cut) => draw_cut(bytes, width, height, cut, map, region)?,
             Mark::BoxShadow(shadow) => lay_faded(bytes, width, &box_shadow_layer(width, height, shadow, map)?, 1.0, region),
+            Mark::Picture(picture) => match map.whole_move() {
+                Some((across, down)) => lay_placed(bytes, width, height, picture, (across, down), region),
+                None => {
+                    let layer = placed_picture_layer(width, height, picture, map)?;
+                    composite(bytes, width, &layer, region);
+                }
+            },
         }
     }
     Ok(())
@@ -645,42 +652,106 @@ pub fn pictures_layer(width: u32, height: u32, text: &TextMark, map: Map, offset
     let mut context = RenderContext::new(width as u16, height as u16);
     let mut resources = Resources::new();
     for picture in &text.pictures {
-        if picture.width == 0 || picture.height == 0 {
-            continue;
-        }
-        if picture.width > u32::from(u16::MAX) || picture.height > u32::from(u16::MAX) {
-            return Err(Error::new(format!(
-                "a picture of {}x{} pixels cannot be drawn: a side is above {}",
-                picture.width,
-                picture.height,
-                u16::MAX
-            )));
-        }
-        let pixmap = Pixmap::from_parts(
-            picture.pixels.as_ref().clone(),
-            picture.width as u16,
-            picture.height as u16,
-            PixelMetadata {
-                may_have_transparency: true,
-                alpha_type: ImageAlphaType::AlphaPremultiplied,
-            },
-        );
-        let left = whole_pixel(picture.x + offset.0) as f64;
-        let top = whole_pixel(picture.y + offset.1) as f64;
-        context.set_transform(affine(map) * Affine::translate((left, top)));
-        context.set_paint(Image {
-            image: ImageSource::Pixmap(Arc::new(pixmap)),
-            sampler: ImageSampler {
-                quality: ImageQuality::Medium,
-                ..ImageSampler::default()
-            },
-        });
-        context.fill_rect(&kurbo::Rect::new(0.0, 0.0, f64::from(picture.width), f64::from(picture.height)));
+        paint_picture(
+            &mut context,
+            (picture.width, picture.height, &picture.pixels),
+            (picture.x + offset.0, picture.y + offset.1),
+            map,
+        )?;
     }
     context.flush();
     let mut layer = Pixmap::new(width as u16, height as u16);
     context.render(&mut layer, &mut resources);
     Ok(layer.data_as_u8_slice().to_vec())
+}
+
+/// A placed picture drawn through `map`, as one layer of premultiplied pixels of the frame's size, by the same drawing as the
+/// colour pictures of a paragraph (`docs/spec/render-command.md`, section 4.7, rule 4).
+pub fn placed_picture_layer(width: u32, height: u32, picture: &PlacedPicture, map: Map) -> Result<Vec<u8>, Error> {
+    let mut context = RenderContext::new(width as u16, height as u16);
+    let mut resources = Resources::new();
+    paint_picture(
+        &mut context,
+        (picture.width, picture.height, &picture.pixels),
+        (picture.x, picture.y),
+        map,
+    )?;
+    context.flush();
+    let mut layer = Pixmap::new(width as u16, height as u16);
+    context.render(&mut layer, &mut resources);
+    Ok(layer.data_as_u8_slice().to_vec())
+}
+
+/// Paints one picture of premultiplied pixels into `context`, with its corner at the whole pixel nearest to `place`, through
+/// `map`, sampled bilinearly. A picture with no pixel paints nothing; one with a side above 65535 pixels is refused.
+fn paint_picture(
+    context: &mut RenderContext,
+    (width, height, pixels): (u32, u32, &Arc<Vec<u8>>),
+    place: (f32, f32),
+    map: Map,
+) -> Result<(), Error> {
+    if width == 0 || height == 0 {
+        return Ok(());
+    }
+    if width > u32::from(u16::MAX) || height > u32::from(u16::MAX) {
+        return Err(Error::new(format!(
+            "a picture of {width}x{height} pixels cannot be drawn: a side is above {}",
+            u16::MAX
+        )));
+    }
+    let pixmap = Pixmap::from_parts(
+        pixels.as_ref().clone(),
+        width as u16,
+        height as u16,
+        PixelMetadata {
+            may_have_transparency: true,
+            alpha_type: ImageAlphaType::AlphaPremultiplied,
+        },
+    );
+    let left = whole_pixel(place.0) as f64;
+    let top = whole_pixel(place.1) as f64;
+    context.set_transform(affine(map) * Affine::translate((left, top)));
+    context.set_paint(Image {
+        image: ImageSource::Pixmap(Arc::new(pixmap)),
+        sampler: ImageSampler {
+            quality: ImageQuality::Medium,
+            ..ImageSampler::default()
+        },
+    });
+    context.fill_rect(&kurbo::Rect::new(0.0, 0.0, f64::from(width), f64::from(height)));
+    Ok(())
+}
+
+/// Lays a placed picture over the frame's premultiplied pixels, moved by whole pixels, changing only the pixels of `region`:
+/// its top-left corner at the whole pixel nearest to its place, halves up, plus the move, and each pixel laid over what is
+/// there by src-over with the rounding of `divide_by_255` (`docs/spec/render-command.md`, section 4.7, rule 3).
+fn lay_placed(
+    bytes: &mut [u8],
+    width: u32,
+    height: u32,
+    picture: &PlacedPicture,
+    (across, down): (i64, i64),
+    (left, top, right, bottom): Region,
+) {
+    let corner_x = whole_pixel(picture.x) + across;
+    let corner_y = whole_pixel(picture.y) + down;
+    let row_length = picture.width as usize * 4;
+    let rows = (corner_y.max(i64::from(top)))..(corner_y + i64::from(picture.height)).min(i64::from(bottom).min(i64::from(height)));
+    let columns = (corner_x.max(i64::from(left)))..(corner_x + i64::from(picture.width)).min(i64::from(right).min(i64::from(width)));
+    for y in rows {
+        let line = (y - corner_y) as usize;
+        for x in columns.clone() {
+            let column = (x - corner_x) as usize;
+            let source = &picture.pixels[line * row_length + column * 4..][..4];
+            let at = (y as usize * width as usize + x as usize) * 4;
+            let destination = &mut bytes[at..at + 4];
+            let kept = 255 - u32::from(source[3]);
+            for channel in 0..4 {
+                let under = u32::from(destination[channel]) * kept;
+                destination[channel] = (u32::from(source[channel]) + divide_by_255(under)) as u8;
+            }
+        }
+    }
 }
 
 /// The glyphs of a paragraph, its outline and its colour pictures, as one layer of premultiplied pixels of the frame's size:

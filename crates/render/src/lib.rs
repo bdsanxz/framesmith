@@ -7,6 +7,7 @@
 //! reports of everything it refuses, before the first frame.
 
 mod film;
+mod footage;
 mod sound;
 
 pub use film::{
@@ -14,7 +15,7 @@ pub use film::{
     Refusal, Step, Written,
 };
 pub use sound::open_sounds;
-pub use timeline::{place_reports, place_reports_and_notes, sounds, PictureError, Scene, Sound};
+pub use timeline::{place_reports, place_reports_and_notes, sounds, Footage, FootageSource, PictureError, Scene, Sound};
 
 /// The codec registry a scene is made with: frx7's codecs with the system's backend registered, so that the emoji pictures of
 /// a font collection can be read (`docs/spec/text.md`, section 12.4, point 4). A program calls this once, where a command
@@ -24,3 +25,5 @@ pub fn system_codecs() -> codec::Registry {
     codecs.register(backend_os::BACKEND);
     codecs
 }
+
+pub use footage::Sources;
