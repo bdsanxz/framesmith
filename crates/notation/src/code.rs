@@ -339,6 +339,7 @@ impl Code {
             Code::BackgroundListLength => "FS-0065",
             Code::BackgroundSettingAlone => "FS-0066",
             Code::BorderNotInForm => "FS-0067",
+            Code::ShadowNotInForm => "FS-0070",
             Code::OutputNotWritten => "FS-0072",
             Code::SoundNoDuration => "FS-0076",
             Code::SoundMissing => "FS-0077",
@@ -346,7 +347,6 @@ impl Code {
             Code::SoundNotRead => "FS-0079",
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
-            Code::ShadowNotInForm => "FS-0070",
         }
     }
 
@@ -444,6 +444,7 @@ impl Code {
             Code::BackgroundListLength => "Write one entry for all the layers, or one for each layer in the order of `background`.",
             Code::BackgroundSettingAlone => "Write a `background` on the element, or remove the setting.",
             Code::BorderNotInForm => "Write the border as a width and a colour, such as `6 #ffffff`, or as a width, `double` and a colour, such as `9 double #ffffff`.",
+            Code::ShadowNotInForm => "Write the shadow as an offset across, an offset down, a blur and a colour, such as `10 10 8 #000000`.",
             Code::OutputNotWritten => {
                 "Give `--output` a path in a folder that can be written, or make the folder writable, then run the command again."
             }
@@ -453,7 +454,6 @@ impl Code {
             Code::SoundNotRead => "Convert the sound to one of the kinds the message lists, such as WAV of 16-bit samples.",
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
-            Code::ShadowNotInForm => "Write the shadow as an offset across, an offset down, a blur and a colour, such as `10 10 8 #000000`.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }
