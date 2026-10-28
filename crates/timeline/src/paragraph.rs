@@ -975,10 +975,10 @@ fn track_of(tree: &[Node], index: usize, prop: Prop, own: f64, clock: Clock) -> 
     let tweens = tweens_in(tree, index, origin);
     let mut owns = PROPS.map(Prop::own_value);
     owns[prop.index()] = own;
-    let [.., count, typed] = ElementMotion::build(index, &tweens, owns, clock.fps).tracks;
+    let built = ElementMotion::build(index, &tweens, owns, clock.fps);
     match prop {
-        Prop::Count => count,
-        Prop::Typed => typed,
+        Prop::Count => built.tracks[Prop::Count.index()].clone(),
+        Prop::Typed => built.tracks[Prop::Typed.index()].clone(),
         _ => None,
     }
 }

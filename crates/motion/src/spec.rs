@@ -80,10 +80,8 @@ impl Prop {
     pub fn own_value(self) -> f64 {
         match self {
             Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY | Prop::RotateX | Prop::RotateY | Prop::Count => 0.0,
-            Prop::Scale | Prop::ScaleX | Prop::Opacity => 1.0,
-            Prop::Typed => f64::INFINITY,
-            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY | Prop::RotateX | Prop::RotateY => 0.0,
             Prop::Scale | Prop::ScaleX | Prop::Opacity | Prop::Brightness => 1.0,
+            Prop::Typed => f64::INFINITY,
             Prop::Blur => 0.0,
         }
     }

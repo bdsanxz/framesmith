@@ -26,7 +26,7 @@ const CHOSEN: [(&str, &[u64]); 5] = [
 fn scene_of(fixture: &str) -> Scene {
     let folder = project_from_fixture("blur-and-brightness-tweens", fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 /// Asserts that each pixel `(x, y, colour)` of frame `number` of `fixture`, read from its checked-in picture, lies within
