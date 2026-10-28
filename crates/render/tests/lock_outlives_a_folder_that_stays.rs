@@ -25,7 +25,7 @@ fn stuck_folder(folder: &Path) -> std::path::PathBuf {
 #[test]
 fn a_run_whose_folder_cannot_be_removed_keeps_its_lock_file() {
     let project = project_from_fixture("lock-outlives-folder", "run-end", "first-render");
-    let scene = Scene::from_project(&Project::open(&project).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&Project::open(&project).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let base = scratch("lock-outlives-folder", "run-end-output");
     let output = base.join("film.mp4");
     let folder = staging_folder_of(&output);

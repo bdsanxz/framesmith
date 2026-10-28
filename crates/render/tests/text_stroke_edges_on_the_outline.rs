@@ -24,7 +24,7 @@ fn stem_rows() -> impl Iterator<Item = usize> {
 fn frame_rows() -> Vec<Vec<u8>> {
     let folder = project_copied_from_fixture("text-stroke-edges", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let picture = scene.picture(0, &mut CpuRenderer).unwrap();
     let width = picture.width() as usize;
     picture

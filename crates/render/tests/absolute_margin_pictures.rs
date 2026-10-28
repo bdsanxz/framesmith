@@ -50,7 +50,7 @@ const FIXTURE_BOXES: [Shown; 3] = [(14, 34, 18, 38, OCHRE), (80, 96, 40, 54, TEA
 
 fn scene_of(folder: &std::path::Path) -> Scene {
     let project = Project::open(folder).unwrap();
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 /// Draws frames 0 and 9 of a composition of 96 by 54 and holds each to the picture worked out for it.

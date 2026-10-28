@@ -21,7 +21,7 @@ use render::Scene;
 fn pixel_at(x: usize, y: usize) -> (u8, u8, u8) {
     let folder = project_copied_from_fixture("text-stroke-colour-laid-by-rule", "motion-text", "motion-text");
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let picture = scene.picture(0, &mut CpuRenderer).unwrap();
     let at = (y * picture.width() as usize + x) * 4;
     let pixels = picture.pixels();

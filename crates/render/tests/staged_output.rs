@@ -17,7 +17,7 @@ const EARLIER: &[u8] = b"an earlier film, kept until the new one is whole";
 
 fn scene_of(name: &str) -> Scene {
     let folder = project_from_fixture("staged-output", name, "first-render");
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 /// The names of the files in a folder, in order.

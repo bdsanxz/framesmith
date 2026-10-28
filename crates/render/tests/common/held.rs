@@ -13,7 +13,7 @@ use render::Scene;
 pub fn drawn(group: &str, fixture: &str, number: u64) -> Picture {
     let folder = project_copied_from_fixture(group, fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(number, &mut CpuRenderer).unwrap()
 }
 

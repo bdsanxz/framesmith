@@ -23,7 +23,7 @@ fn frame_rows() -> (usize, Vec<Vec<u8>>) {
         "text-baseline-whole-pixel",
     );
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let picture = scene.picture(0, &mut CpuRenderer).unwrap();
     let width = picture.width() as usize;
     let rows = picture
