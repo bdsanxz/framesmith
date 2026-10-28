@@ -1465,6 +1465,12 @@ fn read_shape(node: &Node) -> (Read, Vec<Refusal>) {
             _ => read_place(node, attribute, &mut written, &mut absolute, &mut margin, &mut refusals),
         }
     }
+    // A shape with no `width` and no `height` has no size and shows nothing (`docs/spec/shape.md`, section 10):
+    // it is not sized as a box is, as large as its parent.
+    if written.width.is_none() && written.height.is_none() {
+        written.width = Some(Amount::Pixels(0.0.into()));
+        written.height = Some(Amount::Pixels(0.0.into()));
+    }
     // The border, the corner radius and the cut of a shape, as of a box (`docs/spec/box-edges.md`); a shape takes no
     // `overflow`, so it never cuts.
     let edges = match read_edges(node) {
