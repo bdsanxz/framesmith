@@ -46,6 +46,9 @@ fn a_hard_shadow_shows_only_outside_the_box_where_the_moved_box_lies() {
     );
     assert_eq!(pixel(&layer, 40, 15, 25), [0, 0, 0, 255], "below the box, in the moved box's span");
     assert_eq!(pixel(&layer, 40, 25, 25), [0, 0, 0, 255], "the corner the two spans share");
+    // The edge is hard: the last pixel inside the moved box is full, the first outside it is clear. Any blur fades both.
+    assert_eq!(pixel(&layer, 40, 29, 15), [0, 0, 0, 255], "the last pixel inside the moved box");
+    assert_eq!(pixel(&layer, 40, 30, 15), [0, 0, 0, 0], "the first pixel beyond the moved box");
 }
 
 #[test]
