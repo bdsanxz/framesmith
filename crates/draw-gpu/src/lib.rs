@@ -15,7 +15,7 @@ use draw::{
     blur_weights, Background, Colour, Cut, DisplayList, Error, Filter, Frame, GlyphPicture, Gradient, Group, Map, Mark, Picture, Renderer,
     Rgba, Ring, RingMark, Step, TextMark, Turn,
 };
-use draw_cpu::{background_layer, outline_layer, pictures_layer, shadow_layer};
+use draw_cpu::{background_layer, outline_layer, pictures_layer, placed_picture_layer, shadow_layer};
 use gpu::{wgpu, Card};
 use layout::Rect;
 
@@ -718,6 +718,26 @@ impl CardRenderer {
                     let layer = draw_cpu::box_shadow_layer(plan.width, plan.height, shadow, map)?;
                     self.push_layer(plan, target, scissor, layer)?;
                 }
+                // A picture moved by whole pixels is laid one texel for one at its whole pixel (section 12); under any other
+                // map it is drawn through the map on the processor and laid as a layer, as a paragraph's pictures are.
+                Mark::Picture(picture) => match map.whole_move() {
+                    Some((across, down)) => {
+                        let texels = GlyphPicture {
+                            width: picture.width,
+                            height: picture.height,
+                            pixels: picture.pixels.clone(),
+                            x: 0.0,
+                            y: 0.0,
+                        };
+                        let left = (whole_pixel(picture.x) + across) as f32;
+                        let top = (whole_pixel(picture.y) + down) as f32;
+                        self.push_picture(plan, target, scissor, &texels, (left, top))?;
+                    }
+                    None => {
+                        let layer = placed_picture_layer(plan.width, plan.height, picture, map)?;
+                        self.push_layer(plan, target, scissor, layer)?;
+                    }
+                },
             }
         }
         Ok(())

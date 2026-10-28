@@ -1,4 +1,4 @@
 <composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
 <!-- Support table S46: A filter on footage. -->
-<video src="a.mp4" filter="sepia"/>
+<video src="a.mp4" width="2" height="2" filter="sepia"/>
 </composition>

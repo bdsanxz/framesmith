@@ -1,4 +1,4 @@
 <composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
 <!-- Support table S45: Footage started inside its source. -->
-<video src="a.mp4" media-start="1"/>
+<video src="a.mp4" width="2" height="2" media-start="1"/>
 </composition>

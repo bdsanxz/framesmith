@@ -264,7 +264,7 @@ fn a_src_is_resolved_from_the_project_folder_and_not_from_the_compositions_folde
     let intro = write(
         &dir,
         "scenes/intro.xml",
-        r#"<composition version="1" width="640" height="360" duration="2"><image src="logo.bin"/><video src="media/clip.bin"/></composition>"#,
+        r#"<composition version="1" width="640" height="360" duration="2"><image src="logo.bin"/><video src="media/clip.bin" width="2" height="2"/></composition>"#,
     );
     let project = Project::open(&intro).unwrap();
     assert_eq!(project.composition(), "scenes/intro.xml");

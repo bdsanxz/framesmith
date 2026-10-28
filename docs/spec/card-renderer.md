@@ -238,3 +238,11 @@ The layers of a box's background (`render-command.md` section 4.6) are drawn by 
 3. **Agreement.** The card's picture agrees with the processor's within section 4. The two differ by the rounding of 32-bit against 64-bit arithmetic and of the blend.
 4. **Tests.** `crates/render/tests/background_colours.rs` (each layer kind, tiles, a hard edge and a fade to transparent, at worked colours within 4 levels) and `crates/render/tests/background_fixtures_on_the_card.rs` (the background fixtures at their chosen times). Reference machine only.
 
+## 12. Pictures on the card
+
+ A placed picture (`render-command.md` section 4.8; `draw::Mark::Picture`), such as a picture of footage, is drawn as the colour pictures of a paragraph are (section 9.9).
+
+1. **Whole pixels.** Moved by whole pixels, the picture is one texture of its own size with its premultiplied pixels as they are, laid one texel for one by `picture_pipeline` with its top-left corner at its whole pixel, by src-over. An opaque picture gives the processor's bytes.
+2. **Under any other map.** The picture is drawn through the map by the processor into a picture of the frame's size (`draw_cpu::placed_picture_layer`) and laid by the card as section 10.4 lays the emoji of a text under a map.
+3. **Agreement.** The card's picture agrees with the processor's within section 4.
+4. **Tests.** `crates/draw-gpu/tests/placed_pictures_on_the_card.rs` and `crates/render/tests/footage_on_the_card.rs`. Reference machine only.

@@ -58,6 +58,8 @@ Rows are in the order they are written. Everything else in the table of section 
 | debug | `render::film` | `encoder started` | `hardware` (whether the machine's hardware encodes) | The system's encoder was started |
 | debug | `render::film` | `sound encoder started` | `sample_frames` (the length of the mix), `bitrate` (bits a second) | The system's AAC encoder was started for the sound track (`render-command.md` section 5.2) |
 | debug | `render::film` | `sound encoder finished` | none | The AAC encoder gave its last packets |
+| debug | `render::footage` | `decoder started` | `source` (the source's number in the scene, from 0), `pictures` (how many it holds) | The system's decoder was opened for one footage source, before the first frame (`render-command.md` section 4.7); never its path |
+| debug | `render::footage` | `decoder finished` | `source` | The decoder of that source was closed, after the last frame |
 | info | `render::film` | `render finished` | `frames`, `bytes` | The file is complete |
 | trace | `cli` | `report` | `file` (the name of the file, as the report prints it), `code`, `line` | Once for each report of an invalid or unsupported project, in the order printed |
 | info, warn or error | `cli` | `command finished` | `outcome`, `exit` (the exit code), and `problems` (how many reports) for `invalid` and `unsupported`, and `code` for `no project` with `problems` when the project file had reports before it, `frames` for `rendered`, `code` for `video not made` and `refused` | Last line of every run |

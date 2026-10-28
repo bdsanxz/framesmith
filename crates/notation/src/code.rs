@@ -190,11 +190,15 @@ pub enum Code {
     /// A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that
     /// has no `count`, words or a `<span>` in a `<text>` that counts, or a tween or set of `count` on a text without it.
     CountNotWritten,
+    /// A `<video>` has no `width` or no `height`, or one below 2.
+    VideoSize,
+    /// A `<video>` has no `src`.
+    VideoSourceMissing,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 76] = [
+    pub const ALL: [Code; 78] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -271,6 +275,8 @@ impl Code {
         Code::SoundDamaged,
         Code::SoundStartPastEnd,
         Code::CountNotWritten,
+        Code::VideoSize,
+        Code::VideoSourceMissing,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -352,6 +358,8 @@ impl Code {
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
             Code::CountNotWritten => "FS-0084",
+            Code::VideoSize => "FS-0085",
+            Code::VideoSourceMissing => "FS-0086",
         }
     }
 
@@ -462,6 +470,8 @@ impl Code {
             Code::CountNotWritten => {
                 "Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists."
             }
+            Code::VideoSize => "Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more.",
+            Code::VideoSourceMissing => "Write `src` on the <video>: the path of its file from the project folder.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

@@ -28,6 +28,11 @@ fn checked_in() -> Vec<(String, Vec<(u64, PathBuf)>)> {
         if !expected.is_dir() {
             continue;
         }
+        // A fixture that shows footage needs its pictures decoded, which the timeline leaves to `render`: its pictures are
+        // held to the byte by `crates/render/tests/footage_checked_in.rs`.
+        if fs::read_to_string(folder.join("composition.xml")).is_ok_and(|text| text.contains("<video")) {
+            continue;
+        }
         let mut frames = Vec::new();
         for entry in fs::read_dir(&expected).unwrap() {
             let path = entry.unwrap().path();

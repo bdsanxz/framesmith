@@ -61,7 +61,9 @@ fn lines_of(folder: &Path) -> usize {
                 .iter()
                 .flat_map(|run| run.glyphs.iter().map(|glyph| (glyph.y * 1000.0) as i64))
                 .collect(),
-            Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) => Vec::new(),
+            Mark::Step(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) | Mark::Picture(_) => {
+                Vec::new()
+            }
         })
         .collect();
     heights.sort_unstable();

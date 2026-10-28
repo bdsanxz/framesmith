@@ -72,7 +72,6 @@ pub enum Unsupported {
     PictureMotion = 64,
     SpanWindowAndDressing = 65,
     ItemFormsOfLeaf = 66,
-    Footage = 67,
     SpanRoomForm = 68,
     SpanRoomWithoutPlace = 69,
     TextPercentInFlow = 70,
@@ -84,7 +83,7 @@ pub enum Unsupported {
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 71] = [
+    pub const ALL: [Unsupported; 70] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -148,7 +147,6 @@ impl Unsupported {
         Unsupported::PictureMotion,
         Unsupported::SpanWindowAndDressing,
         Unsupported::ItemFormsOfLeaf,
-        Unsupported::Footage,
         Unsupported::SpanRoomForm,
         Unsupported::SpanRoomWithoutPlace,
         Unsupported::TextPercentInFlow,
@@ -234,7 +232,6 @@ impl Unsupported {
             Unsupported::PictureMotion => "So far footage and a shown composition are drawn in their place only",
             Unsupported::SpanWindowAndDressing => "So far a span is drawn for its text's whole life and in its plain ink only",
             Unsupported::ItemFormsOfLeaf => "So far these are taken on boxes and texts only",
-            Unsupported::Footage => "Footage is not read or drawn yet",
             Unsupported::SpanRoomForm => "A span's room is a number of pixels, 0 or more",
             Unsupported::SpanRoomWithoutPlace => "The room has no place in the line there",
             Unsupported::TextPercentInFlow => "Inside a flow a text is measured in whole pixels",
@@ -311,7 +308,6 @@ impl Unsupported {
             Unsupported::PictureMotion => "Sprint 1, the order picture-motion",
             Unsupported::SpanWindowAndDressing => "Sprint 1, the order span-forms",
             Unsupported::ItemFormsOfLeaf => "Sprint 1, the order item-forms",
-            Unsupported::Footage => "Sprint 1, T073",
             Unsupported::SpanRoomForm => "Not assigned",
             Unsupported::SpanRoomWithoutPlace => "Not assigned",
             Unsupported::TextPercentInFlow => "Not assigned",

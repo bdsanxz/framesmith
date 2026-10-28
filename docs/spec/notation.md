@@ -1090,7 +1090,7 @@ Fifteen points were recorded as open: ten the earlier text was "not sure" about 
 | For | Kinds read |
 |---|---|
 | `<image src>` | PNG and JPEG |
-| `<video src>` | files of the MP4 family holding H.264 or HEVC pictures |
+| `<video src>` | files of the MP4 family, `.mp4` and `.mov`, holding H.264 or HEVC pictures |
 | `<audio src>` | WAV and AIFF of linear PCM (one, two or six channels), MP3 (one or two) and AAC-LC in an MP4 file, `.m4a` (one or two) |
 
 A file of a kind not on the list is unsupported: `check` lists it with the element's line, the file and the kinds read, exits with 2, and `render` stops before the first frame and writes no file. A file that is missing or damaged is invalid (exit code 1). The first picture of every video is decoded when the video is looked at.
@@ -1336,7 +1336,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S64 | Movement of footage and of a shown composition: `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `transform-origin`, `rotate-x`, `rotate-y`, `perspective` on `<video>` or `<composition src>`, `opacity` on `<composition src>`, or a `<tween>` or `<set>` inside them | Such an attribute on `<video>` or `<composition src>`, or a `<tween>` or `<set>` inside one | So far footage and a shown composition are drawn in their place only | Sprint 1, the order picture-motion |
 | S65 | A span's window and dressing: `start`, `duration`, `text-shadow`, `text-stroke`, `font-variant-numeric` on `<span>`; `white-space` other than `normal` and `text-transform` other than `none` on `<span>` | Any of those attributes on `<span>`, the last two with such a value | So far a span is drawn for its text's whole life and in its plain ink only | Sprint 1, the order span-forms |
 | S66 | The item forms of a video or a shown composition: `flex-grow`, `max-width`, `align-self` on `<video>` or `<composition src>` | Any of those attributes on such an element | So far these are taken on boxes and texts only | Sprint 1, the order item-forms |
-| S67 | Footage: `<video>` | The element `<video>` | Footage is not read or drawn yet | Sprint 1, T073 |
 | S68 | A margin or a padding of a span as a percentage, or a negative margin of a span | `margin` or `padding` with `%` on `<span>`, or a `margin` of `<span>` below 0 | A span's room is a number of pixels, 0 or more | Not assigned |
 | S69 | Room of a span with no word to hold it, or at a line break after a character that is not a space or a hyphen | A `margin` or `padding` of a `<span>` in a `<text>` with no word, or one that falls where the line may break before the span after such a character | The room has no place in the line there | Not assigned |
 | S70 | A percentage in the size or the room of a text inside a flow | `width`, `height`, `padding` or `margin` with `%` on a `<text>` that is an item of a row, a column or a set of columns | Inside a flow a text is measured in whole pixels | Not assigned |

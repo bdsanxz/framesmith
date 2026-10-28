@@ -122,6 +122,8 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0080` | invalid | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. | Replace the sound file with a copy that is not damaged. |
 | `FS-0081` | invalid | An `<audio>` has a `media-start` at or past the end of its sound file. | Write a `media-start` below the length of the sound file, or leave it out to start at the beginning. |
 | `FS-0084` | invalid | A number that counts is not written as the notation gives it: a `count-format` that is not one of its forms or that has no `count`, words or a `<span>` in a `<text>` that counts, or a `<tween>` or `<set>` of `count` on a `<text>` without `count`. | Write the counting text as the notation's section 7.12 gives it: `count` on a `<text>` that holds no words, with `count-format` in one of the forms the message lists. |
+| `FS-0085` | invalid | A `<video>` has no `width` or no `height`, or one below 2. | Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more. |
+| `FS-0086` | invalid | A `<video>` has no `src`. | Write `src` on the <video>: the path of its file from the project folder. |
 
 Notes on the rows:
 
@@ -151,6 +153,7 @@ Notes on the rows:
 
 - `FS-0070` was added with shadows (`render-command.md` section 4.7, rule 8): a `box-shadow` or `drop-shadow` that is not in the form `X Y BLUR COLOUR`. It is of the kind invalid, reported on the line of the attribute. It is a new code, not a wider meaning of `FS-0039` (a word out of a list) or `FS-0052` (a text attribute's form), since a meaning is never changed.
 - `FS-0084` was added with the numbers that count (`notation.md` section 7.12; `text.md` section 7.1): the four ways of writing a counting text that the notation reports, other than `count` or `count-format` on an element that is not a `<text>`, which is `FS-0030` with the message of the notation's section 13. It is of the kind invalid: the form is written wrongly, not one this version leaves undrawn.
+- `FS-0085` and `FS-0086` were added with the footage (`render-command.md` section 4.8; `notation.md` sections 6.7 and 7.1): a `<video>` must be given both sizes and a file, since footage is stretched to its box. They are of the kind invalid, as `FS-0006` (the root's size) is, and are new codes rather than wider meanings of `FS-0034` or `FS-0049`, whose meanings are a length and a font's file. `FS-0085` is on the element's line for a size not written and on the attribute's line for one below 2; `FS-0086` is on the element's line.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 
 ## 5. Keeping the list

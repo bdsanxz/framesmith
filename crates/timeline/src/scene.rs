@@ -1,11 +1,12 @@
 //! The scene: the root's canvas, the boxes in it and the compositions shown from other files, as far
 //! as this version draws them (`docs/spec/render-command.md` section 3), and the frames drawn from it.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use draw::{
-    Background, BoxShadow, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark,
-    Picture, Renderer, Rounded, Shadow, Step, TextMark,
+    Background, BoxShadow, Colour, Cut, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark,
+    Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Unsupported, Workers};
@@ -70,6 +71,27 @@ const NO_EDGES: Edges = Edges {
     border: None,
     cut: false,
 };
+/// What a `<video>` takes in this version (`docs/spec/render-command.md`, section 4.8): its id and class, its file, its size,
+/// its place, its clip, its corners and its look.
+const VIDEO_TAKES: [&str; 17] = [
+    "id",
+    "class",
+    "src",
+    "width",
+    "height",
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "position",
+    "margin",
+    "start",
+    "duration",
+    "border-radius",
+    "opacity",
+    "blur",
+    "brightness",
+];
 
 /// What a `<composition src>` takes: its id and class, its file, its clip and its place (`docs/spec/render-command.md`
 /// section 3). Its size is its file's, so `width` and `height` are not taken.
@@ -197,11 +219,27 @@ struct PlacedText {
     line: u32,
 }
 
-/// A box or a paragraph that is placed, in document order: the order its marks are drawn in.
+/// A `<video>` that is placed (`docs/spec/render-command.md`, section 4.8): its slot, whose rectangle is the size its pictures
+/// are brought to, the rectangle it is cut to (as a box is), and the number of its source in the scene's list.
+#[derive(Clone, Debug, PartialEq)]
+struct PlacedFootage {
+    slot: Slot,
+    clip: Option<Rect>,
+    source: usize,
+    /// The `opacity` the `<video>` writes, 1 when it writes none (`docs/spec/render-command.md`, section 4.8).
+    opacity: f64,
+    /// The `blur` and `brightness` the `<video>` writes, none when it writes neither.
+    filter: Filter,
+    /// The `border-radius` the `<video>` writes, 0 when it writes none: the footage is cut to the rounded box.
+    radius: f64,
+}
+
+/// A box, a paragraph or footage that is placed, in document order: the order its marks are drawn in.
 #[derive(Clone, Debug, PartialEq)]
 enum Entry {
     Box(Placed),
     Text(Box<PlacedText>),
+    Footage(PlacedFootage),
 }
 
 impl Entry {
@@ -210,7 +248,43 @@ impl Entry {
         match self {
             Entry::Box(placed) => placed.slot.window,
             Entry::Text(text) => text.slot.window,
+            Entry::Footage(footage) => footage.slot.window,
         }
+    }
+}
+
+/// A file of footage that the scene shows (`docs/spec/render-command.md`, section 4.8): its `src` as written, the path of the
+/// machine it names, and the composition file and the line of the first `<video>` that shows it. Two `<video>`s that name one
+/// path share one source.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FootageSource {
+    pub written: String,
+    pub path: PathBuf,
+    pub file: String,
+    pub line: u32,
+}
+
+/// What gives the pictures of footage (`docs/spec/render-command.md`, section 4.8): the timeline names the source, the
+/// picture and the size, and the render decodes, converts and sizes it through frx7. A source is named by its number in
+/// [`Scene::sources`].
+pub trait Footage {
+    /// How many pictures the source has.
+    fn count(&mut self, source: usize) -> Result<u64, String>;
+    /// The picture of the source with this number, from 0 in the order they are shown, brought to `width` by `height`: that
+    /// many pixels of premultiplied red, green, blue and alpha, row by row with no padding.
+    fn picture(&mut self, source: usize, number: u64, size: (u32, u32)) -> Result<Arc<Vec<u8>>, String>;
+}
+
+/// The footage of a scene that shows none: it is never asked for a picture.
+struct NoFootage;
+
+impl Footage for NoFootage {
+    fn count(&mut self, _source: usize) -> Result<u64, String> {
+        Err("the frame shows footage, and no source of its pictures was given".to_string())
+    }
+
+    fn picture(&mut self, _source: usize, _number: u64, _size: (u32, u32)) -> Result<Arc<Vec<u8>>, String> {
+        Err("the frame shows footage, and no source of its pictures was given".to_string())
     }
 }
 
@@ -227,6 +301,8 @@ pub struct Scene {
     movers: Vec<Mover>,
     /// The sounds of the root, in document order.
     sounds: Vec<Sound>,
+    /// The files of footage the scene shows, each once.
+    sources: Vec<FootageSource>,
 }
 
 /// Why a picture was not made.
@@ -236,6 +312,8 @@ pub enum PictureError {
     NoSuchFrame { number: u64, frames: u64 },
     /// The renderer could not draw the frame.
     Renderer(draw::Error),
+    /// A picture of footage could not be given: the source as written, and the reason.
+    Footage { written: String, reason: String },
 }
 
 impl std::fmt::Display for PictureError {
@@ -245,6 +323,7 @@ impl std::fmt::Display for PictureError {
                 write!(f, "there is no frame {number}: the frames are numbered from 0 to {}", frames - 1)
             }
             PictureError::Renderer(error) => write!(f, "{error}"),
+            PictureError::Footage { written, reason } => write!(f, "`{written}`: {reason}"),
         }
     }
 }
@@ -258,7 +337,7 @@ impl Scene {
     /// of the file.
     pub fn from_project(project: &Project, codecs: &codec::Registry) -> Result<Scene, Vec<Report>> {
         let mut reports = settings(project);
-        let (entries, movers, found) = walk(project, false, codecs);
+        let (entries, movers, sources, found) = walk(project, false, codecs);
         reports.extend(found);
         if !reports.is_empty() {
             return Err(reports);
@@ -281,12 +360,19 @@ impl Scene {
             entries,
             movers,
             sounds: sound::gather(project, project.tree().nodes()).0,
+            sources,
         })
     }
 
     /// The sounds of the film, each placed to the sample, in document order (`docs/spec/sound.md`).
     pub fn sounds(&self) -> &[Sound] {
         &self.sounds
+    }
+
+    /// The files of footage the scene shows, each once, in the order they are first shown; a [`Footage`] is asked for a
+    /// source by its number in this list.
+    pub fn sources(&self) -> &[FootageSource] {
+        &self.sources
     }
 
     /// The frame's width in pixels.
@@ -319,7 +405,7 @@ impl Scene {
     pub fn first_text(&self) -> Option<(&str, u32)> {
         self.entries.iter().find_map(|entry| match entry {
             Entry::Text(text) => Some((text.file.as_str(), text.line)),
-            Entry::Box(_) => None,
+            Entry::Box(_) | Entry::Footage(_) => None,
         })
     }
 
@@ -338,6 +424,12 @@ impl Scene {
     /// for before. A box is drawn in the frames of its window and in no other, so it appears and disappears only with
     /// its window (`docs/spec/render-command.md`, section 4.2).
     pub fn frame(&self, number: u64) -> Result<Frame, PictureError> {
+        self.frame_with(number, &mut NoFootage)
+    }
+
+    /// The marks that draw frame `number`, as [`Scene::frame`] gives them, with the pictures of the footage the frame shows
+    /// taken from `footage` (`docs/spec/render-command.md`, section 4.8).
+    pub fn frame_with(&self, number: u64, footage: &mut dyn Footage) -> Result<Frame, PictureError> {
         if number >= self.frames {
             return Err(PictureError::NoSuchFrame {
                 number,
@@ -345,7 +437,7 @@ impl Scene {
             });
         }
         let time = Time::of_frame(number as i64, self.fps);
-        let marks = self.marks(0..self.entries.len(), &self.movers, number, time, true);
+        let marks = self.marks(0..self.entries.len(), &self.movers, number, time, true, footage)?;
         Ok(Frame {
             width: self.width,
             height: self.height,
@@ -357,7 +449,15 @@ impl Scene {
     /// The marks of the entries in `range` at frame `number`, at `time`, with the elements that move among them (`movers`, in
     /// document order) wrapped in groups (`docs/spec/timeline.md` section 5). With `clipped`, a mark is cut to the canvas it
     /// stands on; inside a group that moves it is not, and the group is cut instead.
-    fn marks(&self, range: std::ops::Range<usize>, movers: &[Mover], number: u64, time: Time, clipped: bool) -> Vec<Mark> {
+    fn marks(
+        &self,
+        range: std::ops::Range<usize>,
+        movers: &[Mover],
+        number: u64,
+        time: Time,
+        clipped: bool,
+        footage: &mut dyn Footage,
+    ) -> Result<Vec<Mark>, PictureError> {
         let mut marks = Vec::new();
         let mut index = range.start;
         let mut next = 0;
@@ -367,9 +467,9 @@ impl Scene {
                 let inner = &movers[next + 1..inner_end];
                 let (map, opacity, turn) = mover.at(time);
                 if map.is_identity() && opacity == 1.0 && turn.is_none() && mover.filter.is_none() && mover.shadow.is_none() {
-                    marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped));
+                    marks.extend(self.marks(mover.first..mover.end, inner, number, time, clipped, footage)?);
                 } else if opacity > 0.0 {
-                    let held = self.marks(mover.first..mover.end, inner, number, time, false);
+                    let held = self.marks(mover.first..mover.end, inner, number, time, false, footage)?;
                     if !held.is_empty() {
                         marks.push(Mark::Group(Group {
                             map,
@@ -393,7 +493,7 @@ impl Scene {
                     // The children of a box that cuts are drawn inside its cut, with the elements that move among them.
                     let inner_end = next + movers[next..].iter().take_while(|inner| inner.first < end).count();
                     if entry.window().contains(number) {
-                        let children = self.marks(index..end, &movers[next..inner_end], number, time, clipped);
+                        let children = self.marks(index..end, &movers[next..inner_end], number, time, clipped, footage)?;
                         marks.extend(box_marks(placed, clipped, children));
                     }
                     index = end;
@@ -414,15 +514,99 @@ impl Scene {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
                     other => other,
                 }),
+                Entry::Footage(placed) => self.footage_mark(placed, number, clipped, footage)?,
             };
             marks.extend(mark);
         }
-        marks
+        Ok(marks)
+    }
+
+    /// The picture of footage on frame `number` (`docs/spec/render-command.md`, section 4.7, rules 2 to 4): the source picture
+    /// numbered from the first frame of its window, the last one holding past the source's end, at the size of its box and
+    /// with its corner at the box's, cut to its canvas when `clipped`. A box of no size shows nothing.
+    fn footage_mark(
+        &self,
+        placed: &PlacedFootage,
+        number: u64,
+        clipped: bool,
+        footage: &mut dyn Footage,
+    ) -> Result<Option<Mark>, PictureError> {
+        let rect = placed.slot.rect;
+        if rect.width == 0 || rect.height == 0 {
+            return Ok(None);
+        }
+        let source = &self.sources[placed.source];
+        let failed = |reason: String| PictureError::Footage {
+            written: source.written.clone(),
+            reason,
+        };
+        let count = footage.count(placed.source).map_err(failed)?;
+        if count == 0 {
+            return Err(failed("the file holds no pictures".to_string()));
+        }
+        let shown = (number - placed.slot.window.first).min(count - 1);
+        let pixels = footage.picture(placed.source, shown, (rect.width, rect.height)).map_err(failed)?;
+        let picture = Mark::Picture(PlacedPicture {
+            width: rect.width,
+            height: rect.height,
+            pixels,
+            x: rect.left as f32,
+            y: rect.top as f32,
+        });
+        // The look the `<video>` writes is drawn as on any element: faded and filtered as one picture
+        // (`docs/spec/render-command.md`, section 4.8). At an opacity of 0 nothing is drawn.
+        if placed.opacity <= 0.0 {
+            return Ok(None);
+        }
+        let marked = if placed.opacity == 1.0 && placed.filter.is_none() {
+            picture
+        } else {
+            Mark::Group(Group {
+                map: Map::IDENTITY,
+                opacity: placed.opacity,
+                clip: None,
+                marks: vec![picture],
+                turn: None,
+                filter: placed.filter,
+                shadow: None,
+            })
+        };
+        // Round corners cut the footage to the rounded box, as of a box (`docs/spec/box-edges.md`, section 3).
+        let marked = match Rounded::of_box(rect, placed.radius) {
+            Some(shape) if shape.radius > 0.0 => Mark::Cut(Cut {
+                shape,
+                marks: vec![marked],
+                own: None,
+            }),
+            _ => marked,
+        };
+        Ok(match placed.clip.filter(|_| clipped) {
+            None => Some(marked),
+            Some(clip) => {
+                let held = intersect(rect, clip);
+                (held.width > 0 && held.height > 0).then_some(Mark::Group(Group {
+                    map: Map::IDENTITY,
+                    opacity: 1.0,
+                    clip: Some(held),
+                    marks: vec![marked],
+                    turn: None,
+                    filter: Filter::NONE,
+                    shadow: None,
+                }))
+            }
+        })
     }
 
     /// Draws frame `number` with `renderer`.
     pub fn picture(&self, number: u64, renderer: &mut dyn Renderer) -> Result<Picture, PictureError> {
         renderer.draw_frame(&self.frame(number)?).map_err(PictureError::Renderer)
+    }
+
+    /// Draws frame `number` with `renderer`, with the pictures of its footage taken from `footage`.
+    pub fn picture_with(&self, number: u64, renderer: &mut dyn Renderer, footage: &mut dyn Footage) -> Result<Picture, PictureError> {
+        renderer
+            .draw_frame(&self.frame_with(number, footage)?)
+            .map_err(PictureError::Renderer)
     }
 }
 
@@ -534,6 +718,7 @@ fn takes(node: &Node, name: &str) -> bool {
     }
     match node.element() {
         Element::Text => TEXT_TAKES.contains(&name),
+        Element::Video => VIDEO_TAKES.contains(&name),
         _ => BOX_TAKES.contains(&name) || TEXT_ATTRIBUTES.contains(&name),
     }
 }
@@ -546,7 +731,7 @@ fn takes(node: &Node, name: &str) -> bool {
 /// what is drawn: `check` judges the forms of a place, the attributes that a style gives and the text forms, and
 /// does not judge the rest (`docs/spec/check-command.md`, sections 3b and 3c; `docs/spec/text.md`, section 9).
 pub fn place_reports(project: &Project, codecs: &codec::Registry) -> Vec<Report> {
-    walk(project, true, codecs).2
+    walk(project, true, codecs).3
 }
 
 /// The reports of [`place_reports`], and the notes that `check` prints (`docs/spec/check-command.md`, section 1): one for
@@ -554,7 +739,7 @@ pub fn place_reports(project: &Project, codecs: &codec::Registry) -> Vec<Report>
 /// `<text>`, which names the first such character (`docs/spec/text.md`, section 2.4, point 3).
 pub fn place_reports_and_notes(project: &Project, codecs: &codec::Registry) -> (Vec<Report>, Vec<String>) {
     let mut reports = settings(project);
-    let (entries, _, found) = walk(project, false, codecs);
+    let (entries, _, _, found) = walk(project, false, codecs);
     reports.extend(found);
     let mut notes: Vec<String> = Vec::new();
     for entry in &entries {
@@ -576,11 +761,12 @@ pub fn place_reports_and_notes(project: &Project, codecs: &codec::Registry) -> (
 }
 
 /// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
-/// order. Gives the boxes that are placed, in document order, the elements that move, and the reports of the refusals.
-/// With `place_only`, the reports are those of a place form alone.
-fn walk(project: &Project, place_only: bool, codecs: &codec::Registry) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
+/// order. Gives the boxes that are placed, in document order, the elements that move, the files of footage shown, and the
+/// reports of the refusals. With `place_only`, the reports are those of a place form alone.
+fn walk(project: &Project, place_only: bool, codecs: &codec::Registry) -> (Vec<Entry>, Vec<Mover>, Vec<FootageSource>, Vec<Report>) {
     let root = project.root();
-    walk_canvas(
+    let mut sources = Vec::new();
+    let (entries, movers, reports) = walk_canvas(
         project,
         codecs,
         Canvas {
@@ -597,7 +783,9 @@ fn walk(project: &Project, place_only: bool, codecs: &codec::Registry) -> (Vec<E
         },
         root.fps,
         place_only,
-    )
+        &mut sources,
+    );
+    (entries, movers, sources, reports)
 }
 
 /// A canvas to draw: the file its elements are read from, the elements of that file, the slot of its root (the
@@ -628,6 +816,7 @@ fn walk_canvas(
     canvas: Canvas<'_>,
     fps: u32,
     place_only: bool,
+    sources: &mut Vec<FootageSource>,
 ) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
     let tree = canvas.tree;
     // The elements inside each element, in document order.
@@ -807,7 +996,24 @@ fn walk_canvas(
             places.push(None);
             continue;
         }
-        if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
+        // Footage in a row, a column or a set of columns is refused (S52): a flow places its items by a rule that
+        // does not take footage. Any other `<video>` is drawn in this version (`docs/spec/render-command.md`, section 4.8)
+        // and judged as drawn, like a box or a text.
+        if node.element() == Element::Video && in_flow(&tree[parent]) {
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                node.line(),
+                Unsupported::FootageInFlow.message(&format!("{} holds <video> in a flow", tree[parent].element().tag())),
+            ));
+            refusals.extend(
+                forms_of_unsupported(node)
+                    .into_iter()
+                    .map(|(line, message)| Refusal::of_drawing(Code::FormNotSupported, line, message)),
+            );
+            places.push(None);
+            continue;
+        }
+        if !matches!(node.element(), Element::Box | Element::Nested | Element::Text | Element::Video) {
             refusals.push(Refusal::of_drawing(
                 Code::FormNotSupported,
                 node.line(),
@@ -815,14 +1021,6 @@ fn walk_canvas(
             ));
             // Each form of the support table is listed on its own, also on an element that is itself not drawn, so that
             // its line stays when the element's entry goes (`docs/spec/check-command.md` section 3d).
-            // Footage in a row, a column or a set of columns is placed by a flow this version does not give it (S52).
-            if node.element() == Element::Video && in_flow(&tree[parent]) {
-                refusals.push(Refusal::of_drawing(
-                    Code::FormNotSupported,
-                    node.line(),
-                    Unsupported::FootageInFlow.message(&format!("{} holds <video> in a flow", tree[parent].element().tag())),
-                ));
-            }
             refusals.extend(
                 forms_of_unsupported(node)
                     .into_iter()
@@ -955,6 +1153,52 @@ fn walk_canvas(
 
         let slot = slot_of(form.clip, parent_place, rect, fps);
 
+        if node.element() == Element::Video {
+            // The notation has judged that a `<video>` has its `src` (FS-0068), so a placed one names its file.
+            let Some(written) = node.attribute("src").map(|attribute| attribute.value().to_string()) else {
+                places.push(None);
+                continue;
+            };
+            let path = project.resolve(&written);
+            let source = match sources.iter().position(|source| source.path == path) {
+                Some(found) => found,
+                None => {
+                    sources.push(FootageSource {
+                        written,
+                        path,
+                        file: canvas.file.to_string(),
+                        line: node.line(),
+                    });
+                    sources.len() - 1
+                }
+            };
+            let (opacity, filter, found) = moving::read_look(node);
+            refusals.extend(found.into_iter().map(Refusal::of_motion));
+            // The corner radius, as of a box (`docs/spec/box-edges.md`, section 6): a negative radius is reported.
+            let mut radius = 0.0;
+            if let Some(attribute) = node.attribute("border-radius") {
+                match attribute.number() {
+                    Some(written) if written >= 0.0 => radius = written,
+                    Some(_) => refusals.push(Refusal::of_place(
+                        Code::LengthNotAccepted,
+                        attribute.line(),
+                        format!("`border-radius=\"{}\"` must be 0 or more", attribute.shown()),
+                    )),
+                    None => {}
+                }
+            }
+            entries.push(Entry::Footage(PlacedFootage {
+                slot,
+                clip: canvas.clip,
+                source,
+                opacity,
+                filter,
+                radius,
+            }));
+            places.push(Some(slot));
+            continue;
+        }
+
         let Some(name) = &form.shown else {
             entry_at[index] = Some(entries.len());
             rect_of[index] = Some(rect);
@@ -997,6 +1241,7 @@ fn walk_canvas(
             },
             fps,
             place_only,
+            sources,
         );
         let offset = entries.len();
         let placed = placed.into_iter().map(|entry| match entry {
@@ -2087,7 +2332,6 @@ fn unsupported_inside(element: Element, parent: Element) -> String {
     let entry = match (element, parent) {
         (Element::Rect, _) => Unsupported::Rect,
         (Element::Image, _) => Unsupported::StillPictures,
-        (Element::Video, _) => Unsupported::Footage,
         (Element::Shape, _) => Unsupported::Shapes,
         (Element::Tween | Element::Set, Element::Span) => Unsupported::CountingTypingSpanMotion,
         (Element::Tween | Element::Set, Element::Nested | Element::Video) => Unsupported::PictureMotion,

@@ -4,7 +4,7 @@
 use draw::{Filter, Map, Shadow, Turn};
 use layout::Rect;
 use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
-use project::{Code, Element, Length, Node, Number};
+use project::{Attribute, Code, Element, Length, Node, Number};
 use timebase::Time;
 
 use crate::support;
@@ -107,26 +107,7 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
             continue;
         }
         if name == "blur" || name == "brightness" {
-            match attribute.number() {
-                Some(value) if value >= 0.0 => match name {
-                    "blur" => movement.filter.blur = value,
-                    _ => movement.filter.brightness = value,
-                },
-                Some(_) => found.push((
-                    Code::LengthNotAccepted,
-                    attribute.line(),
-                    format!(
-                        "`{name}=\"{}\"` is below 0: {}",
-                        attribute.shown(),
-                        if name == "blur" {
-                            "a blur is a standard deviation in pixels, 0 or more"
-                        } else {
-                            "a brightness is a factor the colours are multiplied by, 0 or more"
-                        }
-                    ),
-                )),
-                None => {}
-            }
+            read_filter(attribute, &mut movement.filter, &mut found);
             continue;
         }
         if let (Some(prop), Some(value)) = (Prop::from_name(name), attribute.number()) {
@@ -134,6 +115,55 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         }
     }
     (movement, found)
+}
+
+/// Reads the `blur` and the `brightness` an element writes: a standard deviation in pixels of 0 or more, and a factor of
+/// 0 or more. A value below 0 is reported (`FS-0034`); a value that is not a number is the form check's, and is left at its
+/// starting value here.
+fn read_filter(attribute: &Attribute, filter: &mut Filter, found: &mut Vec<Found>) {
+    let name = attribute.name();
+    match attribute.number() {
+        Some(value) if value >= 0.0 => match name {
+            "blur" => filter.blur = value,
+            _ => filter.brightness = value,
+        },
+        Some(_) => found.push((
+            Code::LengthNotAccepted,
+            attribute.line(),
+            format!(
+                "`{name}=\"{}\"` is below 0: {}",
+                attribute.shown(),
+                if name == "blur" {
+                    "a blur is a standard deviation in pixels, 0 or more"
+                } else {
+                    "a brightness is a factor the colours are multiplied by, 0 or more"
+                }
+            ),
+        )),
+        None => {}
+    }
+}
+
+/// Reads the look of a `<video>`, which does not move: its `opacity`, `blur` and `brightness`
+/// (`docs/spec/render-command.md`, section 4.8). A value that is not a number is the form check's, and is left at its
+/// starting value here, as in [`read_movement`].
+pub(crate) fn read_look(node: &Node) -> (f64, Filter, Vec<Found>) {
+    let mut opacity = Prop::Opacity.own_value();
+    let mut filter = Filter::NONE;
+    let mut found = Vec::new();
+    for attribute in node.attributes() {
+        let name = attribute.name();
+        if name == "opacity" {
+            if let Some(value) = attribute.number() {
+                opacity = value;
+            }
+            continue;
+        }
+        if name == "blur" || name == "brightness" {
+            read_filter(attribute, &mut filter, &mut found);
+        }
+    }
+    (opacity, filter, found)
 }
 
 /// Reads a `<tween>` that moves a `<box>` or a `<text>`, with `origin` the start of the time its `at` counts in (the time of
