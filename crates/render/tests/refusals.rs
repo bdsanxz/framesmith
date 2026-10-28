@@ -53,7 +53,6 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
         ("<rect/>", "<rect>"),
         ("<image src=\"i.png\"/>", "<image>"),
         ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
-        ("<shape src=\"s.svg\"/>", "<shape>"),
     ]
     .into_iter()
     .enumerate()
@@ -61,7 +60,7 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
         assert_eq!(
             only(&format!("element-{index}"), element),
             format!(
-                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <text> and <composition src> only"
+                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <shape>, <text> and <composition src> only"
             ),
             "{element}"
         );
@@ -69,10 +68,20 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 }
 
 #[test]
+fn a_shape_with_a_src_file_is_drawn_except_for_the_src_this_version_does_not_read_yet() {
+    // A `<shape>` stands in the root (`docs/spec/notation.md` section 3), but its `src` file is read by a later
+    // ticket (T063): the element is refused for the attribute alone (`docs/spec/shape.md`, status line).
+    assert_eq!(
+        only("shape-src", "<shape src=\"s.svg\"/>"),
+        "composition.xml 2 FS-0035 <shape> has an attribute this version does not support: `src`"
+    );
+}
+
+#[test]
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
         only("in-box", "<box>\n<image src=\"i.png\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <image> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <image> inside a <box> is not supported by this version, which draws a <box>, a <shape>, a <text> or a <composition src> inside a <box> and no other element"
     );
     // A tween inside a box moves it (section 4.5), so it is not refused.
     assert_eq!(
@@ -98,24 +107,24 @@ fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         reports[0],
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <shape>, a <text> or a <composition src> inside a <box> and no other element"
     );
 }
 
 #[test]
 fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
-    // The root draws a <box>, a <text> and a <composition src>, and a message that names only the box is wrong.
+    // The root draws a <box>, a <shape>, a <text> and a <composition src>, and a message that names only the box is wrong.
     let root = only("names-root", "<rect/>");
     assert_eq!(
         root,
-        "composition.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
+        "composition.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <shape>, <text> and <composition src> only"
     );
     assert!(root.contains("<box>") && root.contains("<composition src>"), "{root}");
-    // Inside a box it draws a <box> or a <composition src>, and no other element.
+    // Inside a box it draws a <box>, a <shape>, a <text> or a <composition src>, and no other element.
     let inside = only("names-box", "<box>\n<rect/>\n</box>");
     assert_eq!(
         inside,
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <shape>, a <text> or a <composition src> inside a <box> and no other element"
     );
     assert!(inside.contains("<box>") && inside.contains("<composition src>"), "{inside}");
 }
@@ -361,7 +370,7 @@ fn the_composition_that_is_read_is_the_one_the_project_names() {
     let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
     assert_eq!(
         shown(&reports[0]),
-        "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
+        "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <shape>, <text> and <composition src> only"
     );
 }
 

@@ -49,18 +49,18 @@ The caps of a dashed line are set apart from its ends. Every dash end is butt, s
 
 ## 6. Reports
 
-Each is reported with its line and the element, as the other attribute reports are (`notation.md` 7.11 and its table in section 14 of the check spec):
+Each is reported on the line of the attribute, except the missing path, which is reported on the element's line, as the other attribute reports are (`notation.md` 7.11 and its table in section 14 of the check spec):
 
-| Case | Report (the texts of `notation.md` section 13, and N6) |
-|---|---|
-| no `d`, or a `d` that is empty or only spaces (and no `src`, which this version does not draw) | `<shape> needs `d` or a `src` with paths` |
-| `view-box` not four numbers (each a finite number), or with a width or height of 0 or less | `` `...` is not a view box of four numbers `` |
-| `dash` with no numbers, an odd count, a number below 0, or all zero | `` `dash="..."` is not pairs of lengths: a dash and a gap, in view-box units `` |
-| `stroke-width` of 0 or less | the N6 report of `notation.md` (a zero or negative size) |
-| `d` that is not path data (section 2) | `` `d` is not path data: <reason> `` (new, see below) |
-| `dash`, or `draw`, on a `<shape>` with no `stroke-width`, or on an element that is not a `<shape>` | `` `dash` is for a <shape> with `stroke-width` `` (the same for `draw`; `notation.md` section 13) |
-| `drop-shadow` that is not four values `X Y BLUR COLOUR` | `` `drop-shadow="..."` is not one shadow: x, y, blur and a colour `` (`notation.md` section 13) |
-| a shadow blur below 0 | the N6 report of `notation.md` for a value below 0 |
+| Case | Code | Report (the texts of `notation.md` section 13, and N6) |
+|---|---|---|
+| no `d`, or a `d` that is empty or only spaces (and no `src`, which this version does not draw) | `FS-0088` | `<shape> needs `d` or a `src` with paths` |
+| `view-box` not four numbers (each a finite number), or with a width or height of 0 or less | `FS-0089` | `` `...` is not a view box of four numbers `` |
+| `dash` with no numbers, an odd count, a number below 0, or all zero | `FS-0089` | `` `dash="..."` is not pairs of lengths: a dash and a gap, in view-box units `` |
+| `stroke-width` of 0 or less | `FS-0053` | the N6 report of `notation.md` (a zero or negative size) |
+| `d` that is not path data (section 2) | `FS-0089` | `` `d` is not path data: <reason> `` (new, see below) |
+| `dash`, or `draw`, on a `<shape>` with no `stroke-width`, or on an element that is not a `<shape>` | `FS-0087` | `` `dash` is for a <shape> with `stroke-width` `` (the same for `draw`; `notation.md` section 13) |
+| `drop-shadow` that is not four values `X Y BLUR COLOUR` | `FS-0089` | `` `drop-shadow="..."` is not one shadow: x, y, blur and a colour `` (`notation.md` section 13) |
+| a shadow blur below 0 | `FS-0034` | the N6 report of `notation.md` for a value below 0 |
 
 The `d` report is new, and `notation.md` gets its row when this spec is in force. Its reason is one of: `no M at the start`, `unknown command <letter>`, `a number has no command`, `a number is missing`, `a number does not read`, `a flag is not 0 or 1`.
 
@@ -81,3 +81,11 @@ A `<shape>` is one drawn element. Inside it, its outlines are drawn in document 
 ## 9. The look of a box
 
 A `<shape>` takes the look of its attribute table, each drawn as on a box (`box-edges.md`; `render-command.md`, section 4.6): its `background` (`notation.md` 7.4), its `border-radius` and `border` (7.5), and its `box-shadow` (7.5). The look is drawn in this order: the `box-shadow` under the background, the background, and the border on the box's edge. The shape is drawn last, over the look, in its box. The `border-radius` rounds the background, the border and the box-shadow, as it does for a box (7.5); the shape's outlines are not rounded.
+
+## 10. Placing, windows and marks
+
+A `<shape>` is placed as a box is (`notation.md` 7.1): its `left`, `top`, `width`, `height` and `margin` put its box in its parent, and it may stand wherever a box stands, as one of the items of a row, a column or a set. A shape with no `width` and no `height` has no size and shows nothing. Its window is a box's window (`render-command.md` 4.2): `start` with `duration`, both or neither, and outside its window only its room shows, as a box outside its window keeps its place (4.2 rule 4).
+
+Its marks are its box-look first and the shape over it: the background, the border and the corners by the edges of a box (`box-edges.md`), then one mark of the outlines in the element's box (`docs/spec/render-command.md` section 4). The shape is drawn last, over the look.
+
+A shape takes no element of its own: an element inside a `<shape>` is refused, as inside a composition shown from another file. Movement on a shape is refused until it is wired: a movement attribute on it, and a `<tween>` or `<set>` inside it, are refused, as on a shown element. A colour with an alpha below `ff` is refused with FS-0035, as a `text-shadow` colour is.

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A horizontal line 4 wide with dashes 10 on and 5 off, round caps at its start and end. 64 by 64 pixels, 10 frames a second. -->
+<composition version="1" id="shape-dashes" width="64" height="64" fps="10" duration="1" background="#102040">
+  <shape left="0" top="0" width="64" height="64" view-box="0 0 64 64" d="M 8 16 H 56" stroke-width="4" dash="10 5" color="#E0A030"/>
+</composition>

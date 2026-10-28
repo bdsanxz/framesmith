@@ -43,13 +43,11 @@ fn hold(fixture: &str, picture: &Picture, probes: &[(u32, u32, [u8; 4], bool)]) 
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_frames_of_the_shape_corners_fixture_equal_their_checked_in_picture() {
     drawn_frames_equal_the_checked_in_pictures("shape-corners");
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_checked_in_picture_of_the_shape_corners_fixture_holds_the_worked_corners() {
     let picture = expected("shape-corners", 0);
     hold(
@@ -76,13 +74,11 @@ fn the_checked_in_picture_of_the_shape_corners_fixture_holds_the_worked_corners(
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_frames_of_the_shape_fill_and_stroke_fixture_equal_their_checked_in_picture() {
     drawn_frames_equal_the_checked_in_pictures("shape-fill-and-stroke");
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_checked_in_picture_of_the_shape_fill_and_stroke_fixture_holds_the_worked_fill_and_stroke() {
     let picture = expected("shape-fill-and-stroke", 0);
     hold(
@@ -122,13 +118,11 @@ fn the_checked_in_picture_of_the_shape_fill_and_stroke_fixture_holds_the_worked_
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_frames_of_the_shape_view_box_scaled_fixture_equal_their_checked_in_picture() {
     drawn_frames_equal_the_checked_in_pictures("shape-view-box-scaled");
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_checked_in_picture_of_the_shape_view_box_scaled_fixture_holds_the_worked_square() {
     let picture = expected("shape-view-box-scaled", 0);
     hold(
@@ -150,13 +144,11 @@ fn the_checked_in_picture_of_the_shape_view_box_scaled_fixture_holds_the_worked_
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_frames_of_the_shape_dashes_fixture_equal_their_checked_in_picture() {
     drawn_frames_equal_the_checked_in_pictures("shape-dashes");
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_checked_in_picture_of_the_shape_dashes_fixture_holds_the_worked_runs_and_caps() {
     let cap = [206, 149, 49, 255];
     hold(
@@ -194,13 +186,11 @@ fn the_checked_in_picture_of_the_shape_dashes_fixture_holds_the_worked_runs_and_
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_frames_of_the_shape_curve_fixture_equal_their_checked_in_picture() {
     drawn_frames_equal_the_checked_in_pictures("shape-curve");
 }
 
 #[test]
-#[ignore = "waits for the shape notation (Bima's T092 hand-over) and the fixtures it draws"]
 fn the_checked_in_picture_of_the_shape_curve_fixture_holds_the_worked_circle() {
     let edge = [223, 159, 48, 255];
     hold(

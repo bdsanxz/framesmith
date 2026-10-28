@@ -49,6 +49,7 @@ pub(crate) fn judge(document: &roxmltree::Document, text: &str, styles: &Styles,
         clip_pair(&read, element, spot_at(node.range().start), problems);
         let lineless = shape_without_line(element, &read);
         shape_lines(element, &read, problems);
+        shape_path(element, &read, spot_at(node.range().start), problems);
 
         for child in node.children().filter(roxmltree::Node::is_element) {
             let spot = spot_at(child.range().start);
@@ -242,6 +243,31 @@ fn shape_without_line(element: Element, read: &[Effective]) -> bool {
         && !read
             .iter()
             .any(|attribute| !attribute.prefixed && (attribute.name == "stroke-width" || attribute.name == "src"))
+}
+
+/// Whether a `<shape>` has no path to draw: it writes no `d`, or one that is empty or only spaces, and no `src`
+/// (its own or a style's), so neither path data nor a file with paths supplies its outlines (`docs/spec/shape.md`,
+/// section 6). Whether a written `src` holds paths is judged where the file is read.
+fn shape_without_path(element: Element, read: &[Effective]) -> bool {
+    if element != Element::Shape {
+        return false;
+    }
+    match read.iter().find(|attribute| !attribute.prefixed && (attribute.name == "d" || attribute.name == "src")) {
+        None => true,
+        Some(found) => found.name == "d" && found.value.trim().is_empty(),
+    }
+}
+
+/// A `<shape>` with no path to draw (`FS-0088`), on the line of the element (`docs/spec/check-command.md`,
+/// section 3a). The value forms of its attributes are judged by the part that draws it.
+fn shape_path(element: Element, read: &[Effective], spot: Spot, problems: &mut Vec<Found>) {
+    if shape_without_path(element, read) {
+        problems.push(found(
+            Code::ShapeNeedsPath,
+            spot,
+            "<shape> needs `d` or a `src` with paths".to_string(),
+        ));
+    }
 }
 
 /// The attributes of a `<shape>` that need its line or its blur: `draw` and `dash` need a `stroke-width` (`FS-0087`), and a

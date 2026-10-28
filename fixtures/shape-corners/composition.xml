@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A square path filling a 48 by 48 box, drawn at twice its view-box units: every edge on a whole pixel. 64 by 64 pixels, 10 frames a second. -->
+<composition version="1" id="shape-corners" width="64" height="64" fps="10" duration="1" background="#102040">
+  <shape left="8" top="8" width="48" height="48" view-box="0 0 24 24" d="M 0 0 H 24 V 24 H 0 Z" color="#E0A030"/>
+</composition>

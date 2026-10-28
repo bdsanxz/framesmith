@@ -81,3 +81,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0080` | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. |
 | `FS-0081` | An `<audio>` has a `media-start` at or past the end of its sound file. |
 | `FS-0087` | A `<shape>` has `draw` or `dash` and writes no `stroke-width`, so the dashes or the draw have no line to act on. |
+| `FS-0088` | A `<shape>` writes no `d` and no `src` with paths to draw. |
+| `FS-0089` | A `<shape>` attribute's value is not in the form the notation gives for it. |

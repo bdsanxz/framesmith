@@ -70,6 +70,8 @@ pub fn written(element: Element) -> String {
         Element::Tween => "<tween duration=\"1\" to-x=\"1\"/>".to_string(),
         // A set needs a property (section 8.3); `x` is one every element that holds a set takes.
         Element::Set => "<set x=\"1\"/>".to_string(),
+        // A shape with no `d` and no `src` is FS-0088 (`shape.md` section 6), so the valid form writes `d`.
+        Element::Shape => "<shape d=\"M0 0\"/>".to_string(),
         other => format!("<{}/>", other.name()),
     }
 }

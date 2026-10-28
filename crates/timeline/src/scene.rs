@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use draw::{
-    Background, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Picture, Renderer,
-    Step, TextMark,
+    Background, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark, Path, Picture,
+    Renderer, Rgba, ShapeMark, ShapeShadow, Step, TextMark, ViewBox,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
 use project::{Attribute, Code, Codec, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Workers};
@@ -73,6 +73,37 @@ const NO_EDGES: Edges = Edges {
 /// section 3). Its size is its file's, so `width` and `height` are not taken.
 const NESTED_TAKES: [&str; 11] = [
     "id", "class", "src", "start", "duration", "left", "top", "right", "bottom", "position", "margin",
+];
+
+/// What a `<shape>` takes: its id and class, its place, its window, its box-look (`background` with its settings,
+/// `border`, `border-radius`) and its geometry (`d`, `view-box`, `stroke-width`, `color`, `dash`, `drop-shadow`)
+/// (`docs/spec/shape.md`, sections 1, 9 and 10). Movement attributes are not taken: movement on a shape is refused
+/// until it is wired, as on a shown element.
+const SHAPE_TAKES: [&str; 24] = [
+    "id",
+    "class",
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "width",
+    "height",
+    "position",
+    "margin",
+    "background",
+    "background-size",
+    "background-position",
+    "background-repeat",
+    "start",
+    "duration",
+    "border",
+    "border-radius",
+    "d",
+    "view-box",
+    "stroke-width",
+    "color",
+    "dash",
+    "drop-shadow",
 ];
 
 /// The frames a box is shown in: from `first` up to `end`, not counting `end`, numbered from 0. A
@@ -181,6 +212,28 @@ struct Placed {
     cut_end: Option<usize>,
 }
 
+/// The geometry of a `<shape>`: its path in its view box's coordinates, and how it is drawn
+/// (`docs/spec/shape.md`, sections 1, 3, 4 and 5). The box-look is the `fill` and the `edges` it shares with a box.
+#[derive(Clone, Debug, PartialEq)]
+struct ShapeGeom {
+    path: Path,
+    view_box: ViewBox,
+    colour: Rgba,
+    stroke_width: Option<f64>,
+    dashes: Vec<f64>,
+    shadow: Option<ShapeShadow>,
+}
+
+/// A `<shape>` that is placed and drawn: its slot, the rectangle it is cut to (as a box is), its box-look and its geometry.
+#[derive(Clone, Debug, PartialEq)]
+struct PlacedShape {
+    slot: Slot,
+    clip: Option<Rect>,
+    fill: Option<Fill>,
+    edges: Edges,
+    geom: ShapeGeom,
+}
+
 /// A `<text>` that is placed: its slot, the rectangle it is cut to (as a box is), its lines, the composition file
 /// it is written in and its line there.
 #[derive(Clone, Debug, PartialEq)]
@@ -192,10 +245,11 @@ struct PlacedText {
     line: u32,
 }
 
-/// A box or a paragraph that is placed, in document order: the order its marks are drawn in.
+/// A box, a shape or a paragraph that is placed, in document order: the order its marks are drawn in.
 #[derive(Clone, Debug, PartialEq)]
 enum Entry {
     Box(Placed),
+    Shape(PlacedShape),
     Text(PlacedText),
 }
 
@@ -204,6 +258,7 @@ impl Entry {
     fn window(&self) -> Window {
         match self {
             Entry::Box(placed) => placed.slot.window,
+            Entry::Shape(shape) => shape.slot.window,
             Entry::Text(text) => text.slot.window,
         }
     }
@@ -314,7 +369,7 @@ impl Scene {
     pub fn first_text(&self) -> Option<(&str, u32)> {
         self.entries.iter().find_map(|entry| match entry {
             Entry::Text(text) => Some((text.file.as_str(), text.line)),
-            Entry::Box(_) => None,
+            Entry::Box(_) | Entry::Shape(_) => None,
         })
     }
 
@@ -403,6 +458,10 @@ impl Scene {
                     marks.extend(box_marks(placed, clipped, Vec::new()));
                     None
                 }
+                Entry::Shape(shape) => {
+                    marks.extend(shape_marks(shape, clipped));
+                    None
+                }
                 Entry::Text(text) if clipped => text_mark(text),
                 Entry::Text(text) => text_mark(text).map(|mark| match mark {
                     Mark::Text(mark) => Mark::Text(TextMark { clip: None, ..mark }),
@@ -453,6 +512,46 @@ fn box_marks(placed: &Placed, clipped: bool, children: Vec<Mark>) -> Vec<Mark> {
 /// the part is not empty (`docs/spec/timeline.md` section 4).
 fn fill_mark(placed: &Placed) -> Option<Mark> {
     placed.fill.as_ref().and_then(|fill| fill.mark(placed.slot.rect, placed.clip))
+}
+
+/// The marks of a `<shape>`: its box-look first and the shape over it, one mark of its outlines in the element's box
+/// (`docs/spec/shape.md`, section 10). With no border, no rounded corners and no cut, the look is its fill alone.
+fn shape_marks(shape: &PlacedShape, clipped: bool) -> Vec<Mark> {
+    let geometry = Mark::Shape(ShapeMark {
+        left: f64::from(shape.slot.rect.left),
+        top: f64::from(shape.slot.rect.top),
+        width: f64::from(shape.slot.rect.width),
+        height: f64::from(shape.slot.rect.height),
+        view_box: shape.geom.view_box,
+        path: shape.geom.path.clone(),
+        colour: shape.geom.colour,
+        stroke_width: shape.geom.stroke_width,
+        dashes: shape.geom.dashes.clone(),
+        shadow: shape.geom.shadow,
+    });
+    let edges = shape.edges;
+    if edges.radius == 0.0 && edges.border.is_none() && !edges.cut {
+        let fill = if clipped {
+            shape.fill.as_ref().and_then(|fill| fill.mark(shape.slot.rect, shape.clip))
+        } else {
+            shape.fill.as_ref().and_then(|fill| fill.mark(shape.slot.rect, None))
+        };
+        return fill.into_iter().chain([geometry]).collect();
+    }
+    let rect = shape.slot.rect;
+    let background = shape.fill.as_ref().and_then(|fill| fill.mark(rect, None));
+    let marks = edges.marks(rect, background.into_iter().collect(), vec![geometry]);
+    match shape.clip {
+        Some(clip) if clipped && !marks.is_empty() => vec![Mark::Group(Group {
+            map: Map::IDENTITY,
+            opacity: 1.0,
+            clip: Some(clip),
+            marks,
+            turn: None,
+            filter: Filter::NONE,
+        })],
+        _ => marks,
+    }
 }
 
 /// The glyph runs of a paragraph, moved to its place in the frame, and the mark that draws them.
@@ -510,14 +609,16 @@ fn text_mark(text: &PlacedText) -> Option<Mark> {
     }))
 }
 
-/// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, and a `<box>` what
-/// `BOX_TAKES` lists and the text attributes, which pass to the elements inside it (`docs/spec/text.md`, section 8).
+/// Whether an element takes an attribute of this name: a `<text>` takes what `TEXT_TAKES` lists, a `<shape>` what
+/// `SHAPE_TAKES` lists, and a `<box>` what `BOX_TAKES` lists and the text attributes, which pass to the elements inside
+/// it (`docs/spec/text.md`, section 8). A movement attribute is taken only by an element that moves.
 fn takes(node: &Node, name: &str) -> bool {
     if MOVEMENT.contains(&name) && moving::moves(node.element()) {
         return true;
     }
     match node.element() {
         Element::Text => TEXT_TAKES.contains(&name),
+        Element::Shape => SHAPE_TAKES.contains(&name),
         _ => BOX_TAKES.contains(&name) || TEXT_ATTRIBUTES.contains(&name),
     }
 }
@@ -687,6 +788,18 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
+        if tree[parent].element() == Element::Shape {
+            // A shape takes no element of its own: it is drawn with no element inside it (`docs/spec/shape.md`,
+            // section 10). A tween or a set inside a shape is refused here, as movement on a shape is refused
+            // until it is wired.
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                node.line(),
+                unsupported_inside_shape(node.element()),
+            ));
+            places.push(None);
+            continue;
+        }
         if node.element() == Element::Audio {
             // A sound is heard, not drawn: it is gathered from the root's canvas (`sound::gather`). Its level is not
             // applied in this version, and a sound of a file shown from another file is not placed.
@@ -755,7 +868,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
             places.push(None);
             continue;
         }
-        if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
+        if !matches!(node.element(), Element::Box | Element::Shape | Element::Nested | Element::Text) {
             let refusal = if parent == 0 {
                 Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_element(node.element()))
             } else if matches!(tree[parent].element(), Element::Text | Element::Span) {
@@ -834,7 +947,10 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         if form.flex.is_some() || form.columns.is_some() {
             for &inner in &inside[index] {
                 let inner_node = &tree[inner];
-                if !matches!(inner_node.element(), Element::Box | Element::Nested | Element::Text) {
+                if !matches!(
+                    inner_node.element(),
+                    Element::Box | Element::Shape | Element::Nested | Element::Text
+                ) {
                     continue;
                 }
                 let (read, found) = read_element(project, inner_node);
@@ -894,13 +1010,23 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         let Some(name) = &form.shown else {
             entry_at[index] = Some(entries.len());
             rect_of[index] = Some(rect);
-            entries.push(Entry::Box(Placed {
-                slot,
-                fill: form.fill.clone(),
-                clip: canvas.clip,
-                edges: form.edges,
-                cut_end: None,
-            }));
+            if let Some(geom) = form.shape.clone() {
+                entries.push(Entry::Shape(PlacedShape {
+                    slot,
+                    clip: canvas.clip,
+                    fill: form.fill.clone(),
+                    edges: form.edges,
+                    geom,
+                }));
+            } else {
+                entries.push(Entry::Box(Placed {
+                    slot,
+                    fill: form.fill.clone(),
+                    clip: canvas.clip,
+                    edges: form.edges,
+                    cut_end: None,
+                }));
+            }
             places.push(Some(slot));
             continue;
         };
@@ -1095,6 +1221,7 @@ fn intersect(a: Rect, b: Rect) -> Rect {
 fn read_element(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
     match node.element() {
         Element::Nested => read_nested(project, node),
+        Element::Shape => read_shape(node),
         _ => read_box(node),
     }
 }
@@ -1165,8 +1292,295 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
         edges: NO_EDGES,
         clip: Some((start.unwrap_or(Time::ZERO), duration.unwrap_or(file.duration))),
         shown: Some(name.to_string()),
+        shape: None,
     };
     (Read::Valid(Box::new(form)), Vec::new())
+}
+
+/// Reads a `<shape>`: its place, its window, its box-look and its geometry (`docs/spec/shape.md`, sections 1, 9
+/// and 10). Movement on it is refused until it is wired, as on a shown element: no movement attribute is taken, and
+/// a `<tween>` or a `<set>` inside one falls into the refusal of an element inside a shape. A negative `blur` is
+/// `FS-0034` even though a shape takes no blur (`docs/spec/shape.md`, section 6); any other `blur` is refused as an
+/// attribute the shape does not take.
+fn read_shape(node: &Node) -> (Read, Vec<Refusal>) {
+    let mut refusals: Vec<Refusal> = Vec::new();
+    let mut written = Written::default();
+    let mut absolute = false;
+    let mut margin = Sides::default();
+    let mut start: Option<Time> = None;
+    let mut duration: Option<Time> = None;
+    let mut colour: Option<Colour> = None;
+    let mut layers: Option<Vec<draw::Paint>> = None;
+    let mut background_line: Option<u32> = None;
+    let mut settings: Vec<(&'static str, String, u32)> = Vec::new();
+    let mut path: Option<Path> = None;
+    let mut view_box = ViewBox::parse("0 0 24 24").expect("the default view box is four numbers");
+    let mut stroke_width: Option<f64> = None;
+    let mut ink = Rgba {
+        red: 0,
+        green: 0,
+        blue: 0,
+        alpha: 255,
+    };
+    let mut dashes: Vec<f64> = Vec::new();
+    let mut dash_line: Option<u32> = None;
+    let mut shadow: Option<ShapeShadow> = None;
+    let mut src_written = false;
+    for attribute in node.attributes() {
+        let name = attribute.name();
+        let value = attribute.value().to_string();
+        if name == "src" {
+            // A `src` file is read by a later ticket (T063): it is refused below, but its writing counts for the
+            // judgement of `dash` without a line, as in the notation (`docs/spec/notation.md` section 7.11).
+            src_written = true;
+        }
+        if name == "blur" {
+            match attribute.number() {
+                Some(v) if v < 0.0 => refusals.push(Refusal::of_attribute(
+                    Code::LengthNotAccepted,
+                    attribute,
+                    format!("`blur=\"{value}\"` is below 0: a blur is a standard deviation in pixels, 0 or more"),
+                )),
+                _ => refusals.push(Refusal::of_attribute(
+                    Code::FormNotSupported,
+                    attribute,
+                    unsupported_attribute(node, attribute),
+                )),
+            }
+            continue;
+        }
+        if !takes(node, name) {
+            refusals.push(Refusal::of_attribute(
+                Code::FormNotSupported,
+                attribute,
+                unsupported_attribute(node, attribute),
+            ));
+            continue;
+        }
+        match name {
+            "id" | "class" => {}
+            "start" | "duration" => match attribute.time() {
+                Some(time) if name == "start" => start = Some(time),
+                Some(time) => duration = Some(time),
+                None => refusals.push(Refusal::of_attribute(
+                    Code::NotATime,
+                    attribute,
+                    format!("`{name}=\"{value}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25"),
+                )),
+            },
+            "background" => {
+                background_line = Some(attribute.line());
+                match attribute.colour() {
+                    Some(found) if found.alpha == 255 => {
+                        colour = Some(Colour {
+                            red: found.red,
+                            green: found.green,
+                            blue: found.blue,
+                        })
+                    }
+                    _ => match background::layers(&value) {
+                        Ok(found) => layers = Some(found),
+                        Err((code, message)) => {
+                            let message = match attribute.given_by() {
+                                None => message,
+                                Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
+                            };
+                            refusals.push(Refusal::of_background(code, attribute.line(), message))
+                        }
+                    },
+                }
+            }
+            "background-size" | "background-position" | "background-repeat" => {
+                let name = match name {
+                    "background-size" => "background-size",
+                    "background-position" => "background-position",
+                    _ => "background-repeat",
+                };
+                settings.push((name, value, attribute.line()));
+            }
+            "d" => match draw::required_path(Some(value.as_str())) {
+                Ok(found) => path = Some(found),
+                Err(draw::ShapeError::NoPath) => refusals.push(Refusal::of_attribute(
+                    Code::ShapeNeedsPath,
+                    attribute,
+                    "<shape> needs `d` or a `src` with paths".to_string(),
+                )),
+                Err(other) => refusals.push(Refusal::of_shape_form(Code::ShapeNotInForm, attribute, other.to_string())),
+            },
+            "view-box" => match ViewBox::parse(&value) {
+                Ok(found) => view_box = found,
+                Err(other) => refusals.push(Refusal::of_shape_form(Code::ShapeNotInForm, attribute, other.to_string())),
+            },
+            "stroke-width" => match attribute.number() {
+                None => refusals.push(Refusal::of_attribute(
+                    Code::NotANumber,
+                    attribute,
+                    format!("`stroke-width=\"{value}\"` is not a number of view-box units, such as 2"),
+                )),
+                Some(width) if width <= 0.0 => refusals.push(Refusal::of_attribute(
+                    Code::SizeNotAboveZero,
+                    attribute,
+                    format!("`stroke-width=\"{value}\"` must be above 0"),
+                )),
+                Some(width) => stroke_width = Some(width),
+            },
+            "color" => match attribute.colour() {
+                Some(found) if found.alpha == 255 => {
+                    ink = Rgba {
+                        red: found.red,
+                        green: found.green,
+                        blue: found.blue,
+                        alpha: 255,
+                    }
+                }
+                Some(_) => refusals.push(Refusal::of_attribute(
+                    Code::FormNotSupported,
+                    attribute,
+                    format!("`color=\"{value}\"` has an alpha below ff: a shape colour is opaque"),
+                )),
+                None => refusals.push(Refusal::of_attribute(
+                    Code::ShapeNotInForm,
+                    attribute,
+                    format!("`color=\"{value}\"` is not a colour: #rrggbb, such as #000000"),
+                )),
+            },
+            "dash" => match draw::dashes_of(&value) {
+                Ok(found) => {
+                    dashes = found;
+                    dash_line = Some(attribute.line());
+                }
+                Err(other) => refusals.push(Refusal::of_shape_form(Code::ShapeNotInForm, attribute, other.to_string())),
+            },
+            "width" | "height" => match amount(attribute.length(), &value, name, node.element().tag()) {
+                Ok(found) => match name {
+                    "width" => written.width = Some(found),
+                    _ => written.height = Some(found),
+                },
+                Err((code, message)) => refusals.push(Refusal::of_place(code, attribute.line(), message)),
+            },
+            "drop-shadow" => match read_shape_shadow(&value) {
+                Ok(found) => shadow = found,
+                Err((code, message)) => refusals.push(Refusal::of_shape_form(code, attribute, message)),
+            },
+            _ => read_place(node, attribute, &mut written, &mut absolute, &mut margin, &mut refusals),
+        }
+    }
+    // The border, the corner radius and the cut of a shape, as of a box (`docs/spec/box-edges.md`); a shape takes no
+    // `overflow`, so it never cuts.
+    let edges = match read_edges(node) {
+        Ok(edges) => edges,
+        Err(faults) => {
+            refusals.extend(
+                faults
+                    .into_iter()
+                    .map(|(code, line, message)| Refusal::of_drawing(code, line, message)),
+            );
+            NO_EDGES
+        }
+    };
+    let clip = match (start, duration) {
+        (Some(start), Some(duration)) => Some((start, duration)),
+        (None, None) => None,
+        _ => {
+            let message = format!("{} needs both start and duration, or neither", node.element().tag());
+            return (Read::Refused, vec![Refusal::of_drawing(Code::ClipNotPaired, node.line(), message)]);
+        }
+    };
+    if !refusals.is_empty() {
+        return (Read::Refused, refusals);
+    }
+    let fill = match background_fill(node.element().tag(), colour, layers, background_line, &settings) {
+        Ok(fill) => fill,
+        Err(found) => return (Read::Refused, found),
+    };
+    // A `dash` needs a line, unless the shape names a file whose own stroke width may be the one used (as in the
+    // notation, `docs/spec/notation.md` section 7.11).
+    if !dashes.is_empty() && stroke_width.is_none() && !src_written {
+        return (
+            Read::Refused,
+            vec![Refusal::of_drawing(
+                Code::ShapeWithoutStroke,
+                dash_line.expect("a dash was read, so its line was kept"),
+                "`dash` is for a <shape> with `stroke-width`".to_string(),
+            )],
+        );
+    }
+    let Some(path) = path else {
+        return (
+            Read::Refused,
+            vec![Refusal::of_drawing(
+                Code::ShapeNeedsPath,
+                node.line(),
+                "<shape> needs `d` or a `src` with paths".to_string(),
+            )],
+        );
+    };
+    let form = Form {
+        written,
+        margin,
+        across: None,
+        absolute,
+        flex: None,
+        columns: None,
+        grow: 0.0,
+        text: false,
+        fill,
+        edges,
+        clip,
+        shown: None,
+        shape: Some(ShapeGeom {
+            path,
+            view_box,
+            colour: ink,
+            stroke_width,
+            dashes,
+            shadow,
+        }),
+    };
+    (Read::Valid(Box::new(form)), Vec::new())
+}
+
+/// One shadow of a `<shape>` (`docs/spec/shape.md`, section 8): `X Y BLUR COLOUR` in view-box units, the colour opaque.
+fn read_shape_shadow(value: &str) -> Result<Option<ShapeShadow>, (Code, String)> {
+    let not_one = || {
+        (
+            Code::ShapeNotInForm,
+            format!("`drop-shadow=\"{value}\"` is not one shadow: x, y, blur and a colour"),
+        )
+    };
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    let [x, y, blur, colour] = parts[..] else {
+        return Err(not_one());
+    };
+    let (Some(x), Some(y), Some(blur)) = (project::number_value(x), project::number_value(y), project::number_value(blur)) else {
+        return Err(not_one());
+    };
+    if blur < 0.0 {
+        return Err((
+            Code::LengthNotAccepted,
+            format!("`drop-shadow=\"{value}\"` has a blur below 0: a blur is 0 or more"),
+        ));
+    }
+    let Some(colour) = project::colour_value(colour) else {
+        return Err(not_one());
+    };
+    let (across, down) = (x, y);
+    if colour.alpha != 255 {
+        return Err((
+            Code::FormNotSupported,
+            format!("`drop-shadow=\"{value}\"` has an alpha below ff, which this version does not draw"),
+        ));
+    }
+    Ok(Some(ShapeShadow {
+        across,
+        down,
+        blur,
+        colour: draw::Colour {
+            red: colour.red,
+            green: colour.green,
+            blue: colour.blue,
+        },
+    }))
 }
 
 /// Reads one attribute that a `<box>` and a `<composition src>` both take as a place: `left`, `top`, `right`,
@@ -1307,6 +1721,19 @@ impl Refusal {
             style: attribute.given_by().is_some(),
         }
     }
+
+    /// A refusal of a `<shape>` value form: path data, the view box, dashes or the shadow not in the form
+    /// the notation gives (`shape.md` section 6). It is a form `check` judges as well as `render`, as a text
+    /// form is (`docs/spec/text.md`, section 9).
+    fn of_shape_form(code: Code, attribute: &Attribute, message: String) -> Refusal {
+        Refusal {
+            code,
+            line: attribute.line(),
+            message,
+            place: true,
+            style: attribute.given_by().is_some(),
+        }
+    }
 }
 
 /// What a `<box>` or a `<text>` writes, read once from its attributes: its place as written (with its `max-width`), its
@@ -1331,6 +1758,8 @@ struct Form {
     clip: Option<(Time, Time)>,
     /// The file a `<composition src>` shows, as written; `None` for a box.
     shown: Option<String>,
+    /// The geometry of a `<shape>`; `None` for a box, a text and a `<composition src>`.
+    shape: Option<ShapeGeom>,
 }
 
 /// The reading of a `<box>`: its form, or a refusal of one of its attributes or of its clip.
@@ -1577,7 +2006,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         }),
         None => None,
     };
-    let fill = match background_fill(colour, layers, background_line, &settings) {
+    let fill = match background_fill(node.element().tag(), colour, layers, background_line, &settings) {
         Ok(fill) => fill,
         Err(mut found) => {
             refusals.append(&mut found);
@@ -1617,6 +2046,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         edges,
         clip,
         shown: None,
+        shape: None,
     };
     (Read::Valid(Box::new(form)), Vec::new())
 }
@@ -1625,6 +2055,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
 /// setting with no `background` is reported (`FS-0066`), as is a list of settings with neither one entry nor one for each
 /// layer (`FS-0065`) and a setting not in its form (`FS-0064`).
 fn background_fill(
+    tag: &str,
     colour: Option<Colour>,
     layers: Option<Vec<draw::Paint>>,
     line: Option<u32>,
@@ -1636,7 +2067,7 @@ fn background_fill(
                 Code::BackgroundSettingAlone,
                 *at,
                 format!(
-                    "`{name}=\"{}\"` is written on <box>, which has no `background`",
+                    "`{name}=\"{}\"` is written on {tag}, which has no `background`",
                     project::shown(value)
                 ),
             )
@@ -1733,7 +2164,7 @@ fn measures(project: &Project, tree: &[Node], inside: &[Vec<usize>], fonts: &mut
     let forms: Vec<Option<Form>> = tree
         .iter()
         .map(|node| match node.element() {
-            Element::Box | Element::Nested | Element::Text => match read_element(project, node).0 {
+            Element::Box | Element::Shape | Element::Nested | Element::Text => match read_element(project, node).0 {
                 Read::Valid(form) => Some(*form),
                 Read::Refused => None,
             },
@@ -1963,7 +2394,16 @@ fn not_a_length(name: &str, value: &str) -> String {
 
 fn unsupported_element(element: Element) -> String {
     format!(
-        "{} is not supported by this version, which draws <box>, <text> and <composition src> only",
+        "{} is not supported by this version, which draws <box>, <shape>, <text> and <composition src> only",
+        element.tag()
+    )
+}
+
+/// The message for an element written inside a `<shape>`, which takes none: as inside a composition shown from
+/// another file, the shape is drawn with no element inside it (`docs/spec/shape.md`, section 10).
+fn unsupported_inside_shape(element: Element) -> String {
+    format!(
+        "{} inside <shape> is not supported by this version, which draws a <shape> with no element inside it",
         element.tag()
     )
 }
@@ -1985,10 +2425,11 @@ fn unsupported_inside_text(element: Element) -> String {
     )
 }
 
-/// The message for an element written inside a `<box>`: a `<box>`, a `<text>` or a `<composition src>` is drawn there.
+/// The message for an element written inside a `<box>`: a `<box>`, a `<shape>`, a `<text>` or a `<composition src>`
+/// is drawn there.
 fn unsupported_inside_box(element: Element) -> String {
     format!(
-        "{} inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element",
+        "{} inside a <box> is not supported by this version, which draws a <box>, a <shape>, a <text> or a <composition src> inside a <box> and no other element",
         element.tag()
     )
 }

@@ -121,6 +121,8 @@ Each row is one code. The **meaning** is the sentence that is recorded (section 
 | `FS-0080` | invalid | The sound file that `<audio src>` names is of a kind this version reads and cannot be decoded. | Replace the sound file with a copy that is not damaged. |
 | `FS-0081` | invalid | An `<audio>` has a `media-start` at or past the end of its sound file. | Write a `media-start` below the length of the sound file, or leave it out to start at the beginning. |
 | `FS-0087` | invalid | A `<shape>` has `draw` or `dash` and writes no `stroke-width`, so the dashes or the draw have no line to act on. | Write `stroke-width` on the `<shape>`, with the width of its line in view-box units, or leave out `draw` and `dash`. |
+| `FS-0088` | invalid | A `<shape>` writes no `d` and no `src` with paths to draw. | Write `d` with the outlines to draw as path data, or `src` as the path of an SVG file with paths. |
+| `FS-0089` | invalid | A `<shape>` attribute's value is not in the form the notation gives for it. | Write the value in the form the message names. |
 
 Notes on the rows:
 
@@ -147,6 +149,7 @@ Notes on the rows:
 - `FS-0067` was added with borders (`box-edges.md` sections 1 and 6): a `border` in a form that is not `width colour` or `width double colour`. It is of the kind invalid, reported on the line of the attribute.
 
 - `FS-0087` was added with shapes (`notation.md` section 7.11): `draw` or `dash` on a `<shape>` that has no `stroke-width`, as an attribute or in a `<tween>` or `<set>`. It is of the kind invalid, reported on the line of the attribute; the code is not a wider meaning of `FS-0030` (an attribute the element does not take), since the element takes the attribute and the mistake is the missing line.
+- `FS-0088` and `FS-0089` were added with the walk of shapes (`shape.md` section 6): a `<shape>` with no path to draw, and a shape attribute whose value is not in its form. Both are of the kind invalid; `FS-0088` is reported on the line of the element, `FS-0089` on the line of the attribute. `FS-0089` is not a wider meaning of `FS-0052` (a text attribute's value), whose meaning stays a text attribute's.
 - `FS-0076` to `FS-0081` were added with the sounds placed in the film (`sound.md` section 5). `FS-0076` and `FS-0077` are found from the file alone, as a font's are; `FS-0078` to `FS-0081` when frx7 opens the sound file before the first frame. A missing file and a file that cannot be decoded are invalid, since the author named the wrong or a damaged file; a file the machine would not give is a failure, as `FS-0050` is; a file of a kind not read is unsupported, and its message names the kinds read.
 - A remedy is one sentence that tells the author what to change, not what went wrong. It does not name a value, since it is the same for every report of the code. It has no vertical bar, which would end its cell.
 

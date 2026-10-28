@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A filled circle of radius 40 cut from two arcs. 100 by 100 pixels, 10 frames a second. -->
+<composition version="1" id="shape-curve" width="100" height="100" fps="10" duration="1" background="#102040">
+  <shape left="0" top="0" width="100" height="100" view-box="0 0 100 100" d="M 10 50 A 40 40 0 0 1 90 50 A 40 40 0 0 1 10 50 Z" color="#E0A030"/>
+</composition>

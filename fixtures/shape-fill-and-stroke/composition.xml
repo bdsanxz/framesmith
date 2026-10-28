@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A filled square and a stroked square that do not overlap, in view-box units of pixels: the fill covers 4 to 27, the stroke is 4 wide about its path. 64 by 64 pixels, 10 frames a second. -->
+<composition version="1" id="shape-fill-and-stroke" width="64" height="64" fps="10" duration="1" background="#102040">
+  <shape left="0" top="0" width="64" height="64" view-box="0 0 64 64" d="M 4 4 H 28 V 28 H 4 Z" color="#E0A030"/>
+  <shape left="0" top="0" width="64" height="64" view-box="0 0 64 64" d="M 36 36 H 60 V 60 H 36 Z" stroke-width="4" color="#E0A030"/>
+</composition>

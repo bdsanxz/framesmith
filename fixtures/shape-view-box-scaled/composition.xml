@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A square drawn at four times its view-box units, its view box offset so the square lands in the lower-right quarter of its box. 64 by 64 pixels, 10 frames a second. -->
+<composition version="1" id="shape-view-box-scaled" width="64" height="64" fps="10" duration="1" background="#102040">
+  <shape left="8" top="8" width="48" height="48" view-box="-6 -6 12 12" d="M 0 0 H 6 V 6 H 0 Z" color="#E0A030"/>
+</composition>

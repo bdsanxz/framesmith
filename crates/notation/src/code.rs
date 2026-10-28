@@ -187,11 +187,15 @@ pub enum Code {
     SoundStartPastEnd,
     /// A `<shape>` has `draw` or `dash` and writes no `stroke-width`.
     ShapeWithoutStroke,
+    /// A `<shape>` writes no `d` and no `src` with paths to draw.
+    ShapeNeedsPath,
+    /// A `<shape>` attribute's value is not in the form the notation gives for it.
+    ShapeNotInForm,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 75] = [
+    pub const ALL: [Code; 77] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -267,6 +271,8 @@ impl Code {
         Code::SoundDamaged,
         Code::SoundStartPastEnd,
         Code::ShapeWithoutStroke,
+        Code::ShapeNeedsPath,
+        Code::ShapeNotInForm,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -347,6 +353,8 @@ impl Code {
             Code::SoundDamaged => "FS-0080",
             Code::SoundStartPastEnd => "FS-0081",
             Code::ShapeWithoutStroke => "FS-0087",
+            Code::ShapeNeedsPath => "FS-0088",
+            Code::ShapeNotInForm => "FS-0089",
         }
     }
 
@@ -454,6 +462,8 @@ impl Code {
             Code::SoundDamaged => "Replace the sound file with a copy that is not damaged.",
             Code::SoundStartPastEnd => "Write a `media-start` below the length of the sound file, or leave it out to start at the beginning.",
             Code::ShapeWithoutStroke => "Write `stroke-width` on the `<shape>`, with the width of its line in view-box units, or leave out `draw` and `dash`.",
+            Code::ShapeNeedsPath => "Write `d` with the outlines to draw as path data, or `src` as the path of an SVG file with paths.",
+            Code::ShapeNotInForm => "Write the value in the form the message names.",
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }

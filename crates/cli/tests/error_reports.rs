@@ -280,11 +280,64 @@ fn catalogue() -> String {
 /// A `<shape>` that draws `draw` or `dash` with no line to act on: no `stroke-width` and no `src` (`FS-0087`).
 fn shape_problems() -> Vec<ShownProblem> {
     let shape = |attributes: &str| inside_root(&format!("<shape d=\"M0 0 L10 10\" width=\"10\" height=\"10\" {attributes}/>"));
-    vec![(
-        "shape-draw-without-stroke-width",
-        vec![("composition.xml".to_string(), shape("draw=\"0.5\""))],
-        Code::ShapeWithoutStroke,
-    )]
+    vec![
+        (
+            "shape-draw-without-stroke-width",
+            vec![("composition.xml".to_string(), shape("draw=\"0.5\""))],
+            Code::ShapeWithoutStroke,
+        ),
+        (
+            "shape-without-path",
+            vec![("composition.xml".to_string(), inside_root("<shape width=\"10\" height=\"10\"/>"))],
+            Code::ShapeNeedsPath,
+        ),
+        (
+            "shape-path-not-drawn",
+            vec![(
+                "composition.xml".to_string(),
+                inside_root("<shape d=\"M0 0 L\" width=\"10\" height=\"10\"/>"),
+            )],
+            Code::ShapeNotInForm,
+        ),
+        (
+            "shape-view-box-not-four-numbers",
+            vec![("composition.xml".to_string(), shape("view-box=\"0 0 24\""))],
+            Code::ShapeNotInForm,
+        ),
+        (
+            "shape-dash-not-pairs",
+            vec![("composition.xml".to_string(), shape("stroke-width=\"2\" dash=\"10 5 3\""))],
+            Code::ShapeNotInForm,
+        ),
+        (
+            "shape-shadow-not-one-shadow",
+            vec![("composition.xml".to_string(), shape("drop-shadow=\"0 0\""))],
+            Code::ShapeNotInForm,
+        ),
+    ]
+}
+
+// A `<shape>` colour not in its form, and a `stroke-width` of 0 or less, are judged where the shape is drawn:
+// `render` reports them (`docs/spec/shape.md`, section 6; `docs/spec/check-command.md`, section 3a, last paragraph).
+fn shape_render_problems() -> Vec<(&'static str, String, Option<&'static str>, Code, i32)> {
+    let root =
+        |inside: &str| format!(r#"<composition version="1" width="640" height="360" duration="2">{inside}</composition>"#);
+    vec![
+        (
+            "shape-color-not-a-colour",
+            root(r#"<shape d="M0 0 L10 10" width="10" height="10" color="red"/>"#),
+            None,
+            Code::ShapeNotInForm,
+            1,
+        ),
+        (
+            "shape-stroke-width-must-be-above-0",
+            root(r#"<shape d="M0 0 L10 10" width="10" height="10" stroke-width="0"/>"#),
+            None,
+            Code::SizeNotAboveZero,
+            1,
+        ),
+    ]
 }
 
 fn sound_problems() -> Vec<ShownProblem> {
@@ -449,6 +502,24 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
             "columns-with-direction",
             inside_root("<box columns=\"640 1fr\" flex-direction=\"row\" width=\"4\" height=\"4\"/>"),
             Code::ColumnsWithDirection,
+            2,
+        ),
+        (
+            "shape-without-path",
+            inside_root("<shape width=\"4\" height=\"4\"/>"),
+            Code::ShapeNeedsPath,
+            2,
+        ),
+        (
+            "shape-view-box-not-four-numbers",
+            inside_root("<shape d=\"M0 0 L10 10\" view-box=\"0 0 24\" width=\"4\" height=\"4\"/>"),
+            Code::ShapeNotInForm,
+            2,
+        ),
+        (
+            "shape-dash-not-pairs",
+            inside_root("<shape d=\"M0 0 L10 10\" stroke-width=\"2\" dash=\"10 5 3\" width=\"4\" height=\"4\"/>"),
+            Code::ShapeNotInForm,
             2,
         ),
     ]
@@ -751,7 +822,7 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(out.contains(code.as_str()) || err.contains(code.as_str()), "{name}");
         emitted.insert(code.as_str());
     }
-    for (name, composition, yaml, code, exit) in render_refusals() {
+    for (name, composition, yaml, code, exit) in render_refusals().into_iter().chain(shape_render_problems()) {
         let (project, cwd) = project(&format!("emit-{name}"), composition.as_bytes());
         if let Some(yaml) = yaml {
             fs::write(project.join("framesmith.yaml"), yaml).unwrap();

@@ -77,6 +77,7 @@ fn kind_of(mark: &Mark) -> &'static str {
         Mark::Background(_) => "background",
         Mark::Ring(_) => "ring",
         Mark::Cut(_) => "cut",
+        Mark::Shape(_) => "shape",
     }
 }
 

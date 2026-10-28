@@ -19,7 +19,7 @@ use skrifa::instance::{LocationRef, Size};
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::{FontRef, GlyphId, MetadataProvider};
 use vello_cpu::kurbo::{self, Affine, BezPath, Cap, Dashes, Join, PathEl, Shape, Stroke};
-use vello_cpu::peniko::{Blob, Color, Fill, FontData, ImageAlphaType, ImageQuality, ImageSampler};
+use vello_cpu::peniko::{Color, Fill, ImageAlphaType, ImageQuality, ImageSampler};
 use vello_cpu::{Image, ImageSource, PixelMetadata, Pixmap, RenderContext, Resources};
 
 mod edges;
