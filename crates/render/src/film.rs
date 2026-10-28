@@ -294,6 +294,7 @@ pub enum Step {
 
 /// Writes the film as `write_film_marked` does and calls `on_step` at each `Step` of the start, in order. A test uses the
 /// steps to run the sweep of another render at each point of a start (`docs/spec/render-command.md`, section 6).
+#[allow(clippy::too_many_arguments)]
 pub fn write_film_stepped(
     scene: &Scene,
     sounds: Vec<mix::Sound>,
@@ -337,6 +338,7 @@ pub fn write_film_stepped(
     Ok(written)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make(
     scene: &Scene,
     sounds: Vec<mix::Sound>,
