@@ -1,0 +1,8 @@
+<composition version="1" width="300" height="100" fps="10" duration="1" background="#808080">
+<box left="0" top="0" width="80" height="40" background="radial-gradient(circle, #ffffff 0%, #000000 100%)"/>
+<box left="100" top="0" width="80" height="40" background="radial-gradient(ellipse, #ffffff 0%, #000000 100%)"/>
+<box left="200" top="0" width="80" height="40" background="radial-gradient(ellipse 50% 25%, #ffffff 0%, #000000 100%)"/>
+<box left="0" top="50" width="96" height="50" background="#ff0000, #ffffff" background-size="20 20, auto" background-position="50% 100%, 0 0" background-repeat="no-repeat, repeat"/>
+<box left="100" top="50" width="96" height="50" background="#ff0000, #ffffff" background-size="20 20, auto" background-position="0% 0%, 0 0" background-repeat="no-repeat, repeat"/>
+<box left="200" top="50" width="96" height="50" background="#ff0000, #ffffff" background-size="20 20, auto" background-position="100% 100%, 0 0" background-repeat="no-repeat, repeat"/>
+</composition>

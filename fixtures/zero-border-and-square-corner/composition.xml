@@ -1,0 +1,5 @@
+<composition version="1" width="200" height="60" fps="10" duration="1" background="#000000">
+<box left="8" top="8" width="40" height="30" background="#ffffff" border="0 #ff0000"/>
+<box left="60" top="8" width="40" height="30" background="#ffffff" border="6 #ff0000" border-radius="0"/>
+<box left="112" top="8" width="40" height="30" background="#ffffff" border="6 #ff0000" border-radius="12"/>
+</composition>
