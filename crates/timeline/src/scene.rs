@@ -1287,7 +1287,11 @@ fn walk_canvas(
         let Some(first) = *first else {
             continue;
         };
-        if let Entry::Box(placed) = &mut entries[first] {
+        // A shown composition takes the place of its entries, which may be none, so only a box can cut its children.
+        if tree[index].element() != Element::Box {
+            continue;
+        }
+        if let Some(Entry::Box(placed)) = entries.get_mut(first) {
             if placed.edges.cut {
                 let mut after = index + 1;
                 while after < tree.len() && tree[after].parent().is_some_and(|parent| parent >= index) {
