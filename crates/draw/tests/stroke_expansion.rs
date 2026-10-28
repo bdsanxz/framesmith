@@ -118,6 +118,28 @@ fn a_corner_just_below_the_limit_keeps_its_mitre_tip() {
 }
 
 #[test]
+fn a_corner_of_ratio_exactly_four_keeps_its_mitre_tip() {
+    // the outgoing edge (-58106404, 32149305) normalises in f64 to a direction whose x is exactly -0.875, so
+    // 1 + dot is exactly 0.125 and the ratio sqrt(2 / 0.125) is exactly 4.0; each rounding is worked by hand in
+    // `_swe/edd/n01-textgaps/work/verify_tie.py`. The rule mitres at most the limit ("more than 4 times the width"
+    // bevels), so the tie keeps its tip at (64 * qy, -8) with qy worked at 0.48412291827592703119, and the bevel
+    // point (0, -8) is not drawn. The third corner stands under the apex, so the other two corners are wide and no
+    // side folds back on itself
+    let contour = [(-58106404.0, 0.0), (0.0, 0.0), (-58106404.0, 32149305.0)];
+    let (ex, ey) = (-58106404.0f64, 32149305.0f64);
+    let length = (ex * ex + ey * ey).sqrt();
+    let ratio = (2.0 / (1.0 + ex / length)).sqrt();
+    assert!(ratio == 4.0, "the tie premise broke: the ratio is {ratio}, not exactly 4.0");
+    let points = all_points(&stroke_contour(&contour, 8.0, 4.0));
+    let tip = (30.98386676965933, -8.0);
+    assert!(
+        points.iter().any(|&p| near(p, tip)),
+        "no mitre tip at {tip:?} for the ratio exactly 4"
+    );
+    assert!(points.iter().all(|&p| !near(p, (0.0, -8.0))), "a bevel point is drawn at the tie");
+}
+
+#[test]
 fn a_corner_just_past_the_limit_is_bevelled_at_its_two_offset_points() {
     // the ratio is 4.01: the outer side of the apex is cut straight between its two offset points, (-8 sin(theta), 8 cos(theta))
     // on the incoming side and (0, -8) on the outgoing one, and has no tip
