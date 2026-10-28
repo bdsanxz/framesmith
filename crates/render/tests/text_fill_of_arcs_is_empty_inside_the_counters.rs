@@ -21,7 +21,7 @@ const FIXTURE: &str = "text-fill-arcs";
 fn drawn() -> Picture {
     let folder = project_copied_from_fixture("text-fill-of-arcs", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, &mut CpuRenderer).unwrap()
 }
 

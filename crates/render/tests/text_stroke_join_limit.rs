@@ -39,7 +39,7 @@ const FIXTURE: &str = "text-join-corner";
 fn frame_rows() -> Vec<Vec<u8>> {
     let folder = project_copied_from_fixture("text-stroke-join-limit", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let picture = scene.picture(0, &mut CpuRenderer).unwrap();
     let width = picture.width() as usize;
     picture
@@ -129,7 +129,7 @@ fn a_forty_degree_corner_keeps_its_mitre_down_to_the_worked_tip() {
 fn the_frame_equals_its_checked_in_picture_on_the_processor() {
     let folder = project_copied_from_fixture("text-stroke-join-limit", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let drawn = scene.picture(0, &mut CpuRenderer).unwrap();
     if let Err(difference) = compare(0, &drawn, &expected(FIXTURE, 0)) {
         panic!("{difference}");

@@ -29,7 +29,7 @@ fn main() {
         .collect();
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(&name);
     let project = Project::open(&source).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let folder = Path::new(&folder);
     fs::create_dir_all(folder.join("fonts")).unwrap();
     let mut fonts: FontFiles = HashMap::new();
