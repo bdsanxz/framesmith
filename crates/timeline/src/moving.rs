@@ -67,7 +67,7 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
     for attribute in node.attributes() {
         let name = attribute.name();
         if name == "drop-shadow" {
-            match crate::shadows::drop_shadow(attribute.value()) {
+            match crate::shadows::drop_shadow(&support::written(node.element(), attribute), attribute.value()) {
                 Ok(shadow) => movement.shadow = Some((shadow, attribute.line())),
                 Err((code, message)) => found.push((code, attribute.line(), message)),
             }

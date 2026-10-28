@@ -44,7 +44,6 @@ pub enum Unsupported {
     EllipticalCorner = 33,
     FilmNotMp4 = 34,
     TextAndSpanLook = 35,
-    Shadows = 36,
     AnimatedBlurBrightness = 37,
     Blends = 38,
     TornEdgesAndGrain = 39,
@@ -79,11 +78,14 @@ pub enum Unsupported {
     SpanRoomWithoutPlace = 69,
     TextPercentInFlow = 70,
     EmojiPicture = 72,
+    InnerShadow = 73,
+    SpreadShadow = 74,
+    AlphaShadow = 75,
 }
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 70] = [
+    pub const ALL: [Unsupported; 72] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -119,7 +121,6 @@ impl Unsupported {
         Unsupported::EllipticalCorner,
         Unsupported::FilmNotMp4,
         Unsupported::TextAndSpanLook,
-        Unsupported::Shadows,
         Unsupported::AnimatedBlurBrightness,
         Unsupported::Blends,
         Unsupported::TornEdgesAndGrain,
@@ -154,6 +155,9 @@ impl Unsupported {
         Unsupported::SpanRoomWithoutPlace,
         Unsupported::TextPercentInFlow,
         Unsupported::EmojiPicture,
+        Unsupported::InnerShadow,
+        Unsupported::SpreadShadow,
+        Unsupported::AlphaShadow,
     ];
 
     /// The entry's number in the table: 35 for S35.
@@ -204,7 +208,6 @@ impl Unsupported {
             Unsupported::EllipticalCorner => "One circular radius per corner only",
             Unsupported::FilmNotMp4 => "A film is written as an MP4 file only; a QuickTime movie is Sprint 9's, and no other kind of file is planned (decision B40)",
             Unsupported::TextAndSpanLook => "Not drawn on a text or a span yet",
-            Unsupported::Shadows => "Shadows are not drawn yet",
             Unsupported::AnimatedBlurBrightness => "Animated blur and brightness are not drawn yet",
             Unsupported::Blends => "Blending with what is under is not drawn yet",
             Unsupported::TornEdgesAndGrain => "Not drawn yet",
@@ -239,6 +242,9 @@ impl Unsupported {
             Unsupported::SpanRoomWithoutPlace => "The room has no place in the line there",
             Unsupported::TextPercentInFlow => "Inside a flow a text is measured in whole pixels",
             Unsupported::EmojiPicture => "Only PNG colour pictures are drawn",
+            Unsupported::InnerShadow => "Only shadows outside the box are drawn (ROADMAP 5.13)",
+            Unsupported::SpreadShadow => "Only the four values `X Y BLUR COLOUR` are drawn (ROADMAP 5.13)",
+            Unsupported::AlphaShadow => "Only opaque shadow colours are drawn",
         }
     }
 
@@ -280,7 +286,6 @@ impl Unsupported {
             Unsupported::EllipticalCorner => "Sprint 5",
             Unsupported::FilmNotMp4 => "Sprint 9 (`.mov`); not assigned (any other)",
             Unsupported::TextAndSpanLook => "Sprint 5 (n05-layout-text-look), acceptance criterion 1: every attribute value of the notation has a fixture with a checked-in picture on the processor and agreement on the card (PLAN.md); roadmap 5.23",
-            Unsupported::Shadows => "Sprint 1, T055",
             Unsupported::AnimatedBlurBrightness => "Sprint 1, T067",
             Unsupported::Blends => "Sprint 1, T057",
             Unsupported::TornEdgesAndGrain => "Sprint 1, T058",
@@ -315,6 +320,9 @@ impl Unsupported {
             Unsupported::SpanRoomWithoutPlace => "Not assigned",
             Unsupported::TextPercentInFlow => "Not assigned",
             Unsupported::EmojiPicture => "Not assigned",
+            Unsupported::InnerShadow => "Sprint 5",
+            Unsupported::SpreadShadow => "Sprint 5",
+            Unsupported::AlphaShadow => "Not assigned",
         }
     }
 

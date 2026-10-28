@@ -1,5 +1,5 @@
 <composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
-<!-- One form the support table names (a shadow, S36) and one mistake no entry names (an attribute spelt wrong). -->
-<box left="0" top="0" width="8" height="8" box-shadow="0 0 4px #000000"/>
+<!-- One form the support table names (torn edges and grain, S39) and one mistake no entry names (an attribute spelt wrong). -->
+<box left="0" top="0" width="8" height="8" grain="0.5"/>
 <box left="8" top="0" width="8" height="8" colr="#ff0000"/>
 </composition>

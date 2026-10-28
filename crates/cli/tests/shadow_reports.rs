@@ -1,7 +1,8 @@
 //! The reports of shadows that are not drawn or not valid (`docs/spec/render-command.md`, section 4.7, rule 8;
 //! `docs/spec/check-command.md`): an inner shadow, a spread, and a colour with an alpha below `ff` are unsupported
-//! (`FS-0035`), a blur below 0 is invalid (`FS-0034`), and any other form is invalid (`FS-0070`). `check` reports each on its
-//! line, `render` refuses them the same way and writes no film.
+//! (`FS-0035`), each naming its entry of the support table (S73, S74, S75); a blur below 0 is invalid (`FS-0034`), and
+//! any other form is invalid (`FS-0070`). `check` reports each on its line, `render` refuses them the same way and
+//! writes no film.
 
 mod common;
 
@@ -54,9 +55,9 @@ fn shadows_not_drawn_or_not_valid_are_each_reported_on_their_line_by_check_and_r
     assert_eq!(lines, coded(&out(&rendered)), "render reports what check reports");
     let printed = out(&checked);
     let wanted = [
-        ("line 2: FS-0035", "inner shadow"),
-        ("line 3: FS-0035", "spread"),
-        ("line 4: FS-0035", "alpha below ff"),
+        ("line 2: FS-0035", "support table S73"),
+        ("line 3: FS-0035", "support table S74"),
+        ("line 4: FS-0035", "support table S75"),
         ("line 5: FS-0034", "blur below 0"),
         ("line 6: FS-0070", "not in the form of a shadow"),
     ];

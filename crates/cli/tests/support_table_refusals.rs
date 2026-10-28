@@ -17,7 +17,7 @@ use common::{err, framesmith, out, scratch};
 /// The mark of an entry that is told by reading a media file, which T087 or T089 brings (section 14).
 const MEDIA_FILE_MARK: &str = "told by reading the media file";
 
-/// An entry of section 14: its name (`S36`), how it is recognised, its reason and when it is brought, as written.
+/// An entry of section 14: its name (`S39`), how it is recognised, its reason and when it is brought, as written.
 struct Row {
     name: String,
     recognised: String,
@@ -286,9 +286,17 @@ fn a_project_with_an_unsupported_and_an_invalid_form_lists_both_and_both_command
         assert_eq!(run.status.code(), Some(1), "{command}: {printed}{}", err(&run));
         let lines: Vec<&str> = printed.lines().collect();
         assert_eq!(lines.len(), 3, "{command}: two reports and the closing line: {printed}");
-        assert!(lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: "), "{command}: {}", lines[0]);
-        assert!(lines[0].contains("(support table S36: "), "{command}: {}", lines[0]);
-        assert!(lines[1].starts_with("composition.xml, line 4: FS-0030: invalid: "), "{command}: {}", lines[1]);
+        assert!(
+            lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: "),
+            "{command}: {}",
+            lines[0]
+        );
+        assert!(lines[0].contains("(support table S39: "), "{command}: {}", lines[0]);
+        assert!(
+            lines[1].starts_with("composition.xml, line 4: FS-0030: invalid: "),
+            "{command}: {}",
+            lines[1]
+        );
         assert_eq!(lines[2], "Invalid: the project is not valid (composition.xml)", "{command}");
         assert!(!project.join("renders").exists(), "{command}: a film or its folder was written");
     }

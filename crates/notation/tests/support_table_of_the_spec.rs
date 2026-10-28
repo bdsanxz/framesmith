@@ -68,9 +68,9 @@ fn an_entry_is_named_by_its_number_with_two_digits() {
 
 #[test]
 fn the_message_names_what_was_written_the_entry_its_reason_and_its_sprint() {
-    let message = Unsupported::Shadows.message("<box> has `box-shadow`");
+    let message = Unsupported::InnerShadow.message("<box> has `box-shadow=\"inset 0 0 4 #000000\"`");
     assert_eq!(
         message,
-        "<box> has `box-shadow`, which this version does not support (support table S36: Shadows are not drawn yet; waits until Sprint 1, T055)"
+        "<box> has `box-shadow=\"inset 0 0 4 #000000\"`, which this version does not support (support table S73: Only shadows outside the box are drawn (ROADMAP 5.13); waits until Sprint 5)"
     );
 }

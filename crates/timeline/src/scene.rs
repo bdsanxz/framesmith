@@ -1668,7 +1668,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     };
     // The shadows of a box (`docs/spec/render-command.md`, section 4.7, rule 8 for the reports).
     let shadows = match node.attribute("box-shadow").filter(|_| node.element() != Element::Text) {
-        Some(attribute) => match crate::shadows::box_shadows(attribute.value()) {
+        Some(attribute) => match crate::shadows::box_shadows(&support::written(node.element(), attribute), attribute.value()) {
             Ok(shadows) => shadows,
             Err((code, message)) => {
                 refusals.push(Refusal::of_place(code, attribute.line(), message));

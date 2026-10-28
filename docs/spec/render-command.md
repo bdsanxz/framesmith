@@ -270,9 +270,9 @@ Sources: `notation.md` section 4 (the form of a shadow: `X Y BLUR COLOUR`, four 
 6. **Who draws it.** Both kinds are drawn by the processor's renderer, into a plane the size of the frame; the card's renderer lays that picture on its frame as it lays a shadow of text (`card-renderer.md`), so the two renderers agree (`notation.md` section 7.6).
 7. **Under a map.** The map is the element's map at the frame (section 4.5). Moved by whole pixels, the shadow moves with the box, and `s` is 1.
 8. **What is reported.** Each with the line of the attribute:
-    - a shadow written with the word `inset`: `FS-0035`, unsupported (an inner shadow, `DEFERS.md`: Sprint 5);
-    - a shadow of five values, the fourth a length (a spread): `FS-0035`, unsupported (Sprint 5);
-    - a colour with an alpha below `ff`: `FS-0035`, unsupported, as for a shadow of text (`docs/spec/notation.md` section 14, S75);
+    - a shadow written with the word `inset`: `FS-0035`, unsupported (`docs/spec/notation.md` section 14, S73: an inner shadow; waits until Sprint 5);
+    - a shadow of five values, the fourth a length (a spread): `FS-0035`, unsupported (section 14, S74: a shadow with a spread; waits until Sprint 5);
+    - a colour with an alpha below `ff`: `FS-0035`, unsupported, as for a shadow of text (section 14, S75);
     - a blur below 0: `FS-0034`, invalid, `must be 0 or more`;
     - any other value that is not in the form of rule 1, or a `box-shadow` that is not a list of such shadows: `FS-0070`, invalid, with the form taken.
 9. **Tests.** `crates/draw-cpu/tests/box_shadows.rs` and `crates/render/tests/shadows_worked_by_hand.rs` (the place, the fade, the hard edge, the order, the outline of a group of two children, on both renderers), `crates/render/tests/shadows_fixture.rs` (the fixture `shadows` against its checked-in pictures and the card's agreement), and `crates/cli/tests/shadow_reports.rs` (the reports of rule 8).

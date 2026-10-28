@@ -96,9 +96,9 @@ const SPAN_FORMS: [(&str, &str, &str, i32); 23] = [
     ),
     (
         "box-shadow-of-the-look",
-        r##"<span box-shadow="1 1 #000000" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has `box-shadow=\"1 1 #000000\"`, which this version does not support (support table S36: ",
-        2,
+        r##"<span box-shadow="inset 1 1 2 #000000" color="#ff0000">CD</span>"##,
+        "composition.xml, line 3: FS-0030: invalid: <span> has `box-shadow=\"inset 1 1 2 #000000\"`, which this version does not take there.",
+        1,
     ),
     (
         "x-of-the-movement",
