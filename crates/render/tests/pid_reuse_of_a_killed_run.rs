@@ -36,7 +36,8 @@ fn killed_run_under_this_process(output: &std::path::Path) -> (PathBuf, PathBuf)
 #[test]
 fn a_killed_run_under_this_process_id_does_not_refuse_the_check_or_the_render_that_follow() {
     let project = project_from_fixture("pid-reuse-of-a-killed-run", "next-render", "first-render");
-    let scene = Scene::from_project(&Project::open(&project).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&project).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let base = scratch("pid-reuse-of-a-killed-run", "output");
     let output = base.join("film.mp4");
     let (folder, lock) = killed_run_under_this_process(&output);
