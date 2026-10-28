@@ -441,7 +441,10 @@ fn a_video_in_a_row_or_a_set_of_columns_is_refused_with_its_line() {
 #[test]
 fn an_element_inside_a_video_is_refused_with_its_line() {
     // The notation lets a <tween> and a <set> stand in a <video>; their motion waits on the picture-motion order (S64).
-    for (index, (child, tag)) in [("<tween duration=\"1\" to-x=\"1\"/>", "<tween>"), ("<set x=\"1\"/>", "<set>")].into_iter().enumerate() {
+    for (index, (child, tag)) in [("<tween duration=\"1\" to-x=\"1\"/>", "<tween>"), ("<set x=\"1\"/>", "<set>")]
+        .into_iter()
+        .enumerate()
+    {
         assert_eq!(
             only(&format!("inside-video-{index}"), &format!("<video src=\"v.mp4\" width=\"8\" height=\"8\">\n{child}\n</video>")),
             format!("composition.xml 3 FS-0035 <video> holds {tag}, which this version does not support (support table S64: So far footage and a shown composition are drawn in their place only; waits until Sprint 1, the order picture-motion)")

@@ -2332,7 +2332,6 @@ fn unsupported_inside(element: Element, parent: Element) -> String {
     let entry = match (element, parent) {
         (Element::Rect, _) => Unsupported::Rect,
         (Element::Image, _) => Unsupported::StillPictures,
-        (Element::Video, _) => Unsupported::Footage,
         (Element::Shape, _) => Unsupported::Shapes,
         (Element::Tween | Element::Set, Element::Span) => Unsupported::CountingTypingSpanMotion,
         (Element::Tween | Element::Set, Element::Nested | Element::Video) => Unsupported::PictureMotion,
