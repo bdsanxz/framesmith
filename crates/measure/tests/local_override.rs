@@ -1,11 +1,9 @@
-//! The two commands around the pin that are not a gate: the local override for work on both
-//! repositories at once, and the hosted runner's deploy key. See `docs/dev/frx7.md`, sections 2
-//! and 4.
+//! The local override for work on both repositories at once: `scripts/gates/frx7.sh override` and
+//! `drop-override`. See `docs/dev/frx7.md`, section 4.
 
 mod common;
 
 use common::{Repo, REMOTE};
-use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
 /// A folder that looks like frx7: a workspace with crates, some of which the Framesmith test
@@ -140,92 +138,4 @@ fn dropping_the_override_removes_its_file_and_only_its_file() {
     let run = repo.script(&["drop-override"]);
     assert_eq!(run.code, 1, "{}", run.text);
     assert!(repo.dir.join(".cargo/config.toml").exists());
-}
-
-/// A throwaway SSH key pair made by `ssh-keygen`, in the repository's folder.
-fn throwaway_key(repo: &Repo) -> String {
-    let key = repo.dir.join("throwaway_key");
-    let made = common::isolate_from_runner(&mut std::process::Command::new("ssh-keygen"))
-        .args(["-q", "-t", "ed25519", "-N", "", "-C", "throwaway", "-f"])
-        .arg(&key)
-        .status()
-        .expect("ssh-keygen is run");
-    assert!(made.success());
-    std::fs::read_to_string(&key).expect("the key is read")
-}
-
-#[test]
-fn the_deploy_key_is_refused_without_the_secret_and_without_a_real_key() {
-    let repo = Repo::pinned("deploy-key-refused");
-    let home = repo.dir.join("home");
-    std::fs::create_dir_all(&home).expect("the folder is made");
-    let home_text = home.to_str().expect("a path");
-
-    let run = repo.script_with(&["deploy-key"], &[("HOME", home_text), ("FRX7_DEPLOY_KEY", "")]);
-    assert_eq!(run.code, 1, "{}", run.text);
-    assert!(
-        run.text.contains("the variable FRX7_DEPLOY_KEY is empty or not set"),
-        "{}",
-        run.text
-    );
-    assert!(run.text.contains(REMOTE), "the refusal names the remote: {}", run.text);
-
-    let run = repo.script_with(
-        &["deploy-key"],
-        &[("HOME", home_text), ("FRX7_DEPLOY_KEY", "this is a secret that is no key")],
-    );
-    assert_eq!(run.code, 1, "{}", run.text);
-    assert!(run.text.contains("is not a private SSH key ssh can read"), "{}", run.text);
-    assert!(
-        !run.text.contains("this is a secret"),
-        "the content of the variable is never shown: {}",
-        run.text
-    );
-    assert!(
-        !home.join(".ssh/frx7_deploy_key").exists(),
-        "a key that cannot be read is not left behind"
-    );
-}
-
-#[test]
-fn the_deploy_key_is_installed_for_the_remote_and_never_printed() {
-    let repo = Repo::pinned("deploy-key-installed");
-    let secret = throwaway_key(&repo);
-    let home = repo.dir.join("home");
-    std::fs::create_dir_all(&home).expect("the folder is made");
-    let git_config_path = home.join(".gitconfig");
-    let run = repo.script_with(
-        &["deploy-key"],
-        &[
-            ("HOME", home.to_str().expect("a path")),
-            ("GIT_CONFIG_GLOBAL", git_config_path.to_str().expect("a path")),
-            ("FRX7_DEPLOY_KEY", &secret),
-        ],
-    );
-    assert_eq!(run.code, 0, "{}", run.text);
-    for line in secret.lines().filter(|line| line.len() > 20) {
-        assert!(!run.text.contains(line), "a line of the key was printed: {}", run.text);
-    }
-    let key = home.join(".ssh/frx7_deploy_key");
-    assert_eq!(std::fs::read_to_string(&key).expect("the key is read").trim(), secret.trim());
-    assert_eq!(
-        std::fs::metadata(&key).expect("the key is there").permissions().mode() & 0o777,
-        0o600,
-        "only its owner reads the key"
-    );
-
-    let config = std::fs::read_to_string(home.join(".ssh/config")).expect("the ssh configuration is read");
-    assert!(
-        config.contains("Host frx7-github") && config.contains("HostName github.com") && config.contains("IdentitiesOnly yes"),
-        "{config}"
-    );
-    assert!(config.contains("StrictHostKeyChecking yes"), "{config}");
-    let hosts = std::fs::read_to_string(home.join(".ssh/frx7_known_hosts")).expect("the host keys are read");
-    assert!(hosts.starts_with("github.com ssh-ed25519 AAAA"), "{hosts}");
-
-    let git_config = std::fs::read_to_string(&git_config_path).expect("the git configuration is read");
-    assert!(
-        git_config.contains("git@frx7-github:bdsanxz/frx7") && git_config.contains(&format!("insteadOf = {REMOTE}")),
-        "{git_config}"
-    );
 }

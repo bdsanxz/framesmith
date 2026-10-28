@@ -55,7 +55,7 @@ parley = { version = "0.12.0", default-features = false, features = ["std"] }
 # The processor draws glyph outlines with it (draw-cpu). Multithreading stays off, so the picture does not depend on the workers.
 vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "u8_pipeline", "text"] }
 
-# frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
+# frx7, the media stack, in a repository of its own: taken from its public remote at one revision, with no credentials.
 # docs/dev/frx7.md says how, and how the pin is moved.
 base = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }
 format = { git = "https://github.com/bdsanxz/frx7", rev = "00114c411204178cfdf502e14f889b39062c87dc" }

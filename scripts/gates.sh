@@ -135,9 +135,8 @@ github_summary() {
 }
 
 # At its very end a run on a hosted runner prints the job summary file as it then is, between two marker
-# lines, so that the log of the job holds what the summary page of the job shows: the page of a private
-# repository can be read by nobody who is not signed in, the log can be read by the hosting service's
-# command line (docs/dev/gates.md, section 3). Whatever wrote the content is shown, the script or any
+# lines, so that the log of the job holds what the summary page of the job shows, and it can be read from
+# the hosting service's command line as well as from the page (docs/dev/gates.md, section 3). Whatever wrote the content is shown, the script or any
 # program it started. Every line is printed after "| ", so that a line of the content never begins with
 # "::" or "##[" and the runner takes none for a command of its own; a carriage return, which the runner
 # reads as the end of a line, and a null byte are turned into line ends first. A local run prints nothing.

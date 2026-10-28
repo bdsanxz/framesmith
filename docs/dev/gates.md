@@ -16,9 +16,9 @@ Seven gates stand between a change and the repository. Each reports a pass, or a
 | frx7 pin | `pin` | `scripts/gates/frx7.sh check` | frx7 is pinned at one revision, no path override is committed, and a moved pin carries its record (section 9) | each override, with its file and line, or each revision that disagrees |
 | System-free crates | `free` | `scripts/gates/system-free-selftest.sh`, then `scripts/gates/system-free.sh check` | the control fails each wrong record by name, and the record of the system-free crates (`scripts/gates/system-free.txt`) names exactly the workspace crates whose dependency tree, normal, build and development dependencies included, holds none of `backend-os`, `gpu` and `device` | each crate that is listed but holds a system crate, with the system crate it holds; each free crate that is left out; each failure of the control |
 
-A gate that builds can also fail because frx7, which Framesmith takes from its private remote, cannot be fetched; the failure then carries one more line that names the revision and the remote (`docs/dev/frx7.md`, section 7).
+A gate that builds can also fail because frx7, which Framesmith takes from its public remote, cannot be fetched; the failure then carries one more line that names the revision and the remote (`docs/dev/frx7.md`, section 7).
 
-The licence list is MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, 0BSD, CC0-1.0, Unicode-3.0, Unicode-DFS-2016 and MPL-2.0 (the licences of `CLAUDE.md` rule 11). GPL, AGPL, LGPL and SSPL are not on it, and a dependency with no stated licence, or one cargo-deny cannot read with confidence (a match of at least 0.93), is refused. A dependency under "A OR B" passes when one of the alternatives is on the list. Crates of this workspace are private (`publish = false`) and carry no licence field; they are skipped for that reason alone.
+The licence list is MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, 0BSD, CC0-1.0, Unicode-3.0, Unicode-DFS-2016 and MPL-2.0 (the licences of `CLAUDE.md` rule 11). GPL, AGPL, LGPL and SSPL are not on it, and a dependency with no stated licence, or one cargo-deny cannot read with confidence (a match of at least 0.93), is refused. A dependency under "A OR B" passes when one of the alternatives is on the list. Crates of this workspace are unpublished (`publish = false`) and carry the licence GPL-3.0-or-later of the workspace; they are skipped for being unpublished alone.
 
 Two lines of `deny.toml` make the gate reach every dependency:
 
@@ -49,9 +49,9 @@ A failure the script itself finds, such as a missing tool, is a failure of the g
 
 **After the push.** `.github/workflows/gates.yml` runs on a macOS runner on a push to `main` and on a pull request, and on nothing else (decision A7): work branches rely on the local gates. It has one job for each gate, named `formatting`, `static analysis`, `tests`, `core suite without FFmpeg`, `licence gate`, `frx7 pin` and `system-free crates`, so that the hosted run reports each by name. Each job calls `scripts/gates.sh --hosted --gate NAME`. On a failure the job prints an annotation that names what failed, and writes the same lines to the job summary.
 
-**What the job summary holds is printed into the job's log** (section 13), so that it can be read where the summary page cannot be: the page of a private repository is shown to a person who is signed in and to nobody else, while the log of the job can be read with the hosting service's command line.
+**What the job summary holds is printed into the job's log** (section 13), so that it can be read from the hosting service's command line as well as from the summary page.
 
-The workflow installs the Rust toolchain named by `rust-toolchain.toml` and, for the licence job, `cargo-deny` at the version named in the workflow. It installs no browser, no FFmpeg and nothing else, and every gate passes without them. Every job that builds (static analysis, tests, core suite, licence gate, system-free crates) first runs `scripts/gates/frx7.sh deploy-key` with the Actions secret `FRX7_DEPLOY_KEY`, so that Cargo can fetch frx7 from its private remote (`docs/dev/frx7.md`, section 2); formatting reads no dependency, and the `frx7 pin` job reads git only, fetching all of its history (`fetch-depth: 0`). The hosted tests job does not start the programs of section 5 even where the image has them.
+The workflow installs the Rust toolchain named by `rust-toolchain.toml` and, for the licence job, `cargo-deny` at the version named in the workflow. It installs no browser, no FFmpeg and nothing else, and every gate passes without them. Every job that builds (static analysis, tests, core suite, licence gate, system-free crates) fetches frx7 over `https` with no credentials, from its public remote (`docs/dev/frx7.md`, section 2); formatting reads no dependency, and the `frx7 pin` job reads git only, fetching all of its history (`fetch-depth: 0`). The hosted tests job does not start the programs of section 5 even where the image has them.
 
 ## 4. Reference machine only (decision A27)
 
@@ -117,7 +117,7 @@ No gate fetches, installs or needs FFmpeg or a browser. FFmpeg is a yardstick: t
 - **It refuses a pin moved without its record**: a commit that changes the pin must add the row (old revision, new revision, reason) to `docs/dev/frx7.md` and change no file besides `Cargo.toml`, `Cargo.lock` and that document. It reads the whole history, and refuses a shallow clone instead of passing it.
 - On a pass it prints `ok:` lines that say what was looked at; a local override in the working tree adds a `note:` line that names `.cargo/config.toml`.
 
-The tests of the gate are `crates/measure/tests/pin_gate.rs` and `crates/measure/tests/local_override_and_deploy_key.rs`; they build small git repositories of their own and run the script in them.
+The tests of the gate are `crates/measure/tests/pin_gate.rs`, `crates/measure/tests/local_override.rs` and `crates/measure/tests/no_frx7_credentials_in_the_repository.rs`; they build small git repositories of their own and run the script in them.
 
 ## 10. The core suite and the gate that runs it (`core`)
 
@@ -181,7 +181,7 @@ Some tests start `scripts/gates.sh` (a copy, in a scratch folder, that is made t
 
 ## 13. The job summary, printed into the log
 
-A hosted job has a summary page, written to the file named by `GITHUB_STEP_SUMMARY`. The gates script writes its verdict lines and its notes there (`- PASS <gate>`, `- FAIL <gate>` with what failed under it, the tests not run), and so can any program the script starts: that is how a false line once reached the page of a job whose gates had all passed (section 12). The page of a private repository cannot be read through the hosting service's command line or its programming interface, so nobody who is not signed in could check what a job's page holds. The script therefore prints the file into the log of the job, where `gh run view --log` reads it.
+A hosted job has a summary page, written to the file named by `GITHUB_STEP_SUMMARY`. The gates script writes its verdict lines and its notes there (`- PASS <gate>`, `- FAIL <gate>` with what failed under it, the tests not run), and so can any program the script starts: that is how a false line once reached the page of a job whose gates had all passed (section 12). The script also prints the file into the log of the job, where `gh run view --log` reads it, so that the same text can be read from the command line as well as from the page.
 
 **When.** At the very end of a run, after its last line (`HOSTED GATE PASSED`, `GATES FAILED`, `NARROWED RUN ...`), whatever the exit code, when `GITHUB_ACTIONS` is `true` and `GITHUB_STEP_SUMMARY` is set. A run that is not on a runner prints nothing of the kind, nor does one on a runner that has no summary file variable. A run that ends on wrong usage or on a folder it cannot make prints nothing either; it has not reached the gates.
 

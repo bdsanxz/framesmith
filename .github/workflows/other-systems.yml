@@ -22,7 +22,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: never
   CARGO_NET_RETRY: 5
-  CARGO_NET_GIT_FETCH_WITH_CLI: true
 
 jobs:
   system-free:
@@ -45,10 +44,6 @@ jobs:
       - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal
       # The workspace names frx7 by a git revision; cargo reads its manifests to resolve the workspace
-      # even though no system-free crate is built with it.
-      - name: frx7 (private remote, read-only deploy key)
-        env:
-          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
-        run: scripts/gates/frx7.sh deploy-key
+      # even though no system-free crate is built with it, and fetches frx7 from its public remote.
       - name: the system-free crates, built and tested
         run: scripts/gates/system-free.sh test

@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # How Framesmith depends on frx7: the gate that refuses a committed path override and a pin moved
-# without its record, and the commands for the local override and the hosted runner's deploy key.
+# without its record, and the commands for the local override.
 # Behaviour: docs/dev/frx7.md.
 #
 #   scripts/gates/frx7.sh check               the gate "frx7 pin": looks at what is committed (HEAD)
 #   scripts/gates/frx7.sh pin                 prints the pinned revision and the remote, from Cargo.toml
 #   scripts/gates/frx7.sh override [FOLDER]   writes .cargo/config.toml: build against a local frx7
 #   scripts/gates/frx7.sh drop-override       removes that file again
-#   scripts/gates/frx7.sh deploy-key          hosted runner: makes the private remote reachable (env FRX7_DEPLOY_KEY)
 #
 # `check` exits 0 when nothing is refused, 1 when anything is, 2 on wrong usage. Written for the bash
 # 3.2 that macOS ships.
@@ -19,8 +18,6 @@ cd "$ROOT" || exit 2
 REMOTE="https://github.com/bdsanxz/frx7"
 RECORD="docs/dev/frx7.md"
 MARK="# frx7 local override, written by scripts/gates/frx7.sh override. Not committed (docs/dev/frx7.md, section 4)."
-# The SSH host key GitHub publishes for github.com (the ssh_keys of https://api.github.com/meta, read on 2026-10-14).
-GITHUB_HOST_KEY="github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
 
 # --- reading what is committed --------------------------------------------------------------------
 
@@ -353,52 +350,13 @@ cmd_drop_override() {
     echo "removed .cargo/config.toml: frx7 is taken from its pin again; the next build writes the pinned sources back to Cargo.lock"
 }
 
-# --- the hosted runner's deploy key ---------------------------------------------------------------------
-
-cmd_deploy_key() {
-    if [ -z "${FRX7_DEPLOY_KEY:-}" ]; then
-        echo "the variable FRX7_DEPLOY_KEY is empty or not set: the Actions secret of that name (the private half of the read-only deploy key of bdsanxz/frx7) is missing, so $REMOTE cannot be fetched" >&2
-        return 1
-    fi
-    if [ -z "${HOME:-}" ]; then
-        echo "HOME is not set" >&2
-        return 1
-    fi
-    local ssh_dir="$HOME/.ssh" key
-    key="$ssh_dir/frx7_deploy_key"
-    umask 077
-    mkdir -p "$ssh_dir" || return 1
-    printf '%s\n' "$FRX7_DEPLOY_KEY" >"$key" || return 1
-    chmod 600 "$key"
-    if ! ssh-keygen -y -f "$key" >/dev/null 2>&1; then
-        rm -f "$key"
-        echo "the content of FRX7_DEPLOY_KEY is not a private SSH key ssh can read; it was removed and is not shown" >&2
-        return 1
-    fi
-    printf '%s\n' "$GITHUB_HOST_KEY" >"$ssh_dir/frx7_known_hosts"
-    {
-        echo
-        echo "Host frx7-github"
-        echo "    HostName github.com"
-        echo "    User git"
-        echo "    IdentityFile $key"
-        echo "    IdentitiesOnly yes"
-        echo "    UserKnownHostsFile $ssh_dir/frx7_known_hosts"
-        echo "    StrictHostKeyChecking yes"
-    } >>"$ssh_dir/config"
-    chmod 600 "$ssh_dir/config"
-    git config --global "url.git@frx7-github:bdsanxz/frx7.insteadOf" "$REMOTE" || return 1
-    echo "frx7: $REMOTE is read through the read-only deploy key (git@frx7-github); build with CARGO_NET_GIT_FETCH_WITH_CLI=true"
-}
-
 case "${1:-}" in
     check) cmd_check ;;
     pin) cmd_pin ;;
     override) shift; cmd_override "$@" ;;
     drop-override) cmd_drop_override ;;
-    deploy-key) cmd_deploy_key ;;
     *)
-        echo "usage: scripts/gates/frx7.sh check | pin | override [FOLDER] | drop-override | deploy-key" >&2
+        echo "usage: scripts/gates/frx7.sh check | pin | override [FOLDER] | drop-override" >&2
         exit 2
         ;;
 esac

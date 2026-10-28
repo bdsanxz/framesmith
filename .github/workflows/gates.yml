@@ -4,10 +4,9 @@
 # Hosted jobs run on `main` and on pull requests only (decision A7); work branches rely on the local
 # gates (.githooks/pre-push). Every job runs scripts/gates.sh, the script the local gates run.
 # No job installs a browser or FFmpeg: the only installs are the Rust toolchain and cargo-deny.
-# frx7 is a private repository: every job that builds (static analysis, tests, core suite, licence gate,
-# system-free crates) fetches it at the pinned revision with the read-only deploy key kept in the secret
-# FRX7_DEPLOY_KEY (scripts/gates/frx7.sh deploy-key, which never prints it). Formatting reads no dependency,
-# and the job "frx7 pin" reads git only (all of its history); neither needs the key.
+# frx7 is a public repository: every job that builds (static analysis, tests, core suite, licence gate,
+# system-free crates) fetches it over https at the pinned revision, with no credentials. Formatting reads
+# no dependency, and the job "frx7 pin" reads git only (all of its history).
 # The behaviour is specified in docs/dev/gates.md.
 name: gates
 
@@ -26,8 +25,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: never
   CARGO_NET_RETRY: 5
-  # Cargo fetches with the git program, which honours the rewrite of the frx7 remote to the deploy key.
-  CARGO_NET_GIT_FETCH_WITH_CLI: true
 
 jobs:
   formatting:
@@ -49,10 +46,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      - name: frx7 (private remote, read-only deploy key)
-        env:
-          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
-        run: scripts/gates/frx7.sh deploy-key
       - name: static analysis
         run: scripts/gates.sh --hosted --gate lint
 
@@ -64,10 +57,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      - name: frx7 (private remote, read-only deploy key)
-        env:
-          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
-        run: scripts/gates/frx7.sh deploy-key
       # Tests marked "reference machine only" (hardware encoder, graphics card) and yardstick tests
       # (they start FFmpeg from outside, to compare) are ignored here: the job lists each by name as
       # not run, and never counts one as passed (decision A27).
@@ -87,10 +76,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      - name: frx7 (private remote, read-only deploy key)
-        env:
-          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
-        run: scripts/gates/frx7.sh deploy-key
       - name: core suite without FFmpeg
         run: scripts/gates.sh --hosted --gate core
 
@@ -102,10 +87,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      - name: frx7 (private remote, read-only deploy key)
-        env:
-          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
-        run: scripts/gates/frx7.sh deploy-key
       - name: cargo-deny 0.20.2 from the cache
         id: deny-cache
         uses: actions/cache@v4
@@ -138,10 +119,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Rust toolchain (the one rust-toolchain.toml names)
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      # The check reads the dependency trees of the workspace, which cargo resolves through frx7.
-      - name: frx7 (private remote, read-only deploy key)
-        env:
-          FRX7_DEPLOY_KEY: ${{ secrets.FRX7_DEPLOY_KEY }}
-        run: scripts/gates/frx7.sh deploy-key
+      # The check reads the dependency trees of the workspace, which cargo resolves from frx7's public remote.
       - name: system-free crates
         run: scripts/gates.sh --hosted --gate free
