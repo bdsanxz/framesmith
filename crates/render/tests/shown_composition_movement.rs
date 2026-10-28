@@ -51,7 +51,7 @@ fn scene(name: &str, inside: &str) -> Scene {
     let folder = project_with("shown-composition-movement", &format!("{test}-{name}"), &text);
     fs::write(folder.join("shown.xml"), SHOWN).unwrap();
     fs::write(folder.join("windowed.xml"), WINDOWED).unwrap();
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{name}: {reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{name}: {reports:?}"))
 }
 
 fn picture(scene: &Scene, number: u64, on: On) -> Picture {
