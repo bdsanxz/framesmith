@@ -41,7 +41,7 @@ dependencies = [
 [[package]]
 name = "audio"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
 ]
@@ -55,7 +55,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "backend-os"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
  "codec",
@@ -66,7 +66,7 @@ dependencies = [
 [[package]]
 name = "base"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 
 [[package]]
 name = "bit-set"
@@ -92,7 +92,7 @@ checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
 [[package]]
 name = "bitstream"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
 ]
@@ -164,7 +164,7 @@ dependencies = [
 [[package]]
 name = "codec"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
  "format",
@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "format"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
 ]
@@ -420,7 +420,7 @@ dependencies = [
 [[package]]
 name = "gpu"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
  "objc2",
@@ -832,7 +832,7 @@ dependencies = [
 [[package]]
 name = "mp4"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
  "format",
@@ -1121,7 +1121,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 [[package]]
 name = "pixel"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
 ]
@@ -1188,7 +1188,7 @@ checksum = "e8cf8e6a8aa66ce33f63993ffc4ea4271eb5b0530a9002db8455ea6050c77bfa"
 [[package]]
 name = "probe"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
  "base",
  "bitstream",
@@ -1507,8 +1507,9 @@ dependencies = [
 [[package]]
 name = "testkit"
 version = "0.1.0"
-source = "git+https://github.com/bdsanxz/frx7?rev=00114c411204178cfdf502e14f889b39062c87dc#00114c411204178cfdf502e14f889b39062c87dc"
+source = "git+https://github.com/bdsanxz/frx7?rev=78e45c398577a44a0c4d5886950bd86407e8b675#78e45c398577a44a0c4d5886950bd86407e8b675"
 dependencies = [
+ "backend-os",
  "base",
  "format",
  "mp4",
