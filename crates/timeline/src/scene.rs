@@ -1055,6 +1055,7 @@ fn walk_canvas(
     refusals.sort_by_key(|refusal| refusal.line);
     let mut reports: Vec<Report> = refusals
         .into_iter()
+        .filter(|refusal| refusal.place || refusal.style || !place_only)
         .map(|refusal| Report::new(canvas.file, Problem::new(refusal.code, refusal.line, refusal.message)))
         .collect();
     reports.extend(shown);
@@ -1323,12 +1324,20 @@ struct Refusal {
     code: Code,
     line: u32,
     message: String,
+    place: bool,
+    style: bool,
 }
 
 impl Refusal {
     /// A refusal of a form of a place, a size, a margin, a position or a row or column.
     fn of_place(code: Code, line: u32, message: String) -> Refusal {
-        Refusal { code, line, message }
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
     }
 
     /// A refusal of a text or a font. It is a form `check` judges as well as a place, so that `check` names what `render`
@@ -1338,30 +1347,56 @@ impl Refusal {
             code: fault.code,
             line: fault.line,
             message: fault.message,
+            place: true,
+            style: fault.style,
         }
     }
 
     /// A refusal of an element inside a `<text>`, or of an attribute of a `<text>` that this version does not draw. It is
     /// a text form, which `check` judges as well as `render` (`docs/spec/text.md`, section 9).
     fn of_text_form(code: Code, line: u32, message: String) -> Refusal {
-        Refusal { code, line, message }
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
     }
 
     /// A refusal of a form of motion: a tween, a `<set>` or a movement attribute that this version does not apply. `check`
     /// judges it as well as `render`.
     fn of_motion((code, line, message): Found) -> Refusal {
-        Refusal { code, line, message }
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
     }
 
     /// A refusal of a background, of one of its layers or of one of its settings (`docs/spec/render-command.md`, section 4.6,
     /// rule 10). `check` judges it as well as `render`.
     fn of_background(code: Code, line: u32, message: String) -> Refusal {
-        Refusal { code, line, message }
+        Refusal {
+            code,
+            line,
+            message,
+            place: true,
+            style: false,
+        }
     }
 
     /// A refusal of anything else that this version does not draw or apply.
     fn of_drawing(code: Code, line: u32, message: String) -> Refusal {
-        Refusal { code, line, message }
+        Refusal {
+            code,
+            line,
+            message,
+            place: false,
+            style: false,
+        }
     }
 
     /// A refusal of an attribute of the root or of a box, which is on the attribute's line. It is one
@@ -1371,6 +1406,8 @@ impl Refusal {
             code,
             line: attribute.line(),
             message,
+            place: false,
+            style: attribute.given_by().is_some(),
         }
     }
 }
