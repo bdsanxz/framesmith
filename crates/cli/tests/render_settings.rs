@@ -231,7 +231,8 @@ fn a_value_an_option_gives_that_this_version_does_not_apply_is_refused_before_th
     assert_eq!(output.status.code(), Some(2), "{}", out(&output));
     assert_eq!(
         out(&output),
-        "command line: FS-0035: unsupported: `--encoder software` is not supported by this version, which takes hardware. \
+        "command line: FS-0035: unsupported: `--encoder software` is given, which this version does not support \
+         (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085). \
          Remove what the message names, or wait for the sprint that brings it.\n\
          Unsupported: the project uses what this version does not support (command line)\n"
     );

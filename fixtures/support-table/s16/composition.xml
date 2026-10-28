@@ -1,0 +1,6 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S16: An easing the engine does not have. -->
+<box left="0" top="0" width="8" height="8">
+<tween at="0" duration="1" to-x="5" ease="bounce"/>
+</box>
+</composition>

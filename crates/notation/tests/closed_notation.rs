@@ -44,20 +44,7 @@ fn an_unknown_element_names_what_is_taken_where_it_stands() {
 
 #[test]
 fn every_name_the_spec_does_not_list_is_unknown_in_every_place() {
-    for name in [
-        "circle",
-        "html",
-        "div",
-        "Box",
-        "BOX",
-        "group",
-        "svg",
-        "keyframes",
-        "stagger",
-        "scene",
-        "p",
-        "br",
-    ] {
+    for name in ["circle", "html", "div", "Box", "BOX", "group", "svg", "stagger", "scene", "p", "br"] {
         for parent in Element::ALL {
             let text = inside(parent, &format!("<{name}/>"));
             let problems = problems_of(&text);
@@ -107,8 +94,8 @@ fn an_attribute_its_element_does_not_take_is_reported_with_its_line_the_attribut
     let rect = only_problem_in("<rect\n id=\"a\"\n colour=\"red\"/>");
     assert_eq!(worded(&rect), "line 4: FS-0030: <rect> has no attribute `colour`");
 
-    let tween = only_problem_in("<box>\n<tween duration=\"1\"\n to-width=\"10\"/>\n</box>");
-    assert_eq!(worded(&tween), "line 4: FS-0030: <tween> has no attribute `to-width`");
+    let tween = only_problem_in("<box>\n<tween duration=\"1\"\n to-nonsense=\"10\"/>\n</box>");
+    assert_eq!(worded(&tween), "line 4: FS-0030: <tween> has no attribute `to-nonsense`");
 
     let set = only_problem_in("<box>\n<set at=\"1\" duration=\"1\" x=\"2\"/>\n</box>");
     assert_eq!(worded(&set), "line 3: FS-0030: <set> has no attribute `duration`");
@@ -154,27 +141,46 @@ fn an_attribute_with_a_prefix_is_not_taken_and_is_shown_as_written() {
 
 #[test]
 fn names_of_forms_that_are_not_in_the_tables_are_attributes_that_are_not_taken() {
-    // Forms that other works will list as unsupported are, until then, not taken like any other.
+    // A name that no table of section 6 lists and no entry of the support table names is not taken like any other.
     for (element, attribute) in [
-        ("box", "z-index"),
-        ("box", "display"),
-        ("box", "flex-wrap"),
-        ("video", "loop"),
-        ("tween", "stagger"),
-        ("tween", "repeat"),
-        ("text", "direction"),
+        ("box", "float"),
         ("box", "style"),
         ("box", "onclick"),
         ("box", "BACKGROUND"),
         ("image", "alt"),
+    ] {
+        let problem = only_problem_in(&format!("<{element} {attribute}=\"1\"/>"));
+        assert_eq!(problem.code(), Code::AttributeNotTaken, "{element} {attribute}");
+        assert_eq!(problem.message(), format!("<{element}> has no attribute `{attribute}`"));
+    }
+}
+
+#[test]
+fn names_of_forms_the_support_table_names_are_unsupported_with_their_entry() {
+    // The entries worked from section 14 of the spec: S05 a stacking order, S19 the rest of flex, S09 a loop, S13 a stagger,
+    // S15 a repeat, S21 right-to-left text.
+    for (element, attribute, entry) in [
+        ("box", "z-index", "S05"),
+        ("box", "flex-wrap", "S19"),
+        ("box", "display", "S19"),
+        ("video", "loop", "S09"),
+        ("tween", "stagger", "S13"),
+        ("tween", "repeat", "S15"),
+        ("text", "direction", "S21"),
     ] {
         let body = match element {
             "tween" => format!("<box>\n<tween duration=\"1\" to-x=\"1\" {attribute}=\"1\"/>\n</box>"),
             other => format!("<{other} {attribute}=\"1\"/>"),
         };
         let problem = only_problem_in(&body);
-        assert_eq!(problem.code(), Code::AttributeNotTaken, "{element} {attribute}");
-        assert_eq!(problem.message(), format!("<{element}> has no attribute `{attribute}`"));
+        assert_eq!(problem.code(), Code::FormNotSupported, "{element} {attribute}");
+        assert!(
+            problem.message().starts_with(&format!(
+                "<{element}> has `{attribute}=\"1\"`, which this version does not support (support table {entry}: "
+            )),
+            "{element} {attribute}: {}",
+            problem.message()
+        );
     }
 }
 
@@ -184,11 +190,15 @@ fn an_element_in_a_place_it_may_not_stand_is_reported_with_its_line_and_the_plac
     let text = inside(Element::Text, "<box/>");
     let problems = problems_of(&text);
     assert_eq!(problems.len(), 1, "{problems:#?}");
-    assert_eq!(problems[0].code(), Code::ElementNotHere);
+    // A drawn element inside a text is a form the support table names (S51).
+    assert_eq!(problems[0].code(), Code::FormNotSupported);
     assert_eq!(problems[0].line(), line_of(&text, "<box/>"));
-    assert_eq!(
-        problems[0].message(),
-        "<box> is not known inside <text>; only <span>, <tween> and <set> are; a <box> stands directly in <composition>, <box> or <rect>"
+    assert!(
+        problems[0]
+            .message()
+            .starts_with("<text> holds <box>, which this version does not support (support table S51: "),
+        "{}",
+        problems[0].message()
     );
 
     // A <style>, a <font> and an <audio> stand directly in the root.
@@ -267,9 +277,9 @@ fn a_composition_without_src_inside_a_composition_is_reported() {
 
 #[test]
 fn an_element_in_the_wrong_place_still_has_its_own_attributes_and_children_judged() {
-    // The <box> may not stand in the <text>; its own attribute and its own child are judged by the
-    // table of a <box>, so all three are reported, in the order of the file.
-    let problems = problems_in("<text>\n<box nonsense=\"1\">\n<circle/>\n</box>\n</text>");
+    // The <style> may not stand in the <box>; its own attribute and its own child are judged by the
+    // table of a <style>, so all three are reported, in the order of the file.
+    let problems = problems_in("<box>\n<style id=\"s\" class=\"x\">\n<circle/>\n</style>\n</box>");
     let places: Vec<(Code, u32)> = problems.iter().map(|problem| (problem.code(), problem.line())).collect();
     assert_eq!(
         places,
@@ -295,16 +305,25 @@ fn every_pair_of_parent_and_child_is_taken_exactly_when_the_table_of_the_spec_sa
             } else {
                 refused += 1;
                 assert_eq!(problems.len(), 1, "{name}: {problems:#?}");
+                // A drawn element inside a text, a shown composition or footage is named by the support table (S51).
+                let leaf = matches!(parent, Element::Text | Element::Nested | Element::Video) && child.drawn();
                 let wanted = if child == Element::Span {
                     Code::ElementNotKnown
+                } else if leaf {
+                    Code::FormNotSupported
                 } else {
                     Code::ElementNotHere
                 };
                 assert_eq!(problems[0].code(), wanted, "{name}");
                 assert_eq!(problems[0].line(), line_of(&text, &written(child)), "{name}");
-                // The place where it may stand is in the message, whichever place it is in.
-                for place in child.parents() {
-                    assert!(problems[0].message().contains(place.tag()), "{name}: {}", problems[0]);
+                // The place where it may stand is in the message, whichever place it is in; an element the support table
+                // names is worded by its entry instead.
+                if leaf {
+                    assert!(problems[0].message().contains("(support table S51: "), "{name}: {}", problems[0]);
+                } else {
+                    for place in child.parents() {
+                        assert!(problems[0].message().contains(place.tag()), "{name}: {}", problems[0]);
+                    }
                 }
             }
         }

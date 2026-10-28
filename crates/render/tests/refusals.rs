@@ -49,21 +49,23 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 
 #[test]
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
-    for (index, (element, tag)) in [
-        ("<rect/>", "<rect>"),
-        ("<image src=\"i.png\"/>", "<image>"),
-        ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>"),
-        ("<shape src=\"s.svg\"/>", "<shape>"),
+    // Each element with the entry of the support table that names it (section 14): S60 a rect, S40 a still picture,
+    // S67 footage, S42 a shape.
+    for (index, (element, tag, entry)) in [
+        ("<rect/>", "<rect>", "S60"),
+        ("<image src=\"i.png\"/>", "<image>", "S40"),
+        ("<video src=\"v.mp4\" width=\"2\" height=\"2\"/>", "<video>", "S67"),
+        ("<shape src=\"s.svg\"/>", "<shape>", "S42"),
     ]
     .into_iter()
     .enumerate()
     {
-        assert_eq!(
-            only(&format!("element-{index}"), element),
-            format!(
-                "composition.xml 2 FS-0035 {tag} is not supported by this version, which draws <box>, <text> and <composition src> only"
-            ),
-            "{element}"
+        let report = only(&format!("element-{index}"), element);
+        assert!(
+            report.starts_with(&format!(
+                "composition.xml 2 FS-0035 the composition holds {tag}, which this version does not support (support table {entry}: "
+            )),
+            "{element}: {report}"
         );
     }
 }
@@ -72,7 +74,7 @@ fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_lin
 fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_reported_is_not_looked_into() {
     assert_eq!(
         only("in-box", "<box>\n<image src=\"i.png\"/>\n</box>"),
-        "composition.xml 3 FS-0035 <image> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <box> holds <image>, which this version does not support (support table S40: Still pictures are not read or drawn yet; waits until Sprint 1, T059)"
     );
     // A tween inside a box moves it (section 4.5), so it is not refused.
     assert_eq!(
@@ -98,26 +100,23 @@ fn an_element_inside_a_box_is_unsupported_and_what_is_inside_an_element_that_is_
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         reports[0],
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        "composition.xml 3 FS-0035 <box> holds <rect>, which this version does not support (support table S60: `<rect>` is not read yet, though section 6.3 names it; not yet planned)"
     );
 }
 
 #[test]
-fn a_refusal_names_what_this_version_draws_in_the_root_and_inside_a_box() {
-    // The root draws a <box>, a <text> and a <composition src>, and a message that names only the box is wrong.
-    let root = only("names-root", "<rect/>");
+fn a_refusal_names_the_entry_of_the_support_table_in_the_root_and_inside_a_box() {
+    // A <rect> is support table S60 wherever it stands, and the message says what holds it.
+    let rect =
+        "which this version does not support (support table S60: `<rect>` is not read yet, though section 6.3 names it; not yet planned)";
     assert_eq!(
-        root,
-        "composition.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
+        only("names-root", "<rect/>"),
+        format!("composition.xml 2 FS-0035 the composition holds <rect>, {rect}")
     );
-    assert!(root.contains("<box>") && root.contains("<composition src>"), "{root}");
-    // Inside a box it draws a <box> or a <composition src>, and no other element.
-    let inside = only("names-box", "<box>\n<rect/>\n</box>");
     assert_eq!(
-        inside,
-        "composition.xml 3 FS-0035 <rect> inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element"
+        only("names-box", "<box>\n<rect/>\n</box>"),
+        format!("composition.xml 3 FS-0035 <box> holds <rect>, {rect}")
     );
-    assert!(inside.contains("<box>") && inside.contains("<composition src>"), "{inside}");
 }
 
 #[test]
@@ -130,9 +129,9 @@ fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
     assert_eq!(
         reports,
         vec![
-            "composition.xml 2 FS-0035 <box> has an attribute this version does not support: `clip-path`",
-            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `grain`",
-            "composition.xml 3 FS-0035 <box> has an attribute this version does not support: `reveal`",
+            "composition.xml 2 FS-0035 <box> has `clip-path=\"4\"`, which this version does not support (support table S41: Not drawn yet; waits until Sprint 1, T061)",
+            "composition.xml 3 FS-0035 <box> has `grain=\"0.5\"`, which this version does not support (support table S39: Not drawn yet; waits until Sprint 1, T058)",
+            "composition.xml 3 FS-0035 <box> has `reveal=\"0.5\"`, which this version does not support (support table S44: Openings over the scene are not drawn yet; waits until Sprint 1, T072)",
         ]
     );
     // The root takes its seven attributes and `class`, which names styles of the file: a name that no
@@ -154,20 +153,26 @@ fn an_attribute_this_version_does_not_draw_is_unsupported_on_its_own_line() {
 
 #[test]
 fn a_length_that_is_a_length_and_is_not_a_whole_number_of_pixels_in_range_is_unsupported() {
-    let edge = "a whole number of pixels from -1000000 to 1000000, or a percentage such as 50%";
-    let size = "a whole number of pixels from 0 to 1000000, or a percentage such as 50%";
-    for (name, attribute, written, takes) in [
-        ("left-fraction", "left", "10.5", edge),
-        ("left-large", "left", "1000001", edge),
-        ("top-negative-large", "top", "-1e7", edge),
-        ("right-fraction", "right", "-0.5", edge),
-        ("bottom-large", "bottom", "1e7", edge),
-        ("width-fraction", "width", "0.5", size),
-        ("height-large", "height", "2e6", size),
+    // A fraction of a pixel is support table S56; a length beyond 1,000,000 pixels is S57.
+    let fraction = "S56: Edges lie on whole pixels";
+    let beyond = "S57: The limit of a place";
+    for (name, attribute, written, entry) in [
+        ("left-fraction", "left", "10.5", fraction),
+        ("left-large", "left", "1000001", beyond),
+        ("top-negative-large", "top", "-1e7", beyond),
+        ("right-fraction", "right", "-0.5", fraction),
+        ("bottom-large", "bottom", "1e7", beyond),
+        ("width-fraction", "width", "0.5", fraction),
+        ("height-large", "height", "2e6", beyond),
     ] {
-        assert_eq!(
-            only(name, &format!("<box {attribute}=\"{written}\"/>")),
-            format!("composition.xml 2 FS-0035 `{attribute}=\"{written}\"` on <box> is not a form this version supports: {takes}")
+        let report = only(name, &format!("<box {attribute}=\"{written}\"/>"));
+        assert!(
+            report.starts_with(&format!("composition.xml 2 FS-0035 <box> has `{attribute}=\"{written}\"`")),
+            "{name}: {report}"
+        );
+        assert!(
+            report.contains(&format!("which this version does not support (support table {entry};")),
+            "{name}: {report}"
         );
     }
 }
@@ -188,12 +193,12 @@ fn a_place_that_works_out_beyond_the_limit_is_reported_with_its_line() {
     // The default size of a box at top 1000000 lies beyond the limit at its bottom edge.
     assert_eq!(
         only("beyond-default-size", "<box top=\"1000000\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
     // A near edge at the limit and a size that runs past it.
     assert_eq!(
         only("beyond-far-edge", "<box left=\"1000000\" width=\"1\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
 }
 
@@ -253,7 +258,7 @@ fn a_background_that_is_not_a_colour_or_a_gradient_is_not_in_its_form_and_a_coni
     let conic = "conic-gradient(#ff0000 0%, #0000ff 100%)";
     assert_eq!(
         only("conic", &format!("<box background=\"{conic}\"/>")),
-        format!("composition.xml 2 FS-0035 `background=\"{conic}\"` holds a conic gradient, which this version does not draw: it draws colours, linear gradients and radial gradients")
+        format!("composition.xml 2 FS-0035 `background=\"{conic}\"` holds a conic gradient, which this version does not support (support table S17: Not drawn by either renderer; waits until Sprint 5)")
     );
 }
 
@@ -268,7 +273,7 @@ fn a_root_background_with_an_alpha_below_ff_is_unsupported() {
     assert_eq!(reports.len(), 1);
     assert_eq!(
         shown(&reports[0]),
-        "composition.xml 2 FS-0035 `background=\"#10203080\"` on <composition> is not a form this version supports: one opaque colour, #rrggbb"
+        "composition.xml 2 FS-0035 <composition> has `background=\"#10203080\"`, which this version does not support (support table S61: Only a box's background is laid over what is under it; a film's ground is opaque; not yet planned)"
     );
     let folder = project_with(
         "refusals",
@@ -323,10 +328,10 @@ fn a_render_setting_this_version_does_not_apply_is_unsupported_with_the_line_of_
     assert_eq!(
         reports,
         vec![
-            "framesmith.yaml 3 FS-0035 `render.quality: high` is not supported by this version, which takes standard",
-            "framesmith.yaml 4 FS-0035 `render.encoder: software` is not supported by this version, which takes hardware",
-            "framesmith.yaml 5 FS-0035 `render.workers: 4` is not supported by this version, which takes auto or 1",
-            "framesmith.yaml 6 FS-0035 `render.audio-bitrate: 32` is not supported by this version, which takes 64 to 320",
+            "framesmith.yaml 3 FS-0035 `render.quality: high` is written, which this version does not support (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085)",
+            "framesmith.yaml 4 FS-0035 `render.encoder: software` is written, which this version does not support (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085)",
+            "framesmith.yaml 5 FS-0035 `render.workers: 4` is written, which this version does not support (support table S50: So far one worker draws and encodes; waits until Sprint 1, T096)",
+            "framesmith.yaml 6 FS-0035 `render.audio-bitrate: 32` is written, which this version does not support (support table S62: The system's sound encoder takes 64 to 320 kbit/s; not yet planned)",
         ]
     );
 }
@@ -361,7 +366,7 @@ fn the_composition_that_is_read_is_the_one_the_project_names() {
     let reports = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_err();
     assert_eq!(
         shown(&reports[0]),
-        "scenes/main.xml 2 FS-0035 <rect> is not supported by this version, which draws <box>, <text> and <composition src> only"
+        "scenes/main.xml 2 FS-0035 the composition holds <rect>, which this version does not support (support table S60: `<rect>` is not read yet, though section 6.3 names it; not yet planned)"
     );
 }
 
@@ -379,14 +384,14 @@ fn a_setting_an_option_gives_that_this_version_does_not_apply_is_unsupported_on_
     assert_eq!(
         reports.iter().map(shown).collect::<Vec<_>>(),
         vec![
-            "command line 0 FS-0035 `--workers 4` is not supported by this version, which takes auto or 1",
-            "framesmith.yaml 3 FS-0035 `render.encoder: software` is not supported by this version, which takes hardware",
+            "command line 0 FS-0035 `--workers 4` is given, which this version does not support (support table S50: So far one worker draws and encodes; waits until Sprint 1, T096)",
+            "framesmith.yaml 3 FS-0035 `render.encoder: software` is written, which this version does not support (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085)",
         ]
     );
     assert_eq!(
         reports[0].to_string(),
-        "command line: FS-0035: unsupported: `--workers 4` is not supported by this version, which takes auto or 1. \
-         Remove what the message names, or wait for the sprint that brings it."
+        "command line: FS-0035: unsupported: `--workers 4` is given, which this version does not support (support table S50: \
+         So far one worker draws and encodes; waits until Sprint 1, T096). Remove what the message names, or wait for the sprint that brings it."
     );
 }
 
@@ -402,7 +407,7 @@ fn a_sound_bit_rate_the_system_encoder_takes_is_accepted_and_one_it_does_not_is_
         assert_eq!(
             with_project_file(name, &format!("render:\n  audio-bitrate: {rate}\n")).unwrap_err(),
             vec![format!(
-                "framesmith.yaml 2 FS-0035 `render.audio-bitrate: {rate}` is not supported by this version, which takes 64 to 320"
+                "framesmith.yaml 2 FS-0035 `render.audio-bitrate: {rate}` is written, which this version does not support (support table S62: The system's sound encoder takes 64 to 320 kbit/s; not yet planned)"
             )]
         );
     }
@@ -413,6 +418,6 @@ fn a_length_whose_digits_are_too_far_apart_to_add_is_reported_with_its_line() {
     // A percentage of 1e-100001 has its digits more than the work bound apart from the start edge, so it is not worked out.
     assert_eq!(
         only("digits-too-far-apart", "<box left=\"1e-100001%\" width=\"10\"/>"),
-        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not place"
+        "composition.xml 2 FS-0035 a place or a size of <box> works out beyond 1000000 pixels, or needs more digits than this version works with, which this version does not support (support table S57: The limit of a place; not yet planned)"
     );
 }

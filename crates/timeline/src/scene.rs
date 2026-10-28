@@ -8,7 +8,7 @@ use draw::{
     Picture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
-use project::{Attribute, Code, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Workers};
+use project::{Attribute, Code, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Unsupported, Workers};
 use text::Fonts;
 use timebase::Time;
 
@@ -17,6 +17,7 @@ use crate::edges::read_edges;
 use crate::moving::{self, Found, Movement, Mover, MOVEMENT};
 use crate::paragraph::{self, read_text_attributes, Clock, Fault, Paragraph, TEXT_ATTRIBUTES, TEXT_TAKES};
 use crate::sound::{self, Sound};
+use crate::support;
 use motion::{ElementMotion, Tween};
 
 /// The lowest and the highest bit rate of the sound, in kbit/s, that the system's AAC encoder takes
@@ -552,7 +553,9 @@ pub fn place_reports(project: &Project, codecs: &codec::Registry) -> Vec<Report>
 /// each `<text>` with a character that no family of its list and no family of the machine maps, on the line of the
 /// `<text>`, which names the first such character (`docs/spec/text.md`, section 2.4, point 3).
 pub fn place_reports_and_notes(project: &Project, codecs: &codec::Registry) -> (Vec<Report>, Vec<String>) {
-    let (entries, _, reports) = walk(project, true, codecs);
+    let mut reports = settings(project);
+    let (entries, _, found) = walk(project, false, codecs);
+    reports.extend(found);
     let mut notes: Vec<String> = Vec::new();
     for entry in &entries {
         let Entry::Text(text) = entry else {
@@ -696,11 +699,8 @@ fn walk_canvas(
             // The root of the canvas.
             for attribute in node.attributes() {
                 if !ROOT_TAKES.contains(&attribute.name()) {
-                    refusals.push(Refusal::of_attribute(
-                        Code::FormNotSupported,
-                        attribute,
-                        unsupported_attribute(node, attribute),
-                    ));
+                    let (code, message) = unsupported_attribute(node, attribute);
+                    refusals.push(Refusal::of_attribute(code, attribute, message));
                 }
             }
             if let (Some(attribute), true) = (node.attribute("background"), canvas.translucent) {
@@ -728,7 +728,7 @@ fn walk_canvas(
             refusals.push(Refusal::of_drawing(
                 Code::FormNotSupported,
                 node.line(),
-                unsupported_inside_nested(node.element()),
+                unsupported_inside(node.element(), Element::Nested),
             ));
             places.push(None);
             continue;
@@ -776,7 +776,7 @@ fn walk_canvas(
             refusals.push(Refusal::of_text_form(
                 Code::FormNotSupported,
                 node.line(),
-                unsupported_inside_text(node.element()),
+                unsupported_inside(node.element(), Element::Text),
             ));
             places.push(None);
             continue;
@@ -808,14 +808,26 @@ fn walk_canvas(
             continue;
         }
         if !matches!(node.element(), Element::Box | Element::Nested | Element::Text) {
-            let refusal = if parent == 0 {
-                Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_element(node.element()))
-            } else if matches!(tree[parent].element(), Element::Text | Element::Span) {
-                Refusal::of_text_form(Code::FormNotSupported, node.line(), unsupported_inside_text(node.element()))
-            } else {
-                Refusal::of_drawing(Code::FormNotSupported, node.line(), unsupported_inside_box(node.element()))
-            };
-            refusals.push(refusal);
+            refusals.push(Refusal::of_drawing(
+                Code::FormNotSupported,
+                node.line(),
+                unsupported_inside(node.element(), tree[parent].element()),
+            ));
+            // Each form of the support table is listed on its own, also on an element that is itself not drawn, so that
+            // its line stays when the element's entry goes (`docs/spec/check-command.md` section 3d).
+            // Footage in a row, a column or a set of columns is placed by a flow this version does not give it (S52).
+            if node.element() == Element::Video && in_flow(&tree[parent]) {
+                refusals.push(Refusal::of_drawing(
+                    Code::FormNotSupported,
+                    node.line(),
+                    Unsupported::FootageInFlow.message(&format!("{} holds <video> in a flow", tree[parent].element().tag())),
+                ));
+            }
+            refusals.extend(
+                forms_of_unsupported(node)
+                    .into_iter()
+                    .map(|(line, message)| Refusal::of_drawing(Code::FormNotSupported, line, message)),
+            );
             places.push(None);
             continue;
         }
@@ -927,10 +939,10 @@ fn walk_canvas(
         let (rect, item_rects) = match laid {
             Ok(laid) => laid,
             Err(Beyond) => {
-                let message = format!(
-                    "a place or a size of {} works out beyond {LIMIT} pixels, or needs more digits than this version works with, which this version does not place",
+                let message = Unsupported::BeyondTheLimit.message(&format!(
+                    "a place or a size of {} works out beyond {LIMIT} pixels, or needs more digits than this version works with",
                     node.element().tag()
-                );
+                ));
                 refusals.push(Refusal::of_place(Code::FormNotSupported, node.line(), message));
                 places.push(None);
                 continue;
@@ -1089,9 +1101,7 @@ fn gather_movers(
                 refusals.push(Refusal::of_motion((
                     Code::FormNotSupported,
                     line,
-                    format!(
-                        "motion of {tag} that holds a <composition src> is not supported by this version, which moves a <box> or a <text> that holds no <composition src>"
-                    ),
+                    Unsupported::MotionAroundShown.message(&format!("{tag} that holds a <composition src> moves")),
                 )));
             }
             if let Some((_, line)) = movement.shadow {
@@ -1123,9 +1133,9 @@ fn gather_movers(
 }
 
 /// The refusals of a `<tween>` or a `<set>` in a `<span>`: each property it changes other than `typed`, on the line of its
-/// first attribute (`docs/spec/text.md`, section 7): a tween's `from-` and `to-` of one property are one report.
+/// first attribute (`docs/spec/text.md`, section 7): a tween's `from-` and `to-` of one property are one report. The
+/// message is the entry's, as for a `<tween>` or a `<set>` the walk finds in a span (`unsupported_inside`).
 fn span_motion_faults(node: &Node) -> Vec<Refusal> {
-    let tag = node.element().tag();
     let mut named: Vec<&str> = Vec::new();
     node.attributes()
         .iter()
@@ -1143,10 +1153,7 @@ fn span_motion_faults(node: &Node) -> Vec<Refusal> {
             Some(Refusal::of_motion((
                 Code::FormNotSupported,
                 attribute.line(),
-                format!(
-                    "{tag} in a <span> changes `{}`, which this version does not move there: a {tag} in a <span> changes `typed` alone",
-                    project::shown(property)
-                ),
+                unsupported_inside(node.element(), Element::Span),
             )))
         })
         .collect()
@@ -1208,11 +1215,8 @@ fn read_nested(project: &Project, node: &Node) -> (Read, Vec<Refusal>) {
     for attribute in node.attributes() {
         let name = attribute.name();
         if !NESTED_TAKES.contains(&name) {
-            refusals.push(Refusal::of_attribute(
-                Code::FormNotSupported,
-                attribute,
-                unsupported_attribute(node, attribute),
-            ));
+            let (code, message) = unsupported_attribute(node, attribute);
+            refusals.push(Refusal::of_attribute(code, attribute, message));
             continue;
         }
         match name {
@@ -1468,11 +1472,8 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
         if !takes(node, name) {
             // An attribute of a `<text>` is a text form that `check` judges; a `<box>`'s is judged only when a style
             // gives it (`docs/spec/check-command.md`, section 3c).
-            let message = unsupported_attribute(node, attribute);
-            refusals.push(match node.element() {
-                Element::Text => Refusal::of_text_form(Code::FormNotSupported, attribute.line(), message),
-                _ => Refusal::of_attribute(Code::FormNotSupported, attribute, message),
-            });
+            let (code, message) = unsupported_attribute(node, attribute);
+            refusals.push(Refusal::of_attribute(code, attribute, message));
             continue;
         }
         let value = attribute.shown();
@@ -1501,6 +1502,11 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 "center" => along = Along::Center,
                 "flex-end" => along = Along::End,
                 "space-between" => along = Along::SpaceBetween,
+                "space-around" | "space-evenly" => refusals.push(Refusal::of_place(
+                    Code::FormNotSupported,
+                    attribute.line(),
+                    Unsupported::RestOfFlexAndGrid.message(&support::written(node.element(), attribute)),
+                )),
                 _ => refusals.push(Refusal::of_place(
                     Code::WordNotTaken,
                     attribute.line(),
@@ -1574,7 +1580,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
                 Some(Length::Percent(_)) => refusals.push(Refusal::of_place(
                     Code::FormNotSupported,
                     attribute.line(),
-                    unsupported_value(node, name, &value, "a number of pixels, 0 or more"),
+                    Unsupported::GapPercentage.message(&support::written(node.element(), attribute)),
                 )),
                 None => refusals.push(Refusal::of_place(
                     Code::LengthNotAccepted,
@@ -1659,7 +1665,7 @@ fn read_box(node: &Node) -> (Read, Vec<Refusal>) {
     };
     // The shadows of a box (`docs/spec/render-command.md`, section 4.7, rule 8 for the reports).
     let shadows = match node.attribute("box-shadow").filter(|_| node.element() != Element::Text) {
-        Some(attribute) => match crate::shadows::box_shadows(attribute.value()) {
+        Some(attribute) => match crate::shadows::box_shadows(&support::written(node.element(), attribute), attribute.value()) {
             Ok(shadows) => shadows,
             Err((code, message)) => {
                 refusals.push(Refusal::of_place(code, attribute.line(), message));
@@ -2053,16 +2059,13 @@ fn amount(length: Option<Length>, value: &str, name: &str, tag: &str) -> Result<
             Ok(Amount::Pixels(decimal(&number, name, value)?))
         }
         Some(Length::Percent(number)) => Ok(Amount::Percent(decimal(&number, name, value)?)),
+        Some(Length::Pixels(number)) if !number.is_whole() => Err((
+            Code::FormNotSupported,
+            Unsupported::FractionOfAPixel.message(&format!("{tag} has `{name}=\"{value}\"`")),
+        )),
         Some(_) => Err((
             Code::FormNotSupported,
-            format!(
-                "`{name}=\"{value}\"` on {tag} is not a form this version supports: {}",
-                if sized {
-                    "a whole number of pixels from 0 to 1000000, or a percentage such as 50%"
-                } else {
-                    "a whole number of pixels from -1000000 to 1000000, or a percentage such as 50%"
-                }
-            ),
+            Unsupported::BeyondTheLimit.message(&format!("{tag} has `{name}=\"{value}\"`, beyond {LIMIT} pixels")),
         )),
     }
 }
@@ -2077,57 +2080,55 @@ fn not_a_length(name: &str, value: &str) -> String {
     format!("`{name}=\"{value}\"` is not a length: a number of pixels or a percentage, such as 40 or 50%")
 }
 
-fn unsupported_element(element: Element) -> String {
-    format!(
-        "{} is not supported by this version, which draws <box>, <text> and <composition src> only",
-        element.tag()
-    )
+/// The message of an element written in a place where this version does not draw it, with the entry of the support table
+/// that names it: the elements this version does not read at all, a `<tween>` or a `<set>` inside a span, a shown composition
+/// or footage, and any other element inside a shown composition or a text.
+fn unsupported_inside(element: Element, parent: Element) -> String {
+    let entry = match (element, parent) {
+        (Element::Rect, _) => Unsupported::Rect,
+        (Element::Image, _) => Unsupported::StillPictures,
+        (Element::Video, _) => Unsupported::Footage,
+        (Element::Shape, _) => Unsupported::Shapes,
+        (Element::Tween | Element::Set, Element::Span) => Unsupported::CountingTypingSpanMotion,
+        (Element::Tween | Element::Set, Element::Nested | Element::Video) => Unsupported::PictureMotion,
+        _ => Unsupported::ElementInsideLeaf,
+    };
+    let what = match parent {
+        Element::Composition => format!("the composition holds {}", element.tag()),
+        _ => format!("{} holds {}", parent.tag(), element.tag()),
+    };
+    entry.message(&what)
 }
 
-/// The message for an element written inside a composition shown from another file, which takes none.
-fn unsupported_inside_nested(element: Element) -> String {
-    format!(
-        "{} inside <composition src> is not supported by this version, which draws a <composition src> with no element inside it",
-        element.tag()
-    )
-}
-
-/// The message for an element written inside a `<text>` or a `<span>` that is not drawn there: a `<tween>` or a `<set>`
-/// (`text.md`, section 7).
-fn unsupported_inside_text(element: Element) -> String {
-    format!(
-        "{} inside <text> is not supported by this version, which draws the words of a <text> and of its <span>s and no other element inside it",
-        element.tag()
-    )
-}
-
-/// The message for an element written inside a `<box>`: a `<box>`, a `<text>` or a `<composition src>` is drawn there.
-fn unsupported_inside_box(element: Element) -> String {
-    format!(
-        "{} inside a <box> is not supported by this version, which draws a <box>, a <text> or a <composition src> inside a <box> and no other element",
-        element.tag()
-    )
-}
-
-/// The message for an attribute this version does not draw; one a style gives names the style, since
-/// the line given is the element's (`docs/spec/check-command.md` section 3c).
-fn unsupported_attribute(node: &Node, attribute: &Attribute) -> String {
-    let message = format!(
-        "{} has an attribute this version does not support: `{}`",
-        node.element().tag(),
-        project::shown(attribute.name())
-    );
-    match attribute.given_by() {
-        None => message,
-        Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
+/// The forms of the support table written on an element that is itself not drawn: a mask made from a picture (S18), and
+/// each attribute that an entry names on that element. Each is given with its line and its message.
+fn forms_of_unsupported(node: &Node) -> Vec<(u32, String)> {
+    let mut found = Vec::new();
+    for attribute in node.attributes() {
+        let entry = if attribute.name() == "mask" {
+            picture_mask(attribute.value()).then_some(Unsupported::PictureMask)
+        } else {
+            support::attribute_entry(node.element(), attribute.name())
+        };
+        if let Some(entry) = entry {
+            found.push((attribute.line(), entry.message(&support::written(node.element(), attribute))));
+        }
     }
+    found
 }
 
-fn unsupported_value(node: &Node, name: &str, value: &str, takes: &str) -> String {
-    format!(
-        "`{name}=\"{value}\"` on {} is not a form this version supports: {takes}",
-        node.element().tag()
-    )
+/// Whether an element places what it holds in a row, a column or a set of columns.
+fn in_flow(node: &Node) -> bool {
+    node.attribute("flex-direction").is_some() || node.attribute("columns").is_some()
+}
+
+/// Whether a `mask` names a picture and not a gradient (support table S18): it ends in the name of a picture file.
+fn picture_mask(value: &str) -> bool {
+    let value = value.trim().to_ascii_lowercase();
+    !value.contains("gradient(")
+        && [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif", ".heic"]
+            .iter()
+            .any(|kind| value.ends_with(kind))
 }
 
 /// The message for a `volume` on an `<audio>`, which this version does not apply (`docs/spec/sound.md` section 1).
@@ -2142,58 +2143,68 @@ fn unapplied_volume(attribute: &Attribute) -> String {
     }
 }
 
-/// The message for a `background` that is not one opaque colour; one a style gives names the style,
-/// as the message of an attribute this version does not draw does (`docs/spec/check-command.md`
-/// section 3c).
-fn unsupported_colour(node: &Node, attribute: &Attribute) -> String {
-    let message = unsupported_value(node, attribute.name(), &attribute.shown(), "one opaque colour, #rrggbb");
-    match attribute.given_by() {
-        None => message,
-        Some(style) => format!("{message}, which the style `{}` gives it", project::shown(style)),
-    }
+/// The code and the message of an attribute this version does not take on its element, with the entry of the support table
+/// that names it (`support::refused_attribute`).
+fn unsupported_attribute(node: &Node, attribute: &Attribute) -> (Code, String) {
+    support::refused_attribute(node.element(), attribute.name(), support::written(node.element(), attribute))
 }
 
-/// Settings in use that this version does not apply: the renderer is the processor's, the encoder
-/// the system's hardware encoder at `standard`, one thread draws and encodes, and the system's AAC
-/// encoder takes 64 to 320 kbit/s. A value an option gave is reported on the command line; a value
-/// of the project file on the line of the value.
+/// The message of a background of the root that is not opaque (support table S61).
+fn unsupported_colour(node: &Node, attribute: &Attribute) -> String {
+    Unsupported::AlphaOutsideBoxBackground.message(&support::written(node.element(), attribute))
+}
+
+/// Settings in use that this version does not apply, each with the entry of the support table that names it: a film whose
+/// path does not end in `.mp4` or `.m4v` (S34), an encoder or a quality other than the hardware encoder at `standard`
+/// (S49), more than one worker (S50), and a sound bit rate outside 64 to 320 kbit/s (S62). A value an option gave is
+/// reported on the command line; a value of the project file on the line of the value.
 fn settings(project: &Project) -> Vec<Report> {
     let settings = project.settings();
     let mut from_options: Vec<String> = Vec::new();
     let mut found: Vec<(u32, String)> = Vec::new();
-    let mut check = |key: &str, option: Option<&str>, accepted: bool, value: String, takes: &str| {
+    let mut check = |key: &str, option: Option<&str>, accepted: bool, value: String, entry: Unsupported| {
         if accepted {
             return;
         }
         if let (true, Some(option)) = (settings.from_option(key), option) {
-            from_options.push(format!("`{option} {value}` is not supported by this version, which takes {takes}"));
+            from_options.push(entry.message(&format!("`{option} {value}` is given")));
         } else if let Some(line) = settings.line_of(key) {
-            found.push((
-                line,
-                format!("`{key}: {value}` is not supported by this version, which takes {takes}"),
-            ));
+            found.push((line, entry.message(&format!("`{key}: {value}` is written"))));
         }
     };
+    // A film is written as an MP4 file: its path ends in `.mp4` or `.m4v`, in any case (support table S34).
+    let output = project.output();
+    let kind = std::path::Path::new(&output)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(str::to_ascii_lowercase);
+    check(
+        "render.output",
+        Some("--output"),
+        matches!(kind.as_deref(), Some("mp4" | "m4v")),
+        output.clone(),
+        Unsupported::FilmNotMp4,
+    );
     check(
         "render.quality",
         Some("--quality"),
         settings.quality() == Quality::Standard,
         settings.quality().to_string(),
-        "standard",
+        Unsupported::EncoderOrQuality,
     );
     check(
         "render.encoder",
         Some("--encoder"),
         settings.encoder() == Encoder::Hardware,
         settings.encoder().to_string(),
-        "hardware",
+        Unsupported::EncoderOrQuality,
     );
     check(
         "render.workers",
         Some("--workers"),
         matches!(settings.workers(), Workers::Auto | Workers::Count(1)),
         settings.workers().to_string(),
-        "auto or 1",
+        Unsupported::Workers,
     );
     check(
         "render.audio-bitrate",
@@ -2201,7 +2212,7 @@ fn settings(project: &Project) -> Vec<Report> {
         None,
         (SOUND_KBITS_LOWEST..=SOUND_KBITS_HIGHEST).contains(&settings.audio_bitrate()),
         settings.audio_bitrate().to_string(),
-        "64 to 320",
+        Unsupported::SoundBitRate,
     );
     found.sort_by_key(|(line, _)| *line);
     // The command line is read before the project file, so its reports come first.

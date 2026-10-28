@@ -120,6 +120,12 @@ impl Walker<'_> {
         };
         for show in &shows.elements {
             let target = written_path(self.folder, &show.src);
+            // Nothing is read from a network (support table S31).
+            if let Some(entry) = notation::remote(&show.src) {
+                let message = entry.message(&format!("<composition> has `src=\"{}\"`", show.src));
+                self.report(&owner, show.line, &target, Code::FormNotSupported, message);
+                continue;
+            }
             if let Some(at) = chain.iter().position(|link| link.path == target) {
                 let mut names: Vec<String> = chain[at..].iter().map(|link| link.name.clone()).collect();
                 names.push(chain[at].name.clone());
@@ -191,18 +197,17 @@ impl Walker<'_> {
             Err(error) => return Reached::Unreadable(reason(&error)),
         };
         let shows = notation::shows(&source);
-        let problems = match notation::read(&source) {
-            Ok(composition) => {
-                self.files.push(ShownFile {
-                    name: src.to_string(),
-                    path: path.to_path_buf(),
-                    root: composition.root,
-                    tree: composition.tree,
-                });
-                Vec::new()
-            }
-            Err(problems) => problems,
-        };
+        // A file with problems is kept without the elements they were found on, so that what it holds and this version
+        // does not support is listed in the same run (`Project::open_for_listing`).
+        let (composition, problems) = notation::read_listing(&source);
+        if let Some(composition) = composition {
+            self.files.push(ShownFile {
+                name: src.to_string(),
+                path: path.to_path_buf(),
+                root: composition.root,
+                tree: composition.tree,
+            });
+        }
         self.cache.insert(path.to_path_buf(), (src.to_string(), shows.clone()));
         Reached::Found {
             name: src.to_string(),

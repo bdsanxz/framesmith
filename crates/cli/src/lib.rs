@@ -5,7 +5,7 @@
 
 use std::ffi::OsString;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use draw::Renderer;
 use draw_cpu::CpuRenderer;
@@ -265,9 +265,11 @@ enum Reply {
 /// problem they have. The forms of a place, a size, a margin and a position are judged by the code
 /// `render` uses, so that `check` names each one `render` refuses (`docs/spec/check-command.md`).
 fn check(path: PathBuf, codecs: &codec::Registry) -> Reply {
-    match Project::open(&path) {
-        Ok(project) => {
-            let (mut reports, notes) = render::place_reports_and_notes(&project, codecs);
+    match Project::open_for_listing(&path) {
+        Ok((None, reports)) => reports_reply(&reports),
+        Ok((Some(project), read)) => {
+            let (walked, notes) = render::place_reports_and_notes(&project, codecs);
+            let mut reports = merged(read, walked);
             // The sound files are opened as `render` opens them, once the composition has no other problem, so that
             // `check` names each one `render` refuses (`docs/spec/sound.md`, section 5).
             if reports.is_empty() {
@@ -395,12 +397,30 @@ pub fn renderer_for(settings: &Settings, start_card: &StartCard) -> Result<Choic
 /// project's output path. A project that does not open, or that uses what this version does not
 /// draw, is told as `check` tells it and nothing is written (`docs/spec/render-command.md`).
 fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard, codecs: &codec::Registry) -> Reply {
-    let mut project = match Project::open(&path) {
-        Ok(project) => project,
+    let (mut project, read) = match Project::open_for_listing(&path) {
+        Ok((Some(project), read)) => (project, read),
+        Ok((None, reports)) => return reports_reply(&reports),
         Err(error) => return not_opened(error),
     };
     project.apply(options);
     tracing::debug!(options = options.count(), "settings chosen");
+    // A render refused before its first frame still sweeps the staging folders of renders killed outright, so that into
+    // a folder that holds them it leaves none (`docs/spec/render-command.md`, section 6). The sweep takes only locks no
+    // render holds, so a render running in the same folder is left as it is.
+    {
+        let output = project.resolve(&project.output());
+        let folder = output
+            .parent()
+            .filter(|folder| !folder.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        render::remove_stale_staging(folder);
+    }
+    // A project with problems is refused with every one of them, and with all that this version does not support in the
+    // rest of it, as `check` lists them (`docs/spec/check-command.md` section 3d).
+    if !read.is_empty() {
+        let (walked, _) = render::place_reports_and_notes(&project, codecs);
+        return reports_reply(&merged(read, walked));
+    }
     let scene = match Scene::from_project(&project, codecs) {
         Ok(scene) => scene,
         Err(reports) => return reports_reply(&reports),
@@ -587,6 +607,21 @@ fn reports_reply(reports: &[Report]) -> Reply {
         lines.push(format!("Invalid: the project is not valid ({files})"));
         Reply::Printed(lines, EXIT_FAILED, Outcome::Invalid { problems: reports.len() })
     }
+}
+
+/// The reports of the reader and those of the walk of what is drawn, as one list: by file, in the order the files are first
+/// reported, and by line within a file, the reader's first at one line (`docs/spec/check-command.md` section 3d).
+fn merged(read: Vec<Report>, walked: Vec<Report>) -> Vec<Report> {
+    let mut reports: Vec<Report> = read.into_iter().chain(walked).collect();
+    let mut files: Vec<String> = Vec::new();
+    for report in &reports {
+        if !files.iter().any(|file| file == report.file()) {
+            files.push(report.file().to_string());
+        }
+    }
+    // Stable: reports at one line keep the order they were found in.
+    reports.sort_by_key(|report| (files.iter().position(|file| file == report.file()), report.problem().line()));
+    reports
 }
 
 /// Logs each report of a run at the most detailed level: where it is and its code, never its words.

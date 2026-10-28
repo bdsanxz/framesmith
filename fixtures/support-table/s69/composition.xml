@@ -1,0 +1,5 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S69: Room of a span with no word. -->
+<font src="fonts/framesmith-test-stroke-400.ttf" family="Stroke"/>
+<text left="0" top="0" font-family="Stroke" font-size="10" color="#ffffff"><span padding="2"></span></text>
+</composition>

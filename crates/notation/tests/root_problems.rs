@@ -97,7 +97,8 @@ fn a_missing_width_or_height_is_reported_at_the_root() {
 
 #[test]
 fn an_fps_that_is_not_a_whole_number_from_1_to_240_is_reported_with_the_form() {
-    for value in ["0", "241", "-30", "30.5", "abc", "", "30000/1001", "1e3", "29.97"] {
+    // A ratio such as 30000/1001 is a form the support table names (S03); its fixture shows it.
+    for value in ["0", "241", "-30", "30.5", "abc", "", "1e3", "29.97"] {
         let problem = problem(&format!(r#"version="1" width="640" height="360" fps="{value}" duration="2""#));
         assert_eq!(
             problem.worded(),

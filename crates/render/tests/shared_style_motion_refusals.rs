@@ -33,7 +33,7 @@ fn a_movement_attribute_a_style_gives_a_box_is_taken_beside_a_refused_one_that_n
     let shown: Vec<String> = reports.iter().map(shown).collect();
     assert_eq!(
         shown,
-        ["composition.xml 3 FS-0035 <box> has an attribute this version does not support: `grain`, which the style `moving` gives it"]
+        ["composition.xml 3 FS-0035 <box> has `grain=\"0.5\"`, which the style `moving` gives it, which this version does not support (support table S39: Not drawn yet; waits until Sprint 1, T058)"]
     );
 }
 

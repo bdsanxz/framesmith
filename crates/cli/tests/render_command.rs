@@ -246,7 +246,7 @@ fn a_length_that_is_wrong_is_invalid_with_fs_0034_and_a_form_that_is_not_drawn_i
     assert_eq!(output.status.code(), Some(2));
     let printed = out(&output);
     assert!(
-        printed.starts_with("composition.xml, line 2: FS-0035: unsupported: <rect> is not supported"),
+        printed.starts_with("composition.xml, line 2: FS-0035: unsupported: the composition holds <rect>, which this version does not support (support table S60: "),
         "{printed}"
     );
     assert!(
@@ -263,7 +263,7 @@ fn a_setting_that_is_not_applied_is_refused_with_the_line_of_its_value_in_the_pr
     let output = render(&cwd, &project);
     assert_eq!(output.status.code(), Some(2));
     assert!(
-        out(&output).starts_with("framesmith.yaml, line 3: FS-0035: unsupported: `render.quality: high` is not supported"),
+        out(&output).starts_with("framesmith.yaml, line 3: FS-0035: unsupported: `render.quality: high` is written, which this version does not support (support table S49: "),
         "{}",
         out(&output)
     );

@@ -258,7 +258,7 @@ impl Judge {
                 _ if NOT_SUPPORTED.contains(&name.as_str()) => self.report(
                     Code::KeyNotSupported,
                     key,
-                    format!("`{}` is not supported in this version; it comes in Sprint 2", shown(&name)),
+                    notation::Unsupported::SeveralCompositions.message(&format!("the project file has `{}`", shown(&name))),
                 ),
                 _ => self.unknown(&name, key, true),
             }
@@ -339,6 +339,7 @@ impl Judge {
             "output" => {
                 if let Some(path) = self.path_value("render.output", value) {
                     self.settings.output = Some(path);
+                    self.note_line("render.output", value);
                 }
             }
             "backend" => {

@@ -1,0 +1,5 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S65: A span with a window. -->
+<font src="fonts/framesmith-test-stroke-400.ttf" family="Stroke"/>
+<text left="0" top="0" font-family="Stroke" font-size="10" color="#ffffff">H<span start="0" duration="1">I</span></text>
+</composition>

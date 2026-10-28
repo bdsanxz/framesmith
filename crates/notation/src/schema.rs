@@ -215,6 +215,14 @@ impl Element {
     }
 
     /// The name the element is written with.
+    /// Whether the element is drawn: a box, a rect, a text, a still picture, footage, a shape or a shown composition.
+    pub fn drawn(self) -> bool {
+        matches!(
+            self,
+            Element::Box | Element::Rect | Element::Text | Element::Image | Element::Video | Element::Shape | Element::Nested
+        )
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Element::Composition | Element::Nested => "composition",

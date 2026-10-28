@@ -410,7 +410,7 @@ fn a_picture_that_frx7_refuses_is_refused_by_check_and_by_render_with_frx7s_reas
     assert!(line.starts_with("composition.xml, line 3: FS-0056: unsupported:"), "{line}");
     assert!(
         line.contains(
-            "the picture of the character U+0041 is refused: a picture held in memory is damaged: its chunk  is  runs past the end of the file."
+            "the picture of the character U+0041 is refused: a picture held in memory is damaged: its chunk  is  runs past the end of the file, which this version does not support (support table S72: "
         ),
         "{line}"
     );

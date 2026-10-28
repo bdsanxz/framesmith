@@ -202,7 +202,7 @@ fn a_percentage_margin_on_a_span_is_refused_with_its_line() {
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         shown(&reports[0]),
-        "composition.xml 4 FS-0035 `margin=\"10%\"` on <span> is not a form this version supports: a number of pixels"
+        "composition.xml 4 FS-0035 <span> has `margin=\"10%\"`, which this version does not support (support table S68: A span's room is a number of pixels, 0 or more; not yet planned)"
     );
 }
 
@@ -221,7 +221,7 @@ fn a_tween_inside_a_span_that_changes_more_than_typed_is_refused_once_with_its_l
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(
         shown(&reports[0]),
-        "composition.xml 4 FS-0035 <tween> in a <span> changes `opacity`, which this version does not move there: a <tween> in a <span> changes `typed` alone"
+        "composition.xml 4 FS-0035 <span> holds <tween>, which this version does not support (support table S43: Counting, typing and the motion of a span are not built yet; waits until Sprint 1, T069)"
     );
 }
 

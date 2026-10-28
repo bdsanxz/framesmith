@@ -1,0 +1,6 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S23: An expression as a value. -->
+<box left="0" top="0" width="8" height="8">
+<tween at="0" duration="1" to-x="=width/2"/>
+</box>
+</composition>

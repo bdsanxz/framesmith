@@ -56,7 +56,8 @@ fn the_line_of_each_render_setting_the_file_wrote_is_known_and_the_others_have_n
     assert_eq!(settings.line_of("render.codec"), Some(8));
     assert_eq!(settings.line_of("render.workers"), Some(9));
     assert_eq!(settings.line_of("render.audio-bitrate"), Some(10));
-    assert_eq!(settings.line_of("render.output"), None);
+    // The output's line is kept too, so that a film of another kind is refused on it (support table S34).
+    assert_eq!(settings.line_of("render.output"), Some(3));
     assert_eq!(settings.line_of("name"), None);
 }
 

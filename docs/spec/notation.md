@@ -966,7 +966,7 @@ The attributes are in the table of 6.15. A `<set>` changes properties at one ins
 
 - The frame at `at` is the first frame whose time is `at` or later, by the frame grid rule (5.3): a set written within a thousandth of a frame after a frame's time is on that frame; one written later than that is on the next frame.
 - A set is a tween of no length in the order of 8.5: a later tween with only `to-` starts from the set's value, and a set and a tween with the same `at` keep their document order, the later one controlling the property.
-- A set with no property is reported on its line (`FS-0061`). A property its element does not take as an attribute (8.1: `count` on a `<text>` only, `typed` on a `<text>` or `<span>`, `draw` on a `<shape>`) is reported on the attribute (`FS-0062`). An attribute that is not an animated property, such as `width`, is one the set does not take (`FS-0030`, S24); it counts as the set's property for `FS-0061`, so that the one mistake has one report.
+- A set with no property is reported on its line (`FS-0061`). A property its element does not take as an attribute (8.1: `count` on a `<text>` only, `typed` on a `<text>` or `<span>`, `draw` on a `<shape>`) is reported on the attribute (`FS-0062`). An attribute named as an attribute of the element tables that is not an animated property, such as `width`, is unsupported (`FS-0035`, S24); a name that no element takes, such as `z-index`, is one the set does not take (`FS-0030`). Either counts as the set's property for `FS-0061`, so that the one mistake has one report.
 
 ### 8.4 Easings
 
@@ -995,7 +995,7 @@ or `out-back(n)`, `n` a finite number, spaces inside the brackets accepted. `p` 
 
 `in-` starts slowly, `out-` ends slowly, `in-out-` does both. Every curve gives exactly 0 at `p = 0` and exactly 1 at `p = 1`. A curve as computed agrees with its formula to within 1e-12 (a value stated under decision A29). No other name is taken: `ease-in`, `ease-out`, `bounce`, `elastic`, `power2.out` and cubic-bezier curves are not (more easings are on the table of section 14, S16; other forms are invalid).
 
-An `ease` that is none of these, in a `<tween>` that stands where it may, is reported on the line of the attribute (`FS-0063`, invalid), with the names taken: ``` `ease="bounce"` is not a known easing; the easings taken are linear, in-quad, out-quad, in-out-quad, in-cubic, out-cubic, in-out-cubic, in-quart, out-quart, in-out-quart, in-quint, out-quint, in-out-quint, in-sine, out-sine, in-out-sine, in-expo, out-expo, in-out-expo and out-back(n), with n a number ```. The `n` of `out-back(n)` is read as any number of the notation (N9); `out-back()` or `out-back(x)` is not a known easing. The engine's curves are those of `motion.md`.
+An `ease` that is none of these, in a `<tween>` that stands where it may, is reported on the line of the attribute (`FS-0063`, invalid), with the names taken: ``` `ease="bouncy"` is not a known easing; the easings taken are linear, in-quad, out-quad, in-out-quad, in-cubic, out-cubic, in-out-cubic, in-quart, out-quart, in-out-quart, in-quint, out-quint, in-out-quint, in-sine, out-sine, in-out-sine, in-expo, out-expo, in-out-expo and out-back(n), with n a number ```. The `n` of `out-back(n)` is read as any number of the notation (N9); `out-back()` or `out-back(x)` is not a known easing. The engine's curves are those of `motion.md`.
 
 ### 8.5 Whose time, and when tweens overlap
 
@@ -1288,27 +1288,66 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S13 | Staggered tweens: `stagger` | The attribute on `<tween>` | Needs several targets for one tween | Sprint 4 |
 | S14 | Labels: `label` on a tween or set, `at="intro"` | The attribute `label`, or an `at` that begins with a letter | Needs a timeline of named points | Sprint 4 |
 | S15 | Repeats: `repeat`, `yoyo` | Either attribute on `<tween>` | Needs a repeat in the evaluator | Sprint 4 |
-| S16 | More easings: `bounce`, `elastic`, `in-back`, `out-bounce`, `in-circ`, `steps(4)`, `cubic-bezier(...)` and the like | An `ease` that is not on the list of 8.4 and is built from `in-`, `out-`, `in-out-`, `bounce`, `elastic`, `back`, `circ`, `steps(` or `cubic-bezier(` | The engine has the nineteen curves and `out-back(n)` | Sprint 4 |
+| S16 | More easings: `bounce`, `elastic`, `in-back`, `out-bounce`, `in-circ`, `steps(4)`, `cubic-bezier(...)` and the like | An `ease` that is not on the list of 8.4 and is built from `in-`, `out-`, `in-out-`, `bounce`, `elastic`, `back`, `circ`, `steps(` or `cubic-bezier(`, except a bare `out-back`, which is `out-back(n)` written without its number and so an easing not known (`FS-0063`) | The engine has the nineteen curves and `out-back(n)` | Sprint 4 |
 | S17 | Conic gradients: `conic-gradient(...)` | The word in `background` or `mask` | Not drawn by either renderer | Sprint 5 |
 | S18 | A mask made from a picture: `mask="masks/shape.png"` | A `mask` that is not a gradient and ends in a picture name | Needs a picture as a mask in both renderers | Sprint 5 |
 | S19 | The rest of flex and a grid: `flex-wrap`, `flex-basis`, `flex-shrink`, `order`, `display`, `grid-template-columns`, `row-gap`, `column-gap`; `justify-content="space-around"` or `"space-evenly"` | Those attributes, and those values | Layout has rows, columns and a set of columns only | Sprint 5 |
 | S20 | Borders by side: `border-top`, `border-right`, `border-bottom`, `border-left`, `border-width`, `border-color`, `border-style` | Any of the attributes | One border round the box only | Sprint 5 |
-| S21 | A paragraph that runs from right to left: `direction="rtl"` | The attribute `direction` or `dir` on a text | Lines are ordered inside, the paragraph runs left to right; no sprint is recorded for the whole-paragraph direction | Not assigned |
+| S21 | A paragraph that runs from right to left: `direction="rtl"` | The attribute `direction` or `dir` on a text | Lines are ordered inside, the paragraph runs left to right; the whole-paragraph direction is Sprint 5's (decision B36) | Sprint 5 |
 | S22 | Motion along a path: `motion-path` | The attribute on `<tween>` | The motion engine moves along straight lines | Sprint 4 |
 | S23 | Expressions: `from-x="=width/2"` | A value of a `<tween>` or `<set>` that begins with `=` | A composition carries no code | Sprint 4 |
-| S24 | Animated size and colour: `to-width`, `from-color`, `to-background`, `<set width="...">` | A `from-`, `to-` or `<set>` attribute named as any attribute of the element tables that is not one of the fifteen of 8.1 | Layout does not follow motion and colours are not mixed by the engine | Sprint 4 |
+| S24 | Animated size and colour: `to-width`, `from-color`, `to-background`, `<set width="...">` | A `from-`, `to-` or `<set>` attribute named as any attribute of the element tables that is not one of the fifteen of 8.1, nor the time `start` or `duration` | Layout does not follow motion and colours are not mixed by the engine | Sprint 4 |
 | S25 | Hiding the back of a turned element: `backface-visibility` | The attribute | A turned element is drawn mirrored (decision A23) | Sprint 4 |
-| S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark | The turn must be applied to the picture (decision P10) | Sprint 7 |
-| S27 | Footage in other kinds of file or other codecs: Matroska, WebM, VP9, AV1, ProRes | A `<video src>` whose file or codec is not on the list of N3 | Their codecs are not written yet | Sprint 7 |
-| S28 | Sound in other kinds: Opus, FLAC and the like | An `<audio src>` of a kind not on the list of N3 | Their decoders are not written yet | Sprint 7 |
-| S29 | Footage with transparency or HDR | A `<video src>` marked so | Both are held to 8 bits and opaque in this work | Sprint 7 |
-| S30 | Animated pictures: GIF, animated PNG, animated WebP in `<image>` | An `<image src>` of such a file | A still picture is one frame | Sprint 7 |
+| S26 | A still picture whose file stores a turn | An `<image src>` file with the turn mark; told by reading the media file (T087) | The turn must be applied to the picture (decision P10) | Sprint 7 |
+| S27 | Footage in other kinds of file or other codecs: Matroska, WebM, VP9, AV1, ProRes | A `<video src>` whose file or codec is not on the list of N3; told by reading the media file (T089) | Their codecs are not written yet | Sprint 7 |
+| S28 | Sound in other kinds: Opus, FLAC and the like | An `<audio src>` of a kind not on the list of N3; told by reading the media file (T089) | Their decoders are not written yet | Sprint 7 |
+| S29 | Footage with transparency or HDR | A `<video src>` marked so; told by reading the media file (T089) | Both are held to 8 bits and opaque in this work | Sprint 7 |
+| S30 | Animated pictures: GIF, animated PNG, animated WebP in `<image>` | An `<image src>` of such a file; told by reading the media file (T089) | A still picture is one frame | Sprint 7 |
 | S31 | A remote source: `src="https://..."` | A `src` that begins with a scheme and `://` | Nothing is read from a network (decision P6) | Sprint 7 |
-| S32 | Footage whose edit list has more than one playing entry or a media rate other than 1; footage in fragments | The file, when it is looked at | Refused by name (decision P12) | Sprint 7 |
+| S32 | Footage whose edit list has more than one playing entry or a media rate other than 1; footage in fragments | The file, when it is looked at; told by reading the media file (T089) | Refused by name (decision P12) | Sprint 7 |
 | S33 | A corner written as an ellipse: `border-radius="24 / 12"` or `"24 12"` | A `border-radius` of two numbers, or of two numbers with a `/` between them | One circular radius per corner only | Sprint 5 |
+| S34 | A film written to a path that does not end in `.mp4` or `.m4v`: `render.output: renders/film.mov`, `framesmith render --output film.mov` | A `render.output` of the project file, or an `--output` of `render`, whose extension, in any case, is not `mp4` or `m4v`, a path with no extension among them | A film is written as an MP4 file only; a QuickTime movie is Sprint 9's, and no other kind of file is planned (decision B40) | Sprint 9 (`.mov`); not assigned (any other) |
+| S35 | Border, border-radius and overflow on a `<text>` or a `<span>`; opacity, blur and brightness on a `<span>`: `border`, `border-radius`, `overflow`, `opacity`, `blur`, `brightness` | The attribute on a text or a span | Not drawn on a text or a span yet | Sprint 5 (n05-layout-text-look), acceptance criterion 1: every attribute value of the notation has a fixture with a checked-in picture on the processor and agreement on the card (PLAN.md); roadmap 5.23 |
+| S37 | Animated blur and brightness: `blur` or `brightness` in a `<tween>` or a `<set>` | The attribute on a `<tween>` or a `<set>` | Animated blur and brightness are not drawn yet | Sprint 1, T067 |
+| S38 | Blends: `mix-blend-mode` | The attribute on an element | Blending with what is under is not drawn yet | Sprint 1, T057 |
+| S39 | Torn edges and grain: `displace`, `grain` | Either attribute on an element | Not drawn yet | Sprint 1, T058 |
+| S40 | Still pictures: `<image>` | The element `<image>` | Still pictures are not read or drawn yet | Sprint 1, T059 |
+| S41 | A cut to a polygon: `clip-path` | The attribute on an element | Not drawn yet | Sprint 1, T061 |
+| S42 | Shapes: `<shape>` | The element `<shape>` | Path data is not drawn yet | Sprint 1, T062 |
+| S43 | A counting or typed text, and motion of a span: `count`, `count-format`, `typed`; `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `rotate-x`, `rotate-y`, `perspective`, `transform-origin` on `<span>` | Those attributes on `<text>` or `<span>`, and the motion attributes on `<span>` | Counting, typing and the motion of a span are not built yet | Sprint 1, T069 |
+| S44 | Transitions: `transition`, `reveal` | Either attribute on an element | Openings over the scene are not drawn yet | Sprint 1, T072 |
+| S45 | Footage started inside its source: `media-start` | The attribute on `<video>` | The start in the source is not applied yet | Sprint 1, T075 |
+| S46 | A colour table or a filter on footage: `lut`, `filter` | Either attribute on `<video>` | Not applied yet | Sprint 1, T078 |
+| S49 | Another encoder or quality: `render.encoder: software`, `render.quality` other than `standard`, and the options | The setting or option with such a value | So far the film is made by the system's hardware encoder at its standard quality only | Sprint 1, T085 |
+| S50 | Several workers: `render.workers` other than `auto` or `1`, and `--workers` | The setting or option with such a value | So far one worker draws and encodes | Sprint 1, T096 |
+| S51 | An element inside `<composition src>`, `<video>` or `<text>` other than its words, spans, tweens and sets | An element child of `<composition src>` or `<video>`; an element other than `<span>`, `<tween>`, `<set>` inside `<text>` | A shown composition is drawn from its file, footage is a picture, a text is its words | Not assigned |
+| S52 | Footage in a flow: a `<video>` in a row, a column or a set of columns | A `<video>` child of a `<box>` with `flex-direction` or `columns` | Footage is placed by its own edges | Not assigned |
+| S53 | Motion of an element that holds a `<composition src>` | A `<tween>` or `<set>` on an element with a `<composition src>` inside it | A shown composition moves only as itself | Not assigned |
+| S54 | A text with `left` and `right` and no `width` in a flow | Such a `<text>` child of a row, a column or a set of columns | Its width cannot be worked from both edges inside a flow | Not assigned |
+| S55 | A gap as a percentage: `gap="5%"` | `gap` with `%` | Gaps are whole pixels | Not assigned |
+| S56 | A fraction of a pixel in a place or a size: `left="10.5"` | A place or size attribute that is a number with a fraction | Edges lie on whole pixels | Not assigned |
+| S57 | A place or a size beyond 1,000,000 pixels | A place or size that works out beyond the limit | The limit of a place | Not assigned |
+| S58 | A font file other than TrueType or a collection: `.otf`, `.woff`, `.woff2`, or a collection that cannot be read | `<font src>` of such a kind, or a collection the reader refuses | Only `.ttf` and `.ttc` are read | Not assigned |
+| S59 | A background or padding on an element other than a box: `background`, `background-size`, `background-position`, `background-repeat` on `<text>`, `<span>`, `<video>` or `<composition src>`; `padding` on `<text>` | Any of those attributes on such an element | Backgrounds are drawn behind boxes only, and a text is not padded | Not assigned |
+| S60 | `<rect>` | The element `<rect>` | `<rect>` is not read yet, though section 6.3 names it | Not assigned |
+| S61 | A colour with alpha below `ff` anywhere but a box's `background`: the root's `background`, a text's `color`, `text-shadow`, `text-stroke` | A colour of eight hex digits whose last two are below `ff` in one of those attributes | Only a box's background is laid over what is under it; a film's ground is opaque | Not assigned |
+| S62 | The sound bit rate outside 64 to 320: `render.audio-bitrate` | The setting with a value below 64 or above 320 | The system's sound encoder takes 64 to 320 kbit/s | Not assigned |
+| S63 | A line alignment on a span: `text-align` on `<span>` | The attribute on `<span>` | Lines are aligned by their text, and a span lies inside a line | Not assigned |
+| S64 | Movement of footage and of a shown composition: `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `transform-origin`, `rotate-x`, `rotate-y`, `perspective` on `<video>` or `<composition src>`, `opacity` on `<composition src>`, or a `<tween>` or `<set>` inside them | Such an attribute on `<video>` or `<composition src>`, or a `<tween>` or `<set>` inside one | So far footage and a shown composition are drawn in their place only | Sprint 1, the order picture-motion |
+| S65 | A span's window and dressing: `start`, `duration`, `text-shadow`, `text-stroke`, `font-variant-numeric` on `<span>`; `white-space` other than `normal` and `text-transform` other than `none` on `<span>` | Any of those attributes on `<span>`, the last two with such a value | So far a span is drawn for its text's whole life and in its plain ink only | Sprint 1, the order span-forms |
+| S66 | The item forms of a video or a shown composition: `flex-grow`, `max-width`, `align-self` on `<video>` or `<composition src>` | Any of those attributes on such an element | So far these are taken on boxes and texts only | Sprint 1, the order item-forms |
+| S67 | Footage: `<video>` | The element `<video>` | Footage is not read or drawn yet | Sprint 1, T073 |
+| S68 | A margin or a padding of a span as a percentage, or a negative margin of a span | `margin` or `padding` with `%` on `<span>`, or a `margin` of `<span>` below 0 | A span's room is a number of pixels, 0 or more | Not assigned |
+| S69 | Room of a span with no word to hold it, or at a line break after a character that is not a space or a hyphen | A `margin` or `padding` of a `<span>` in a `<text>` with no word, or one that falls where the line may break before the span after such a character | The room has no place in the line there | Not assigned |
+| S70 | A percentage in the size or the room of a text inside a flow | `width`, `height`, `padding` or `margin` with `%` on a `<text>` that is an item of a row, a column or a set of columns | Inside a flow a text is measured in whole pixels | Not assigned |
+| S72 | An emoji whose colour picture is not a PNG, or that frx7 cannot read | A character drawn from a colour font with no PNG picture for it, or one whose picture frx7 refuses | Only PNG colour pictures are drawn | Not assigned |
 | S73 | An inner shadow: a shadow written with the word `inset`, in `box-shadow` | The word `inset` in a shadow of a `box-shadow` | Only shadows outside the box are drawn (ROADMAP 5.13) | Sprint 5 |
 | S74 | A shadow with a spread: a fifth value, a length, between the blur and the colour: `box-shadow="0 24 70 8 #00000099"` | A shadow of five values, the fourth a length | Only the four values `X Y BLUR COLOUR` are drawn (ROADMAP 5.13) | Sprint 5 |
 | S75 | A shadow colour with an alpha below `ff`: a `box-shadow` or `drop-shadow` whose colour is `#rrggbbaa` with `aa` below `ff` | A shadow of four values whose colour is `#rrggbbaa` with `aa` below `ff` | Only opaque shadow colours are drawn | Not assigned |
+
+S71 is left free: its form, a character no font of the composition draws, is not reached on macOS, where the machine's fonts are read. It comes back with the sprint for another system (DEFERS.md); the refusal stays in the program meanwhile.
+
+**Entries that wait on Sprint 1.** An entry whose sprint is "Sprint 1, T0xx" or "Sprint 1, the order ..." is temporary (decisions B42 and B43): it leaves this table when that ticket or order closes, and its fixture then becomes a test of the supported form. The entries "Not assigned" are limits no ticket plans (decision B42). S33 is added by T054 (decision B35).
 
 **Not unsupported, but limited.** A shader opening is supported on the card's renderer only (7.8). A character drawn from a font of the machine (N2) is drawn. Repeated `id`s are accepted (N7). These are not refused.
 
@@ -1317,7 +1356,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 ### Sources
 
 - **Public standards.** CSS (the meaning of `left`, `width`, `background`, gradients, `object-fit`, `perspective`, shadows, `font-variant-numeric`, `border-style: double`); SVG (path data, view boxes, dashes); the Unicode line-breaking rules (UAX 14) and the bidirectional algorithm (UAX 9); the W3C's Filter Effects recommendation (fractal noise, moved pixels, alpha arithmetic); the W3C's Compositing and Blending recommendation (the blend formulas); the WebGPU shading language (the shader opening); the `.cube` text form for colour tables; the common definitions of the quint, sine and exponential easing curves and of the back curve.
-- **Decisions of `DECISIONS.md`:** A8, A9, A21, A22, A23, A28, A29, B4, P1, P2, P6, P8, P10, P12, P13 (radial gradients are drawn in Sprint 1; conic gradients stay in Sprint 5).
+- **Decisions of `DECISIONS.md`:** A8, A9, A21, A22, A23, A28, A29, B4, B33, B35, B36, B38, B40, B42, B43, P1, P2, P6, P8, P10, P12, P13 (radial gradients are drawn in Sprint 1; conic gradients stay in Sprint 5).
 - **Other specs of this repository:** `frame-time.md` (the frame-grid rule and the reading of times) and `motion.md` (the motion engine). frx7's spec of the system's codecs for the kinds read.
 - **`PLAN.md`:** section 5 (the checks and tolerances), the account of the sprints for the support table, and `DEFERS.md` for what waits.
 - **Records of the proofs of concept** (`POC_PLAN.md`, experiments E3, E6 and E9), for the reasons the forms exist; and the behaviour of the proofs' reader, read as a record and rewritten here (decision B4).
@@ -1330,6 +1369,6 @@ These rules were not settled by a decision; the maintainer wrote them from what 
 ### Open questions this text leaves to the owner
 
 - Whether holding a video's last picture (N4) is wanted, or the case is refused.
-- Whether ids should stay free until Sprint 2 (N7).
-- The support table (section 14): each entry, its recognition rule, its sprint, and S21 which has no sprint.
+- Whether `margin` on an absolutely placed item should act as in CSS (N10) and not be ignored.
+- The support table (section 14): each entry, its recognition rule and its sprint.
 

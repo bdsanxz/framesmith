@@ -55,10 +55,11 @@ fn refused(name: &str, ease: &str) -> String {
 
 #[test]
 fn an_unknown_easing_is_reported_on_its_line_with_the_easings_taken() {
+    // `wobble` is no easing of the list and no curve the support table names (`bounce` is S16).
     assert_eq!(
-        refused("bounce", "bounce"),
+        refused("wobble", "wobble"),
         format!(
-            "composition.xml, line 4: FS-0063: invalid: `ease=\"bounce\"` is not a known easing; the easings taken are {TAKEN}. \
+            "composition.xml, line 4: FS-0063: invalid: `ease=\"wobble\"` is not a known easing; the easings taken are {TAKEN}. \
              Write one of the easings the message lists, in lower case, such as `ease=\"out-cubic\"`."
         )
     );

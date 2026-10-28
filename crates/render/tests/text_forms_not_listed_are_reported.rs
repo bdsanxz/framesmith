@@ -77,6 +77,6 @@ fn a_text_shadow_blur_below_zero_is_reported_as_a_length_that_is_not_accepted() 
 fn a_text_stroke_with_an_alpha_below_ff_is_reported_as_a_form_not_drawn() {
     assert_eq!(
         reports_of("text-stroke-alpha"),
-        vec!["composition.xml 5 FS-0035 `text-stroke=\"2px #00000080\"` has an alpha below ff, which this version does not draw"]
+        vec!["composition.xml 5 FS-0035 `text-stroke=\"2px #00000080\"` has an alpha below ff, which this version does not support (support table S61: Only a box's background is laid over what is under it; a film's ground is opaque; not yet planned)"]
     );
 }

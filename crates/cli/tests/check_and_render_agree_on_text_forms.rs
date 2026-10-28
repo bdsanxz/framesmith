@@ -27,32 +27,32 @@ const TEXT_FORMS: [(&str, &str, &str); 6] = [
     (
         "tween-inside-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB <span color="#ff0000">CD<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></span></text>"##,
-        "<tween> in a <span> changes `opacity`, which this version does not move there",
+        "<span> holds <tween>, which this version does not support (support table S43: ",
     ),
     (
         "percentage-margin-on-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">AB <span margin="10%" color="#ff0000">CD</span></text>"##,
-        "`margin=\"10%\"` on <span> is not a form this version supports",
+        "<span> has `margin=\"10%\"`, which this version does not support (support table S68: ",
     ),
     (
         "tween-inside-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">A<span>B<tween at="0" duration="1" from-opacity="0" to-opacity="1"/></span></text>"##,
-        "<tween> in a <span> changes `opacity`, which this version does not move there",
+        "<span> holds <tween>, which this version does not support (support table S43: ",
     ),
     (
         "set-inside-span",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">A<span>B<set at="0" opacity="1"/></span></text>"##,
-        "<set> in a <span> changes `opacity`, which this version does not move there",
+        "<span> holds <set>, which this version does not support (support table S43: ",
     ),
     (
         "background-of-text",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20" background="#ff0000">AB</text>"##,
-        "<text> has an attribute this version does not support: `background`",
+        "<text> has `background=\"#ff0000\"`, which this version does not support (support table S59: ",
     ),
     (
         "room-of-an-empty-span-without-words",
         r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20"><span margin="0 12"></span></text>"##,
-        "<text> is not drawn by this version: a margin or a padding of a <span> in a <text> with no word",
+        "<text> holds a margin or a padding of a <span> in a <text> with no word, which this version does not support (support table S69: ",
     ),
 ];
 

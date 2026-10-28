@@ -33,19 +33,22 @@ fn render_to(name: &str, file: &str) -> (std::path::PathBuf, std::process::Outpu
 }
 
 #[test]
-fn a_render_to_a_mov_path_is_refused_before_the_first_frame_with_exit_1_and_writes_nothing() {
+fn a_render_to_a_mov_path_is_refused_before_the_first_frame_with_exit_2_and_writes_nothing() {
+    // S34 is built: a `.mov` path is refused as unsupported, naming its entry, not with the FS-0036 stopgap
+    // pinmove2 held until S34 (order section "From the work order").
     let (output, rendered) = render_to("mov-refused", "film.mov");
-    assert_eq!(rendered.status.code(), Some(1), "{}{}", out(&rendered), err(&rendered));
+    assert_eq!(rendered.status.code(), Some(2), "{}{}", out(&rendered), err(&rendered));
     assert_eq!(err(&rendered), "");
     let printed = out(&rendered);
     let lines: Vec<&str> = printed.lines().collect();
-    assert_eq!(lines.len(), 2, "one report and the closing line: {:?}", lines);
-    assert!(
-        lines[0].starts_with("FS-0036: failure: the video could not be made: no container format of this build writes `.mov` files"),
-        "{:?}",
-        lines
+    assert_eq!(lines.len(), 2, "one report and the closing line: {lines:?}");
+    assert!(lines[0].starts_with("command line: FS-0035: unsupported: "), "{lines:?}");
+    assert!(lines[0].contains("film.mov` is given"), "{lines:?}");
+    assert!(lines[0].contains("(support table S34: "), "{lines:?}");
+    assert_eq!(
+        lines[1], "Unsupported: the project uses what this version does not support (command line)",
+        "{lines:?}"
     );
-    assert_eq!(lines[1], "Failed: the video could not be made", "{:?}", lines);
     assert!(!output.exists(), "a refused render leaves no file at its path");
 }
 

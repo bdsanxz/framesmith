@@ -7,6 +7,8 @@ use motion::{Ease, ElementMotion, Kind, Prop, Tween, Values, PROPS, PROP_COUNT};
 use project::{Code, Element, Length, Node, Number};
 use timebase::Time;
 
+use crate::support;
+
 /// The attributes of a `<box>` or a `<text>` that move it: the nine properties, the origin they turn about, the
 /// `perspective` of a turn in space, and the `blur` and `brightness` of its picture.
 pub(crate) const MOVEMENT: [&str; 13] = [
@@ -65,7 +67,7 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
     for attribute in node.attributes() {
         let name = attribute.name();
         if name == "drop-shadow" {
-            match crate::shadows::drop_shadow(attribute.value()) {
+            match crate::shadows::drop_shadow(&support::written(node.element(), attribute), attribute.value()) {
                 Ok(shadow) => movement.shadow = Some((shadow, attribute.line())),
                 Err((code, message)) => found.push((code, attribute.line(), message)),
             }
@@ -166,14 +168,15 @@ pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found
                 };
                 match Prop::from_name(property) {
                     Some(prop) => values[prop.index()] = attribute.number(),
-                    None => found.push((
-                        Code::FormNotSupported,
-                        attribute.line(),
-                        format!(
-                            "<tween> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y, opacity, rotate-x and rotate-y",
-                            project::shown(property)
-                        ),
-                    )),
+                    None => {
+                        // `from-` and `to-` name the one property: the refusal of it is reported once on the line.
+                        let (code, message) =
+                            support::refused_property(property, format!("<tween> changes `{}`", project::shown(property)));
+                        let line = attribute.line();
+                        if !found.iter().any(|(_, at, text)| *at == line && *text == message) {
+                            found.push((code, line, message));
+                        }
+                    }
                 }
             }
         }
@@ -212,14 +215,10 @@ pub(crate) fn read_set(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>)
         }
         match Prop::from_name(name) {
             Some(prop) => to[prop.index()] = attribute.number(),
-            None => found.push((
-                Code::FormNotSupported,
-                attribute.line(),
-                format!(
-                    "<set> changes `{}`, which this version does not move: it moves x, y, scale, scale-x, rotation, skew-y, opacity, rotate-x and rotate-y",
-                    project::shown(name)
-                ),
-            )),
+            None => {
+                let (code, message) = support::refused_property(name, format!("<set> changes `{}`", project::shown(name)));
+                found.push((code, attribute.line(), message));
+            }
         }
     }
     let set = to.iter().any(Option::is_some).then(|| Tween {

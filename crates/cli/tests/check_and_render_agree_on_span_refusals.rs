@@ -21,11 +21,11 @@ const HEAD: &str = r##"<composition version="1" id="film" width="160" height="60
 
 /// Each refused form of a `<span>`: a name for its folder, the span, the start of the report line that both commands
 /// give for it on line 3, and the exit code of its kind (1 for invalid, 2 for unsupported).
-const SPAN_FORMS: [(&str, &str, &str, i32); 19] = [
+const SPAN_FORMS: [(&str, &str, &str, i32); 22] = [
     (
         "negative-margin",
         r##"<span margin="-4" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `margin=\"-4\"` on <span> is not drawn by this version: a margin of 0 or more",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `margin=\"-4\"`, below 0, which this version does not support (support table S68: ",
         2,
     ),
     (
@@ -37,97 +37,115 @@ const SPAN_FORMS: [(&str, &str, &str, i32); 19] = [
     (
         "percentage-padding",
         r##"<span padding="10%" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `padding=\"10%\"` on <span> is not a form this version supports: a number of pixels",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `padding=\"10%\"`, which this version does not support (support table S68: ",
         2,
     ),
     (
         "text-align",
         r##"<span text-align="center" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `text-align`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `text-align=\"center\"`, which this version does not support (support table S63: ",
         2,
     ),
     (
         "text-shadow",
         r##"<span text-shadow="1 1 #000000" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `text-shadow`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `text-shadow=\"1 1 #000000\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "text-stroke",
         r##"<span text-stroke="1 #ff0000" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `text-stroke`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `text-stroke=\"1 #ff0000\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "font-variant-numeric",
         r##"<span font-variant-numeric="tabular-nums" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `font-variant-numeric`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `font-variant-numeric=\"tabular-nums\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "background",
         r##"<span background="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `background`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `background=\"#ff0000\"`, which this version does not support (support table S59: ",
         2,
     ),
     (
         "background-repeat",
         r##"<span background-repeat="repeat" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `background-repeat`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `background-repeat=\"repeat\"`, which this version does not support (support table S59: ",
         2,
     ),
     (
         "border-radius-of-the-look",
         r##"<span border-radius="2" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `border-radius`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `border-radius=\"2\"`, which this version does not support (support table S35: ",
+        2,
+    ),
+    (
+        "overflow-of-the-look",
+        r##"<span overflow="hidden" color="#ff0000">CD</span>"##,
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `overflow=\"hidden\"`, which this version does not support (support table S35: ",
         2,
     ),
     (
         "box-shadow-of-the-look",
-        r##"<span box-shadow="1 1 #000000" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `box-shadow`",
-        2,
+        r##"<span box-shadow="inset 1 1 2 #000000" color="#ff0000">CD</span>"##,
+        "composition.xml, line 3: FS-0030: invalid: <span> has `box-shadow=\"inset 1 1 2 #000000\"`, which this version does not take there.",
+        1,
     ),
     (
         "x-of-the-movement",
         r##"<span x="4" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `x`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `x=\"4\"`, which this version does not support (support table S43: ",
         2,
     ),
     (
         "opacity-of-the-movement",
         r##"<span opacity="0.5" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `opacity`",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `opacity=\"0.5\"`, which this version does not support (support table S35: ",
+        2,
+    ),
+    (
+        "blur-of-the-span",
+        r##"<span blur="2" color="#ff0000">CD</span>"##,
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `blur=\"2\"`, which this version does not support (support table S35: ",
+        2,
+    ),
+    (
+        "brightness-of-the-span",
+        r##"<span brightness="0.5" color="#ff0000">CD</span>"##,
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `brightness=\"0.5\"`, which this version does not support (support table S35: ",
         2,
     ),
     (
         "white-space-pre",
         r##"<span white-space="pre" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `white-space=\"pre\"` on <span> is not a form this version supports: normal",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `white-space=\"pre\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "white-space-nowrap",
         r##"<span white-space="nowrap" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `white-space=\"nowrap\"` on <span> is not a form this version supports: normal",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `white-space=\"nowrap\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "text-transform-uppercase",
         r##"<span text-transform="uppercase" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `text-transform=\"uppercase\"` on <span> is not a form this version supports: none",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `text-transform=\"uppercase\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "text-transform-lowercase",
         r##"<span text-transform="lowercase" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `text-transform=\"lowercase\"` on <span> is not a form this version supports: none",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `text-transform=\"lowercase\"`, which this version does not support (support table S65: ",
         2,
     ),
     (
         "margin-with-a-negative-side",
         r##"<span margin="0 -4 0 0" color="#ff0000">CD</span>"##,
-        "composition.xml, line 3: FS-0035: unsupported: `margin=\"0 -4 0 0\"` on <span> is not drawn by this version: a margin of 0 or more",
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `margin=\"0 -4 0 0\"`, below 0, which this version does not support (support table S68: ",
         2,
     ),
     (
@@ -230,8 +248,9 @@ fn check_and_render_refuse_each_span_form_that_is_not_drawn_the_same_way_on_its_
 
 #[test]
 fn check_and_render_report_start_and_duration_of_one_span_in_the_order_they_are_written() {
-    let start = "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `start`";
-    let duration = "composition.xml, line 3: FS-0035: unsupported: <span> has an attribute this version does not support: `duration`";
+    let start =
+        "composition.xml, line 3: FS-0035: unsupported: <span> has `start=\"0\"`, which this version does not support (support table S65: ";
+    let duration = "composition.xml, line 3: FS-0035: unsupported: <span> has `duration=\"1\"`, which this version does not support (support table S65: ";
     let cases = [
         (
             "start-first",
@@ -262,7 +281,7 @@ fn check_and_render_refuse_a_room_between_two_ideographs_on_the_line_of_its_attr
     // The refusal does not wait for a glyph of the characters, since the room is refused before the glyphs are looked up.
     let text = r##"<text left="10" top="10" font-family="Framesmith Test Stroke" font-size="20">漢<span margin="0 12" color="#c02020">字</span></text>"##;
     let (check, render, film) = check_and_render("ideograph-room", text);
-    let report = "composition.xml, line 3: FS-0035: unsupported: <text> is not drawn by this version: a margin or a padding of a <span> where the line may break before the span, after a character other than a space or a hyphen, which this version does not draw";
+    let report = "composition.xml, line 3: FS-0035: unsupported: <text> holds a margin or a padding of a <span> where the line may break before the span, after a character other than a space or a hyphen, which this version does not support (support table S69: ";
     let found = problems(&check, &render, &film, &[report], 2);
     assert!(found.is_empty(), "{}", found.join("\n"));
 }

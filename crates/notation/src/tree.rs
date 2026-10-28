@@ -8,6 +8,8 @@
 
 use std::collections::HashMap;
 
+use crate::structure::Judged;
+
 use crate::root::{shown, Spot};
 use crate::schema::Element;
 use crate::styles::{self, Styles};
@@ -256,8 +258,9 @@ fn parts_of(node: roxmltree::Node, span_at: &HashMap<roxmltree::NodeId, usize>) 
     parts
 }
 
-/// Makes the tree of a document that `structure::judge` found no problem in.
-pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles) -> Tree {
+/// Makes the tree of a document, without what `structure::judge` leaves out: the elements it found a problem on and what they
+/// hold, and the attributes it reported as forms this version does not support.
+pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles, judged: &Judged) -> Tree {
     let line_at = |offset: usize| document.text_pos_at(offset).row;
     let spot_at = |offset: usize| {
         let position = document.text_pos_at(offset);
@@ -281,6 +284,7 @@ pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles)
             parent,
             attributes: styles::effective(node, text, element, styles, &spot_at)
                 .into_iter()
+                .filter(|entry| !judged.refused.get(&node.id()).is_some_and(|names| names.contains(&entry.name)))
                 .map(|entry| Attribute {
                     name: entry.name,
                     value: entry.value,
@@ -296,7 +300,7 @@ pub(crate) fn build(document: &roxmltree::Document, text: &str, styles: &Styles)
             let has_src = child
                 .attributes()
                 .any(|attribute| attribute.namespace().is_none() && attribute.name() == "src");
-            if child.tag_name().namespace() != namespace {
+            if child.tag_name().namespace() != namespace || judged.faulty.contains(&child.id()) {
                 continue;
             }
             if let Some(kind) = Element::named(child.tag_name().name(), has_src) {

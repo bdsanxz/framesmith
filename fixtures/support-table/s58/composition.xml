@@ -1,0 +1,4 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S58: A font file of another kind. -->
+<font src="fonts/other.woff2" family="Other"/>
+</composition>

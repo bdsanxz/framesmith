@@ -1,0 +1,6 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S66: An item form of a shown composition. -->
+<box left="0" top="0" width="32" height="16" flex-direction="row">
+<composition src="shown.xml" flex-grow="1"/>
+</box>
+</composition>

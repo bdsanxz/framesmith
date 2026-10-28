@@ -1,0 +1,4 @@
+<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
+<!-- Support table S20: A border on one side. -->
+<box left="0" top="0" width="8" height="8" border-top="1px solid #ffffff"/>
+</composition>

@@ -30,6 +30,20 @@ fn with_time(name: &str, value: &str) -> String {
     }
 }
 
+/// Whether a value in a place is a form the support table names (`docs/spec/notation.md` section 14), worked from its rows:
+/// S01 a `start` written as a name, S02 a `duration` of `auto`, S14 the `at` of a tween or a set written as a name.
+fn named_by_the_support_table(place: &str, value: &str) -> bool {
+    let named = value
+        .trim()
+        .starts_with(|character: char| character.is_alphabetic() || character == '@');
+    match place {
+        "start" | "audio-start" | "nested-start" => named,
+        "duration" | "audio-duration" | "tween-duration" | "nested-duration" => value.trim() == "auto",
+        "tween-at" | "set-at" => named,
+        _ => false,
+    }
+}
+
 const PLACES: [&str; 12] = [
     "start",
     "duration",
@@ -137,6 +151,10 @@ fn an_empty_value_a_sign_an_exponent_a_unit_and_words_are_not_times() {
             let text = with_time(place, value);
             let problems = problems_of(&text);
             assert_eq!(problems.len(), 1, "{place}={value:?}: {problems:#?}");
+            if named_by_the_support_table(place, value) {
+                assert_eq!(problems[0].code(), Code::FormNotSupported, "{place}={value:?}");
+                continue;
+            }
             assert_eq!(problems[0].code(), Code::NotATime, "{place}={value:?}");
             assert!(problems[0].message().contains("is not a time in seconds"), "{}", problems[0]);
         }
