@@ -5,7 +5,7 @@
 
 use std::ffi::OsString;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use draw::Renderer;
 use draw_cpu::CpuRenderer;
@@ -404,6 +404,17 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard,
     };
     project.apply(options);
     tracing::debug!(options = options.count(), "settings chosen");
+    // A render refused before its first frame still sweeps the staging folders of renders killed outright, so that into
+    // a folder that holds them it leaves none (`docs/spec/render-command.md`, section 6). The sweep takes only locks no
+    // render holds, so a render running in the same folder is left as it is.
+    {
+        let output = project.resolve(&project.output());
+        let folder = output
+            .parent()
+            .filter(|folder| !folder.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        render::remove_stale_staging(folder);
+    }
     // A project with problems is refused with every one of them, and with all that this version does not support in the
     // rest of it, as `check` lists them (`docs/spec/check-command.md` section 3d).
     if !read.is_empty() {

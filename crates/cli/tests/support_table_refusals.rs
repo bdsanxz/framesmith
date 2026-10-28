@@ -1,7 +1,8 @@
 //! Every entry of the support table (`docs/spec/notation.md` section 14) has a fixture under `fixtures/support-table`, and
 //! for each, `check` lists the entry on the fixture's file and line with the entry's reason and sprint, and exits 2;
-//! `render` prints the same list, exits 2, draws no frame, leaves no part file and keeps the bytes of a film already at its
-//! output path. A project with one unsupported and one invalid form lists both in one run and exits 1; a form no entry names
+//! `render` prints the same list, exits 2, draws no frame, leaves no staging folder and keeps the bytes of a film already
+//! at its output path, sweeping the staging leftovers of a run killed outright. A project with one unsupported and one
+//! invalid form lists both in one run and exits 1; a form no entry names
 //! is invalid (`docs/spec/check-command.md` section 3d). The expected file and line of each fixture are written beside it,
 //! worked from the fixture by hand; the reason and the sprint are read from the spec, not from the program.
 
@@ -229,6 +230,48 @@ fn render_prints_the_same_list_exits_2_and_writes_nothing() {
         let left: Vec<PathBuf> = files_under(&cwd).into_iter().filter(|path| !path.starts_with("logs")).collect();
         assert!(left.is_empty(), "{}: the render left files where it ran: {left:?}", row.name);
     }
+}
+
+#[test]
+fn a_refused_render_sweeps_the_staging_leftovers_of_a_killed_run() {
+    let rows = with_fixtures();
+    let (row, folder) = cases_of(&rows).into_iter().next().expect("section 14 was read");
+    let (project, cwd) = project_of("support-table-sweep", &label(&folder), &folder);
+    // The staging a render killed outright leaves: a lock file no render holds, with its hidden folder (T092 c7). The
+    // process id is above any the system hands out, so no live render owns the names.
+    let film = output_of(&project);
+    let renders = film.parent().unwrap().to_path_buf();
+    fs::create_dir_all(&renders).unwrap();
+    fs::write(renders.join(".framesmith-4000000000.lock"), b"").unwrap();
+    let stale = renders.join(".framesmith-4000000000");
+    fs::create_dir_all(&stale).unwrap();
+    fs::write(stale.join("film.part.mp4"), b"frames of a run killed outright").unwrap();
+    // A film already at the output path, whose bytes the refused render and the sweep must keep.
+    let earlier = b"a film made before this run".to_vec();
+    fs::write(&film, &earlier).unwrap();
+    let rendered = framesmith(
+        &cwd,
+        ["render", project.to_str().unwrap(), "--backend", "cpu"],
+        &[("NO_COLOR", "1")],
+    );
+    let printed = out(&rendered);
+    assert_eq!(rendered.status.code(), Some(2), "{}: {printed}{}", row.name, err(&rendered));
+    assert!(
+        printed.contains(": unsupported: "),
+        "{}: the refusal names nothing unsupported: {printed}",
+        row.name
+    );
+    assert_eq!(
+        fs::read(&film).unwrap(),
+        earlier,
+        "{}: the film at the output path was changed",
+        row.name
+    );
+    let staging: Vec<PathBuf> = files_under(&project)
+        .into_iter()
+        .filter(|path| path.to_string_lossy().contains(".framesmith-"))
+        .collect();
+    assert!(staging.is_empty(), "{}: a staging folder is left: {staging:?}", row.name);
 }
 
 #[test]
