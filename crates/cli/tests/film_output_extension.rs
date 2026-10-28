@@ -46,8 +46,7 @@ fn a_render_to_a_mov_path_is_refused_before_the_first_frame_with_exit_2_and_writ
     assert!(lines[0].contains("film.mov` is given"), "{lines:?}");
     assert!(lines[0].contains("(support table S34: "), "{lines:?}");
     assert_eq!(
-        lines[1],
-        "Unsupported: the project uses what this version does not support (command line)",
+        lines[1], "Unsupported: the project uses what this version does not support (command line)",
         "{lines:?}"
     );
     assert!(!output.exists(), "a refused render leaves no file at its path");

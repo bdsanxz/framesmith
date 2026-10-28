@@ -939,8 +939,7 @@ fn text_fault(node: &Node, sources: &[Option<RoomSource>], error: text::TextErro
         text::TextError::RoomWithoutWords => Fault {
             code: Code::FormNotSupported,
             line: node.line(),
-            message: Unsupported::SpanRoomWithoutPlace
-                .message("<text> holds a margin or a padding of a <span> in a <text> with no word"),
+            message: Unsupported::SpanRoomWithoutPlace.message("<text> holds a margin or a padding of a <span> in a <text> with no word"),
             style: false,
         },
         text::TextError::NoFamily | text::TextError::MissingCharacter(_) => Fault {
