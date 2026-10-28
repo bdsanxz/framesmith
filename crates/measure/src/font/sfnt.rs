@@ -65,7 +65,30 @@ fn glyphs(face: Face) -> Vec<Glyph> {
             .zip(&lining)
             .map(|(pieces, figure)| placed(pieces, stroke, outlined(figure, stroke).advance)),
     );
+    glyphs.push(corners());
     glyphs
+}
+
+/// The corner glyph: each triangle of `design::CORNERS` as one clockwise contour, moved to the left edge like a lining figure's
+/// centreline box. Its advance is that of a glyph of the same width.
+fn corners() -> Glyph {
+    let contours = design::CORNERS
+        .iter()
+        .map(|triangle| {
+            triangle
+                .iter()
+                .map(|&(x, y)| Point {
+                    x: x + LEFT_EDGE as i32,
+                    y,
+                    on_curve: true,
+                })
+                .collect()
+        })
+        .collect();
+    Glyph {
+        advance: (957.0 + SIDE_GAP) as u16,
+        contours,
+    }
 }
 
 fn outlined(pieces: &[Piece], stroke: f64) -> Glyph {
@@ -345,20 +368,24 @@ fn cmap() -> Vec<u8> {
     out.u16(1);
     out.u32(12);
     out.u16(4);
-    out.u16(32);
+    out.u16(40);
     out.u16(0);
-    out.u16(4);
+    out.u16(6);
     out.u16(4);
     out.u16(1);
-    out.u16(0);
+    out.u16(2);
     out.u16(0x7E);
+    out.u16(0xE000);
     out.u16(0xFFFF);
     out.u16(0);
     out.u16(0x20);
+    out.u16(0xE000);
     out.u16(0xFFFF);
-    // The glyph of a code is the code plus this, modulo 65536: U+0020 gives glyph 1.
+    // The glyph of a code is the code plus this, modulo 65536: U+0020 gives glyph 1, U+E000 gives glyph 116.
     out.u16(0xFFE1);
+    out.u16(0x2074);
     out.u16(1);
+    out.u16(0);
     out.u16(0);
     out.u16(0);
     out.finish()
@@ -389,7 +416,7 @@ fn os2(face: Face, glyphs: &[Glyph]) -> Vec<u8> {
     out.bytes(b"FSTS");
     out.u16(selection);
     out.u16(0x20);
-    out.u16(0x7E);
+    out.u16(0xE000);
     out.i16(ASCENDER);
     out.i16(DESCENDER);
     out.i16(0);

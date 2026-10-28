@@ -1,7 +1,8 @@
 //! The checked-in pictures of the motion fixtures hold the values worked out from the specs, independently of the
-//! renderer (`tests/common/worked.rs`): every pixel outside a text is within 2 levels of the picture worked from the
-//! boxes' places, eases, windows, maps and fades, and the ink of a text has the centre and the mass its map gives. A
-//! picture that the product made wrong, and that was checked in as it was made, fails here.
+//! renderer (`tests/common/worked.rs`): every pixel outside a text is within 1 level of the picture worked from the
+//! boxes' places, eases, windows, maps and fades, and the ink of a text has the centre and the mass its map gives. The
+//! text's own pixels are held by `frame_order_pictures_hold_worked_values.rs`. A picture that the product made wrong, and
+//! that was checked in as it was made, fails here.
 
 mod common;
 
@@ -12,7 +13,7 @@ use common::worked::{
 use common::{expected, numbers_with_a_picture};
 
 /// The most a pixel outside a text may lie from its worked value, in levels: the rounding of a fade and of coverage.
-const TOLERANCE: f64 = 2.0;
+const TOLERANCE: f64 = 1.0;
 
 fn colour(hex: u32) -> [u8; 3] {
     [(hex >> 16) as u8, (hex >> 8) as u8, hex as u8]

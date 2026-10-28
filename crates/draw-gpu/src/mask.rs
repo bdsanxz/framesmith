@@ -13,8 +13,6 @@ use draw::{Error, Glyph, GlyphRun, Map, Ring, Rounded};
 use gpu::wgpu;
 use layout::Rect;
 use vello_cpu::kurbo::Affine;
-use vello_cpu::peniko::{Blob, Color, FontData};
-use vello_cpu::{Pixmap, RenderContext, Resources};
 
 use crate::head;
 
@@ -118,7 +116,6 @@ pub struct Masks {
     uses: u64,
     /// The bytes of coverage kept.
     bytes: u64,
-    resources: Resources,
 }
 
 /// The coverage of one glyph: the origin of the glyph in its mask, the size of the mask, and one byte of coverage
@@ -139,7 +136,6 @@ impl Masks {
             frame: 0,
             uses: 0,
             bytes: 0,
-            resources: Resources::new(),
         }
     }
 
@@ -232,7 +228,7 @@ impl Masks {
             self.touch(key);
         } else {
             let fraction = (origin.0 - origin.0.floor(), origin.1 - origin.1.floor());
-            let placed = match coverage(&mut self.resources, run, glyph, map, fraction)? {
+            let placed = match coverage(run, glyph, map, fraction)? {
                 Some(coverage) => Some(upload(device, queue, layout, coverage)?),
                 None => None,
             };
@@ -336,13 +332,7 @@ impl Masks {
 /// Fills the glyph into its box with the processor's rasteriser, and reads the coverage of each pixel from the alpha
 /// of the layer. The origin of the glyph lies at a whole pixel of the box plus `fraction`. Under a map, the glyph is drawn
 /// with the map's linear part, and its box is the box of section 9.3 under that part (section 10.2).
-fn coverage(
-    resources: &mut Resources,
-    run: &GlyphRun,
-    glyph: &Glyph,
-    map: Option<Map>,
-    (fraction_x, fraction_y): (f64, f64),
-) -> Result<Option<Coverage>, Error> {
+fn coverage(run: &GlyphRun, glyph: &Glyph, map: Option<Map>, (fraction_x, fraction_y): (f64, f64)) -> Result<Option<Coverage>, Error> {
     let size = run.size;
     if !size.is_finite() || size < 0.0 {
         return Err(Error::new(format!("a glyph of size {size} cannot be drawn on the card")));
@@ -389,38 +379,20 @@ fn coverage(
     let width = 2 * origin_x + 2;
     let height = 2 * origin_y + 2;
 
-    let mut context = RenderContext::new(width as u16, height as u16);
-    context.set_paint(Color::from_rgba8(255, 255, 255, 255));
-    let data: Arc<dyn AsRef<[u8]> + Send + Sync> = run.font.data.clone();
-    let font = FontData::new(Blob::new(data), run.font.index);
-    let transform = Affine::new([1.0, 0.0, -skew, 1.0, 0.0, 0.0]);
-    let placed = match map {
-        None => vello_cpu::Glyph {
-            id: glyph.id,
-            x: origin_x as f32 + fraction_x as f32,
-            y: origin_y as f32 + fraction_y as f32,
-        },
-        Some(map) => {
-            let at = (f64::from(origin_x) + fraction_x, f64::from(origin_y) + fraction_y);
-            context.set_transform(Affine::new([map.a, map.b, map.c, map.d, at.0, at.1]));
-            vello_cpu::Glyph {
-                id: glyph.id,
-                x: 0.0,
-                y: 0.0,
-            }
-        }
+    // The processor's own coverage of the glyph (`draw_cpu::glyph_coverage`), placed at the origin of the mask: a map moves the
+    // glyph by its linear part only, as the key of the mask says, and the origin of the mask is put at the glyph's place by the
+    // caller.
+    let at = (f64::from(origin_x) + fraction_x, f64::from(origin_y) + fraction_y);
+    let mapped = match map {
+        None => Affine::translate(at),
+        Some(map) => Affine::new([map.a, map.b, map.c, map.d, at.0, at.1]),
     };
-    context
-        .glyph_run(resources, &font)
-        .hint(false)
-        .font_size(size)
-        .glyph_transform(transform)
-        .fill_glyphs(std::iter::once(placed))
-        .map_err(|error| Error::new(format!("the glyphs of a run cannot be drawn: {error}")))?;
-    context.flush();
-    let mut pixmap = Pixmap::new(width as u16, height as u16);
-    context.render(&mut pixmap, resources);
-    let alpha: Vec<u8> = pixmap.data_as_u8_slice().as_chunks::<4>().0.iter().map(|pixel| pixel[3]).collect();
+    let placed = Glyph {
+        id: glyph.id,
+        x: 0.0,
+        y: 0.0,
+    };
+    let alpha = draw_cpu::glyph_coverage(width, height, run, &placed, (0.0, 0.0), mapped)?;
 
     // The outermost ring of the mask must be clear: any ink there means that the outline lies outside its box.
     let at = |x: u32, y: u32| alpha[(y * width + x) as usize] != 0;

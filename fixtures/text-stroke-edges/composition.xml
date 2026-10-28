@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two capitals at 96 pixels, filled in white with a black stroke of 2 pixels, on white: the stroke of the left stem of the H
+     at 10 pixels lies on its outline. The outline's left edge is at 10 + 60 * 0.096 = 15.76 pixels, so the stroke's outer edge
+     is at 14.76 and its inner edge at 16.76: column 14 is covered by 0.24 and column 16 by 0.76 of the stroke, and column 15 is
+     inked in full. The baseline is at 82 pixels. 120 by 120 pixels, one frame. -->
+<composition version="1" id="text-stroke-edges" width="120" height="120" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="0" font-family="Framesmith Test Stroke" font-size="96" color="#ffffff" text-stroke="2px #000000">H</text>
+</composition>

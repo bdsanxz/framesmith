@@ -215,9 +215,14 @@ impl Worked {
                     }
                     alpha = covered + alpha * (1.0 - covered);
                 }
+                // Rule 6 of section 4.5: the layer's premultiplied values are whole levels, each is taken at the opacity
+                // and rounded to the nearest whole level, halves up, and the layer is laid over the picture by src-over.
+                let layer_alpha = whole_level(alpha * 255.0);
+                let faded_alpha = whole_level(layer_alpha * opacity);
                 let at = (y * self.width + x) as usize;
                 for (channel, value) in self.values[at].iter_mut().enumerate() {
-                    *value = *value * (1.0 - alpha * opacity) + layer[channel] * opacity;
+                    let faded = whole_level(whole_level(layer[channel]) * opacity);
+                    *value = whole_level(faded + *value * (255.0 - faded_alpha) / 255.0);
                 }
             }
         }
@@ -232,6 +237,11 @@ impl Worked {
     pub fn value(&self, x: u32, y: u32) -> [f64; 3] {
         self.values[(y * self.width + x) as usize]
     }
+}
+
+/// A value in levels rounded to the nearest whole level, halves up.
+fn whole_level(value: f64) -> f64 {
+    (value + 0.5).floor()
 }
 
 /// Whether pixel (x, y) touches an area.

@@ -67,3 +67,9 @@ fn reference_machine_only_every_frame_of_the_text_with_an_outline_is_within_the_
 fn reference_machine_only_every_frame_of_the_texts_with_wrapping_turned_off_is_within_the_tolerance_of_the_processor() {
     every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("text-dressing-no-wrap");
 }
+
+#[test]
+#[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
+fn reference_machine_only_every_frame_of_the_moving_text_with_a_coloured_outline_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("motion-text");
+}

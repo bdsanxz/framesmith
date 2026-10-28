@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The test-only corner glyph (U+E000) of the test font, at 250 pixels with a black stroke of 16 pixels and a white fill, on white.
+     Each of its four triangles has its apex at the bottom, and the glyph is moved 100 units right (its left edge), so the apexes
+     lie at x = 8 + (x + 100) * 0.25 for the font-unit x of each apex: 45.5, 107, 193.5 and 258.5. The baseline is at 213
+     (0.85 * 250 = 212.5, halves up), so the apexes lie 10 pixels above it, at y = 203. Half the stroke is 8 pixels.
+     The first apex has an apex angle of 29.05 degrees and a mitre ratio of 3.987, below the limit of 4: its tip lies 8 * 3.987 = 31.9 pixels below its apex, at 234.9.
+     The second has an apex angle of 28.87 degrees and a ratio of 4.012, past the limit: its bevel lies 8 / 4.012 = 1.99 pixels below its apex, at 205.0.
+     The third has an apex angle of 20.05 degrees and a ratio of 5.745, past the limit: its bevel lies 8 / 5.745 = 1.39 pixels below its apex, at 204.39.
+     The fourth has an apex angle of 40.27 degrees and a ratio of 2.905, below the limit: its tip lies 8 * 2.905 = 23.2 pixels below its apex, at 226.2.
+     300 by 240 pixels, one frame. -->
+<composition version="1" id="text-join-corner" width="300" height="240" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="8" top="0" font-family="Framesmith Test Stroke" font-size="250" color="#ffffff" text-stroke="16px #000000">&#xE000;</text>
+</composition>

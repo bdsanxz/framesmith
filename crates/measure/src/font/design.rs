@@ -400,3 +400,17 @@ pub const OLDSTYLE: [&[Piece]; 10] = [
     &[arc(155, 505, 155, 0, 360), arc(155, 195, 155, 0, 360)],
     &[arc(130, 290, 130, 0, 360), line(260, 290, 260, -30), arc(130, -30, 130, 0, -180)],
 ];
+
+/// The test-only glyph of the corner check, mapped to U+E000 (glyph index 116, `docs/spec/test-font.md`, section 2): four
+/// triangles, each a single contour, whose apex is the corner. Points in units of the em, relative to the glyph's left edge
+/// (not yet moved to the left side bearing). The first apex is at (50, 40), its sides reach 50 units across and 193 up: a
+/// corner with an apex angle of 29.05 degrees and a mitre ratio of 3.987. The second apex is at (296, 40), its sides 96 across and
+/// 373 up: an apex angle of 28.87 degrees and a ratio of 4.012.
+/// The third apex is at (642, 40), its sides 35 across and 198 up: an apex angle of 20.05 degrees, a ratio of 5.745, a bevel. The
+/// fourth apex is at (902, 40), its sides 55 across and 150 up: an apex angle of 40.27 degrees, a ratio of 2.905, a mitre.
+pub const CORNERS: [[(i32, i32); 3]; 4] = [
+    [(50, 40), (0, 233), (100, 233)],
+    [(296, 40), (200, 413), (392, 413)],
+    [(642, 40), (607, 238), (677, 238)],
+    [(902, 40), (847, 190), (957, 190)],
+];

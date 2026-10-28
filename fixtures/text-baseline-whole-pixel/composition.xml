@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Two capitals, each at the top of the frame, with no outline and no shadow: H at 30 pixels and H at 25 pixels, on the
+     test font's Regular face. Their exact baselines are 0.85 times the size below the top, 25.5 and 21.25 pixels
+     (text.md section 4), so each baseline is drawn on a whole pixel, halves up: 26 and 21. 120 by 60 pixels, 10 frames a
+     second. -->
+<composition version="1" id="text-baseline-whole-pixel" width="120" height="60" fps="10" duration="1" background="#ffffff">
+  <font src="fonts/framesmith-test-stroke-400.ttf" family="Framesmith Test Stroke"/>
+  <text left="10" top="0" font-family="Framesmith Test Stroke" font-size="30" color="#000000">H</text>
+  <text left="60" top="0" font-family="Framesmith Test Stroke" font-size="25" color="#000000">H</text>
+</composition>
