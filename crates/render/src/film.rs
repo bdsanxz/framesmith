@@ -121,27 +121,37 @@ pub fn size_refused(encoding: Encoding, width: u32, height: u32, fps: u32) -> Op
     if takes(encoding) {
         return None;
     }
+    let hevc_taken = match (encoding.encoder, encoding.codec) {
+        (Encoder::Hardware, PictureCodec::H264) => takes(Encoding {
+            codec: PictureCodec::Hevc,
+            ..encoding
+        }),
+        _ => false,
+    };
+    Some(SizeRefused(refused_sentence(encoding, width, height, hevc_taken)))
+}
+
+/// The sentence a refusal of `encoding` at `width` by `height` reports: the encoder, the size, the settings in effect,
+/// and the setting that makes the film render. `hevc_taken`: whether the machine's own HEVC encoder takes the size;
+/// it decides the remedy named when the machine's own H.264 encoder does not. Pure: no encoder is made.
+pub fn refused_sentence(encoding: Encoding, width: u32, height: u32, hevc_taken: bool) -> String {
     let (who, codec) = match (encoding.encoder, encoding.codec) {
         (Encoder::Hardware, PictureCodec::H264) => ("the machine's own H.264 encoder", "h264"),
         (Encoder::Hardware, PictureCodec::Hevc) => ("the machine's own HEVC encoder", "hevc"),
         (Encoder::Software, PictureCodec::H264) => ("the system's H.264 encoder on the processor", "h264"),
         (Encoder::Software, PictureCodec::Hevc) => ("the system's HEVC encoder on the processor", "hevc"),
     };
-    let hevc = Encoding {
-        codec: PictureCodec::Hevc,
-        ..encoding
-    };
     let remedy = match encoding.encoder {
-        Encoder::Hardware if encoding.codec == PictureCodec::H264 && takes(hevc) => {
+        Encoder::Hardware if encoding.codec == PictureCodec::H264 && hevc_taken => {
             "set codec: hevc, which the machine's own encoder takes at this size, or encoder: software"
         }
         Encoder::Hardware => "set encoder: software",
         Encoder::Software => "make the film smaller",
     };
-    Some(SizeRefused(format!(
+    format!(
         "{who} does not take a film of {width}x{height} (render.encoder: {}, render.codec: {codec}); {remedy}",
         encoding.encoder
-    )))
+    )
 }
 
 /// Why the film could not be made: the reason, as one sentence without a full stop.

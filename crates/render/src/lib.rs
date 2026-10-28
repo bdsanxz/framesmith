@@ -11,8 +11,8 @@ mod footage;
 mod sound;
 
 pub use film::{
-    check_place, formats, remove_stale_staging, size_refused, staging_folder_of, staging_of, write_film, write_film_marked,
-    write_film_stepped, Encoding, Failure, Refusal, SizeRefused, Step, Written,
+    check_place, formats, refused_sentence, remove_stale_staging, size_refused, staging_folder_of, staging_of, write_film,
+    write_film_marked, write_film_stepped, Encoding, Failure, Refusal, SizeRefused, Step, Written,
 };
 pub use sound::open_sounds;
 pub use timeline::{place_reports, place_reports_and_notes, sounds, Footage, FootageSource, PictureError, Scene, Sound};
