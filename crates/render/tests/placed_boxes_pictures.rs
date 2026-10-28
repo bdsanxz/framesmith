@@ -62,7 +62,7 @@ fn worked_out(boxes: &[Shown]) -> Picture {
 fn drawn_as_worked_out(fixture: &str, boxes: &[Shown]) {
     let folder = project_from_fixture("placed-boxes-pictures", fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let want = worked_out(boxes);
     assert_eq!((scene.width(), scene.height(), scene.frames()), (96, 54, 10));
     for number in [0, 9] {

@@ -13,7 +13,7 @@ const CHOSEN: [u64; 4] = [0, 5, 10, 19];
 fn drawn_frames_equal_the_checked_in_pictures(fixture: &str) {
     let folder = project_copied_from_fixture("box-edges-fixtures-checked-in", fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let numbers = numbers_with_a_picture(fixture);
     assert_eq!(numbers, CHOSEN, "{fixture}: the chosen frames have a picture");
     for number in numbers {

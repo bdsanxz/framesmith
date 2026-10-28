@@ -14,7 +14,7 @@ use std::fs;
 
 fn scene_of(name: &str, fixture: &str) -> Scene {
     let folder = project_from_fixture("film-written", name, fixture);
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn frames_of(path: &std::path::Path) -> Vec<Frame> {

@@ -18,7 +18,7 @@ const DECLARED_FILE: &str = "framesmith-test-stroke-400.ttf";
 fn scene() -> Scene {
     let folder = project_copied_from_fixture("declared-font-file-processor", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap();
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 #[test]

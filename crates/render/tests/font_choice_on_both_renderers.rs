@@ -19,7 +19,7 @@ fn scene_of(name: &str, fixture: &str, edit: impl Fn(String) -> String) -> Scene
     let folder = project_copied_from_fixture(GROUP, name, fixture);
     let file = folder.join("composition.xml");
     fs::write(&file, edit(fs::read_to_string(&file).unwrap())).unwrap();
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn processor_picture(scene: &Scene, number: u64) -> Picture {

@@ -40,7 +40,7 @@ fn scene_of_the_column(name: &str) -> Scene {
         format!("<composition version=\"1\" width=\"96\" height=\"54\" fps=\"10\" duration=\"1\">\n{inside}\n</composition>\n");
     let folder = project_with("clip-not-yet-shown-keeps-its-place", name, &composition);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 #[test]

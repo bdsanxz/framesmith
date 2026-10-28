@@ -15,7 +15,8 @@ const FIXTURE: &str = "blur-and-brightness";
 #[test]
 fn the_frames_of_blurred_brightened_and_faded_elements_equal_their_checked_in_pictures() {
     let folder = project_copied_from_fixture("blur-fixture-checked-in", FIXTURE, FIXTURE);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let numbers = numbers_with_a_picture(FIXTURE);
     assert_eq!(numbers, [0, 15, 29], "the chosen frames have a picture");
     for number in numbers {

@@ -35,7 +35,7 @@ fn a_written_width_and_height_of_a_set_of_columns_include_its_padding() {
                   </box>";
     let folder = project_with("columns-padding-inside-the-written-size", "set-with-padding", &composition(inside));
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     assert_eq!(
         filled_in_frame(&scene, 0),
         vec![(0, 0, 80, 24), (8, 8, 32, 4), (40, 8, 32, 4), (8, 12, 32, 4), (40, 12, 32, 4)]

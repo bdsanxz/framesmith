@@ -30,7 +30,8 @@ fn text_project(name: &str, body: &str) -> PathBuf {
 
 /// The glyphs that frame 0 of a project draws for its texts, in drawing order.
 fn glyphs_of_frame_zero(folder: &Path) -> Vec<Glyph> {
-    let scene = Scene::from_project(&Project::open(folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let frame = scene.frame(0).unwrap();
     frame
         .marks

@@ -30,7 +30,7 @@ fn shown(report: &Report) -> String {
 fn scene_of(name: &str, inside: &str) -> Result<Scene, Vec<String>> {
     let folder = project_with("negative-and-zero-sizes", name, &composition(inside));
     let project = Project::open(&folder).unwrap();
-    Scene::from_project(&project).map_err(|reports| reports.iter().map(shown).collect())
+    Scene::from_project(&project, &render::system_codecs()).map_err(|reports| reports.iter().map(shown).collect())
 }
 
 fn picture_of(name: &str, inside: &str) -> Picture {

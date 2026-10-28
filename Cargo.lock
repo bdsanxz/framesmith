@@ -148,6 +148,7 @@ checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 name = "cli"
 version = "0.1.0"
 dependencies = [
+ "codec",
  "draw",
  "draw-cpu",
  "draw-gpu",
@@ -1517,7 +1518,6 @@ dependencies = [
 name = "text"
 version = "0.1.0"
 dependencies = [
- "backend-os",
  "base",
  "codec",
  "parley",
@@ -1596,6 +1596,7 @@ dependencies = [
 name = "timeline"
 version = "0.1.0"
 dependencies = [
+ "codec",
  "draw",
  "draw-cpu",
  "layout",

@@ -32,7 +32,8 @@ fn text_project(name: &str, body: &str) -> PathBuf {
 
 /// The glyph runs that frame 0 of a project draws for its texts, in drawing order.
 fn text_runs(folder: &Path) -> Vec<GlyphRun> {
-    let scene = Scene::from_project(&Project::open(folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let frame = scene.frame(0).unwrap();
     frame
         .marks
@@ -194,7 +195,7 @@ fn a_percentage_margin_on_a_span_is_refused_with_its_line() {
         "span-percent-margin",
         &format!("<text left=\"10\" top=\"10\" {FAMILY} font-size=\"20\">AB <span margin=\"10%\" color=\"#ffffff\">x</span></text>"),
     );
-    let reports = match Scene::from_project(&Project::open(&folder).unwrap()) {
+    let reports = match Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()) {
         Ok(_) => panic!("a percentage margin on a span is drawn"),
         Err(reports) => reports,
     };
@@ -213,7 +214,7 @@ fn a_tween_inside_a_span_is_refused_with_its_line() {
             "<text left=\"10\" top=\"10\" {FAMILY} font-size=\"20\">AB <span color=\"#ffffff\">x<tween at=\"0\" duration=\"1\" from-opacity=\"0\" to-opacity=\"1\"/></span></text>"
         ),
     );
-    let reports = match Scene::from_project(&Project::open(&folder).unwrap()) {
+    let reports = match Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()) {
         Ok(_) => panic!("a tween inside a span is drawn"),
         Err(reports) => reports,
     };

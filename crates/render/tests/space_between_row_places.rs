@@ -27,7 +27,7 @@ fn filled_in_frame(scene: &Scene, number: u64) -> Vec<(i32, i32, u32, u32)> {
 fn scene_of_fixture(folder_name: &str) -> Scene {
     let folder = project_from_fixture("space-between-row-places", folder_name, "space-between-row");
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 #[test]

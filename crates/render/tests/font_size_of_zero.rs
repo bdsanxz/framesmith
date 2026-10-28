@@ -31,7 +31,7 @@ fn a_text_with_a_font_size_of_zero_is_reported_with_its_line_as_invalid() {
         "text",
         "<text left=\"10\" top=\"10\" font-family=\"Framesmith Test Stroke\" font-size=\"0\">AB</text>",
     );
-    let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
+    let reports = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_err();
     assert_eq!(reports.len(), 1, "{reports:#?}");
     let problem = reports[0].problem();
     assert_eq!(problem.code(), Code::SizeNotAboveZero);
@@ -50,7 +50,7 @@ fn a_negative_font_size_is_reported_as_a_zero_one_is() {
         "negative",
         "<text left=\"10\" top=\"10\" font-family=\"Framesmith Test Stroke\" font-size=\"-4\">AB</text>",
     );
-    let reports = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_err();
+    let reports = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_err();
     assert_eq!(reports.len(), 1, "{reports:#?}");
     assert_eq!(reports[0].problem().code(), Code::SizeNotAboveZero);
 }

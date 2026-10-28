@@ -18,7 +18,8 @@ fn drawn(name: &str, inside: &str, renderer: &mut dyn Renderer) -> Picture {
         "<composition version=\"1\" width=\"96\" height=\"54\" fps=\"10\" duration=\"1\" background=\"#808080\">\n{inside}\n</composition>\n"
     );
     let folder = project_with("background-colours", name, &text);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, renderer).unwrap()
 }
 

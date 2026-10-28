@@ -21,7 +21,7 @@ fn scene(name: &str, body: &str) -> Scene {
          {body}\n</composition>\n"
     );
     let folder = project_with(GROUP, name, &text);
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn picture(scene: &Scene, number: u64) -> Picture {

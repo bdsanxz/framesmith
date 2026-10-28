@@ -22,7 +22,7 @@ fn picture_with_parent_at(name: &str, parent_left: u32) -> Picture {
     );
     let folder = project_with("child-follows-parent", name, &composition(&inside));
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     scene.picture(0, &mut CpuRenderer).unwrap()
 }
 

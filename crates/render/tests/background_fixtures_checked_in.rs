@@ -10,7 +10,8 @@ use render::Scene;
 
 fn drawn_frames_at_equal_the_checked_in_pictures(fixture: &str, chosen: &[u64]) {
     let folder = project_copied_from_fixture("background-fixtures-checked-in", fixture, fixture);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let numbers = numbers_with_a_picture(fixture);
     assert_eq!(numbers, chosen, "{fixture}: the chosen frames have a picture");
     for number in numbers {

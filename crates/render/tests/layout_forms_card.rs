@@ -26,7 +26,7 @@ fn reference_machine_only_every_frame_of_the_layout_form_fixtures_is_within_the_
     for fixture in FIXTURES {
         let folder = project_copied_from_fixture("layout-forms-card", fixture, fixture);
         let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-        let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+        let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
         let comparison = compare_scene(&scene, &mut CpuRenderer, &mut card, None);
         let report = comparison.report();
         for line in &report {

@@ -22,7 +22,7 @@ fn reports_of(name: &str, attribute: &str) -> Vec<String> {
     let inside = format!("<box/>\n<box {attribute} background=\"#e0a030\"/>");
     let folder = project_with("forms-not-listed", name, &composition(&inside));
     let project = Project::open(&folder).unwrap();
-    match Scene::from_project(&project) {
+    match Scene::from_project(&project, &render::system_codecs()) {
         Ok(_) => Vec::new(),
         Err(reports) => reports.iter().map(shown).collect(),
     }

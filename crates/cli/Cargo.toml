@@ -20,6 +20,8 @@ path = "src/main.rs"
 [dependencies]
 project = { workspace = true }
 render = { workspace = true }
+# The codec registry the scene of a command is made with (`render::system_codecs`).
+codec = { workspace = true }
 draw = { workspace = true }
 draw-cpu = { workspace = true }
 draw-gpu = { workspace = true }

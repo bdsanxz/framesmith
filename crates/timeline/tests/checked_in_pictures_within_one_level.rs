@@ -80,9 +80,11 @@ fn every_checked_in_picture_is_drawn_within_one_level_and_the_largest_difference
     let mut largest: (u8, String) = (0, "no value differs".to_string());
     let mut over = Vec::new();
     let mut pictures = 0;
+    // The registry of a caller with no system backend: frx7's codecs and no backend registered (text.md, section 12.4).
+    let codecs = codec::Registry::new();
     for (fixture, frames) in &fixtures {
         let project = Project::open(&project_of(fixture)).unwrap();
-        let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{fixture}: {reports:?}"));
+        let scene = Scene::from_project(&project, &codecs).unwrap_or_else(|reports| panic!("{fixture}: {reports:?}"));
         for (number, path) in frames {
             let (width, height, want) = png::decode(&fs::read(path).unwrap()).unwrap();
             let drawn = scene.picture(*number, &mut CpuRenderer).unwrap();

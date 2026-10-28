@@ -18,7 +18,7 @@ pub const MAC_FILE: &str = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf
 /// registers it.
 pub fn mac_fonts() -> Fonts {
     let bytes = std::fs::read(MAC_FILE).unwrap_or_else(|error| panic!("{MAC_FILE}: {error}"));
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&codec::Registry::new());
     fonts
         .register(bytes, Some(MAC_FAMILY))
         .expect("the machine's font registers as a TrueType font");

@@ -12,7 +12,8 @@ use render::Scene;
 fn the_frames_of_squares_turned_in_space_edge_on_and_mirrored_equal_their_checked_in_pictures() {
     let fixture = "turn-in-space";
     let folder = project_copied_from_fixture("turn-fixture-checked-in", fixture, fixture);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let numbers = numbers_with_a_picture(fixture);
     assert_eq!(numbers, [0, 15, 30, 45], "the chosen frames have a picture");
     for number in numbers {

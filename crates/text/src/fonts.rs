@@ -60,7 +60,8 @@ pub struct Fonts {
     pub(crate) context: parley::FontContext,
     pub(crate) layouts: parley::LayoutContext<[u8; 4]>,
     pub(crate) faces: Vec<Face>,
-    /// The codecs that read the pictures of the emoji: frx7's, from memory.
+    /// The codecs that read the pictures of the emoji, from memory: the registry the caller handed in (`text.md`, section 12.4,
+    /// point 4).
     pub(crate) codecs: codec::Registry,
     /// The pictures read so far, by glyph and size.
     pub(crate) pictures: picture::Cache,
@@ -71,17 +72,10 @@ pub struct Fonts {
     fall_backs: HashMap<char, Option<String>>,
 }
 
-impl Default for Fonts {
-    fn default() -> Self {
-        Fonts::new()
-    }
-}
-
 impl Fonts {
-    /// A collection with no font in it.
-    pub fn new() -> Fonts {
-        let mut codecs = codec::Registry::new();
-        codecs.register(backend_os::BACKEND);
+    /// A collection with no font in it, whose emoji pictures are read by `codecs`, the registry the caller hands in: the
+    /// system's backend is registered by the caller, never by this crate (`text.md`, section 12.4, point 4).
+    pub fn new(codecs: &codec::Registry) -> Fonts {
         Fonts {
             context: parley::FontContext {
                 collection: Collection::new(CollectionOptions {
@@ -92,7 +86,7 @@ impl Fonts {
             },
             layouts: parley::LayoutContext::new(),
             faces: Vec::new(),
-            codecs,
+            codecs: codecs.clone(),
             pictures: picture::Cache::new(),
             machine_families: HashMap::new(),
             fall_backs: HashMap::new(),

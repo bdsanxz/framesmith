@@ -28,7 +28,7 @@ fn a_wrong_place_in_a_shown_file_is_reported_with_its_name_and_line_with_the_pro
     )
     .unwrap();
     let project = Project::open(&dir).unwrap_or_else(|error| panic!("{error}"));
-    let reports = match Scene::from_project(&project) {
+    let reports = match Scene::from_project(&project, &render::system_codecs()) {
         Ok(_) => panic!("a wrong place must be refused"),
         Err(reports) => reports,
     };

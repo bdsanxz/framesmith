@@ -27,7 +27,7 @@ struct Output {
 /// The film of the fixture `first-render`, written in a folder of its own under `name`.
 fn film(name: &str) -> PathBuf {
     let folder = project_from_fixture(GROUP, name, "first-render");
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap();
+    let scene = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap();
     let output = folder.join("film.mp4");
     write_film(&scene, &mut CpuRenderer, &output, 192).unwrap();
     output

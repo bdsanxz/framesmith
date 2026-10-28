@@ -25,7 +25,7 @@ fn filled_in_frame(scene: &Scene, number: u64) -> Vec<(i32, i32, u32, u32)> {
 fn scene_of(name: &str, composition: &str) -> Scene {
     let folder = project_with("spare-room-shared-by-flex-grow", name, composition);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 #[test]

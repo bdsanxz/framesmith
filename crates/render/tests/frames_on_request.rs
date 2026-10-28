@@ -11,7 +11,7 @@ use render::{PictureError, Scene};
 
 fn scene() -> Scene {
     let folder = project_from_fixture("frames-on-request", "first-render", "first-render");
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap()
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap()
 }
 
 #[test]

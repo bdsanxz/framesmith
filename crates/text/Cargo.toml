@@ -14,10 +14,11 @@ workspace = true
 # boundaries. The feature adds no crate to the lock file.
 parley = { workspace = true, features = ["complex-scripts"] }
 # frx7 reads the PNG pictures of the emoji from memory and scales them (docs/spec/text.md, section 12.4). The picture
-# decoding stays in frx7; no type of frx7 is in a public interface of this crate.
+# decoding stays in frx7. The one frx7 type in a public interface of this crate is `codec::Registry`: the caller hands
+# the registry in when it makes a font collection (`Fonts::new`), so that this crate names no system backend and holds
+# no system interface (decision B87). No system crate of frx7 is in any edge of this crate.
 base = { workspace = true }
 codec = { workspace = true }
-backend-os = { workspace = true }
 pixel = { workspace = true }
 # The font reader that judges a declared font file (docs/spec/text.md, section 2.1; decision B28): a file it refuses is
 # damaged, and its reason is reported. The version is the one the shaping engine already brings.

@@ -30,7 +30,7 @@ const WRITTEN: &str = "<composition version=\"1\" width=\"160\" height=\"90\" fp
 
 fn scene_of(folder: &Path) -> Scene {
     let project = Project::open(folder).unwrap_or_else(|error| panic!("{error:?}"));
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn styled_scene() -> Scene {

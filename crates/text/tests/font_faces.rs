@@ -61,7 +61,7 @@ fn a_weight_of_800_and_900_draw_the_bold_face() {
 fn a_weight_heavier_than_every_face_draws_the_heaviest_face_of_the_family() {
     // A family with its Regular face alone: no face is heavier than it, so a weight of 900 draws that face.
     let regular = font_file("framesmith-test-stroke-400.ttf");
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&codec::Registry::new());
     fonts.register(regular.clone(), Some(FAMILY)).expect("the Regular face registers");
     let mut heavy = style(40.0);
     heavy.weight = 900.0;

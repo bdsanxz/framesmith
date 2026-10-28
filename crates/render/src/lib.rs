@@ -15,3 +15,12 @@ pub use film::{
 };
 pub use sound::open_sounds;
 pub use timeline::{place_reports, place_reports_and_notes, sounds, PictureError, Scene, Sound};
+
+/// The codec registry a scene is made with: frx7's codecs with the system's backend registered, so that the emoji pictures of
+/// a font collection can be read (`docs/spec/text.md`, section 12.4, point 4). A program calls this once, where a command
+/// starts, and hands the registry to every scene it makes; no other crate registers the system's backend for a scene.
+pub fn system_codecs() -> codec::Registry {
+    let mut codecs = codec::Registry::new();
+    codecs.register(backend_os::BACKEND);
+    codecs
+}

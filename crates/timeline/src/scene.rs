@@ -251,9 +251,9 @@ impl Scene {
     /// draw or apply (`FS-0035`), of the lengths and the words that are wrong (`FS-0032`, `FS-0034`,
     /// `FS-0039`): first those of the project file, then those of the composition, each in the order
     /// of the file.
-    pub fn from_project(project: &Project) -> Result<Scene, Vec<Report>> {
+    pub fn from_project(project: &Project, codecs: &codec::Registry) -> Result<Scene, Vec<Report>> {
         let mut reports = settings(project);
-        let (entries, movers, found) = walk(project, false);
+        let (entries, movers, found) = walk(project, false, codecs);
         reports.extend(found);
         if !reports.is_empty() {
             return Err(reports);
@@ -529,15 +529,15 @@ fn takes(node: &Node, name: &str) -> bool {
 /// those forms, by the same code, without the settings of the project file and without the other refusals of
 /// what is drawn: `check` judges the forms of a place, the attributes that a style gives and the text forms, and
 /// does not judge the rest (`docs/spec/check-command.md`, sections 3b and 3c; `docs/spec/text.md`, section 9).
-pub fn place_reports(project: &Project) -> Vec<Report> {
-    walk(project, true).2
+pub fn place_reports(project: &Project, codecs: &codec::Registry) -> Vec<Report> {
+    walk(project, true, codecs).2
 }
 
 /// The reports of [`place_reports`], and the notes that `check` prints (`docs/spec/check-command.md`, section 1): one for
 /// each `<text>` with a character that no family of its list and no family of the machine maps, on the line of the
 /// `<text>`, which names the first such character (`docs/spec/text.md`, section 2.4, point 3).
-pub fn place_reports_and_notes(project: &Project) -> (Vec<Report>, Vec<String>) {
-    let (entries, _, reports) = walk(project, true);
+pub fn place_reports_and_notes(project: &Project, codecs: &codec::Registry) -> (Vec<Report>, Vec<String>) {
+    let (entries, _, reports) = walk(project, true, codecs);
     let mut notes: Vec<String> = Vec::new();
     for entry in &entries {
         let Entry::Text(text) = entry else {
@@ -560,10 +560,11 @@ pub fn place_reports_and_notes(project: &Project) -> (Vec<Report>, Vec<String>) 
 /// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
 /// order. Gives the boxes that are placed, in document order, the elements that move, and the reports of the refusals.
 /// With `place_only`, the reports are those of a place form alone.
-fn walk(project: &Project, place_only: bool) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
+fn walk(project: &Project, place_only: bool, codecs: &codec::Registry) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
     let root = project.root();
     walk_canvas(
         project,
+        codecs,
         Canvas {
             file: project.composition(),
             tree: project.tree().nodes(),
@@ -600,7 +601,13 @@ struct Canvas<'a> {
 /// its own, at its place, in its window and cut to its rectangle. Gives the boxes that are placed, in document
 /// order, and the reports: those of this file in the order of their lines, then those of the files it shows, each
 /// report once, in the order the files are reached.
-fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
+fn walk_canvas(
+    project: &Project,
+    codecs: &codec::Registry,
+    canvas: Canvas<'_>,
+    fps: u32,
+    place_only: bool,
+) -> (Vec<Entry>, Vec<Mover>, Vec<Report>) {
     let tree = canvas.tree;
     // The elements inside each element, in document order.
     let mut inside: Vec<Vec<usize>> = vec![Vec::new(); tree.len()];
@@ -612,7 +619,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
 
     let mut refusals: Vec<Refusal> = Vec::new();
     // The fonts this file declares, and the faults of the font files that are not read.
-    let (mut fonts, font_faults) = paragraph::load_fonts(project, tree);
+    let (mut fonts, font_faults) = paragraph::load_fonts(project, tree, codecs);
     refusals.extend(font_faults.into_iter().map(Refusal::of_text));
     // The sounds are those of the root's canvas; their faults are found from the file alone and reported by `check`
     // as a font's are (`docs/spec/sound.md`, section 5).
@@ -917,6 +924,7 @@ fn walk_canvas(project: &Project, canvas: Canvas<'_>, fps: u32, place_only: bool
         };
         let (placed, inner_movers, found) = walk_canvas(
             project,
+            codecs,
             Canvas {
                 file: file.name(),
                 tree: file.tree().nodes(),

@@ -36,7 +36,7 @@ struct Line {
 
 fn mac_fonts() -> Fonts {
     let bytes = std::fs::read(MAC_FILE).unwrap_or_else(|error| panic!("{MAC_FILE}: {error}"));
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&render::system_codecs());
     fonts.register(bytes, Some(MAC_FAMILY)).expect("the machine's font registers");
     fonts
 }
@@ -112,7 +112,7 @@ fn frame_lines(frame: &Frame) -> Vec<Line> {
 fn judged_frames(fixture: &str) -> Vec<(Frame, Picture)> {
     let folder = project_copied_from_fixture("script-fixtures-on-the-processor", fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     JUDGED
         .iter()
         .map(|&number| {
@@ -483,7 +483,7 @@ fn emoji_frames_break_the_lines_at_the_spaces_the_width_allows() {
 fn emoji_frame_in_colour(name: &str, colour: &str, number: u64) -> (Picture, Picture, (u32, u32, u32, u32)) {
     let folder = project_with_text_colour("script-fixtures-on-the-processor", name, EMOJI_FIXTURE, "#1e6fd9", colour);
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let place = first_picture_place(&scene, number);
     let (left, top, width, height) = place;
     let picture = scene.picture(number, &mut CpuRenderer).unwrap();

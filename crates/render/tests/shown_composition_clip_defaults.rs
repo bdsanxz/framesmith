@@ -33,7 +33,7 @@ fn frames_with_the_shown_file(name: &str, clip: &str) -> Vec<u64> {
     );
     fs::write(folder.join("composition.xml"), composition).unwrap();
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let mut shown = Vec::new();
     for number in 0..10u64 {
         let picture = scene.picture(number, &mut CpuRenderer).unwrap_or_else(|error| panic!("{error}"));

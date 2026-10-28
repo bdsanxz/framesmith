@@ -12,7 +12,7 @@ use render::Scene;
 fn scene_of(fixture: &str) -> Scene {
     let folder = project_from_fixture("placed-boxes-checked-in", fixture, fixture);
     let project = Project::open(&folder).unwrap();
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn drawn_frames_equal_their_checked_in_pictures(fixture: &str) {

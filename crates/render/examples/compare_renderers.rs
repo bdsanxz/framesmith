@@ -56,7 +56,7 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let scene = match Scene::from_project(&project) {
+    let scene = match Scene::from_project(&project, &render::system_codecs()) {
         Ok(scene) => scene,
         Err(reports) => {
             eprintln!("the project is not drawn: {reports:?}");

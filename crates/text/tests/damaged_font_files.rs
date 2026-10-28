@@ -29,7 +29,7 @@ fn record(bytes: &[u8], tag: &[u8; 4]) -> usize {
 
 /// The reason the reader gives for `bytes`, which must be refused as damaged and leave nothing registered.
 fn damage(bytes: Vec<u8>) -> String {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&codec::Registry::new());
     let error = fonts.register(bytes, Some(FAMILY)).unwrap_err();
     assert!(fonts.is_empty(), "a damaged file registers no face");
     match error {
@@ -40,7 +40,7 @@ fn damage(bytes: Vec<u8>) -> String {
 
 #[test]
 fn the_whole_test_font_is_read_by_the_font_reader() {
-    let mut fonts = Fonts::new();
+    let mut fonts = Fonts::new(&codec::Registry::new());
     fonts.register(test_font_bytes(), Some(FAMILY)).unwrap();
     assert!(fonts.has_family(FAMILY));
 }

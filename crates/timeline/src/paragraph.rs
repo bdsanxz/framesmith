@@ -532,8 +532,8 @@ pub(crate) fn style_of(tree: &[Node], index: usize) -> (Style, Colour) {
 /// The fonts a composition declares with `<font>` (`text.md` section 2.1), read from the composition's own tree.
 /// Each file is read and registered once for each pair of `src` and `family`. Gives the faults of the files that
 /// are missing, unreadable, or not a font this version draws.
-pub(crate) fn load_fonts(project: &Project, tree: &[Node]) -> (Fonts, Vec<Fault>) {
-    let mut fonts = Fonts::new();
+pub(crate) fn load_fonts(project: &Project, tree: &[Node], codecs: &codec::Registry) -> (Fonts, Vec<Fault>) {
+    let mut fonts = Fonts::new(codecs);
     let mut faults = Vec::new();
     let mut loaded: Vec<(String, Option<String>)> = Vec::new();
     for node in tree

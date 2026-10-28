@@ -136,6 +136,50 @@ else
     done
 fi
 
+# The picture check's lines in a test run's log (system-free.sh verify-log): both lines, with a count above 0, pass; a
+# log without a line, or with a count of 0, fails and names what is missing.
+verify_with() {
+    printf '%s' "$1" >"$WORK/log"
+    bash "$HERE/scripts/gates/system-free.sh" verify-log "$WORK/log" >"$WORK/vout" 2>&1
+    vcode=$?
+}
+
+verify_with "running 1 test
+checked-in pictures compared: 202
+largest difference found: 0 of 255 (no value differs)
+test result: ok.
+"
+if [ "$vcode" -ne 0 ]; then
+    problem "a_log_with_both_picture_lines_passes: the check ended with exit $vcode, expected 0"
+    sed 's/^/    /' "$WORK/vout"
+fi
+
+verify_with "checked-in pictures compared: 202
+"
+if [ "$vcode" -ne 1 ] || ! grep -qF "printed no \"largest difference found:\" line" "$WORK/vout"; then
+    problem "a_log_without_the_largest_difference_line_fails_and_names_it: exit $vcode, or the line is not named"
+fi
+
+verify_with "largest difference found: 0 of 255 (no value differs)
+"
+if [ "$vcode" -ne 1 ] || ! grep -qF "printed no \"checked-in pictures compared:\" line" "$WORK/vout"; then
+    problem "a_log_without_the_compared_line_fails_and_names_it: exit $vcode, or the line is not named"
+fi
+
+verify_with "checked-in pictures compared: 0
+largest difference found: 0 of 255 (no value differs)
+"
+if [ "$vcode" -ne 1 ] || ! grep -qF "compared 0 checked-in pictures" "$WORK/vout"; then
+    problem "a_log_whose_count_is_0_fails_and_names_it: exit $vcode, or the count is not named"
+fi
+
+verify_with "checked-in pictures compared: many
+largest difference found: 0 of 255 (no value differs)
+"
+if [ "$vcode" -ne 1 ]; then
+    problem "a_log_whose_count_is_not_a_number_fails: exit $vcode, expected 1"
+fi
+
 if [ "$problems" -eq 0 ]; then
     echo "PASS: every control of the system-free gate passed"
     exit 0

@@ -47,7 +47,7 @@ const POINTS: [(u64, u32, u32, [u8; 4]); 17] = [
 fn a_shown_file_is_drawn_at_its_element_inside_its_window_and_cut_to_its_rectangle() {
     let folder = project_copied_from_fixture("shown-composition-points", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     for (number, column, row, colour) in POINTS {
         let picture = scene.picture(number, &mut CpuRenderer).unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(
