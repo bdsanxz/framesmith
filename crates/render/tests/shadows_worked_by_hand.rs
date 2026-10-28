@@ -1,4 +1,4 @@
-//! The frame of the fixture `shadows` at frame 0 holds the shadows worked by hand from `docs/spec/render-command.md`, section
+//! The frames of the fixture `shadows` hold the shadows worked by hand from `docs/spec/render-command.md`, section
 //! 4.7, and from the geometry of the composition (`fixtures/shadows/composition.xml`): a hard shadow, a shadow that follows a
 //! rounded box, and the drop-shadow of a group that follows each child and leaves the gap clear. The pixels chosen lie
 //! beyond the reach of any blur, and every value below comes from the rule and the geometry, not from the product.
@@ -18,11 +18,18 @@ fn rgb(picture: &draw::Picture, x: u32, y: u32) -> [u8; 3] {
 }
 
 #[test]
-fn the_shadows_of_the_fixture_at_frame_zero_are_the_worked_values() {
+fn the_shadows_of_the_fixture_are_the_worked_values() {
     let folder = project_copied_from_fixture("shadows-worked-by-hand", "frame", "shadows");
     let project = Project::open(&folder).unwrap();
     let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
-    let picture = scene.picture(0, &mut CpuRenderer).unwrap();
+    // The composition is static, so frames 0 and 5 hold the same worked values; both checked-in pictures are held.
+    for number in [0, 5] {
+        let picture = scene.picture(number, &mut CpuRenderer).unwrap();
+        holds_worked_values(&picture);
+    }
+}
+
+fn holds_worked_values(picture: &draw::Picture) {
 
     // Box A: 8 to 31 square, shadow 10 across and down: its moved shape covers 18 to 41, outside the box.
     assert_eq!(rgb(&picture, 36, 20), [0, 0, 0], "A's shadow right of the box");
@@ -68,4 +75,13 @@ fn the_shadows_of_the_fixture_at_frame_zero_are_the_worked_values() {
         "the gap between the children casts no shadow"
     );
     assert_eq!(rgb(&picture, 65, 46), [255, 0, 255], "the first child is drawn over its shadow");
+
+    // Box C: 8 to 31 across, 40 to 55 down, its shadow 6 across and down with a blur of 3: the moved shape covers 14 to
+    // 37 and 46 to 61. The blur reaches 3 pixels (span 3, three passes), so (32, 51), five from the nearest moved edge
+    // and beyond the box, is full black.
+    assert_eq!(
+        rgb(&picture, 32, 51),
+        [0, 0, 0],
+        "C's blurred shadow at full strength, beyond the blur's reach inside"
+    );
 }
