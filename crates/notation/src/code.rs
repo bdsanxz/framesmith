@@ -194,7 +194,7 @@ pub enum Code {
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 75] = [
+    pub const ALL: [Code; 76] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,

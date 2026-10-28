@@ -21,7 +21,7 @@ fn rgb(picture: &draw::Picture, x: u32, y: u32) -> [u8; 3] {
 fn the_shadows_of_the_fixture_are_the_worked_values() {
     let folder = project_copied_from_fixture("shadows-worked-by-hand", "frame", "shadows");
     let project = Project::open(&folder).unwrap();
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     // The composition is static, so frames 0 and 5 hold the same worked values; both checked-in pictures are held.
     for number in [0, 5] {
         let picture = scene.picture(number, &mut CpuRenderer).unwrap();
