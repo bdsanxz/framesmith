@@ -1,6 +1,6 @@
 //! A `<video>` names its file and its size: one without `src` is reported on its line, one without `width` or `height` on
 //! its line, and a size that is not a whole number of 2 or more on the line of that attribute (`docs/spec/render-command.md`
-//! section 4.7; `docs/spec/check-command.md`).
+//! section 4.8; `docs/spec/check-command.md`).
 
 mod common;
 
@@ -12,7 +12,7 @@ fn a_video_without_a_height_is_reported_on_its_line() {
     assert_eq!(problems.len(), 1, "{problems:#?}");
     assert_eq!(
         worded(&problems[0]),
-        "line 3: FS-0067: <video> needs the attribute `height`, a whole number of 2 or more: footage is stretched to its box"
+        "line 3: FS-0085: <video> needs the attribute `height`, a whole number of 2 or more: footage is stretched to its box"
     );
 }
 
@@ -23,8 +23,8 @@ fn a_video_with_neither_size_is_reported_for_each() {
     assert_eq!(
         worded,
         [
-            "line 2: FS-0067: <video> needs the attribute `width`, a whole number of 2 or more: footage is stretched to its box",
-            "line 2: FS-0067: <video> needs the attribute `height`, a whole number of 2 or more: footage is stretched to its box",
+            "line 2: FS-0085: <video> needs the attribute `width`, a whole number of 2 or more: footage is stretched to its box",
+            "line 2: FS-0085: <video> needs the attribute `height`, a whole number of 2 or more: footage is stretched to its box",
         ]
     );
 }
@@ -35,7 +35,7 @@ fn a_size_below_two_is_reported_on_the_line_of_its_attribute() {
     assert_eq!(problems.len(), 1, "{problems:#?}");
     assert_eq!(
         worded(&problems[0]),
-        "line 3: FS-0067: `height` of a <video> must be a whole number of 2 or more, not 1"
+        "line 3: FS-0085: `height` of a <video> must be a whole number of 2 or more, not 1"
     );
 }
 
@@ -45,7 +45,7 @@ fn a_video_without_a_source_is_reported_on_its_line() {
     assert_eq!(problems.len(), 1, "{problems:#?}");
     assert_eq!(
         worded(&problems[0]),
-        "line 3: FS-0068: <video> needs the attribute `src`, the path of its file from the project folder"
+        "line 3: FS-0086: <video> needs the attribute `src`, the path of its file from the project folder"
     );
 }
 

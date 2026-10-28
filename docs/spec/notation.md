@@ -1090,7 +1090,7 @@ Fifteen points were recorded as open: ten the earlier text was "not sure" about 
 | For | Kinds read |
 |---|---|
 | `<image src>` | PNG and JPEG |
-| `<video src>` | files of the MP4 family holding H.264 or HEVC pictures |
+| `<video src>` | files of the MP4 family, `.mp4` and `.mov`, holding H.264 or HEVC pictures |
 | `<audio src>` | WAV and AIFF of linear PCM (one, two or six channels), MP3 (one or two) and AAC-LC in an MP4 file, `.m4a` (one or two) |
 
 A file of a kind not on the list is unsupported: `check` lists it with the element's line, the file and the kinds read, exits with 2, and `render` stops before the first frame and writes no file. A file that is missing or damaged is invalid (exit code 1). The first picture of every video is decoded when the video is looked at.

@@ -352,7 +352,13 @@ impl Frame {
             .iter()
             .map(|mark| match mark {
                 Mark::Step(step) => Some(*step),
-                Mark::Text(_) | Mark::Group(_) | Mark::Background(_) | Mark::Ring(_) | Mark::Cut(_) | Mark::BoxShadow(_) | Mark::Picture(_) => None,
+                Mark::Text(_)
+                | Mark::Group(_)
+                | Mark::Background(_)
+                | Mark::Ring(_)
+                | Mark::Cut(_)
+                | Mark::BoxShadow(_)
+                | Mark::Picture(_) => None,
             })
             .collect::<Option<Vec<Step>>>()?;
         Some(DisplayList {

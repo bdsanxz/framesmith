@@ -456,7 +456,41 @@ fn a_video_in_the_root_and_in_a_box_placed_by_its_edges_has_a_scene() {
         "video-drawn",
         &composition("<video src=\"v.mp4\" width=\"8\" height=\"8\"/>\n<box width=\"40\" height=\"20\">\n<video src=\"v.mp4\" left=\"4\" width=\"8\" height=\"8\"/>\n</box>"),
     );
-    let scene = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs())
-        .unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene =
+        Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     assert_eq!(scene.sources().len(), 1, "one file named twice is one source");
+}
+
+#[test]
+fn a_blur_or_brightness_below_zero_on_a_video_is_reported_with_its_line() {
+    for (index, (name, value, remedy)) in [
+        ("blur", "-1", "a blur is a standard deviation in pixels, 0 or more"),
+        (
+            "brightness",
+            "-0.5",
+            "a brightness is a factor the colours are multiplied by, 0 or more",
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(
+            only(
+                &format!("video-look-below-{index}"),
+                &format!("<video src=\"v.mp4\" width=\"8\" height=\"8\" {name}=\"{value}\"/>")
+            ),
+            format!("composition.xml 2 FS-0034 `{name}=\"{value}\"` is below 0: {remedy}")
+        );
+    }
+}
+
+#[test]
+fn a_border_radius_below_zero_on_a_video_is_reported_with_its_line() {
+    assert_eq!(
+        only(
+            "video-radius-below",
+            "<video src=\"v.mp4\" width=\"8\" height=\"8\" border-radius=\"-2\"/>"
+        ),
+        "composition.xml 2 FS-0034 `border-radius=\"-2\"` must be 0 or more"
+    );
 }

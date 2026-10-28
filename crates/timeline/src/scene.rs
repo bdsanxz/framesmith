@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use draw::{
-    Background, BoxShadow, Colour, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark,
+    Background, BoxShadow, Colour, Cut, DisplayList, Edges, Filter, Font, Frame, Glyph, GlyphPicture, GlyphRun, Group, Layer, Map, Mark,
     Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
@@ -72,9 +72,25 @@ const NO_EDGES: Edges = Edges {
     cut: false,
 };
 /// What a `<video>` takes in this version (`docs/spec/render-command.md`, section 4.8): its id and class, its file, its size,
-/// its place and its clip.
-const VIDEO_TAKES: [&str; 13] = [
-    "id", "class", "src", "width", "height", "left", "top", "right", "bottom", "position", "margin", "start", "duration",
+/// its place, its clip, its corners and its look.
+const VIDEO_TAKES: [&str; 17] = [
+    "id",
+    "class",
+    "src",
+    "width",
+    "height",
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "position",
+    "margin",
+    "start",
+    "duration",
+    "border-radius",
+    "opacity",
+    "blur",
+    "brightness",
 ];
 
 /// What a `<composition src>` takes: its id and class, its file, its clip and its place (`docs/spec/render-command.md`
@@ -210,6 +226,12 @@ struct PlacedFootage {
     slot: Slot,
     clip: Option<Rect>,
     source: usize,
+    /// The `opacity` the `<video>` writes, 1 when it writes none (`docs/spec/render-command.md`, section 4.8).
+    opacity: f64,
+    /// The `blur` and `brightness` the `<video>` writes, none when it writes neither.
+    filter: Filter,
+    /// The `border-radius` the `<video>` writes, 0 when it writes none: the footage is cut to the rounded box.
+    radius: f64,
 }
 
 /// A box, a paragraph or footage that is placed, in document order: the order its marks are drawn in.
@@ -531,15 +553,42 @@ impl Scene {
             x: rect.left as f32,
             y: rect.top as f32,
         });
+        // The look the `<video>` writes is drawn as on any element: faded and filtered as one picture
+        // (`docs/spec/render-command.md`, section 4.8). At an opacity of 0 nothing is drawn.
+        if placed.opacity <= 0.0 {
+            return Ok(None);
+        }
+        let marked = if placed.opacity == 1.0 && placed.filter.is_none() {
+            picture
+        } else {
+            Mark::Group(Group {
+                map: Map::IDENTITY,
+                opacity: placed.opacity,
+                clip: None,
+                marks: vec![picture],
+                turn: None,
+                filter: placed.filter,
+                shadow: None,
+            })
+        };
+        // Round corners cut the footage to the rounded box, as of a box (`docs/spec/box-edges.md`, section 3).
+        let marked = match Rounded::of_box(rect, placed.radius) {
+            Some(shape) if shape.radius > 0.0 => Mark::Cut(Cut {
+                shape,
+                marks: vec![marked],
+                own: None,
+            }),
+            _ => marked,
+        };
         Ok(match placed.clip.filter(|_| clipped) {
-            None => Some(picture),
+            None => Some(marked),
             Some(clip) => {
                 let held = intersect(rect, clip);
                 (held.width > 0 && held.height > 0).then_some(Mark::Group(Group {
                     map: Map::IDENTITY,
                     opacity: 1.0,
                     clip: Some(held),
-                    marks: vec![picture],
+                    marks: vec![marked],
                     turn: None,
                     filter: Filter::NONE,
                     shadow: None,
@@ -1123,10 +1172,28 @@ fn walk_canvas(
                     sources.len() - 1
                 }
             };
+            let (opacity, filter, found) = moving::read_look(node);
+            refusals.extend(found.into_iter().map(Refusal::of_motion));
+            // The corner radius, as of a box (`docs/spec/box-edges.md`, section 6): a negative radius is reported.
+            let mut radius = 0.0;
+            if let Some(attribute) = node.attribute("border-radius") {
+                match attribute.number() {
+                    Some(written) if written >= 0.0 => radius = written,
+                    Some(_) => refusals.push(Refusal::of_place(
+                        Code::LengthNotAccepted,
+                        attribute.line(),
+                        format!("`border-radius=\"{}\"` must be 0 or more", attribute.shown()),
+                    )),
+                    None => {}
+                }
+            }
             entries.push(Entry::Footage(PlacedFootage {
                 slot,
                 clip: canvas.clip,
                 source,
+                opacity,
+                filter,
+                radius,
             }));
             places.push(Some(slot));
             continue;

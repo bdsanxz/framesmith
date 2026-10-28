@@ -19,6 +19,7 @@ use std::path::Path;
 fn formats() -> format::Registry {
     let mut formats = format::Registry::new();
     formats.register(mp4::FORMAT);
+    formats.register(mp4::MOV);
     formats
 }
 

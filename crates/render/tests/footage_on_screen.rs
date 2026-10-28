@@ -46,7 +46,7 @@ fn write(folder: &Path, name: &str, frames: &[Frame]) {
 
 fn scene_of(folder: &Path) -> Scene {
     let project = Project::open(folder).unwrap_or_else(|error| panic!("{error}"));
-    Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 fn composition(seconds: u32, inside: &str) -> String {
@@ -216,4 +216,103 @@ fn the_sound_of_the_source_is_not_heard() {
     let first = reader.next_frame().unwrap().unwrap();
     let p = first.pixel(24, 13);
     assert!(near([p[0], p[1], p[2], 255], RED, 12), "{p:?}");
+}
+
+#[test]
+fn a_source_in_mov_gives_the_same_frames_as_in_mp4() {
+    // The same flat pictures written once as `.mp4` and once as `.mov`: the frames drawn from each are the same picture.
+    let pictures: Vec<Frame> = (0..10).map(|k| flat(32, 18, numbered(k))).collect();
+    let mut drawn = Vec::new();
+    for (index, name) in ["same.mp4", "same.mov"].into_iter().enumerate() {
+        let folder = project_with(
+            "footage",
+            &format!("container-{index}"),
+            &composition(
+                1,
+                &format!("<video src=\"{name}\" width=\"32\" height=\"18\" left=\"8\" top=\"4\"/>"),
+            ),
+        );
+        write(&folder, name, &pictures);
+        let scene = scene_of(&folder);
+        let mut sources = Sources::open(&scene).unwrap();
+        let picture = scene.picture_with(4, &mut CpuRenderer, &mut sources).unwrap();
+        let at = |x, y| picture.pixel(x, y).unwrap();
+        assert_eq!(number_of(at(24, 13)), 4, "frame 4 of {name}");
+        assert_eq!(at(4, 2), CANVAS);
+        let mut frame = Vec::new();
+        for y in 0..54 {
+            for x in 0..96 {
+                frame.push(picture.pixel(x, y).unwrap());
+            }
+        }
+        drawn.push(frame);
+    }
+    assert_eq!(drawn[0], drawn[1], "MP4 and MOV give the same frame");
+}
+
+#[test]
+fn opacity_brightness_and_blur_on_a_video_are_drawn_as_on_any_element() {
+    // White footage, exact through the encoder (narrow-range white comes back as 255): at an opacity of 0 nothing of it
+    // shows; with a brightness of 0 it is black; with a brightness of 2 mid grey stops at white. A blur of a flat field
+    // changes no interior pixel. The composition's background is #102040.
+    let pictures: Vec<Frame> = vec![flat(32, 18, [255, 255, 255]); 10];
+    let shown = |name: &str, look: &str| {
+        let folder = project_with(
+            "footage",
+            name,
+            &composition(
+                1,
+                &format!("<video src=\"white.mp4\" width=\"32\" height=\"18\" left=\"8\" top=\"4\" {look}/>"),
+            ),
+        );
+        write(&folder, "white.mp4", &pictures);
+        let scene = scene_of(&folder);
+        let mut sources = Sources::open(&scene).unwrap();
+        scene.picture_with(0, &mut CpuRenderer, &mut sources).unwrap()
+    };
+    let picture = shown("look-clear", "opacity=\"0\"");
+    assert_eq!(picture.pixel(24, 13), Some(CANVAS), "an opacity of 0 draws nothing");
+    let picture = shown("look-dark", "brightness=\"0\"");
+    assert_eq!(picture.pixel(24, 13), Some([0, 0, 0, 255]), "a brightness of 0 is black");
+    let picture = shown("look-full", "brightness=\"2\" opacity=\"0.5\"");
+    // The faded white is 128; laid over the background by src-over: 128 + each background value times 127 of 255.
+    assert_eq!(picture.pixel(24, 13), Some([136, 144, 160, 255]));
+    // A blur mixes the footage with what is transparent around it, so the field must fill the frame for its middle to
+    // stay flat: mid grey stays 128 there, while the frame's edge is darkened by the clear outside it.
+    let pictures: Vec<Frame> = vec![flat(96, 54, [128, 128, 128]); 10];
+    let folder = project_with(
+        "footage",
+        "look-blurred",
+        &composition(1, "<video src=\"grey.mp4\" width=\"96\" height=\"54\" blur=\"4\"/>"),
+    );
+    write(&folder, "grey.mp4", &pictures);
+    let scene = scene_of(&folder);
+    let mut sources = Sources::open(&scene).unwrap();
+    let picture = scene.picture_with(0, &mut CpuRenderer, &mut sources).unwrap();
+    assert_eq!(picture.pixel(48, 27), Some([128, 128, 128, 255]), "a blur keeps a flat field");
+    assert!(picture.pixel(0, 27).unwrap()[0] < 128, "the blur reaches the frame's edge");
+}
+
+#[test]
+fn footage_follows_the_rounded_corners_of_its_box() {
+    // A box of 32 by 18 at (8, 4) with round corners of radius 8: the corner pixel shows the background, the middle the
+    // footage. Centres of the corners are 8 from the edges; a pixel 11 or more from a centre is outside the round shape.
+    let pictures: Vec<Frame> = vec![flat(32, 18, [255, 255, 255]); 10];
+    let folder = project_with(
+        "footage",
+        "corners",
+        &composition(
+            1,
+            "<video src=\"white.mp4\" width=\"32\" height=\"18\" left=\"8\" top=\"4\" border-radius=\"8\"/>",
+        ),
+    );
+    write(&folder, "white.mp4", &pictures);
+    let scene = scene_of(&folder);
+    let mut sources = Sources::open(&scene).unwrap();
+    let picture = scene.picture_with(0, &mut CpuRenderer, &mut sources).unwrap();
+    let at = |x, y| picture.pixel(x, y).unwrap();
+    assert_eq!(at(8, 4), CANVAS, "the corner is cut away");
+    assert_eq!(at(39, 21), CANVAS, "the far corner is cut away");
+    assert_eq!(at(24, 13), [255, 255, 255, 255], "the middle shows the footage");
+    assert_eq!(at(8, 13), [255, 255, 255, 255], "the straight edge shows the footage");
 }

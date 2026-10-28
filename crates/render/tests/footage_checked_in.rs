@@ -89,7 +89,7 @@ fn the_checked_in_pictures_of_the_footage_fixture_hold_the_worked_values() {
 fn the_frames_of_the_footage_fixture_equal_their_checked_in_pictures() {
     let folder = project_copied_from_fixture("footage-checked-in", FIXTURE, FIXTURE);
     let project = Project::open(&folder).unwrap_or_else(|error| panic!("{error}"));
-    let scene = Scene::from_project(&project).unwrap_or_else(|reports| panic!("{reports:?}"));
+    let scene = Scene::from_project(&project, &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let mut sources = Sources::open(&scene).unwrap();
     for number in CHECKED {
         let drawn = scene.picture_with(number, &mut CpuRenderer, &mut sources).unwrap();

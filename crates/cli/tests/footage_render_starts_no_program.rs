@@ -1,6 +1,6 @@
 //! A render that shows footage starts no other program: its clips are made with frx7's own writer, and the command renders
 //! them under a macOS sandbox profile that refuses to start any program but `framesmith` itself, and the film it writes
-//! shows the footage (`docs/spec/render-command.md`, section 4.7). A control shows that the profile refuses a program.
+//! shows the footage (`docs/spec/render-command.md`, section 4.8). A control shows that the profile refuses a program.
 //!
 //! A second sandbox profile cannot be applied inside the profile of the core suite (`docs/dev/gates.md`, section 10), so
 //! there, where `scripts/gates/core-suite.sh` sets `FRAMESMITH_CORE_TARGET`, these tests are not run and print why; the

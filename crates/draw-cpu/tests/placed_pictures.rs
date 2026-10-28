@@ -1,11 +1,11 @@
 //! A placed picture is laid on the frame 1:1 at its corner rounded to whole pixels, halves up, by source over with
 //! premultiplied alpha, only inside the cut of its group; under a map that is not a whole move it is drawn by the mapped path
-//! (`docs/spec/card-renderer.md` section 12; `docs/spec/render-command.md` section 4.7). The values below are worked by hand
+//! (`docs/spec/card-renderer.md` section 12; `docs/spec/render-command.md` section 4.8). The values below are worked by hand
 //! from those rules.
 
 use std::sync::Arc;
 
-use draw::{Colour, Frame, Group, Map, Mark, PlacedPicture, Renderer};
+use draw::{Colour, Filter, Frame, Group, Map, Mark, PlacedPicture, Renderer};
 use draw_cpu::CpuRenderer;
 use layout::Rect;
 
@@ -91,6 +91,8 @@ fn the_picture_is_laid_only_inside_the_cut_of_its_group() {
             height: 2,
         }),
         turn: None,
+        filter: Filter::NONE,
+        shadow: None,
         marks: vec![Mark::Picture(counted(8, 8, 2.0, 2.0))],
     });
     let picture = drawn(vec![group]);
@@ -113,6 +115,8 @@ fn a_whole_move_of_its_group_moves_the_picture_by_those_pixels() {
         opacity: 1.0,
         clip: None,
         turn: None,
+        filter: Filter::NONE,
+        shadow: None,
         marks: vec![Mark::Picture(counted(2, 2, 1.0, 3.0))],
     });
     let picture = drawn(vec![group]);
@@ -140,6 +144,8 @@ fn under_a_quarter_turn_the_mapped_path_samples_each_pixel_of_the_picture_exactl
         opacity: 1.0,
         clip: None,
         turn: None,
+        filter: Filter::NONE,
+        shadow: None,
         marks: vec![Mark::Picture(counted(4, 3, 0.0, 0.0))],
     });
     let picture = drawn(vec![group]);
