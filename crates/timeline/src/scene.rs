@@ -2399,9 +2399,8 @@ fn unsupported_colour(node: &Node, attribute: &Attribute) -> String {
 }
 
 /// Settings in use that this version does not apply, each with the entry of the support table that names it: a film whose
-/// path does not end in `.mp4` or `.m4v` (S34), an encoder or a quality other than the hardware encoder at `standard`
-/// (S49), more than one worker (S50), and a sound bit rate outside 64 to 320 kbit/s (S62). A value an option gave is
-/// reported on the command line; a value of the project file on the line of the value.
+/// path does not end in `.mp4` or `.m4v` (S34), more than one worker (S50), and a sound bit rate outside 64 to 320 kbit/s
+/// (S62). A value an option gave is reported on the command line; a value of the project file on the line of the value.
 fn settings(project: &Project) -> Vec<Report> {
     let settings = project.settings();
     let mut from_options: Vec<String> = Vec::new();

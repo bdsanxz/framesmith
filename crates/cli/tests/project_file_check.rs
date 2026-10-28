@@ -79,8 +79,8 @@ fn every_value_of_every_list_is_accepted_by_the_command() {
     // a value is valid and refused as unsupported, with exit 2; any other is ready, with exit 0.
     let lists: [(&str, &[Value]); 5] = [
         ("backend", &[("auto", None), ("cpu", None), ("gpu", None)]),
-        ("quality", &[("draft", Some("S49")), ("standard", None), ("high", Some("S49"))]),
-        ("encoder", &[("hardware", None), ("software", Some("S49"))]),
+        ("quality", &[("draft", None), ("standard", None), ("high", None)]),
+        ("encoder", &[("hardware", None), ("software", None)]),
         ("codec", &[("h264", None), ("hevc", None)]),
         (
             "workers",
