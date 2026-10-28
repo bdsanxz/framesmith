@@ -20,7 +20,7 @@ const LOOK: &str = "font-family=\"Framesmith Test Stroke\" font-size=\"20\"";
 const HIDDEN: &str = "<span color=\"#ffffff\">";
 
 fn scene_of(folder: &std::path::Path) -> Scene {
-    Scene::from_project(&Project::open(folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 /// Frame 0 of a still composition of `width` by `height` on a white ground, with the test font and `inside`.

@@ -834,19 +834,10 @@ fn walk_canvas(
                         block: item.block,
                         dressing: item.dressing,
                         content: item.content,
-                    })
-                }
+                    }),
                 None => {
                     let margin = absolute_margin(&form);
-                    paragraph::place_text(
-                        &mut fonts,
-                        tree,
-                        index,
-                        form.written,
-                        margin,
-                        parent_place.rect,
-                        clock_of(index),
-                    )
+                    paragraph::place_text(&mut fonts, tree, index, form.written, margin, parent_place.rect, clock_of(index))
                 }
             };
             match placed {
