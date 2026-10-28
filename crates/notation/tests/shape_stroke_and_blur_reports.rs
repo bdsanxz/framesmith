@@ -55,6 +55,22 @@ fn a_tween_or_a_set_of_draw_on_a_shape_with_no_stroke_width_is_reported_on_the_a
 }
 
 #[test]
+fn a_from_draw_or_a_to_draw_alone_on_a_shape_with_no_stroke_width_is_reported() {
+    let from = "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n<shape d=\"M0 0 L10 10\" width=\"10\" height=\"10\">\n<tween duration=\"1\" from-draw=\"0\"/>\n</shape>\n</composition>";
+    assert_eq!(places(from), [("FS-0087", 3)]);
+    let to = "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n<shape d=\"M0 0 L10 10\" width=\"10\" height=\"10\">\n<tween duration=\"1\" to-draw=\"1\"/>\n</shape>\n</composition>";
+    assert_eq!(places(to), [("FS-0087", 3)]);
+}
+
+#[test]
+fn dash_is_not_animated_so_a_tween_of_it_is_not_judged_for_the_line() {
+    // `dash` is not an animated property (`notation.md` section 8.1), so a `to-dash` is reported as an attribute the tween does
+    // not take (`FS-0030`), not as a line problem: section 7.11 names `draw` alone for a tween.
+    let text = "<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n<shape d=\"M0 0 L10 10\" width=\"10\" height=\"10\">\n<tween duration=\"1\" to-dash=\"4 2\"/>\n</shape>\n</composition>";
+    assert!(!places(text).iter().any(|(code, _)| *code == "FS-0087"), "{text}");
+}
+
+#[test]
 fn dash_on_a_box_is_an_attribute_the_box_does_not_take() {
     assert_eq!(
         places("<composition version=\"1\" width=\"640\" height=\"360\" duration=\"2\">\n<box dash=\"10 5\"/>\n</composition>"),
