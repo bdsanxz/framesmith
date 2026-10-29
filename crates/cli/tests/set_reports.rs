@@ -94,7 +94,7 @@ fn a_set_on_an_animated_property_this_version_does_not_move_is_refused_on_its_li
     assert_eq!(lines.len(), 1, "{lines:?}");
     assert!(
         lines[0].starts_with(
-            "composition.xml, line 3: FS-0035: unsupported: <set> changes `blur`, which this version does not support (support table S37: "
+            "composition.xml, line 3: FS-0035: unsupported: <set> changes `reveal`, which this version does not support (support table S44: "
         ),
         "{}",
         lines[0]

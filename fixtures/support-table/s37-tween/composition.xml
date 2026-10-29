@@ -1,4 +1,0 @@
-<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
-<!-- Support table S37: Animated blur, in a tween. -->
-<box left="0" top="0" width="8" height="8" background="#ffffff"><tween duration="1" from-blur="20" to-blur="0"/></box>
-</composition>

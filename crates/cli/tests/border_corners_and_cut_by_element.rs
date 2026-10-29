@@ -1,7 +1,7 @@
 //! `border`, `border-radius` and `overflow` on a `<text>` or a `<span>`, and `opacity`, `blur` and `brightness` on a `<span>`,
 //! are refused as unsupported, each on its line, and no film is written: `check` and `render` print the same report
 //! (`docs/spec/notation.md`, section 14, entry S35). On a `<box>`, and `opacity`, `blur` and `brightness` on a `<text>`, they
-//! are drawn and the film is written. An animated `blur` is refused as unsupported (entry S37).
+//! are drawn and the film is written. An animated `blur` or `brightness` on a `<box>` is drawn too (T067).
 
 mod common;
 
@@ -116,7 +116,7 @@ fn a_text_takes_opacity_blur_and_brightness_and_is_drawn() {
 }
 
 #[test]
-fn an_animated_blur_or_brightness_is_refused_by_check_and_render_on_its_line_and_no_film_is_written() {
+fn an_animated_blur_or_brightness_is_drawn_by_check_and_render_and_a_film_is_written() {
     let forms = [("blur", "to-blur=\"4\""), ("brightness", "to-brightness=\"0.5\"")];
     for (name, attribute) in forms {
         let body = format!(
@@ -124,18 +124,11 @@ fn an_animated_blur_or_brightness_is_refused_by_check_and_render_on_its_line_and
         );
         let (folder, cwd) = box_project(&format!("animated-{name}"), &body);
         let (checked, rendered) = check_and_render(&folder, &cwd);
-        assert_eq!(checked.status.code(), Some(2), "{name}: {}{}", out(&checked), err(&checked));
-        assert_eq!(rendered.status.code(), Some(2), "{name}: {}{}", out(&rendered), err(&rendered));
-        assert!(!has_a_film(&folder), "{name}: no film is written");
+        assert_eq!(checked.status.code(), Some(0), "{name}: {}{}", out(&checked), err(&checked));
+        assert_eq!(rendered.status.code(), Some(0), "{name}: {}{}", out(&rendered), err(&rendered));
+        assert!(has_a_film(&folder), "{name}: a film is written");
         let lines = report_lines(&checked);
         assert_eq!(lines, report_lines(&rendered), "{name}: render reports what check reports");
-        assert_eq!(lines.len(), 1, "{name}: {lines:?}");
-        assert!(
-            lines[0].starts_with(&format!(
-                "composition.xml, line 3: FS-0035: unsupported: <tween> changes `{name}`, which this version does not support (support table S37: "
-            )),
-            "{name}: {}",
-            lines[0]
-        );
+        assert!(lines.is_empty(), "{name}: {lines:?}");
     }
 }

@@ -1,4 +1,4 @@
-//! A `<tween>` that names both ends of a property this version does not draw, `from-blur` and `to-blur`, is one refusal: `check`
+//! A `<tween>` that names both ends of a property this version does not draw, `from-reveal` and `to-reveal`, is one refusal: `check`
 //! reports it once, on the line of the tween, and `render` refuses it with the same single report.
 
 mod common;
@@ -6,7 +6,7 @@ mod common;
 use common::{err, framesmith, out, project};
 
 const COMPOSITION: &str = r##"<composition version="1" width="64" height="36" fps="10" duration="1" background="#102030">
-<box left="0" top="0" width="8" height="8" background="#ffffff"><tween duration="1" from-blur="20" to-blur="0"/></box>
+<box left="0" top="0" width="8" height="8" background="#ffffff"><tween duration="1" from-reveal="0.5" to-reveal="1"/></box>
 </composition>
 "##;
 
@@ -20,7 +20,7 @@ fn a_tween_naming_both_ends_of_an_unsupported_property_is_reported_once_by_check
     let reports: Vec<&str> = printed.lines().filter(|line| line.contains(": unsupported: ")).collect();
     assert_eq!(reports.len(), 1, "check: {printed}");
     assert!(
-        reports[0].starts_with("composition.xml, line 2: FS-0035: unsupported: <tween> changes `blur`"),
+        reports[0].starts_with("composition.xml, line 2: FS-0035: unsupported: <tween> changes `reveal`"),
         "{printed}"
     );
     assert_eq!(printed.lines().count(), 2, "check: {printed}");

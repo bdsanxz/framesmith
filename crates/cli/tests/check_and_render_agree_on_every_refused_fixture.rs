@@ -38,7 +38,7 @@ fn repository() -> PathBuf {
 }
 
 /// Every fixture folder of the support table: each folder with a composition, so that a form added
-/// beside its entry (such as `s37-tween` beside `s37`) is compared too.
+/// beside its entry is compared too.
 fn support_fixtures() -> Vec<PathBuf> {
     let mut found = Vec::new();
     for entry in fs::read_dir(repository().join("fixtures/support-table")).unwrap() {
