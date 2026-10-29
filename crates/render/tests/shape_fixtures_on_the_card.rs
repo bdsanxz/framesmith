@@ -35,8 +35,8 @@ fn every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor(fixture: 
 
 #[test]
 #[ignore = "reference machine only: needs a graphics card that frx7 can draw with"]
-fn reference_machine_only_every_frame_of_the_shape_with_style_worked_values_is_within_the_tolerance_of_the_processor() {
-    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("shape-worked-values");
+fn reference_machine_only_every_frame_of_the_shape_view_box_scaled_is_within_the_tolerance_of_the_processor() {
+    every_frame_of_the_fixture_is_within_the_tolerance_of_the_processor("shape-view-box-scaled");
 }
 
 #[test]
