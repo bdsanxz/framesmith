@@ -1313,7 +1313,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S37 | Animated blur and brightness: `blur` or `brightness` in a `<tween>` or a `<set>` | The attribute on a `<tween>` or a `<set>` | Animated blur and brightness are not drawn yet | Sprint 1, T067 |
 | S38 | Blends: `mix-blend-mode` | The attribute on an element | Blending with what is under is not drawn yet | Sprint 1, T057 |
 | S39 | Torn edges and grain: `displace`, `grain` | Either attribute on an element | Not drawn yet | Sprint 1, T058 |
-| S40 | Still pictures: `<image>` | The element `<image>` | Still pictures are not read or drawn yet | Sprint 1, T059 |
 | S41 | A cut to a polygon: `clip-path` | The attribute on an element | Not drawn yet | Sprint 1, T061 |
 | S42 | Shapes: `<shape>` | The element `<shape>` | Path data is not drawn yet | Sprint 1, T062 |
 | S43 | A counting or typed text, and motion of a span: `count`, `count-format`, `typed`; `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `rotate-x`, `rotate-y`, `perspective`, `transform-origin` on `<span>` | Those attributes on `<text>` or `<span>`, and the motion attributes on `<span>` | Counting, typing and the motion of a span are not built yet | Sprint 1, T069 |
@@ -1329,7 +1328,7 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S56 | A fraction of a pixel in a place or a size: `left="10.5"` | A place or size attribute that is a number with a fraction | Edges lie on whole pixels | Not assigned |
 | S57 | A place or a size beyond 1,000,000 pixels | A place or size that works out beyond the limit | The limit of a place | Not assigned |
 | S58 | A font file other than TrueType or a collection: `.otf`, `.woff`, `.woff2`, or a collection that cannot be read | `<font src>` of such a kind, or a collection the reader refuses | Only `.ttf` and `.ttc` are read | Not assigned |
-| S59 | A background or padding on an element other than a box: `background`, `background-size`, `background-position`, `background-repeat` on `<text>`, `<span>`, `<video>` or `<composition src>`; `padding` on `<text>` | Any of those attributes on such an element | Backgrounds are drawn behind boxes only, and a text is not padded | Not assigned |
+| S59 | A background or padding on an element other than a box: `background`, `background-size`, `background-position`, `background-repeat` on `<text>`, `<span>`, `<image>`, `<video>` or `<composition src>`; `padding` on `<text>` | Any of those attributes on such an element | Backgrounds are drawn behind boxes only, and a text is not padded | Not assigned |
 | S60 | `<rect>` | The element `<rect>` | `<rect>` is not read yet, though section 6.3 names it | Not assigned |
 | S61 | A colour with alpha below `ff` anywhere but a box's `background`: the root's `background`, a text's `color`, `text-shadow`, `text-stroke` | A colour of eight hex digits whose last two are below `ff` in one of those attributes | Only a box's background is laid over what is under it; a film's ground is opaque | Not assigned |
 | S62 | The sound bit rate outside 64 to 320: `render.audio-bitrate` | The setting with a value below 64 or above 320 | The system's sound encoder takes 64 to 320 kbit/s | Not assigned |

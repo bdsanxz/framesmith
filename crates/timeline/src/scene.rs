@@ -1554,6 +1554,17 @@ fn read_image(node: &Node) -> (Option<ImageForm>, Vec<Refusal>) {
     let mut position = (0.5, 0.5);
     for attribute in node.attributes() {
         let name = attribute.name();
+        // A mask made from a picture is taken on an `<image>` but refused by the support table (S18): it is
+        // reported unsupported here, where the image itself is drawn (`docs/spec/still-pictures.md`, section 1).
+        // Any other mask is not taken in this version and is reported below.
+        if name == "mask" && picture_mask(attribute.value()) {
+            refusals.push(Refusal::of_attribute(
+                Code::FormNotSupported,
+                attribute,
+                Unsupported::PictureMask.message(&support::written(node.element(), attribute)),
+            ));
+            continue;
+        }
         if !IMAGE_TAKES.contains(&name) {
             let (code, message) = unsupported_attribute(node, attribute);
             refusals.push(Refusal::of_attribute(code, attribute, message));
@@ -2509,7 +2520,6 @@ fn not_a_length(name: &str, value: &str) -> String {
 fn unsupported_inside(element: Element, parent: Element) -> String {
     let entry = match (element, parent) {
         (Element::Rect, _) => Unsupported::Rect,
-        (Element::Image, _) => Unsupported::StillPictures,
         (Element::Shape, _) => Unsupported::Shapes,
         (Element::Tween | Element::Set, Element::Span) => Unsupported::CountingTypingSpanMotion,
         (Element::Tween | Element::Set, Element::Nested | Element::Video) => Unsupported::PictureMotion,
