@@ -38,7 +38,18 @@ fn summary_line(output: &Output, label: &str) -> String {
 
 fn assert_rendered(output: &Output) {
     assert_eq!(output.status.code(), Some(0), "{}{}", out(output), err(output));
-    assert_eq!(err(output), "");
+    // The run tells its progress on standard error (section 5.5): every line there is a stage
+    // count or a stage with nothing to do.
+    for line in err(output).lines() {
+        if line.ends_with("nothing to do") {
+            line.split_once(": ").expect(line);
+            continue;
+        }
+        let (stage, rest) = line.split_once(": ").expect(line);
+        assert!(["footage", "frames", "encoding", "sound"].contains(&stage), "{line}");
+        let (done, total) = rest.strip_suffix(" frames").expect(line).split_once('/').expect(line);
+        assert!(done.parse::<u64>().expect(line) <= total.parse::<u64>().expect(line), "{line}");
+    }
 }
 
 /// Every file under `dir`, as paths from it.

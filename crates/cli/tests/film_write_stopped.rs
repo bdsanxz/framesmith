@@ -39,7 +39,16 @@ fn a_film_whose_write_stops_after_its_first_frames_is_fs_0036_with_exit_1_and_ke
     let rendered = framesmith_with_file_limit(&cwd, ["render", folder.to_str().unwrap(), "--output", output.to_str().unwrap()]);
 
     assert_eq!(rendered.status.code(), Some(1), "{}{}", out(&rendered), err(&rendered));
-    assert_eq!(err(&rendered), "");
+    // The run tells its progress on standard error before it fails (section 5.5): every line there is
+    // a stage count or a stage with nothing to do.
+    for line in err(&rendered).lines() {
+        if line.ends_with("nothing to do") {
+            line.strip_suffix(": nothing to do").expect(line);
+            continue;
+        }
+        let (_, rest) = line.split_once(": ").expect(line);
+        rest.strip_suffix(" frames").expect(line).split_once('/').expect(line);
+    }
     let printed = out(&rendered);
     let lines: Vec<&str> = printed.lines().collect();
     assert_eq!(lines.len(), 2, "{printed}");

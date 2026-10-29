@@ -5,7 +5,9 @@
 
 use std::fmt;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::Instant;
 
 use base::{Codec, Color, Error, Frame, Hdr, Packet, Picture, PixelFormat, Rational};
@@ -15,9 +17,10 @@ use format::{Audio, Media, Muxer, TrackSetup, Video};
 use mix::Mix;
 use project::{Codec as PictureCodec, Encoder, Quality, Settings};
 
-use timeline::Scene;
+use timeline::{Footage, Scene};
 
-use crate::footage::Sources;
+use crate::footage::{Needs, Sources};
+use crate::stages::{Progress, Stage};
 
 /// The quality each `render.quality` asks the machine's own encoder for, from 0 to 1 (`docs/spec/render-command.md`
 /// section 5.4; `standard` is decision D22's).
@@ -472,7 +475,7 @@ fn make(
         .checked_mul(1000)
         .ok_or_else(|| Failure::new(format!("a sound bit rate of {audio_bitrate} kbit/s is too large")))?;
     // The footage is opened, and the first picture of each source decoded, before the encoder starts (section 4.8, rule 5).
-    let mut footage = Sources::open(scene).map_err(Failure::new)?;
+    let footage = Sources::open(scene).map_err(Failure::new)?;
     let rate = Rational::new(scene.fps(), 1);
     let setup = encoding.setup(scene.width(), scene.height(), scene.fps());
     let picture = setup.codec;
@@ -541,57 +544,191 @@ fn make(
             expected_packets: Some(mix.length() / AAC_PACKET + 8),
         })
         .map_err(named)?;
-    let mut samples = Vec::new();
-    let mut sound_packets = Vec::new();
-
-    let mut configured = false;
-    for number in 0..scene.frames() {
-        let drawn = scene
-            .picture_with(number, renderer, &mut footage)
-            .map_err(|error| Failure::new(format!("frame {number}: {error}")))?;
-        if let Some(marks) = marks.as_deref_mut() {
-            marks.push(drawn.mark());
-        }
-        let mut rgba = Picture::new(PixelFormat::Rgba8, drawn.width(), drawn.height());
-        rgba.planes[0].data.copy_from_slice(drawn.pixels());
-        let planes = pixel::convert(&rgba, None, PixelFormat::Nv12, Some(Color::BT709)).map_err(named)?;
-        let surface = encoder.surface().map_err(named)?;
-        surface.write(&planes).map_err(named)?;
-        encoder
-            .send(Frame {
-                pts: number as i64 * ticks as i64,
-                duration: ticks as u32,
-                surface,
+    // The stages of the run side by side (section 5.5). The footage stage decodes the pictures the next
+    // frames show through the shared sources; the drawing stage takes what it decoded and decodes itself what it
+    // has not reached. The encoding stage takes finished pictures through a channel that holds two at most, so the
+    // frames stage holds at most two finished pictures ahead of it and waits when the encoding stage is behind.
+    let footage = Arc::new(Mutex::new(footage));
+    let progress = Arc::new(Progress::new(
+        scene.frames(),
+        [scene.sources().is_empty(), false, false, false],
+        stderr_unlocked(),
+    ));
+    let (pictures_out, pictures_in): (PictureSender, PictureReceiver) = mpsc::sync_channel(2);
+    let (needs_out, needs_in): (NeedsSender, NeedsReceiver) = mpsc::sync_channel(8);
+    let frames = scene.frames();
+    let fps = scene.fps();
+    // The run log's dispatcher is thread-local, so each stage thread below is given the run's own:
+    // without it, frx7's lines from the stages (the film encoder's end above all) would go nowhere.
+    let dispatch = tracing::dispatcher::get_default(|dispatch| dispatch.clone());
+    std::thread::scope(|scope| {
+        // The footage stage: decodes the pictures the next frames show, at most two frames ahead of the
+        // drawing stage, which asks for them through the walk of each frame.
+        let footage_stage = {
+            let footage = Arc::clone(&footage);
+            let progress = Arc::clone(&progress);
+            let dispatch = dispatch.clone();
+            scope.spawn(move || {
+                tracing::dispatcher::with_default(&dispatch, || {
+                    for (number, needs) in needs_in {
+                        {
+                            let mut locked = footage.lock().unwrap();
+                            let sources: &mut Sources = &mut locked;
+                            for (source, shown, size) in &needs {
+                                // A picture the drawing stage does not reach is decoded twice across the race at
+                                // most; a decode that fails here fails the drawing stage the same way, which
+                                // reports it.
+                                if sources.picture(*source, *shown, *size).is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                        // Told after the shared sources are released: a telling thread parked in its write
+                        // must never hold the lock the drawing stage draws under.
+                        progress.set(Stage::Footage, number + 1);
+                    }
+                })
             })
-            .map_err(named)?;
-        take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
-        // The mix up to the end of this frame goes with it, so that picture and sound lie side by
-        // side in the file.
-        let until = mix::length_for_picture(number + 1, scene.fps());
-        let due = until - (mix.length() - mix.left());
-        samples.resize(due as usize * usize::from(mix::CHANNELS), 0.0);
-        let given = mix.read(&mut samples).map_err(named)?;
-        sound
-            .send(&samples[..given * usize::from(mix::CHANNELS)], &mut sound_packets)
-            .map_err(named)?;
-        write_sound(&mut sound_packets, muxer.as_mut(), sound_track).map_err(named)?;
-    }
-    encoder.finish().map_err(named)?;
-    take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
-    finish_sound(sound.as_mut(), muxer.as_mut(), sound_track, &mut sound_packets).map_err(named)?;
-    if !configured {
-        return Err(Failure::new("the encoder gave no picture"));
-    }
-    let hardware = encoder.hardware();
-    muxer.end_track(track).map_err(named)?;
-    muxer.end_track(sound_track).map_err(named)?;
-    let finished = muxer.finish().map_err(named)?;
-    Ok(Written {
-        frames: scene.frames(),
-        bytes: finished.bytes,
-        seconds: began.elapsed().as_secs_f64(),
-        hardware,
+        };
+        // The encoding stage: encodes the finished pictures in the order of the frames and hands the mix
+        // with each, so that picture and sound lie side by side in the file. When the drawing stage stops,
+        // the channel closes and the film is left unfinished, as a failed run leaves it.
+        let encoding_stage = {
+            let progress = Arc::clone(&progress);
+            let dispatch = dispatch.clone();
+            scope.spawn(move || {
+                tracing::dispatcher::with_default(&dispatch, || {
+                    let mut configured = false;
+                    let mut samples = Vec::new();
+                    let mut sound_packets = Vec::new();
+                    let mut taken = 0;
+                    for (number, drawn) in pictures_in {
+                        taken += 1;
+                        let mut rgba = Picture::new(PixelFormat::Rgba8, drawn.width(), drawn.height());
+                        rgba.planes[0].data.copy_from_slice(drawn.pixels());
+                        let planes = pixel::convert(&rgba, None, PixelFormat::Nv12, Some(Color::BT709)).map_err(named)?;
+                        let surface = encoder.surface().map_err(named)?;
+                        surface.write(&planes).map_err(named)?;
+                        encoder
+                            .send(Frame {
+                                pts: number as i64 * ticks as i64,
+                                duration: ticks as u32,
+                                surface,
+                            })
+                            .map_err(named)?;
+                        take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
+                        progress.set(Stage::Encoding, number + 1);
+                        let until = mix::length_for_picture(number + 1, fps);
+                        let due = until - (mix.length() - mix.left());
+                        samples.resize(due as usize * usize::from(mix::CHANNELS), 0.0);
+                        let given = mix.read(&mut samples).map_err(named)?;
+                        sound
+                            .send(&samples[..given * usize::from(mix::CHANNELS)], &mut sound_packets)
+                            .map_err(named)?;
+                        write_sound(&mut sound_packets, muxer.as_mut(), sound_track).map_err(named)?;
+                        progress.set(Stage::Sound, number + 1);
+                    }
+                    // When the drawing stage stopped, the film is left unfinished, as a failed run leaves it:
+                    // no finishing, no partial file.
+                    if taken < frames {
+                        return Err(Failure::new("the drawing stage stopped".to_string()));
+                    }
+                    encoder.finish().map_err(named)?;
+                    take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
+                    finish_sound(sound.as_mut(), muxer.as_mut(), sound_track, &mut sound_packets).map_err(named)?;
+                    if !configured {
+                        return Err(Failure::new("the encoder gave no picture"));
+                    }
+                    let hardware = encoder.hardware();
+                    // Dropped here, inside the run log's dispatcher: as captures of the dispatcher's
+                    // closure they would otherwise drop after it exits, and their ends would go nowhere.
+                    drop(encoder);
+                    drop(sound);
+                    muxer.end_track(track).map_err(named)?;
+                    muxer.end_track(sound_track).map_err(named)?;
+                    let finished = muxer.finish().map_err(named)?;
+                    Ok((finished.bytes, hardware))
+                })
+            })
+        };
+        // The needs of the next frames, asked without decoding: the footage stage decodes them ahead.
+        let ask = |number: u64| -> Result<(), Failure> {
+            if number < frames {
+                let needs = {
+                    let mut footage = footage.lock().unwrap();
+                    let mut asked = Needs::of(&mut footage);
+                    scene
+                        .frame_with(number, &mut asked)
+                        .map_err(|error| Failure::new(format!("frame {number}: {error}")))?;
+                    asked.take()
+                };
+                needs_out
+                    .send((number, needs))
+                    .map_err(|_| Failure::new("the footage stage stopped".to_string()))?;
+            }
+            Ok(())
+        };
+        ask(0)?;
+        ask(1)?;
+        for number in 0..frames {
+            let drawn = {
+                let mut footage = footage.lock().unwrap();
+                scene
+                    .picture_with(number, renderer, &mut *footage)
+                    .map_err(|error| Failure::new(format!("frame {number}: {error}")))?
+            };
+            if let Some(marks) = marks.as_deref_mut() {
+                marks.push(drawn.mark());
+            }
+            // When the encoding stage is gone, its failure is the run's: join it and stop sending.
+            if pictures_out.send((number, drawn)).is_err() {
+                break;
+            }
+            progress.set(Stage::Frames, number + 1);
+            ask(number + 2)?;
+        }
+        drop(pictures_out);
+        drop(needs_out);
+        let _ = footage_stage.join();
+        // A failure of the drawing stage above returns it; a failure of the encoding stage comes
+        // back here, where the pictures it did not take tell of it. Whatever failed, the scope
+        // joins every stage.
+        let (bytes, hardware) = join_encoding(encoding_stage)?;
+        progress.finish();
+        Ok(Written {
+            frames,
+            bytes,
+            seconds: began.elapsed().as_secs_f64(),
+            hardware,
+        })
     })
+}
+
+/// The standard error the stages tell on, without the process-wide lock of `std::io::stderr`:
+/// the stages tell side by side, and their writes must block only on each other. `/dev/stderr` is the
+/// same open file, so the lines land in the same place.
+fn stderr_unlocked() -> Box<dyn Write + Send> {
+    if let Ok(file) = fs::File::create("/dev/stderr") {
+        return Box::new(file);
+    }
+    Box::new(std::io::stderr())
+}
+
+/// A finished picture for the encoding stage: its frame number and its pixels.
+type Finished = (u64, draw::Picture);
+type PictureSender = mpsc::SyncSender<Finished>;
+type PictureReceiver = mpsc::Receiver<Finished>;
+/// The pictures one frame shows, with the frame's number: their source, number and size.
+type Needed = (u64, Vec<(usize, u64, (u32, u32))>);
+type NeedsSender = mpsc::SyncSender<Needed>;
+type NeedsReceiver = mpsc::Receiver<Needed>;
+
+/// The end of the encoding stage: its result, or its failure when the drawing stage stopped sending.
+fn join_encoding(encoding_stage: std::thread::ScopedJoinHandle<'_, Result<(u64, bool), Failure>>) -> Result<(u64, bool), Failure> {
+    match encoding_stage.join() {
+        Ok(outcome) => outcome,
+        Err(_) => Err(Failure::new("the encoding stage stopped".to_string())),
+    }
 }
 
 /// frx7's codec for the picture of `render.codec`: HEVC is written in 8 bits, as H.264 is (section 5.3).
