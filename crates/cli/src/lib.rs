@@ -268,13 +268,27 @@ fn check(path: PathBuf, codecs: &codec::Registry) -> Reply {
     match Project::open_for_listing(&path) {
         Ok((None, reports)) => reports_reply(&reports),
         Ok((Some(project), read)) => {
-            let (walked, notes) = render::place_reports_and_notes(&project, codecs);
+            let (walked, mut notes) = render::place_reports_and_notes(&project, codecs);
             let mut reports = merged(read, walked);
             // The sound files are opened as `render` opens them, once the composition has no other problem, so that
             // `check` names each one `render` refuses (`docs/spec/sound.md`, section 5).
             if reports.is_empty() {
                 if let Err(found) = render::open_sounds(project.composition(), &render::sounds(&project)) {
                     reports = found;
+                }
+            }
+            // The footage's starts in their sources are judged as `render` judges them, once the composition has no
+            // other problem, so that `check` names each one `render` refuses (`docs/spec/notation.md` N4). The
+            // placed videos come from the walk alone, without making the scene: making it would log the scene's
+            // line, which `docs/spec/run-log.md` section 4 keeps for `render`.
+            if reports.is_empty() {
+                match render::placed_videos(&project, codecs) {
+                    Ok((placed, sources, fps)) => {
+                        let (found, fresh) = render::footage_reports_and_notes(&placed, &sources, fps);
+                        reports.extend(found);
+                        notes.extend(fresh);
+                    }
+                    Err(found) => reports.extend(found),
                 }
             }
             if !notes.is_empty() {
@@ -435,6 +449,12 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard,
         Ok(sounds) => sounds,
         Err(reports) => return reports_reply(&reports),
     };
+    // The footage's starts in their sources are judged as `check` judges them, before the renderer and the film, so
+    // that a `media-start` outside its source writes no file (`docs/spec/notation.md` N4).
+    let (found, _) = render::footage_reports_and_notes(&scene.footage(), scene.sources(), scene.fps());
+    if !found.is_empty() {
+        return reports_reply(&found);
+    }
     let written_output = project.output();
     let output = project.resolve(&written_output);
     let settings = project.settings();

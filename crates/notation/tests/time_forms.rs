@@ -148,6 +148,11 @@ fn an_empty_value_a_sign_an_exponent_a_unit_and_words_are_not_times() {
             "auto",
             "@intro",
         ] {
+            // A `media-start` on a `<video>` may carry a leading `-`, read against its source
+            // (`docs/spec/notation.md` N4): those values read, and are skipped here.
+            if place == "media-start" && ["-1", "-0", "-.5"].contains(&value) {
+                continue;
+            }
             let text = with_time(place, value);
             let problems = problems_of(&text);
             assert_eq!(problems.len(), 1, "{place}={value:?}: {problems:#?}");
@@ -158,6 +163,24 @@ fn an_empty_value_a_sign_an_exponent_a_unit_and_words_are_not_times() {
             assert_eq!(problems[0].code(), Code::NotATime, "{place}={value:?}");
             assert!(problems[0].message().contains("is not a time in seconds"), "{}", problems[0]);
         }
+    }
+}
+
+#[test]
+fn a_negative_media_start_on_a_video_reads() {
+    // A `media-start` on a `<video>` may carry a leading `-`, read against its source
+    // (`docs/spec/notation.md` N4); on an `<audio>` the sign is still refused.
+    for value in ["-1", "-0", "-.5", "-0.5", "-2.25"] {
+        let text = with_time("media-start", value);
+        assert!(
+            read_root(text.as_bytes()).is_ok(),
+            "media-start={value:?}: {:?}",
+            problems_of(&text)
+        );
+        let text = with_time("audio-media-start", value);
+        let problems = problems_of(&text);
+        assert_eq!(problems.len(), 1, "audio media-start={value:?}: {problems:#?}");
+        assert_eq!(problems[0].code(), Code::NotATime, "audio media-start={value:?}");
     }
 }
 

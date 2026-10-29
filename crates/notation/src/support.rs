@@ -50,7 +50,6 @@ pub enum Unsupported {
     Shapes = 42,
     CountingTypingSpanMotion = 43,
     Transitions = 44,
-    MediaStart = 45,
     FootageFilter = 46,
 
     Workers = 50,
@@ -81,7 +80,7 @@ pub enum Unsupported {
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 67] = [
+    pub const ALL: [Unsupported; 66] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -123,7 +122,6 @@ impl Unsupported {
         Unsupported::Shapes,
         Unsupported::CountingTypingSpanMotion,
         Unsupported::Transitions,
-        Unsupported::MediaStart,
         Unsupported::FootageFilter,
         Unsupported::Workers,
         Unsupported::ElementInsideLeaf,
@@ -205,7 +203,6 @@ impl Unsupported {
             Unsupported::Shapes => "Path data is not drawn yet",
             Unsupported::CountingTypingSpanMotion => "Counting, typing and the motion of a span are not built yet",
             Unsupported::Transitions => "Openings over the scene are not drawn yet",
-            Unsupported::MediaStart => "The start in the source is not applied yet",
             Unsupported::FootageFilter => "Not applied yet",
             Unsupported::Workers => "So far one worker draws and encodes",
             Unsupported::ElementInsideLeaf => "A shown composition is drawn from its file, footage is a picture, a text is its words",
@@ -278,7 +275,6 @@ impl Unsupported {
             Unsupported::Shapes => "Sprint 1, T062",
             Unsupported::CountingTypingSpanMotion => "Sprint 1, T069",
             Unsupported::Transitions => "Sprint 1, T072",
-            Unsupported::MediaStart => "Sprint 1, T075",
             Unsupported::FootageFilter => "Sprint 1, T078",
             Unsupported::Workers => "Sprint 1, T096",
             Unsupported::ElementInsideLeaf => "Not assigned",

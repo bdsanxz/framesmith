@@ -33,6 +33,9 @@ pub enum Form {
     WholeNumber,
     /// A time in seconds: digits with an optional point.
     Time,
+    /// A time in seconds that may carry a leading `-`, read and judged where the spec says
+    /// (`docs/spec/notation.md` N4: a `media-start` on a `<video>`).
+    SignedTime,
     /// Any other form: read by the part of the product that draws the element.
     Other,
 }
@@ -419,6 +422,7 @@ impl Element {
             Element::Volume if attribute == "value" => Form::Number,
             Element::Audio if attribute == "volume" => Form::Number,
             Element::Video if attribute == "width" || attribute == "height" => Form::WholeNumber,
+            Element::Video if attribute == "media-start" => Form::SignedTime,
             _ if TIMES.contains(&attribute) => Form::Time,
             Element::Tween | Element::Set | Element::Volume | Element::Audio => Form::Other,
             _ if NUMBERS.contains(&attribute) => Form::Number,

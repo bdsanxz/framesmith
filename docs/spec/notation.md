@@ -74,7 +74,7 @@ The footage fills the frame, darkened; a rounded orange panel slides up and fade
 | number | A decimal number, with an optional sign and an optional exponent: `12`, `-4`, `+0.5`, `.5`, `1e3`, `2.5E-1`. No unit: `12px` and `50%` are not numbers. The value must be finite; `inf` and `nan` are not numbers, and neither is a value too large to be finite (`1e999`). See N9. |
 | whole number | A number whose value has no fraction: `1280`, `1.28e3`. |
 | length | A number of pixels (`40`), or a percentage of the parent's size (`50%`). Where an attribute says "length, 0 or more", a negative one is invalid (N6). |
-| time | Seconds as decimal digits: `0`, `0.5`, `.5`, `2.25`. At most nine digits after the point and nine before. No sign, no exponent, no unit, never negative. See N8 and `frame-time.md`. |
+| time | Seconds as decimal digits: `0`, `0.5`, `.5`, `2.25`. At most nine digits after the point and nine before. No sign, no exponent, no unit, never negative — except a `media-start` on a `<video>`, which may carry a leading `-` (`-2`, `-0.5`): the sign is read and the value is judged against the source (N4). See N8 and `frame-time.md`. |
 | colour | `#rrggbb` or `#rrggbbaa`, hexadecimal, with the `#`. Nothing else: no names (`red`), no `#rgb`, no `rgb()`. |
 | shadow | `x y blur colour`, four values separated by spaces: `0 24 70 #00000099`. Pixels, except on a `<shape>` (view-box units). There is no spread and no `inset`. A shadow list separates several shadows by commas; the first listed is on top. |
 | line | `width colour`: a number of 0 or more and a colour, separated by a space: `2 #ffffff`. For `border`, also `width double colour` (section 7.5). |
@@ -116,7 +116,7 @@ A time may be written with any number of decimals up to nine and is read exactly
 ### 5.3 Other times
 
 - **Tweens and sets.** A tween's value at a frame is its value at that frame's exact time. A `<tween>` or `<set>` written within a thousandth of a frame after a frame counts as on that frame. The `at` of a `<tween>` or `<set>` is in the time of the parent of the element it moves (8.5).
-- **`media-start`.** The source picture shown on a clip's first frame is the source's picture at `F(media-start)` on the source's own picture grid; each later frame shows the next source picture (decision A22). Which picture every other frame shows is the picture rule of the footage ticket: the latest source picture at or before the frame's time.
+- **`media-start`.** The source picture shown on a clip's first frame is the source's picture at `F(media-start)` on the source's own picture grid; each later frame shows the next source picture (decision A22). Which picture every other frame shows is the picture rule of the footage ticket: the latest source picture at or before the frame's time, the frame's time counted from the clip's first frame and moved forward by `media-start` (0 when none is written).
 - **Sound** is not on the frame grid: a sound starts at the sample nearest its written time (section 11).
 
 ## 6. The elements and their attributes
@@ -492,7 +492,7 @@ Footage, decoded through frx7, stretched to the box. The sound of a video is not
 | `align-self` | `flex-start`, `center`, `flex-end`, `stretch`, `baseline` | the container's `align-items` | 7.2 |
 | `flex-grow` | number, 0 or more | `0` | 7.2 |
 | `src` | path | required | 12 (N3) |
-| `media-start` | time | `0` | 10 |
+| `media-start` | time, a leading `-` allowed | `0` | 5.3, N4 |
 | `filter` | colour filter list | none | 7.9 |
 | `lut` | path of a `.cube` file | none | 7.9 |
 | `background` | layer list | none | 7.4 |
@@ -1101,7 +1101,7 @@ A file of a kind not on the list is unsupported: `check` lists it with the eleme
 
 ### N4. A video or a sound shorter than its clip
 
-**Rule.** A video whose source ends before its clip does shows its last source picture on every frame after the source's last picture, until the clip's window ends. A sound whose source ends before its `duration` plays to the source's end and is silent after. `check` passes such a project and prints a note with the element's line, the source's length and the clip's length. A `media-start` at or past the end of the source is reported with the element's line, the path and the source's length. (A source picture shown on a clip's first frame, and on every other frame, follows 5.3.)
+**Rule.** A video whose source ends before its clip does shows its last source picture on every frame after the source's last picture, until the clip's window ends. A sound whose source ends before its `duration` plays to the source's end and is silent after. `check` passes such a project and prints a note with the element's line, the source's length and the clip's length. A `media-start` at or past the end of the source is reported with the element's line, the path and the source's length (`FS-0090`); a negative `media-start` on a `<video>` is reported the same way (`FS-0089`). (A source picture shown on a clip's first frame, and on every other frame, follows 5.3.)
 
 **Settled by.** Maintainer draft: the proofs left it to the decoder. Holding the last picture is the choice that never shows an empty frame; the owner may prefer to refuse the case.
 
@@ -1242,7 +1242,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Picture, footage or sound not read | `` the picture `logo.bmp` is of a kind that is not read; the kinds read are: png, jpeg ``; the same for footage and sound, with their kinds (N3) |
 | Source missing or damaged | `` the picture `logo.png` could not be read: ... `` (the file, the reason) |
 | Video size | `` `width` of a <video> must be a whole number of 2 or more, not 10.5 `` |
-| `media-start` | `` `media-start="40"` is past the end of `clip.mp4`, which is 12.5 s long `` (N4) |
+| `media-start` | `` `media-start="40"` is past the end of `clip.mp4`, which is 12.5 s long `` (N4); `` `media-start="-1"` is before the start of `clip.mp4`, which is 12.5 s long `` (N4) |
 | Sound longer than its source | `` note: `bed.wav` is 4 s long and its <audio> lasts 6 s; it is silent after 4 s `` (N4); the same for footage: `` note: `clip.mp4` is 4 s long and its <video> lasts 6 s; its last picture holds `` |
 | Sound with other channels | `` `bed.wav` has 4 channels; sounds of 1, 2 or 6 are read `` |
 | Audio without duration | `<audio> needs a `duration`` |
@@ -1316,7 +1316,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S42 | Shapes: `<shape>` | The element `<shape>` | Path data is not drawn yet | Sprint 1, T062 |
 | S43 | A counting or typed text, and motion of a span: `count`, `count-format`, `typed`; `x`, `y`, `scale`, `scale-x`, `rotation`, `skew-y`, `rotate-x`, `rotate-y`, `perspective`, `transform-origin` on `<span>` | Those attributes on `<text>` or `<span>`, and the motion attributes on `<span>` | Counting, typing and the motion of a span are not built yet | Sprint 1, T069 |
 | S44 | Transitions: `transition`, `reveal` | Either attribute on an element | Openings over the scene are not drawn yet | Sprint 1, T072 |
-| S45 | Footage started inside its source: `media-start` | The attribute on `<video>` | The start in the source is not applied yet | Sprint 1, T075 |
 | S46 | A colour table or a filter on footage: `lut`, `filter` | Either attribute on `<video>` | Not applied yet | Sprint 1, T078 |
 | S50 | Several workers: `render.workers` other than `auto` or `1`, and `--workers` | The setting or option with such a value | So far one worker draws and encodes | Sprint 1, T096 |
 | S51 | An element inside `<composition src>`, `<video>` or `<text>` other than its words, spans, tweens and sets | An element child of `<composition src>` or `<video>`; an element other than `<span>`, `<tween>`, `<set>` inside `<text>` | A shown composition is drawn from its file, footage is a picture, a text is its words | Not assigned |

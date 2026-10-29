@@ -15,7 +15,9 @@ pub use film::{
     write_film_marked, write_film_stepped, Encoding, Failure, Refusal, SizeRefused, Step, Written,
 };
 pub use sound::open_sounds;
-pub use timeline::{place_reports, place_reports_and_notes, sounds, Footage, FootageSource, PictureError, Scene, Sound};
+pub use timeline::{
+    place_reports, place_reports_and_notes, placed_videos, sounds, Footage, FootageSource, PictureError, PlacedVideo, Scene, Sound,
+};
 
 /// The codec registry a scene is made with: frx7's codecs with the system's backend registered, so that the emoji pictures of
 /// a font collection can be read (`docs/spec/text.md`, section 12.4, point 4). A program calls this once, where a command
@@ -26,4 +28,5 @@ pub fn system_codecs() -> codec::Registry {
     codecs
 }
 
+pub use footage::footage_reports_and_notes;
 pub use footage::Sources;

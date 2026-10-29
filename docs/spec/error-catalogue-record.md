@@ -90,3 +90,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0086` | A `<video>` has no `src`. |
 | `FS-0087` | The `<volume>` points of an `<audio>` are not in order of time: a point is before the one before it. |
 | `FS-0088` | A `<volume>` has no `value`. |
+| `FS-0089` | A `media-start` on a `<video>` below 0. |
+| `FS-0090` | A `media-start` on a `<video>` at or past the end of its source. |
