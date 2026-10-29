@@ -158,6 +158,7 @@ fn sound_track(path: &Path, sound: &Sound) -> Result<EncodedTrack, String> {
                 channels: sound.channels,
                 lead_in: encoder.lead_in(),
             }),
+            display: None,
             expected_packets: Some(packets.len() as u64),
         },
         config: encoder.config(),

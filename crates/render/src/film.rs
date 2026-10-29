@@ -522,6 +522,7 @@ fn make(
                 rate,
                 steady: true,
             }),
+            display: None,
             expected_packets: Some(scene.frames()),
         })
         .map_err(named)?;
@@ -535,6 +536,7 @@ fn make(
                 channels: mix::CHANNELS,
                 lead_in: sound.lead_in(),
             }),
+            display: None,
             // The lead-in and the last, part-filled packet are a few packets more.
             expected_packets: Some(mix.length() / AAC_PACKET + 8),
         })

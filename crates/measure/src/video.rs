@@ -238,6 +238,7 @@ pub(crate) fn write_video_and(path: &Path, rate: (u32, u32), frames: &[Frame], e
                 rate: Rational::new(num, den),
                 steady: true,
             }),
+            display: None,
             expected_packets: Some(frames.len() as u64),
         })
         .map_err(named)?;
@@ -356,6 +357,7 @@ pub fn write_video_with_times(
                 rate: Rational::new(rate.0, rate.1),
                 steady,
             }),
+            display: None,
             expected_packets: Some(frames.len() as u64),
         })
         .map_err(named)?;
