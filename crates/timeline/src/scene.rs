@@ -270,6 +270,9 @@ pub struct FootageSource {
 pub trait Footage {
     /// How many pictures the source has.
     fn count(&mut self, source: usize) -> Result<u64, String>;
+    /// The presentation times of the source's pictures in the order they are shown, with the ticks to the second: the
+    /// at-or-before rule (`docs/spec/render-command.md`, section 4.8, rule 2) picks the picture from these.
+    fn picture_times(&mut self, source: usize) -> Result<(u32, Vec<i64>), String>;
     /// The picture of the source with this number, from 0 in the order they are shown, brought to `width` by `height`: that
     /// many pixels of premultiplied red, green, blue and alpha, row by row with no padding.
     fn picture(&mut self, source: usize, number: u64, size: (u32, u32)) -> Result<Arc<Vec<u8>>, String>;
@@ -280,6 +283,10 @@ struct NoFootage;
 
 impl Footage for NoFootage {
     fn count(&mut self, _source: usize) -> Result<u64, String> {
+        Err("the frame shows footage, and no source of its pictures was given".to_string())
+    }
+
+    fn picture_times(&mut self, _source: usize) -> Result<(u32, Vec<i64>), String> {
         Err("the frame shows footage, and no source of its pictures was given".to_string())
     }
 
@@ -521,9 +528,9 @@ impl Scene {
         Ok(marks)
     }
 
-    /// The picture of footage on frame `number` (`docs/spec/render-command.md`, section 4.7, rules 2 to 4): the source picture
-    /// numbered from the first frame of its window, the last one holding past the source's end, at the size of its box and
-    /// with its corner at the box's, cut to its canvas when `clipped`. A box of no size shows nothing.
+    /// The picture of footage on frame `number` (`docs/spec/render-command.md`, section 4.8, rule 2): the latest source
+    /// picture at or before the frame's time, counted from the first frame of its window, at the size of its box and with
+    /// its corner at the box's, cut to its canvas when `clipped`. A box of no size shows nothing.
     fn footage_mark(
         &self,
         placed: &PlacedFootage,
@@ -544,7 +551,12 @@ impl Scene {
         if count == 0 {
             return Err(failed("the file holds no pictures".to_string()));
         }
-        let shown = (number - placed.slot.window.first).min(count - 1);
+        let (scale, times) = footage.picture_times(placed.source).map_err(failed)?;
+        if times.is_empty() {
+            return Err(failed("the file holds no pictures".to_string()));
+        }
+        let elapsed = number - placed.slot.window.first;
+        let shown = picture_at_or_before(&times, scale, elapsed, self.fps).min(count - 1);
         let pixels = footage.picture(placed.source, shown, (rect.width, rect.height)).map_err(failed)?;
         let picture = Mark::Picture(PlacedPicture {
             width: rect.width,
@@ -608,6 +620,15 @@ impl Scene {
             .draw_frame(&self.frame_with(number, footage)?)
             .map_err(PictureError::Renderer)
     }
+}
+
+/// The number of the picture shown `elapsed` frames into a clip at `fps` frames a second, from the source's
+/// presentation `times` in ticks of `scale` a second (`docs/spec/render-command.md`, section 4.8, rule 2): the latest
+/// picture whose time is at or before the frame's time, worked in whole numbers (`times[k] × fps ≤ elapsed × scale`).
+/// A frame before the first picture's time shows the first picture.
+fn picture_at_or_before(times: &[i64], scale: u32, elapsed: u64, fps: u32) -> u64 {
+    let at = times.partition_point(|&at| at as i128 * fps as i128 <= elapsed as i128 * scale as i128);
+    at.saturating_sub(1) as u64
 }
 
 /// The marks of a box and of the children it cuts, in the order of `docs/spec/box-edges.md` section 3: its fill, its border and

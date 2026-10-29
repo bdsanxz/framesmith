@@ -11,11 +11,14 @@ use timeline::{Footage, FootageSource, Scene};
 /// The picture given last: its number, its size and its pixels.
 type Given = (u64, (u32, u32), Arc<Vec<u8>>);
 
-/// One source, open: its pictures, what its stream says its colours mean, and the picture given last with its number and
-/// size, since a frame of the scene and the next often show the same picture.
+/// One source, open: its pictures, what its stream says its colours mean, the presentation times of its pictures in the
+/// order they are shown with the ticks to the second (the at-or-before rule picks the picture from these), and the
+/// picture given last with its number and size, since a frame of the scene and the next often show the same picture.
 struct Open {
     pictures: Pictures,
     color: Option<Color>,
+    scale: u32,
+    times: Vec<i64>,
     last: Option<Given>,
 }
 
@@ -43,16 +46,21 @@ impl Sources {
 
 fn open_one(source: &FootageSource, formats: &format::Registry, codecs: &codec::Registry) -> Result<Open, Error> {
     let demuxer = formats.open(&source.path)?;
-    let color = demuxer
-        .tracks()
-        .iter()
-        .find_map(|track| track.video().map(|video| video.color))
-        .flatten();
+    let tracks = demuxer.tracks();
+    let color = tracks.iter().find_map(|track| track.video().map(|video| video.color)).flatten();
+    // The same first picture track `Pictures` opens: its timescale and the presentation times of its pictures in the
+    // order they are shown.
+    let (scale, times) = match tracks.iter().position(|track| track.media.is_video()) {
+        Some(track) => (tracks[track].timescale, demuxer.times(track)),
+        None => (0, Vec::new()),
+    };
     drop(demuxer);
     let pictures = Pictures::open(&source.path, formats, codecs, Hardware::Any)?;
     Ok(Open {
         pictures,
         color,
+        scale,
+        times,
         last: None,
     })
 }
@@ -61,6 +69,11 @@ impl Footage for Sources {
     fn count(&mut self, source: usize) -> Result<u64, String> {
         let open = self.open.get(source).ok_or_else(|| format!("there is no source {source}"))?;
         Ok(open.pictures.count())
+    }
+
+    fn picture_times(&mut self, source: usize) -> Result<(u32, Vec<i64>), String> {
+        let open = self.open.get(source).ok_or_else(|| format!("there is no source {source}"))?;
+        Ok((open.scale, open.times.clone()))
     }
 
     fn picture(&mut self, source: usize, number: u64, size: (u32, u32)) -> Result<Arc<Vec<u8>>, String> {
