@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use draw::Renderer;
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
-use project::{Backend, Code, Kind, OpenError, Options, Problem, Project, Report, Settings};
+use project::{Backend, Code, Encoder, Kind, OpenError, Options, Problem, Project, Report, Settings};
 use render::Scene;
 
 pub mod runlog;
@@ -293,6 +293,10 @@ fn check(path: PathBuf, codecs: &codec::Registry) -> Reply {
                 };
             }
             let root = project.root();
+            // `check` tells the encoder's refusal of the film's size as `render` would (`docs/spec/check-command.md`).
+            if let Some(refused) = render::size_refused(render::Encoding::of(project.settings()), root.width, root.height, root.fps) {
+                return size_not_taken(&refused, CHECK_REFUSED_SIZE, project.settings().encoder());
+            }
             let frames = if root.frames == 1 {
                 "1 frame".to_string()
             } else {
@@ -434,6 +438,11 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard,
     let written_output = project.output();
     let output = project.resolve(&written_output);
     let settings = project.settings();
+    // The chosen encoder is asked whether it takes the film's size before anything is drawn
+    // (`docs/spec/render-command.md` section 5.4).
+    if let Some(refused) = render::size_refused(render::Encoding::of(settings), scene.width(), scene.height(), scene.fps()) {
+        return size_not_taken(&refused, RENDER_REFUSED_SIZE, settings.encoder());
+    }
     // The renderer is chosen and started before the film is opened, so that a card that cannot be
     // started writes no file (`docs/spec/render-command.md` section 1.2).
     let mut choice = match renderer_for(settings, start_card) {
@@ -461,7 +470,7 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard,
         choice.renderer_mut(),
         &output,
         settings.audio_bitrate(),
-        settings.codec(),
+        render::Encoding::of(settings),
         asked,
     ) {
         Ok(written) => {
@@ -544,6 +553,27 @@ fn renderer_refused(error: &draw::Error) -> Reply {
             code.statement(&error.to_string()),
             "Refused: the video was not made, because the graphics card that `gpu` needs is not available".to_string(),
         ],
+        EXIT_UNSUPPORTED,
+        Outcome::Refused { code },
+    )
+}
+
+/// The closing line of a `render` refused because the chosen encoder does not take the film's size.
+const RENDER_REFUSED_SIZE: &str = "Refused: the video was not made, because the chosen encoder does not take the film's size";
+/// The closing line of a `check` that finds the same.
+const CHECK_REFUSED_SIZE: &str = "Refused: the video would not be made, because the chosen encoder does not take the film's size";
+
+/// The reply of a command whose film the chosen encoder does not take at its size: the report of `FS-0073` (the
+/// machine's own encoder) or `FS-0074` (the system's encoder on the processor), which names the encoder, the size,
+/// the settings and the setting to change, then `closing`, and exit code 2. Nothing is drawn or written
+/// (`docs/spec/render-command.md` section 5.4).
+fn size_not_taken(refused: &render::SizeRefused, closing: &str, encoder: Encoder) -> Reply {
+    let code = match encoder {
+        Encoder::Hardware => Code::HardwareSizeNotTaken,
+        Encoder::Software => Code::SoftwareSizeNotTaken,
+    };
+    Reply::Printed(
+        vec![code.statement(&refused.0), closing.to_string()],
         EXIT_UNSUPPORTED,
         Outcome::Refused { code },
     )

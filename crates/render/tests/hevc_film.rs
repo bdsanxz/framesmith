@@ -10,7 +10,7 @@ use codec::{Hardware, Pictures};
 use common::{project_with, scratch};
 use draw_cpu::CpuRenderer;
 use project::{Codec, Project};
-use render::{write_film, write_film_marked, Scene};
+use render::{write_film, write_film_marked, Encoding, Scene};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -42,7 +42,19 @@ fn rendered(name: &str, codec: Codec) -> (PathBuf, Vec<u64>) {
     let scene = Scene::from_project(&Project::open(&folder).unwrap(), &codecs()).unwrap_or_else(|reports| panic!("{reports:?}"));
     let output = scratch(GROUP, &format!("{name}-out")).join("film.mp4");
     let mut marks = Vec::new();
-    write_film_marked(&scene, Vec::new(), &mut CpuRenderer, &output, 192, codec, Some(&mut marks)).unwrap();
+    write_film_marked(
+        &scene,
+        Vec::new(),
+        &mut CpuRenderer,
+        &output,
+        192,
+        Encoding {
+            codec,
+            ..Encoding::default()
+        },
+        Some(&mut marks),
+    )
+    .unwrap();
     (output, marks)
 }
 

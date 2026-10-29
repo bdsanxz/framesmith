@@ -869,6 +869,42 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     );
     emitted.insert(Code::RendererNotAvailable.as_str());
 
+    // A film of the largest size the notation takes is more than the machine's own H.264 encoder takes on any machine
+    // (`frx7/docs/spec/os-codecs.md` section 5: 4096 by 2306 at most on the reference machine), and a machine with no such
+    // encoder refuses every size: `check` refuses it before the first frame (`docs/spec/render-command.md` section 5.4).
+    {
+        let composition = r##"<composition version="1" width="8192" height="8192" fps="1" duration="1" background="#ffffff"/>
+"##;
+        let (project, cwd) = project("emit-encoder-size", composition.as_bytes());
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert_eq!(output.status.code(), Some(2), "{printed}");
+        assert!(
+            printed.starts_with(&format!("{}: ", Code::HardwareSizeNotTaken.as_str())),
+            "{printed}"
+        );
+        emitted.insert(Code::HardwareSizeNotTaken.as_str());
+    }
+
+    // A film the system's own software encoder does not take is refused with FS-0074. Machines whose software encoder
+    // takes every size the notation takes (8192 by 8192 included) emit no such refusal; there the sentence is pinned by
+    // `crates/render/tests/refused_sentence.rs` instead of by the command.
+    {
+        let composition = r##"<composition version="1" width="8192" height="8192" fps="1" duration="1" background="#ffffff"/>
+"##;
+        let (project, cwd) = project("emit-software-size", composition.as_bytes());
+        fs::write(project.join("framesmith.yaml"), "render:\n  encoder: software\n").unwrap();
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        if output.status.code() == Some(2) {
+            assert!(
+                printed.starts_with(&format!("{}: ", Code::SoftwareSizeNotTaken.as_str())),
+                "{printed}"
+            );
+            emitted.insert(Code::SoftwareSizeNotTaken.as_str());
+        }
+    }
+
     // The one refusal of an emoji with no picture is emitted only where the Mac's emoji font is read: that font is a file of
     // the machine, so no other system reads it, and no emoji is drawn there (`docs/spec/text.md`, sections 2.6 and 12.4).
     #[cfg(target_os = "macos")]
@@ -899,6 +935,10 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     let mut all: BTreeSet<&str> = Code::ALL.iter().map(|code| code.as_str()).collect();
     if !cfg!(target_os = "macos") {
         all.remove(Code::EmojiNotDrawn.as_str());
+    }
+    if !emitted.contains(Code::SoftwareSizeNotTaken.as_str()) {
+        // The software encoder of this machine takes every size, so no input above emits its refusal.
+        all.remove(Code::SoftwareSizeNotTaken.as_str());
     }
     assert_eq!(emitted, all);
 }

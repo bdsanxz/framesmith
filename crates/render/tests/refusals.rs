@@ -322,15 +322,13 @@ fn with_project_file(name: &str, yaml: &str) -> Result<Scene, Vec<String>> {
 
 #[test]
 fn a_render_setting_this_version_does_not_apply_is_unsupported_with_the_line_of_its_value() {
-    let yaml = "name: demo\nrender:\n  quality: high\n  encoder: software\n  workers: 4\n  audio-bitrate: 32\n";
+    let yaml = "name: demo\nrender:\n  workers: 4\n  audio-bitrate: 32\n";
     let reports = with_project_file("settings", yaml).unwrap_err();
     assert_eq!(
         reports,
         vec![
-            "framesmith.yaml 3 FS-0035 `render.quality: high` is written, which this version does not support (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085)",
-            "framesmith.yaml 4 FS-0035 `render.encoder: software` is written, which this version does not support (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085)",
-            "framesmith.yaml 5 FS-0035 `render.workers: 4` is written, which this version does not support (support table S50: So far one worker draws and encodes; waits until Sprint 1, T096)",
-            "framesmith.yaml 6 FS-0035 `render.audio-bitrate: 32` is written, which this version does not support (support table S62: The system's sound encoder takes 64 to 320 kbit/s; not yet planned)",
+            "framesmith.yaml 3 FS-0035 `render.workers: 4` is written, which this version does not support (support table S50: So far one worker draws and encodes; waits until Sprint 1, T096)",
+            "framesmith.yaml 4 FS-0035 `render.audio-bitrate: 32` is written, which this version does not support (support table S62: The system's sound encoder takes 64 to 320 kbit/s; not yet planned)",
         ]
     );
 }
@@ -342,13 +340,15 @@ fn a_render_setting_this_version_applies_is_accepted_whether_written_or_not() {
     assert!(with_project_file("settings-auto", "render:\n  backend: auto\n  workers: auto\n").is_ok());
     assert!(with_project_file("settings-card", "render:\n  backend: gpu\n").is_ok());
     assert!(with_project_file("settings-hevc", "render:\n  codec: hevc\n").is_ok());
+    assert!(with_project_file("settings-software", "render:\n  encoder: software\n  quality: high\n").is_ok());
+    assert!(with_project_file("settings-draft", "render:\n  quality: draft\n").is_ok());
     assert!(with_project_file("settings-none", "name: demo\n").is_ok());
 }
 
 #[test]
 fn the_reports_of_the_project_file_come_before_those_of_the_composition() {
     let folder = project_with("refusals", "both-files", &composition("<rect/>"));
-    fs::write(folder.join(PROJECT_FILE), "render:\n  quality: draft\n").unwrap();
+    fs::write(folder.join(PROJECT_FILE), "render:\n  workers: 2\n").unwrap();
     let project = Project::open(&folder).unwrap();
     let reports = Scene::from_project(&project, &render::system_codecs()).unwrap_err();
     let files: Vec<&str> = reports.iter().map(Report::file).collect();
@@ -372,11 +372,10 @@ fn the_composition_that_is_read_is_the_one_the_project_names() {
 #[test]
 fn a_setting_an_option_gives_that_this_version_does_not_apply_is_unsupported_on_the_command_line() {
     let folder = project_with("refusals", "options", &composition("<box background=\"#ff0000\"/>"));
-    fs::write(folder.join(PROJECT_FILE), "render:\n  quality: high\n  encoder: software\n").unwrap();
+    fs::write(folder.join(PROJECT_FILE), "render:\n  workers: 3\n  audio-bitrate: 32\n").unwrap();
     let mut project = Project::open(&folder).unwrap();
     let mut options = project::Options::default();
-    // The option replaces the file's `quality: high`, which is then not in use and not refused.
-    options.set("--quality", "standard").unwrap();
+    // The option replaces the file's `workers: 3`, which is then not in use and not refused.
     options.set("--workers", "4").unwrap();
     project.apply(&options);
     let reports = Scene::from_project(&project, &render::system_codecs()).unwrap_err();
@@ -384,7 +383,7 @@ fn a_setting_an_option_gives_that_this_version_does_not_apply_is_unsupported_on_
         reports.iter().map(shown).collect::<Vec<_>>(),
         vec![
             "command line 0 FS-0035 `--workers 4` is given, which this version does not support (support table S50: So far one worker draws and encodes; waits until Sprint 1, T096)",
-            "framesmith.yaml 3 FS-0035 `render.encoder: software` is written, which this version does not support (support table S49: So far the film is made by the system's hardware encoder at its standard quality only; waits until Sprint 1, T085)",
+            "framesmith.yaml 3 FS-0035 `render.audio-bitrate: 32` is written, which this version does not support (support table S62: The system's sound encoder takes 64 to 320 kbit/s; not yet planned)",
         ]
     );
     assert_eq!(

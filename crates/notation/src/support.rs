@@ -54,7 +54,7 @@ pub enum Unsupported {
     Transitions = 44,
     MediaStart = 45,
     FootageFilter = 46,
-    EncoderOrQuality = 49,
+
     Workers = 50,
     ElementInsideLeaf = 51,
     FootageInFlow = 52,
@@ -83,7 +83,7 @@ pub enum Unsupported {
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 70] = [
+    pub const ALL: [Unsupported; 69] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -129,7 +129,6 @@ impl Unsupported {
         Unsupported::Transitions,
         Unsupported::MediaStart,
         Unsupported::FootageFilter,
-        Unsupported::EncoderOrQuality,
         Unsupported::Workers,
         Unsupported::ElementInsideLeaf,
         Unsupported::FootageInFlow,
@@ -214,7 +213,6 @@ impl Unsupported {
             Unsupported::Transitions => "Openings over the scene are not drawn yet",
             Unsupported::MediaStart => "The start in the source is not applied yet",
             Unsupported::FootageFilter => "Not applied yet",
-            Unsupported::EncoderOrQuality => "So far the film is made by the system's hardware encoder at its standard quality only",
             Unsupported::Workers => "So far one worker draws and encodes",
             Unsupported::ElementInsideLeaf => "A shown composition is drawn from its file, footage is a picture, a text is its words",
             Unsupported::FootageInFlow => "Footage is placed by its own edges",
@@ -290,7 +288,6 @@ impl Unsupported {
             Unsupported::Transitions => "Sprint 1, T072",
             Unsupported::MediaStart => "Sprint 1, T075",
             Unsupported::FootageFilter => "Sprint 1, T078",
-            Unsupported::EncoderOrQuality => "Sprint 1, T085",
             Unsupported::Workers => "Sprint 1, T096",
             Unsupported::ElementInsideLeaf => "Not assigned",
             Unsupported::FootageInFlow => "Not assigned",

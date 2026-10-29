@@ -170,6 +170,7 @@ Everything the command reports is plain text: no colour, no control character ot
 | The project file and the root are valid | One line: ``Ready: the project is valid, 150 frames, 1280x720, 30 fps`` (`1 frame` when it is one). The numbers are the frame count, the width, the height and the frame rate in use, written or not, of the composition that was read. | 0 |
 | The project file or the root has one problem or more | Every report of section 4, one line each, in the order of section 4 (the reports of the project file first); then the line ``Invalid: the project is not valid (composition.xml)``, with in the brackets the files that have a report, in the order they are printed (``framesmith.yaml, composition.xml``) | 1 |
 | Every report is of the kind unsupported | The reports, then the line ``Unsupported: the project uses what this version does not support (framesmith.yaml)``, with the files in the brackets as above | 2 |
+| The project and the root are valid, and the encoder the settings choose does not take the film's size (`render-command.md` section 5.4) | The report of `FS-0073` or `FS-0074` as `render` gives it, then the line ``Refused: the video would not be made, because the chosen encoder does not take the film's size`` | 2 |
 | There is no composition to read | One line, ``No project: `` and the code, the kind, the reason and the remedy (section 4), then nothing else (below); after the reports of the project file when it has any | 1 |
 | The command line cannot be read | Nothing (see section 1, standard error) | 1 |
 

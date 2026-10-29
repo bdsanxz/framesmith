@@ -175,6 +175,10 @@ pub enum Code {
     ShadowNotInForm,
     /// The folder of the output path cannot be made or written, so `render` refuses the video before the first frame.
     OutputNotWritten,
+    /// The machine's own encoder does not take the film's size.
+    HardwareSizeNotTaken,
+    /// The system's encoder on the processor does not take the film's size.
+    SoftwareSizeNotTaken,
     /// An `<audio>` without a `duration` above 0.
     SoundNoDuration,
     /// The sound file that `<audio src>` names does not exist, or the `<audio>` has no `src`.
@@ -198,7 +202,7 @@ pub enum Code {
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 78] = [
+    pub const ALL: [Code; 80] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -268,6 +272,8 @@ impl Code {
         Code::BorderNotInForm,
         Code::ShadowNotInForm,
         Code::OutputNotWritten,
+        Code::HardwareSizeNotTaken,
+        Code::SoftwareSizeNotTaken,
         Code::SoundNoDuration,
         Code::SoundMissing,
         Code::SoundUnreadable,
@@ -351,6 +357,8 @@ impl Code {
             Code::BorderNotInForm => "FS-0067",
             Code::ShadowNotInForm => "FS-0070",
             Code::OutputNotWritten => "FS-0072",
+            Code::HardwareSizeNotTaken => "FS-0073",
+            Code::SoftwareSizeNotTaken => "FS-0074",
             Code::SoundNoDuration => "FS-0076",
             Code::SoundMissing => "FS-0077",
             Code::SoundUnreadable => "FS-0078",
@@ -375,9 +383,13 @@ impl Code {
             | Code::ShownUnreadable
             | Code::FontUnreadable
             | Code::SoundUnreadable => Kind::Failure,
-            Code::KeyNotSupported | Code::FormNotSupported | Code::RendererNotAvailable | Code::EmojiNotDrawn | Code::SoundNotRead => {
-                Kind::Unsupported
-            }
+            Code::KeyNotSupported
+            | Code::FormNotSupported
+            | Code::RendererNotAvailable
+            | Code::EmojiNotDrawn
+            | Code::SoundNotRead
+            | Code::HardwareSizeNotTaken
+            | Code::SoftwareSizeNotTaken => Kind::Unsupported,
             _ => Kind::Invalid,
         }
     }
@@ -460,6 +472,12 @@ impl Code {
             Code::ShadowNotInForm => "Write the shadow as an offset across, an offset down, a blur and a colour, such as `10 10 8 #000000`.",
             Code::OutputNotWritten => {
                 "Give `--output` a path in a folder that can be written, or make the folder writable, then run the command again."
+            }
+            Code::HardwareSizeNotTaken => {
+                "Set the setting the message names: `render.codec` (or `--codec`) to `hevc` where the message offers it, or `render.encoder` (or `--encoder`) to `software`."
+            }
+            Code::SoftwareSizeNotTaken => {
+                "Make the film smaller, then run the command again."
             }
             Code::SoundNoDuration => "Write `duration` on the `<audio>` as the seconds the sound plays, above 0.",
             Code::SoundMissing => "Write `src` as the path of a sound file that exists, from the project folder or from `/`.",

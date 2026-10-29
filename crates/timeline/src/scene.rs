@@ -9,7 +9,7 @@ use draw::{
     Picture, PlacedPicture, Renderer, Rounded, Shadow, Step, TextMark,
 };
 use layout::{Across, Along, Amount, Beyond, Cell, Columns, Direction, Flex, Item, Measured, Rect, Sides, Size, Track, Written, LIMIT};
-use project::{Attribute, Code, Element, Encoder, Length, Node, Number, Problem, Project, Quality, Report, Unsupported, Workers};
+use project::{Attribute, Code, Element, Length, Node, Number, Problem, Project, Report, Unsupported, Workers};
 use text::Fonts;
 use timebase::Time;
 
@@ -2420,9 +2420,8 @@ fn unsupported_colour(node: &Node, attribute: &Attribute) -> String {
 }
 
 /// Settings in use that this version does not apply, each with the entry of the support table that names it: a film whose
-/// path does not end in `.mp4` or `.m4v` (S34), an encoder or a quality other than the hardware encoder at `standard`
-/// (S49), more than one worker (S50), and a sound bit rate outside 64 to 320 kbit/s (S62). A value an option gave is
-/// reported on the command line; a value of the project file on the line of the value.
+/// path does not end in `.mp4` or `.m4v` (S34), more than one worker (S50), and a sound bit rate outside 64 to 320 kbit/s
+/// (S62). A value an option gave is reported on the command line; a value of the project file on the line of the value.
 fn settings(project: &Project) -> Vec<Report> {
     let settings = project.settings();
     let mut from_options: Vec<String> = Vec::new();
@@ -2449,20 +2448,6 @@ fn settings(project: &Project) -> Vec<Report> {
         matches!(kind.as_deref(), Some("mp4" | "m4v")),
         output.clone(),
         Unsupported::FilmNotMp4,
-    );
-    check(
-        "render.quality",
-        Some("--quality"),
-        settings.quality() == Quality::Standard,
-        settings.quality().to_string(),
-        Unsupported::EncoderOrQuality,
-    );
-    check(
-        "render.encoder",
-        Some("--encoder"),
-        settings.encoder() == Encoder::Hardware,
-        settings.encoder().to_string(),
-        Unsupported::EncoderOrQuality,
     );
     check(
         "render.workers",

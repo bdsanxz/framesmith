@@ -52,6 +52,8 @@ fn a_project_file_is_read_and_judged_before_the_composition_and_the_steps_are_lo
             "project file judged",
             "composition file read",
             "root judged",
+            "picture encoder started id=1 codec=\"h264\" width=1280 height=720 hardware=true",
+            "picture encoder ended id=1 pictures=0 finished=false",
             "command finished"
         ]
     );
@@ -75,6 +77,8 @@ fn a_project_with_no_project_file_logs_no_step_for_it() {
             "project located",
             "composition file read",
             "root judged",
+            "picture encoder started id=1 codec=\"h264\" width=1280 height=720 hardware=true",
+            "picture encoder ended id=1 pictures=0 finished=false",
             "command finished"
         ]
     );

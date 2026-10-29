@@ -47,6 +47,8 @@ fn run_from_the_project_folder_the_result_is_the_same_and_the_log_is_the_one_thi
     for (label, text) in [("valid", VALID), ("invalid", INVALID)] {
         let (project, elsewhere) = project_with_files(label, text);
         let before = entries(&project);
+        // A valid project is checked to the size probe's pair; an invalid one is refused before it.
+        let per_run = if label == "valid" { 4 } else { 2 };
 
         // The result from outside, with the project given by its path.
         let outside = framesmith(&elsewhere, [OsStr::new("check"), project.as_os_str()], &[]);
@@ -65,14 +67,17 @@ fn run_from_the_project_folder_the_result_is_the_same_and_the_log_is_the_one_thi
         assert_eq!(names, ["logs", "logs/framesmith.log"], "{label}");
         // Every file the project had keeps its name and its bytes.
         assert!(before.iter().all(|entry| after.contains(entry)), "{label}");
-        assert_eq!(lines(&project).len(), 2, "{label}");
+        assert_eq!(lines(&project).len(), per_run, "{label}");
 
         // A second run adds lines to the log and changes nothing else.
         let log_before = log_text(&project);
         let again = framesmith(&project, ["check", "."], &[]);
         assert_eq!(again.stdout, outside.stdout, "{label}");
         let log_after = log_text(&project);
-        assert!(log_after.starts_with(&log_before) && log_after.lines().count() == 4, "{label}");
+        assert!(
+            log_after.starts_with(&log_before) && log_after.lines().count() == 2 * per_run,
+            "{label}"
+        );
         let others =
             |all: &[(PathBuf, Option<Vec<u8>>)]| -> Vec<_> { all.iter().filter(|(name, _)| !name.starts_with("logs")).cloned().collect() };
         assert_eq!(others(&entries(&project)), others(&after), "{label}");

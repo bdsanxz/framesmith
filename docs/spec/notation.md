@@ -1318,7 +1318,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S44 | Transitions: `transition`, `reveal` | Either attribute on an element | Openings over the scene are not drawn yet | Sprint 1, T072 |
 | S45 | Footage started inside its source: `media-start` | The attribute on `<video>` | The start in the source is not applied yet | Sprint 1, T075 |
 | S46 | A colour table or a filter on footage: `lut`, `filter` | Either attribute on `<video>` | Not applied yet | Sprint 1, T078 |
-| S49 | Another encoder or quality: `render.encoder: software`, `render.quality` other than `standard`, and the options | The setting or option with such a value | So far the film is made by the system's hardware encoder at its standard quality only | Sprint 1, T085 |
 | S50 | Several workers: `render.workers` other than `auto` or `1`, and `--workers` | The setting or option with such a value | So far one worker draws and encodes | Sprint 1, T096 |
 | S51 | An element inside `<composition src>`, `<video>` or `<text>` other than its words, spans, tweens and sets | An element child of `<composition src>` or `<video>`; an element other than `<span>`, `<tween>`, `<set>` inside `<text>` | A shown composition is drawn from its file, footage is a picture, a text is its words | Not assigned |
 | S52 | Footage in a flow: a `<video>` in a row, a column or a set of columns | A `<video>` child of a `<box>` with `flex-direction` or `columns` | Footage is placed by its own edges | Not assigned |
