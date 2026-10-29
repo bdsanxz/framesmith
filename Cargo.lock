@@ -1293,6 +1293,7 @@ dependencies = [
  "probe",
  "project",
  "text",
+ "timebase",
  "timeline",
  "tracing",
 ]
