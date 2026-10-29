@@ -57,18 +57,18 @@ vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "u
 
 # frx7, the media stack, in a repository of its own: taken from its private remote at one revision.
 # docs/dev/frx7.md says how, and how the pin is moved.
-base = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-format = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-probe = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-codec = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
+base = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+format = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+mp4 = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+probe = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+codec = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
 # frx7's test-only writers of sound files and pictures, for the tests only (frx7 docs/spec/test-writers.md).
-testkit = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-audio = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
-pixel = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
+testkit = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+audio = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+backend-os = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
+pixel = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
 # The graphics card, as frx7's system crate hands it to us: wgpu is reached through it, not named here.
-gpu = { git = "https://github.com/bdsanxz/frx7", rev = "78e45c398577a44a0c4d5886950bd86407e8b675" }
+gpu = { git = "https://github.com/bdsanxz/frx7", rev = "c7db8010996d4cca93024f5c3fd2bfd0b7d0ea33" }
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
