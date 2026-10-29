@@ -447,7 +447,7 @@ fn an_element_inside_a_video_is_refused_with_its_line() {
     {
         assert_eq!(
             only(&format!("inside-video-{index}"), &format!("<video src=\"v.mp4\" width=\"8\" height=\"8\">\n{child}\n</video>")),
-            format!("composition.xml 3 FS-0035 <video> holds {tag}, which this version does not support (support table S64: So far footage and a shown composition are drawn in their place only; waits until Sprint 1, the order picture-motion)")
+            format!("composition.xml 3 FS-0035 <video> holds {tag}, which this version does not support (support table S64: So far footage is drawn in its place only; waits until Sprint 1, the order picture-motion)")
         );
     }
 }
