@@ -832,16 +832,16 @@ impl CardRenderer {
         if !map.is_finite() {
             return Err(Error::new("an element is moved by a map that is not finite"));
         }
-        // The group's cut is a rectangle in its parent's space (section 10.1).
-        let Some(clip) = &group.clip else {
-            return self.plan_held(plan, target, scissor, group, map, opacity);
-        };
         if group.shadow.is_some() {
             // A shadow that follows is drawn by the processor's renderer, with the finished picture over it, and the card lays
             // that picture, cut to the group's clip (`docs/spec/render-command.md`, section 4.7, rule 6).
             let layer = draw_cpu::shadowed_group_layer(plan.width, plan.height, group, around)?;
             return self.push_layer(plan, target, scissor, layer);
         }
+        // The group's cut is a rectangle in its parent's space (section 10.1).
+        let Some(clip) = &group.clip else {
+            return self.plan_held(plan, target, scissor, group, map, opacity);
+        };
         if let Some((across, down)) = around.whole_move() {
             let moved = moved_rect(clip, across, down);
             return match cut(scissor, &moved, plan.width, plan.height) {

@@ -66,16 +66,18 @@ fn refused(folder: &Path, cwd: &Path, code: i32) -> Vec<String> {
 }
 
 #[test]
-fn another_element_inside_a_shown_composition_is_still_invalid() {
+fn another_element_inside_a_shown_composition_is_still_refused() {
     let (folder, cwd) = with_shown(
         "box-inside",
         "<composition src=\"shown.xml\" left=\"10\" top=\"20\">\n\
          <box left=\"0\" top=\"0\" width=\"4\" height=\"4\" background=\"#ffffff\"/>\n</composition>",
     );
-    let lines = refused(&folder, &cwd, 1);
+    let lines = refused(&folder, &cwd, 2);
     assert_eq!(lines.len(), 1, "{lines:?}");
     assert!(
-        lines[0].contains("line 3: FS-0031") && lines[0].contains("<box> is not known inside <composition src>"),
+        lines[0].contains("line 3: FS-0035")
+            && lines[0].contains("<composition src> holds <box>")
+            && lines[0].contains("(support table S51"),
         "{lines:?}"
     );
 }

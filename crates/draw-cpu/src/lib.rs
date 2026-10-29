@@ -115,15 +115,15 @@ fn draw_group(bytes: &mut [u8], width: u32, height: u32, group: &Group, map: Map
     if !map.is_finite() {
         return Err(Error::new("an element is moved by a map that is not finite"));
     }
-    let Some(clip) = &group.clip else {
-        return draw_held(bytes, width, height, group, map, opacity, region);
-    };
     if let Some(shadow) = &group.shadow {
         // The finished picture with its shadow under it, then cut and faded as one (section 4.7, rule 5).
         let layer = shadows::group_with_shadow(width, height, group, shadow, map)?;
         lay_faded(bytes, width, &layer, opacity, region);
         return Ok(());
     }
+    let Some(clip) = &group.clip else {
+        return draw_held(bytes, width, height, group, map, opacity, region);
+    };
     if let Some((across, down)) = parent.whole_move() {
         let moved = moved_rect(clip, across, down);
         return match within(region, &moved, width, height) {

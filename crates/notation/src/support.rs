@@ -229,7 +229,7 @@ impl Unsupported {
             Unsupported::AlphaOutsideBoxBackground => "Only a box's background is laid over what is under it; a film's ground is opaque",
             Unsupported::SoundBitRate => "The system's sound encoder takes 64 to 320 kbit/s",
             Unsupported::SpanTextAlign => "Lines are aligned by their text, and a span lies inside a line",
-            Unsupported::PictureMotion => "So far footage and a shown composition are drawn in their place only",
+            Unsupported::PictureMotion => "So far footage is drawn in its place only",
             Unsupported::SpanWindowAndDressing => "So far a span is drawn for its text's whole life and in its plain ink only",
             Unsupported::ItemFormsOfLeaf => "So far these are taken on boxes and texts only",
             Unsupported::SpanRoomForm => "A span's room is a number of pixels, 0 or more",
