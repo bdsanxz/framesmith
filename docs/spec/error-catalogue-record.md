@@ -86,3 +86,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0074` | The system's encoder on the processor does not take the film's size with these settings. |
 | `FS-0085` | A `<video>` has no `width` or no `height`, or one below 2. |
 | `FS-0086` | A `<video>` has no `src`. |
+| `FS-0089` | A `media-start` on a `<video>` below 0. |
+| `FS-0090` | A `media-start` on a `<video>` at or past the end of its source. |

@@ -73,7 +73,7 @@ const NO_EDGES: Edges = Edges {
 };
 /// What a `<video>` takes in this version (`docs/spec/render-command.md`, section 4.8): its id and class, its file, its size,
 /// its place, its clip, its corners and its look.
-const VIDEO_TAKES: [&str; 17] = [
+const VIDEO_TAKES: [&str; 18] = [
     "id",
     "class",
     "src",
@@ -87,6 +87,7 @@ const VIDEO_TAKES: [&str; 17] = [
     "margin",
     "start",
     "duration",
+    "media-start",
     "border-radius",
     "opacity",
     "blur",
@@ -226,6 +227,12 @@ struct PlacedFootage {
     slot: Slot,
     clip: Option<Rect>,
     source: usize,
+    /// The line of the `<video>`.
+    line: u32,
+    /// The `media-start` the `<video>` writes, with the value as written: where in the source the clip
+    /// begins, judged against the source before any frame is drawn (`docs/spec/notation.md` N4).
+    /// None when it writes none, which starts at the source's first picture.
+    media_start: Option<(Time, String)>,
     /// The `opacity` the `<video>` writes, 1 when it writes none (`docs/spec/render-command.md`, section 4.8).
     opacity: f64,
     /// The `blur` and `brightness` the `<video>` writes, none when it writes neither.
@@ -262,6 +269,26 @@ pub struct FootageSource {
     pub path: PathBuf,
     pub file: String,
     pub line: u32,
+}
+
+/// A `<video>` the scene places: the file that names it and its line, the frames of its window, its source's
+/// number in [`Scene::sources`], and its `media-start` with the value as written (`docs/spec/notation.md` N4).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlacedVideo {
+    /// The file of the composition that holds the `<video>`, as reports name it.
+    pub file: String,
+    /// The line of the `<video>`.
+    pub line: u32,
+    /// The first frame of its window.
+    pub first: u64,
+    /// The frame its window ends at, not counting it.
+    pub end: u64,
+    /// The file its `src` names, as written.
+    pub written: String,
+    /// Its source's number in [`Scene::sources`].
+    pub source: usize,
+    /// Its `media-start` with the value as written, none when it writes none.
+    pub media_start: Option<(Time, String)>,
 }
 
 /// What gives the pictures of footage (`docs/spec/render-command.md`, section 4.8): the timeline names the source, the
@@ -380,6 +407,12 @@ impl Scene {
     /// source by its number in this list.
     pub fn sources(&self) -> &[FootageSource] {
         &self.sources
+    }
+
+    /// Every `<video>` the scene places, in document order: the file that names it and its line, the frames of its
+    /// window, its source's number, and its `media-start` with the value as written (`docs/spec/notation.md` N4).
+    pub fn footage(&self) -> Vec<PlacedVideo> {
+        placed_footage(&self.entries, &self.sources)
     }
 
     /// The frame's width in pixels.
@@ -556,7 +589,8 @@ impl Scene {
             return Err(failed("the file holds no pictures".to_string()));
         }
         let elapsed = number - placed.slot.window.first;
-        let shown = picture_at_or_before(&times, scale, elapsed, self.fps).min(count - 1);
+        let start = placed.media_start.as_ref().map_or(Time::ZERO, |(time, _)| *time);
+        let shown = picture_at_or_before(&times, scale, start, elapsed, self.fps).min(count - 1);
         let pixels = footage.picture(placed.source, shown, (rect.width, rect.height)).map_err(failed)?;
         let picture = Mark::Picture(PlacedPicture {
             width: rect.width,
@@ -622,12 +656,14 @@ impl Scene {
     }
 }
 
-/// The number of the picture shown `elapsed` frames into a clip at `fps` frames a second, from the source's
-/// presentation `times` in ticks of `scale` a second (`docs/spec/render-command.md`, section 4.8, rule 2): the latest
-/// picture whose time is at or before the frame's time, worked in whole numbers (`times[k] × fps ≤ elapsed × scale`).
-/// A frame before the first picture's time shows the first picture.
-fn picture_at_or_before(times: &[i64], scale: u32, elapsed: u64, fps: u32) -> u64 {
-    let at = times.partition_point(|&at| at as i128 * fps as i128 <= elapsed as i128 * scale as i128);
+/// The number of the picture shown `elapsed` frames into a clip at `fps` frames a second that starts `start`
+/// seconds into its source, from the source's presentation `times` in ticks of `scale` a second
+/// (`docs/spec/render-command.md`, section 4.8, rule 2): the latest picture whose time is at or before the frame's
+/// time, worked in whole numbers with no float. A frame before the first picture's time shows the first picture.
+fn picture_at_or_before(times: &[i64], scale: u32, start: Time, elapsed: u64, fps: u32) -> u64 {
+    let (first, second) = start.parts();
+    let at =
+        times.partition_point(|&at| at as i128 * fps as i128 * second <= (first * fps as i128 + elapsed as i128 * second) * scale as i128);
     at.saturating_sub(1) as u64
 }
 
@@ -779,6 +815,43 @@ pub fn place_reports_and_notes(project: &Project, codecs: &codec::Registry) -> (
         }
     }
     (reports, notes)
+}
+
+/// The `<video>`s a project places, with the footage sources they show and the composition's frames a second: what
+/// [`Scene::footage`] and [`Scene::sources`] give for a made scene, without making the scene (and without its log
+/// line, `docs/spec/run-log.md` section 4). For commands that judge the footage's starts in their sources without
+/// drawing (`docs/spec/notation.md` N4). Gives every report of what this version does not draw or apply, as
+/// [`Scene::from_project`] gives them.
+pub fn placed_videos(project: &Project, codecs: &codec::Registry) -> Result<(Vec<PlacedVideo>, Vec<FootageSource>, u32), Vec<Report>> {
+    let mut reports = settings(project);
+    let (entries, _, sources, found) = walk(project, false, codecs);
+    reports.extend(found);
+    if !reports.is_empty() {
+        return Err(reports);
+    }
+    let placed = placed_footage(&entries, &sources);
+    Ok((placed, sources, project.root().fps))
+}
+
+/// Every `<video>` of `entries`, in document order: the file that names it and its line, the frames of its window,
+/// its source's number in `sources`, and its `media-start` with the value as written.
+fn placed_footage(entries: &[Entry], sources: &[FootageSource]) -> Vec<PlacedVideo> {
+    let mut placed = Vec::new();
+    for entry in entries {
+        if let Entry::Footage(video) = entry {
+            let source = &sources[video.source];
+            placed.push(PlacedVideo {
+                file: source.file.clone(),
+                line: video.line,
+                first: video.slot.window.first,
+                end: video.slot.window.end,
+                written: source.written.clone(),
+                source: video.source,
+                media_start: video.media_start.clone(),
+            });
+        }
+    }
+    placed
 }
 
 /// Walks the project's composition: the root's canvas, which is the frame, and then each element in document
@@ -1195,6 +1268,22 @@ fn walk_canvas(
             };
             let (opacity, filter, found) = moving::read_look(node);
             refusals.extend(found.into_iter().map(Refusal::of_motion));
+            // The start in the source: a leading `-` is read and judged against the source before any
+            // frame is drawn (`docs/spec/notation.md` N4); anything else that is not a time is the form's.
+            let mut media_start = None;
+            if let Some(attribute) = node.attribute("media-start") {
+                match attribute.signed_time() {
+                    Some(time) => media_start = Some((time, attribute.shown().to_string())),
+                    None => refusals.push(Refusal::of_attribute(
+                        Code::NotATime,
+                        attribute,
+                        format!(
+                            "`media-start=\"{}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
+                            attribute.shown()
+                        ),
+                    )),
+                }
+            }
             // The corner radius, as of a box (`docs/spec/box-edges.md`, section 6): a negative radius is reported.
             let mut radius = 0.0;
             if let Some(attribute) = node.attribute("border-radius") {
@@ -1212,6 +1301,8 @@ fn walk_canvas(
                 slot,
                 clip: canvas.clip,
                 source,
+                line: node.line(),
+                media_start,
                 opacity,
                 filter,
                 radius,

@@ -191,6 +191,18 @@ pub(crate) fn time(text: &str) -> Option<Time> {
     Time::parse(text)
 }
 
+/// A written time that may carry a single leading `-`, read exactly (`docs/spec/notation.md` N4).
+/// `-.5` is a time; `5.`, `--5` and `- 5` are not.
+pub(crate) fn signed_time(text: &str) -> Option<Time> {
+    match text.strip_prefix('-') {
+        Some(rest) => time(rest).map(|read| {
+            let (num, den) = read.parts();
+            Time::new(-num, den)
+        }),
+        None => time(text),
+    }
+}
+
 /// A colour written `#rrggbb` or `#rrggbbaa`, as red, green, blue and alpha.
 pub(crate) fn colour(text: &str) -> Option<[u8; 4]> {
     let hex = text.strip_prefix('#')?;

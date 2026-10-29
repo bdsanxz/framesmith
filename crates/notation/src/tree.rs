@@ -151,6 +151,12 @@ impl Attribute {
         value::time(&self.value)
     }
 
+    /// The value as a time in seconds that may carry a leading `-`, read exactly
+    /// (`docs/spec/notation.md` N4), or `None` when it is not one.
+    pub fn signed_time(&self) -> Option<Time> {
+        value::signed_time(&self.value)
+    }
+
     /// The value as a colour written `#rrggbb` or `#rrggbbaa`, or `None` when it is not one.
     pub fn colour(&self) -> Option<Colour> {
         value::colour(&self.value).map(|[red, green, blue, alpha]| Colour { red, green, blue, alpha })

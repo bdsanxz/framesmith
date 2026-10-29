@@ -48,7 +48,6 @@ fn per_element(element: Element, name: &str) -> Option<Unsupported> {
             _ => None,
         },
         Element::Video => match name {
-            "media-start" => Some(Unsupported::MediaStart),
             "lut" | "filter" => Some(Unsupported::FootageFilter),
             "max-width" | "align-self" | "flex-grow" => Some(Unsupported::ItemFormsOfLeaf),
             _ if moving => Some(Unsupported::PictureMotion),

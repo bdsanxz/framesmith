@@ -311,6 +311,18 @@ fn attributes(node: roxmltree::Node, element: Element, read: &[Effective], probl
                     ));
                 }
             }
+            Form::SignedTime => {
+                if value::signed_time(value).is_none() {
+                    problems.push(found(
+                        Code::NotATime,
+                        spot,
+                        format!(
+                            "`{name}=\"{}\"` is not a time in seconds: digits with an optional point, such as 5 or 1.25",
+                            shown(value)
+                        ),
+                    ));
+                }
+            }
         }
     }
     refused

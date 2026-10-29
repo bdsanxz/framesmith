@@ -203,6 +203,9 @@ fn form_of(cell: &str) -> Form {
     if cell == "time" || cell.starts_with("time above") || cell.starts_with("time, counted") {
         return Form::Time;
     }
+    if cell == "time, a leading `-` allowed" {
+        return Form::SignedTime;
+    }
     Form::Other
 }
 

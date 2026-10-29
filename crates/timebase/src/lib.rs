@@ -98,6 +98,12 @@ impl Time {
         self.num > 0
     }
 
+    /// The numerator and the denominator in lowest terms, the denominator above 0: for exact whole-number
+    /// arithmetic with the time (`docs/spec/notation.md` section 5).
+    pub fn parts(self) -> (i128, i128) {
+        (self.num, self.den)
+    }
+
     pub fn to_f64(self) -> f64 {
         self.num as f64 / self.den as f64
     }

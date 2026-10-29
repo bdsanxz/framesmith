@@ -198,11 +198,15 @@ pub enum Code {
     VideoSize,
     /// A `<video>` has no `src`.
     VideoSourceMissing,
+    /// A `media-start` on a `<video>` below 0.
+    VideoMediaStartNegative,
+    /// A `media-start` on a `<video>` at or past the end of its source.
+    VideoMediaStartPastEnd,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 80] = [
+    pub const ALL: [Code; 82] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -283,6 +287,8 @@ impl Code {
         Code::CountNotWritten,
         Code::VideoSize,
         Code::VideoSourceMissing,
+        Code::VideoMediaStartNegative,
+        Code::VideoMediaStartPastEnd,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -368,6 +374,8 @@ impl Code {
             Code::CountNotWritten => "FS-0084",
             Code::VideoSize => "FS-0085",
             Code::VideoSourceMissing => "FS-0086",
+            Code::VideoMediaStartNegative => "FS-0089",
+            Code::VideoMediaStartPastEnd => "FS-0090",
         }
     }
 
@@ -490,6 +498,12 @@ impl Code {
             }
             Code::VideoSize => "Write `width` and `height` on the <video>, each a whole number of pixels of 2 or more.",
             Code::VideoSourceMissing => "Write `src` on the <video>: the path of its file from the project folder.",
+            Code::VideoMediaStartNegative => {
+                "Write a `media-start` of 0 or more, or leave it out to start at the source's first picture."
+            }
+            Code::VideoMediaStartPastEnd => {
+                "Write a `media-start` below the length of the source file, or leave it out to start at the beginning."
+            }
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }
