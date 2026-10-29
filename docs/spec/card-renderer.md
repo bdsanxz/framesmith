@@ -245,4 +245,4 @@ The layers of a box's background (`render-command.md` section 4.6) are drawn by 
 1. **Whole pixels.** Moved by whole pixels, the picture is one texture of its own size with its premultiplied pixels as they are, laid one texel for one by `picture_pipeline` with its top-left corner at its whole pixel, by src-over. An opaque picture gives the processor's bytes.
 2. **Under any other map.** The picture is drawn through the map by the processor into a picture of the frame's size (`draw_cpu::placed_picture_layer`) and laid by the card as section 10.4 lays the emoji of a text under a map.
 3. **Agreement.** The card's picture agrees with the processor's within section 4.
-4. **Tests.** `crates/draw-gpu/tests/placed_pictures_on_the_card.rs` and `crates/render/tests/footage_on_the_card.rs`. Reference machine only.
+4. **Tests.** `crates/draw-gpu/tests/placed_pictures_on_the_card.rs`, `crates/render/tests/footage_on_the_card.rs`, and `crates/render/tests/source_picture_rule.rs` (the card shows the same source pictures the processor shows, at the composition's and at other rates). Reference machine only.

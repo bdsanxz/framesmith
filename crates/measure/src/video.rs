@@ -277,6 +277,120 @@ pub(crate) fn write_video_and(path: &Path, rate: (u32, u32), frames: &[Frame], e
     Ok(())
 }
 
+/// [`write_video`], with the presentation time of each picture given in ticks of `timescale` a second instead of one
+/// picture every `1/rate` seconds: for sources at a rate that is not a whole number of pictures a second, for one that
+/// changes part-way, and for one whose first picture comes after 0. The track's rate is still `rate`, marked `steady`
+/// only when every picture lasts the same. Each picture lasts until the next one's time; the last repeats the gap
+/// before it, so at least two pictures are needed. Test-only: nothing that ships writes a video this way.
+pub fn write_video_with_times(
+    path: &Path,
+    rate: (u32, u32),
+    steady: bool,
+    timescale: u32,
+    times: &[i64],
+    frames: &[Frame],
+) -> Result<(), String> {
+    let Some(first) = frames.first() else {
+        return Err("a video needs at least one picture".to_string());
+    };
+    if times.len() != frames.len() {
+        return Err(format!(
+            "a video needs one time per picture: {} pictures and {} times",
+            frames.len(),
+            times.len()
+        ));
+    }
+    if timescale == 0 || times.len() < 2 {
+        return Err("a timed video needs a timescale and at least two pictures".to_string());
+    }
+    if let Some(other) = frames
+        .iter()
+        .find(|frame| (frame.width, frame.height) != (first.width, first.height))
+    {
+        return Err(format!(
+            "a video has one size, and its pictures are {}x{} and {}x{}",
+            first.width, first.height, other.width, other.height
+        ));
+    }
+    if times.windows(2).any(|pair| pair[1] <= pair[0]) {
+        return Err("the pictures of a timed video come one after another".to_string());
+    }
+    let named = |error: Error| format!("{}: {error}", path.display());
+    let mut encoder = codecs()
+        .video_encoder(&VideoEncoderSetup {
+            codec: Codec::H264,
+            width: first.width,
+            height: first.height,
+            // A timescale in which the caller's ticks land whole, by the encoder's own rule.
+            rate: Rational::new(timescale, 1),
+            bits: 8,
+            rate_control: RateControl::Bitrate(bit_rate(first, rate)),
+            key_distance: 12,
+            reorder: false,
+            color: Color::BT709,
+            hdr: base::Hdr::default(),
+            hardware: Hardware::Any,
+        })
+        .map_err(named)?;
+    let ticks = u64::from(encoder.timescale());
+    let scale = ticks
+        .checked_div(u64::from(timescale))
+        .ok_or_else(|| format!("a timed video needs its {timescale} ticks a second to divide the encoder's {ticks}"))?;
+    if ticks != scale * u64::from(timescale) {
+        return Err(format!(
+            "a timed video needs its {timescale} ticks a second to divide the encoder's {ticks}"
+        ));
+    }
+    let mut muxer = formats().create(path).map_err(named)?;
+    let track = muxer
+        .add_track(TrackSetup {
+            codec: Codec::H264,
+            config: Vec::new(),
+            timescale: encoder.timescale(),
+            media: Media::Video(Video {
+                width: first.width,
+                height: first.height,
+                color: Some(Color::BT709),
+                hdr: base::Hdr::default(),
+                rotation: 0,
+                rate: Rational::new(rate.0, rate.1),
+                steady,
+            }),
+            expected_packets: Some(frames.len() as u64),
+        })
+        .map_err(named)?;
+    let mut configured = false;
+    let mut at = 0;
+    for (number, frame) in frames.iter().enumerate() {
+        let start = times[number] * scale as i64;
+        let end = if number + 1 < times.len() {
+            times[number + 1] * scale as i64
+        } else {
+            start + (start - at)
+        };
+        at = start;
+        let planes = pixel::convert(&with_alpha(frame), None, PixelFormat::Nv12, Some(Color::BT709)).map_err(named)?;
+        let surface = encoder.surface().map_err(named)?;
+        surface.write(&planes).map_err(named)?;
+        encoder
+            .send(Decoded {
+                pts: start,
+                duration: (end - start) as u32,
+                surface,
+            })
+            .map_err(named)?;
+        take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
+    }
+    encoder.finish().map_err(named)?;
+    take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
+    muxer.end_track(track).map_err(named)?;
+    muxer.finish().map_err(named)?;
+    if !configured {
+        return Err(format!("{}: the encoder gave no picture", path.display()));
+    }
+    Ok(())
+}
+
 /// Moves the packets the encoder has ready into the file, giving the track its configuration with
 /// the first.
 fn take_packets(encoder: &mut dyn VideoEncoder, muxer: &mut dyn Muxer, track: usize, configured: &mut bool) -> base::Result<()> {
