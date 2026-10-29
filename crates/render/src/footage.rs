@@ -6,7 +6,9 @@ use std::sync::Arc;
 
 use base::{Color, Error, Picture, PixelFormat};
 use codec::{Hardware, Pictures};
-use timeline::{Footage, FootageSource, Scene};
+use project::{Code, Problem, Report};
+use timebase::Time;
+use timeline::{Footage, FootageSource, PlacedVideo, Scene};
 
 /// The picture given last: its number, its size and its pixels.
 type Given = (u64, (u32, u32), Arc<Vec<u8>>);
@@ -96,6 +98,75 @@ impl Footage for Sources {
         open.last = Some((number, size, pixels.clone()));
         Ok(pixels)
     }
+}
+
+/// The reports and notes of the footage's starts in their sources (`docs/spec/notation.md` N4): every source is opened
+/// through frx7, as `render` opens it, and every placed `<video>` is judged. A `media-start` below 0 is reported with
+/// the element's line, the path as written and the source's length (`FS-0089`); one at or past the end of its source
+/// the same way (`FS-0090`). A source that ends inside its clip is noted with the element's line, the source's length
+/// and the clip's length. Sources that cannot be opened are left out: their reports come with T089. The placed
+/// videos, sources and frames a second are what [`timeline::placed_videos`] gives, or a made scene's own.
+pub fn footage_reports_and_notes(placed: &[PlacedVideo], sources: &[FootageSource], fps: u32) -> (Vec<Report>, Vec<String>) {
+    let formats = super::film::formats();
+    let mut lengths = Vec::with_capacity(sources.len());
+    for source in sources {
+        lengths.push(open_length(&formats, source));
+    }
+    let mut reports = Vec::new();
+    let mut notes = Vec::new();
+    for placed in placed {
+        let Some(length) = lengths[placed.source] else {
+            continue;
+        };
+        if let Some((start, shown)) = placed.media_start.as_ref() {
+            if start.is_negative() {
+                let message = format!(
+                    "`media-start=\"{}\"` is before the start of `{}`, which is {} s long",
+                    shown, placed.written, length
+                );
+                reports.push(Report::new(
+                    placed.file.clone(),
+                    Problem::new(Code::VideoMediaStartNegative, placed.line, message),
+                ));
+                continue;
+            }
+            if *start >= length {
+                let message = format!(
+                    "`media-start=\"{}\"` is past the end of `{}`, which is {} s long",
+                    shown, placed.written, length
+                );
+                reports.push(Report::new(
+                    placed.file.clone(),
+                    Problem::new(Code::VideoMediaStartPastEnd, placed.line, message),
+                ));
+                continue;
+            }
+        }
+        let clip = Time::new((placed.end - placed.first) as i128, fps as i128);
+        if length < clip {
+            let note = format!(
+                "note: {}, line {}: `{}` is {} s long and its <video> lasts {} s; its last picture holds",
+                placed.file, placed.line, placed.written, length, clip
+            );
+            if !notes.contains(&note) {
+                notes.push(note);
+            }
+        }
+    }
+    (reports, notes)
+}
+
+/// The length of a source in seconds, from the track `Pictures` opens: none when the file cannot be opened or holds
+/// no picture track.
+fn open_length(formats: &format::Registry, source: &FootageSource) -> Option<Time> {
+    let demuxer = formats.open(&source.path).ok()?;
+    let tracks = demuxer.tracks();
+    let track = tracks.iter().position(|track| track.media.is_video())?;
+    let timescale = tracks[track].timescale;
+    if timescale == 0 {
+        return None;
+    }
+    Some(Time::new(tracks[track].duration as i128, timescale as i128))
 }
 
 /// The pixels of a picture of red, green, blue and alpha as rows with no padding, every alpha 255: footage is opaque, so its

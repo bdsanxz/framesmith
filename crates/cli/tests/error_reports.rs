@@ -860,6 +860,38 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     assert!(printed.contains(&format!(": {}: ", Code::SoundNotRead.as_str())), "{printed}");
     emitted.insert(Code::SoundNotRead.as_str());
 
+    // A `media-start` below 0, and one at or past the end of its source: the source is a real one-picture
+    // clip made by frx7's writer, so the command judges the value against the source's length, not its form.
+    for (name, written, code) in [
+        ("emit-media-start-negative", "-1", Code::VideoMediaStartNegative),
+        ("emit-media-start-past-end", "2", Code::VideoMediaStartPastEnd),
+    ] {
+        let (project, cwd) = project_with_files(
+            name,
+            &[(
+                "composition.xml".to_string(),
+                inside_root(&format!(
+                    r#"<video src="clip.mp4" width="32" height="18" media-start="{written}"/>"#
+                )),
+            )],
+        );
+        measure::write_video(
+            &project.join("clip.mp4"),
+            (30, 1),
+            &[measure::Frame {
+                width: 32,
+                height: 18,
+                rgb: vec![20; 32 * 18 * 3],
+            }],
+        )
+        .unwrap();
+        let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
+        let printed = text(&output.stdout);
+        assert_eq!(output.status.code(), Some(1), "{name}: {printed}");
+        assert!(printed.contains(&format!(": {}: ", code.as_str())), "{name}: {printed}");
+        emitted.insert(code.as_str());
+    }
+
     // The card's refusal is what a machine with no graphics card gives, and such a machine is not
     // needed to see it: the command runs in this process, through the same entry the binary runs, with
     // the starter of a card that does not start (`cli::run_with`). Every other run here names its

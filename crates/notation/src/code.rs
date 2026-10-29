@@ -202,11 +202,15 @@ pub enum Code {
     VolumeOutOfOrder,
     /// A `<volume>` has no `value`.
     VolumeNoValue,
+    /// A `media-start` on a `<video>` below 0.
+    VideoMediaStartNegative,
+    /// A `media-start` on a `<video>` at or past the end of its source.
+    VideoMediaStartPastEnd,
 }
 
 impl Code {
     /// Every code, in the order of the table of the catalogue.
-    pub const ALL: [Code; 82] = [
+    pub const ALL: [Code; 84] = [
         Code::NotUtf8,
         Code::NotXml,
         Code::RootNotComposition,
@@ -289,6 +293,8 @@ impl Code {
         Code::VideoSourceMissing,
         Code::VolumeOutOfOrder,
         Code::VolumeNoValue,
+        Code::VideoMediaStartNegative,
+        Code::VideoMediaStartPastEnd,
     ];
 
     /// The code as it is printed: `FS-` and four digits.
@@ -376,6 +382,8 @@ impl Code {
             Code::VideoSourceMissing => "FS-0086",
             Code::VolumeOutOfOrder => "FS-0087",
             Code::VolumeNoValue => "FS-0088",
+            Code::VideoMediaStartNegative => "FS-0089",
+            Code::VideoMediaStartPastEnd => "FS-0090",
         }
     }
 
@@ -500,6 +508,12 @@ impl Code {
             Code::VideoSourceMissing => "Write `src` on the <video>: the path of its file from the project folder.",
             Code::VolumeOutOfOrder => "Write the points in the order of their `at`, from the start of the sound.",
             Code::VolumeNoValue => "Write a `value` for the level at the point's time: a number, 0 or more.",
+            Code::VideoMediaStartNegative => {
+                "Write a `media-start` of 0 or more, or leave it out to start at the source's first picture."
+            }
+            Code::VideoMediaStartPastEnd => {
+                "Write a `media-start` below the length of the source file, or leave it out to start at the beginning."
+            }
             Code::RendererNotAvailable => {
                 "Set `render.backend` (or `--backend`) to `auto` or `cpu`, which draw on the processor when no card is there."
             }
