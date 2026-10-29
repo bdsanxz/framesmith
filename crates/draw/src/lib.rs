@@ -321,8 +321,6 @@ pub struct PlacedPicture {
     pub pixels: Arc<Vec<u8>>,
     pub x: f32,
     pub y: f32,
-    /// A still picture in its box (`docs/spec/still-pictures.md`).
-    Still(StillMark),
 }
 
 /// Everything that decides the picture of one frame, with the text of the frame: the same frame gives the same

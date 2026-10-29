@@ -51,12 +51,9 @@ fn a_composition_of_boxes_with_what_this_version_draws_has_a_scene() {
 fn an_element_other_than_a_box_in_the_root_is_unsupported_and_named_with_its_line() {
     // Each element with the entry of the support table that names it (section 14): S60 a rect, S42 a shape.
     // Footage (`<video>`) and still pictures (`<image>`) are drawn in this version, so they are not refused here.
-    for (index, (element, tag, entry)) in [
-        ("<rect/>", "<rect>", "S60"),
-        ("<shape src=\"s.svg\"/>", "<shape>", "S42"),
-    ]
-    .into_iter()
-    .enumerate()
+    for (index, (element, tag, entry)) in [("<rect/>", "<rect>", "S60"), ("<shape src=\"s.svg\"/>", "<shape>", "S42")]
+        .into_iter()
+        .enumerate()
     {
         let report = only(&format!("element-{index}"), element);
         assert!(
