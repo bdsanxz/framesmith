@@ -70,7 +70,22 @@ fn a_render_writes_the_film_at_renders_name_mp4_and_prints_the_summary_in_order(
     let (project, cwd) = make(GROUP, "summary", FIRST);
     let output = render(&cwd, &project);
     assert_eq!(output.status.code(), Some(0), "{}{}", out(&output), err(&output));
-    assert_eq!(err(&output), "");
+    // The run tells its progress on standard error (section 5.5): the fixture shows no footage, so
+    // footage says so once, and the other stages end at the frame count.
+    let stderr = err(&output);
+    assert_eq!(
+        stderr.lines().filter(|line| *line == "footage: nothing to do").count(),
+        1,
+        "{stderr}"
+    );
+    for line in stderr.lines().filter(|line| !line.ends_with("nothing to do")) {
+        let (stage, rest) = line.split_once(": ").expect(line);
+        assert!(["frames", "encoding", "sound"].contains(&stage), "{line}");
+        let (done, total) = rest.strip_suffix(" frames").expect(line).split_once('/').expect(line);
+        assert_eq!(total, "10", "{line}");
+        assert!(done.parse::<u64>().expect(line) <= 10, "{line}");
+    }
+    assert!(stderr.lines().any(|line| line == "frames: 10/10 frames"), "{stderr}");
 
     let printed = out(&output);
     let lines: Vec<&str> = printed.lines().collect();

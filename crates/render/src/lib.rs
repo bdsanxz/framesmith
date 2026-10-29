@@ -9,6 +9,7 @@
 mod film;
 mod footage;
 mod sound;
+mod stages;
 
 pub use film::{
     check_place, formats, refused_sentence, remove_stale_staging, size_refused, staging_folder_of, staging_of, write_film,

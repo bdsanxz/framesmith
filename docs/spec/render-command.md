@@ -347,6 +347,15 @@ Every film holds exactly one sound track, whether the composition has sound or n
   `codec: hevc` is named only when the machine's own HEVC encoder, made the same way, takes the size; otherwise the message says `set encoder: software`. A refusal of the software encoder says `make the film smaller` and carries `FS-0074`. The limit belongs to the machine and not to the composition, as `FS-0038`'s does: it is no entry of the support table (`notation.md` section 14), and the same film renders on a machine whose encoder takes its size. `check` makes the same encoder and reports the same refusal (`check-command.md` section 5).
 - **The summary** names the encoder, the quality and the codec in effect (section 7), and with them the encoder that wrote the film.
 
+### 5.5 Progress while the film is written
+
+The four stages run side by side: `footage` (the pictures the film shows are decoded), `frames` (the frames are drawn), `encoding` (the drawn frames are encoded), `sound` (the mix is handed to the sound encoder, frame by frame). While they run, `render` tells the author, on standard error, one line per stage:
+
+- Each line is the stage's name, then the frames done and the frames in all: `footage: 12/150 frames`. The frames line ends at the frame count; then the summary (section 7).
+- A stage with nothing to do says so instead of a count, once: a film with no footage prints `footage: nothing to do`. The sound stage always counts, even with no sound in the composition, since every film holds its one sound track, silent where nothing plays (section 5.2).
+- The lines are told again as the stages advance, at most a few times a second; each telling shows all four stages together, so one telling is one true moment of the run. They carry no colour and nothing but the names and the counts; the four names are the same everywhere a stage is named.
+- **The bound.** A stage that is faster than the one after it waits: the frames stage holds at most two finished pictures ahead of the encoding stage, and footage decodes at most two frames ahead of the drawing stage (decision B102; the proofs' number).
+
 ## 6. The place of the finished file, and what the author's files are
 
 - The finished file is, by the rule of section 1.1: the path of `--output`; else `render.output` of the project file; else `<paths.renders>/<name>.mp4`, with `paths.renders` (default `renders`) and `name` (default the folder's name) as `project-file.md` sections 3 and 6 say. A relative path, the option's included, is taken from the project folder, never from the folder the command is run from (`project-location.md` section 4); a path that begins with `/` is taken as it is. The folder it is to be in is made when it is missing, with every folder above it that is missing, and is left in place when the render then fails.
@@ -384,7 +393,7 @@ elapsed: 1.234 s
 - `frames` is the number of frames written; `size` is `width` by `height`; `frame rate` is `fps` of the root; `length` is the frames divided by the frame rate, in seconds with three decimals; `renderer` is the renderer that drew: `processor` for `cpu`, `card` for `gpu`; for `auto` it is `card (chosen by auto)` when the card started, and `processor (chosen by auto: no suitable card)` when none did (section 1.2; the names are those of `card-renderer.md` section 3); `elapsed` is the seconds the run took from the start of the drawing to the end of the file, with three decimals.
 - **The settings used**, one line each, between `renderer` and `elapsed`, in the order above: `output` (the path of the finished file as it is written, before it is taken from the project folder), `backend`, `quality`, `encoder`, `codec`, `workers` and `audio bitrate` (in kbit/s). Each shows the value in use (section 1.1) and, in brackets, where it came from: `option` when an option gave it, `project file` when `framesmith.yaml` wrote it, `default` otherwise. A setting an option changed shows the option's value. `output` is `project file` when the project file wrote `render.output`, `paths.renders` or `name`, the keys it is made from.
 - **Lowered.** When the mix was lowered (`sound.md`, section 4), one more line after `audio bitrate`: `lowered: {amount} dB`, where `{amount}` is minus twenty times the base-ten logarithm of the amount every sample was multiplied by, at two decimals (`lowered: 7.02 dB`). A mix that needed no lowering has no such line.
-- Nothing is printed on standard error.
+- On standard error, only the progress lines (section 5.5).
 
 | Outcome | Standard output | Exit code |
 |---|---|---|
