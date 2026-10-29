@@ -36,25 +36,20 @@ pub(crate) struct Refused {
     pub reason: String,
 }
 
-/// The picture files of a run, each read once, by the path it resolves to.
+/// The picture files of a run, each read once, by the path it resolves to. The codecs are the registry the caller
+/// hands in (`text.md`, section 12.4): this crate never registers the system's backend itself.
 #[derive(Default)]
 pub(crate) struct Stills {
-    codecs: Option<codec::Registry>,
     read: HashMap<PathBuf, Result<Arc<Still>, Refused>>,
 }
 
 impl Stills {
     /// The picture of the file `src` names, read through frx7 (section 2), or why it is not drawn (section 3).
-    pub fn picture(&mut self, project: &Project, src: &str) -> Result<Arc<Still>, Refused> {
+    pub fn picture(&mut self, project: &Project, src: &str, codecs: &codec::Registry) -> Result<Arc<Still>, Refused> {
         let path = project.resolve(src);
         if let Some(found) = self.read.get(&path) {
             return found.clone();
         }
-        let codecs = self.codecs.get_or_insert_with(|| {
-            let mut codecs = codec::Registry::new();
-            codecs.register(backend_os::BACKEND);
-            codecs
-        });
         let found = read(codecs, &path, src);
         self.read.insert(path, found.clone());
         found

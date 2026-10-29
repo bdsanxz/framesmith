@@ -1073,7 +1073,7 @@ fn walk_canvas(
                 places.push(None);
                 continue;
             };
-            let still = match stills.picture(project, &form.src) {
+            let still = match stills.picture(project, &form.src, codecs) {
                 Ok(still) => still,
                 Err(refused) => {
                     refusals.push(Refusal::of_place(refused.code, node.line(), refused.reason));
