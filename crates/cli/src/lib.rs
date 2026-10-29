@@ -483,6 +483,11 @@ fn render(path: PathBuf, options: &Options, marks: bool, start_card: &StartCard,
                 choice.summary_line(),
             ];
             lines.extend(settings_used(settings, &written_output));
+            // A mix lowered as a whole says by how much (`docs/spec/sound.md`, section 4); a mix
+            // that needed none has no such line.
+            if let Some(db) = written.lowered_db {
+                lines.push(format!("lowered: {db:.2} dB"));
+            }
             lines.push(format!("elapsed: {:.3} s", written.seconds));
             lines.extend(
                 drawn_marks
