@@ -64,8 +64,8 @@ fn fixture(row: &Row) -> PathBuf {
     repository().join("fixtures/support-table").join(row.name.to_lowercase())
 }
 
-/// The fixtures of an entry: its own folder, and each folder beside it named for another form of the entry, such as
-/// `s37-tween` beside `s37` (the `<set>` of animated blur), so that every form the entry names has a fixture.
+/// The fixtures of an entry: its own folder, and each folder beside it named for another form of the entry,
+/// so that every form the entry names has a fixture.
 fn fixtures_of(row: &Row) -> Vec<PathBuf> {
     let own = row.name.to_lowercase();
     let mut found = vec![fixture(row)];

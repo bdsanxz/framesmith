@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A blur tweened to nothing, linearly. The box starts blurred by 20 pixels and its blur runs to 0 over the one second,
+     so frame 15 is blurred by 10. Its ink is 40 by 64 pixels at left 16, on dark blue, in a 64 by 64 frame at 30 frames a
+     second. The values are in fixtures/blur-brightness-worked-values.md, section 1. -->
+<composition version="1" id="blur-tween-linear" width="64" height="64" fps="30" duration="1" background="#102040">
+  <box left="16" top="0" width="40" height="64" background="#e0a030" blur="20">
+    <tween duration="1" to-blur="0"/>
+  </box>
+</composition>

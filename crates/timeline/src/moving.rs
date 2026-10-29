@@ -38,7 +38,6 @@ pub(crate) struct Movement {
     pub(crate) own: [f64; PROP_COUNT],
     pub(crate) origin: (Length, Length),
     pub(crate) perspective: Option<f64>,
-    pub(crate) filter: Filter,
     pub(crate) lines: Vec<u32>,
     /// The `drop-shadow` the element writes, and its line (`docs/spec/render-command.md` section 4.7, rule 5).
     pub(crate) shadow: Option<(Option<Shadow>, u32)>,
@@ -51,6 +50,20 @@ impl Movement {
     }
 }
 
+/// The refusal of a written `blur` or `brightness` below 0 (`FS-0034`), on its attribute's line, for an attribute named
+/// `name` that holds `value` (`docs/spec/notation.md`, section 8.1). `None` when the attribute is not one of these two, or
+/// holds 0 or more, or holds no number (the form check's).
+fn below_zero(name: &str, line: u32, shown: &str, value: Option<f64>) -> Option<Found> {
+    let reason = match name {
+        "blur" | "from-blur" | "to-blur" => "a blur is a standard deviation in pixels, 0 or more",
+        "brightness" | "from-brightness" | "to-brightness" => "a brightness is a factor the colours are multiplied by, 0 or more",
+        _ => return None,
+    };
+    value
+        .filter(|value| *value < 0.0)
+        .map(|_| (Code::LengthNotAccepted, line, format!("`{name}=\"{shown}\"` is below 0: {reason}")))
+}
+
 /// Reads the movement attributes of an element. A `transform-origin` that is not two lengths is reported (`FS-0034`), and a
 /// `perspective` of 0 or less (`FS-0053`), and a `blur` or a `brightness` below 0 (`FS-0034`); a value that is not a number
 /// is the form check's, and is left at its starting value here (a `perspective` that is not a number, at none).
@@ -59,7 +72,6 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
         own: PROPS.map(Prop::own_value),
         origin: (Length::Percent(Number::whole(50)), Length::Percent(Number::whole(50))),
         perspective: None,
-        filter: Filter::NONE,
         lines: Vec::new(),
         shadow: None,
     };
@@ -106,9 +118,8 @@ pub(crate) fn read_movement(node: &Node) -> (Movement, Vec<Found>) {
             }
             continue;
         }
-        if name == "blur" || name == "brightness" {
-            read_filter(attribute, &mut movement.filter, &mut found);
-            continue;
+        if let Some(refusal) = below_zero(name, attribute.line(), &attribute.shown(), attribute.number()) {
+            found.push(refusal);
         }
         if let (Some(prop), Some(value)) = (Prop::from_name(name), attribute.number()) {
             movement.own[prop.index()] = value;
@@ -197,7 +208,12 @@ pub(crate) fn read_tween(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found
                     _ => continue,
                 };
                 match Prop::from_name(property) {
-                    Some(prop) => values[prop.index()] = attribute.number(),
+                    Some(prop) => {
+                        values[prop.index()] = attribute.number();
+                        if let Some(refusal) = below_zero(name, attribute.line(), &attribute.shown(), attribute.number()) {
+                            found.push(refusal);
+                        }
+                    }
                     None => {
                         // `from-` and `to-` name the one property: the refusal of it is reported once on the line.
                         let (code, message) =
@@ -244,7 +260,12 @@ pub(crate) fn read_set(node: &Node, origin: Time) -> (Option<Tween>, Vec<Found>)
             continue;
         }
         match Prop::from_name(name) {
-            Some(prop) => to[prop.index()] = attribute.number(),
+            Some(prop) => {
+                to[prop.index()] = attribute.number();
+                if let Some(refusal) = below_zero(name, attribute.line(), &attribute.shown(), attribute.number()) {
+                    found.push(refusal);
+                }
+            }
             None => {
                 let (code, message) = support::refused_property(name, format!("<set> changes `{}`", project::shown(name)));
                 found.push((code, attribute.line(), message));
@@ -279,7 +300,6 @@ pub(crate) struct Mover {
     pub(crate) rect: Rect,
     pub(crate) origin: (f64, f64),
     pub(crate) perspective: Option<f64>,
-    pub(crate) filter: Filter,
     pub(crate) motion: Option<ElementMotion>,
     pub(crate) clip: Option<Rect>,
     /// The shadow that follows the element's finished picture.
@@ -310,6 +330,16 @@ impl Mover {
             }
         }
         values
+    }
+
+    /// The blur and brightness of the element's picture at `time`: the tween's value, or its own (`docs/spec/render-command.md`,
+    /// section 4.5, rule 11).
+    pub(crate) fn filter_at(&self, time: Time) -> Filter {
+        let values = self.values(time);
+        Filter {
+            blur: values[Prop::Blur.index()],
+            brightness: values[Prop::Brightness.index()],
+        }
     }
 
     /// The element's map, opacity and turn in space at `time` (`docs/spec/render-command.md`, section 4.5, rules 3, 6 and

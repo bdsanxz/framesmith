@@ -940,7 +940,7 @@ The same names are used as attributes (the starting value, section 6), in `from-
 | `draw` | 0 to 1 | `1` | On a `<shape>` with `stroke-width` only: the share of each outline drawn (7.11). |
 | `typed` | characters | all of them | On a `<text>` or `<span>`: how many of its own characters show (7.12). |
 
-Fractions of `typed` are rounded down. `opacity` and the properties marked 0 to 1 are clamped to their range; a number outside it is not reported.
+Fractions of `typed` are rounded down. `opacity` and the properties marked 0 to 1 are clamped to their range; a number outside it is not reported. `blur` and `brightness` take a value of 0 or more wherever they are written: as an attribute, as the value of a `<set>`, and as the `from` or `to` of a `<tween>`. A value below 0 there is reported with its line as `FS-0034` (`render-command.md` section 4.5, rule 11). Only the eased value of a `<tween>` can go below 0, with an easing that overshoots, such as `out-back(n)` (`motion.md`); that value is held at 0 for the time it gives it.
 
 ### 8.2 `<tween>`
 
@@ -1310,7 +1310,6 @@ The names and recognition rules of the entries are **proposed by the maintainer*
 | S33 | A corner written as an ellipse: `border-radius="24 / 12"` or `"24 12"` | A `border-radius` of two numbers, or of two numbers with a `/` between them | One circular radius per corner only | Sprint 5 |
 | S34 | A film written to a path that does not end in `.mp4` or `.m4v`: `render.output: renders/film.mov`, `framesmith render --output film.mov` | A `render.output` of the project file, or an `--output` of `render`, whose extension, in any case, is not `mp4` or `m4v`, a path with no extension among them | A film is written as an MP4 file only; a QuickTime movie is Sprint 9's, and no other kind of file is planned (decision B40) | Sprint 9 (`.mov`); not assigned (any other) |
 | S35 | Border, border-radius and overflow on a `<text>` or a `<span>`; opacity, blur and brightness on a `<span>`: `border`, `border-radius`, `overflow`, `opacity`, `blur`, `brightness` | The attribute on a text or a span | Not drawn on a text or a span yet | Sprint 5 (n05-layout-text-look), acceptance criterion 1: every attribute value of the notation has a fixture with a checked-in picture on the processor and agreement on the card (PLAN.md); roadmap 5.23 |
-| S37 | Animated blur and brightness: `blur` or `brightness` in a `<tween>` or a `<set>` | The attribute on a `<tween>` or a `<set>` | Animated blur and brightness are not drawn yet | Sprint 1, T067 |
 | S38 | Blends: `mix-blend-mode` | The attribute on an element | Blending with what is under is not drawn yet | Sprint 1, T057 |
 | S39 | Torn edges and grain: `displace`, `grain` | Either attribute on an element | Not drawn yet | Sprint 1, T058 |
 | S41 | A cut to a polygon: `clip-path` | The attribute on an element | Not drawn yet | Sprint 1, T061 |

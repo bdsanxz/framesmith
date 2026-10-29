@@ -90,15 +90,37 @@ fn a_set_on_a_property_its_element_does_not_take_is_reported_on_its_line() {
 
 #[test]
 fn a_set_on_an_animated_property_this_version_does_not_move_is_refused_on_its_line() {
-    let lines = refused("blur", "<set at=\"1\" blur=\"4\"/>", 2);
+    let lines = refused("reveal", "<set at=\"1\" reveal=\"0.5\"/>", 2);
     assert_eq!(lines.len(), 1, "{lines:?}");
     assert!(
         lines[0].starts_with(
-            "composition.xml, line 3: FS-0035: unsupported: <set> changes `blur`, which this version does not support (support table S37: "
+            "composition.xml, line 3: FS-0035: unsupported: <set> changes `reveal`, which this version does not support (support table S44: "
         ),
         "{}",
         lines[0]
     );
+}
+
+#[test]
+fn a_set_on_blur_and_brightness_is_accepted_by_check_and_drawn_by_render() {
+    let (folder, cwd) = project(
+        GROUP,
+        "blur-brightness",
+        &composition("<set at=\"0.5\" blur=\"10\" brightness=\"0.5\"/>"),
+    );
+    let checked = framesmith(&cwd, ["check", folder.to_str().unwrap()], &[]);
+    assert_eq!(checked.status.code(), Some(0), "{}{}", out(&checked), err(&checked));
+    let rendered = framesmith(&cwd, ["render", folder.to_str().unwrap(), "--backend", "cpu"], &[]);
+    assert_eq!(rendered.status.code(), Some(0), "{}{}", out(&rendered), err(&rendered));
+    assert!(has_a_film(&folder));
+}
+
+#[test]
+fn a_set_to_a_negative_blur_is_reported_on_its_line_as_below_0() {
+    let lines = refused("negative-blur", "<set at=\"1\" blur=\"-2\"/>", 1);
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    assert!(lines[0].starts_with("composition.xml, line 3: FS-0034:"), "{}", lines[0]);
+    assert!(lines[0].contains("`blur=\"-2\"` is below 0"), "{}", lines[0]);
 }
 
 #[test]

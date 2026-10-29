@@ -10,7 +10,6 @@ pub(crate) fn attribute_entry(element: Element, name: &str) -> Option<Unsupporte
     let found = match name {
         "border" | "border-radius" | "overflow" if matches!(element, Element::Text | Element::Span) => Unsupported::TextAndSpanLook,
         "blur" | "brightness" if element == Element::Span => Unsupported::TextAndSpanLook,
-        "blur" | "brightness" => Unsupported::AnimatedBlurBrightness,
         "mix-blend-mode" => Unsupported::Blends,
         "displace" | "grain" => Unsupported::TornEdgesAndGrain,
         "clip-path" => Unsupported::PolygonCut,
