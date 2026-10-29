@@ -82,7 +82,7 @@ pub enum Unsupported {
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 69] = [
+    pub const ALL: [Unsupported; 68] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
