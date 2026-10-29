@@ -336,6 +336,13 @@ fn shape_render_problems() -> Vec<(&'static str, String, Option<&'static str>, C
             Code::SizeNotAboveZero,
             1,
         ),
+        (
+            "shape-dash-below-zero",
+            root(r#"<shape d="M0 0 L10 10" width="10" height="10" stroke-width="2" dash="-2 5"/>"#),
+            None,
+            Code::ShapeNotInForm,
+            1,
+        ),
     ]
 }
 
@@ -518,6 +525,12 @@ fn wrong_roots() -> Vec<(&'static str, Vec<u8>, Code, u32)> {
         (
             "shape-dash-not-pairs",
             inside_root("<shape d=\"M0 0 L10 10\" stroke-width=\"2\" dash=\"10 5 3\" width=\"4\" height=\"4\"/>"),
+            Code::ShapeNotInForm,
+            2,
+        ),
+        (
+            "shape-dash-below-zero",
+            inside_root("<shape d=\"M0 0 L10 10\" stroke-width=\"2\" dash=\"-2 5\" width=\"4\" height=\"4\"/>"),
             Code::ShapeNotInForm,
             2,
         ),
