@@ -19,8 +19,6 @@ use timeline::Scene;
 
 use crate::footage::Sources;
 
-/// The quality `render.quality: standard` asks the encoder for, from 0 to 1 (decision D22).
-const STANDARD_QUALITY: f32 = 0.65;
 /// The quality each `render.quality` asks the machine's own encoder for, from 0 to 1 (`docs/spec/render-command.md`
 /// section 5.4; `standard` is decision D22's).
 const HARDWARE_QUALITY: [(Quality, f32); 3] = [(Quality::Draft, 0.45), (Quality::Standard, 0.65), (Quality::High, 0.85)];
