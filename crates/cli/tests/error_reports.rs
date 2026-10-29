@@ -2,6 +2,9 @@
 //! line where there is one, one sentence on what is wrong and one on what to change
 //! (`docs/spec/error-catalogue.md`), with or without a terminal that asks for colour.
 
+#[path = "../../render/tests/common/png.rs"]
+mod png;
+
 use std::collections::BTreeSet;
 use std::ffi::{OsStr, OsString};
 use std::fs;
@@ -232,6 +235,28 @@ fn shown_problems() -> Vec<ShownProblem> {
 
 /// Projects whose `<font>` names a file that is missing, that cannot be read, or that is not a font. Each is run as a
 /// project of its own, like `shown_problems`.
+/// An `<image>` whose file is not there, and one whose file is a PNG cut short after its header
+/// (`docs/spec/still-pictures.md`, section 3).
+fn picture_problems() -> Vec<ShownProblem> {
+    let image = |src: &str| inside_root(&format!("<image src=\"{src}\" left=\"0\" top=\"0\"/>"));
+    let cut = png::encode(4, 2, &[90; 32])[..40].to_vec();
+    vec![
+        (
+            "picture-missing",
+            vec![("composition.xml".to_string(), image("pictures/gone.png"))],
+            Code::PictureMissing,
+        ),
+        (
+            "picture-damaged",
+            vec![
+                ("composition.xml".to_string(), image("pictures/cut.png")),
+                ("pictures/cut.png".to_string(), cut),
+            ],
+            Code::PictureDamaged,
+        ),
+    ]
+}
+
 fn font_problems() -> Vec<ShownProblem> {
     let font = |src: &str| inside_root(&format!("<font src=\"{src}\" family=\"Test\"/>"));
     vec![
@@ -777,7 +802,12 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
         assert!(printed.contains(&format!("{code}: ")), "{name}: {printed}");
         emitted.insert(code.as_str());
     }
-    for (name, files, code) in shown_problems().into_iter().chain(font_problems()).chain(sound_problems()) {
+    for (name, files, code) in shown_problems()
+        .into_iter()
+        .chain(font_problems())
+        .chain(picture_problems())
+        .chain(sound_problems())
+    {
         let (project, cwd) = project_with_files(&format!("emit-{name}"), &files);
         let output = framesmith(&cwd, Terminal::AsksForNone, [OsStr::new("check"), project.as_os_str()]);
         let printed = text(&output.stdout);

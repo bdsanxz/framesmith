@@ -16,7 +16,8 @@ draw = { workspace = true }
 timebase = { workspace = true }
 motion = { workspace = true }
 text = { workspace = true }
-# The codec registry the caller hands in for the emoji pictures (`text.md`, section 12.4): the type of the scene's arguments.
+base = { workspace = true }
+# The codec registry the caller hands in for the emoji pictures (`text.md`, section 12.4) and the still pictures: the type of the scene's arguments.
 codec = { workspace = true }
 tracing = { workspace = true }
 

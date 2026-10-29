@@ -47,7 +47,6 @@ pub enum Unsupported {
     AnimatedBlurBrightness = 37,
     Blends = 38,
     TornEdgesAndGrain = 39,
-    StillPictures = 40,
     PolygonCut = 41,
     Shapes = 42,
     CountingTypingSpanMotion = 43,
@@ -83,7 +82,7 @@ pub enum Unsupported {
 
 impl Unsupported {
     /// Every entry, in the order of the table.
-    pub const ALL: [Unsupported; 69] = [
+    pub const ALL: [Unsupported; 68] = [
         Unsupported::RelativeStart,
         Unsupported::AutoDuration,
         Unsupported::RatioFrameRate,
@@ -122,7 +121,6 @@ impl Unsupported {
         Unsupported::AnimatedBlurBrightness,
         Unsupported::Blends,
         Unsupported::TornEdgesAndGrain,
-        Unsupported::StillPictures,
         Unsupported::PolygonCut,
         Unsupported::Shapes,
         Unsupported::CountingTypingSpanMotion,
@@ -206,7 +204,6 @@ impl Unsupported {
             Unsupported::AnimatedBlurBrightness => "Animated blur and brightness are not drawn yet",
             Unsupported::Blends => "Blending with what is under is not drawn yet",
             Unsupported::TornEdgesAndGrain => "Not drawn yet",
-            Unsupported::StillPictures => "Still pictures are not read or drawn yet",
             Unsupported::PolygonCut => "Not drawn yet",
             Unsupported::Shapes => "Path data is not drawn yet",
             Unsupported::CountingTypingSpanMotion => "Counting, typing and the motion of a span are not built yet",
@@ -281,7 +278,6 @@ impl Unsupported {
             Unsupported::AnimatedBlurBrightness => "Sprint 1, T067",
             Unsupported::Blends => "Sprint 1, T057",
             Unsupported::TornEdgesAndGrain => "Sprint 1, T058",
-            Unsupported::StillPictures => "Sprint 1, T059",
             Unsupported::PolygonCut => "Sprint 1, T061",
             Unsupported::Shapes => "Sprint 1, T062",
             Unsupported::CountingTypingSpanMotion => "Sprint 1, T069",

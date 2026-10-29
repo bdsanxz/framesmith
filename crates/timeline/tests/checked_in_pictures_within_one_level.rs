@@ -33,6 +33,13 @@ fn checked_in() -> Vec<(String, Vec<(u64, PathBuf)>)> {
         if fs::read_to_string(folder.join("composition.xml")).is_ok_and(|text| text.contains("<video")) {
             continue;
         }
+        // A fixture that shows a still picture needs its file read, which takes the caller's registry with the
+        // system's backend registered; the timeline's own registry has none, so the timeline leaves those pictures
+        // to `render`: they are held by `crates/render/tests/still_picture_boxes.rs` and
+        // `crates/render/tests/still_pictures_fixtures_worked_by_hand.rs`.
+        if fs::read_to_string(folder.join("composition.xml")).is_ok_and(|text| text.contains("<image")) {
+            continue;
+        }
         let mut frames = Vec::new();
         for entry in fs::read_dir(&expected).unwrap() {
             let path = entry.unwrap().path();

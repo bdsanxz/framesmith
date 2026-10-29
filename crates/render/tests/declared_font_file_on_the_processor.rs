@@ -52,7 +52,8 @@ fn a_text_naming_the_declared_family_is_drawn_with_the_declared_file_on_frame_0_
                 | Mark::Ring(_)
                 | Mark::Cut(_)
                 | Mark::BoxShadow(_)
-                | Mark::Picture(_) => Vec::new(),
+                | Mark::Picture(_)
+                | Mark::Still(_) => Vec::new(),
             })
             .collect();
         assert_eq!(runs.len(), 1, "frame {number} draws one run of glyphs");
