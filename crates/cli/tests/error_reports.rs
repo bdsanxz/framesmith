@@ -824,6 +824,23 @@ fn every_code_of_the_list_is_emitted_by_the_command_on_some_input() {
     assert_eq!(output.status.code(), Some(1), "{printed}");
     assert!(printed.contains(&format!(": {}: ", Code::SoundUnreadable.as_str())), "{printed}");
     emitted.insert(Code::SoundUnreadable.as_str());
+    // The points of a sound's level are judged from the composition alone: an out-of-order point and a point with no
+    // value, each reported on its line (`docs/spec/sound.md`, section 3a).
+    let (levels, levels_cwd) = project_with_files(
+        "emit-volume-points",
+        &[(
+            "composition.xml".to_string(),
+            inside_root("<audio src=\"tone.wav\" duration=\"1\">\n<volume at=\"2\" value=\"1\"/>\n<volume at=\"1\"/>\n</audio>"),
+        )],
+    );
+    let output = framesmith(&levels_cwd, Terminal::AsksForNone, [OsStr::new("check"), levels.as_os_str()]);
+    let printed = text(&output.stdout);
+    assert_eq!(output.status.code(), Some(1), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::VolumeOutOfOrder.as_str())), "{printed}");
+    assert!(printed.contains(&format!(": {}: ", Code::VolumeNoValue.as_str())), "{printed}");
+    emitted.insert(Code::VolumeOutOfOrder.as_str());
+    emitted.insert(Code::VolumeNoValue.as_str());
+
     let (ulaw, ulaw_cwd) = project_with_files(
         "emit-sound-not-read",
         &[

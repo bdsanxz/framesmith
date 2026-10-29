@@ -86,3 +86,5 @@ A code with no row here is new. Its row is added when the code is first merged t
 | `FS-0074` | The system's encoder on the processor does not take the film's size with these settings. |
 | `FS-0085` | A `<video>` has no `width` or no `height`, or one below 2. |
 | `FS-0086` | A `<video>` has no `src`. |
+| `FS-0087` | The `<volume>` points of an `<audio>` are not in order of time: a point is before the one before it. |
+| `FS-0088` | A `<volume>` has no `value`. |

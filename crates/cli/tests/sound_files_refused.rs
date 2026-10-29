@@ -183,41 +183,6 @@ fn a_media_start_past_the_end_of_the_source_is_reported() {
 }
 
 #[test]
-fn a_volume_on_an_audio_is_refused_by_render_as_not_applied() {
-    let runs = check_and_render(
-        "volume",
-        "<audio src=\"tone.wav\" start=\"0\" duration=\"1\" volume=\"0.5\"/>",
-        &[("tone.wav", a_good_wav())],
-    );
-    let (status, lines) = &runs[1];
-    assert_eq!(*status, Some(2), "{lines:?}");
-    assert_eq!(lines.len(), 1, "{lines:?}");
-    assert!(
-        lines[0].starts_with("composition.xml, line 2: FS-0035: unsupported:"),
-        "{}",
-        lines[0]
-    );
-    assert!(lines[0].contains("`volume=\"0.5\"` on <audio> is not applied"), "{}", lines[0]);
-}
-
-#[test]
-fn a_volume_point_inside_an_audio_is_refused_by_render_as_not_applied() {
-    let runs = check_and_render(
-        "volume-point",
-        "<audio src=\"tone.wav\" start=\"0\" duration=\"1\">\n<volume at=\"0\" value=\"0.5\"/>\n</audio>",
-        &[("tone.wav", a_good_wav())],
-    );
-    let (status, lines) = &runs[1];
-    assert_eq!(*status, Some(2), "{lines:?}");
-    assert_eq!(lines.len(), 1, "{lines:?}");
-    assert!(
-        lines[0].starts_with("composition.xml, line 3: FS-0035: unsupported: <volume> is not applied"),
-        "{}",
-        lines[0]
-    );
-}
-
-#[test]
 fn an_audio_in_a_composition_shown_from_another_file_is_refused_by_render() {
     let shown = b"<composition version=\"1\" width=\"64\" height=\"64\" fps=\"30\" duration=\"1\">\n<audio src=\"tone.wav\" start=\"0\" duration=\"1\"/>\n</composition>\n".to_vec();
     let runs = check_and_render(

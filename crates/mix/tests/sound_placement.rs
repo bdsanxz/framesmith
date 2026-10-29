@@ -81,6 +81,7 @@ fn a_click_is_at_its_own_sample_not_a_frame_edge() {
         end: 48_005 + 4_800,
         skip: 0,
         source: source(2, 1, |_, _| 0.5),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);
@@ -96,6 +97,7 @@ fn a_sound_of_two_seconds_is_heard_for_96000_frames_and_silent_around() {
         end: 144_000,
         skip: 0,
         source: source(2, 480_000, |_, _| 0.25),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);
@@ -113,6 +115,7 @@ fn media_start_makes_the_first_sample_the_source_frame_there() {
         end: 48_000,
         skip: 24_000,
         source: source(2, 96_000, |i, _| i as f32 / 1e6),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);
@@ -128,6 +131,7 @@ fn one_channel_is_heard_on_both_sides_3_db_lower() {
         end: 48_000,
         skip: 0,
         source: source(1, 48_000, |_, _| 0.5),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);
@@ -146,6 +150,7 @@ fn a_short_source_is_heard_to_its_end_then_silence() {
         end: 144_000,
         skip: 0,
         source: source(2, 48_000, |_, _| 0.25),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);
@@ -163,6 +168,7 @@ fn a_sound_past_the_film_is_cut_and_the_length_kept() {
         end: 120_000,
         skip: 0,
         source: source(2, 480_000, |_, _| 0.25),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);
@@ -178,6 +184,7 @@ fn sounds_at_the_same_time_are_added() {
         end: 100,
         skip: 0,
         source: source(2, 480, |_, _| 0.25),
+        level: Default::default(),
     })
     .unwrap();
     mix.place(Sound {
@@ -185,6 +192,7 @@ fn sounds_at_the_same_time_are_added() {
         end: 150,
         skip: 0,
         source: source(2, 480, |_, _| 0.5),
+        level: Default::default(),
     })
     .unwrap();
     let all = read_all(mix);

@@ -43,6 +43,10 @@ pub fn open_sounds(file: &str, sounds: &[Sound]) -> Result<Vec<mix::Sound>, Vec<
                     end: sound.end,
                     skip: sound.skip(source.sample_rate()),
                     source,
+                    level: mix::Level {
+                        volume: sound.level.volume,
+                        points: sound.level.points.iter().map(|(at, value)| (at.to_f64(), *value)).collect(),
+                    },
                 });
             }
             Err((code, message)) => reports.push(Report::new(file, Problem::new(code, sound.line, message))),

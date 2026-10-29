@@ -12,4 +12,4 @@ mod sound;
 mod support;
 
 pub use scene::{place_reports, place_reports_and_notes, Footage, FootageSource, PictureError, Scene};
-pub use sound::{sounds, Sound};
+pub use sound::{sounds, Level, Sound};
