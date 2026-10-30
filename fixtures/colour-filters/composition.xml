@@ -1,0 +1,11 @@
+<composition version="1" width="320" height="136" fps="10" duration="1" background="#000000">
+<image src="pictures/worked-strip.png" left="4" top="4" width="100" height="36" filter="brightness(0.5)"/>
+<image src="pictures/worked-strip.png" left="110" top="4" width="100" height="36" filter="contrast(2)"/>
+<image src="pictures/worked-strip.png" left="216" top="4" width="100" height="36" filter="saturate(0)"/>
+<image src="pictures/worked-strip.png" left="4" top="48" width="100" height="36" filter="grayscale(1)"/>
+<image src="pictures/worked-strip.png" left="110" top="48" width="100" height="36" filter="brightness(0.5) contrast(2)"/>
+<image src="pictures/worked-strip.png" left="216" top="48" width="100" height="36" filter="contrast(2) brightness(0.5)"/>
+<image src="pictures/worked-strip.png" left="4" top="92" width="100" height="36" filter="saturate(1) contrast(1) brightness(1)"/>
+<image src="pictures/worked-strip.png" left="110" top="92" width="100" height="36" filter="grayscale(0.5)"/>
+<image src="pictures/worked-strip.png" left="216" top="92" width="100" height="36"/>
+</composition>

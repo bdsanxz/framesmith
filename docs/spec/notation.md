@@ -876,7 +876,16 @@ Where the element is partly clear the result is mixed with what is under it by t
 
 ### 7.9 Colour filters, masks and colour tables
 
-- **`filter`** (on `<image>` and `<video>`): a space-separated list of `brightness(n)`, `contrast(n)`, `saturate(n)` and `grayscale(n)`, each with a plain number, applied in order to the picture's colours.
+- **`filter`** (on `<image>` and `<video>`): a space-separated list of `brightness(n)`, `contrast(n)`, `saturate(n)` and `grayscale(n)`, each with a plain number, applied in order to the picture's colours. On `<video>` it is not applied yet (section 14, S46); it waits until T078.
+- The steps work on the stored sRGB values of each colour (0 to 255 a channel), not on linear light, as the W3C Filter Effects specification's markup equivalents draw them (W3C Filter Effects Module Level 1, section 13.1). The steps apply in the order written; each step's result is rounded to the nearest whole level, halves up, and brought into 0 to 255 before the next step. The transparency is unchanged by every step.
+- **`brightness(n)`**: every value is multiplied by `n` (`C' = n * C`); 1 leaves the picture, 0 makes it black.
+- **`contrast(n)`**: every value moves away from the middle by `n` (`C' = n * (C - 127.5) + 127.5`); 1 leaves the picture, 0 makes every colour mid grey (128 after rounding).
+- **`saturate(n)`**: each colour takes its place between its grey and itself by `n`, with the grey of the specification's matrix (luminance weights 0.2126, 0.7152, 0.0722):
+  `R' = (0.2126 + 0.7874n) * R + (0.7152 - 0.7152n) * G + (0.0722 - 0.0722n) * B`;
+  `G' = (0.2126 - 0.2126n) * R + (0.7152 + 0.2848n) * G + (0.0722 - 0.0722n) * B`;
+  `B' = (0.2126 - 0.2126n) * R + (0.7152 - 0.7152n) * G + (0.0722 + 0.9278n) * B`.
+  1 leaves the picture; 0 drains every colour to its grey.
+- **`grayscale(n)`**: the same as `saturate(1 - n)`; 1 makes red, green and blue equal (the grey above), 0 leaves the picture.
 - **`mask`** (on `<image>`): one gradient; it fades the picture's transparency. Only the alpha of the colours counts: `linear-gradient(180deg, #000000ff 0%, #00000000 100%)` fades the picture out downwards. A mask by a picture is on the table of section 14 (S18).
 - **`lut`** (on `<video>`): the path of a `.cube` file of the project, a colour table of three dimensions. Every colour of the video, as shown (8 bits a channel, after the conversion from the source's own colour form), is replaced by the colour the table gives, before the steps of `filter`; the result is a whole level before `filter` sees it. The table has `N` points along each of red, green and blue, `N` from 2 to 128 given by `LUT_3D_SIZE`; its rows are three numbers each, red first, red changing quickest, then green, then blue. A colour between points takes its place between the eight points around it: along red first, then green, then blue; a result outside 0 to 1 is brought to the nearer end. Empty lines, lines that begin with `#` and `TITLE` lines are passed over. Reported when the composition is read, with the line of the `<video>`, the file and the line of the file where there is one: a file not found; a table of one dimension (`LUT_1D_SIZE`); a range other than 0 to 1 (`DOMAIN_MIN`, `DOMAIN_MAX`); a keyword that is not known; a row that is not three numbers; a number of rows other than `N * N * N`. Both renderers give the same colours to within one level.
 
@@ -1225,6 +1234,7 @@ Each message is given with its line as `line N: message`, and `file, line N: mes
 | Bad transform origin | `` `transform-origin="..."` is not two lengths `` |
 | Bad clip path | `` `clip-path="..."` is not a polygon of three or more corners in percent `` |
 | Bad filter | `` `filter="..."` is not a list of: brightness(), contrast(), saturate(), grayscale() `` |
+| `filter` on another element | `` `filter` is for an `<image>` or a `<video>`, not a `<box>` `` (with the element found; the elements that take it named) |
 | Bad mask | `` `mask="..."` is not one gradient `` |
 | Bad torn edge | `` `displace="..."` is not an amount above 0 and a noise: `14 noise(0.035 3 9)` `` |
 | Bad uneven ink | `` `grain="..."` is not a noise, a slope and an offset: `noise(0.9 2 5) -1.7 1.75` `` |
