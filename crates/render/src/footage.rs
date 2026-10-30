@@ -178,6 +178,8 @@ fn open_length(formats: &format::Registry, source: &FootageSource) -> Option<Tim
         return None;
     }
     Some(Time::new(tracks[track].duration as i128, timescale as i128))
+}
+
 /// The pictures one frame shows: asked through the scene's walk of the frame, exactly as drawing asks for them, but
 /// without decoding any (`docs/spec/render-command.md`, section 5.5). The footage stage decodes these ahead of the
 /// drawing stage; the drawing stage takes them from the shared sources, decoding itself whatever the footage stage
