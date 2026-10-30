@@ -39,7 +39,7 @@ const B: ([u8; 3], [u8; 3]) = ([51, 255, 102], [204, 0, 255]);
 
 fn scene() -> Scene {
     let folder = project_copied_from_fixture("blends-fixture", FIXTURE, FIXTURE);
-    Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{reports:?}"))
+    Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs()).unwrap_or_else(|reports| panic!("{reports:?}"))
 }
 
 #[test]

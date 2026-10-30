@@ -2,7 +2,7 @@
 //! finished picture of the element, so a group of two children casts the shadow of both children, and not of the box that
 //! would hold them. The gap between the children casts none. The expected colours are worked by hand.
 
-use draw::{Colour, Filter, Frame, Group, Map, Mark, Renderer, Shadow, Step};
+use draw::{Blend, Colour, Filter, Frame, Group, Map, Mark, Renderer, Shadow, Step};
 use draw_cpu::CpuRenderer;
 use layout::Rect;
 
@@ -47,6 +47,7 @@ fn a_shadow_of_a_group_follows_each_child_and_not_the_box_around_them() {
             blur: 0.0,
             colour: Colour { red: 0, green: 0, blue: 0 },
         }),
+        blend: Blend::Normal,
     };
     let picture = CpuRenderer
         .draw_frame(&Frame {

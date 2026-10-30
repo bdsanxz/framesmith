@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use draw::{Colour, Filter, Frame, Group, Map, Mark, PlacedPicture, Renderer};
+use draw::{Blend, Colour, Filter, Frame, Group, Map, Mark, PlacedPicture, Renderer};
 use draw_cpu::CpuRenderer;
 use layout::Rect;
 
@@ -93,6 +93,7 @@ fn the_picture_is_laid_only_inside_the_cut_of_its_group() {
         turn: None,
         filter: Filter::NONE,
         shadow: None,
+        blend: Blend::Normal,
         marks: vec![Mark::Picture(counted(8, 8, 2.0, 2.0))],
     });
     let picture = drawn(vec![group]);
@@ -117,6 +118,7 @@ fn a_whole_move_of_its_group_moves_the_picture_by_those_pixels() {
         turn: None,
         filter: Filter::NONE,
         shadow: None,
+        blend: Blend::Normal,
         marks: vec![Mark::Picture(counted(2, 2, 1.0, 3.0))],
     });
     let picture = drawn(vec![group]);
@@ -146,6 +148,7 @@ fn under_a_quarter_turn_the_mapped_path_samples_each_pixel_of_the_picture_exactl
         turn: None,
         filter: Filter::NONE,
         shadow: None,
+        blend: Blend::Normal,
         marks: vec![Mark::Picture(counted(4, 3, 0.0, 0.0))],
     });
     let picture = drawn(vec![group]);

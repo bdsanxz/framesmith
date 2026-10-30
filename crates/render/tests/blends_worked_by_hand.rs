@@ -53,7 +53,8 @@ enum On {
 
 fn drawn(name: &str, composition: &str, on: &On) -> Picture {
     let folder = project_with("blends-worked-by-hand", name, composition);
-    let scene = Scene::from_project(&Project::open(&folder).unwrap()).unwrap_or_else(|reports| panic!("{name}: {reports:?}"));
+    let scene = Scene::from_project(&Project::open(&folder).unwrap(), &render::system_codecs())
+        .unwrap_or_else(|reports| panic!("{name}: {reports:?}"));
     match on {
         On::Processor => scene.picture(0, &mut CpuRenderer).unwrap(),
         On::Card => {

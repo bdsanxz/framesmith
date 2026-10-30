@@ -210,6 +210,7 @@ fn a_picture_moved_by_whole_pixels_is_the_picture_drawn_there() {
             turn: None,
             filter: draw::Filter::NONE,
             shadow: None,
+            blend: draw::Blend::Normal,
         })],
     );
     let there = drawn(12, 10, BLUE, vec![placed(4, 3, 8, 6, still(4, 3, pixels), Fit::Fill, (0.5, 0.5))]);

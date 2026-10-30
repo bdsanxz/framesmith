@@ -2,7 +2,7 @@
 //! the processor's picture of the group with its shadow, so the two agree, and the gap between two children casts no shadow.
 //! The card needs a graphics card that frx7 can draw with, so this test is reference machine only.
 
-use draw::{Colour, Filter, Frame, Group, Map, Mark, Renderer, Shadow, Step};
+use draw::{Blend, Colour, Filter, Frame, Group, Map, Mark, Renderer, Shadow, Step};
 use draw_cpu::CpuRenderer;
 use draw_gpu::CardRenderer;
 use layout::Rect;
@@ -44,6 +44,7 @@ fn frame() -> Frame {
             blur: 0.0,
             colour: Colour { red: 0, green: 0, blue: 0 },
         }),
+        blend: Blend::Normal,
     };
     Frame {
         width: 60,
