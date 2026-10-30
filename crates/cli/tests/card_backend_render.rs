@@ -32,6 +32,38 @@ fn near(pixel: [u8; 3], want: [u8; 3]) -> bool {
     pixel.iter().zip(want).all(|(a, b)| a.abs_diff(b) <= 12)
 }
 
+/// Standard error of a render of the first fixture (`docs/spec/render-command.md`, section 5.5):
+/// every line names one of the four stages and carries no colour; footage has nothing to do and
+/// says so once; frames, encoding and sound count to the ten frames of the fixture (a film always
+/// holds a silent sound track, so sound counts even with no sound in the composition).
+fn assert_first_fixture_progress(stderr: &str) {
+    assert!(!stderr.is_empty(), "no progress on standard error");
+    let mut footage_idle = 0;
+    let mut reached = [false; 3];
+    for line in stderr.lines() {
+        assert!(!line.contains('\u{1b}'), "{line}");
+        if line == "footage: nothing to do" {
+            footage_idle += 1;
+            continue;
+        }
+        let (stage, rest) = line.split_once(": ").unwrap_or_else(|| panic!("not a stage line: {line}"));
+        let slot = match stage {
+            "frames" => 0,
+            "encoding" => 1,
+            "sound" => 2,
+            _ => panic!("not a spec stage: {line}"),
+        };
+        let counts = rest.strip_suffix(" frames").unwrap_or_else(|| panic!("not a count line: {line}"));
+        let (done, total) = counts.split_once('/').unwrap_or_else(|| panic!("not a count line: {line}"));
+        let done: u64 = done.parse().unwrap_or_else(|_| panic!("not a count: {line}"));
+        assert_eq!(total, "10", "{line}");
+        assert!((0..=10).contains(&done), "{line}");
+        reached[slot] = reached[slot] || done == 10;
+    }
+    assert_eq!(footage_idle, 1, "{stderr}");
+    assert!(reached == [true, true, true], "a counting stage never reached ten: {stderr}");
+}
+
 /// The film at `film` has ten frames of 96 by 54 pixels, and the checked-in colours at the sample
 /// points of every frame.
 fn assert_checked_in_colours(film: &Path) {
@@ -56,7 +88,7 @@ fn reference_machine_only_the_card_backend_names_the_card_and_its_film_shows_the
     let project_text = project.display().to_string();
     let output = framesmith(&cwd, ["render", project_text.as_str(), "--backend", "gpu"], &[]);
     assert_eq!(output.status.code(), Some(0), "{}{}", out(&output), err(&output));
-    assert_eq!(err(&output), "");
+    assert_first_fixture_progress(&err(&output));
 
     let printed = out(&output);
     let lines: Vec<&str> = printed.lines().collect();
@@ -74,7 +106,7 @@ fn reference_machine_only_auto_takes_the_card_when_no_backend_is_set_and_says_so
     let project_text = project.display().to_string();
     let output = framesmith(&cwd, ["render", project_text.as_str()], &[]);
     assert_eq!(output.status.code(), Some(0), "{}{}", out(&output), err(&output));
-    assert_eq!(err(&output), "");
+    assert_first_fixture_progress(&err(&output));
 
     let printed = out(&output);
     let lines: Vec<&str> = printed.lines().collect();
