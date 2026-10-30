@@ -640,10 +640,10 @@ fn make(
                         write_sound(&mut sound_packets, muxer.as_mut(), sound_track).map_err(named)?;
                         progress.set(Stage::Sound, number + 1);
                     }
-                    // When the drawing stage stopped, the film is left unfinished, as a failed run leaves it:
+                    // When the frames stage stopped, the film is left unfinished, as a failed run leaves it:
                     // no finishing, no partial file.
                     if taken < frames {
-                        return Err(Failure::new("the drawing stage stopped".to_string()));
+                        return Err(Failure::new(format!("the {} stage stopped", Stage::Frames.name())));
                     }
                     encoder.finish().map_err(named)?;
                     take_packets(encoder.as_mut(), muxer.as_mut(), track, &mut configured).map_err(named)?;
@@ -702,7 +702,7 @@ fn make(
         drop(pictures_out);
         drop(needs_out);
         let _ = footage_stage.join();
-        // A failure of the drawing stage above returns it; a failure of the encoding stage comes
+        // A failure of the frames stage above returns it; a failure of the encoding stage comes
         // back here, where the pictures it did not take tell of it. Whatever failed, the scope
         // joins every stage.
         let (bytes, hardware) = join_encoding(encoding_stage)?;
@@ -736,7 +736,7 @@ type Needed = (u64, Vec<(usize, u64, (u32, u32))>);
 type NeedsSender = mpsc::SyncSender<Needed>;
 type NeedsReceiver = mpsc::Receiver<Needed>;
 
-/// The end of the encoding stage: its result, or its failure when the drawing stage stopped sending.
+/// The end of the encoding stage: its result, or its failure when the frames stage stopped sending.
 fn join_encoding(encoding_stage: std::thread::ScopedJoinHandle<'_, Result<(u64, bool), Failure>>) -> Result<(u64, bool), Failure> {
     match encoding_stage.join() {
         Ok(outcome) => outcome,
