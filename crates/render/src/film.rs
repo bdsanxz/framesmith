@@ -48,6 +48,9 @@ pub struct Written {
     pub seconds: f64,
     /// Whether the machine's hardware encoded the pictures.
     pub hardware: bool,
+    /// By how many decibels the mix was lowered as a whole, or none when it needed none
+    /// (`docs/spec/sound.md`, section 4).
+    pub lowered_db: Option<f64>,
 }
 
 /// How the picture is encoded: `render.codec`, `render.encoder` and `render.quality` (`docs/spec/render-command.md`
@@ -490,6 +493,15 @@ fn make(
     for sound in sounds {
         mix.place(sound).map_err(named)?;
     }
+    // The true peak of the finished mix is found before anything is encoded, and a mix over the
+    // limit is lowered as a whole (`docs/spec/sound.md`, section 4): the mix is read once to find
+    // its peak and rewound to write it, so the sound the film holds is the lowered mix throughout.
+    let peak = mix.true_peak().map_err(named)?;
+    let lowered_db = mix::peak::gain_for(peak).map(|gain| {
+        mix.set_gain(gain as f32);
+        mix::peak::lowered_db(gain)
+    });
+    mix.rewind().map_err(named)?;
     let mut sound = codecs
         .audio_encoder(&AudioEncoderSetup {
             codec: Codec::Aac,
@@ -591,6 +603,7 @@ fn make(
         bytes: finished.bytes,
         seconds: began.elapsed().as_secs_f64(),
         hardware,
+        lowered_db,
     })
 }
 

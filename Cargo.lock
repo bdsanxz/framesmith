@@ -153,6 +153,7 @@ dependencies = [
  "draw-cpu",
  "draw-gpu",
  "measure",
+ "mix",
  "project",
  "render",
  "testkit",

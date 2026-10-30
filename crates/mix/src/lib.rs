@@ -5,6 +5,8 @@
 use audio::Converter;
 use codec::AudioSource;
 
+pub mod peak;
+
 /// Sample frames a second of the mix.
 pub const SAMPLE_RATE: u32 = 48_000;
 /// Channels of the mix: left, then right.
@@ -71,6 +73,8 @@ pub struct Sound {
 struct Placed {
     first: u64,
     end: u64,
+    /// The source's sample frame first heard: rewinding moves the source back here.
+    skip: u64,
     source: Box<dyn AudioSource>,
     converter: Converter,
     /// Frames of the source asked for at a time, the channels in turn.
@@ -111,6 +115,9 @@ pub struct Mix {
     length: u64,
     read: u64,
     sounds: Vec<Placed>,
+    /// The amount every sample is multiplied by as it is read: 1 when the mix needs no lowering
+    /// (`docs/spec/sound.md`, section 4).
+    gain: f32,
 }
 
 impl Mix {
@@ -121,6 +128,7 @@ impl Mix {
             length: length_for_picture(frames, fps),
             read: 0,
             sounds: Vec::new(),
+            gain: 1.0,
         }
     }
 
@@ -140,6 +148,7 @@ impl Mix {
         self.sounds.push(Placed {
             first,
             end: end.min(self.length),
+            skip,
             source,
             converter,
             chunk,
@@ -148,6 +157,45 @@ impl Mix {
             ended: false,
             level,
         });
+        Ok(())
+    }
+
+    /// Lowers the mix as a whole: every sample read from now on is multiplied by `gain`
+    /// (`docs/spec/sound.md`, section 4).
+    pub fn set_gain(&mut self, gain: f32) {
+        self.gain = gain;
+    }
+
+    /// The true peak of the whole mix (`peak::Meter`): reads the mix to its end and throws the
+    /// samples away. Rewind and read again to hear it.
+    pub fn true_peak(&mut self) -> base::Result<f64> {
+        let mut meter = peak::Meter::new();
+        let mut frames = vec![[0.0; 2]; CHUNK];
+        let mut flat = vec![0.0; CHUNK * usize::from(CHANNELS)];
+        let mut last = [0.0; 2];
+        while self.left() > 0 {
+            let given = self.read(&mut flat)?;
+            for (slot, pair) in frames.iter_mut().zip(flat.as_chunks::<2>().0).take(given) {
+                *slot = *pair;
+                last = *slot;
+            }
+            meter.push(&frames[..given]);
+        }
+        Ok(meter.peak(last))
+    }
+
+    /// Reads the mix again from its first sample frame, with the gain `set_gain` gave: moves every
+    /// source back to where it was placed and makes the conversion again.
+    pub fn rewind(&mut self) -> base::Result<()> {
+        for sound in &mut self.sounds {
+            sound.source.seek(sound.skip)?;
+            sound.converter = Converter::to_mix(sound.source.sample_rate(), sound.source.channels())?;
+            sound.chunk = vec![0.0; CHUNK * usize::from(sound.source.channels())];
+            sound.ready.clear();
+            sound.taken = 0;
+            sound.ended = false;
+        }
+        self.read = 0;
         Ok(())
     }
 
@@ -180,13 +228,16 @@ impl Mix {
             let wanted = (stop - start) as usize;
             sound.fill(wanted)?;
             let have = (sound.ready.len() / channels - sound.taken).min(wanted);
+            let gain = self.gain;
             for k in 0..have {
                 // The level is taken at each sample frame, so it moves from one sample to the next.
                 let frame = start + k as u64;
                 let level = sound.level.at((frame - sound.first) as f64 / f64::from(SAMPLE_RATE));
                 let at = (frame - from) as usize * channels;
                 for channel in 0..channels {
-                    samples[at + channel] += sound.ready[(sound.taken + k) * channels + channel] * level;
+                    // The whole mix is lowered by the one amount (`sound.md`, section 4): with the
+                    // gain 1 the samples are what they were, to the bit.
+                    samples[at + channel] += sound.ready[(sound.taken + k) * channels + channel] * level * gain;
                 }
             }
             // What the source no longer gives is silence: the frames are counted as heard.
