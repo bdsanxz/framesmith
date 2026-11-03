@@ -1,0 +1,14 @@
+[package]
+name = "render"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith CPU composition renderer (standard MP4 via FFmpeg)"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+notation = { path = "../notation" }
+glyph = { path = "../glyph" }
+motion = { path = "../motion" }
+timebase = { path = "../timebase" }
+layout = { path = "../layout" }
+libc = "0.2"

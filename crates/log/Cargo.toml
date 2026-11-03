@@ -1,0 +1,6 @@
+[package]
+name = "log"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith per-run log lines"
+license = "MIT OR Apache-2.0"

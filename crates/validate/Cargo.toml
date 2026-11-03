@@ -1,0 +1,10 @@
+[package]
+name = "validate"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith folder validation and error-code catalog"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+notation = { path = "../notation" }
+glyph = { path = "../glyph" }

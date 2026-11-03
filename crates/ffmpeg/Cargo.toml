@@ -1,0 +1,9 @@
+[package]
+name = "ffmpeg"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith FFmpeg detection, pinned self-download, and hashing"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+notation = { path = "../notation" }

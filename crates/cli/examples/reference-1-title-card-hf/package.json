@@ -1,0 +1,9 @@
+{
+  "name": "reference-1-title-card-hf",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npx --yes hyperframes@0.9.6 check",
+    "render": "npx --yes hyperframes@0.9.6 render --quality looks"
+  }
+}

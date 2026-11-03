@@ -1,0 +1,4 @@
+composition name="text-on-color" width=640 height=360 duration=3 fps=30 background="#1a1a2e" version=1 {
+    text value="Hello from Framesmith" start=0 duration=3 x=70 y=140 size=48 color="#ffffff"
+    text value="CPU text over color" start=0 duration=3 x=70 y=220 size=28 color="#ffd166"
+}

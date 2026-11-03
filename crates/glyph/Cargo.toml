@@ -1,0 +1,9 @@
+[package]
+name = "glyph"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith glyph rasterization: TrueType faces and bitmap fallback"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+notation = { path = "../notation" }

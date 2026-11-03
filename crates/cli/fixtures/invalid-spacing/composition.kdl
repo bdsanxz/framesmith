@@ -1,0 +1,4 @@
+composition name="t" width=320 height=240 duration=1 background="#000000" version=1 {
+    text value="Hi" start=0 duration=1 line-height=-4
+    text value="Bye" start=0 duration=1 letter-spacing=-1
+}

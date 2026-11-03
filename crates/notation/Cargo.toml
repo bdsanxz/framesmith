@@ -1,0 +1,6 @@
+[package]
+name = "notation"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith KDL notation: composition model and parser"
+license = "MIT OR Apache-2.0"

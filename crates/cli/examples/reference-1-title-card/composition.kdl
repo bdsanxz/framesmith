@@ -1,0 +1,14 @@
+composition name="reference-1-title-card" width=1920 height=1080 duration=10 fps=30 background="#101828" version=1 {
+    image path="media/card.png" start=0 duration=10 x=940 y=270 width=860 height=540 fit="contain" placement="center" order=0
+    box x=120 y=500 width=120 height=12 fill="#2a9d8f" start=0 duration=10 order=1
+    text value="Framesmith" start=0 duration=10 x=120 y=540 size=150 color="#ffffff" order=2
+    text value="v1 proof title card" start=0 duration=10 x=120 y=730 size=56 color="#ffd166" order=3
+    audio path="media/bed.wav" start=0 duration=10 volume=-12
+    tween target=2 property="x" kind="from" start=0 duration=1 from=-800 ease="out-cubic"
+    tween target=2 property="opacity" kind="from" start=0 duration=1 from=0 ease="out-cubic"
+    tween target=3 property="opacity" kind="from" start=0.3 duration=1 from=0 ease="out-cubic"
+    tween target=0 property="scale" kind="from" start=0 duration=1 from=0.6 ease="out-cubic"
+    tween target=0 property="opacity" kind="to" start=9 duration=1 to=0 ease="linear"
+    tween target=2 property="opacity" kind="to" start=9 duration=1 to=0 ease="linear"
+    tween target=3 property="opacity" kind="to" start=9 duration=1 to=0 ease="linear"
+}

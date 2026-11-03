@@ -1,0 +1,16 @@
+composition name="reference-2-lower-third" width=1920 height=1080 duration=8 fps=30 background="#000000" version=1 {
+    video path="media/bg.mp4" start=0 duration=8 fit="cover" order=0
+    box x=120 y=780 width=760 height=200 fill="#101828" opacity=0.9 order=1 start=0 duration=8
+    box x=120 y=780 width=16 height=200 fill="#e63946" order=2 start=0 duration=8
+    text value="Ada Lovelace" start=0.5 duration=7 x=170 y=800 size=72 color="#ffffff" order=3
+    text value="First programmer, Analytical Engine" start=0.5 duration=7 x=170 y=890 size=40 color="#ffd166" order=4
+    audio path="media/sting.wav" start=0 duration=8 volume=-18 fade-in=1 fade-out=1
+    tween target=1 property="x" kind="from" start=0.5 duration=1 from=-800 ease="out-cubic"
+    tween target=2 property="x" kind="from" start=0.5 duration=1 from=-800 ease="out-cubic"
+    tween target=3 property="x" kind="from" start=0.5 duration=1 from=-900 ease="out-cubic"
+    tween target=4 property="opacity" kind="from" start=0.8 duration=1 from=0 ease="out-cubic"
+    tween target=1 property="x" kind="to" start=7 duration=1 to=-800 ease="in-cubic"
+    tween target=2 property="x" kind="to" start=7 duration=1 to=-800 ease="in-cubic"
+    tween target=3 property="opacity" kind="to" start=7 duration=1 to=0 ease="linear"
+    tween target=4 property="opacity" kind="to" start=7 duration=1 to=0 ease="linear"
+}

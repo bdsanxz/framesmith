@@ -1,0 +1,11 @@
+[package]
+name = "layout"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith text layout engine: parley shaping and layout over project and machine fonts, color emoji pictures decoded by the pinned-or-host FFmpeg binary"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+parley = { version = "=0.12.0", default-features = false, features = ["std"] }
+glyph = { path = "../glyph" }
+ffmpeg = { path = "../ffmpeg" }

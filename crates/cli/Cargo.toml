@@ -1,0 +1,18 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith CLI — Sprint 1 (init/check/render/errors with pinned FFmpeg self-download, CPU text/video rendering, sound passthrough, and standard MP4 output)"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "framesmith"
+path = "src/main.rs"
+
+[dependencies]
+notation = { path = "../notation" }
+validate = { path = "../validate" }
+glyph = { path = "../glyph" }
+ffmpeg = { path = "../ffmpeg" }
+log = { path = "../log" }
+render = { path = "../render" }

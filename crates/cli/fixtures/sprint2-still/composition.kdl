@@ -1,0 +1,6 @@
+composition name="t" width=320 height=240 duration=1 background="#1a1a2e" version=1 {
+    text value="Still life" start=0 duration=1 x=40 y=20 size=36 color="#ffffff" order=3 line-height=44 letter-spacing=2
+    box x=20 y=120 width=130 height=80 fill="#ff0000" radius=8 border-width=3 border-color="#000000" opacity=0.9 order=1 start=0 duration=1
+    image path="media/photo.png" start=0 duration=1 x=170 y=120 width=130 height=80 fit="contain" placement="center" order=2
+    image path="media/photo.jpg" start=0 duration=1 x=20 y=60 width=80 height=40 fit="cover" placement="top-left" order=0
+}

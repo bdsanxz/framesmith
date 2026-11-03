@@ -1,0 +1,3 @@
+composition name="t" width=64 height=64 duration=2 background="#000000" version=1 {
+    text value="Hi" start=0 duration=2 align="diagonal"
+}

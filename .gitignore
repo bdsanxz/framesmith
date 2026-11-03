@@ -1,0 +1,7 @@
+target/
+node_modules/
+.DS_Store
+*.log
+out.mp4
+logs/
+.hyperframes/
