@@ -1,0 +1,10 @@
+composition name="sound-reference" width=64 height=48 duration=4 fps=30 background="#101828" version=1 normalize="loud" {
+    audio path="media/bed.wav" start=0 duration=3 id="bed" duck-under="vox" duck-amount=0.25
+    key target=0 property="volume" {
+        frame at=0 value=0.5
+        frame at=0.5 value=1
+    }
+    audio path="media/vox.wav" start=1 duration=1.5 id="vox" detect-silence=true
+    tween target=1 property="pan" kind="from-to" from=-1 to=1 start=1 duration=0.75
+    audio path="media/sting.wav" start=2 duration=2 crossfade="constant-power" delay=0.25 delay-feedback=0.5 delay-mix=0.6 reverb=0.4 waveform=true
+}

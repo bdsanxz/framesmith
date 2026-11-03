@@ -197,6 +197,97 @@ fn format_stagger_clamp_human(f: &validate_mod::StaggerClamp) -> String {
     out
 }
 
+/// One crossfade clamp as human text (Sprint 10 sound, CAP-003): the
+/// handoff pair, its resolved shape, and the overlap cut back to the
+/// audible samples, so clamping is reviewable before rendering while
+/// the verdict stays valid.
+fn format_crossfade_clamp_human(f: &validate_mod::CrossfadeClamp) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "note: crossfade clips {}..{} ({}:{}): overlap {:.3}s..{:.3}s runs past the composition end; clamped to {:.3}s..{:.3}s (shape {}).",
+        f.early, f.late, f.line, f.column, f.raw_start, f.raw_end, f.eff_start, f.eff_end, f.shape
+    );
+    out
+}
+
+/// One effect-tail truncation as human text (Sprint 10 sound, CAP-005):
+/// the effected clip, its natural delay plus reverb tails, and the cut
+/// back to the composition end, so truncation is reviewable before
+/// rendering while the verdict stays valid.
+fn format_effect_tail_human(f: &validate_mod::EffectTail) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let name = match &f.id {
+        Some(id) => format!("{id:?}"),
+        None => format!("#{}", f.clip),
+    };
+    let _ = writeln!(
+        out,
+        "note: effect tail clip {name} ({}:{}): delay tail {:.3}s plus reverb tail {:.3}s runs to {:.3}s past the composition end; truncated to {:.3}s.",
+        f.line, f.column, f.delay_tail, f.reverb_tail, f.raw_end, f.eff_end
+    );
+    out
+}
+
+/// One waveform-range clamp as human text (Sprint 10 sound, CAP-010):
+/// the drawing clip, its written range, and the cut back to the clip
+/// window, so clamping is reviewable before rendering while the
+/// verdict stays valid.
+fn format_waveform_clamp_human(f: &validate_mod::WaveformClamp) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let name = match &f.id {
+        Some(id) => format!("{id:?}"),
+        None => format!("#{}", f.clip),
+    };
+    let _ = writeln!(
+        out,
+        "note: waveform {} {} ({}:{}): drawn range {:.3}s..{:.3}s runs past the clip window; clamped to {:.3}s..{:.3}s.",
+        f.kind, name, f.line, f.column, f.raw_from, f.raw_to, f.eff_from, f.eff_to
+    );
+    out
+}
+
+/// One pause map as human text (Sprint 10 sound, CAP-006): the opted-in
+/// clip with its ceiling and minimum plus every silent range in time
+/// order, so pauses are reviewable without opening an audio editor.
+fn format_silence_human(f: &validate_mod::SilenceReport) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let name = match &f.id {
+        Some(id) => format!("{id:?}"),
+        None => format!("#{}", f.clip),
+    };
+    if f.ranges.is_empty() {
+        let _ = writeln!(
+            out,
+            "silence {} {} ({}:{}): no silent ranges at or below {} dBFS lasting at least {}s.",
+            f.kind, name, f.line, f.column, f.threshold_db, f.min_seconds
+        );
+    } else {
+        let parts: Vec<String> = f
+            .ranges
+            .iter()
+            .map(|(s, e)| format!("{s:.3}s..{e:.3}s"))
+            .collect();
+        let _ = writeln!(
+            out,
+            "silence {} {} ({}:{}): {} range(s) at or below {} dBFS lasting at least {}s: {}.",
+            f.kind,
+            name,
+            f.line,
+            f.column,
+            f.ranges.len(),
+            f.threshold_db,
+            f.min_seconds,
+            parts.join(", ")
+        );
+    }
+    out
+}
+
 /// One inferred length as human text (Sprint 6 T003): the resolved
 /// value of an omitted `duration` with the rule that resolved it, so
 /// inference is reviewable before rendering.
@@ -227,9 +318,121 @@ fn format_inferred_human(f: &validate_mod::InferredLength) -> String {
     out
 }
 
+/// First binary of `name` on `PATH`, for peak preview only (Sprint 10
+/// sound, CAP-011): `check` and `waveform` never bootstrap or download
+/// FFmpeg, so a missing binary skips the preview (`check`) or refuses
+/// the listing (`waveform`) instead of fetching anything.
+fn tool_on_path(name: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let cand = dir.join(name);
+        if cand.is_file() {
+            return Some(cand);
+        }
+    }
+    None
+}
+
+/// Silent-normalization gate for `check` (Sprint 10 sound, CAP-009 /
+/// REC-005): a normalizing composition whose post-gain preview mix
+/// carries no audible samples fails closed here with the same
+/// file+line+column+code+fix shape as every other sound refusal, so
+/// `check` and `render` agree on silence. Undecodable sources skip
+/// silently (the render names them), as does a missing FFmpeg — in
+/// both cases `render` still fails closed before the first frame.
+fn apply_normalize_silence_gate(folder: &Path, verdict: &mut Verdict) {
+    use render::render::PreviewError;
+    if verdict.status != Status::Valid {
+        return;
+    }
+    let targets: Vec<Composition> = verdict
+        .compositions
+        .iter()
+        .filter(|c| c.normalize.active())
+        .cloned()
+        .collect();
+    if targets.is_empty() {
+        return;
+    }
+    let Some(ffmpeg_bin) = tool_on_path("ffmpeg") else {
+        return;
+    };
+    let mut refused = false;
+    for comp in &targets {
+        let silent = match render::render::build_mix_preview(
+            comp,
+            &verdict.compositions,
+            folder,
+            &ffmpeg_bin,
+        ) {
+            Err(PreviewError::Silent(_)) => true,
+            Err(PreviewError::Failed(_)) => false,
+            Ok(None) => true,
+            Ok(Some(pcm)) => render::peaks::peak_of(&pcm) == 0,
+        };
+        if !silent {
+            continue;
+        }
+        let (line, column) = comp.normalize_loc.unwrap_or((1, 1));
+        verdict.diagnostics.push(validate_mod::Diagnostic {
+            file: format!("{}/{}", folder.display(), validate_mod::COMPOSITION_FILE),
+            line,
+            column,
+            code: "E_BAD_AUDIO",
+            message: format!(
+                "composition {:?} sets `normalize=\"loud\"` but its mix carries no audible samples to measure; one overall gain cannot scale silence to −16 LUFS",
+                comp.name
+            ),
+            fix: "add audible sound or remove `normalize`".to_string(),
+        });
+        refused = true;
+    }
+    if refused {
+        verdict.status = Status::Invalid;
+        verdict.composition = None;
+        verdict.compositions = Vec::new();
+        verdict.root_name = None;
+    }
+}
+
+/// Hot-master warning naming the peak (Sprint 10 sound, CAP-011 /
+/// REC-005): `Some` exactly when the master exceeds −1 dBFS. Shared by
+/// `check`, the render summary, and `waveform` so every surface names
+/// the same peak for the same bytes; warnings never change an exit
+/// code.
+fn hot_master_warning(peak: u32) -> Option<String> {
+    if render::peaks::is_hot(peak) {
+        Some(format!(
+            "warning: hot master: peak {} is above -1.0 dBFS; lower a level before release (valid projects still render).",
+            render::peaks::format_dbfs(peak)
+        ))
+    } else {
+        None
+    }
+}
+
+/// Master peak of the render root without rendering (Sprint 10 sound,
+/// CAP-011): the exact preview mix through the same placement the
+/// staged render mix uses. `None` when there is no FFmpeg on PATH, a
+/// source is undecodable (the render names it), or the verdict carries
+/// no composition — in all three cases the caller reports no peak and
+/// the verdict stands unchanged.
+fn preview_master_peak(folder: &Path, verdict: &Verdict) -> Option<u32> {
+    let comp = verdict.composition.as_ref()?;
+    let ffmpeg_bin = tool_on_path("ffmpeg")?;
+    match render::render::build_mix_preview(comp, &verdict.compositions, folder, &ffmpeg_bin) {
+        Ok(Some(pcm)) => Some(render::peaks::peak_of(&pcm)),
+        Ok(None) => Some(0),
+        Err(_) => None,
+    }
+}
+
 /// Human-readable check report. Pure function so tests can compare it
 /// against the `--json` form and the render refusal text (T006/T007).
-pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
+/// `master` carries the preview master peak when one was measurable
+/// (Sprint 10 sound, CAP-011); `None` reports no peak and changes
+/// nothing else.
+pub fn format_check_human(folder: &Path, verdict: &Verdict, master: Option<u32>) -> String {
     use std::fmt::Write;
     let mut out = String::new();
     for d in &verdict.diagnostics {
@@ -243,6 +446,27 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
     }
     for f in &verdict.stagger_clamps {
         out.push_str(&format_stagger_clamp_human(f));
+    }
+    for f in &verdict.crossfade_clamps {
+        out.push_str(&format_crossfade_clamp_human(f));
+    }
+    for f in &verdict.effect_tails {
+        out.push_str(&format_effect_tail_human(f));
+    }
+    for f in &verdict.silences {
+        out.push_str(&format_silence_human(f));
+    }
+    for f in &verdict.waveform_clamps {
+        out.push_str(&format_waveform_clamp_human(f));
+    }
+    // Sprint 10 sound (CAP-011): the master peak is always reported
+    // when measurable; a hot master additionally warns naming the
+    // peak, without changing the exit code.
+    if let Some(p) = master {
+        let _ = writeln!(out, "master peak: {}.", render::peaks::format_dbfs(p));
+        if let Some(w) = hot_master_warning(p) {
+            let _ = writeln!(out, "{w}");
+        }
     }
     match verdict.status {
         Status::Valid => {
@@ -297,16 +521,23 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
 
 /// Machine-readable check report (T007): exactly the same diagnostic set
 /// as the human text, one line of JSON carrying file, line, column and
-/// code per item. Pure function for testability.
-pub fn format_check_json(folder: &Path, verdict: &Verdict) -> String {
-    format_verdict_json("check", folder, verdict)
+/// code per item. Pure function for testability. `master` carries the
+/// preview master peak when one was measurable (Sprint 10 sound,
+/// CAP-011); `None` reports null peaks and changes nothing else.
+pub fn format_check_json(folder: &Path, verdict: &Verdict, master: Option<u32>) -> String {
+    format_verdict_json("check", folder, verdict, master)
 }
 
 /// Machine-readable verdict report with a caller-chosen command name
 /// (Sprint 6 T010): the `check` JSON shape with the same diagnostics,
 /// footage, inferred lengths, compositions, and root, so every listing
 /// command refuses exactly like `check` while naming itself.
-pub fn format_verdict_json(cmd: &str, folder: &Path, verdict: &Verdict) -> String {
+pub fn format_verdict_json(
+    cmd: &str,
+    folder: &Path,
+    verdict: &Verdict,
+    master: Option<u32>,
+) -> String {
     use std::fmt::Write;
     let (status, exit) = match verdict.status {
         Status::Valid => ("valid", 0),
@@ -422,9 +653,143 @@ pub fn format_verdict_json(cmd: &str, folder: &Path, verdict: &Verdict) -> Strin
             num(Some(f.overflow)),
         );
     }
+    // Sprint 10 sound: every crossfade clamp as reviewable numbers,
+    // so overlong overlap cuts are machine-readable like stagger
+    // clamps.
+    out.push_str("],\"crossfade_clamps\":[");
+    for (i, f) in verdict.crossfade_clamps.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"early\":{},\"late\":{},\"shape\":\"{}\",\"raw_start\":{},\"raw_end\":{},\"eff_start\":{},\"eff_end\":{},\"line\":{},\"column\":{}}}",
+            f.early,
+            f.late,
+            json_escape(f.shape),
+            num(Some(f.raw_start)),
+            num(Some(f.raw_end)),
+            num(Some(f.eff_start)),
+            num(Some(f.eff_end)),
+            f.line,
+            f.column,
+        );
+    }
+    // Sprint 10 sound: every effect-tail truncation as reviewable
+    // numbers, so tail cuts are machine-readable like crossfade
+    // clamps.
+    out.push_str("],\"effect_tails\":[");
+    for (i, f) in verdict.effect_tails.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let id = match &f.id {
+            Some(v) => format!("\"{}\"", json_escape(v)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"clip\":{},\"id\":{},\"delay_tail\":{},\"reverb_tail\":{},\"raw_end\":{},\"eff_end\":{},\"line\":{},\"column\":{}}}",
+            f.clip,
+            id,
+            num(Some(f.delay_tail)),
+            num(Some(f.reverb_tail)),
+            num(Some(f.raw_end)),
+            num(Some(f.eff_end)),
+            f.line,
+            f.column,
+        );
+    }
+    // Sprint 10 sound: every pause map as reviewable numbers, so
+    // detected speech pauses are machine-readable like the human
+    // listing.
+    out.push_str("],\"silences\":[");
+    for (i, f) in verdict.silences.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let id = match &f.id {
+            Some(v) => format!("\"{}\"", json_escape(v)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"clip\":{},\"id\":{},\"kind\":\"{}\",\"threshold_db\":{},\"min_seconds\":{},\"line\":{},\"column\":{},\"ranges\":[",
+            f.clip,
+            id,
+            json_escape(f.kind),
+            num(Some(f.threshold_db)),
+            num(Some(f.min_seconds)),
+            f.line,
+            f.column,
+        );
+        for (j, (s, e)) in f.ranges.iter().enumerate() {
+            if j > 0 {
+                out.push(',');
+            }
+            let _ = write!(
+                out,
+                "{{\"start\":{},\"end\":{}}}",
+                num(Some(*s)),
+                num(Some(*e)),
+            );
+        }
+        out.push_str("]}");
+    }
+    // Sprint 10 sound: every waveform-range clamp as reviewable
+    // numbers, so drawn-range cuts are machine-readable like effect
+    // tails.
+    out.push_str("],\"waveform_clamps\":[");
+    for (i, f) in verdict.waveform_clamps.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let id = match &f.id {
+            Some(v) => format!("\"{}\"", json_escape(v)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"clip\":{},\"id\":{},\"kind\":\"{}\",\"raw_from\":{},\"raw_to\":{},\"eff_from\":{},\"eff_to\":{},\"line\":{},\"column\":{}}}",
+            f.clip,
+            id,
+            json_escape(f.kind),
+            num(Some(f.raw_from)),
+            num(Some(f.raw_to)),
+            num(Some(f.eff_from)),
+            num(Some(f.eff_to)),
+            f.line,
+            f.column,
+        );
+    }
+    // Sprint 10 sound (CAP-011): the preview master peak plus the hot
+    // warning, in the same numbers the human lines carry; nulls when
+    // no peak was measurable, so refusal shapes stay identical.
+    out.push_str("],\"master_peak\":");
+    match master {
+        Some(p) => {
+            let db = match render::peaks::dbfs_of(p) {
+                Some(db) => db.to_string(),
+                None => "null".to_string(),
+            };
+            let _ = write!(
+                out,
+                "{},\"master_peak_dbfs\":{},\"peak_warning\":",
+                render::peaks::linear_of(p),
+                db
+            );
+            match hot_master_warning(p) {
+                Some(w) => {
+                    let _ = write!(out, "\"{}\"", json_escape(&w));
+                }
+                None => out.push_str("null"),
+            }
+        }
+        None => out.push_str("null,\"master_peak_dbfs\":null,\"peak_warning\":null"),
+    }
     // Sprint 6 T006: every composition name plus the render root, so
     // the default render target is reviewable machine-readably.
-    out.push_str("],\"compositions\":[");
+    out.push_str(",\"compositions\":[");
     for (i, c) in verdict.compositions.iter().enumerate() {
         if i > 0 {
             out.push(',');
@@ -474,7 +839,9 @@ fn note_log(folder: &Path, level: &str, component: &str, run: &str, msg: &str, j
 }
 
 /// `check`: validate without rendering. Exits 0 (valid), 1 (invalid),
-/// 2 (valid but unsupported). Never writes an MP4 and never needs FFmpeg.
+/// 2 (valid but unsupported). Never writes an MP4; it shells to FFmpeg
+/// only to measure `detect-silence` pauses, and a project without
+/// FFmpeg still validates (pauses report nothing instead of blocking).
 /// With `json`, prints the machine-readable report instead of human text.
 /// Every validation run appends its notable events to the run log (T015).
 /// The optional `--backend` flag is accepted for render-command parity
@@ -491,11 +858,23 @@ pub fn cmd_check(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
         }
     }
     let run = log::run_id();
-    let verdict = validate_folder(folder);
-    if json {
-        println!("{}", format_check_json(folder, &verdict));
+    let mut verdict = validate_folder(folder);
+    // Sprint 10 sound (CAP-009): silent normalization fails closed in
+    // `check` too, before any peak is previewed.
+    apply_normalize_silence_gate(folder, &mut verdict);
+    // Sprint 10 sound (CAP-011): a valid project additionally reports
+    // its preview master peak (and warns when hot); anything else —
+    // no FFmpeg, an undecodable source, an invalid project — reports
+    // no peak and the verdict stands unchanged.
+    let master = if verdict.status == Status::Valid {
+        preview_master_peak(folder, &verdict)
     } else {
-        print!("{}", format_check_human(folder, &verdict));
+        None
+    };
+    if json {
+        println!("{}", format_check_json(folder, &verdict, master));
+    } else {
+        print!("{}", format_check_human(folder, &verdict, master));
     }
     let code = match verdict.status {
         Status::Valid => 0,
@@ -761,6 +1140,9 @@ pub fn format_info_human(folder: &Path, comp: &Composition) -> String {
         kinds.join(", "),
         hidden
     );
+    // Sprint 10 sound (CAP-007): the playback hint rides along with no
+    // render effect, so preview tooling can read it here.
+    let _ = writeln!(out, "  autoplay: {}.", comp.autoplay);
     out
 }
 
@@ -786,12 +1168,16 @@ pub fn format_info_json(folder: &Path, comp: &Composition) -> String {
     }
     let counts = count_clips_by_kind(comp);
     let hidden = comp.clips.iter().filter(|c| c.hidden()).count();
+    // Sprint 10 sound (CAP-007): the playback hint rides at the
+    // composition level, matching the human line below; `clips`
+    // keeps its exact historical shape and tail.
     let _ = write!(
         out,
-        "}},\"duration\":{},\"fps\":\"{}\",\"frames\":{},\"clips\":{{\"total\":{},\"by_kind\":{{",
+        "}},\"duration\":{},\"fps\":\"{}\",\"frames\":{},\"autoplay\":{},\"clips\":{{\"total\":{},\"by_kind\":{{",
         comp.duration,
         comp.fps,
         comp.fps.frame_count(comp.duration),
+        if comp.autoplay { "true" } else { "false" },
         comp.clips.len()
     );
     for (i, (k, n)) in KINDS.iter().zip(counts.iter()).enumerate() {
@@ -811,9 +1197,9 @@ pub fn format_info_json(folder: &Path, comp: &Composition) -> String {
 fn refuse_listing(cmd: &str, folder: &Path, verdict: &Verdict, json: bool) -> i32 {
     let run = log::run_id();
     if json {
-        println!("{}", format_verdict_json(cmd, folder, verdict));
+        println!("{}", format_verdict_json(cmd, folder, verdict, None));
     } else {
-        print!("{}", format_check_human(folder, &verdict));
+        print!("{}", format_check_human(folder, verdict, None));
     }
     let code = match verdict.status {
         Status::Valid => 0,
@@ -1001,6 +1387,205 @@ pub fn cmd_info(folder: &Path, name: Option<&str>, json: bool) -> i32 {
     0
 }
 
+/// Flags for one `waveform` run (Sprint 10 sound, CAP-008): the
+/// composition to measure (resolved name, like `timeline`/`info`) plus
+/// the raw `--buckets` flag text, validated before the first decode.
+pub struct WaveformRequest {
+    pub composition: Option<String>,
+    pub buckets: Option<String>,
+    pub json: bool,
+}
+
+/// Default `waveform` bucket count (Sprint 10 sound, CAP-008):
+/// sixteen buckets shape a short mix readably; `--buckets N` names
+/// any other positive count.
+pub const WAVEFORM_DEFAULT_BUCKETS: usize = 16;
+
+/// Restate an audio-stage refusal for `waveform` (Sprint 10 sound,
+/// CAP-008): the cause and the file stay the render's exact words,
+/// while the command name and the no-output tail name this listing —
+/// there is no MP4 to leave behind, only peaks never listed.
+fn waveform_error(e: &str) -> String {
+    let restated = if let Some(rest) = e.strip_prefix("render refused: ") {
+        format!("waveform refused: {rest}")
+    } else if let Some(rest) = e.strip_prefix("render failed: ") {
+        format!("waveform failed: {rest}")
+    } else {
+        format!("waveform refused: {e}")
+    };
+    restated
+        .replace("no MP4 was written", "nothing was listed")
+        .replace("No MP4 was written", "Nothing was listed")
+}
+
+/// `waveform`: report per-bucket peaks of one composition's mix plus
+/// its master peak, in human text or `--json` with identical numbers.
+/// Names the render root by default; invalid projects refuse like
+/// `check`; bucket counts below 1 fail; a missing FFmpeg or an
+/// undecodable source refuses with the cause named and no listing.
+/// A hot master warns naming the peak, without changing the exit
+/// code. Returns the process exit code.
+pub fn cmd_waveform(folder: &Path, req: &WaveformRequest) -> i32 {
+    use std::fmt::Write;
+    let run = log::run_id();
+    // Bucket counts resolve before validation: below 1 (or not a
+    // positive whole number at all) refuses before the first decode
+    // with the accepted form named and nothing listed.
+    let buckets = match &req.buckets {
+        None => WAVEFORM_DEFAULT_BUCKETS,
+        Some(raw) => match raw.trim().parse::<usize>().ok().filter(|&n| n >= 1) {
+            Some(n) => n,
+            None => {
+                let why = match raw.trim().parse::<i64>() {
+                    Ok(n) => format!("--buckets {n} is below 1"),
+                    Err(_) => format!("--buckets {raw:?} is not a positive whole number"),
+                };
+                let msg = format!(
+                    "waveform refused: {why}: pass --buckets=<buckets of 1 or more> (for example --buckets=16), or omit the flag (validation stage); nothing was listed"
+                );
+                if req.json {
+                    println!(
+                        "{{\"tool\":\"framesmith\",\"command\":\"waveform\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                        json_escape(&folder.display().to_string()),
+                        json_escape(&msg)
+                    );
+                } else {
+                    println!("{msg}");
+                }
+                note_log(folder, "warn", "waveform", &run, &msg, req.json);
+                return 1;
+            }
+        },
+    };
+    let verdict = validate_folder(folder);
+    if verdict.status != Status::Valid {
+        return refuse_listing("waveform", folder, &verdict, req.json);
+    }
+    let comp = match select_listing("waveform", &verdict, req.composition.as_deref()) {
+        Ok(c) => c,
+        Err(msg) => {
+            if req.json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"waveform\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                    json_escape(&folder.display().to_string()),
+                    json_escape(&msg)
+                );
+            } else {
+                println!("{msg}");
+            }
+            note_log(folder, "warn", "waveform", &run, &msg, req.json);
+            return 1;
+        }
+    };
+    // Peak analysis decodes like the render but never downloads: no
+    // FFmpeg on PATH, or an undecodable source, refuses with the cause
+    // named and no listing.
+    let fail = |msg: &str| -> i32 {
+        if req.json {
+            println!(
+                "{{\"tool\":\"framesmith\",\"command\":\"waveform\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                json_escape(&folder.display().to_string()),
+                json_escape(msg)
+            );
+        } else {
+            println!("{msg}");
+        }
+        note_log(folder, "warn", "waveform", &run, msg, req.json);
+        1
+    };
+    let Some(ffmpeg_bin) = tool_on_path("ffmpeg") else {
+        return fail("waveform refused: FFmpeg was not found on PATH: install FFmpeg to list waveform peaks (nothing was listed)");
+    };
+    let mix = match render::render::build_mix_preview(
+        &comp,
+        &verdict.compositions,
+        folder,
+        &ffmpeg_bin,
+    ) {
+        Ok(m) => m,
+        Err(e) => return fail(&waveform_error(e.message())),
+    };
+    let frames = mix.as_ref().map(|m| m.len() / 2).unwrap_or(0);
+    let peaks = match &mix {
+        Some(m) => render::peaks::bucket_peaks(m, buckets),
+        None => vec![0; buckets],
+    };
+    let master = mix.as_ref().map(|m| render::peaks::peak_of(m)).unwrap_or(0);
+    if req.json {
+        let mut out = String::new();
+        let _ = write!(
+            out,
+            "{{\"tool\":\"framesmith\",\"command\":\"waveform\",\"folder\":\"{}\",\"status\":\"valid\",\"exit\":0,\"composition\":\"{}\",\"buckets\":[",
+            json_escape(&folder.display().to_string()),
+            json_escape(&comp.name),
+        );
+        for (i, p) in peaks.iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            let (s, e) = render::peaks::bucket_window(frames, buckets, i);
+            let db = match render::peaks::dbfs_of(*p) {
+                Some(db) => db.to_string(),
+                None => "null".to_string(),
+            };
+            let _ = write!(
+                out,
+                "{{\"start\":{s},\"end\":{e},\"peak\":{},\"peak_dbfs\":{db}}}",
+                render::peaks::linear_of(*p),
+            );
+        }
+        let master_db = match render::peaks::dbfs_of(master) {
+            Some(db) => db.to_string(),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "],\"master_peak\":{},\"master_peak_dbfs\":{},\"peak_warning\":",
+            render::peaks::linear_of(master),
+            master_db
+        );
+        match hot_master_warning(master) {
+            Some(w) => {
+                let _ = write!(out, "\"{}\"", json_escape(&w));
+            }
+            None => out.push_str("null"),
+        }
+        out.push('}');
+        println!("{out}");
+    } else {
+        println!(
+            "waveform for composition {:?} in {}: {buckets} bucket(s) over {frames} frame(s) ({:.3}s).",
+            comp.name,
+            folder.display(),
+            frames as f64 / render::peaks::PEAK_RATE
+        );
+        for (i, p) in peaks.iter().enumerate() {
+            let (s, e) = render::peaks::bucket_window(frames, buckets, i);
+            println!(
+                "bucket {}/{buckets}: {s:.3}s..{e:.3}s peak {}.",
+                i + 1,
+                render::peaks::format_dbfs(*p)
+            );
+        }
+        println!("master peak {}.", render::peaks::format_dbfs(master));
+        if let Some(w) = hot_master_warning(master) {
+            println!("{w}");
+        }
+    }
+    note_log(
+        folder,
+        "info",
+        "waveform",
+        &run,
+        &format!(
+            "waveform: composition {:?}, {buckets} bucket(s), {} frame(s)",
+            comp.name, frames
+        ),
+        req.json,
+    );
+    0
+}
+
 /// Render a fully valid folder to a standard MP4 using one explicit
 /// Flags for one `render` run (Sprint 3 T001/T002/T006): the backend
 /// choice, the quality preset with exclusive encoder overrides, and
@@ -1129,6 +1714,198 @@ pub fn cmd_render(folder: &Path, output: Option<&Path>) -> i32 {
     cmd_render_full(folder, output, &RenderRequest::default())
 }
 
+/// One reported section peak (Sprint 10 sound, CAP-008): the label and
+/// window of an audible section plus the final-mix peak inside it.
+/// Windows read in the staged mix: for a sub-range render they shift
+/// by the range start, so the report always covers the MP4 written.
+struct PeakSection {
+    label: String,
+    start: f64,
+    end: f64,
+    peak: u32,
+}
+
+/// Render-summary peak report (Sprint 10 sound, CAP-008/CAP-011): the
+/// master peak, one peak per audible section window, and the loudest
+/// silent section (the `check` pause maps measured on this mix).
+struct PeakSummary {
+    master: u32,
+    sections: Vec<PeakSection>,
+    loudest_silence: Option<(f64, f64, u32)>,
+}
+
+/// Measure one render-summary peak report (Sprint 10 sound,
+/// CAP-008/CAP-011): the master peak over the whole staged mix, one
+/// peak per audible section window, and the loudest `check` pause
+/// range on this mix. `start_offset` shifts section windows for
+/// ranged renders (zero renders the whole composition). Pure sample
+/// math, so the summary names the same peaks a re-render measures.
+fn summarize_peaks(
+    mix: &[i16],
+    comp: &Composition,
+    silences: &[validate_mod::SilenceReport],
+    start_offset: f64,
+) -> PeakSummary {
+    use render::peaks;
+    let master = peaks::peak_of(mix);
+    let mut sections = Vec::new();
+    for s in peaks::mix_sections(comp) {
+        let (start, end) = (s.start - start_offset, s.end - start_offset);
+        if !end.is_finite() || end <= 0.0 {
+            continue;
+        }
+        let (start, end) = (start.max(0.0), end);
+        sections.push(PeakSection {
+            label: s.label(),
+            start,
+            end,
+            peak: peaks::peak_in_seconds(mix, start, end),
+        });
+    }
+    let mut loudest: Option<(f64, f64, u32)> = None;
+    for report in silences {
+        for (s, e) in &report.ranges {
+            let (start, end) = ((s - start_offset).max(0.0), e - start_offset);
+            if !end.is_finite() || end <= 0.0 {
+                continue;
+            }
+            let peak = peaks::peak_in_seconds(mix, start, end);
+            let louder = match loudest {
+                Some((_, _, p)) => peak > p,
+                None => true,
+            };
+            if louder {
+                loudest = Some((start, end, peak));
+            }
+        }
+    }
+    PeakSummary {
+        master,
+        sections,
+        loudest_silence: loudest,
+    }
+}
+
+/// One summary peak line for the human report (Sprint 10 sound,
+/// CAP-008/CAP-011): the master, one line per section, and the
+/// loudest silent section (or its absence). The hot-master warning
+/// follows the same wording as `check`.
+fn format_peak_human(summary: &PeakSummary) -> Vec<String> {
+    use render::peaks;
+    let mut lines = Vec::new();
+    lines.push(format!(
+        "stage audio: note: master peak {}.",
+        peaks::format_dbfs(summary.master)
+    ));
+    for s in &summary.sections {
+        lines.push(format!(
+            "stage audio: note: section {} {:.3}s..{:.3}s peak {}.",
+            s.label,
+            s.start,
+            s.end,
+            peaks::format_dbfs(s.peak)
+        ));
+    }
+    match summary.loudest_silence {
+        Some((s, e, p)) => lines.push(format!(
+            "stage audio: note: loudest silent section {s:.3}s..{e:.3}s peak {}.",
+            peaks::format_dbfs(p)
+        )),
+        None => lines.push("stage audio: note: no silent sections.".to_string()),
+    }
+    if let Some(w) = hot_master_warning(summary.master) {
+        lines.push(format!("stage audio: {w}"));
+    }
+    lines
+}
+
+/// Machine-readable summary peaks (Sprint 10 sound, CAP-008/CAP-011):
+/// the same master, sections, loudest silence, and hot warning the
+/// human lines carry. Silent levels report `"peak_dbfs":null` with
+/// their linear `0.0`, since JSON carries no infinity.
+fn format_peaks_json(summary: &PeakSummary) -> String {
+    use render::peaks;
+    use std::fmt::Write;
+    let mut out = String::new();
+    let db = |p: u32| match peaks::dbfs_of(p) {
+        Some(db) => db.to_string(),
+        None => "null".to_string(),
+    };
+    let _ = write!(
+        out,
+        "{{\"master_peak\":{},\"master_peak_dbfs\":{},\"peak_warning\":",
+        peaks::linear_of(summary.master),
+        db(summary.master)
+    );
+    match hot_master_warning(summary.master) {
+        Some(w) => {
+            let _ = write!(out, "\"{}\"", json_escape(&w));
+        }
+        None => out.push_str("null"),
+    }
+    out.push_str(",\"sections\":[");
+    for (i, s) in summary.sections.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"label\":\"{}\",\"start\":{},\"end\":{},\"peak\":{},\"peak_dbfs\":{}}}",
+            json_escape(&s.label),
+            s.start,
+            s.end,
+            peaks::linear_of(s.peak),
+            db(s.peak)
+        );
+    }
+    out.push_str("],\"loudest_silence\":");
+    match summary.loudest_silence {
+        Some((s, e, p)) => {
+            let _ = write!(
+                out,
+                "{{\"start\":{s},\"end\":{e},\"peak\":{},\"peak_dbfs\":{}}}",
+                peaks::linear_of(p),
+                db(p)
+            );
+        }
+        None => out.push_str("null"),
+    }
+    out.push('}');
+    out
+}
+
+/// One loudness report as human lines (Sprint 10 sound, CAP-009): the
+/// measured integrated loudness, the applied overall gain, and the
+/// true-peak facts the guard used.
+fn format_normalize_human(report: &render::loudness::NormalizeReport) -> Vec<String> {
+    let dbtp = 20.0 * report.true_peak_after.log10();
+    let mut line = format!(
+        "stage audio: note: normalize: loud: measured {:.1} LUFS, applied gain {:+.1} dB ({:.4}x), true peak {:.1} dBTP",
+        report.measured_lufs, report.gain_db, report.gain, dbtp,
+    );
+    if report.guarded {
+        line.push_str(" (guarded to the -1.0 dBTP ceiling).");
+    } else {
+        line.push('.');
+    }
+    vec![line]
+}
+
+/// Machine-readable loudness report (Sprint 10 sound, CAP-009): the
+/// same target, measurement, gain, and guard the human line carries.
+/// Levels are finite by construction (silent mixes fail closed before
+/// any report), so plain numbers serialize directly.
+fn format_normalize_json(report: &render::loudness::NormalizeReport) -> String {
+    format!(
+        "{{\"target\":\"loud\",\"measured_lufs\":{},\"gain_db\":{},\"gain\":{},\"true_peak_dbtp\":{},\"guarded\":{}}}",
+        report.measured_lufs,
+        report.gain_db,
+        report.gain,
+        20.0 * report.true_peak_after.log10(),
+        if report.guarded { "true" } else { "false" },
+    )
+}
+
 /// Machine-readable render report (T006): the same stages, outcomes,
 /// and measured durations the human progress lines carry.
 struct RenderJson<'a> {
@@ -1147,6 +1924,14 @@ struct RenderJson<'a> {
     /// clip window. Zero on runs that never reach the frames stage.
     cache_hits: u64,
     cache_misses: u64,
+    /// Preformatted summary peaks object (Sprint 10 sound, CAP-008 /
+    /// CAP-011): `Some` on runs that reached the audio stage, `None`
+    /// on every earlier refusal (renders as `"peaks":null`).
+    peaks: Option<String>,
+    /// Preformatted loudness report (Sprint 10 sound, CAP-009): `Some`
+    /// on normalizing runs that reached the audio stage, `None`
+    /// otherwise (renders as `"normalize":null`).
+    normalize: Option<String>,
 }
 
 fn format_render_json(ctx: &RenderJson) -> String {
@@ -1220,7 +2005,17 @@ fn format_render_json(ctx: &RenderJson) -> String {
             json_escape(&s.detail)
         );
     }
-    let _ = write!(out, "],\"timing_ms\":{{\"total\":{total_ms}}}}}");
+    out.push_str("],\"peaks\":");
+    match &ctx.peaks {
+        Some(p) => out.push_str(p),
+        None => out.push_str("null"),
+    }
+    out.push_str(",\"normalize\":");
+    match &ctx.normalize {
+        Some(n) => out.push_str(n),
+        None => out.push_str("null"),
+    }
+    let _ = write!(out, ",\"timing_ms\":{{\"total\":{total_ms}}}}}");
     out
 }
 
@@ -1311,6 +2106,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &e,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &[],
                         total_ms: 0
@@ -1387,6 +2184,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &msg,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &verdict.diagnostics,
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1436,6 +2235,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &msg,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &verdict.diagnostics,
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1487,6 +2288,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                     message: &msg,
                     cache_hits: 0,
                     cache_misses: 0,
+                    peaks: None,
+                    normalize: None,
                     diagnostics: &[],
                     stages: &stages,
                     total_ms: total_start.elapsed().as_millis() as u64
@@ -1550,6 +2353,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &msg,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1589,6 +2394,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &msg,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1670,6 +2477,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &message,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1711,6 +2520,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                     message: &msg,
                     cache_hits: 0,
                     cache_misses: 0,
+                    peaks: None,
+                    normalize: None,
                     diagnostics: &[],
                     stages: &stages,
                     total_ms: total_start.elapsed().as_millis() as u64
@@ -1747,6 +2558,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &msg,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1828,6 +2641,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &e,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1921,6 +2736,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &e,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -1992,6 +2809,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         message: &e,
                         cache_hits: 0,
                         cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
                         diagnostics: &[],
                         stages: &stages,
                         total_ms: total_start.elapsed().as_millis() as u64
@@ -2007,6 +2826,84 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             return 1;
         }
     }
+    // Sprint 10 sound (CAP-008/CAP-011): the summary peaks — master,
+    // per-section, and loudest silent section — measured on the staged
+    // mix the MP4 encodes (already cropped for sub-ranges, so the
+    // report always covers the file written). A soundless composition
+    // reports digital silence with no sections.
+    let start_offset = range.map(|r| r.start).unwrap_or(0.0);
+    let peak_mix: Option<Vec<i16>> = match &plan.mix_pcm {
+        Some(mix_path) => match std::fs::read(mix_path) {
+            Ok(bytes) => {
+                let (pairs, _) = bytes.as_chunks::<2>();
+                Some(pairs.iter().map(|b| i16::from_le_bytes(*b)).collect())
+            }
+            Err(e) => {
+                let msg = format!(
+                    "render failed: cannot read the staged audio mix {}: {e} (audio stage)",
+                    mix_path.display()
+                );
+                let audio_ms = audio_start.elapsed().as_millis() as u64;
+                let frames_ms = frames_start.elapsed().as_millis() as u64;
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::ok("frames", frames_ms, prepared_note.clone()),
+                );
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed(
+                        "audio",
+                        audio_ms,
+                        "mix read failed".to_string(),
+                    ),
+                );
+                stage_line(
+                    json,
+                    &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
+                );
+                stage_line(json, &format!("stage audio: failed ({audio_ms}ms): {msg}"));
+                print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                note_log(folder, "error", "render", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "failed",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &msg,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
+                    );
+                } else {
+                    println!("{msg}");
+                }
+                let _ = std::fs::remove_file(mix_path);
+                return 1;
+            }
+        },
+        None => None,
+    };
+    let peak_summary = match &peak_mix {
+        Some(mix) => summarize_peaks(mix, &comp, &verdict.silences, start_offset),
+        None => PeakSummary {
+            master: 0,
+            sections: Vec::new(),
+            loudest_silence: None,
+        },
+    };
+    let peaks_json = format_peaks_json(&peak_summary);
+    let normalize_json = plan.normalize.as_ref().map(format_normalize_json);
     let audio_ms = audio_start.elapsed().as_millis() as u64;
     let audio_note = match &plan.mix_pcm {
         Some(_) => "mix: audible sources mixed at 48 kHz stereo".to_string(),
@@ -2016,6 +2913,18 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         json,
         &format!("stage audio: ok ({audio_ms}ms): {audio_note}"),
     );
+    for line in format_peak_human(&peak_summary) {
+        stage_line(json, &line);
+        note_log(folder, "info", "render", &run, &line, json);
+    }
+    // Sprint 10 sound (CAP-009): a normalizing run reports the one
+    // overall gain the mix encoded, in both forms.
+    if let Some(report) = &plan.normalize {
+        for line in format_normalize_human(report) {
+            stage_line(json, &line);
+            note_log(folder, "info", "render", &run, &line, json);
+        }
+    }
     push_stage(
         &mut stages,
         render::render::StageTiming::ok("audio", audio_ms, audio_note.clone()),
@@ -2072,6 +2981,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                             message: &e,
                             cache_hits: 0,
                             cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
                             diagnostics: &[],
                             stages: &stages,
                             total_ms: total_start.elapsed().as_millis() as u64
@@ -2159,6 +3070,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 message: &done_msg,
                 cache_hits,
                 cache_misses,
+                peaks: Some(peaks_json),
+                normalize: normalize_json,
                 diagnostics: &[],
                 stages: &stages,
                 total_ms
@@ -2253,6 +3166,8 @@ fn cmd_cancelled(
                 // stage may not have finished, so hits/misses would lie.
                 cache_hits: 0,
                 cache_misses: 0,
+                peaks: None,
+                normalize: None,
             })
         );
     } else {
@@ -2641,8 +3556,8 @@ mod tests {
             assert!(!d.file.is_empty() && d.line >= 1 && d.column >= 1, "{d:?}");
             assert!(!d.fix.is_empty(), "{d:?}");
         }
-        let human = format_check_human(&folder, &v);
-        let json = format_check_json(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
+        let json = format_check_json(&folder, &v, None);
         for want in [
             "E_BAD_BOX",
             "E_BAD_ORDER",
@@ -2889,8 +3804,8 @@ mod tests {
              }\n",
         );
         let v = validate_folder(&folder);
-        let human = format_check_human(&folder, &v);
-        let json = format_check_json(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
+        let json = format_check_json(&folder, &v, None);
         for d in &v.diagnostics {
             assert!(human.contains(&format!("error[{}]", d.code)), "{human}");
             assert!(json.contains(&format!("\"code\":\"{}\"", d.code)), "{json}");
@@ -2912,7 +3827,7 @@ mod tests {
         let folder = tmp_dir("jsonverdicts");
         write(&folder, validate_mod::COMPOSITION_FILE, VALID);
         let v = validate_folder(&folder);
-        let json = format_check_json(&folder, &v);
+        let json = format_check_json(&folder, &v, None);
         assert!(json.contains("\"status\":\"valid\""), "{json}");
         assert!(json.contains("\"exit\":0"), "{json}");
         assert!(json.contains("\"diagnostics\":[]"), "{json}");
@@ -2925,7 +3840,7 @@ mod tests {
         let v = validate_folder(&folder);
         assert_eq!(cmd_check(&folder, false, None), 2);
         assert_eq!(cmd_check(&folder, true, None), 2);
-        let json = format_check_json(&folder, &v);
+        let json = format_check_json(&folder, &v, None);
         assert!(json.contains("\"status\":\"unsupported\""), "{json}");
         assert!(json.contains("\"exit\":2"), "{json}");
         assert!(json.contains("E_UNSUPPORTED"), "{json}");
@@ -3142,8 +4057,8 @@ mod tests {
             "{:?}",
             v.diagnostics
         );
-        let human = format_check_human(&folder, &v);
-        let json = format_check_json(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
+        let json = format_check_json(&folder, &v, None);
         for want in ["E_BAD_MOTION", "E_BAD_EASING"] {
             assert!(human.contains(want), "{human}");
             assert!(json.contains(want), "{json}");
@@ -3385,8 +4300,8 @@ mod tests {
                 d.code
             );
         }
-        let human = format_check_human(&folder, &v);
-        let json = format_check_json(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
+        let json = format_check_json(&folder, &v, None);
         for want in [
             "E_MISSING_FILE",
             "E_BAD_AUDIO",
@@ -3522,8 +4437,8 @@ mod tests {
             }
             // Boundary values stay in the message: rates name 0.1–10,
             // windows name both ends.
-            let human = format_check_human(&folder, &v);
-            let json = format_check_json(&folder, &v);
+            let human = format_check_human(&folder, &v, None);
+            let json = format_check_json(&folder, &v, None);
             assert!(human.contains("error[E_BAD_FOOTAGE]"), "{tag}: {human}");
             assert!(json.contains("\"code\":\"E_BAD_FOOTAGE\""), "{tag}: {json}");
             if line.contains("rate") {
@@ -3568,8 +4483,8 @@ mod tests {
         );
         assert_eq!(cmd_check(&folder, false, None), 1);
         assert_eq!(cmd_check(&folder, true, None), 1);
-        let human = format_check_human(&folder, &v);
-        let json = format_check_json(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
+        let json = format_check_json(&folder, &v, None);
         assert_eq!(human.matches("error[E_BAD_FOOTAGE]").count(), 3, "{human}");
         assert_eq!(
             json.matches("\"code\":\"E_BAD_FOOTAGE\"").count(),
@@ -3646,8 +4561,8 @@ mod tests {
             notation::model::Clip::Video(vd) => assert!(vd.loop_clip),
             c => panic!("expected video, got {c:?}"),
         }
-        let human = format_check_human(&folder, &v);
-        let json = format_check_json(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
+        let json = format_check_json(&folder, &v, None);
         assert!(human.contains("loop on"), "{human}");
         assert!(json.contains("\"loop\":true"), "{json}");
         // A looping clip without `duration` asks for one explicitly.
@@ -3665,7 +4580,7 @@ mod tests {
             "{:?}",
             v.diagnostics
         );
-        let human = format_check_human(&folder, &v);
+        let human = format_check_human(&folder, &v, None);
         assert!(human.contains("error[E_BAD_FOOTAGE]"), "{human}");
         assert_eq!(cmd_check(&folder, false, None), 1);
         assert!(!folder.join("out.mp4").exists());
@@ -3693,7 +4608,7 @@ mod tests {
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
         assert!(!v.footage[0].loop_clip);
-        assert!(format_check_human(&folder, &v).contains("loop off"));
+        assert!(format_check_human(&folder, &v, None).contains("loop off"));
     }
 
     /// T007: later-sprint audio use — effects, automation, groups, and
@@ -3733,8 +4648,8 @@ mod tests {
                 "{tag}: {:?}",
                 v.diagnostics
             );
-            let human = format_check_human(&folder, &v);
-            let json = format_check_json(&folder, &v);
+            let human = format_check_human(&folder, &v, None);
+            let json = format_check_json(&folder, &v, None);
             assert!(human.contains("Sprint 10"), "{tag}: {human}");
             assert!(json.contains("Sprint 10"), "{tag}: {json}");
             assert!(json.contains("E_UNSUPPORTED"), "{tag}: {json}");
@@ -3899,8 +4814,8 @@ mod tests {
         );
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Invalid);
-        let check = format_check_json(&folder, &v);
-        let timeline = format_verdict_json("timeline", &folder, &v);
+        let check = format_check_json(&folder, &v, None);
+        let timeline = format_verdict_json("timeline", &folder, &v, None);
         assert!(timeline.contains("\"command\":\"timeline\""), "{timeline}");
         // Same diagnostic payload, only the command name differs.
         let strip =
@@ -3912,5 +4827,133 @@ mod tests {
         assert_eq!(cmd_timeline(&folder, None, true), 1);
         assert_eq!(cmd_info(&folder, None, false), 1);
         assert_eq!(cmd_info(&folder, None, true), 1);
+    }
+
+    /// Sprint 10 sound (CAP-007): `info` carries the playback hint in
+    /// both forms, defaulting to the still start when undeclared.
+    #[test]
+    fn info_carries_autoplay_in_both_forms() {
+        for (tag, attrs, human_want, json_want) in [
+            (
+                "flagged",
+                " autoplay=true",
+                "autoplay: true.",
+                "\"autoplay\":true",
+            ),
+            (
+                "quoted",
+                " autoplay=\"false\"",
+                "autoplay: false.",
+                "\"autoplay\":false",
+            ),
+            ("absent", "", "autoplay: false.", "\"autoplay\":false"),
+        ] {
+            let folder = tmp_dir(tag);
+            write(
+                &folder,
+                validate_mod::COMPOSITION_FILE,
+                &format!(
+                    "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=1{attrs} {{\n    text value=\"Hi\" start=0 duration=1\n}}\n"
+                ),
+            );
+            let v = validate_folder(&folder);
+            assert_eq!(v.status, Status::Valid, "{tag}: {:?}", v.diagnostics);
+            let comp = v.composition.as_ref().unwrap();
+            let human = format_info_human(&folder, comp);
+            let json = format_info_json(&folder, comp);
+            assert!(human.contains(human_want), "{tag}: {human}");
+            assert!(json.contains(json_want), "{tag}: {json}");
+            // The JSON stays balanced with the new field in place.
+            assert_eq!(
+                json.matches('{').count(),
+                json.matches('}').count(),
+                "{json}"
+            );
+            assert_eq!(cmd_info(&folder, None, false), 0);
+            assert_eq!(cmd_info(&folder, None, true), 0);
+        }
+    }
+
+    /// Sprint 10 sound (CAP-011): `check` reports the preview master
+    /// peak in both forms whenever one is measurable, and warns naming
+    /// the peak exactly when it exceeds −1 dBFS — all without changing
+    /// the verdict shape when no peak is measurable.
+    #[test]
+    fn check_reports_master_peak_and_hot_warning_in_both_forms() {
+        let folder = tmp_dir("peakforms");
+        write(&folder, validate_mod::COMPOSITION_FILE, VALID);
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        // Full scale warns naming the peak, in both forms.
+        let human = format_check_human(&folder, &v, Some(32767));
+        assert!(human.contains("master peak: -0.0 dBFS."), "{human}");
+        assert!(
+            human.contains("warning: hot master: peak -0.0 dBFS is above -1.0 dBFS"),
+            "{human}"
+        );
+        let json = format_check_json(&folder, &v, Some(32767));
+        assert!(json.contains("\"master_peak\":"), "{json}");
+        assert!(json.contains("\"master_peak_dbfs\":-0."), "{json}");
+        assert!(
+            json.contains("\"peak_warning\":\"warning: hot master: peak -0.0 dBFS"),
+            "{json}"
+        );
+        // A quiet master reports with no warning; silence reports -inf.
+        let human = format_check_human(&folder, &v, Some(1000));
+        assert!(human.contains("master peak: -"), "{human}");
+        assert!(!human.contains("hot master"), "{human}");
+        let json = format_check_json(&folder, &v, Some(1000));
+        assert!(json.contains("\"peak_warning\":null"), "{json}");
+        let human = format_check_human(&folder, &v, Some(0));
+        assert!(
+            human.contains("master peak: -inf dBFS (digital silence)."),
+            "{human}"
+        );
+        assert!(!human.contains("hot master"), "{human}");
+        // No measurable peak changes nothing.
+        let human = format_check_human(&folder, &v, None);
+        assert!(!human.contains("master peak"), "{human}");
+        let json = format_check_json(&folder, &v, None);
+        assert!(json.contains("\"master_peak\":null"), "{json}");
+        assert!(json.contains("\"peak_warning\":null"), "{json}");
+    }
+
+    /// Sprint 10 sound (CAP-008): `waveform` refuses bad bucket counts
+    /// and invalid projects before any decode, with no listing.
+    #[test]
+    fn waveform_refusals_need_no_decoder() {
+        let missing = tmp_dir("wavemissing").join("nope");
+        for buckets in ["0", "-3", "lots"] {
+            let req = WaveformRequest {
+                composition: None,
+                buckets: Some(buckets.to_string()),
+                json: false,
+            };
+            assert_eq!(cmd_waveform(&missing, &req), 1);
+            let req = WaveformRequest {
+                composition: None,
+                buckets: Some(buckets.to_string()),
+                json: true,
+            };
+            assert_eq!(cmd_waveform(&missing, &req), 1);
+        }
+        let folder = tmp_dir("waveinvalid");
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=1 bogus=1 background=\"#000\" version=1 {\n}\n",
+        );
+        let req = WaveformRequest {
+            composition: None,
+            buckets: None,
+            json: false,
+        };
+        assert_eq!(cmd_waveform(&folder, &req), 1);
+        let req = WaveformRequest {
+            composition: None,
+            buckets: None,
+            json: true,
+        };
+        assert_eq!(cmd_waveform(&folder, &req), 1);
     }
 }

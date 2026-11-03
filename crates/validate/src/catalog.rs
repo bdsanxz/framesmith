@@ -75,6 +75,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Set `fit=\"contain\"`, `fit=\"cover\"`, or `fit=\"fill\"`.",
     },
     CatalogEntry {
+        code: "E_BAD_FLAG",
+        meaning: "A composition `autoplay` switch is not `true` or `false`; the playback hint is never guessed.",
+        example: "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=1 autoplay=\"yes\" { }   // not a boolean",
+        fix: "Set `autoplay=true` to hint auto-playback, or `autoplay=false` (or remove the key) for the default still start.",
+    },
+    CatalogEntry {
         code: "E_BAD_FONT",
         meaning: "A declared font file is not a supported font format, or a text `font-family` names no usable family; the renderer draws only TrueType/OpenType fonts with `glyf` outlines and never substitutes a different font silently.",
         example: "font path=\"fonts/body.woff\"   // WOFF is a web format the renderer cannot draw",
@@ -282,6 +288,7 @@ mod tests {
         "E_BAD_DURATION",
         "E_BAD_EASING",
         "E_BAD_FIT",
+        "E_BAD_FLAG",
         "E_BAD_FONT",
         "E_BAD_FOOTAGE",
         "E_BAD_FPS",

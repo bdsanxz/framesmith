@@ -647,6 +647,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         }
     }
 
@@ -753,6 +756,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         }
     }
 

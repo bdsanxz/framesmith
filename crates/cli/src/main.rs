@@ -30,6 +30,7 @@ fn usage() -> ! {
          \x20 framesmith compositions [--json] <folder>\n\
          \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
+         \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
          \x20 framesmith render <folder> [-o <output.mp4>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]"
     );
     std::process::exit(2);
@@ -110,6 +111,12 @@ fn parse_listing_args(cmd: &str, args: &[String]) -> (PathBuf, Option<String>, b
 fn check_usage_error(msg: &str) -> ! {
     eprintln!("framesmith check: {msg}.");
     eprintln!("usage: framesmith check [--json] <folder>");
+    std::process::exit(2);
+}
+
+fn waveform_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith waveform: {msg}.");
+    eprintln!("usage: framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]");
     std::process::exit(2);
 }
 
@@ -363,6 +370,72 @@ fn main() {
             let (folder, name, json) = parse_listing_args("info", &args[1..]);
             commands::cmd_info(&folder, name.as_deref(), json)
         }
+        "waveform" => {
+            let mut json = false;
+            let mut composition: Option<String> = None;
+            let mut buckets: Option<String> = None;
+            let mut positionals: Vec<String> = Vec::new();
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--json" => {
+                        if json {
+                            waveform_usage_error("duplicate --json flag");
+                        }
+                        json = true;
+                    }
+                    "--composition" => {
+                        i += 1;
+                        if i >= args.len() {
+                            waveform_usage_error(
+                                "--composition needs a value (a composition name)",
+                            );
+                        }
+                        if composition.is_some() {
+                            waveform_usage_error("duplicate --composition flag");
+                        }
+                        composition = Some(args[i].clone());
+                    }
+                    "--buckets" => {
+                        i += 1;
+                        if i >= args.len() {
+                            waveform_usage_error(
+                                "--buckets needs a value (a bucket count of 1 or more)",
+                            );
+                        }
+                        if buckets.is_some() {
+                            waveform_usage_error("duplicate --buckets flag");
+                        }
+                        buckets = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        waveform_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => positionals.push(other.to_string()),
+                }
+                i += 1;
+            }
+            if positionals.is_empty() || positionals.len() > 2 {
+                waveform_usage_error("expected one <folder> plus an optional [name]");
+            }
+            let folder = PathBuf::from(&positionals[0]);
+            let positional_name = positionals.get(1).cloned();
+            let name = match (composition, positional_name) {
+                (Some(f), Some(p)) if f != p => waveform_usage_error(&format!(
+                    "--composition {f:?} disagrees with positional name {p:?}; pass one"
+                )),
+                (Some(f), _) => Some(f),
+                (None, p) => p,
+            };
+            commands::cmd_waveform(
+                &folder,
+                &commands::WaveformRequest {
+                    composition: name,
+                    buckets,
+                    json,
+                },
+            )
+        }
         "-h" | "--help" | "help" => {
             println!(
                 "framesmith — turn a small KDL composition folder into a playable MP4.\n\n\
@@ -373,6 +446,7 @@ fn main() {
                  \x20 compositions [--json] <folder>  list every composition name plus the root\n\
                  \x20 timeline [--json] [--composition <name>] <folder> [<name>]  list every clip with id, track, label, hidden state, and window\n\
                  \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
+                 \x20 waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]  report per-bucket mix peaks plus the master peak\n\
                  \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]  validate, bootstrap FFmpeg, refuse or encode"
             );
             0

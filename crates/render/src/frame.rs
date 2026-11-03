@@ -499,6 +499,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         }
     }
 
@@ -555,6 +558,10 @@ mod tests {
             volume_db: 0.0,
             fade_in: 0.0,
             fade_out: 0.0,
+            crossfade: notation::model::Crossfade::default(),
+            duck_under: None,
+            fx: Default::default(),
+            waveform: Default::default(),
             trim_start: 0.0,
             trim_end: None,
             rate: 1.0,
@@ -829,6 +836,10 @@ mod tests {
             volume_db: 0.0,
             fade_in: 0.0,
             fade_out: 0.0,
+            crossfade: notation::model::Crossfade::default(),
+            duck_under: None,
+            fx: Default::default(),
+            waveform: Default::default(),
             trim_start: 1.0,
             trim_end: Some(3.0),
             rate: 2.0,
@@ -936,6 +947,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         }
     }
 

@@ -446,11 +446,369 @@ pub struct VideoClip {
     /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
     /// CAP-006): 0 draws sharp.
     pub filter_blur: f64,
+    /// Overlap blend with the next same-track clip (Sprint 10 sound,
+    /// CAP-003); default `constant-power`.
+    pub crossfade: Crossfade,
+    /// Voice ducking (Sprint 10 sound, CAP-004); none means full gain
+    /// throughout.
+    pub duck_under: Option<DuckUnder>,
+    /// Echo, room, and pause detection (Sprint 10 sound, CAP-005/006);
+    /// the default renders dry and detects nothing.
+    pub fx: SoundFx,
+    /// On-canvas sound drawing (Sprint 10 sound, CAP-010); disabled
+    /// means the clip draws no sound shape.
+    pub waveform: WaveformDraw,
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
     pub line: usize,
     pub column: usize,
+}
+
+/// Overlap blend of an audio-bearing clip (Sprint 10 sound, CAP-003):
+/// `constant-power` keeps the summed power flat across the handoff
+/// (equal-power cosine/sine pair), `linear` runs the straight 1−p/p
+/// pair, and `none` hard-cuts (the outgoing clip stops where the
+/// incoming starts). Written `crossfade`; default `constant-power`.
+/// Unknown spellings are refused, never guessed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Crossfade {
+    #[default]
+    ConstantPower,
+    Linear,
+    None,
+}
+
+/// One-pass loudness target of a composition (Sprint 10 sound,
+/// CAP-009): `loud` lands integrated loudness at −16 LUFS with true
+/// peak guarding, applied as one overall gain. Absent means the mix
+/// renders at its authored levels. Unknown spellings are refused,
+/// never guessed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Normalize {
+    #[default]
+    None,
+    Loud,
+}
+
+impl Normalize {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "loud" => Some(Normalize::Loud),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Normalize::None => "none",
+            Normalize::Loud => "loud",
+        }
+    }
+
+    /// Whether one overall loudness gain applies to the mix.
+    pub fn active(self) -> bool {
+        matches!(self, Normalize::Loud)
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 1] = ["loud"];
+}
+
+impl Crossfade {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "constant-power" => Some(Crossfade::ConstantPower),
+            "linear" => Some(Crossfade::Linear),
+            "none" => Some(Crossfade::None),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Crossfade::ConstantPower => "constant-power",
+            Crossfade::Linear => "linear",
+            Crossfade::None => "none",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 3] = ["constant-power", "linear", "none"];
+}
+
+/// A `duck-under` plus `duck-amount` declaration (Sprint 10 sound,
+/// CAP-004): while the named voice clip's timeline window sounds, this
+/// clip scales to `amount` (0..1); outside the window it plays full.
+/// Voice activity is read from timeline windows only, never from
+/// signal detection, so ducking is deterministic by construction.
+#[derive(Debug, Clone)]
+pub struct DuckUnder {
+    /// Voice clip id, as written.
+    pub target: String,
+    /// Gain while the voice sounds (0..1, inclusive).
+    pub amount: f64,
+    /// Location of the `duck-under` value, for diagnostics.
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Echo and room plus pause detection of one audio-bearing clip
+/// (Sprint 10 sound, CAP-005/CAP-006): `delay` seconds with
+/// `delay-feedback` and `delay-mix` render a feedback echo inside the
+/// mixer, `reverb` a deterministic room tail, and `detect-silence`
+/// with its thresholds reports pauses in `check` without altering
+/// audio. Defaults render dry and detect nothing.
+#[derive(Debug, Clone)]
+pub struct SoundFx {
+    /// Echo spacing in composition seconds (0..2); 0 bypasses delay.
+    pub delay: f64,
+    /// Echo recirculation per tap (0..0.95); 0 keeps one tap.
+    pub delay_feedback: f64,
+    /// Wet level of every echo tap (0..1); 0 bypasses delay.
+    pub delay_mix: f64,
+    /// Room amount (0..1); 0 bypasses reverb.
+    pub reverb: f64,
+    /// Whether `check` lists this clip's silent ranges.
+    pub detect_silence: bool,
+    /// Silence ceiling in dBFS (at or below counts as silent).
+    pub silence_threshold_db: f64,
+    /// Shortest reported pause in composition seconds.
+    pub silence_min: f64,
+}
+
+/// Default silence ceiling in dBFS (Sprint 10 sound, CAP-006).
+pub const SILENCE_THRESHOLD_DEFAULT_DB: f64 = -40.0;
+
+/// Default shortest reported pause in seconds (Sprint 10 sound,
+/// CAP-006).
+pub const SILENCE_MIN_DEFAULT_SECS: f64 = 0.5;
+
+/// Longest echo spacing in seconds (Sprint 10 sound, CAP-005).
+pub const DELAY_MAX_SECS: f64 = 2.0;
+
+/// Highest echo recirculation (Sprint 10 sound, CAP-005): below unity
+/// so every tail decays to silence instead of ringing forever.
+pub const DELAY_FEEDBACK_MAX: f64 = 0.95;
+
+/// Tap audibility floor (Sprint 10 sound, CAP-005/CAP-006): taps below
+/// −60 dBFS end the natural tail; the mixer renders to the
+/// composition end and `check` notes the truncation.
+pub const EFFECT_TAIL_FLOOR: f64 = 0.001;
+
+/// Room comb spacing in samples at 48 kHz (Sprint 10 sound, CAP-005):
+/// a fixed 30 ms so the room tail is deterministic by construction.
+pub const REVERB_COMB_SAMPLES: usize = 1440;
+
+/// Mix sample rate for effect-tail sample math (Sprint 10 sound).
+pub const EFFECT_RATE: f64 = 48_000.0;
+
+/// Largest tap count one effect ever plans (Sprint 10 sound, CAP-005):
+/// validation bounds keep real tails far below this; direct API misuse
+/// with unity-or-higher feedback still terminates.
+pub const EFFECT_MAX_TAPS: usize = 10_000;
+
+impl Default for SoundFx {
+    fn default() -> Self {
+        Self {
+            delay: 0.0,
+            delay_feedback: 0.0,
+            delay_mix: 0.0,
+            reverb: 0.0,
+            detect_silence: false,
+            silence_threshold_db: SILENCE_THRESHOLD_DEFAULT_DB,
+            silence_min: SILENCE_MIN_DEFAULT_SECS,
+        }
+    }
+}
+
+/// Audible echo taps of one delay setting (Sprint 10 sound, CAP-005):
+/// tap `k >= 1` lands at `k * delay` with gain
+/// `delay-mix * delay-feedback^(k-1)`, while taps at or above the
+/// [`EFFECT_TAIL_FLOOR`] count. Zero delay or zero mix plans no taps.
+pub fn delay_taps(delay_secs: f64, feedback: f64, mix: f64) -> usize {
+    if !delay_secs.is_finite() || delay_secs <= 0.0 || !mix.is_finite() || mix <= 0.0 {
+        return 0;
+    }
+    let spaced = (delay_secs * EFFECT_RATE).round();
+    if spaced < 1.0 {
+        return 0;
+    }
+    if mix < EFFECT_TAIL_FLOOR {
+        return 0;
+    }
+    if !feedback.is_finite() || feedback <= 0.0 {
+        return 1;
+    }
+    if feedback >= 1.0 {
+        return EFFECT_MAX_TAPS;
+    }
+    let taps = 1.0 + (EFFECT_TAIL_FLOOR / mix).ln() / feedback.ln();
+    (taps.floor() as usize).clamp(1, EFFECT_MAX_TAPS)
+}
+
+/// Natural echo tail in samples (Sprint 10 sound, CAP-005): audible
+/// taps times the tap spacing. The mixer renders at most the room to
+/// the composition end and `check` notes the cut.
+pub fn delay_tail_frames(delay_secs: f64, feedback: f64, mix: f64) -> usize {
+    if !delay_secs.is_finite() || delay_secs <= 0.0 {
+        return 0;
+    }
+    let spaced = (delay_secs * EFFECT_RATE).round();
+    if spaced < 1.0 {
+        return 0;
+    }
+    delay_taps(delay_secs, feedback, mix).saturating_mul(spaced as usize)
+}
+
+/// Audible room taps of one reverb amount (Sprint 10 sound, CAP-005):
+/// tap `k >= 1` lands at `k * 30 ms` with gain
+/// `reverb * (reverb / 2)^(k-1)`. Zero reverb plans no taps.
+pub fn reverb_taps(reverb: f64) -> usize {
+    if !reverb.is_finite() || reverb <= 0.0 {
+        return 0;
+    }
+    if reverb < EFFECT_TAIL_FLOOR {
+        return 0;
+    }
+    let feedback = reverb / 2.0;
+    if feedback <= 0.0 {
+        return 1;
+    }
+    let taps = 1.0 + (EFFECT_TAIL_FLOOR / reverb).ln() / feedback.ln();
+    (taps.floor() as usize).clamp(1, EFFECT_MAX_TAPS)
+}
+
+/// Natural room tail in samples (Sprint 10 sound, CAP-005): audible
+/// taps times the fixed 30 ms comb spacing.
+pub fn reverb_tail_frames(reverb: f64) -> usize {
+    reverb_taps(reverb).saturating_mul(REVERB_COMB_SAMPLES)
+}
+
+/// Natural effect tail in samples with delay chained into reverb
+/// (Sprint 10 sound, CAP-005): the echo tail first, then the room tail
+/// blooming off it. Zero means the clip renders dry.
+pub fn effect_tail_frames(delay_secs: f64, feedback: f64, mix: f64, reverb: f64) -> usize {
+    delay_tail_frames(delay_secs, feedback, mix).saturating_add(reverb_tail_frames(reverb))
+}
+
+impl SoundFx {
+    /// True when delay and reverb both bypass, so the clip mixes down
+    /// the historical dry path bit-identically.
+    pub fn dry(&self) -> bool {
+        effect_tail_frames(self.delay, self.delay_feedback, self.delay_mix, self.reverb) == 0
+    }
+}
+
+/// On-canvas sound drawing of one audio-bearing clip (Sprint 10
+/// sound, CAP-010): `waveform="true"` draws the clip's sound shape
+/// within `waveform-from`/`waveform-to` (composition seconds,
+/// defaulting to the clip window). An empty or backward drawn range
+/// is refused; a range past the clip window clamps to it and reports.
+#[derive(Debug, Clone)]
+pub struct WaveformDraw {
+    /// Whether the clip's sound shape draws on the canvas.
+    pub enabled: bool,
+    /// Drawn range start in composition seconds; none means the clip
+    /// window start.
+    pub from: Option<f64>,
+    /// Drawn range end in composition seconds; none means the clip
+    /// window end.
+    pub to: Option<f64>,
+    /// Location of the `waveform` key (or the clip node when absent),
+    /// for diagnostics.
+    pub line: usize,
+    pub column: usize,
+    /// Location of the `waveform-from` key, when written.
+    pub from_loc: Option<(usize, usize)>,
+    /// Location of the `waveform-to` key, when written.
+    pub to_loc: Option<(usize, usize)>,
+}
+
+impl Default for WaveformDraw {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            from: None,
+            to: None,
+            line: 1,
+            column: 1,
+            from_loc: None,
+            to_loc: None,
+        }
+    }
+}
+
+/// A resolved on-canvas sound range (Sprint 10 sound, CAP-010): the
+/// written range plus its clamp to the audible clip window. The
+/// drawing spans `[eff_from, eff_to)` mapped across the canvas width.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct WaveformRange {
+    /// Written range start in composition seconds.
+    pub raw_from: f64,
+    /// Written range end in composition seconds.
+    pub raw_to: f64,
+    /// Clamped range start in composition seconds.
+    pub eff_from: f64,
+    /// Clamped range end in composition seconds.
+    pub eff_to: f64,
+    /// True when clamping cut the written range.
+    pub clamped: bool,
+}
+
+/// Why one drawn range cannot render (Sprint 10 sound, CAP-010,
+/// REC-002): the clip has no audible window, the written range is
+/// empty or backward, or it lies fully outside the clip window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WaveformRangeError {
+    EmptyWindow,
+    EmptyOrBackward,
+    OutsideWindow,
+}
+
+/// Resolve one drawn range against the audible clip window (Sprint 10
+/// sound, CAP-010): the window is the clip span clamped to
+/// composition time; absent bounds default to its ends. Empty or
+/// backward written ranges fail before clamping; a range past the
+/// window clamps to it and reports; a range fully outside it fails
+/// with nothing to draw.
+pub fn resolve_waveform_range(
+    clip_start: f64,
+    clip_duration: f64,
+    comp_duration: f64,
+    from: Option<f64>,
+    to: Option<f64>,
+) -> Result<WaveformRange, WaveformRangeError> {
+    if !clip_start.is_finite()
+        || !clip_duration.is_finite()
+        || clip_duration <= 0.0
+        || !comp_duration.is_finite()
+        || comp_duration <= 0.0
+    {
+        return Err(WaveformRangeError::EmptyWindow);
+    }
+    let wstart = clip_start.max(0.0);
+    let wend = (clip_start + clip_duration).min(comp_duration);
+    if !wstart.is_finite() || !wend.is_finite() || wend <= wstart || wstart >= comp_duration {
+        return Err(WaveformRangeError::EmptyWindow);
+    }
+    let raw_from = from.unwrap_or(wstart);
+    let raw_to = to.unwrap_or(wend);
+    if !raw_from.is_finite() || !raw_to.is_finite() || raw_to <= raw_from {
+        return Err(WaveformRangeError::EmptyOrBackward);
+    }
+    let eff_from = raw_from.clamp(wstart, wend);
+    let eff_to = raw_to.clamp(wstart, wend);
+    if eff_to <= eff_from {
+        return Err(WaveformRangeError::OutsideWindow);
+    }
+    Ok(WaveformRange {
+        raw_from,
+        raw_to,
+        eff_from,
+        eff_to,
+        clamped: eff_from != raw_from || eff_to != raw_to,
+    })
 }
 
 /// Smallest resolvable clip or composition length in seconds (Sprint 6
@@ -496,6 +854,18 @@ pub struct AudioClip {
     pub volume_db: f64,
     pub fade_in: f64,
     pub fade_out: f64,
+    /// Overlap blend with the next same-track clip (Sprint 10 sound,
+    /// CAP-003); default `constant-power`.
+    pub crossfade: Crossfade,
+    /// Voice ducking (Sprint 10 sound, CAP-004); none means full gain
+    /// throughout.
+    pub duck_under: Option<DuckUnder>,
+    /// Echo, room, and pause detection (Sprint 10 sound, CAP-005/006);
+    /// the default renders dry and detects nothing.
+    pub fx: SoundFx,
+    /// On-canvas sound drawing (Sprint 10 sound, CAP-010); disabled
+    /// means the clip draws no sound shape.
+    pub waveform: WaveformDraw,
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
@@ -1011,6 +1381,27 @@ pub const MOTION_ALIASES: [(&str, &str); 5] = [
     ("border-radius", "radius"),
 ];
 
+/// Sound properties ridden by `key`/`tween`/`set` envelopes (Sprint 10
+/// sound, CAP-001): `volume` is a linear level multiplier from 0
+/// (silence) to 2 (twice unity), defaulting to 1; `pan` is an
+/// equal-gain balance from −1 (left) to 1 (right), defaulting to 0.
+/// They animate only on sound-bearing clips (`audio` tracks and `video`
+/// clips); they are not visual motion properties, so the visual engine
+/// never evaluates them. Every hyphenated name also accepts its
+/// underscore form (here identical).
+pub const SOUND_PROPERTIES: [&str; 2] = ["volume", "pan"];
+
+/// The envelope level a sound property holds with no directive
+/// (Sprint 10 sound, CAP-001): `volume` rides at unity gain, `pan` at
+/// center. Tween endpoints a form omits resolve to these, exactly like
+/// visual `to`/`from` tweens resolve to the clip's own values.
+pub fn sound_own_value(property: &str) -> f64 {
+    match property {
+        "pan" => 0.0,
+        _ => 1.0,
+    }
+}
+
 /// Well-formed motion properties that still wait for later proof
 /// (Sprint 7 paths/expressions and beyond).
 pub const LATER_PROPERTIES: [&str; 7] = [
@@ -1326,6 +1717,17 @@ pub struct Composition {
     /// `replicate` expansions, in document order (Sprint 7 motion,
     /// CAP-010). Empty for replicate-free compositions.
     pub replicates: Vec<ReplicateGroup>,
+    /// Playback-hint flag (Sprint 10 sound, CAP-007): carried into
+    /// `info` only; never alters the mix or the picture, so toggling
+    /// it re-renders byte-identically.
+    pub autoplay: bool,
+    /// One-pass loudness target (Sprint 10 sound, CAP-009): `loud`
+    /// lands integrated loudness at −16 LUFS with true-peak guarding.
+    /// Absent means the mix renders at its authored levels.
+    pub normalize: Normalize,
+    /// Location of the `normalize` key, when written; none means the
+    /// default still levels.
+    pub normalize_loc: Option<(usize, usize)>,
 }
 
 impl Composition {
@@ -1370,6 +1772,168 @@ pub fn clamped_window(start: f64, duration: f64, composition_duration: f64) -> O
         return None;
     }
     Some((start.max(0.0), end))
+}
+
+/// One same-track overlap handoff (Sprint 10 sound, CAP-003): the
+/// earlier clip (`early`) hands off to the later clip (`late`) across
+/// their overlap. The late clip always fades in across the overlap;
+/// the early clip fades out across it only when its tail lies inside
+/// (`early_fades`); a continuing early clip is a bed and plays through
+/// untouched. The effective overlap clamps the raw overlap to
+/// composition time; `clamped` marks a partial cut, reported in
+/// `check` for review.
+#[derive(Debug, Clone)]
+pub struct SoundOverlap {
+    /// Document index of the earlier-starting clip.
+    pub early: usize,
+    /// Document index of the later-starting clip.
+    pub late: usize,
+    /// Resolved pair shape (see [`resolve_crossfade`]).
+    pub shape: Crossfade,
+    /// Overlap of the raw clip windows, in composition seconds.
+    pub raw_start: f64,
+    pub raw_end: f64,
+    /// Overlap clamped to composition time, in composition seconds.
+    pub eff_start: f64,
+    pub eff_end: f64,
+    /// True when the early clip's tail lies in the overlap (it fades
+    /// out); false when it continues past (bed, plays through).
+    pub early_fades: bool,
+    /// True when the effective overlap is a partial cut of the raw
+    /// overlap (an overlong window clamped to what renders).
+    pub clamped: bool,
+}
+
+/// Resolve one pair's crossfade shape (Sprint 10 sound, CAP-003): a
+/// `none` on either side hard-cuts, else a `linear` on either side
+/// runs linear, else the default constant-power blend.
+pub fn resolve_crossfade(a: Crossfade, b: Crossfade) -> Crossfade {
+    if a == Crossfade::None || b == Crossfade::None {
+        Crossfade::None
+    } else if a == Crossfade::Linear || b == Crossfade::Linear {
+        Crossfade::Linear
+    } else {
+        Crossfade::ConstantPower
+    }
+}
+
+/// The `crossfade` declared on an audio-bearing clip; `None` for every
+/// other clip kind (they never take part in overlap handoffs).
+fn clip_crossfade(clip: &Clip) -> Option<Crossfade> {
+    match clip {
+        Clip::Audio(a) => Some(a.crossfade),
+        Clip::Video(v) => Some(v.crossfade),
+        _ => None,
+    }
+}
+
+/// The echo/room/detection settings declared on an audio-bearing clip
+/// (Sprint 10 sound, CAP-005/006); `None` for every other clip kind.
+pub fn clip_fx(clip: &Clip) -> Option<&SoundFx> {
+    match clip {
+        Clip::Audio(a) => Some(&a.fx),
+        Clip::Video(v) => Some(&v.fx),
+        _ => None,
+    }
+}
+
+/// The on-canvas sound drawing declared on an audio-bearing clip
+/// (Sprint 10 sound, CAP-010); `None` for every other clip kind or
+/// when the clip draws no sound shape.
+pub fn clip_waveform(clip: &Clip) -> Option<&WaveformDraw> {
+    match clip {
+        Clip::Audio(a) if a.waveform.enabled => Some(&a.waveform),
+        Clip::Video(v) if v.waveform.enabled => Some(&v.waveform),
+        _ => None,
+    }
+}
+
+/// Plan every same-track overlap handoff (Sprint 10 sound, CAP-003):
+/// audio-bearing clips (`audio` tracks and `video` clips) sharing one
+/// track lane, in start order, where the later clip starts strictly
+/// inside the earlier one. Clips sharing a start stack as layers and
+/// sum (no handoff); merely touching windows never overlap; hidden
+/// clips are absent; pairs whose overlap leaves no audible sample are
+/// dropped. Deterministic in document order, so every render plans the
+/// same gains and re-renders stay byte-identical.
+pub fn sound_overlaps(clips: &[Clip], composition_duration: f64) -> Vec<SoundOverlap> {
+    let mut order: Vec<usize> = clips
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| !c.hidden() && clip_crossfade(c).is_some())
+        .map(|(i, _)| i)
+        .collect();
+    order.sort_by(|&a, &b| {
+        clips[a]
+            .start()
+            .total_cmp(&clips[b].start())
+            .then_with(|| clips[a].duration().total_cmp(&clips[b].duration()))
+            .then_with(|| a.cmp(&b))
+    });
+    let mut out = Vec::new();
+    for pair in order.windows(2) {
+        let (a, b) = (pair[0], pair[1]);
+        if clips[a].track() != clips[b].track() {
+            continue;
+        }
+        let (sa, ea) = (clips[a].start(), clips[a].start() + clips[a].duration());
+        let (sb, eb) = (clips[b].start(), clips[b].start() + clips[b].duration());
+        // A handoff needs the newcomer to arrive strictly inside the
+        // earlier window: shared starts stack as layers and sum.
+        if !(sb > sa && sb < ea) {
+            continue;
+        }
+        let raw_start = sb;
+        let raw_end = ea.min(eb);
+        debug_assert!(raw_end > raw_start);
+        let eff_start = raw_start.max(0.0);
+        let eff_end = raw_end.min(composition_duration);
+        if eff_end <= eff_start {
+            continue;
+        }
+        let shape = resolve_crossfade(
+            clip_crossfade(&clips[a]).unwrap_or_default(),
+            clip_crossfade(&clips[b]).unwrap_or_default(),
+        );
+        out.push(SoundOverlap {
+            early: a,
+            late: b,
+            shape,
+            raw_start,
+            raw_end,
+            eff_start,
+            eff_end,
+            early_fades: ea <= eb,
+            clamped: eff_start != raw_start || eff_end != raw_end,
+        });
+    }
+    out
+}
+
+/// The voice window plus duck amount driving one bed clip (Sprint 10
+/// sound, CAP-004): the named voice clip's timeline window and the
+/// bed's declared gain while it sounds. A hidden voice never sounds,
+/// so it ducks nothing; an unknown or non-clip target resolves to
+/// `None` here (validation refuses those before the first frame).
+/// The amount converts to `f32` once, so the mix multiplies exactly
+/// one gain per sample.
+pub fn duck_target_window(clips: &[Clip], bed: usize) -> Option<(f64, f64, f32)> {
+    let duck = match &clips[bed] {
+        Clip::Audio(a) => a.duck_under.as_ref(),
+        Clip::Video(v) => v.duck_under.as_ref(),
+        _ => None,
+    }?;
+    let voice = clips
+        .iter()
+        .find(|c| c.id() == Some(duck.target.as_str()))?;
+    if voice.hidden() {
+        return None;
+    }
+    Some((
+        voice.start(),
+        voice.start() + voice.duration(),
+        duck.amount as f32,
+    ))
 }
 
 #[cfg(test)]
@@ -1460,5 +2024,295 @@ mod tests {
         assert!(Placement::parse("left right").is_none());
         assert!(Placement::parse("").is_none());
         assert!(Placement::parse("center center center").is_none());
+    }
+
+    /// Sprint 10 sound (T003/T004): crossfade spellings parse exactly,
+    /// pair shapes resolve none-over-linear-over-default, overlaps plan
+    /// handoffs only, and duck windows follow voice timelines.
+    fn sound_audio(
+        start: f64,
+        duration: f64,
+        id: Option<&str>,
+        crossfade: super::Crossfade,
+        duck: Option<super::DuckUnder>,
+        hidden: bool,
+    ) -> super::Clip {
+        super::Clip::Audio(super::AudioClip {
+            path: "s.wav".to_string(),
+            start,
+            duration,
+            id: id.map(str::to_string),
+            track: super::TrackKind::Audio,
+            label: None,
+            start_after: None,
+            trim_start: 0.0,
+            trim_end: None,
+            rate: 1.0,
+            volume_db: 0.0,
+            fade_in: 0.0,
+            fade_out: 0.0,
+            crossfade,
+            duck_under: duck,
+            fx: super::SoundFx::default(),
+            waveform: super::WaveformDraw::default(),
+            hidden,
+            line: 1,
+            column: 1,
+        })
+    }
+
+    #[test]
+    fn effect_tails_match_hand_math() {
+        use super::*;
+        // No spacing or no wet level plans no tail: dry by construction.
+        assert_eq!(delay_taps(0.0, 0.5, 0.8), 0);
+        assert_eq!(delay_taps(0.3, 0.5, 0.0), 0);
+        assert_eq!(delay_tail_frames(0.0, 0.5, 0.8), 0);
+        assert!(SoundFx::default().dry());
+        // A lone tap (zero feedback) runs exactly one spacing.
+        assert_eq!(delay_taps(0.3, 0.0, 0.8), 1);
+        assert_eq!(delay_tail_frames(0.3, 0.0, 0.8), 14_400);
+        // mix 0.8 with feedback 0.5: taps gain 0.8, 0.4, ...; the
+        // tenth (0.8/512 = 0.0015625) still counts, the eleventh
+        // (0.8/1024) falls below the floor: 10 taps of 14400 samples.
+        assert_eq!(delay_taps(0.3, 0.5, 0.8), 10);
+        assert_eq!(delay_tail_frames(0.3, 0.5, 0.8), 144_000);
+        // A wet level below the floor plans nothing at all.
+        assert_eq!(delay_taps(0.3, 0.5, 0.0005), 0);
+        // Reverb 0.8 recirculates at 0.4 per 30 ms comb: taps gain
+        // 0.8, 0.32, ...; the eighth (0.8*0.4^7 = 0.00013) is the last
+        // above the floor: 8 taps of 1440 samples.
+        assert_eq!(reverb_taps(0.0), 0);
+        assert_eq!(reverb_taps(0.8), 8);
+        assert_eq!(reverb_tail_frames(0.8), 8 * 1_440);
+        // Chained tails add: echo first, then the room off it.
+        assert_eq!(effect_tail_frames(0.3, 0.5, 0.8, 0.8), 144_000 + 8 * 1_440);
+        assert_eq!(effect_tail_frames(0.0, 0.0, 0.0, 0.0), 0);
+    }
+
+    #[test]
+    fn crossfade_spellings_parse_exactly() {
+        use super::Crossfade;
+        assert_eq!(
+            Crossfade::parse("constant-power"),
+            Some(Crossfade::ConstantPower)
+        );
+        assert_eq!(Crossfade::parse("linear"), Some(Crossfade::Linear));
+        assert_eq!(Crossfade::parse("none"), Some(Crossfade::None));
+        assert_eq!(Crossfade::parse("constant_power"), None);
+        assert_eq!(Crossfade::parse("Linear"), None);
+        assert_eq!(Crossfade::parse(""), None);
+        assert_eq!(Crossfade::default(), Crossfade::ConstantPower);
+        assert_eq!(Crossfade::ACCEPTED, ["constant-power", "linear", "none"]);
+    }
+
+    #[test]
+    fn normalize_spellings_parse_exactly() {
+        use super::Normalize;
+        assert_eq!(Normalize::parse("loud"), Some(Normalize::Loud));
+        assert_eq!(Normalize::parse("none"), None);
+        assert_eq!(Normalize::parse("LOUD"), None);
+        assert_eq!(Normalize::parse(""), None);
+        assert_eq!(Normalize::default(), Normalize::None);
+        assert!(!Normalize::None.active());
+        assert!(Normalize::Loud.active());
+        assert_eq!(Normalize::ACCEPTED, ["loud"]);
+    }
+
+    #[test]
+    fn waveform_ranges_resolve_clamp_and_refuse() {
+        use super::{resolve_waveform_range, WaveformRangeError};
+        // Defaults span the clip window (clamped to the composition).
+        let r = resolve_waveform_range(1.0, 2.0, 10.0, None, None).unwrap();
+        assert_eq!((r.raw_from, r.raw_to), (1.0, 3.0));
+        assert_eq!((r.eff_from, r.eff_to), (1.0, 3.0));
+        assert!(!r.clamped);
+        // An overrunning clip window clamps to the composition end.
+        let r = resolve_waveform_range(9.0, 5.0, 10.0, None, None).unwrap();
+        assert_eq!((r.eff_from, r.eff_to), (9.0, 10.0));
+        assert!(!r.clamped);
+        // A written range past the window clamps and reports.
+        let r = resolve_waveform_range(1.0, 2.0, 10.0, Some(0.0), Some(5.0)).unwrap();
+        assert_eq!((r.raw_from, r.raw_to), (0.0, 5.0));
+        assert_eq!((r.eff_from, r.eff_to), (1.0, 3.0));
+        assert!(r.clamped);
+        // An interior written range passes through unclamped.
+        let r = resolve_waveform_range(1.0, 2.0, 10.0, Some(1.5), Some(2.5)).unwrap();
+        assert!(!r.clamped);
+        assert_eq!((r.eff_from, r.eff_to), (1.5, 2.5));
+        // Empty and backward written ranges fail before clamping.
+        assert_eq!(
+            resolve_waveform_range(1.0, 2.0, 10.0, Some(2.0), Some(2.0)),
+            Err(WaveformRangeError::EmptyOrBackward)
+        );
+        assert_eq!(
+            resolve_waveform_range(1.0, 2.0, 10.0, Some(2.5), Some(1.5)),
+            Err(WaveformRangeError::EmptyOrBackward)
+        );
+        // A range fully outside the window fails with nothing to draw.
+        assert_eq!(
+            resolve_waveform_range(1.0, 2.0, 10.0, Some(5.0), Some(6.0)),
+            Err(WaveformRangeError::OutsideWindow)
+        );
+        assert_eq!(
+            resolve_waveform_range(1.0, 2.0, 10.0, Some(-2.0), Some(-1.0)),
+            Err(WaveformRangeError::OutsideWindow)
+        );
+        // A clip with no audible window resolves nothing.
+        assert_eq!(
+            resolve_waveform_range(11.0, 2.0, 10.0, None, None),
+            Err(WaveformRangeError::EmptyWindow)
+        );
+        assert_eq!(
+            resolve_waveform_range(1.0, 0.0, 10.0, None, None),
+            Err(WaveformRangeError::EmptyWindow)
+        );
+    }
+
+    #[test]
+    fn pair_shapes_resolve_none_over_linear_over_default() {
+        use super::{resolve_crossfade, Crossfade};
+        use Crossfade::*;
+        assert_eq!(
+            resolve_crossfade(ConstantPower, ConstantPower),
+            ConstantPower
+        );
+        assert_eq!(resolve_crossfade(ConstantPower, Linear), Linear);
+        assert_eq!(resolve_crossfade(Linear, ConstantPower), Linear);
+        assert_eq!(resolve_crossfade(Linear, Linear), Linear);
+        assert_eq!(resolve_crossfade(None, Linear), None);
+        assert_eq!(resolve_crossfade(Linear, None), None);
+        assert_eq!(resolve_crossfade(None, ConstantPower), None);
+    }
+
+    #[test]
+    fn consecutive_overlaps_plan_one_handoff() {
+        use super::{sound_overlaps, Crossfade};
+        // Classic handoff: A [0,2) yields to B [1,3) across [1,2), and
+        // A ends there so it fades out while B fades in.
+        let clips = vec![
+            sound_audio(0.0, 2.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(1.0, 2.0, None, Crossfade::ConstantPower, None, false),
+        ];
+        let plan = sound_overlaps(&clips, 3.0);
+        assert_eq!(plan.len(), 1);
+        assert_eq!((plan[0].early, plan[0].late), (0, 1));
+        assert_eq!(plan[0].shape, Crossfade::ConstantPower);
+        assert_eq!((plan[0].raw_start, plan[0].raw_end), (1.0, 2.0));
+        assert_eq!((plan[0].eff_start, plan[0].eff_end), (1.0, 2.0));
+        assert!(plan[0].early_fades);
+        assert!(!plan[0].clamped);
+    }
+
+    #[test]
+    fn layers_touching_lanes_and_hidden_never_hand_off() {
+        use super::{sound_overlaps, Crossfade, TrackKind};
+        // Shared starts stack as layers and sum (the overlap-sum lock);
+        // touching windows never overlap.
+        let stacked = vec![
+            sound_audio(0.0, 1.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(0.0, 1.0, None, Crossfade::ConstantPower, None, false),
+        ];
+        assert!(sound_overlaps(&stacked, 1.0).is_empty());
+        let touching = vec![
+            sound_audio(0.0, 1.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(1.0, 1.0, None, Crossfade::ConstantPower, None, false),
+        ];
+        assert!(sound_overlaps(&touching, 2.0).is_empty());
+        // A hidden clip is absent from the plan.
+        let hidden = vec![
+            sound_audio(0.0, 2.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(1.0, 2.0, None, Crossfade::ConstantPower, None, true),
+        ];
+        assert!(sound_overlaps(&hidden, 3.0).is_empty());
+        // Different lanes sum, never blend: an audio bed under a video
+        // voice keeps both full.
+        let mut lanes = vec![
+            sound_audio(0.0, 2.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(1.0, 2.0, None, Crossfade::ConstantPower, None, false),
+        ];
+        if let super::Clip::Audio(b) = &mut lanes[1] {
+            b.track = TrackKind::Video;
+        }
+        assert!(sound_overlaps(&lanes, 3.0).is_empty());
+    }
+
+    #[test]
+    fn continuing_early_clip_is_a_bed_and_overruns_clamp() {
+        use super::{sound_overlaps, Crossfade};
+        // B [1,2) sits inside A [0,4): B fades in, A plays through.
+        let clips = vec![
+            sound_audio(0.0, 4.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(1.0, 1.0, None, Crossfade::Linear, None, false),
+        ];
+        let plan = sound_overlaps(&clips, 4.0);
+        assert_eq!(plan.len(), 1);
+        assert!(!plan[0].early_fades, "a continuing bed plays through");
+        assert_eq!(plan[0].shape, Crossfade::Linear);
+        // An overlap running past the composition end clamps to what
+        // renders and reports the cut.
+        let over = vec![
+            sound_audio(0.5, 2.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(1.5, 1.5, None, Crossfade::ConstantPower, None, false),
+        ];
+        let plan = sound_overlaps(&over, 2.0);
+        assert_eq!(plan.len(), 1);
+        assert_eq!((plan[0].raw_start, plan[0].raw_end), (1.5, 2.5));
+        assert_eq!((plan[0].eff_start, plan[0].eff_end), (1.5, 2.0));
+        assert!(plan[0].clamped);
+        // An overlap entirely past the end leaves no audible sample.
+        let past = vec![
+            sound_audio(3.0, 1.0, None, Crossfade::ConstantPower, None, false),
+            sound_audio(3.5, 1.0, None, Crossfade::ConstantPower, None, false),
+        ];
+        assert!(sound_overlaps(&past, 2.0).is_empty());
+    }
+
+    #[test]
+    fn duck_windows_follow_voice_timelines() {
+        use super::{duck_target_window, Crossfade, DuckUnder};
+        let duck = |target: &str, amount: f64| DuckUnder {
+            target: target.to_string(),
+            amount,
+            line: 1,
+            column: 1,
+        };
+        let clips = vec![
+            sound_audio(
+                0.0,
+                4.0,
+                Some("bed"),
+                Crossfade::ConstantPower,
+                Some(duck("vox", 0.25)),
+                false,
+            ),
+            sound_audio(1.0, 2.0, Some("vox"), Crossfade::ConstantPower, None, false),
+        ];
+        assert_eq!(duck_target_window(&clips, 0), Some((1.0, 3.0, 0.25f32)));
+        assert_eq!(duck_target_window(&clips, 1), None);
+        // A hidden voice never sounds, so it ducks nothing.
+        let hidden = vec![
+            sound_audio(
+                0.0,
+                4.0,
+                Some("bed"),
+                Crossfade::ConstantPower,
+                Some(duck("vox", 0.25)),
+                false,
+            ),
+            sound_audio(1.0, 2.0, Some("vox"), Crossfade::ConstantPower, None, true),
+        ];
+        assert_eq!(duck_target_window(&hidden, 0), None);
+        // An unknown voice resolves to nothing here; validation
+        // refuses it before the first frame.
+        let unknown = vec![sound_audio(
+            0.0,
+            4.0,
+            Some("bed"),
+            Crossfade::ConstantPower,
+            Some(duck("gone", 0.25)),
+            false,
+        )];
+        assert_eq!(duck_target_window(&unknown, 0), None);
     }
 }

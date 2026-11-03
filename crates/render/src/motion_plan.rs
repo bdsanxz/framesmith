@@ -212,7 +212,7 @@ fn engine_tweens(decl: &TweenDecl) -> Vec<Tween> {
     }]
 }
 
-fn ease_of(decl: &EaseDecl) -> motion::Ease {
+pub(crate) fn ease_of(decl: &EaseDecl) -> motion::Ease {
     use motion::Ease;
     match *decl {
         EaseDecl::Linear => Ease::Linear,
@@ -1422,6 +1422,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         }
     }
 
@@ -1811,6 +1814,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         }
     }
 

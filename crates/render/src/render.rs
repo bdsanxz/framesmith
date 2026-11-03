@@ -35,7 +35,7 @@ use crate::frame::{FrameDescription, FrameItem};
 use crate::motion_plan::{plan_motions, snap_fps, ClipMotion};
 use crate::turn::Turn;
 use glyph::font::Face;
-use notation::model::{Clip, Composition, Fit};
+use notation::model::{AudioClip, Clip, Composition, Fit, VideoClip};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -1302,6 +1302,162 @@ pub struct AudioPlan {
     /// Staged raw s16le 48 kHz stereo mix, or `None` when the
     /// composition carries no audible sound at all.
     pub mix_pcm: Option<PathBuf>,
+    /// Planned loudness gain (Sprint 10 sound, CAP-009): `Some` when
+    /// the composition normalizes, already applied to the staged mix
+    /// and reported in the render summary.
+    pub normalize: Option<crate::loudness::NormalizeReport>,
+    /// On-canvas sound shapes (Sprint 10 sound, CAP-010), drawn onto
+    /// rendered frames in [`render_staged`].
+    pub waveforms: Vec<crate::waveform::WaveformOverlay>,
+}
+
+/// Why a mix preview is unavailable (Sprint 10 sound): silent
+/// normalization fails closed by construction; anything else names a
+/// decode failure the render reports.
+#[derive(Debug, Clone)]
+pub enum PreviewError {
+    /// `normalize="loud"` with a silent mix: the listing refuses
+    /// instead of scaling silence, carrying the render-stage wording.
+    Silent(String),
+    /// A probe or decode failure naming the file.
+    Failed(String),
+}
+
+impl PreviewError {
+    /// The refusal or failure wording the caller reports.
+    pub fn message(&self) -> &str {
+        match self {
+            PreviewError::Silent(m) | PreviewError::Failed(m) => m,
+        }
+    }
+}
+
+/// Refusal for a normalized composition with no audible mix (Sprint
+/// 10 sound, CAP-009/REC-005): one overall gain cannot scale silence
+/// to −16 LUFS, so the render stops before the first frame and
+/// writes no MP4.
+fn silent_normalize_refusal(comp_name: &str) -> String {
+    format!(
+        "render refused: composition {comp_name:?} sets `normalize=\"loud\"` but its mix carries no audible samples to measure; one overall gain cannot scale silence to −16 LUFS — add audible sound or remove `normalize`. No MP4 was written (audio stage)"
+    )
+}
+
+/// Plan one overall loudness gain for a placed mix (Sprint 10 sound,
+/// CAP-009): the gain landing integrated loudness at −16 LUFS with
+/// true-peak guarding. Silent mixes fail closed with the render-stage
+/// refusal instead of scaling silence.
+fn normalize_gain_for_acc(
+    comp: &Composition,
+    acc: &[f32],
+) -> Result<(f32, crate::loudness::NormalizeReport), String> {
+    match crate::loudness::normalize_gain_for_mix(acc) {
+        Ok(planned) => Ok(planned),
+        Err(_) => Err(silent_normalize_refusal(&comp.name)),
+    }
+}
+
+/// On-canvas sound shapes of one composition (Sprint 10 sound,
+/// CAP-010): per `waveform` clip, the clip's placed contribution —
+/// the same decode, resample, and per-sample gains the mix walk uses
+/// (times the loudness `gain`) — sliced to the drawn range and peaked
+/// per canvas column. Valid projects resolve every drawn range, so an
+/// unresolvable range is skipped instead of misdrawn; a decode
+/// failure refuses naming the file. Clips without the drawing flag
+/// plan no decode at all.
+fn build_waveform_overlays(
+    comp: &Composition,
+    videos: &[ProbedVideo],
+    folder: &Path,
+    ffmpeg_bin: &Path,
+    total: usize,
+    gain: f32,
+) -> Result<Vec<crate::waveform::WaveformOverlay>, String> {
+    use notation::model::{clip_waveform, resolve_waveform_range};
+    if !comp.clips.iter().any(|c| clip_waveform(c).is_some()) {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    let xplan = crate::envelope::plan_xfade(comp);
+    for (idx, clip) in comp.clips.iter().enumerate() {
+        if clip.hidden() {
+            continue;
+        }
+        let draw = match clip_waveform(clip) {
+            Some(d) => d,
+            None => continue,
+        };
+        let Ok(range) = resolve_waveform_range(
+            clip.start(),
+            clip.duration(),
+            comp.duration,
+            draw.from,
+            draw.to,
+        ) else {
+            continue;
+        };
+        let channels = MIX_CHANNELS as usize;
+        let mut scratch = vec![0.0f32; total * channels];
+        match clip {
+            Clip::Audio(a) => {
+                let Some((pcm, start, take)) =
+                    decode_audio_window(ffmpeg_bin, folder, a, comp.duration)?
+                else {
+                    continue;
+                };
+                place_into_mix(
+                    &mut scratch,
+                    &pcm,
+                    total,
+                    start,
+                    take,
+                    db_to_gain(a.volume_db)?,
+                    a.fade_in,
+                    a.fade_out,
+                    &crate::envelope::resolve_envelope(comp, idx),
+                    &xplan[idx],
+                    crate::envelope::plan_duck(comp, idx),
+                    &a.fx,
+                );
+            }
+            Clip::Video(v) => {
+                let Some((pcm, start, take)) =
+                    decode_video_window(ffmpeg_bin, folder, videos, v, idx, total, comp.duration)?
+                else {
+                    continue;
+                };
+                place_into_mix(
+                    &mut scratch,
+                    &pcm,
+                    total,
+                    start,
+                    take,
+                    db_to_gain(v.volume_db)?,
+                    v.fade_in,
+                    v.fade_out,
+                    &crate::envelope::resolve_envelope(comp, idx),
+                    &xplan[idx],
+                    crate::envelope::plan_duck(comp, idx),
+                    &v.fx,
+                );
+            }
+            _ => continue,
+        }
+        if gain != 1.0 {
+            for s in scratch.iter_mut() {
+                *s *= gain;
+            }
+        }
+        let from_frame = (range.eff_from * MIX_RATE as f64).round().max(0.0) as usize;
+        let to_frame = (range.eff_to * MIX_RATE as f64).round().max(0.0) as usize;
+        let frames = scratch.len() / channels;
+        let slice = &scratch[from_frame.min(frames) * channels..to_frame.min(frames) * channels];
+        out.push(crate::waveform::WaveformOverlay {
+            from: range.eff_from,
+            to: range.eff_to,
+            columns: crate::waveform::columns_for_contribution(slice, comp.width as usize),
+        });
+    }
+    Ok(out)
 }
 
 /// Staged mix path beside the final MP4 (same filesystem, removed after
@@ -1332,15 +1488,28 @@ pub fn db_to_gain(db: f64) -> Result<f32, String> {
 /// over the first `fade_in_n` samples and a fade-out over the last
 /// `fade_out_n` samples. Both fades are linear in amplitude; a zero fade
 /// leaves that edge at unity.
+///
+/// Sprint 10 sound (CAP-002): fades are envelope sugar — each edge is
+/// one linear envelope segment run through the shared sample-exact
+/// primitive [`crate::envelope::eval_linear`], so the sugared and
+/// explicit-envelope forms null-test equal and every pre-existing fade
+/// output stays byte-identical.
 pub fn fade_factor(i: usize, n: usize, fade_in_n: usize, fade_out_n: usize) -> f32 {
+    use crate::envelope::eval_linear;
     let mut g = 1.0f32;
     if fade_in_n > 0 && i < fade_in_n {
-        g *= (i + 1) as f32 / fade_in_n as f32;
+        g *= eval_linear(0.0, 1.0, i as i128 + 1, 0, fade_in_n as i128);
     }
     if fade_out_n > 0 && i < n {
         let tail = n - 1 - i;
         if tail < fade_out_n {
-            g *= tail as f32 / fade_out_n as f32;
+            g *= eval_linear(
+                1.0,
+                0.0,
+                i as i128 + 1,
+                n as i128 - fade_out_n as i128,
+                n as i128,
+            );
         }
     }
     g
@@ -1414,14 +1583,91 @@ pub fn mix_into(
     fade_in_n: usize,
     fade_out_n: usize,
 ) {
+    mix_into_full(
+        acc,
+        pcm,
+        offset,
+        gain,
+        fade_in_n,
+        fade_out_n,
+        &[],
+        &[],
+        &[],
+        None,
+        offset,
+    )
+}
+
+/// Add one decoded stereo s16 track into the f32 mix accumulator with
+/// `gain`, linear fades, sound envelopes (Sprint 10, CAP-001/002),
+/// overlap crossfades (CAP-003), and voice ducking (CAP-004):
+/// explicit `volume` envelopes multiply the sugared fades (edge
+/// smoothing survives a level ride), crossfade segments multiply next
+/// (handoffs blend under the envelope), the duck gate multiplies last
+/// (voice windows scale the whole bed), and `pan` envelopes balance
+/// the channels equal-gain. Quantized `vol`/`pan` chains come from
+/// [`crate::envelope::quantize`]; empty chains ride the static
+/// behavior. Summation order matches [`mix_into`] exactly, so
+/// envelope-free clips mix bit-identically to before.
+#[allow(clippy::too_many_arguments)]
+fn mix_into_full(
+    acc: &mut [f32],
+    pcm: &[i16],
+    offset: usize,
+    gain: f32,
+    fade_in_n: usize,
+    fade_out_n: usize,
+    vol: &[crate::envelope::QSeg],
+    pan: &[crate::envelope::QSeg],
+    xfade: &[crate::envelope::XSeg],
+    duck: Option<crate::envelope::DuckWin>,
+    duck_base: usize,
+) {
+    use crate::envelope::{eval_chain, pan_gains, xfade_gain};
     let channels = MIX_CHANNELS as usize;
     let frames = pcm.len() / channels;
     let capacity = acc.len() / channels;
     let n = frames.min(capacity.saturating_sub(offset.min(capacity)));
+    let fi = fade_in_n.min(n);
+    let fo = fade_out_n.min(n);
+    let has_vol = !vol.is_empty();
+    let has_pan = !pan.is_empty();
+    let has_xfade = !xfade.is_empty();
     for i in 0..n {
-        let g = gain * fade_factor(i, n, fade_in_n.min(n), fade_out_n.min(n));
-        for c in 0..channels {
-            acc[(offset + i) * channels + c] += pcm[i * channels + c] as f32 / 32768.0 * g;
+        // One gain primitive: the sugared fades evaluate exactly like
+        // `fade_factor`, then the explicit volume envelope multiplies,
+        // then every covering crossfade segment, then the duck gate.
+        // The multiplication order is fixed, so re-renders agree bit
+        // for bit at any worker count.
+        let b = i as i128 + 1;
+        let mut g = gain * fade_factor(i, n, fi, fo);
+        if has_vol {
+            g *= eval_chain(vol, b, 0.0, 2.0);
+        }
+        if has_xfade {
+            let mut xg = 1.0f32;
+            for s in xfade {
+                if s.q0 < b && b <= s.q1 {
+                    xg *= xfade_gain(s, b);
+                }
+            }
+            g *= xg;
+        }
+        if let Some(d) = duck {
+            let k = duck_base + i;
+            if d.v0 <= k && k < d.v1 {
+                g *= d.amount;
+            }
+        }
+        if has_pan {
+            debug_assert_eq!(channels, 2);
+            let (pl, pr) = pan_gains(eval_chain(pan, b, -1.0, 1.0));
+            acc[(offset + i) * channels] += pcm[i * channels] as f32 / 32768.0 * g * pl;
+            acc[(offset + i) * channels + 1] += pcm[i * channels + 1] as f32 / 32768.0 * g * pr;
+        } else {
+            for c in 0..channels {
+                acc[(offset + i) * channels + c] += pcm[i * channels + c] as f32 / 32768.0 * g;
+            }
         }
     }
 }
@@ -1501,7 +1747,16 @@ fn decode_mix_source(
 }
 
 /// Place decoded stereo frames into the mix at `start` seconds with
-/// `gain` and linear fades, clamping to the composition length.
+/// `gain`, linear fades, the clip's sound envelope (Sprint 10,
+/// CAP-001/002), its crossfade segments (CAP-003), its duck gate
+/// (CAP-004), and its echo/room tail (CAP-005), clamping to the
+/// composition length. Fades desugar to the same envelope segments an
+/// explicit `key` would carry; the explicit `volume` chain multiplies
+/// them, crossfades blend handoffs underneath, ducking scales voice
+/// windows last, `pan` balances the channels, and delay blooms echo
+/// taps before reverb blooms the room off them. Dry clips mix down
+/// the historical path bit-identically; effected tails truncate at the
+/// composition end (reported by `check`, never refused).
 #[allow(clippy::too_many_arguments)]
 fn place_into_mix(
     acc: &mut [f32],
@@ -1512,6 +1767,10 @@ fn place_into_mix(
     gain: f32,
     fade_in: f64,
     fade_out: f64,
+    env: &crate::envelope::SoundEnvelope,
+    xfade: &[crate::envelope::XSeg],
+    duck: Option<crate::envelope::DuckWin>,
+    fx: &notation::model::SoundFx,
 ) {
     let offset = (start * MIX_RATE as f64).round().max(0.0) as usize;
     let n_frames = pcm.len() / MIX_CHANNELS as usize;
@@ -1519,14 +1778,164 @@ fn place_into_mix(
     let placed = placed.min((take * MIX_RATE as f64).ceil() as usize);
     let fade_in_n = ((fade_in * MIX_RATE as f64).round() as usize).min(placed);
     let fade_out_n = ((fade_out * MIX_RATE as f64).round() as usize).min(placed);
-    mix_into(
-        acc,
+    let vol = crate::envelope::quantize(&env.vol, start);
+    let pan = crate::envelope::quantize(&env.pan, start);
+    let tail =
+        notation::model::effect_tail_frames(fx.delay, fx.delay_feedback, fx.delay_mix, fx.reverb);
+    if tail == 0 {
+        mix_into_full(
+            acc,
+            &pcm[..placed * MIX_CHANNELS as usize],
+            offset.min(total),
+            gain,
+            fade_in_n,
+            fade_out_n,
+            &vol,
+            &pan,
+            xfade,
+            duck,
+            offset.min(total),
+        );
+        return;
+    }
+    // Effected clips render dry into scratch, bloom delay then reverb
+    // per channel, and add the room back truncated to the composition
+    // end. The per-sample gains (fades, envelopes, crossfades, duck)
+    // run the same primitives over the same boundaries, so the dry
+    // head nulls against the dry path exactly.
+    use crate::envelope::{apply_delay, apply_reverb};
+    use notation::model::delay_tail_frames;
+    let delay_tail = delay_tail_frames(fx.delay, fx.delay_feedback, fx.delay_mix);
+    let room = total.saturating_sub(offset.min(total));
+    let keep = (placed + tail).min(room);
+    let mut scratch = vec![0.0f32; (placed + tail) * MIX_CHANNELS as usize];
+    mix_into_full(
+        &mut scratch,
         &pcm[..placed * MIX_CHANNELS as usize],
-        offset.min(total),
+        0,
         gain,
         fade_in_n,
         fade_out_n,
+        &vol,
+        &pan,
+        xfade,
+        duck,
+        offset.min(total),
     );
+    let channels = MIX_CHANNELS as usize;
+    let mut left: Vec<f32> = scratch.iter().step_by(channels).copied().collect();
+    let mut right: Vec<f32> = scratch.iter().skip(1).step_by(channels).copied().collect();
+    for ch in [&mut left, &mut right] {
+        apply_delay(ch, placed, fx.delay, fx.delay_feedback, fx.delay_mix);
+        apply_reverb(ch, placed + delay_tail, fx.reverb);
+    }
+    let base = offset.min(total) * channels;
+    for i in 0..keep {
+        acc[base + i * channels] += left[i];
+        acc[base + i * channels + 1] += right[i];
+    }
+}
+
+/// Decoded window of one `audio` track (Sprint 6 T003 placement,
+/// shared by the mix walk and waveform drawing): the composition-time
+/// `take` clamped to the audible window, the trim window at the
+/// clip's `rate`, and `range_end`, decoded from `trim_start` and
+/// plainly resampled so pitch follows speed. Returns `None` when the
+/// track contributes no samples — the same skips the mix applies.
+/// The returned triple is the resampled PCM, the placement start in
+/// composition seconds, and the composition-time take.
+fn decode_audio_window(
+    ffmpeg_bin: &Path,
+    folder: &Path,
+    a: &AudioClip,
+    range_end: f64,
+) -> Result<Option<(Vec<i16>, f64, f64)>, String> {
+    let end = (a.start + a.duration).min(range_end);
+    if end <= a.start || a.start >= range_end {
+        return Ok(None);
+    }
+    // Sprint 6 T003: the audible window in composition seconds,
+    // bounded by the source window at the clip's `rate` — `take * rate`
+    // source seconds from `trim_start`, plainly resampled like video
+    // sound so pitch follows speed. Unity rate decodes exactly the
+    // historical window, so older mixes stay byte-identical.
+    let window = (end - a.start).max(0.0);
+    let avail = a
+        .trim_end
+        .map(|e| (e - a.trim_start).max(0.0) / a.rate)
+        .unwrap_or(window);
+    let take = window.min(avail);
+    if take <= 0.0 {
+        return Ok(None);
+    }
+    let decoded = decode_mix_source(
+        ffmpeg_bin,
+        &folder.join(&a.path),
+        &a.path,
+        a.trim_start,
+        take * a.rate,
+    )?;
+    Ok(Some((resample_plain(&decoded, a.rate), a.start, take)))
+}
+
+/// Decoded window of one `video` clip's sound (Sprint 5 T002
+/// placement, shared by the mix walk and waveform drawing): `take *
+/// rate` source seconds from `trim_start`, plainly resampled to
+/// composition seconds with loop tiling and silent padding exactly
+/// like the mix. Returns `None` for soundless video or an empty
+/// window. `clip_idx` is the clip's global document index into
+/// `videos`; the triple matches [`decode_audio_window`].
+fn decode_video_window(
+    ffmpeg_bin: &Path,
+    folder: &Path,
+    videos: &[ProbedVideo],
+    v: &VideoClip,
+    clip_idx: usize,
+    total: usize,
+    range_end: f64,
+) -> Result<Option<(Vec<i16>, f64, f64)>, String> {
+    // Soundless video contributes nothing and is not an error.
+    let pv = match videos
+        .iter()
+        .find(|p| p.clip_idx == clip_idx && p.has_audio)
+    {
+        Some(pv) => pv,
+        None => return Ok(None),
+    };
+    let end = (v.start + v.duration).min(range_end);
+    if end <= v.start || v.start >= range_end {
+        return Ok(None);
+    }
+    let take = (end - v.start).max(0.0);
+    if take <= 0.0 {
+        return Ok(None);
+    }
+    // Sprint 5 T002: the clip's sound is its source window — `take *
+    // rate` source seconds from `trim_start` — plainly resampled to
+    // `take` composition seconds so sound stays aligned with the
+    // re-timed picture and pitch follows speed. Unity rate with no
+    // trim keeps the historical decode (offset 0, no resample) so
+    // older mixes stay byte-identical. Sprint 5 T003: the decode never
+    // runs past the effective window end (a looping clip tiles the one
+    // window unit instead); a non-looping overrun decodes short and
+    // the mix pads the silent remainder.
+    let rel = rel_name(folder, &pv.path);
+    let src_len = match pv.win_len {
+        Some(w) => (take * v.rate).min(w),
+        None => take * v.rate,
+    };
+    let decoded = decode_mix_source(ffmpeg_bin, &pv.path, &rel, v.trim_start, src_len)?;
+    let unit = resample_plain(&decoded, v.rate);
+    let want_frames = (take * MIX_RATE as f64).round().max(0.0) as usize;
+    let unit_frames = unit.len() / MIX_CHANNELS as usize;
+    let room = total.saturating_sub((v.start * MIX_RATE as f64).round().max(0.0) as usize);
+    let short = unit_frames < want_frames.min(room);
+    let pcm = if v.loop_clip && unit_frames > 0 && short {
+        tile_loop_unit(&unit, want_frames)
+    } else {
+        unit
+    };
+    Ok(Some((pcm, v.start, take)))
 }
 
 /// Mix one tree composition's audible clips into `acc` (Sprint 6 T007
@@ -1564,6 +1973,11 @@ fn place_comp_clips(
     visited[ci] = true;
     let comp = view.comps[ci];
     let base = view.bases[ci];
+    // One crossfade plan per composition (Sprint 10, CAP-003): every
+    // same-track handoff quantized once, then sliced per clip below.
+    // The plan derives from the validated model alone, so every render
+    // plans identical gains and re-renders stay byte-identical.
+    let xplan = crate::envelope::plan_xfade(comp);
     for (idx, clip) in comp.clips.iter().enumerate() {
         if crate::cancel::is_cancelled() {
             visited[ci] = false;
@@ -1577,85 +1991,58 @@ fn place_comp_clips(
         }
         match clip {
             Clip::Audio(a) => {
-                let end = (a.start + a.duration).min(range_end);
-                if end <= a.start || a.start >= range_end {
+                let Some((pcm, _start, take)) =
+                    decode_audio_window(ffmpeg_bin, folder, a, range_end)?
+                else {
                     continue;
-                }
-                let window = (end - a.start).max(0.0);
-                // Sprint 6 T003: the audible window in composition
-                // seconds, bounded by the source window at the clip's
-                // `rate` — `take * rate` source seconds from
-                // `trim_start`, plainly resampled like video sound so
-                // pitch follows speed. Unity rate decodes exactly the
-                // historical window, so older mixes stay byte-identical.
-                let avail = a
-                    .trim_end
-                    .map(|e| (e - a.trim_start).max(0.0) / a.rate)
-                    .unwrap_or(window);
-                let take = window.min(avail);
-                if take <= 0.0 {
-                    continue;
-                }
-                let decoded = decode_mix_source(
-                    ffmpeg_bin,
-                    &folder.join(&a.path),
-                    &a.path,
-                    a.trim_start,
-                    take * a.rate,
-                )?;
-                let pcm = resample_plain(&decoded, a.rate);
+                };
                 let gain = db_to_gain(a.volume_db)?;
+                let env = crate::envelope::resolve_envelope(comp, idx);
+                let duck = crate::envelope::plan_duck(comp, idx);
                 place_into_mix(
-                    &mut *acc, &pcm, total, a.start, take, gain, a.fade_in, a.fade_out,
+                    &mut *acc,
+                    &pcm,
+                    total,
+                    a.start,
+                    take,
+                    gain,
+                    a.fade_in,
+                    a.fade_out,
+                    &env,
+                    &xplan[idx],
+                    duck,
+                    &a.fx,
                 );
             }
             Clip::Video(v) => {
-                // Soundless video contributes nothing and is not an error.
-                let pv = match videos
-                    .iter()
-                    .find(|p| p.clip_idx == base + idx && p.has_audio)
-                {
-                    Some(pv) => pv,
-                    None => continue,
-                };
-                let end = (v.start + v.duration).min(range_end);
-                if end <= v.start || v.start >= range_end {
+                let Some((pcm, _start, take)) = decode_video_window(
+                    ffmpeg_bin,
+                    folder,
+                    videos,
+                    v,
+                    base + idx,
+                    total,
+                    range_end,
+                )?
+                else {
                     continue;
-                }
-                let take = (end - v.start).max(0.0);
-                if take <= 0.0 {
-                    continue;
-                }
-                // Sprint 5 T002: the clip's sound is its source window —
-                // `take * rate` source seconds from `trim_start` — plainly
-                // resampled to `take` composition seconds so sound stays
-                // aligned with the re-timed picture and pitch follows
-                // speed. Unity rate with no trim keeps the historical
-                // decode (offset 0, no resample) so older mixes stay
-                // byte-identical. Sprint 5 T003: the decode never runs
-                // past the effective window end (a looping clip tiles
-                // the one window unit instead); a non-looping overrun
-                // decodes short and the mix pads the silent remainder.
-                let rel = rel_name(folder, &pv.path);
-                let src_len = match pv.win_len {
-                    Some(w) => (take * v.rate).min(w),
-                    None => take * v.rate,
-                };
-                let decoded = decode_mix_source(ffmpeg_bin, &pv.path, &rel, v.trim_start, src_len)?;
-                let unit = resample_plain(&decoded, v.rate);
-                let want_frames = (take * MIX_RATE as f64).round().max(0.0) as usize;
-                let unit_frames = unit.len() / MIX_CHANNELS as usize;
-                let room =
-                    total.saturating_sub((v.start * MIX_RATE as f64).round().max(0.0) as usize);
-                let short = unit_frames < want_frames.min(room);
-                let pcm = if v.loop_clip && unit_frames > 0 && short {
-                    tile_loop_unit(&unit, want_frames)
-                } else {
-                    unit
                 };
                 let gain = db_to_gain(v.volume_db)?;
+                let env = crate::envelope::resolve_envelope(comp, idx);
+                let duck = crate::envelope::plan_duck(comp, idx);
                 place_into_mix(
-                    &mut *acc, &pcm, total, v.start, take, gain, v.fade_in, v.fade_out,
+                    &mut *acc,
+                    &pcm,
+                    total,
+                    v.start,
+                    take,
+                    gain,
+                    v.fade_in,
+                    v.fade_out,
+                    &env,
+                    &xplan[idx],
+                    duck,
+                    &v.fx,
                 );
             }
             Clip::Nest(n) => {
@@ -1710,7 +2097,20 @@ fn place_comp_clips(
                     .map(|&x| (x.clamp(-1.0, 1.0) * 32767.0).round() as i16)
                     .collect();
                 let pcm = resample_plain(&slice, n.rate);
-                place_into_mix(acc, &pcm, total, n.start, parent_len, 1.0, 0.0, 0.0);
+                place_into_mix(
+                    acc,
+                    &pcm,
+                    total,
+                    n.start,
+                    parent_len,
+                    1.0,
+                    0.0,
+                    0.0,
+                    &crate::envelope::SoundEnvelope::default(),
+                    &[],
+                    None,
+                    &notation::model::SoundFx::default(),
+                );
             }
             _ => {}
         }
@@ -1840,9 +2240,16 @@ pub fn build_audio_plan(
     // Anything else contributes nothing.
     let mut scan_visited = vec![false; view.comps.len()];
     if !subtree_audible(&view, videos, 0, comp.duration, 0, &mut scan_visited) {
+        // Fail closed when nothing audible can measure (Sprint 10
+        // sound, CAP-009): a silent mix never scales to target.
+        if comp.normalize.active() {
+            return Err(silent_normalize_refusal(&comp.name));
+        }
         return Ok(AudioPlan {
             video_segs: Vec::new(),
             mix_pcm: None,
+            normalize: None,
+            waveforms: Vec::new(),
         });
     }
 
@@ -1861,6 +2268,20 @@ pub fn build_audio_plan(
         0,
         &mut visited,
     )?;
+    // One overall loudness gain (Sprint 10 sound, CAP-009): planned
+    // from the placed mix, applied before staging, so the staged file
+    // the MP4 encodes already lands at −16 LUFS with true-peak
+    // guarding. Silent mixes fail closed here with no staged file.
+    let (gain, report) = if comp.normalize.active() {
+        let (gain, report) = normalize_gain_for_acc(comp, &acc)?;
+        for x in acc.iter_mut() {
+            *x *= gain;
+        }
+        (gain, Some(report))
+    } else {
+        (1.0f32, None)
+    };
+    let waveforms = build_waveform_overlays(comp, videos, folder, ffmpeg_bin, total, gain)?;
     let mut bytes = Vec::with_capacity(acc.len() * 2);
     for &x in &acc {
         let v = (x.clamp(-1.0, 1.0) * 32767.0).round() as i16;
@@ -1885,7 +2306,141 @@ pub fn build_audio_plan(
     Ok(AudioPlan {
         video_segs: Vec::new(),
         mix_pcm: Some(mix_path.to_path_buf()),
+        normalize: report,
+        waveforms,
     })
+}
+
+/// Probe only the sound facts of one video source (Sprint 10 sound,
+/// CAP-008/CAP-011): whether an audio stream exists plus the container
+/// duration, from the same `ffmpeg -i` facts the picture probe reads.
+/// Picture streams are never required here (a soundless video still
+/// probes: it simply reports no audio), and nothing is decoded, so
+/// peak analysis stays cheap beside a full render.
+fn probe_audio_source(
+    ffmpeg_bin: &Path,
+    abs: &Path,
+    rel: &str,
+) -> Result<(bool, Option<f64>), String> {
+    let out = Command::new(ffmpeg_bin)
+        .args(["-hide_banner", "-i", &abs.display().to_string()])
+        .output()
+        .map_err(|e| {
+            format!("render refused: cannot probe video source {rel:?} ({e}); no MP4 was written")
+        })?;
+    let text = String::from_utf8_lossy(&out.stderr);
+    if !text.contains("Input #0") {
+        return Err(format!(
+            "render refused: video source {rel:?} is unreadable (ffmpeg reports no input stream); no MP4 was written"
+        ));
+    }
+    let mut has_audio = false;
+    for line in text.lines() {
+        if line.trim().starts_with("Stream #") && line.contains("Audio:") {
+            has_audio = true;
+            break;
+        }
+    }
+    Ok((has_audio, parse_duration(&text)))
+}
+
+/// Build the 48 kHz stereo mix in memory for peak analysis (Sprint 10
+/// sound, CAP-008/CAP-011): the same trims, rates, gains, fades,
+/// envelopes, crossfades, ducking, and delay/reverb the staged render
+/// mix uses — the same [`place_comp_clips`] walk, quantized the same
+/// way — but with an audio-only probe table and no picture
+/// preparation, so `check` and `waveform` can name exact peaks without
+/// rendering. Normalizing compositions measure the post-gain mix, so
+/// the preview peaks at exactly what the staged render encodes.
+/// Returns `None` for a soundless composition. Silent normalization
+/// fails closed ([`PreviewError::Silent`]); an undecodable source
+/// fails naming the file ([`PreviewError::Failed`]); the caller
+/// decides what each means (`check` skips the heat warning silently
+/// and stays valid, `waveform` refuses the listing).
+pub fn build_mix_preview(
+    comp: &Composition,
+    all: &[Composition],
+    folder: &Path,
+    ffmpeg_bin: &Path,
+) -> Result<Option<Vec<i16>>, PreviewError> {
+    let order = nest_render_order(comp, all).map_err(PreviewError::Failed)?;
+    // Audio-only video table: presence plus the effective window from
+    // the same source-window rule the picture path uses, with no
+    // picture probe or decode.
+    let mut videos: Vec<ProbedVideo> = Vec::new();
+    let mut bases: Vec<usize> = Vec::new();
+    let mut base = 0usize;
+    for c in &order {
+        bases.push(base);
+        for (idx, clip) in c.clips.iter().enumerate() {
+            if let Clip::Video(v) = clip {
+                let abs = folder.join(&v.path);
+                let rel = rel_name(folder, &abs);
+                let (has_audio, duration) =
+                    probe_audio_source(ffmpeg_bin, &abs, &rel).map_err(PreviewError::Failed)?;
+                let (_, eff_end) = effective_source_window(v, duration);
+                videos.push(ProbedVideo {
+                    clip_idx: base + idx,
+                    path: abs,
+                    codec: String::new(),
+                    width: 0,
+                    height: 0,
+                    duration,
+                    has_audio,
+                    loop_clip: v.loop_clip,
+                    rotation: 0.0,
+                    win_start: v.trim_start,
+                    win_len: eff_end.map(|e| (e - v.trim_start).max(0.0)),
+                });
+            }
+        }
+        base += c.clips.len();
+    }
+    let no_motions: &[ClipMotion] = &[];
+    let motions: Vec<&[ClipMotion]> = order.iter().map(|_| no_motions).collect();
+    let view = crate::frame::NestView {
+        comps: order,
+        motions,
+        bases,
+    };
+    let mut scan_visited = vec![false; view.comps.len()];
+    if !subtree_audible(&view, &videos, 0, comp.duration, 0, &mut scan_visited) {
+        return Ok(None);
+    }
+    let total = (comp.duration * MIX_RATE as f64).ceil().max(1.0) as usize;
+    let mut acc = vec![0.0f32; total * MIX_CHANNELS as usize];
+    let mut visited = vec![false; view.comps.len()];
+    place_comp_clips(
+        &view,
+        &videos,
+        folder,
+        ffmpeg_bin,
+        &mut acc,
+        total,
+        comp.duration,
+        0,
+        0,
+        &mut visited,
+    )
+    .map_err(PreviewError::Failed)?;
+    // The preview carries the same overall gain the staged render
+    // encodes, so every surface names the same peaks for the same
+    // bytes; silent normalization fails closed here too.
+    if comp.normalize.active() {
+        match crate::loudness::normalize_gain_for_mix(&acc) {
+            Ok((gain, _)) => {
+                for x in acc.iter_mut() {
+                    *x *= gain;
+                }
+            }
+            Err(_) => return Err(PreviewError::Silent(silent_normalize_refusal(&comp.name))),
+        }
+    }
+    let mut pcm = Vec::with_capacity(acc.len());
+    for &x in &acc {
+        pcm.push((x.clamp(-1.0, 1.0) * 32767.0).round() as i16);
+    }
+    Ok(Some(pcm))
 }
 
 /// Crop one staged 48 kHz stereo mix to a sub-range (Sprint 6 T008):
@@ -2246,7 +2801,23 @@ pub fn render_staged(
                 return Err(format!("{e}; no MP4 was written"));
             }
         };
-        for (_, bytes) in slots {
+        // On-canvas sound shapes (Sprint 10 sound, CAP-010): the
+        // static drawing for the drawn range covers every rendered
+        // frame at its own instant, on either backend, so ranged
+        // renders match the full render's frames sample for sample.
+        let draw_sound = !plan.waveforms.is_empty();
+        for (f, bytes) in slots {
+            let mut bytes = bytes;
+            if draw_sound {
+                let t = (prep.range_start + crate::motion_plan::frame_time(&comp.fps, f)).to_f64();
+                crate::waveform::draw_waveform_overlay(
+                    &mut bytes,
+                    comp.width,
+                    comp.height,
+                    t,
+                    &plan.waveforms,
+                );
+            }
             if !write_failed {
                 if let Err(e) = stdin.write_all(&bytes) {
                     write_failed = true;
@@ -6634,6 +7205,9 @@ mod tests {
                 marks: Vec::new(),
                 inputs: Vec::new(),
                 replicates: Vec::new(),
+                autoplay: false,
+                normalize: Default::default(),
+                normalize_loc: None,
             }
         }
         fn draw(comp: &Composition) -> Vec<u8> {
@@ -6753,6 +7327,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let standard = RenderOptions::default().encoder();
@@ -6876,6 +7453,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let draft = RenderOptions {
@@ -6998,6 +7578,9 @@ mod tests {
             marks: Vec::new(),
             inputs: Vec::new(),
             replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
         };
         let motions = plan_motions(&comp, 30);
         let frames = comp.fps.frame_count(comp.duration) as usize;
@@ -7350,6 +7933,10 @@ mod tests {
             volume_db: 0.0,
             fade_in: 0.0,
             fade_out: 0.0,
+            crossfade: notation::model::Crossfade::default(),
+            duck_under: None,
+            fx: Default::default(),
+            waveform: Default::default(),
             trim_start: 0.0,
             trim_end: None,
             rate: 1.0,
@@ -7560,6 +8147,10 @@ mod tests {
             volume_db: 0.0,
             fade_in: 0.0,
             fade_out: 0.0,
+            crossfade: notation::model::Crossfade::default(),
+            duck_under: None,
+            fx: Default::default(),
+            waveform: Default::default(),
             trim_start: ts,
             trim_end: te,
             rate: 1.0,
@@ -7795,14 +8386,54 @@ mod tests {
         // keeps its level, silence gain zeroes it, and a full fade-in
         // over the window starts near silence and reaches unity.
         let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let empty = crate::envelope::SoundEnvelope::default();
         let mut acc = vec![0.0f32; 2 * 4800];
-        place_into_mix(&mut acc, &tone, 4800, 0.0, 0.1, 1.0, 0.0, 0.0);
+        place_into_mix(
+            &mut acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
         assert!((acc[2 * 2400] - 10000.0 / 32768.0).abs() < 1e-6);
         let mut acc = vec![0.0f32; 2 * 4800];
-        place_into_mix(&mut acc, &tone, 4800, 0.0, 0.1, 0.0, 0.0, 0.0);
+        place_into_mix(
+            &mut acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            0.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
         assert!(acc.iter().all(|&x| x == 0.0));
         let mut acc = vec![0.0f32; 2 * 4800];
-        place_into_mix(&mut acc, &tone, 4800, 0.0, 0.1, 1.0, 0.1, 0.0);
+        place_into_mix(
+            &mut acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.1,
+            0.0,
+            &empty,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
         assert!(
             acc[0].abs() < acc[2 * 4799].abs() * 0.05,
             "{} vs {}",
@@ -7810,6 +8441,378 @@ mod tests {
             acc[2 * 4799]
         );
         assert!((acc[2 * 4799] - 10000.0 / 32768.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn placed_mix_applies_volume_envelopes_per_sample() {
+        // Sprint 10 T001: a volume envelope over a constant tone matches
+        // hand-computed sample values exactly (constant tone, unity
+        // static gain, no fades).
+        use crate::envelope::{quantize, SoundEnvelope, SoundSeg};
+        use notation::model::EaseDecl;
+        let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let seg = SoundSeg {
+            start: 0.0,
+            end: 0.1,
+            from: 0.0,
+            to: 1.0,
+            ease: EaseDecl::Linear,
+            line: 1,
+            col: 1,
+        };
+        let env = SoundEnvelope {
+            vol: vec![seg],
+            pan: Vec::new(),
+        };
+        let mut acc = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &env,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
+        // Sample-exact ramp: sample i rides (i + 1) / 4800 through the
+        // mixer's op order (the envelope value rounds once, the final
+        // scale rounds once).
+        let v0 = 1f32 / 4800.0;
+        assert_eq!(acc[0], 10000.0 / 32768.0 * v0);
+        assert_eq!(acc[2 * 2399], 10000.0 / 32768.0 * 0.5);
+        assert_eq!(acc[2 * 4799], 10000.0 / 32768.0);
+        // The quantized chain is what the mixer evaluated.
+        let q = quantize(&env.vol, 0.0);
+        assert_eq!(q.len(), 1);
+        assert_eq!((q[0].q0, q[0].q1), (0, 4_800));
+    }
+
+    #[test]
+    fn placed_mix_balances_pan_envelopes_per_sample() {
+        // Sprint 10 T001: a hard-left pan keeps the left channel exact
+        // and silences the right one, sample for sample.
+        use crate::envelope::SoundEnvelope;
+        let stereo: Vec<i16> = (0..4800).flat_map(|_| [20000, 10000]).collect();
+        let env = SoundEnvelope {
+            vol: Vec::new(),
+            pan: vec![crate::envelope::SoundSeg {
+                start: 0.0,
+                end: 0.1,
+                from: -1.0,
+                to: -1.0,
+                ease: notation::model::EaseDecl::Linear,
+                line: 1,
+                col: 1,
+            }],
+        };
+        let mut acc = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut acc,
+            &stereo,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &env,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
+        for i in 0..4800 {
+            assert_eq!(acc[2 * i], 20000.0 / 32768.0);
+            assert_eq!(acc[2 * i + 1], 0.0);
+        }
+    }
+
+    #[test]
+    fn placed_mix_nulls_sugar_against_explicit_envelopes() {
+        // Sprint 10 T002: sugared fades and explicit-envelope twins
+        // place bit-identical samples. The twin spells each fade as one
+        // volume segment; fades multiply with volume envelopes while
+        // volume segments resolve last-wins, so twins cover the
+        // non-overlapping fade pairs an explicit key can spell.
+        use crate::envelope::{SoundEnvelope, SoundSeg};
+        use notation::model::EaseDecl;
+        let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let empty = crate::envelope::SoundEnvelope::default();
+        let mut sugared = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut sugared,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.05,
+            0.025,
+            &empty,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
+        let twin = SoundEnvelope {
+            vol: vec![
+                SoundSeg {
+                    start: 0.0,
+                    end: 0.05,
+                    from: 0.0,
+                    to: 1.0,
+                    ease: EaseDecl::Linear,
+                    line: 1,
+                    col: 1,
+                },
+                SoundSeg {
+                    start: 0.075,
+                    end: 0.1,
+                    from: 1.0,
+                    to: 0.0,
+                    ease: EaseDecl::Linear,
+                    line: 2,
+                    col: 1,
+                },
+            ],
+            pan: Vec::new(),
+        };
+        let mut explicit = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut explicit,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &twin,
+            &[],
+            None,
+            &notation::model::SoundFx::default(),
+        );
+        assert_eq!(sugared, explicit);
+    }
+
+    #[test]
+    fn placed_mix_shapes_crossfade_segments_exactly() {
+        // Sprint 10 T003: a linear outgoing segment runs the shared
+        // linear primitive through the mixer's op order, and a hard
+        // cut holds exact silence across the whole overlap.
+        use crate::envelope::{SoundEnvelope, XSeg};
+        use notation::model::Crossfade;
+        let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let empty = SoundEnvelope::default();
+        let out = [XSeg {
+            q0: 0,
+            q1: 4_800,
+            shape: Crossfade::Linear,
+            outgoing: true,
+        }];
+        let mut acc = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &out,
+            None,
+            &notation::model::SoundFx::default(),
+        );
+        assert_eq!(acc[0], 10000.0 / 32768.0 * (4_799.0f32 / 4_800.0));
+        assert_eq!(acc[2 * 2399], 10000.0 / 32768.0 * 0.5);
+        assert_eq!(acc[2 * 4799], 0.0);
+        // The cut twin silences every covered sample exactly.
+        let cut = [XSeg {
+            q0: 0,
+            q1: 4_800,
+            shape: Crossfade::None,
+            outgoing: true,
+        }];
+        let mut silenced = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut silenced,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &cut,
+            None,
+            &notation::model::SoundFx::default(),
+        );
+        assert!(silenced.iter().all(|&x| x == 0.0));
+    }
+
+    #[test]
+    fn placed_mix_gates_duck_windows_exactly() {
+        // Sprint 10 T004: voice-window samples scale by the declared
+        // gain exactly; the samples around the gate play full.
+        use crate::envelope::{DuckWin, SoundEnvelope};
+        let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let empty = SoundEnvelope::default();
+        let gate = DuckWin {
+            v0: 100,
+            v1: 200,
+            amount: 0.25,
+        };
+        let mut acc = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            Some(gate),
+            &notation::model::SoundFx::default(),
+        );
+        let full = 10000.0 / 32768.0;
+        assert_eq!(acc[2 * 99], full);
+        assert_eq!(acc[2 * 100], full * 0.25);
+        assert_eq!(acc[2 * 199], full * 0.25);
+        assert_eq!(acc[2 * 200], full);
+        assert_eq!(acc[2 * 4799], full);
+    }
+
+    #[test]
+    fn effected_dry_head_nulls_against_the_dry_path() {
+        // Sprint 10 T005: an effected clip renders its dry head through
+        // the same gain primitives, so the head nulls exactly against
+        // the dry mix; the echo tap lands one spacing later at the wet
+        // level; and a tail with no room truncates to the dry mix.
+        use crate::envelope::SoundEnvelope;
+        use notation::model::SoundFx;
+        let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let empty = SoundEnvelope::default();
+        let dry_fx = SoundFx::default();
+        let wet_fx = SoundFx {
+            delay: 0.1,
+            delay_feedback: 0.0,
+            delay_mix: 1.0,
+            ..Default::default()
+        };
+        let mut dry_acc = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut dry_acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            None,
+            &dry_fx,
+        );
+        // Room for the dry head plus the one 4800-sample tap.
+        let mut wet_acc = vec![0.0f32; 2 * 9600];
+        place_into_mix(
+            &mut wet_acc,
+            &tone,
+            9600,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            None,
+            &wet_fx,
+        );
+        assert_eq!(
+            &wet_acc[..2 * 4800],
+            &dry_acc[..],
+            "the dry head nulls exactly"
+        );
+        assert_eq!(
+            wet_acc[2 * 4800],
+            dry_acc[0],
+            "the lone tap replays the dry head at unity wet"
+        );
+        // With no room past the head, the tail truncates to the dry mix.
+        let mut cut_acc = vec![0.0f32; 2 * 4800];
+        place_into_mix(
+            &mut cut_acc,
+            &tone,
+            4800,
+            0.0,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            None,
+            &wet_fx,
+        );
+        assert_eq!(cut_acc, dry_acc, "a fully cut tail is the dry mix");
+    }
+
+    #[test]
+    fn effected_duck_gates_follow_absolute_samples() {
+        // Sprint 10 T005: the duck gate of an effected clip still reads
+        // absolute mix samples (not scratch offsets), and the echo of a
+        // ducked sample carries the ducked level.
+        use crate::envelope::{DuckWin, SoundEnvelope};
+        use notation::model::SoundFx;
+        let tone: Vec<i16> = vec![10000; 2 * 4800];
+        let empty = SoundEnvelope::default();
+        let wet_fx = SoundFx {
+            delay: 0.1,
+            delay_feedback: 0.0,
+            delay_mix: 1.0,
+            ..Default::default()
+        };
+        // The clip starts at frame 4800; the gate covers its samples
+        // 100..200 (absolute 4900..5000).
+        let gate = DuckWin {
+            v0: 4900,
+            v1: 5000,
+            amount: 0.25,
+        };
+        let mut acc = vec![0.0f32; 2 * 14400];
+        place_into_mix(
+            &mut acc,
+            &tone,
+            14400,
+            0.1,
+            0.1,
+            1.0,
+            0.0,
+            0.0,
+            &empty,
+            &[],
+            Some(gate),
+            &wet_fx,
+        );
+        let full = 10000.0 / 32768.0;
+        assert_eq!(acc[2 * 4899], full);
+        assert_eq!(acc[2 * 4900], full * 0.25);
+        assert_eq!(acc[2 * 4999], full * 0.25);
+        assert_eq!(acc[2 * 5000], full);
+        // The tap of gated sample 100 lands 4800 later, still gated.
+        assert_eq!(acc[2 * 9700], full * 0.25);
+        assert_eq!(acc[2 * 9699], full);
     }
 
     // --- Sprint 6 T008: sub-range validation ---------------------------------

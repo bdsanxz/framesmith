@@ -9,10 +9,11 @@
 //!   render refuses before the first frame and writes no MP4)
 
 use notation::model::{
-    parse_color, AudioClip, BoxClip, Clip, Composition, EaseDecl, Fit, FontDecl, Fps, ImageClip,
-    InputDecl, KeyDecl, KeyStop, MarkDecl, NestClip, Placement, ReplicateGroup, Rgb, SetDecl,
-    SplitMode, StaggerGrid, StaggerOrigin, StartAfter, TextClip, TrackKind, Turn3D, TweenDecl,
-    TweenKind, VideoClip, CONFIG_FILE, MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
+    parse_color, resolve_waveform_range, AudioClip, BoxClip, Clip, Composition, Crossfade,
+    DuckUnder, EaseDecl, Fit, FontDecl, Fps, ImageClip, InputDecl, KeyDecl, KeyStop, MarkDecl,
+    NestClip, Normalize, Placement, ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid,
+    StaggerOrigin, StartAfter, TextClip, TrackKind, Turn3D, TweenDecl, TweenKind, VideoClip,
+    WaveformDraw, WaveformRangeError, CONFIG_FILE, MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
 use std::path::Path;
@@ -101,6 +102,23 @@ pub struct Verdict {
     /// shows every entry for review before rendering; video inference
     /// keeps its own [`VideoFootage`] echo and never duplicates here.
     pub inferred: Vec<InferredLength>,
+    /// One entry per same-track overlap handoff whose window clamped
+    /// to the audible samples (Sprint 10 sound, CAP-003). `check`
+    /// shows every entry for review; rendering blends the clamped
+    /// window.
+    pub crossfade_clamps: Vec<CrossfadeClamp>,
+    /// One entry per delay/reverb tail truncated at the composition
+    /// end (Sprint 10 sound, CAP-005). `check` shows every entry for
+    /// review; rendering plays the tail to the end and cuts the rest.
+    pub effect_tails: Vec<EffectTail>,
+    /// One entry per `detect-silence` clip (Sprint 10 sound, CAP-006):
+    /// the silent ranges `check` lists. Detection never alters audio,
+    /// so these entries never block a valid render.
+    pub silences: Vec<SilenceReport>,
+    /// One entry per `waveform` clip whose drawn range clamped to the
+    /// clip window (Sprint 10 sound, CAP-010). `check` shows every
+    /// entry for review; rendering draws the clamped range.
+    pub waveform_clamps: Vec<WaveformClamp>,
 }
 
 /// One reviewable inferred length (Sprint 6 T003): the resolved value
@@ -116,6 +134,104 @@ pub struct InferredLength {
     pub column: usize,
     pub duration: f64,
     pub detail: String,
+}
+
+/// One reviewable effect-tail truncation (Sprint 10 sound, CAP-005):
+/// a delay/reverb tail that runs past the composition end, so the mix
+/// renders it to the end and cuts the rest. The cut is reported here
+/// with the numbers, never as a diagnostic, so truncation stays a
+/// valid verdict.
+#[derive(Debug, Clone)]
+pub struct EffectTail {
+    /// Document index of the effected clip.
+    pub clip: usize,
+    /// The clip's `id`, when declared.
+    pub id: Option<String>,
+    /// Natural delay tail in composition seconds.
+    pub delay_tail: f64,
+    /// Natural reverb tail in composition seconds.
+    pub reverb_tail: f64,
+    /// Natural effect end in composition seconds (clip end plus both
+    /// tails, before clamping).
+    pub raw_end: f64,
+    /// Rendered effect end in composition seconds (the composition
+    /// end, where the tail cuts).
+    pub eff_end: f64,
+    /// Clip location the entry sorts by (the clip's own node).
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One reported pause map (Sprint 10 sound, CAP-006): the silent ranges
+/// of one `detect-silence` clip, measured from the decoded source at
+/// or below `threshold_db` dBFS for at least `min_seconds` each.
+/// Detection never alters audio; an empty `ranges` means the clip has
+/// no qualifying pause.
+#[derive(Debug, Clone)]
+pub struct SilenceReport {
+    /// Document index of the detected clip.
+    pub clip: usize,
+    /// The clip's `id`, when declared.
+    pub id: Option<String>,
+    /// Element name (`audio` or `video`), for the human line.
+    pub kind: &'static str,
+    /// Ceiling the scan ran with, in dBFS.
+    pub threshold_db: f64,
+    /// Shortest reported pause, in composition seconds.
+    pub min_seconds: f64,
+    /// Silent ranges in composition seconds, in time order.
+    pub ranges: Vec<(f64, f64)>,
+    /// Clip location the entry sorts by (the clip's own node).
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One reviewable waveform-range clamp (Sprint 10 sound, CAP-010):
+/// a `waveform` clip whose drawn range runs past its clip window, so
+/// the drawing clamps to the audible samples. The cut is reported
+/// here with the numbers, never as a diagnostic, so clamping stays a
+/// valid verdict.
+#[derive(Debug, Clone)]
+pub struct WaveformClamp {
+    /// Document index of the drawing clip.
+    pub clip: usize,
+    /// The clip's `id`, when declared.
+    pub id: Option<String>,
+    /// Element name (`audio` or `video`), for the human line.
+    pub kind: &'static str,
+    /// Written range start/end in composition seconds.
+    pub raw_from: f64,
+    pub raw_to: f64,
+    /// Clamped (drawn) range start/end in composition seconds.
+    pub eff_from: f64,
+    pub eff_to: f64,
+    /// Clip location the entry sorts by (the clip's own node).
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One reviewable crossfade clamp (Sprint 10 sound, CAP-003): a
+/// same-track overlap handoff whose raw overlap runs past the
+/// composition end, so the blend clamps to the audible samples. The
+/// cut is reported here with the numbers, never as a diagnostic, so
+/// clamping stays a valid verdict.
+#[derive(Debug, Clone)]
+pub struct CrossfadeClamp {
+    /// Document index of the earlier (outgoing) clip.
+    pub early: usize,
+    /// Document index of the later (incoming) clip.
+    pub late: usize,
+    /// Resolved pair shape (`constant-power`, `linear`, or `none`).
+    pub shape: &'static str,
+    /// Raw overlap start/end in composition seconds.
+    pub raw_start: f64,
+    pub raw_end: f64,
+    /// Clamped (audible) overlap start/end in composition seconds.
+    pub eff_start: f64,
+    pub eff_end: f64,
+    /// Clip location both entries sort by (the later clip's node).
+    pub line: usize,
+    pub column: usize,
 }
 
 /// One reviewable stagger clamp (Sprint 7 motion, CAP-002): a `tween`
@@ -241,7 +357,6 @@ const LATER_AUDIO_KEYS: &[&str] = &[
     "pan",
     "panning",
     "pitch",
-    "reverb",
     "speed",
     "tempo",
 ];
@@ -314,6 +429,375 @@ fn parse_fade(
     }
 }
 
+/// Parse one `crossfade` shape (Sprint 10 sound, CAP-003): absent
+/// means the default constant-power blend; present must name exactly
+/// one of `constant-power`, `linear`, or `none`. Anything else is
+/// refused naming the accepted set, never guessed into a blend.
+fn parse_crossfade(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Crossfade> {
+    match find(node, "crossfade") {
+        None => Some(Crossfade::default()),
+        Some(v) => match as_str(v).and_then(Crossfade::parse) {
+            Some(shape) => Some(shape),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `crossfade` {} is unknown; accepted crossfades are: {}",
+                        raw_text(v),
+                        Crossfade::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `crossfade=\"constant-power\"`, `\"linear\"`, or `\"none\"`, or remove the key for the default blend",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one `duck-under` plus `duck-amount` pair (Sprint 10 sound,
+/// CAP-004): absent means full gain throughout; present needs both
+/// keys together — a quoted voice clip id in the same composition
+/// plus a gain from 0 to 1. A missing partner, a non-string voice, or
+/// an out-of-range amount is refused naming the bound, never guessed.
+/// The voice existence check runs project-wide with the other id
+/// references, so one bad value still yields exactly one diagnostic.
+fn parse_duck_under(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<DuckUnder>> {
+    let under = find_either(node, "duck-under", "duck_under");
+    let amount = find_either(node, "duck-amount", "duck_amount");
+    match (under, amount) {
+        (None, None) => Some(None),
+        (Some(u), None) => {
+            ctx.push(
+                u.line,
+                u.column,
+                "E_BAD_AUDIO",
+                format!("{what} declares `duck-under` without `duck-amount`; a duck needs a voice id plus a gain"),
+                "add `duck-amount=<0 to 1>` naming the gain while the voice sounds, or remove `duck-under`",
+            );
+            None
+        }
+        (None, Some(a)) => {
+            ctx.push(
+                a.line,
+                a.column,
+                "E_BAD_AUDIO",
+                format!("{what} declares `duck-amount` without `duck-under`; a gain needs a voice to duck under"),
+                "add `duck-under=\"<voice clip id>\"` naming the voice clip, or remove `duck-amount`",
+            );
+            None
+        }
+        (Some(u), Some(a)) => {
+            let target = match as_str(u) {
+                Some(s) => s.to_string(),
+                None => {
+                    ctx.push(
+                        u.line,
+                        u.column,
+                        "E_UNKNOWN_REF",
+                        format!(
+                            "{what} `duck-under` must be a quoted id naming a clip in the same composition; found {}",
+                            raw_text(u)
+                        ),
+                        "set `duck-under=\"<voice clip id>\"` naming the voice clip's `id`",
+                    );
+                    return None;
+                }
+            };
+            let gain = match as_f64(a) {
+                Some(x) if x.is_finite() && (0.0..=1.0).contains(&x) => x,
+                _ => {
+                    ctx.push(
+                        a.line,
+                        a.column,
+                        "E_BAD_AUDIO",
+                        format!(
+                            "{what} `duck-amount` {} is outside the accepted range 0 to 1",
+                            raw_text(a)
+                        ),
+                        "set `duck-amount=<0 to 1>` (for example `duck-amount=0.25` for a quarter gain under voice), or remove the ducking keys",
+                    );
+                    return None;
+                }
+            };
+            ctx.refs.push(RefEntry {
+                kind: "duck-under",
+                target: target.clone(),
+                line: u.line,
+                column: u.column,
+                owner_id: None,
+                owner_line: node.name_line,
+                needs_composition: false,
+                comp: ctx.current_comp,
+            });
+            Some(Some(DuckUnder {
+                target,
+                amount: gain,
+                line: u.line,
+                column: u.column,
+            }))
+        }
+    }
+}
+
+/// Parse one ranged effect number (Sprint 10 sound, CAP-005): absent
+/// means the dry default; present must be finite within `lo..=hi`. An
+/// unparsable or out-of-range value is refused naming the bound, never
+/// clamped silently into the mix.
+fn parse_fx_range(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    hyphen: &str,
+    underscore: &str,
+    lo: f64,
+    hi: f64,
+    unit: &str,
+) -> Option<f64> {
+    let found = find_either(node, hyphen, underscore);
+    match found {
+        None => Some(match hyphen {
+            "delay-feedback" => SoundFx::default().delay_feedback,
+            "delay-mix" => SoundFx::default().delay_mix,
+            "reverb" => SoundFx::default().reverb,
+            _ => 0.0,
+        }),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= lo && x <= hi => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `{hyphen}` {} is outside the accepted range {lo} to {hi}{unit}",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `{hyphen}=<{lo} to {hi}{unit}>` or remove the key for the dry default"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one `detect-silence` switch (Sprint 10 sound, CAP-006):
+/// absent means no detection; present must be `true` or `false` (a
+/// quoted `"true"`/`"false"` reads the same). Anything else is refused
+/// naming the accepted form, never guessed off.
+fn parse_detect_silence(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<bool> {
+    match find_either(node, "detect-silence", "detect_silence") {
+        None => Some(false),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            ValueKind::Str(s)
+                if s.trim().eq_ignore_ascii_case("true")
+                    || s.trim().eq_ignore_ascii_case("false") =>
+            {
+                Some(s.trim().eq_ignore_ascii_case("true"))
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `detect-silence` {} is not a silence switch; accepted values are `true` and `false`",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `detect-silence=true` to list pauses for the {what}, or remove the key"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one silence threshold in dBFS (Sprint 10 sound, CAP-006):
+/// absent means −40 dBFS; present must be a plain dB number (at or
+/// below counts as silent). An unparsable value is refused naming the
+/// accepted form, never guessed into a ceiling.
+fn parse_silence_threshold(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    match find_either(node, "silence-threshold", "silence_threshold") {
+        None => Some(notation::model::SILENCE_THRESHOLD_DEFAULT_DB),
+        // Finite dBFS numbers stand, and so does `-inf` (only exact
+        // digital zero counts); NaN, +inf, and unparsable text name the
+        // accepted form instead of guessing a ceiling.
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() || x == f64::NEG_INFINITY => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `silence-threshold` {} is not a plain dB number; accepted values are numbers in dBFS (for example `silence-threshold=-40`)",
+                        raw_text(v)
+                    ),
+                    "set `silence-threshold=<dBFS number>` (for example `silence-threshold=-40`), or remove the key for the -40 dBFS default",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one `silence-min` in seconds (Sprint 10 sound, CAP-006):
+/// absent means 0.5 s; present must be finite seconds from 0. Anything
+/// else is refused naming the bound, never guessed into a duration.
+fn parse_silence_min(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    match find_either(node, "silence-min", "silence_min") {
+        None => Some(notation::model::SILENCE_MIN_DEFAULT_SECS),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `silence-min` {} is outside the accepted range 0 seconds and up",
+                        raw_text(v)
+                    ),
+                    "set `silence-min=<seconds from 0>` (for example `silence-min=0.5`), or remove the key for the 0.5 s default",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse the echo/room/detection block of one audio-bearing clip
+/// (Sprint 10 sound, CAP-005/CAP-006): `delay` (0..2 s) with
+/// `delay-feedback` (0..0.95) and `delay-mix` (0..1), `reverb` (0..1),
+/// plus the opt-in `detect-silence` switch with `silence-threshold`
+/// (plain dBFS) and `silence-min` (seconds from 0). Every bad value
+/// fails with its bound; absent keys render dry and detect nothing.
+fn parse_sound_fx(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<SoundFx> {
+    let delay = parse_fx_range(ctx, node, what, "delay", "delay", 0.0, 2.0, " seconds")?;
+    let delay_feedback = parse_fx_range(
+        ctx,
+        node,
+        what,
+        "delay-feedback",
+        "delay_feedback",
+        0.0,
+        0.95,
+        "",
+    )?;
+    let delay_mix = parse_fx_range(ctx, node, what, "delay-mix", "delay_mix", 0.0, 1.0, "")?;
+    let reverb = parse_fx_range(ctx, node, what, "reverb", "reverb", 0.0, 1.0, "")?;
+    let detect_silence = parse_detect_silence(ctx, node, what)?;
+    let silence_threshold_db = parse_silence_threshold(ctx, node, what)?;
+    let silence_min = parse_silence_min(ctx, node, what)?;
+    Some(SoundFx {
+        delay,
+        delay_feedback,
+        delay_mix,
+        reverb,
+        detect_silence,
+        silence_threshold_db,
+        silence_min,
+    })
+}
+
+/// Parse one `waveform` drawing block (Sprint 10 sound, CAP-010):
+/// absent means the clip draws no sound shape; present needs the
+/// `waveform` switch (`true`/`false`, quoted or bare) plus optional
+/// `waveform-from`/`waveform-to` bounds in composition seconds. A bad
+/// switch, an unparsable bound, or bounds without the switch fail
+/// naming the accepted form, never guessed into a drawing.
+fn parse_waveform(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<WaveformDraw> {
+    let switch = find(node, "waveform");
+    let from = find_either(node, "waveform-from", "waveform_from");
+    let to = find_either(node, "waveform-to", "waveform_to");
+    let enabled = match switch {
+        None => false,
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => *b,
+            ValueKind::Str(s)
+                if s.trim().eq_ignore_ascii_case("true")
+                    || s.trim().eq_ignore_ascii_case("false") =>
+            {
+                s.trim().eq_ignore_ascii_case("true")
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `waveform` {} is not a drawing switch; accepted values are `true` and `false`",
+                        raw_text(v)
+                    ),
+                    "set `waveform=true` to draw the clip sound on the canvas, or remove the key"
+                        .to_string(),
+                );
+                return None;
+            }
+        },
+    };
+    let mut bound = |key: &str, v: &RawValue| -> Option<f64> {
+        match as_f64(v) {
+            Some(x) if x.is_finite() => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} `{key}` {} is not a time in composition seconds",
+                        raw_text(v)
+                    ),
+                    format!("set `{key}=<seconds from 0>` bounding the drawn range, or remove the key for the clip window edge"),
+                );
+                None
+            }
+        }
+    };
+    let from_val = match from {
+        None => None,
+        Some(v) => Some(bound("waveform-from", v)?),
+    };
+    let to_val = match to {
+        None => None,
+        Some(v) => Some(bound("waveform-to", v)?),
+    };
+    if !enabled && (from.is_some() || to.is_some()) {
+        let v = from.or(to).unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_AUDIO",
+            format!("{what} draws no sound shape (`waveform` is off) but names a drawn range; a range needs the drawing"),
+            "set `waveform=true` to draw within the range, or remove the `waveform-from`/`waveform-to` keys",
+        );
+        return None;
+    }
+    let (line, column) = match switch {
+        Some(v) => (v.line, v.column),
+        None => (node.name_line, node.name_column),
+    };
+    Some(WaveformDraw {
+        enabled,
+        from: from_val,
+        to: to_val,
+        line,
+        column,
+        from_loc: from.map(|v| (v.line, v.column)),
+        to_loc: to.map(|v| (v.line, v.column)),
+    })
+}
+
 fn as_f64(v: &RawValue) -> Option<f64> {
     match v.kind {
         ValueKind::Int(n) => Some(n as f64),
@@ -384,6 +868,10 @@ struct Ctx<'a> {
     stagger_clamps: Vec<StaggerClamp>,
     ids: Vec<IdEntry>,
     refs: Vec<RefEntry>,
+    crossfade_clamps: Vec<CrossfadeClamp>,
+    effect_tails: Vec<EffectTail>,
+    silences: Vec<SilenceReport>,
+    waveform_clamps: Vec<WaveformClamp>,
     /// Index of the composition currently validating, in document
     /// order (Sprint 6 T006). Id and reference entries stamp this so
     /// cross-composition `start-after` targets can refuse.
@@ -977,6 +1465,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             footage: Vec::new(),
             inferred: Vec::new(),
             stagger_clamps: Vec::new(),
+            crossfade_clamps: Vec::new(),
+            effect_tails: Vec::new(),
+            silences: Vec::new(),
+            waveform_clamps: Vec::new(),
         };
     }
 
@@ -1009,6 +1501,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 footage: Vec::new(),
                 inferred: Vec::new(),
                 stagger_clamps: Vec::new(),
+                crossfade_clamps: Vec::new(),
+                effect_tails: Vec::new(),
+                silences: Vec::new(),
+                waveform_clamps: Vec::new(),
             };
         }
     };
@@ -1035,6 +1531,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 footage: Vec::new(),
                 inferred: Vec::new(),
                 stagger_clamps: Vec::new(),
+                crossfade_clamps: Vec::new(),
+                effect_tails: Vec::new(),
+                silences: Vec::new(),
+                waveform_clamps: Vec::new(),
             };
         }
     };
@@ -1047,6 +1547,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         footage: Vec::new(),
         inferred: Vec::new(),
         stagger_clamps: Vec::new(),
+        crossfade_clamps: Vec::new(),
+        effect_tails: Vec::new(),
+        silences: Vec::new(),
+        waveform_clamps: Vec::new(),
         ids: Vec::new(),
         refs: Vec::new(),
         current_comp: 0,
@@ -1178,6 +1682,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
     // ends — past-end trims, circular chains, and over-deep chains
     // refuse here, before frame one, with the chain and the limit named.
     check_nest_graph(&mut ctx, &compositions);
+    // Sprint 10 sound (T003/T004): duck voices resolve against the
+    // finished windows and overlong crossfade windows report their
+    // clamp, before frame one.
+    check_sound_windows(&mut ctx, &compositions);
     let (selected, all, root_name) = if !ctx.invalid {
         let selected = compositions[root_pos].clone();
         let name = compositions[root_pos].name.clone();
@@ -1203,6 +1711,9 @@ struct PartialComposition<'n> {
     fps: Fps,
     background: notation::model::Rgb,
     version: u64,
+    autoplay: bool,
+    normalize: Normalize,
+    normalize_loc: Option<(usize, usize)>,
     clips: Vec<Clip>,
     fonts: Vec<FontDecl>,
     pending_stills: Vec<usize>,
@@ -1641,6 +2152,71 @@ fn parse_root_mark(ctx: &mut Ctx, root: &RawNode) -> Option<bool> {
     }
 }
 
+/// Parse one composition `autoplay` switch (Sprint 10 sound, CAP-007):
+/// absent means the default still start; present must be a bare
+/// `true`/`false` (a quoted `"true"`/`"false"` reads the same).
+/// Anything else fails with `E_BAD_FLAG`, never guessed, so `info`
+/// only ever carries a switch the maker wrote.
+fn parse_autoplay(ctx: &mut Ctx, root: &RawNode) -> Option<bool> {
+    match find(root, "autoplay") {
+        None => Some(false),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            ValueKind::Str(s)
+                if s.trim().eq_ignore_ascii_case("true")
+                    || s.trim().eq_ignore_ascii_case("false") =>
+            {
+                Some(s.trim().eq_ignore_ascii_case("true"))
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLAG",
+                    format!(
+                        "composition `autoplay` must be `true` or `false`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `autoplay=true` to hint auto-playback, or `autoplay=false` (or remove the key) for the default still start",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one composition `normalize` target (Sprint 10 sound,
+/// CAP-009): absent means authored levels; present must be the quoted
+/// `"loud"` landing integrated loudness at −16 LUFS with true-peak
+/// guarding. Anything else fails with `E_BAD_AUDIO`, never guessed,
+/// so the mixer only ever applies a target the maker wrote.
+fn parse_normalize(ctx: &mut Ctx, root: &RawNode) -> Option<(Normalize, Option<(usize, usize)>)> {
+    match find(root, "normalize") {
+        None => Some((Normalize::None, None)),
+        Some(v) => match as_str(v).and_then(Normalize::parse) {
+            Some(target) => Some((target, Some((v.line, v.column)))),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "composition `normalize` {} is unknown; accepted targets are: {}",
+                        raw_text(v),
+                        Normalize::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `normalize=\"loud\"` for −16 LUFS one-pass loudness, or remove the key for authored levels",
+                );
+                None
+            }
+        },
+    }
+}
+
 /// Refuse `start-after` targets that live in another composition
 /// (Sprint 6 T006): each composition renders its own timeline, so a
 /// clip can only follow clips in its own composition or name the
@@ -1651,6 +2227,12 @@ fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) 
         let (target, line, column, owner) = {
             let r = &ctx.refs[i];
             if r.needs_composition {
+                continue;
+            }
+            // Sprint 10 sound (T004): `duck-under` voices resolve in
+            // `check_sound_windows` with a voice-specific diagnostic;
+            // this walk names `start-after` relations only.
+            if r.kind != "start-after" {
                 continue;
             }
             (r.target.clone(), r.line, r.column, r.comp)
@@ -1734,6 +2316,8 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
         "fps",
         "background",
         "version",
+        "autoplay",
+        "normalize",
     ];
     for (k, v) in &root.props {
         if !ROOT_KEYS.contains(&k.as_str()) {
@@ -2044,6 +2628,14 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
         }
     };
 
+    // Playback hint (Sprint 10 sound, CAP-007): metadata only, so a
+    // bad value fails here while the mix stays untouched.
+    let autoplay = parse_autoplay(&mut ctx, root);
+    // One-pass loudness target (Sprint 10 sound, CAP-009): absent
+    // means authored levels; only the quoted `"loud"` target mixes.
+    let (normalize, normalize_loc) =
+        parse_normalize(&mut ctx, root).unwrap_or((Normalize::None, None));
+
     // --- child elements --------------------------------------------------
     let mut clips: Vec<Clip> = Vec::new();
     let mut fonts: Vec<FontDecl> = Vec::new();
@@ -2180,6 +2772,9 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
         marks,
         inputs,
         replicates,
+        autoplay: autoplay.unwrap_or(false),
+        normalize,
+        normalize_loc,
     }
 }
 
@@ -2208,6 +2803,9 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         marks,
         inputs,
         replicates,
+        autoplay,
+        normalize,
+        normalize_loc,
     } = partial;
 
     // --- relative starts plus duration inference (T002 + T003) -------
@@ -2477,6 +3075,9 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         marks,
         inputs,
         replicates,
+        autoplay,
+        normalize,
+        normalize_loc,
     }
 }
 
@@ -2516,6 +3117,10 @@ fn finish(
         footage: ctx.footage,
         inferred: ctx.inferred,
         stagger_clamps: ctx.stagger_clamps,
+        crossfade_clamps: ctx.crossfade_clamps,
+        effect_tails: ctx.effect_tails,
+        silences: ctx.silences,
+        waveform_clamps: ctx.waveform_clamps,
     }
 }
 
@@ -3704,6 +4309,28 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         "fade_in",
         "fade-out",
         "fade_out",
+        "crossfade",
+        "duck-under",
+        "duck_under",
+        "duck-amount",
+        "duck_amount",
+        "delay",
+        "delay-feedback",
+        "delay_feedback",
+        "delay-mix",
+        "delay_mix",
+        "reverb",
+        "detect-silence",
+        "detect_silence",
+        "silence-threshold",
+        "silence_threshold",
+        "silence-min",
+        "silence_min",
+        "waveform",
+        "waveform-from",
+        "waveform_from",
+        "waveform-to",
+        "waveform_to",
         "trim-start",
         "trim_start",
         "trim-end",
@@ -3729,8 +4356,8 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
                 v.line,
                 v.column,
                 "E_UNSUPPORTED",
-                format!("video clip `{k}` needs Sprint 10; Sprint 3 mixes video sound with volume and linear fades only"),
-                "use `volume` with `fade-in`/`fade-out`, or wait for Sprint 10 sound proof",
+                format!("video clip `{k}` needs Sprint 10; video sound mixes volume, linear fades, crossfades, ducking, delay/reverb, `detect-silence`, `volume`/`pan` key/tween/set envelopes, and `waveform` drawing only"),
+                "use `volume` with `fade-in`/`fade-out`, ride `volume`/`pan` with `key`/`tween`/`set`, or wait for Sprint 10 sound proof",
             ));
             return None;
         }
@@ -3963,6 +4590,10 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
     let effective_duration = effective_end.map(|e| (e - trim_start) / rate);
     let fade_in = parse_fade(ctx, node, "fade-in", "fade_in", duration, "video clip")?;
     let fade_out = parse_fade(ctx, node, "fade-out", "fade_out", duration, "video clip")?;
+    let crossfade = parse_crossfade(ctx, node, "video clip")?;
+    let duck_under = parse_duck_under(ctx, node, "video clip")?;
+    let fx = parse_sound_fx(ctx, node, "video clip")?;
+    let waveform = parse_waveform(ctx, node, "video clip")?;
     let turn = clip_turn(ctx, node, "video clip")?;
     let filter_blur = clip_filter(ctx, node, "video clip")?;
     ctx.footage.push(VideoFootage {
@@ -3996,6 +4627,10 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         volume_db,
         fade_in,
         fade_out,
+        crossfade,
+        duck_under,
+        fx,
+        waveform,
         trim_start,
         trim_end,
         rate,
@@ -4040,6 +4675,28 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
         "fade_in",
         "fade-out",
         "fade_out",
+        "crossfade",
+        "duck-under",
+        "duck_under",
+        "duck-amount",
+        "duck_amount",
+        "delay",
+        "delay-feedback",
+        "delay_feedback",
+        "delay-mix",
+        "delay_mix",
+        "reverb",
+        "detect-silence",
+        "detect_silence",
+        "silence-threshold",
+        "silence_threshold",
+        "silence-min",
+        "silence_min",
+        "waveform",
+        "waveform-from",
+        "waveform_from",
+        "waveform-to",
+        "waveform_to",
     ];
     for (k, v) in &node.props {
         if LATER_AUDIO_KEYS.contains(&k.as_str()) {
@@ -4048,8 +4705,8 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
                 v.line,
                 v.column,
                 "E_UNSUPPORTED",
-                format!("audio track `{k}` needs Sprint 10; Sprint 6 mixes trim, rate, volume, and linear fades only"),
-                "remove the key, or wait for Sprint 10 sound proof",
+                format!("audio track `{k}` needs Sprint 10; audio mixes trim, rate, volume, linear fades, crossfades, ducking, delay/reverb, `detect-silence`, `volume`/`pan` key/tween/set envelopes, and `waveform` drawing only"),
+                "remove the key, ride `volume`/`pan` with `key`/`tween`/`set`, or wait for Sprint 10 sound proof",
             ));
             return None;
         }
@@ -4227,6 +4884,10 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
     let volume_db = parse_volume_db(ctx, node, "audio track")?;
     let fade_in = parse_fade(ctx, node, "fade-in", "fade_in", duration, "audio track")?;
     let fade_out = parse_fade(ctx, node, "fade-out", "fade_out", duration, "audio track")?;
+    let crossfade = parse_crossfade(ctx, node, "audio track")?;
+    let duck_under = parse_duck_under(ctx, node, "audio track")?;
+    let fx = parse_sound_fx(ctx, node, "audio track")?;
+    let waveform = parse_waveform(ctx, node, "audio track")?;
     if inferred {
         let end = effective_end.unwrap_or(trim_start + duration * rate);
         let mut detail = format!("from source window {trim_start:.3}s..{end:.3}s at rate {rate}x");
@@ -4259,6 +4920,10 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
         volume_db,
         fade_in,
         fade_out,
+        crossfade,
+        duck_under,
+        fx,
+        waveform,
         line: node.name_line,
         column: node.name_column,
     })
@@ -5182,6 +5847,462 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
     })
 }
 
+/// Check every `duck-under` voice, every overlap handoff, every effect
+/// tail, and every pause map once all composition windows are known
+/// (Sprint 10 sound, CAP-003 through CAP-006): a voice naming a mark,
+/// a composition, or another composition's clip refuses as
+/// `E_UNKNOWN_REF` (unknown ids already refused by the project-wide
+/// reference check, so this stays silent on them instead of
+/// cascading); a handoff whose overlap runs past the composition end
+/// reports its clamp for review, never as a diagnostic, so clamping
+/// stays a valid verdict; a delay/reverb tail running past the end
+/// reports its truncation the same way; and each `detect-silence`
+/// clip reports its silent ranges, which never block. Clips that
+/// failed validation are absent here, so a missing voice on an already
+/// invalid project stays silent (its own diagnostic already covers
+/// it). A duplicated voice id also stays silent here (already refused
+/// as `E_DUP_ID`).
+fn check_sound_windows(ctx: &mut Ctx, compositions: &[Composition]) {
+    for (ci, comp) in compositions.iter().enumerate() {
+        for clip in &comp.clips {
+            let duck = match clip {
+                Clip::Audio(a) => a.duck_under.as_ref(),
+                Clip::Video(v) => v.duck_under.as_ref(),
+                _ => None,
+            };
+            let Some(duck) = duck else { continue };
+            // Every namespace entry answering this voice, in document order.
+            let hits: Vec<&IdEntry> = ctx.ids.iter().filter(|e| e.value == duck.target).collect();
+            if hits.is_empty() {
+                continue;
+            }
+            if hits.len() > 1 {
+                continue;
+            }
+            let hit = hits[0];
+            let what = match clip {
+                Clip::Audio(_) => "audio track",
+                _ => "video clip",
+            };
+            if hit.is_mark || hit.is_composition {
+                ctx.push(
+                    duck.line,
+                    duck.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "{what} `duck-under` {:?} names {}, but a voice must be a clip in the same composition",
+                        duck.target,
+                        if hit.is_mark {
+                            "a mark"
+                        } else {
+                            "a composition"
+                        },
+                    ),
+                    format!(
+                        "point `duck-under=` at a clip `id` in {:?}, not {:?}",
+                        comp.name, duck.target
+                    ),
+                );
+                continue;
+            }
+            // The entry stamps its owning composition: a voice elsewhere
+            // never renders with this bed. A same-composition voice
+            // missing from the finished clips failed validation itself,
+            // so this stays silent (its own diagnostic already covers
+            // it) instead of misnaming the problem.
+            if hit.comp != ci {
+                ctx.push(
+                    duck.line,
+                    duck.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "{what} `duck-under` {:?} names a clip in another composition, but this clip is in composition {:?}; a voice must share the bed's timeline",
+                        duck.target, comp.name
+                    ),
+                    format!(
+                        "point `duck-under=` at a clip `id` in {:?}, or move the voice there",
+                        comp.name
+                    ),
+                );
+            }
+        }
+        for over in notation::model::sound_overlaps(&comp.clips, comp.duration) {
+            if !over.clamped {
+                continue;
+            }
+            let late = &comp.clips[over.late];
+            let (line, column) = late.line_col();
+            ctx.crossfade_clamps.push(CrossfadeClamp {
+                early: over.early,
+                late: over.late,
+                shape: over.shape.name(),
+                raw_start: over.raw_start,
+                raw_end: over.raw_end,
+                eff_start: over.eff_start,
+                eff_end: over.eff_end,
+                line,
+                column,
+            });
+        }
+        check_effect_tails(ctx, comp);
+        check_silences(ctx.folder, ctx, comp);
+        check_waveform_windows(ctx, comp);
+    }
+}
+
+/// Review every on-canvas sound range (Sprint 10 sound, CAP-010,
+/// REC-002): empty or backward written ranges fail naming the bounds,
+/// ranges past the clip window clamp and report, and a range fully
+/// outside the window fails with nothing to draw. Hidden clips render
+/// nothing and report nothing.
+fn check_waveform_windows(ctx: &mut Ctx, comp: &Composition) {
+    if !comp.duration.is_finite() || comp.duration <= 0.0 {
+        return;
+    }
+    for (idx, clip) in comp.clips.iter().enumerate() {
+        if clip.hidden() {
+            continue;
+        }
+        let (draw, kind) = match clip {
+            Clip::Audio(a) if a.waveform.enabled => (&a.waveform, "audio"),
+            Clip::Video(v) if v.waveform.enabled => (&v.waveform, "video"),
+            _ => continue,
+        };
+        let what = match kind {
+            "audio" => "audio track",
+            _ => "video clip",
+        };
+        match resolve_waveform_range(
+            clip.start(),
+            clip.duration(),
+            comp.duration,
+            draw.from,
+            draw.to,
+        ) {
+            Ok(range) => {
+                if !range.clamped {
+                    continue;
+                }
+                let (line, column) = clip.line_col();
+                ctx.waveform_clamps.push(WaveformClamp {
+                    clip: idx,
+                    id: clip.id().map(str::to_string),
+                    kind,
+                    raw_from: range.raw_from,
+                    raw_to: range.raw_to,
+                    eff_from: range.eff_from,
+                    eff_to: range.eff_to,
+                    line,
+                    column,
+                });
+            }
+            Err(WaveformRangeError::EmptyWindow) => continue,
+            Err(WaveformRangeError::EmptyOrBackward) => {
+                let (line, column) = draw
+                    .to_loc
+                    .or(draw.from_loc)
+                    .unwrap_or((draw.line, draw.column));
+                let from_text = draw
+                    .from
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "clip start".to_string());
+                let to_text = draw
+                    .to
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "clip end".to_string());
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} drawn range {from_text}s..{to_text}s is empty or backward; the drawing needs `waveform-from` below `waveform-to`"
+                    ),
+                    "set `waveform-from=<seconds>` below `waveform-to=<seconds>`, or remove both keys to draw the whole clip window",
+                );
+            }
+            Err(WaveformRangeError::OutsideWindow) => {
+                let end = (clip.start() + clip.duration()).min(comp.duration);
+                ctx.push(
+                    draw.line,
+                    draw.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "{what} drawn range {}s..{}s lies fully outside the clip window {:.3}s..{:.3}s; nothing would draw",
+                        draw.from.unwrap_or(clip.start()),
+                        draw.to.unwrap_or(end),
+                        clip.start().max(0.0),
+                        end,
+                    ),
+                    "move `waveform-from`/`waveform-to` inside the clip window, or remove both keys to draw the whole clip window",
+                );
+            }
+        }
+    }
+}
+
+/// Report every delay/reverb tail truncated at the composition end
+/// (Sprint 10 sound, CAP-005, REC-003): the natural tail (echo taps at
+/// exact delay multiples, then the fixed 30 ms room comb) renders to
+/// the composition end and cuts the rest. Tails that fit inside the
+/// composition stay silent; hidden clips render nothing and report
+/// nothing.
+fn check_effect_tails(ctx: &mut Ctx, comp: &Composition) {
+    use notation::model::{delay_tail_frames, reverb_tail_frames, EFFECT_RATE};
+    if !comp.duration.is_finite() {
+        return;
+    }
+    for (idx, clip) in comp.clips.iter().enumerate() {
+        if clip.hidden() {
+            continue;
+        }
+        let fx = match notation::model::clip_fx(clip) {
+            Some(f) => f,
+            None => continue,
+        };
+        let delay_tail =
+            delay_tail_frames(fx.delay, fx.delay_feedback, fx.delay_mix) as f64 / EFFECT_RATE;
+        let reverb_tail = reverb_tail_frames(fx.reverb) as f64 / EFFECT_RATE;
+        if delay_tail + reverb_tail <= 0.0 {
+            continue;
+        }
+        let start = clip.start();
+        let end = (start + clip.duration()).min(comp.duration);
+        if !end.is_finite() || end <= start || start >= comp.duration {
+            continue;
+        }
+        let raw_end = end + delay_tail + reverb_tail;
+        if raw_end > comp.duration {
+            let (line, column) = clip.line_col();
+            ctx.effect_tails.push(EffectTail {
+                clip: idx,
+                id: clip.id().map(str::to_string),
+                delay_tail,
+                reverb_tail,
+                raw_end,
+                eff_end: comp.duration,
+                line,
+                column,
+            });
+        }
+    }
+}
+
+/// Report one pause map per `detect-silence` clip (Sprint 10 sound,
+/// CAP-006): silent ranges at or below the clip's dBFS ceiling for at
+/// least its minimum seconds, measured from the decoded source window
+/// (trimmed and re-timed exactly like the mix, before gains). Detection
+/// reads only — the mix never sees these numbers. A clip FFmpeg cannot
+/// decode (or no FFmpeg on PATH) reports nothing instead of blocking:
+/// the render decodes the same window and names a real failure there.
+fn check_silences(folder: &Path, ctx: &mut Ctx, comp: &Composition) {
+    if !comp.duration.is_finite() || comp.duration <= 0.0 {
+        return;
+    }
+    for (idx, clip) in comp.clips.iter().enumerate() {
+        let fx = match notation::model::clip_fx(clip) {
+            Some(f) if f.detect_silence => f,
+            _ => continue,
+        };
+        let (path, trim_start, trim_end, rate, kind) = match clip {
+            Clip::Audio(a) => (a.path.as_str(), a.trim_start, a.trim_end, a.rate, "audio"),
+            Clip::Video(v) => (v.path.as_str(), v.trim_start, v.trim_end, v.rate, "video"),
+            _ => continue,
+        };
+        let start = clip.start();
+        let end = (start + clip.duration()).min(comp.duration);
+        if !end.is_finite() || end <= start || start >= comp.duration {
+            continue;
+        }
+        let mut take = end - start;
+        if let Some(e) = trim_end {
+            take = take.min(((e - trim_start).max(0.0)) / rate);
+        }
+        if take <= 0.0 {
+            continue;
+        }
+        let loop_unit = match clip {
+            Clip::Video(v) => v.loop_clip,
+            _ => false,
+        };
+        let Some(pcm) = decode_detect_source(folder, path, trim_start, take * rate) else {
+            continue;
+        };
+        let mut pcm = resample_detect(&pcm, rate);
+        if loop_unit && !pcm.is_empty() {
+            let want = (take * DETECT_RATE).round().max(1.0) as usize;
+            pcm = tile_detect(&pcm, want);
+        }
+        let want = ((take * DETECT_RATE).round().max(1.0) as usize).min(pcm.len() / 2);
+        let ranges = scan_silence(
+            &pcm[..want * 2],
+            start,
+            fx.silence_threshold_db,
+            fx.silence_min,
+        );
+        let (line, column) = clip.line_col();
+        ctx.silences.push(SilenceReport {
+            clip: idx,
+            id: clip.id().map(str::to_string),
+            kind,
+            threshold_db: fx.silence_threshold_db,
+            min_seconds: fx.silence_min,
+            ranges,
+            line,
+            column,
+        });
+    }
+}
+
+/// Sample rate of pause detection (Sprint 10 sound, CAP-006): the mix
+/// rate, so detected ranges name composition seconds directly.
+const DETECT_RATE: f64 = 48_000.0;
+
+/// Decode one detection window to 48 kHz stereo s16 (Sprint 10 sound,
+/// CAP-006): the same FFmpeg shape the mix decode uses (`-ss` after
+/// `-i`, exact seconds), so ranges measure the samples the mix would
+/// play. Anything unusable — no FFmpeg on PATH, an unreadable file, a
+/// sourceless video, a failed decode — is `None`, and the caller skips
+/// the clip instead of blocking a valid project.
+fn decode_detect_source(folder: &Path, rel: &str, trim_start: f64, take: f64) -> Option<Vec<i16>> {
+    if !take.is_finite() || take <= 0.0 || !trim_start.is_finite() || trim_start < 0.0 {
+        return None;
+    }
+    let abs = folder.join(rel);
+    if !abs.is_file() {
+        return None;
+    }
+    let ffmpeg = tool_on_path("ffmpeg")?;
+    let out = std::process::Command::new(ffmpeg)
+        .args([
+            "-xerror",
+            "-v",
+            "error",
+            "-i",
+            &abs.display().to_string(),
+            "-ss",
+            &format!("{trim_start:.6}"),
+            "-t",
+            &format!("{take:.6}"),
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-",
+        ])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let (pairs, _) = out.stdout.as_chunks::<2>();
+    if pairs.is_empty() {
+        return None;
+    }
+    Some(pairs.iter().map(|b| i16::from_le_bytes(*b)).collect())
+}
+
+/// Re-time one detection window by `rate` (Sprint 10 sound, CAP-006):
+/// the same linear re-timing the mix uses, so pause edges land on the
+/// composition seconds the mix plays. Unity rate returns the input
+/// unchanged.
+fn resample_detect(pcm: &[i16], rate: f64) -> Vec<i16> {
+    if !rate.is_finite() || rate <= 0.0 {
+        return Vec::new();
+    }
+    if (rate - 1.0).abs() < 1e-12 {
+        return pcm.to_vec();
+    }
+    const CHANNELS: usize = 2;
+    let frames = pcm.len() / CHANNELS;
+    if frames == 0 {
+        return Vec::new();
+    }
+    let out_frames = ((frames as f64) / rate).round().max(1.0) as usize;
+    let mut out = Vec::with_capacity(out_frames * CHANNELS);
+    for j in 0..out_frames {
+        let pos = (j as f64) * rate;
+        let i0 = (pos.floor() as usize).min(frames - 1);
+        let i1 = (i0 + 1).min(frames - 1);
+        let frac = (pos - pos.floor()) as f32;
+        for c in 0..CHANNELS {
+            let a = pcm[i0 * CHANNELS + c] as f32;
+            let b = pcm[i1 * CHANNELS + c] as f32;
+            out.push(
+                (a + (b - a) * frac)
+                    .round()
+                    .clamp(i16::MIN as f32, i16::MAX as f32) as i16,
+            );
+        }
+    }
+    out
+}
+
+/// Tile one detection window unit to `frames` composition frames
+/// (Sprint 10 sound, CAP-006): looping clips repeat their source
+/// window in the mix, so pauses scan the same tiling.
+fn tile_detect(unit: &[i16], frames: usize) -> Vec<i16> {
+    const CHANNELS: usize = 2;
+    let unit_frames = unit.len() / CHANNELS;
+    if unit_frames == 0 || frames == 0 {
+        return Vec::new();
+    }
+    let mut out = Vec::with_capacity(frames * CHANNELS);
+    for j in 0..frames {
+        let s = (j % unit_frames) * CHANNELS;
+        out.extend_from_slice(&unit[s..s + CHANNELS]);
+    }
+    out
+}
+
+/// Scan stereo s16 frames for pauses (Sprint 10 sound, CAP-006): a
+/// frame is silent when both channels sit at or below the dBFS ceiling
+/// (`-inf` counts only exact digital zero). Runs of at least
+/// `min_seconds` report as composition-second ranges in time order.
+/// Pure sample math, so reruns agree exactly.
+fn scan_silence(pcm: &[i16], clip_start: f64, threshold_db: f64, min_secs: f64) -> Vec<(f64, f64)> {
+    const CHANNELS: usize = 2;
+    let ceiling = if threshold_db == f64::NEG_INFINITY {
+        0.0
+    } else {
+        10f64.powf(threshold_db / 20.0)
+    };
+    let frames = pcm.len() / CHANNELS;
+    let need = ((min_secs * DETECT_RATE).round() as usize).max(1);
+    let mut out = Vec::new();
+    let mut run: Option<usize> = None;
+    for i in 0..frames {
+        let peak = (pcm[i * CHANNELS] as i32)
+            .abs()
+            .max((pcm[i * CHANNELS + 1] as i32).abs()) as f64
+            / 32768.0;
+        if peak <= ceiling {
+            if run.is_none() {
+                run = Some(i);
+            }
+        } else if let Some(s) = run.take() {
+            if i - s >= need {
+                out.push((
+                    clip_start + s as f64 / DETECT_RATE,
+                    clip_start + i as f64 / DETECT_RATE,
+                ));
+            }
+        }
+    }
+    if let Some(s) = run {
+        if frames - s >= need {
+            out.push((
+                clip_start + s as f64 / DETECT_RATE,
+                clip_start + frames as f64 / DETECT_RATE,
+            ));
+        }
+    }
+    out
+}
+
 /// Deepest allowed `nest` chain (Sprint 6 T007, REC-004), shared with
 /// the renderer through the notation model.
 pub use notation::model::MAX_NEST_DEPTH;
@@ -5626,15 +6747,23 @@ fn motion_target(ctx: &mut Ctx, node: &RawNode, what: &str, clip_count: usize) -
     }
 }
 
-/// Canonical motion property name (Sprint 7 motion, CAP-005/006):
-/// the hyphenated spelling with underscores normalized, aliases
-/// resolved (`rotate-x` to `rotation-x`, `size` to `font-size`,
-/// `fill-color` to `fill`, `border-radius` to `radius`). Returns the
-/// canonical `MOTION_PROPERTIES` entry, or `None` when the spelling
+/// Canonical motion property name (Sprint 7 motion, CAP-005/006, plus
+/// Sprint 10 sound envelopes): the hyphenated spelling with
+/// underscores normalized, aliases resolved (`rotate-x` to
+/// `rotation-x`, `size` to `font-size`, `fill-color` to `fill`,
+/// `border-radius` to `radius`). Returns the canonical
+/// `MOTION_PROPERTIES` entry, or the `SOUND_PROPERTIES` entry
+/// (`volume`, `pan`) for sound envelopes, or `None` when the spelling
 /// names no animatable property.
 fn canonical_property(s: &str) -> Option<&'static str> {
     let norm = s.replace('_', "-");
     if let Some(found) = notation::model::MOTION_PROPERTIES
+        .iter()
+        .find(|p| **p == norm)
+    {
+        return Some(found);
+    }
+    if let Some(found) = notation::model::SOUND_PROPERTIES
         .iter()
         .find(|p| **p == norm)
     {
@@ -5646,17 +6775,66 @@ fn canonical_property(s: &str) -> Option<&'static str> {
         .map(|(_, canonical)| *canonical)
 }
 
+/// Whether a canonical property rides a sound envelope (Sprint 10
+/// sound, CAP-001): `volume` and `pan` animate per sample on
+/// sound-bearing clips, never through the visual engine.
+fn property_is_sound(property: &str) -> bool {
+    notation::model::SOUND_PROPERTIES.contains(&property)
+}
+
+/// Refuse visual-only directive keys on sound envelopes (Sprint 10
+/// sound, CAP-001): `volume`/`pan` ride one plain window evaluated per
+/// sample — no cascade (`stagger`), no replay (`repeat`, `yoyo`,
+/// `repeat-delay`), and no per-frame expression (`expr`). Every
+/// present key reports with its fix, never silently ignored; `set`
+/// needs no guard (its keys are all envelope-meaningful).
+fn sound_directive_guards(ctx: &mut Ctx, node: &RawNode, what: &str, property: &str) -> bool {
+    if !property_is_sound(property) {
+        return true;
+    }
+    let mut ok = true;
+    for key in [
+        "expr",
+        "stagger",
+        "stagger-from",
+        "stagger_from",
+        "stagger-grid",
+        "stagger_grid",
+        "repeat",
+        "yoyo",
+        "repeat-delay",
+        "repeat_delay",
+    ] {
+        if let Some(v) = find(node, key) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("{what} `{key}` rides visual motion; a `{property}` sound envelope plays one plain window per sample, with no cascade, replay, or expression"),
+                format!(
+                    "remove `{key}` from the {what}, or animate a visual property to cascade it"
+                ),
+            );
+            ok = false;
+        }
+    }
+    ok
+}
+
 /// Whether a canonical motion property exists on a target clip kind
-/// (Sprint 7 motion, CAP-005/006): the geometric properties, the 3D
-/// turns, and blur ride every clip like before, but attribute
-/// properties need the clip carrying them — sizes on boxes and images,
-/// fill/radius/border on boxes, font metrics on text. Anything else is
-/// a refusal naming the clip kind, never a silent no-op.
+/// (Sprint 7 motion, CAP-005/006, plus Sprint 10 sound envelopes): the
+/// geometric properties, the 3D turns, and blur ride every clip like
+/// before, but attribute properties need the clip carrying them —
+/// sizes on boxes and images, fill/radius/border on boxes, font
+/// metrics on text, and sound envelopes (`volume`, `pan`) on
+/// sound-bearing clips (`audio` tracks and `video` clips). Anything
+/// else is a refusal naming the clip kind, never a silent no-op.
 fn property_kind_ok(property: &str, clip: &Clip) -> bool {
     match property {
         "width" | "height" => matches!(clip, Clip::Box(_) | Clip::Image(_)),
         "fill" | "radius" | "border-width" | "border-color" => matches!(clip, Clip::Box(_)),
         "font-size" | "letter-spacing" => matches!(clip, Clip::Text(_)),
+        "volume" | "pan" => matches!(clip, Clip::Audio(_) | Clip::Video(_)),
         _ => true,
     }
 }
@@ -5670,7 +6848,7 @@ fn property_is_color(property: &str) -> bool {
 
 /// Human list of the animatable properties, for diagnostics.
 fn animatable_list() -> String {
-    "`x`, `y`, `scale`, `rotation`, `opacity`, `rotation-x`, `rotation-y`, `width`, `height`, `fill`, `radius`, `border-width`, `border-color`, `blur`, `font-size`, and `letter-spacing`".to_string()
+    "`x`, `y`, `scale`, `rotation`, `opacity`, `rotation-x`, `rotation-y`, `width`, `height`, `fill`, `radius`, `border-width`, `border-color`, `blur`, `font-size`, `letter-spacing`, and (on audio and video clips) `volume` and `pan`".to_string()
 }
 
 /// Shared motion property check (T003 plus Sprint 7 motion,
@@ -5713,11 +6891,12 @@ fn motion_property(
                         loc.column,
                         "E_BAD_MOTION",
                         format!(
-                            "{what} property {raw:?} needs a {} clip; target {idx} is {}",
+                            "{what} property {raw:?} needs {} clip; target {idx} is {}",
                             match canonical {
-                                "width" | "height" => "box or image",
-                                "fill" | "radius" | "border-width" | "border-color" => "box",
-                                _ => "text",
+                                "width" | "height" => "a box or image",
+                                "fill" | "radius" | "border-width" | "border-color" => "a box",
+                                "volume" | "pan" => "an audio or video",
+                                _ => "a text",
                             },
                             clip.what()
                         ),
@@ -5791,10 +6970,13 @@ fn motion_property(
 }
 
 /// Per-property value range check (T003 plus Sprint 7 motion,
-/// CAP-005/006): opacity runs 0 to 1, sizes run positive, radii and
-/// spacing and blur run 0 and up, every other numeric value must simply
-/// be finite. Out-of-range values are refused, never clamped silently
-/// (eased overshoot still clamps at draw time, like blur always did).
+/// CAP-005/006, plus Sprint 10 sound envelopes): opacity runs 0 to 1,
+/// sizes run positive, radii and spacing and blur run 0 and up,
+/// envelope volume runs 0 to 2, pan runs −1 to 1, and every other
+/// numeric value must simply be finite. Out-of-range values are
+/// refused, never clamped silently (eased overshoot still clamps at
+/// draw time, like blur always did; per-sample sound evaluation clamps
+/// the same way).
 fn motion_value_ok(
     ctx: &mut Ctx,
     node: &RawNode,
@@ -5818,6 +7000,20 @@ fn motion_value_ok(
         "opacity" => {
             if !(0.0..=1.0).contains(&v) {
                 Some(("0 (transparent) to 1 (opaque)", "0 to 1"))
+            } else {
+                None
+            }
+        }
+        "volume" => {
+            if !(0.0..=2.0).contains(&v) {
+                Some(("0 (silence) to 2 (twice unity)", "0 to 2"))
+            } else {
+                None
+            }
+        }
+        "pan" => {
+            if !(-1.0..=1.0).contains(&v) {
+                Some(("-1 (left) to 1 (right)", "-1 to 1"))
             } else {
                 None
             }
@@ -6503,6 +7699,8 @@ fn expr_range_violation(property: &str, v: f64) -> Option<&'static str> {
         "opacity" if !(0.0..=1.0).contains(&v) => Some("0 (transparent) to 1 (opaque)"),
         "width" | "height" | "font-size" if v <= 0.0 => Some("a positive number of pixels"),
         "radius" | "letter-spacing" | "border-width" | "blur" if v < 0.0 => Some("0 pixels and up"),
+        "volume" if !(0.0..=2.0).contains(&v) => Some("0 (silence) to 2 (twice unity)"),
+        "pan" if !(-1.0..=1.0).contains(&v) => Some("-1 (left) to 1 (right)"),
         _ => None,
     }
 }
@@ -6750,6 +7948,12 @@ fn validate_tween(
     }
     let property = motion_property(ctx, node, "tween", clips, target);
     ok &= property.is_some();
+    // Sound envelopes (Sprint 10, CAP-001) ride one plain window: the
+    // visual-only keys refuse here, before the expression and
+    // stagger/repeat machinery below could misread them.
+    if let Some(p) = property.as_deref() {
+        ok &= sound_directive_guards(ctx, node, "tween", p);
+    }
     let kind = match find(node, "kind").and_then(as_str) {
         None => TweenKind::To,
         Some(s) => {
@@ -7602,6 +8806,11 @@ fn validate_key(ctx: &mut Ctx, node: &RawNode, clips: &[Clip]) -> Option<KeyDecl
     } else {
         let property = motion_property(ctx, node, "key", clips, target);
         ok &= property.is_some();
+        // Sound envelopes (Sprint 10, CAP-001) ride one plain chain of
+        // stops: the visual-only keys refuse here, like tweens above.
+        if let Some(p) = property.as_deref() {
+            ok &= sound_directive_guards(ctx, node, "key", p);
+        }
         property
     };
     if !has_path && orient.is_some() && find(node, "orient").is_some() {
@@ -7819,5 +9028,80 @@ mod tests {
         png.extend_from_slice(&[0u8; 8]);
         assert!(!heic_magic_ok(&png));
         assert!(!heic_magic_ok(b"fake"));
+    }
+}
+
+#[cfg(test)]
+mod sound_fx_tests {
+    use super::*;
+
+    /// Stereo s16 fixture: `loud` frames, then `quiet` frames, then
+    /// `loud` frames again, so pause edges are hand-known.
+    fn gap_pcm(loud: usize, quiet: usize) -> Vec<i16> {
+        let mut pcm = Vec::with_capacity((2 * loud + quiet) * 2);
+        for _ in 0..loud {
+            pcm.extend_from_slice(&[10000, -10000]);
+        }
+        for _ in 0..quiet {
+            pcm.extend_from_slice(&[0, 0]);
+        }
+        for _ in 0..loud {
+            pcm.extend_from_slice(&[10000, -10000]);
+        }
+        pcm
+    }
+
+    #[test]
+    fn pauses_report_exact_sample_edges() {
+        // T006: a 1 s exact-digital gap between two 0.5 s tones at
+        // −40 dBFS reports exactly 0.5 s..1.5 s.
+        let pcm = gap_pcm(24_000, 48_000);
+        let ranges = scan_silence(&pcm, 0.0, -40.0, 0.5);
+        assert_eq!(ranges, vec![(0.5, 1.5)]);
+        // A minimum longer than the gap reports nothing.
+        assert!(scan_silence(&pcm, 0.0, -40.0, 1.5).is_empty());
+        // A hotter ceiling still catches exact zero.
+        let ranges = scan_silence(&pcm, 2.0, -60.0, 0.5);
+        assert_eq!(ranges, vec![(2.5, 3.5)]);
+    }
+
+    #[test]
+    fn ceiling_and_floor_behave() {
+        // −40 dBFS is 1% of full scale: ±327 counts as silent, ±328
+        // does not.
+        let mut pcm = vec![0i16; 48_000 * 2];
+        for (i, v) in [327, 328].iter().enumerate() {
+            pcm[2 * (1000 + i * 100)] = *v;
+            pcm[2 * (1000 + i * 100) + 1] = -*v;
+        }
+        // The ±328 blip splits the second into two pauses (±327 stays
+        // silent under the ceiling) when the minimum fits.
+        let halves = scan_silence(&pcm, 0.0, -40.0, 0.01);
+        assert_eq!(halves.len(), 2);
+        // `-inf` counts only exact digital zero.
+        let mut near = vec![1i16; 48_000 * 2];
+        near[0] = 0;
+        near[1] = 0;
+        assert!(scan_silence(&near, 0.0, f64::NEG_INFINITY, 0.5).is_empty());
+        let mut exact = vec![0i16; 48_000 * 2];
+        exact[0] = 1;
+        let ranges = scan_silence(&exact, 0.0, f64::NEG_INFINITY, 0.5);
+        assert_eq!(ranges.len(), 1);
+        assert!((ranges[0].0 - 1.0 / 48_000.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn detect_helpers_mirror_the_mix() {
+        // Unity rate returns the input unchanged; double rate halves
+        // the frame count; tiling repeats the unit exactly.
+        let pcm: Vec<i16> = (0..20).collect();
+        assert_eq!(resample_detect(&pcm, 1.0), pcm);
+        let half = resample_detect(&pcm, 2.0);
+        assert_eq!(half.len(), 5 * 2);
+        assert_eq!(half[0], 0);
+        let tiled = tile_detect(&pcm, 15);
+        assert_eq!(tiled.len(), 15 * 2);
+        assert_eq!(&tiled[..20], &pcm[..]);
+        assert_eq!(&tiled[20..30], &pcm[..10]);
     }
 }
