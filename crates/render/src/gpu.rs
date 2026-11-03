@@ -227,7 +227,7 @@ pub(crate) fn render_description_split(
     raster: &mut crate::render::RasterCache,
     desc: &FrameDescription,
 ) -> Result<Vec<u8>, String> {
-    use crate::render::{blit_fit, draw_bitmap_text_item, draw_box, draw_image, draw_text_block, fill_canvas, pick_picture};
+    use crate::render::{blit_fit, draw_bitmap_text_item, draw_box, draw_image, draw_text_block, fill_canvas, pick_picture_or_hold, wrap_loop_time};
     let (cw, chh) = (desc.width, desc.height);
     let mut frame = vec![0u8; cw as usize * chh as usize * 3];
     fill_canvas(&mut frame, desc.background.r, desc.background.g, desc.background.b);
@@ -242,9 +242,17 @@ pub(crate) fn render_description_split(
                     })?;
                 let (sw, sh, pic) = {
                     let range = &ranges[vi];
-                    let j = pick_picture(range, quantize(v.src_t)).ok_or_else(|| {
+                    // Sprint 5 T003, same as the CPU blitter: a looping
+                    // clip repeats its window, a non-looping overrun
+                    // holds the last decoded frame.
+                    let select_t = if videos[vi].loop_clip {
+                        wrap_loop_time(v.src_t, videos[vi].win_start, videos[vi].win_len)
+                    } else {
+                        v.src_t
+                    };
+                    let j = pick_picture_or_hold(range, quantize(select_t)).ok_or_else(|| {
                         format!(
-                            "gpu render failed: video source {:?} yields no picture at {:.3}s (past its timestamps); the system never holds a stale frame",
+                            "gpu render failed: video source {:?} yields no picture at {:.3}s",
                             videos[vi].path.display(),
                             v.src_t
                         )

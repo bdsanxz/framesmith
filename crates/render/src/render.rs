@@ -8,8 +8,10 @@
 //! * probes every referenced video through the resolved FFmpeg binary
 //!   (codec, dimensions, duration, audio presence) and smoke-decodes
 //!   audio/video before the first frame, refusing with a diagnostic
-//!   naming the file when the source is corrupt, unsupported, too short,
-//!   or has undecodable audio;
+//!   naming the file when the source is corrupt, has no decodable
+//!   video stream, or has undecodable audio; a clip window that
+//!   outruns its source loops its window (or holds the last frame),
+//!   never refuses;
 //! * draws each output frame on the CPU — background fill, video planes
 //!   (`contain` / `cover` / `fill`, exact rational-time picture, text in
 //!   document order only inside each clip's half-open window) — and pipes
@@ -17,9 +19,11 @@
 //!   video and AAC stereo 48 kHz audio;
 //! * mixes every audible source — each `audio` track with its trim,
 //!   volume, and linear fades, plus each `video` clip's sound stream
-//!   with the clip's volume and fades — sample-accurately into one
-//!   48 kHz stereo mix; a composition with no audible input renders
-//!   with the encoder's silent default;
+//!   from its source window (`trim-start`/`trim-end`) at its `rate`
+//!   (plainly resampled, pitch follows speed) with the clip's volume
+//!   and fades — sample-accurately into one 48 kHz stereo mix; a
+//!   composition with no audible input renders with the encoder's
+//!   silent default;
 //! * draws picture exactly as before: video sound enters the mix, never
 //!   the blitter, so picture bytes are unchanged by the mix;
 //! * encodes to a temporary file and renames on success, so an encode or
@@ -48,9 +52,28 @@ pub(crate) struct ProbedVideo {
     /// Source duration in seconds when the container reports one.
     pub(crate) duration: Option<f64>,
     pub(crate) has_audio: bool,
+    /// Loop the source window for the whole clip window (Sprint 5
+    /// T003); without it an overrunning window holds the last frame.
+    pub(crate) loop_clip: bool,
+    /// Container rotation in degrees, normalized to [0, 360) (Sprint 5
+    /// T005): 0 means render the stored pixels as-is; 90/180/270 mean
+    /// the decoder auto-rotates and `width`/`height` below are already
+    /// the oriented (player-visible) dimensions. Exotic angles stay 0
+    /// here and render stored, exactly like the decoder default.
+    pub(crate) rotation: f64,
+    /// Effective source window opening, in source seconds.
+    pub(crate) win_start: f64,
+    /// Effective source window length, in source seconds; None only
+    /// when neither a declared `trim-end` nor a probed duration is
+    /// known (then looping degrades to hold).
+    pub(crate) win_len: Option<f64>,
 }
 
 /// One clip window decoded to raw pictures with presentation timestamps.
+///
+/// `Clone` only serves the footage frame cache's tests; the render path
+/// moves ranges without cloning.
+#[derive(Debug, Clone)]
 pub(crate) struct DecodedRange {
     /// Index into the `videos` probe list.
     pub(crate) video_idx: usize,
@@ -89,6 +112,11 @@ pub struct Prepared {
     pub(crate) ranges: Vec<DecodedRange>,
     pub(crate) images: Vec<DecodedImage>,
     pub(crate) raster: RasterCache,
+    /// Footage frame-cache hits and misses for this preparation (Sprint
+    /// 5 T006): one lookup per decoded clip window. Read-only after
+    /// [`prepare_frames`]; drawing never touches it, so it cannot
+    /// change the picture at any worker count.
+    pub cache_stats: crate::footage_cache::CacheStats,
 }
 
 impl Prepared {
@@ -510,35 +538,50 @@ pub fn prepare_frames(
     for (idx, clip) in comp.clips.iter().enumerate() {
         if let Clip::Video(v) = clip {
             let probed = probe_video(ffmpeg_bin, &folder.join(&v.path), &v.path)?;
-            videos.push(ProbedVideo { clip_idx: idx, ..probed });
+            let (eff_start, eff_end) = effective_source_window(v, probed.duration);
+            let win_len = eff_end.map(|e| (e - eff_start).max(0.0));
+            videos.push(ProbedVideo {
+                clip_idx: idx,
+                loop_clip: v.loop_clip,
+                win_start: eff_start,
+                win_len,
+                ..probed
+            });
         }
     }
     // Smoke-decode each video stream so a corrupt file or an
     // undecodable picture refuses before the first frame, naming the
     // file. Audio streams are smoke-decoded in the audio stage
     // ([`build_audio_plan`]), which names the same file on failure.
+    // A clip window that outruns its source is not a refusal (Sprint 5
+    // T003): a looping clip repeats its window, a non-looping one
+    // holds the last decoded frame with a silent sound remainder.
     for pv in &videos {
         smoke_decode(ffmpeg_bin, pv, false)?;
-        // The source must cover the whole visible clip window.
-        if let Some(clip) = comp.clips.get(pv.clip_idx) {
-            let (s, d) = (clip.start(), clip.duration());
-            let end = (s + d).min(comp.duration);
-            if let Some(src_dur) = pv.duration {
-                if end - s > src_dur + 1e-6 {
-                    return Err(format!(
-                        "render refused: video source {:?} is {src_dur:.3}s but the clip window needs {:.3}s of picture; no MP4 was written",
-                        rel_name(folder, &pv.path),
-                        end - s
-                    ));
-                }
-            }
-        }
     }
     // Decode each visible clip window once, with timestamps. Output
     // frames then select pictures by exact time: no drift, no per-frame
     // processes, and no stale-frame holding past the source end.
+    //
+    // Sprint 5 T006: each window decodes through the project-local
+    // content-keyed frame cache, so an unchanged re-render reuses the
+    // stored pictures verbatim (faster, byte-identical) while edited
+    // media bytes always decode fresh.
+    let mut footage_cache = crate::footage_cache::FootageCache::open(folder);
     let mut ranges: Vec<DecodedRange> = Vec::with_capacity(videos.len());
     for (vi, pv) in videos.iter().enumerate() {
+        let (seek, src_len) = match comp.clips.get(pv.clip_idx) {
+            Some(Clip::Video(v)) => {
+                let win = clip_window_len(comp, v);
+                let (_, eff_end) = effective_source_window(v, pv.duration);
+                let want = (win * v.rate).max(0.0);
+                let avail = eff_end
+                    .map(|e| (e - v.trim_start).max(0.0))
+                    .unwrap_or(want);
+                (v.trim_start.max(0.0), want.min(avail))
+            }
+            _ => (0.0, 0.0),
+        };
         let win = match comp.clips.get(pv.clip_idx) {
             Some(Clip::Video(v)) => clip_window_len(comp, v),
             _ => 0.0,
@@ -555,8 +598,19 @@ pub fn prepare_frames(
             });
             continue;
         }
-        let mut range = decode_range(ffmpeg_bin, pv, win)?;
-        range.video_idx = vi;
+        let abs = pv.path.clone();
+        let (width, height, rotation) = (pv.width, pv.height, pv.rotation);
+        let range = footage_cache.decode_window(
+            ffmpeg_bin,
+            &abs,
+            seek,
+            src_len,
+            width,
+            height,
+            rotation,
+            vi,
+            || decode_range(ffmpeg_bin, pv, seek, src_len),
+        )?;
         ranges.push(range);
     }
     // Decode every referenced image once (T005): a PNG or JPEG still
@@ -590,6 +644,7 @@ pub fn prepare_frames(
         ranges,
         images,
         raster,
+        cache_stats: footage_cache.stats(),
     })
 }
 
@@ -681,6 +736,62 @@ pub fn fade_factor(i: usize, n: usize, fade_in_n: usize, fade_out_n: usize) -> f
         }
     }
     g
+}
+
+/// Plainly resample one stereo s16 source by `rate` (Sprint 5 T002):
+/// playback consumes `rate` source seconds per composition second, so
+/// `rate=2` halves the sample count (pitch doubles) and `rate=0.5`
+/// doubles it (pitch halves) — pitch follows speed, never corrected.
+/// Linear interpolation between source frames; the same input always
+/// yields the same output. `rate == 1` returns the input unchanged so
+/// unity mixes keep their historical bytes.
+pub fn resample_plain(pcm: &[i16], rate: f64) -> Vec<i16> {
+    debug_assert!(rate.is_finite() && rate > 0.0);
+    if (rate - 1.0).abs() < 1e-12 {
+        return pcm.to_vec();
+    }
+    let channels = MIX_CHANNELS as usize;
+    let frames = pcm.len() / channels;
+    if frames == 0 {
+        return Vec::new();
+    }
+    let out_frames = ((frames as f64) / rate).round().max(1.0) as usize;
+    let mut out = Vec::with_capacity(out_frames * channels);
+    for j in 0..out_frames {
+        let pos = (j as f64) * rate;
+        let i0 = (pos.floor() as usize).min(frames - 1);
+        let i1 = (i0 + 1).min(frames - 1);
+        let frac = (pos - pos.floor()) as f32;
+        for c in 0..channels {
+            let a = pcm[i0 * channels + c] as f32;
+            let b = pcm[i1 * channels + c] as f32;
+            out.push(
+                (a + (b - a) * frac)
+                    .round()
+                    .clamp(i16::MIN as f32, i16::MAX as f32) as i16,
+            );
+        }
+    }
+    out
+}
+
+/// Repeat one stereo s16 loop unit to exactly `frames` composition
+/// frames (Sprint 5 T003): a looping clip repeats its source window —
+/// picture and sound together — so the resampled window unit tiles
+/// with no gap at each loop point. An empty unit or a zero fill stays
+/// empty; the same unit always tiles to the same samples.
+pub fn tile_loop_unit(unit: &[i16], frames: usize) -> Vec<i16> {
+    let channels = MIX_CHANNELS as usize;
+    let unit_frames = unit.len() / channels;
+    if unit_frames == 0 || frames == 0 {
+        return Vec::new();
+    }
+    let mut out = Vec::with_capacity(frames * channels);
+    for j in 0..frames {
+        let s = (j % unit_frames) * channels;
+        out.extend_from_slice(&unit[s..s + channels]);
+    }
+    out
 }
 
 /// Add one decoded stereo s16 track into the f32 mix accumulator at
@@ -810,12 +921,14 @@ fn place_into_mix(
     );
 }
 
-/// Build the audio plan (audio stage, Sprint 3 T008/T010): smoke-decode
-/// every audible video stream, then decode each audible source — every
-/// `audio` track with its trim, plus every `video` clip's sound stream
-/// with the clip's volume and fades — to 48 kHz stereo PCM, place each
-/// sample-accurately at its written start, and sum all sources in
-/// composition document order into one deterministic staged mix file.
+/// Build the audio plan (audio stage, Sprint 3 T008/T010, windowed Sprint
+/// 5 T002): smoke-decode every audible video stream, then decode each
+/// audible source — every `audio` track with its trim, plus every
+/// `video` clip's sound stream from its source window at its `rate`
+/// (plainly resampled) with the clip's volume and fades — to 48 kHz
+/// stereo PCM, place each sample-accurately at its written start, and
+/// sum all sources in composition document order into one deterministic
+/// staged mix file.
 ///
 /// Every audible sound starts within 1 ms of its written time: offsets
 /// round to the nearest 48 kHz sample (at most half a sample of error).
@@ -917,8 +1030,33 @@ pub fn build_audio_plan(
                 if take <= 0.0 {
                     continue;
                 }
+                // Sprint 5 T002: the clip's sound is its source window —
+                // `take * rate` source seconds from `trim_start` — plainly
+                // resampled to `take` composition seconds so sound stays
+                // aligned with the re-timed picture and pitch follows
+                // speed. Unity rate with no trim keeps the historical
+                // decode (offset 0, no resample) so older mixes stay
+                // byte-identical. Sprint 5 T003: the decode never runs
+                // past the effective window end (a looping clip tiles
+                // the one window unit instead); a non-looping overrun
+                // decodes short and the mix pads the silent remainder.
                 let rel = rel_name(folder, &pv.path);
-                let pcm = decode_mix_source(ffmpeg_bin, &pv.path, &rel, 0.0, take)?;
+                let src_len = match pv.win_len {
+                    Some(w) => (take * v.rate).min(w),
+                    None => take * v.rate,
+                };
+                let decoded = decode_mix_source(ffmpeg_bin, &pv.path, &rel, v.trim_start, src_len)?;
+                let unit = resample_plain(&decoded, v.rate);
+                let want_frames = (take * MIX_RATE as f64).round().max(0.0) as usize;
+                let unit_frames = unit.len() / MIX_CHANNELS as usize;
+                let room =
+                    total.saturating_sub((v.start * MIX_RATE as f64).round().max(0.0) as usize);
+                let short = unit_frames < want_frames.min(room);
+                let pcm = if v.loop_clip && unit_frames > 0 && short {
+                    tile_loop_unit(&unit, want_frames)
+                } else {
+                    unit
+                };
                 let gain = db_to_gain(v.volume_db)?;
                 place_into_mix(&mut acc, &pcm, total, v.start, take, gain, v.fade_in, v.fade_out);
             }
@@ -1599,8 +1737,13 @@ fn encode_args(
 
 /// Probe one video source through the resolved FFmpeg binary:
 /// codec, dimensions, duration, and audio presence.
-/// Anything unreadable or outside the Sprint 1 container/codec promise
-/// refuses with a diagnostic naming the file.
+/// Anything unreadable, or any file with no decodable video stream
+/// (Sprint 5 T008: missing, corrupt, non-video, permission-denied, or
+/// disappearing sources), refuses with a diagnostic naming the file.
+/// Any container with a video stream the FFmpeg binary can decode
+/// (MOV, MP4, MKV, WebM, and similar) renders like any other source:
+/// the decoder below speaks rawvideo whatever the codec, so the codec
+/// name is a fact for refusal text, never a gate.
 fn probe_video(ffmpeg_bin: &Path, abs: &Path, rel: &str) -> Result<ProbedVideo, String> {
     let out = Command::new(ffmpeg_bin)
         .args(["-hide_banner", "-i", &abs.display().to_string()])
@@ -1638,16 +1781,19 @@ fn probe_video(ffmpeg_bin: &Path, abs: &Path, rel: &str) -> Result<ProbedVideo, 
     let (codec, width, height) = video.ok_or_else(|| {
         format!("render refused: video source {rel:?} has no decodable video stream; no MP4 was written")
     })?;
-    if codec != "h264" && codec != "hevc" {
-        return Err(format!(
-            "render refused: video source {rel:?} uses unsupported codec `{codec}` (Sprint 1 supports H.264 and HEVC); no MP4 was written"
-        ));
-    }
     if width == 0 || height == 0 {
         return Err(format!(
             "render refused: video source {rel:?} reports no picture dimensions; no MP4 was written"
         ));
     }
+    // Sprint 5 T005: container rotation applies so the rendered picture
+    // matches what players show. Phones store landscape pixels with a
+    // 90-degree display matrix; the decoder below auto-rotates those to
+    // portrait, so the probe reports the oriented dimensions and every
+    // `fit`/placement step sees the player-visible picture. A source
+    // without rotation metadata renders exactly as stored.
+    let rotation = parse_container_rotation(&text);
+    let (width, height) = oriented_dimensions(width, height, rotation);
     Ok(ProbedVideo {
         clip_idx: 0,
         path: abs.to_path_buf(),
@@ -1656,7 +1802,86 @@ fn probe_video(ffmpeg_bin: &Path, abs: &Path, rel: &str) -> Result<ProbedVideo, 
         height,
         duration,
         has_audio,
+        loop_clip: false,
+        rotation,
+        win_start: 0.0,
+        win_len: None,
     })
+}
+
+/// Parse container rotation metadata from `ffmpeg -i` output (Sprint 5
+/// T005): a `Display Matrix: rotation of N degrees` side-data line wins
+/// (the demuxer-computed angle), else a legacy `rotate : N` metadata
+/// tag. Absent or unparseable rotation means render-as-stored (0).
+fn parse_container_rotation(text: &str) -> f64 {
+    let mut tag: Option<f64> = None;
+    for line in text.lines() {
+        let line = line.trim();
+        if let Some(at) = line.find("rotation of") {
+            let rest = line[at + "rotation of".len()..].trim();
+            let num: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_digit() || *c == '.' || *c == '-' || *c == '+')
+                .collect();
+            if let Ok(deg) = num.parse::<f64>() {
+                if deg.is_finite() {
+                    return normalize_rotation(deg);
+                }
+            }
+        }
+        if tag.is_none() {
+            if let Some((_, value)) = line.split_once("rotate :") {
+                let value = value.trim();
+                if let Ok(deg) = value.parse::<f64>() {
+                    if deg.is_finite() {
+                        tag = Some(normalize_rotation(deg));
+                    }
+                }
+            }
+        }
+    }
+    tag.unwrap_or(0.0)
+}
+
+/// Normalize a rotation angle to [0, 360).
+fn normalize_rotation(deg: f64) -> f64 {
+    let mut a = deg % 360.0;
+    if a < 0.0 {
+        a += 360.0;
+    }
+    if a == 360.0 {
+        0.0
+    } else {
+        a
+    }
+}
+
+/// Oriented picture dimensions for a normalized container rotation
+/// (Sprint 5 T005): quarter turns (90/270) swap the stored axes, half
+/// turns and upright keep them. Only exact quarter/half turns orient;
+/// exotic angles render stored (see [`needs_autorotate`]).
+fn oriented_dimensions(width: u32, height: u32, rotation: f64) -> (u32, u32) {
+    if is_quarter_turn(rotation) {
+        (height, width)
+    } else {
+        (width, height)
+    }
+}
+
+/// True for exact 90/270-degree rotations (within tolerance): the only
+/// angles whose oriented picture swaps axes.
+fn is_quarter_turn(rotation: f64) -> bool {
+    (rotation - 90.0).abs() < 1e-6 || (rotation - 270.0).abs() < 1e-6
+}
+
+/// True when the decoder must auto-rotate (Sprint 5 T005): the exact
+/// quarter/half turns FFmpeg's `autorotate` transpose path handles
+/// (90/180/270). Upright needs no filter; exotic angles render stored,
+/// exactly like the decoder default, so `fit` still sees real pixels.
+fn needs_autorotate(rotation: f64) -> bool {
+    (rotation - 90.0).abs() < 1e-6
+        || (rotation - 180.0).abs() < 1e-6
+        || (rotation - 270.0).abs() < 1e-6
 }
 
 /// `Duration: 00:00:03.00` → seconds.
@@ -2399,10 +2624,19 @@ pub(crate) fn draw_description(
                     .ok_or_else(|| {
                         format!("render failed: video clip #{} was not probed (decode stage)", v.doc)
                     })?;
+                let pv = &videos[vi];
                 let range = &ranges[vi];
-                let j = pick_picture(range, v.src_t).ok_or_else(|| {
+                // Sprint 5 T003: a looping clip repeats its source
+                // window; a non-looping clip that outruns its source
+                // holds the last decoded frame as a still.
+                let select_t = if pv.loop_clip {
+                    wrap_loop_time(v.src_t, pv.win_start, pv.win_len)
+                } else {
+                    v.src_t
+                };
+                let j = pick_picture_or_hold(range, select_t).ok_or_else(|| {
                     format!(
-                        "render refused: video source {:?} yields no picture at {:.3}s (past its timestamps); the system never holds a stale frame; no MP4 was written",
+                        "render refused: video source {:?} yields no picture at {:.3}s; no MP4 was written",
                         videos[vi].path.display(),
                         v.src_t
                     )
@@ -2442,38 +2676,257 @@ pub(crate) fn draw_description(
     Ok(())
 }
 
-/// Visible clip window clamped to the composition, as source seconds.
-/// Validation guarantees `start >= 0`, so the source always plays from 0.
+/// Visible clip window clamped to the composition, as composition seconds.
+/// `rate` maps these to source seconds; `trim_start` anchors the window.
 fn clip_window_len(comp: &Composition, v: &notation::model::VideoClip) -> f64 {
     (v.start + v.duration).min(comp.duration) - v.start
 }
 
-/// Decode one clip window `[0, win_len)` to raw pictures with their
-/// presentation timestamps (`showinfo`). One sequential pass per clip:
-/// output frames then select pictures by exact timestamp, so differing
-/// source fps never drifts and no per-frame process is needed.
+/// Effective source window of one `video` clip against the probed
+/// source (Sprint 5 T002): the window opens at `trim_start` and closes
+/// at the declared `trim-end`, or at the probed source end when none is
+/// declared. The probe wins — a past-end `trim-end` clamps to the true
+/// end here (check output already reported it) instead of decoding a
+/// guess. The end is `None` only when neither a `trim-end` nor a probed
+/// duration is known.
+pub(crate) fn effective_source_window(
+    v: &notation::model::VideoClip,
+    probed: Option<f64>,
+) -> (f64, Option<f64>) {
+    let end = match (v.trim_end, probed) {
+        (Some(e), Some(src)) => Some(e.min(src)),
+        (Some(e), None) => Some(e),
+        (None, src) => src,
+    };
+    (v.trim_start, end)
+}
+
+/// Locate the `ffprobe` twin of the resolved `ffmpeg` binary (Sprint 5
+/// T004): the sibling `ffprobe` beside it when present, else the first
+/// `ffprobe` on `PATH`. `None` means packet timestamps cannot be probed
+/// and the decode below falls back to a bounded backtrack.
+pub(crate) fn ffprobe_for(ffmpeg_bin: &Path) -> Option<PathBuf> {
+    if let Some(dir) = ffmpeg_bin.parent() {
+        if !dir.as_os_str().is_empty() {
+            #[cfg(windows)]
+            let name = "ffprobe.exe";
+            #[cfg(not(windows))]
+            let name = "ffprobe";
+            let sibling = dir.join(name);
+            if sibling.is_file() {
+                return Some(sibling);
+            }
+        }
+    }
+    std::env::var_os("PATH").and_then(|paths| {
+        #[cfg(windows)]
+        let name = "ffprobe.exe";
+        #[cfg(not(windows))]
+        let name = "ffprobe";
+        std::env::split_paths(&paths).map(|dir| dir.join(name)).find(|cand| cand.is_file())
+    })
+}
+
+/// Parse one `ffprobe -show_entries packet=pts_time` reply (Sprint 5
+/// T004): every packet must carry a finite numeric presentation
+/// timestamp. Any missing (`N/A`) or unparseable entry means the
+/// source timing cannot be trusted, so the whole reply is unusable —
+/// the caller refuses naming the file instead of guessing.
+fn parse_packet_pts(text: &str) -> Result<Vec<f64>, ()> {
+    let mut pts = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        match line.parse::<f64>() {
+            Ok(t) if t.is_finite() => pts.push(t),
+            _ => return Err(()),
+        }
+    }
+    if pts.is_empty() {
+        return Err(());
+    }
+    Ok(pts)
+}
+
+/// Probe one source's packet presentation timestamps, oldest to newest
+/// in presentation order (Sprint 5 T004): `ffprobe` reads the container
+/// packet index without decoding, so even long files probe fast. Packet
+/// order is decode order (B-frames!), so the timestamps sort into the
+/// presentation timeline output instants sample against.
+///
+/// The result is `Some` sorted timeline on success; `None` when the
+/// container lists no video packet timestamps at all (for example a
+/// file whose audio box is damaged while its video is intact — the
+/// video decode below still gates timing, and the audio stage still
+/// refuses naming the file). Any listed-but-unparseable entry (`N/A`
+/// from a timing-less stream) refuses naming the file, with
+/// re-encoding as the fix — never guessed timing.
+fn probe_packet_pts(ffprobe_bin: &Path, pv: &ProbedVideo) -> Result<Option<Vec<f64>>, String> {
+    // A single authoritative probe run: its stdout decides. The exit
+    // status is deliberately ignored — a damaged audio box can fail the
+    // run while the listed video timestamps stay exact.
+    let stdout = match Command::new(ffprobe_bin)
+        .args([
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "packet=pts_time",
+            "-of",
+            "csv=p=0",
+            &pv.path.display().to_string(),
+        ])
+        .output()
+    {
+        // The probe binary vanished mid-run: fall back to the bounded
+        // decode below, which still gates decoder-level timing.
+        Err(_) => return Ok(None),
+        Ok(out) => out.stdout,
+    };
+    let text = String::from_utf8_lossy(&stdout);
+    let listed: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    if listed.is_empty() {
+        return Ok(None);
+    }
+    let mut pts = parse_packet_pts(&text).map_err(|_| {
+        format!(
+            "render refused: video source {:?} has unparseable timing and cannot be sampled exactly; re-encode the source to fix its timestamps; no MP4 was written",
+            pv.path.display()
+        )
+    })?;
+    pts.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    Ok(Some(pts))
+}
+
+/// Decode start for a clip window opening at `seek` (Sprint 5 T004):
+/// the covering frame — the last presentation timestamp at or before
+/// `seek` — so output-seeking never drops the frame whose interval
+/// covers the window opening (the VFR gap case). The decode seeks to
+/// 1 ms before that frame: the covering frame is always emitted, any
+/// extra earlier frame is harmless (selection is by timestamp), and a
+/// zero start keeps the historical no-`-ss` argument shape.
+fn decode_start_for_seek(sorted_pts: &[f64], seek: f64) -> f64 {
+    let mut start = 0.0;
+    for &t in sorted_pts {
+        if t <= seek + 1e-9 {
+            start = t;
+        } else {
+            break;
+        }
+    }
+    (start - 0.001).max(0.0)
+}
+
+/// Frame budget for a decode of `[target, end]` source seconds (Sprint
+/// 5 T004): every packet timestamp in the window, plus two spare slots
+/// for container fuzz (edit lists, rounding) — the `-frames:v` cap only
+/// bounds the run, never the selection, which stays timestamp-exact.
+fn decode_frame_budget(sorted_pts: &[f64], target: f64, end: f64) -> usize {
+    let in_window = sorted_pts
+        .iter()
+        .filter(|t| **t >= target - 1e-9 && **t <= end + 1e-6)
+        .count();
+    in_window + 2
+}
+
+/// Decode one clip window `[seek, seek + src_len)` to raw pictures with
+/// their true presentation timestamps (`showinfo`). One sequential pass
+/// per clip: output frames then select pictures by exact timestamp, so
+/// variable-frame-rate sources sample the frame whose interval covers
+/// each output instant — no duplicated, dropped, or slipped frames
+/// beyond what the source timestamps declare.
+///
+/// The decode runs with `passthrough` frame mode (the vsync CFR
+/// duplicator stays off) and `copyts` absolute timestamps, seeking at
+/// the demuxer to just before the covering frame, so the first picture
+/// is the source frame at-or-before `seek` and every `pts_time` is
+/// already source seconds: picture selection (`src_t`) needs no shift
+/// arithmetic. A zero start keeps the historical no-`-ss` argument
+/// shape so pre-footage decodes stay byte-identical. Container rotation
+/// (`autorotate`) orients the pixels to the probed dimensions, so `fit`
+/// and placement see the player-visible picture.
 fn decode_range(
     ffmpeg_bin: &Path,
     pv: &ProbedVideo,
-    win_len: f64,
+    seek: f64,
+    src_len: f64,
 ) -> Result<DecodedRange, String> {
+    // Sprint 5 T004: packet timestamps decide the decode start and
+    // expose unparseable timing before a single picture renders. When
+    // the container lists no video packet timestamps (or no ffprobe is
+    // available at all), fall back to a bounded 0.5 s backtrack with a
+    // generous frame cap: timing stays timestamp-exact (showinfo still
+    // gates every picture); only a long-gap covering frame beyond the
+    // backtrack could miss — an environmental degradation, never a
+    // guess.
+    //
+    // Sprint 5 T007: GIF sources always decode from the start. The GIF
+    // demuxer honors an input `-ss` by dropping the pictures before it
+    // — including the covering frame the window needs — so a seeked
+    // GIF decode would time-slip. GIFs are short; decoding from zero
+    // with a packet-counted budget keeps every native timestamp
+    // (including per-frame delays) exact.
+    let fallback = || ((seek - 0.5).max(0.0), ((src_len + 0.5) * 60.0).ceil() as usize + 8);
+    let (target, budget) = if pv.codec == "gif" {
+        match ffprobe_for(ffmpeg_bin) {
+            Some(ffprobe) => match probe_packet_pts(&ffprobe, pv)? {
+                Some(sorted) => {
+                    let end = seek + src_len.max(0.0);
+                    let count = sorted.iter().filter(|t| **t <= end + 1e-6).count();
+                    (0.0, count + 2)
+                }
+                None => fallback(),
+            },
+            None => fallback(),
+        }
+    } else {
+        match ffprobe_for(ffmpeg_bin) {
+            Some(ffprobe) => match probe_packet_pts(&ffprobe, pv)? {
+                Some(sorted) => {
+                    let target = decode_start_for_seek(&sorted, seek);
+                    let end = seek + src_len.max(0.0);
+                    (target, decode_frame_budget(&sorted, target, end))
+                }
+                None => fallback(),
+            },
+            None => fallback(),
+        }
+    };
+    let mut args: Vec<String> = vec!["-xerror".into(), "-v".into(), "info".into()];
+    if needs_autorotate(pv.rotation) {
+        args.push("-autorotate".into());
+    }
+    if target > 0.0 {
+        // Input seek: the demuxer jumps to the nearest seek point at or
+        // before `target` and drops earlier frames by timestamp, so the
+        // covering frame is emitted with its absolute timestamp intact
+        // (`copyts` below). An output seek would instead renumber
+        // timestamps from the seek point and drop the covering frame.
+        args.push("-ss".into());
+        args.push(format!("{target:.6}"));
+    }
+    args.extend([("-i".to_string()), (pv.path.display().to_string())]);
+    if target > 0.0 {
+        args.push("-copyts".into());
+    }
+    args.extend([
+        "-fps_mode".into(),
+        "passthrough".into(),
+        "-frames:v".into(),
+        format!("{}", budget.max(1)),
+        "-vf".into(),
+        "showinfo".into(),
+        "-f".into(),
+        "rawvideo".into(),
+        "-pix_fmt".into(),
+        "rgb24".into(),
+        "-".into(),
+    ]);
     let out = Command::new(ffmpeg_bin)
-        .args([
-            "-xerror",
-            "-v",
-            "info",
-            "-i",
-            &pv.path.display().to_string(),
-            "-t",
-            &format!("{:.6}", win_len.max(0.0)),
-            "-vf",
-            "showinfo",
-            "-f",
-            "rawvideo",
-            "-pix_fmt",
-            "rgb24",
-            "-",
-        ])
+        .args(&args)
         .output()
         .map_err(|e| {
             format!(
@@ -2497,6 +2950,10 @@ fn decode_range(
             out.stdout.len()
         ));
     }
+    // `copyts` keeps absolute presentation timestamps, so `pts_time`
+    // already speaks source seconds — no shift arithmetic. A missing or
+    // non-numeric timestamp line means decoder-level timing loss and
+    // refuses exactly like the packet gate above.
     let text = String::from_utf8_lossy(&out.stderr);
     let mut pts: Vec<f64> = Vec::new();
     for line in text.lines() {
@@ -2514,10 +2971,10 @@ fn decode_range(
         }
     }
     let count = out.stdout.len() / framesize;
-    // The `-t` window cut can log one extra `showinfo` line for the
-    // boundary frame it drops (a clip window into a longer source):
-    // that frame has no picture, so it carries no mapping. Anything
-    // fewer than the picture count is still a refusal, never a guess.
+    // The `-frames:v` cap can end the run right as one extra `showinfo`
+    // line for a boundary frame logs: that frame has no picture, so it
+    // carries no mapping. Anything fewer than the picture count is
+    // still a refusal, never a guess.
     if pts.len() > count {
         pts.truncate(count);
     }
@@ -2564,6 +3021,43 @@ pub(crate) fn pick_picture(range: &DecodedRange, src_t: f64) -> Option<usize> {
             Some(i)
         }
         None => Some(0),
+    }
+}
+
+/// Wrap one source time into a loop window (Sprint 5 T003): the
+/// repeated unit is the trimmed window played at the declared rate, so
+/// composition seconds past the clip start advance `rate` source
+/// seconds modulo the window length — picture and sound repeat
+/// together with no gap at the loop point (a remainder landing on the
+/// window end shows the first frame again). A non-positive or unknown
+/// window never wraps, so looping degrades to hold there.
+pub(crate) fn wrap_loop_time(src_t: f64, start: f64, len: Option<f64>) -> f64 {
+    match len {
+        Some(w) if w.is_finite() && w > 0.0 => {
+            let mut off = (src_t - start) % w;
+            if off < 0.0 {
+                off += w;
+            }
+            if (w - off) < 1e-9 {
+                off = 0.0;
+            }
+            start + off
+        }
+        _ => src_t,
+    }
+}
+
+/// Picture index covering `src_t`, holding the last picture past the
+/// source end (Sprint 5 T003): a non-looping clip whose window outruns
+/// its source holds the last decoded frame as a still while its sound
+/// goes silent for the remainder. Before the first timestamp the first
+/// picture applies; an empty range still yields none.
+pub(crate) fn pick_picture_or_hold(range: &DecodedRange, src_t: f64) -> Option<usize> {
+    match pick_picture(range, src_t) {
+        Some(i) => Some(i),
+        // [`pick_picture`] yields None only past the source end: hold
+        // the last decoded picture instead of refusing.
+        None => range.pts.len().checked_sub(1),
     }
 }
 
@@ -4221,6 +4715,7 @@ mod tests {
             ranges: Vec::new(),
             images: Vec::new(),
             raster: RasterCache::new(),
+            cache_stats: crate::footage_cache::CacheStats::default(),
         }
     }
 
@@ -4280,11 +4775,16 @@ mod tests {
             path: "clip.mp4".to_string(),
             start: 0.0,
             duration: 1.0,
+            duration_inferred: false,
             fit: Fit::Contain,
             order: 0,
             volume_db: 0.0,
             fade_in: 0.0,
             fade_out: 0.0,
+            trim_start: 0.0,
+            trim_end: None,
+            rate: 1.0,
+            loop_clip: false,
             line: 1,
             column: 1,
         })]);
@@ -4411,6 +4911,230 @@ mod tests {
         for bad in [12.5, 13.0, 20.0, f64::INFINITY, f64::NAN] {
             assert!(db_to_gain(bad).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn plain_resample_doubles_and_halves_pitch() {
+        // Sprint 5 T002: a 440 Hz tone over 1 s (48000 frames stereo)
+        // at rate 2 keeps 24000 frames whose zero-crossing rate is
+        // doubled (880 Hz, pitch follows speed); at rate 0.5 it keeps
+        // 96000 frames at half the crossing rate (220 Hz).
+        let tone: Vec<i16> = (0..48000)
+            .flat_map(|j| {
+                let v = (2.0 * std::f64::consts::PI * 440.0 * j as f64 / 48000.0).sin();
+                let s = (v * 20000.0) as i16;
+                [s, s]
+            })
+            .collect();
+        let crossings = |pcm: &[i16]| -> usize {
+            (1..pcm.len() / 2)
+                .filter(|&j| {
+                    (pcm[(j - 1) * 2] <= 0 && pcm[j * 2] > 0)
+                        || (pcm[(j - 1) * 2] >= 0 && pcm[j * 2] < 0)
+                })
+                .count()
+        };
+        let base = crossings(&tone);
+        assert!((base as i32 - 880).abs() <= 4, "base tone crosses ~880, got {base}");
+        let fast = resample_plain(&tone, 2.0);
+        assert_eq!(fast.len() / 2, 24000, "rate 2 halves the frame count");
+        let cf = crossings(&fast);
+        assert!((cf as i32 - 880).abs() <= 6, "rate 2 keeps the source crossings in half the time (pitch doubles), got {cf}");
+        let slow = resample_plain(&tone, 0.5);
+        assert_eq!(slow.len() / 2, 96000, "rate 0.5 doubles the frame count");
+        let cs = crossings(&slow);
+        assert!((cs as i32 - 880).abs() <= 6, "rate 0.5 spreads the source crossings over double time (pitch halves), got {cs}");
+        // Unity returns the input unchanged, sample for sample.
+        assert_eq!(resample_plain(&tone, 1.0), tone, "rate 1 is the identity");
+        assert!(resample_plain(&[], 2.0).is_empty());
+        // A constant level survives resampling without scaling.
+        let flat: Vec<i16> = vec![8000; 2 * 4800];
+        let flat_fast = resample_plain(&flat, 2.0);
+        assert_eq!(flat_fast.len(), 2 * 2400);
+        assert!(flat_fast.iter().all(|&x| x == 8000));
+    }
+
+    #[test]
+    fn effective_window_clamps_past_end_to_the_probe() {
+        // Sprint 5 T002: the probe wins — a past-end trim-end clamps to
+        // the true source end, an omitted trim-end means the source
+        // end, and an unknown source end stays unknown.
+        let clip = |ts: f64, te: Option<f64>| notation::model::VideoClip {
+            path: "c.mp4".into(),
+            start: 0.0,
+            duration: 1.0,
+            duration_inferred: false,
+            fit: Fit::Contain,
+            order: 0,
+            volume_db: 0.0,
+            fade_in: 0.0,
+            fade_out: 0.0,
+            trim_start: ts,
+            trim_end: te,
+            rate: 1.0,
+            loop_clip: false,
+            line: 1,
+            column: 1,
+        };
+        assert_eq!(effective_source_window(&clip(1.0, Some(9.0)), Some(4.0)), (1.0, Some(4.0)));
+        assert_eq!(effective_source_window(&clip(1.0, Some(3.0)), Some(4.0)), (1.0, Some(3.0)));
+        assert_eq!(effective_source_window(&clip(0.0, None), Some(4.0)), (0.0, Some(4.0)));
+        assert_eq!(effective_source_window(&clip(1.0, None), None), (1.0, None));
+        assert_eq!(effective_source_window(&clip(1.0, Some(9.0)), None), (1.0, Some(9.0)));
+    }
+
+    #[test]
+    fn loop_wrap_repeats_the_trimmed_window_at_rate() {
+        // Sprint 5 T003: the repeated unit is the trimmed window played
+        // at the declared rate — composition seconds map to source
+        // seconds modulo the window length, with no gap at the loop
+        // point (the window end shows the first frame again).
+        let w = Some(2.0);
+        assert!((wrap_loop_time(1.0, 1.0, w) - 1.0).abs() < 1e-9);
+        assert!((wrap_loop_time(2.5, 1.0, w) - 2.5).abs() < 1e-9);
+        // One full window later: back at the window opening.
+        assert!((wrap_loop_time(3.0, 1.0, w) - 1.0).abs() < 1e-9);
+        assert!((wrap_loop_time(4.5, 1.0, w) - 2.5).abs() < 1e-9);
+        // Two loop points: 1 + 2k always reopens the window.
+        assert!((wrap_loop_time(5.0, 1.0, w) - 1.0).abs() < 1e-9);
+        assert!((wrap_loop_time(7.0, 1.0, w) - 1.0).abs() < 1e-9);
+        // Unknown or degenerate windows never wrap (hold instead).
+        assert!((wrap_loop_time(9.0, 1.0, None) - 9.0).abs() < 1e-9);
+        assert!((wrap_loop_time(9.0, 1.0, Some(0.0)) - 9.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn hold_keeps_the_last_picture_past_the_source_end() {
+        // Sprint 5 T003: a non-looping overrun holds the last decoded
+        // frame; in-window times still pick by exact timestamp.
+        let range = DecodedRange {
+            video_idx: 0,
+            width: 2,
+            height: 1,
+            frames: vec![10, 20, 30, 40, 50, 60, 70, 80, 90],
+            pts: vec![1.0, 2.0, 3.0],
+        };
+        assert_eq!(pick_picture_or_hold(&range, 1.0), Some(0));
+        assert_eq!(pick_picture_or_hold(&range, 2.5), Some(1));
+        assert_eq!(pick_picture_or_hold(&range, 3.0), Some(2));
+        // Far past the end: the last picture holds, never None.
+        assert_eq!(pick_picture_or_hold(&range, 4.0), Some(2));
+        assert_eq!(pick_picture_or_hold(&range, 99.0), Some(2));
+        // Before the first timestamp: the first picture applies.
+        assert_eq!(pick_picture_or_hold(&range, 0.0), Some(0));
+        // Wrapping then holding covers the loop path too.
+        assert_eq!(pick_picture_or_hold(&range, wrap_loop_time(5.0, 1.0, Some(2.0))), Some(0));
+        assert_eq!(pick_picture_or_hold(&range, wrap_loop_time(4.5, 1.0, Some(2.0))), Some(1));
+    }
+
+    #[test]
+    fn loop_unit_tiles_with_no_gap() {
+        // Sprint 5 T003: the resampled window unit repeats sample for
+        // sample, so sound loops with picture and no slip.
+        let unit: Vec<i16> = vec![1, 2, 3, 4, 5, 6];
+        assert_eq!(tile_loop_unit(&unit, 2), vec![1, 2, 3, 4]);
+        assert_eq!(tile_loop_unit(&unit, 3), vec![1, 2, 3, 4, 5, 6]);
+        assert_eq!(tile_loop_unit(&unit, 5), vec![1, 2, 3, 4, 5, 6, 1, 2, 3, 4]);
+        assert!(tile_loop_unit(&unit, 0).is_empty());
+        assert!(tile_loop_unit(&[], 4).is_empty());
+    }
+
+    #[test]
+    fn rotation_parses_display_matrix_and_tag_lines() {
+        // Sprint 5 T005: the demuxer-computed display matrix wins, the
+        // legacy `rotate` tag is the fallback, absence means stored.
+        let matrix = "Stream #0:0: Video: h264, 320x240\n      Display Matrix: rotation of 90.00 degrees";
+        assert!((parse_container_rotation(matrix) - 90.0).abs() < 1e-9);
+        let neg = "Stream #0:0: Video: h264, 320x240\n      Display Matrix: rotation of -90.00 degrees";
+        assert!((parse_container_rotation(neg) - 270.0).abs() < 1e-9);
+        let half = "Display Matrix: rotation of 180.00 degrees";
+        assert!((parse_container_rotation(half) - 180.0).abs() < 1e-9);
+        let tag = "Stream #0:0: Video: h264, 320x240\n      rotate : 90";
+        assert!((parse_container_rotation(tag) - 90.0).abs() < 1e-9);
+        let full_turn = "Display Matrix: rotation of 360.00 degrees";
+        assert!((parse_container_rotation(full_turn) - 0.0).abs() < 1e-9);
+        let plain = "Stream #0:0: Video: h264, 320x240 [SAR 1:1 DAR 4:3]";
+        assert!((parse_container_rotation(plain) - 0.0).abs() < 1e-9);
+        let broken = "Display Matrix: rotation of sideways degrees";
+        assert!((parse_container_rotation(broken) - 0.0).abs() < 1e-9);
+        // Matrix wins over a conflicting tag.
+        let both = "rotate : 180\nDisplay Matrix: rotation of 90.00 degrees";
+        assert!((parse_container_rotation(both) - 90.0).abs() < 1e-9);
+        assert!(!needs_autorotate(0.0));
+        assert!(needs_autorotate(90.0));
+        assert!(needs_autorotate(180.0));
+        assert!(needs_autorotate(270.0));
+        assert!(!needs_autorotate(45.0));
+    }
+
+    #[test]
+    fn oriented_dimensions_swap_on_quarter_turns() {
+        // Sprint 5 T005: portrait phone footage (stored landscape,
+        // rotated 90) orients to portrait; half turns and upright keep
+        // stored axes; exotic angles render stored.
+        assert_eq!(oriented_dimensions(320, 240, 90.0), (240, 320));
+        assert_eq!(oriented_dimensions(320, 240, 270.0), (240, 320));
+        assert_eq!(oriented_dimensions(320, 240, 0.0), (320, 240));
+        assert_eq!(oriented_dimensions(320, 240, 180.0), (320, 240));
+        assert_eq!(oriented_dimensions(320, 240, 45.0), (320, 240));
+        assert_eq!(oriented_dimensions(320, 240, normalize_rotation(-90.0)), (240, 320));
+    }
+
+    #[test]
+    fn packet_pts_parse_rejects_missing_timing() {
+        // Sprint 5 T004: every packet timestamp must parse; one N/A
+        // (raw streams carry no timing) poisons the whole reply, and an
+        // empty reply maps nothing.
+        assert_eq!(parse_packet_pts("0.000000\n0.033333\n0.066667\n").unwrap(), vec![0.0, 0.033333, 0.066667]);
+        assert!(parse_packet_pts("0.000000\nN/A\n0.066667\n").is_err());
+        assert!(parse_packet_pts("").is_err());
+        assert!(parse_packet_pts("bogus\n").is_err());
+        assert!(parse_packet_pts("nan\n").is_err());
+        assert!(parse_packet_pts("inf\n").is_err());
+        // Negative timestamps (edit lists) are valid timing.
+        assert_eq!(parse_packet_pts("-0.040000\n0.000000\n").unwrap(), vec![-0.04, 0.0]);
+    }
+
+    #[test]
+    fn decode_start_covers_gap_windows() {
+        // Sprint 5 T004: the decode starts 1 ms before the frame whose
+        // interval covers the window opening — including a VFR gap —
+        // and at zero for windows opening before the first frame.
+        let pts: Vec<f64> = [0.0, 0.033333, 0.966667, 2.0, 2.033333].into_iter().collect();
+        let start = decode_start_for_seek(&pts, 1.5);
+        assert!((start - 0.965667).abs() < 1e-9, "backs up 1 ms before the covering 0.966667 frame, got {start}");
+        let exact = decode_start_for_seek(&pts, 2.0);
+        assert!((exact - 1.999).abs() < 1e-9, "an exact frame time still includes its own frame, got {exact}");
+        assert!((decode_start_for_seek(&pts, 0.0) - 0.0).abs() < 1e-9, "zero stays zero (historical shape)");
+        assert!((decode_start_for_seek(&pts, 0.01) - 0.0).abs() < 1e-9, "first-frame coverage clamps to zero");
+        // A seek before the first timestamp decodes from the start.
+        let late: Vec<f64> = [0.5, 0.533333].into_iter().collect();
+        assert!((decode_start_for_seek(&late, 0.1) - 0.0).abs() < 1e-9);
+        // Budgets count the window plus two spare slots.
+        assert_eq!(decode_frame_budget(&pts, 0.965667, 1.7), 3, "covering frame only (+2 spare)");
+        assert_eq!(decode_frame_budget(&pts, 0.0, 2.1), 7, "five window packets (+2 spare)");
+    }
+
+    #[test]
+    fn vfr_gap_selects_the_covering_frame() {
+        // Sprint 5 T004: sampling by true presentation intervals shows
+        // the covering frame across a VFR gap — the 0.966667 frame for
+        // every instant in [0.966667, 2.0) — never the next frame early.
+        let fs = 3usize;
+        let range = DecodedRange {
+            video_idx: 0,
+            width: 1,
+            height: 1,
+            frames: vec![0u8; 5 * fs],
+            pts: vec![0.9, 0.933333, 0.966667, 2.0, 2.033333],
+        };
+        assert_eq!(pick_picture(&range, 1.5), Some(2), "gap instant shows the covering frame");
+        assert_eq!(pick_picture(&range, 0.966667), Some(2));
+        assert_eq!(pick_picture(&range, 1.999), Some(2));
+        assert_eq!(pick_picture(&range, 2.0), Some(3), "the next frame starts exactly at its timestamp");
+        assert_eq!(pick_picture(&range, 0.95), Some(1));
+        // Holding past the source end still applies past the last frame.
+        assert_eq!(pick_picture_or_hold(&range, 99.0), Some(4));
     }
 
     #[test]

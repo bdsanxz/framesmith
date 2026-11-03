@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- HyperFrames equivalent of Framesmith reference-footage
+     (framesmith/crates/cli/examples/reference-footage/composition.kdl):
+     6 s, 1280x720, 30 fps footage proof: VFR background slowed to half
+     speed, rotated portrait clip trimmed and looped, finite GIF sticker
+     with the KDL-inferred length. No text: text parity is Sprint 4
+     territory, so every pixel here exercises footage behavior.
+     Mapping notes:
+     - KDL `trim-start=1 trim-end=4 rate=0.5 duration=6` on the background
+       becomes data-media-start="1" data-playback-rate="0.5"
+       data-duration="6" (the renderer seeks mediaStart + t*rate).
+     - KDL `trim-start=0.5 loop=true duration=5` on the portrait clip
+       becomes data-media-start="0.5" plus the native `loop` attribute
+       (the renderer wraps inside [mediaStart, sourceDuration), the same
+       window Framesmith repeats).
+     - KDL omits `duration` on the GIF (Framesmith infers 2.000 s from the
+       finite single-play GIF); the twin authors data-duration="2"
+       explicitly so both windows are [1,3). The render pipeline
+       transcodes the animated GIF to a seekable looped/padded video, so
+       picture timing matches the native GIF timings Framesmith plays.
+     - KDL volume default (0 dB) becomes data-volume 1; bg and portrait
+       clips keep sound (data-has-audio="true"), the GIF is silent.
+     - KDL fit="cover"/"contain" become CSS object-fit; both video layers
+       are fullscreen so contain pillarboxing shows the layer beneath,
+       exactly like the Framesmith composite order.
+     - Font Arial resolves via the bundled alias map (Arial -> Inter). -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280, height=720" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1280px;
+        height: 720px;
+        overflow: hidden;
+        background: #101828;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: #101828;
+      }
+      .clip {
+        position: absolute;
+      }
+      #bg {
+        left: 0;
+        top: 0;
+        width: 1280px;
+        height: 720px;
+        object-fit: cover;
+        z-index: 0;
+      }
+      #portrait {
+        left: 0;
+        top: 0;
+        width: 1280px;
+        height: 720px;
+        object-fit: contain;
+        z-index: 1;
+      }
+      #sticker {
+        left: 0;
+        top: 0;
+        width: 1280px;
+        height: 720px;
+        object-fit: contain;
+        z-index: 2;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="6"
+      data-width="1280"
+      data-height="720"
+      data-fps="30"
+    >
+      <video
+        id="bg"
+        class="clip"
+        data-start="0"
+        data-duration="6"
+        data-track-index="0"
+        src="assets/vfr.mp4"
+        data-media-start="1"
+        data-playback-rate="0.5"
+        data-has-audio="true"
+        playsinline
+      ></video>
+      <video
+        id="portrait"
+        class="clip"
+        data-start="0.5"
+        data-duration="5"
+        data-track-index="1"
+        src="assets/rot.mp4"
+        data-media-start="0.5"
+        loop
+        data-has-audio="true"
+        playsinline
+      ></video>
+      <img
+        id="sticker"
+        class="clip"
+        data-start="1"
+        data-duration="2"
+        data-track-index="2"
+        src="assets/anim.gif"
+        alt="animated sticker"
+      />
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

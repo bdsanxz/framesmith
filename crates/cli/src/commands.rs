@@ -128,6 +128,48 @@ pub fn cmd_init(name: &str, parent: &Path) -> i32 {
     0
 }
 
+/// One footage window as human text (Sprint 5 T001/T009): the
+/// effective source window, the resolved clip length (marked when
+/// inferred from an omitted `duration`), and the effective rendered
+/// length of one valid `video` clip, plus a clamp note when a
+/// past-end `trim-end` was cut back to the probed source end.
+fn format_footage_human(f: &validate_mod::VideoFootage) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let window = match f.effective_end {
+        Some(e) => format!("{:.3}s..{:.3}s", f.effective_start, e),
+        None => format!("{:.3}s..? (source end unknown)", f.effective_start),
+    };
+    let length = match f.effective_duration {
+        Some(d) => format!("{d:.3}s"),
+        None => "unknown (source end unknown)".to_string(),
+    };
+    let duration = if f.inferred {
+        format!("clip duration {:.3}s (inferred)", f.duration)
+    } else {
+        format!("clip duration {:.3}s", f.duration)
+    };
+    let _ = writeln!(
+        out,
+        "video {:?} ({}:{}): source window {window}, rate {}x, {duration}, effective length {length}, loop {}.",
+        f.path,
+        f.line,
+        f.column,
+        f.rate,
+        if f.loop_clip { "on" } else { "off" }
+    );
+    if f.clamped {
+        if let (Some(declared), Some(src)) = (f.trim_end, f.source_duration) {
+            let _ = writeln!(
+                out,
+                "note: video {:?} ({}:{}): trim-end {declared:.3}s is past source end {src:.3}s; clamped to {src:.3}s.",
+                f.path, f.line, f.column
+            );
+        }
+    }
+    out
+}
+
 /// Human-readable check report. Pure function so tests can compare it
 /// against the `--json` form and the render refusal text (T006/T007).
 pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
@@ -135,6 +177,9 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
     let mut out = String::new();
     for d in &verdict.diagnostics {
         let _ = writeln!(out, "{d}");
+    }
+    for f in &verdict.footage {
+        out.push_str(&format_footage_human(f));
     }
     match verdict.status {
         Status::Valid => {
@@ -198,6 +243,37 @@ pub fn format_check_json(folder: &Path, verdict: &Verdict) -> String {
             json_escape(d.code),
             json_escape(&d.message),
             json_escape(&d.fix)
+        );
+    }
+    // Sprint 5 T001/T009: the same effective windows as the human echo,
+    // plus the resolved clip length and its inferred marking, so
+    // inference and clamping are reviewable machine-readably.
+    out.push_str("],\"videos\":[");
+    let num = |v: Option<f64>| match v {
+        Some(x) => format!("{x}"),
+        None => "null".to_string(),
+    };
+    for (i, f) in verdict.footage.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"path\":\"{}\",\"line\":{},\"column\":{},\"trim_start\":{},\"trim_end\":{},\"rate\":{},\"loop\":{},\"source_duration\":{},\"effective_start\":{},\"effective_end\":{},\"effective_duration\":{},\"duration\":{},\"inferred\":{},\"clamped\":{}}}",
+            json_escape(&f.path),
+            f.line,
+            f.column,
+            num(Some(f.trim_start)),
+            num(f.trim_end),
+            num(Some(f.rate)),
+            if f.loop_clip { "true" } else { "false" },
+            num(f.source_duration),
+            num(Some(f.effective_start)),
+            num(f.effective_end),
+            num(f.effective_duration),
+            num(Some(f.duration)),
+            if f.inferred { "true" } else { "false" },
+            if f.clamped { "true" } else { "false" },
         );
     }
     out.push_str("]}");
@@ -426,6 +502,10 @@ struct RenderJson<'a> {
     diagnostics: &'a [validate_mod::Diagnostic],
     stages: &'a [render::render::StageTiming],
     total_ms: u64,
+    /// Footage frame-cache report (Sprint 5 T006): one lookup per decoded
+    /// clip window. Zero on runs that never reach the frames stage.
+    cache_hits: u64,
+    cache_misses: u64,
 }
 
 fn format_render_json(ctx: &RenderJson) -> String {
@@ -436,6 +516,8 @@ fn format_render_json(ctx: &RenderJson) -> String {
         backend,
         preset,
         total_ms,
+        cache_hits,
+        cache_misses,
         ..
     } = *ctx;
     let mut out = String::new();
@@ -458,6 +540,7 @@ fn format_render_json(ctx: &RenderJson) -> String {
         }
         None => out.push_str("null"),
     }
+    let _ = write!(out, ",\"cache\":{{\"hits\":{cache_hits},\"misses\":{cache_misses}}}");
     let _ = write!(
         out,
         ",\"output\":\"{}\",\"message\":\"{}\",\"diagnostics\":[",
@@ -525,7 +608,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 let enc = render::render::RenderOptions::default().encoder();
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: "unknown", preset: "unknown", enc: &enc, output: "", message: &e, diagnostics: &[], stages: &[], total_ms: 0 })
+                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: "unknown", preset: "unknown", enc: &enc, output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &[], total_ms: 0 })
                 );
             }
             return 1;
@@ -584,7 +667,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, diagnostics: &verdict.diagnostics, stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &verdict.diagnostics, stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                 );
             } else {
                 println!("{msg}");
@@ -613,7 +696,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "unsupported", exit: 2, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, diagnostics: &verdict.diagnostics, stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson { folder, status: "unsupported", exit: 2, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &verdict.diagnostics, stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                 );
             } else {
                 println!(
@@ -647,12 +730,26 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         if json {
             println!(
                 "{}",
-                format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: "gpu", preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: "gpu", preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
             );
         } else {
             println!("{msg}");
         }
         return 1;
+    }
+    // Sprint 5 T002/T003/T009: the render summary carries the effective
+    // footage windows the render consumes (INT-003), including the
+    // probe-wins clamp report and inferred lengths. Only clips with
+    // declared trim/rate/loop keys, an inferred duration, or a clamp
+    // announce; plain clips render exactly as before with no new lines.
+    for f in &verdict.footage {
+        if f.trim_start != 0.0 || f.trim_end.is_some() || f.rate != 1.0 || f.loop_clip || f.clamped || f.inferred {
+            for line in format_footage_human(f).lines() {
+                let note = format!("stage validate: note: {line}");
+                stage_line(json, &note);
+                note_log(folder, "info", "render", &run, &note, json);
+            }
+        }
     }
     let comp = verdict.composition.unwrap();
     if render::cancel::is_cancelled() {
@@ -688,7 +785,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &message, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &message, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                 );
             }
             return 1;
@@ -715,7 +812,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         if json {
             println!(
                 "{}",
-                format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
             );
         } else {
             println!("{msg}");
@@ -737,7 +834,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                 );
             } else {
                 println!("{msg}");
@@ -783,7 +880,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                 );
             } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                 println!("{e}");
@@ -831,7 +928,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                 );
             } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                 println!("{e}");
@@ -881,7 +978,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 if json {
                     println!(
                         "{}",
-                        format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                        format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
                     );
                 } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                     println!("{e}");
@@ -906,6 +1003,13 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         json,
         &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
     );
+    // Sprint 5 T006: the footage frame-cache report (INT-003) — hits on
+    // an unchanged re-render, misses on first or bypassed renders. The
+    // same counts ride in the `--json` document below.
+    let (cache_hits, cache_misses) = (prep.cache_stats.hits, prep.cache_stats.misses);
+    let cache_line = format!("cache: {cache_hits} hit(s), {cache_misses} miss(es)");
+    stage_line(json, &cache_line);
+    note_log(folder, "info", "render", &run, &cache_line, json);
     stage_line(json, &format!("stage encode: ok ({encode_ms}ms)"));
     stage_line(json, &done_msg);
     note_log(folder, "info", "render", &run, &done_msg, json);
@@ -935,7 +1039,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     if json {
         println!(
             "{}",
-            format_render_json(&RenderJson { folder, status: "valid", exit: 0, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: &out.display().to_string(), message: &done_msg, diagnostics: &[], stages: &stages, total_ms })
+            format_render_json(&RenderJson { folder, status: "valid", exit: 0, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: &out.display().to_string(), message: &done_msg, cache_hits, cache_misses, diagnostics: &[], stages: &stages, total_ms })
         );
     }
     0
@@ -1024,7 +1128,11 @@ fn cmd_cancelled(
                 message: &msg,
                 diagnostics: &[],
                 stages,
-                total_ms
+                total_ms,
+                // A cancelled run never reports cache counts: the frames
+                // stage may not have finished, so hits/misses would lie.
+                cache_hits: 0,
+                cache_misses: 0,
             })
         );
     } else {
@@ -1412,18 +1520,80 @@ mod tests {
 
     #[test]
     fn unsupported_image_formats_name_file_and_sprint() {
-        // T002: beyond PNG/JPEG stays not-yet-supported (exit 2), never
-        // a guessed render.
+        // T002/Sprint 5 T007: beyond PNG/JPEG/still-GIF/HEIC stays
+        // not-yet-supported (exit 2), never a guessed render.
         let folder = tmp_dir("imgfmt");
-        write(&folder, "anim.gif", "GIF89a");
+        write(&folder, "photo.webp", "not a webp at all");
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=1 {\n    image path=\"photo.webp\" start=0 duration=1\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Unsupported, "{:?}", v.diagnostics);
+        assert!(v.diagnostics.iter().any(|d| d.code == "E_UNSUPPORTED" && d.message.contains("photo.webp")));
+    }
+
+    /// Sprint 5 T007: an animated GIF in `image` is invalid (exit 1)
+    /// with a diagnostic pointing at `video`, while a still GIF and a
+    /// HEIC still validate like PNG/JPEG.
+    #[test]
+    fn animated_gif_in_image_refuses_pointing_at_video() {
+        let folder = tmp_dir("imganim");
+        // Two-frame GIF: header, color table, two GCE+image pairs,
+        // trailer (plays once — still refused, animations live in
+        // `video` regardless of loop count).
+        let mut gif = Vec::new();
+        gif.extend_from_slice(b"GIF89a");
+        gif.extend_from_slice(&[1, 0, 1, 0, 0x80, 0, 0]);
+        gif.extend_from_slice(&[0, 0, 0, 255, 255, 255]);
+        for _ in 0..2 {
+            gif.extend_from_slice(&[0x21, 0xF9, 0x04, 10, 0, 0, 0, 0]);
+            gif.extend_from_slice(&[0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0]);
+            gif.extend_from_slice(&[2, 2, 0x44, 1, 0]);
+        }
+        gif.extend_from_slice(&[0x3B]);
+        std::fs::write(folder.join("anim.gif"), &gif).unwrap();
         write(
             &folder,
             validate_mod::COMPOSITION_FILE,
             "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=1 {\n    image path=\"anim.gif\" start=0 duration=1\n}\n",
         );
         let v = validate_folder(&folder);
-        assert_eq!(v.status, Status::Unsupported, "{:?}", v.diagnostics);
-        assert!(v.diagnostics.iter().any(|d| d.code == "E_UNSUPPORTED" && d.message.contains("anim.gif")));
+        assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
+        assert!(
+            v.diagnostics.iter().any(|d| d.code == "E_BAD_IMAGE"
+                && d.message.contains("anim.gif")
+                && d.message.contains("`video`")),
+            "{:?}",
+            v.diagnostics
+        );
+        assert_eq!(cmd_check(&folder, false, None), 1);
+        assert!(!folder.join("out.mp4").exists());
+        // A single frame of the same bytes is a still GIF: valid.
+        let mut still = Vec::new();
+        still.extend_from_slice(b"GIF89a");
+        still.extend_from_slice(&[1, 0, 1, 0, 0x80, 0, 0]);
+        still.extend_from_slice(&[0, 0, 0, 255, 255, 255]);
+        still.extend_from_slice(&[0x21, 0xF9, 0x04, 0, 0, 0, 0, 0]);
+        still.extend_from_slice(&[0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0]);
+        still.extend_from_slice(&[2, 2, 0x44, 1, 0]);
+        still.extend_from_slice(&[0x3B]);
+        std::fs::write(folder.join("still.gif"), &still).unwrap();
+        // A minimal HEIC head: `ftyp` box with a HEIF brand. Check-only:
+        // the decoder below gates the pixels at render time.
+        let mut heic = vec![0u8; 4];
+        heic.extend_from_slice(b"ftypheic");
+        heic.extend_from_slice(&[0, 0, 0, 0]);
+        heic.extend_from_slice(b"mif1");
+        std::fs::write(folder.join("photo.heic"), &heic).unwrap();
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {\n    image path=\"still.gif\" start=0 duration=1\n    image path=\"photo.heic\" start=1 duration=1\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
     }
 
     #[test]
@@ -2069,6 +2239,220 @@ mod tests {
             );
             assert_eq!(validate_folder(&folder).status, want, "volume={volume}");
         }
+    }
+
+    /// Sprint 5 T001: trim/rate declaration checks that need no probe
+    /// (fake bytes keep the probe silent): a backward window, a
+    /// zero-length window, and rates below 0.1, above 10, zero, or
+    /// negative each fail with a located `E_BAD_FOOTAGE` diagnostic
+    /// naming the accepted rule.
+    #[test]
+    fn video_trim_and_rate_declarations_validate_without_probe() {
+        for (tag, line) in [
+            ("backward", "video path=\"clip.mp4\" start=0 duration=2 trim-start=3 trim-end=1"),
+            ("zero", "video path=\"clip.mp4\" start=0 duration=2 trim-start=2 trim-end=2"),
+            ("low", "video path=\"clip.mp4\" start=0 duration=2 rate=0.05"),
+            ("high", "video path=\"clip.mp4\" start=0 duration=2 rate=20"),
+            ("zero-rate", "video path=\"clip.mp4\" start=0 duration=2 rate=0"),
+            ("negative-rate", "video path=\"clip.mp4\" start=0 duration=2 rate=-1"),
+            ("negative-trim", "video path=\"clip.mp4\" start=0 duration=2 trim-start=-1"),
+        ] {
+            let folder = tmp_dir("vidfootage");
+            std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
+            write(
+                &folder,
+                validate_mod::COMPOSITION_FILE,
+                &format!(
+                    "composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {{\n    {line}\n}}\n"
+                ),
+            );
+            let v = validate_folder(&folder);
+            assert_eq!(v.status, Status::Invalid, "{tag}: {:?}", v.diagnostics);
+            assert!(
+                v.diagnostics.iter().all(|d| d.code == "E_BAD_FOOTAGE"),
+                "{tag}: {:?}",
+                v.diagnostics
+            );
+            for d in &v.diagnostics {
+                assert!(!d.file.is_empty() && d.line >= 1 && d.column >= 1, "{tag}: {d:?}");
+                assert!(!d.fix.is_empty(), "{tag}: {d:?}");
+                assert!(validate::catalog::lookup(d.code).is_some());
+            }
+            // Boundary values stay in the message: rates name 0.1–10,
+            // windows name both ends.
+            let human = format_check_human(&folder, &v);
+            let json = format_check_json(&folder, &v);
+            assert!(human.contains("error[E_BAD_FOOTAGE]"), "{tag}: {human}");
+            assert!(json.contains("\"code\":\"E_BAD_FOOTAGE\""), "{tag}: {json}");
+            if line.contains("rate") {
+                assert!(human.contains("0.1 to 10"), "{tag}: {human}");
+            }
+        }
+        // Boundary: exactly 0.1 and 10 are valid rates.
+        for rate in ["0.1", "10"] {
+            let folder = tmp_dir("vidrateedge");
+            std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
+            write(
+                &folder,
+                validate_mod::COMPOSITION_FILE,
+                &format!(
+                    "composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {{\n    video path=\"clip.mp4\" start=0 duration=2 rate={rate}\n}}\n"
+                ),
+            );
+            let v = validate_folder(&folder);
+            assert_eq!(v.status, Status::Valid, "rate={rate}: {:?}", v.diagnostics);
+        }
+    }
+
+    /// Sprint 5 T001: several footage problems in one composition are
+    /// all reported together (one clip can name a bad rate and a
+    /// backward window at once), and exit codes stay 0/1.
+    #[test]
+    fn video_footage_problems_report_together() {
+        let folder = tmp_dir("vidfootmulti");
+        std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=4 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=2 trim-start=3 trim-end=1 rate=20\n    video path=\"clip.mp4\" start=2 duration=2 rate=0\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
+        assert_eq!(v.diagnostics.len(), 3, "{:?}", v.diagnostics);
+        assert!(
+            v.diagnostics.iter().all(|d| d.code == "E_BAD_FOOTAGE"),
+            "{:?}",
+            v.diagnostics
+        );
+        assert_eq!(cmd_check(&folder, false, None), 1);
+        assert_eq!(cmd_check(&folder, true, None), 1);
+        let human = format_check_human(&folder, &v);
+        let json = format_check_json(&folder, &v);
+        assert_eq!(
+            human.matches("error[E_BAD_FOOTAGE]").count(),
+            3,
+            "{human}"
+        );
+        assert_eq!(
+            json.matches("\"code\":\"E_BAD_FOOTAGE\"").count(),
+            3,
+            "{json}"
+        );
+    }
+
+    /// Sprint 5 T001: underscore aliases validate identically to
+    /// hyphenated spellings, and clips without footage keys keep their
+    /// defaults with no behavior change.
+    #[test]
+    fn video_trim_underscore_aliases_match_hyphenated() {
+        let folder = tmp_dir("vidfootalias");
+        std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=4 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=2 trim_start=0.5 trim_end=1.5\n    video path=\"clip.mp4\" start=2 duration=2\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        assert!(v.diagnostics.is_empty());
+        let comp = v.composition.unwrap();
+        match &comp.clips[0] {
+            notation::model::Clip::Video(vd) => {
+                assert_eq!((vd.trim_start, vd.trim_end), (0.5, Some(1.5)));
+                assert_eq!(vd.rate, 1.0);
+            }
+            c => panic!("expected video, got {c:?}"),
+        }
+        match &comp.clips[1] {
+            notation::model::Clip::Video(vd) => {
+                assert_eq!((vd.trim_start, vd.trim_end, vd.rate), (0.0, None, 1.0));
+            }
+            c => panic!("expected video, got {c:?}"),
+        }
+        // A backward window through aliases fails exactly like the
+        // hyphenated spelling.
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=2 trim_start=3 trim_end=1\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
+        assert!(
+            v.diagnostics.iter().any(|d| d.code == "E_BAD_FOOTAGE"
+                && d.message.contains("backward")),
+            "{:?}",
+            v.diagnostics
+        );
+    }
+
+    /// Sprint 5 T003: a looping clip validates with its window echoed
+    /// in both forms, while a looping clip without `duration` and a
+    /// non-boolean `loop` fail `check` with located `E_BAD_FOOTAGE`
+    /// diagnostics asking for the fix.
+    #[test]
+    fn video_loop_validates_and_unbounded_loop_refuses() {
+        let folder = tmp_dir("vidfootloop");
+        std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=4 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=3 trim-start=0.5 trim-end=1.5 rate=2 loop=true\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        assert_eq!(v.footage.len(), 1);
+        assert!(v.footage[0].loop_clip);
+        match &v.composition.as_ref().unwrap().clips[0] {
+            notation::model::Clip::Video(vd) => assert!(vd.loop_clip),
+            c => panic!("expected video, got {c:?}"),
+        }
+        let human = format_check_human(&folder, &v);
+        let json = format_check_json(&folder, &v);
+        assert!(human.contains("loop on"), "{human}");
+        assert!(json.contains("\"loop\":true"), "{json}");
+        // A looping clip without `duration` asks for one explicitly.
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=4 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 loop=true\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
+        assert!(
+            v.diagnostics.iter().any(|d| d.code == "E_BAD_FOOTAGE"
+                && d.message.contains("explicit `duration`")),
+            "{:?}",
+            v.diagnostics
+        );
+        let human = format_check_human(&folder, &v);
+        assert!(human.contains("error[E_BAD_FOOTAGE]"), "{human}");
+        assert_eq!(cmd_check(&folder, false, None), 1);
+        assert!(!folder.join("out.mp4").exists());
+        // A non-boolean `loop` names the accepted spellings.
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=4 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=2 loop=\"yes\"\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
+        assert!(
+            v.diagnostics.iter().any(|d| d.code == "E_BAD_FOOTAGE"
+                && d.message.contains("`true` or `false`")),
+            "{:?}",
+            v.diagnostics
+        );
+        // `loop=false` validates exactly like an omitted `loop`.
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=4 background=\"#000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=2 loop=false\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        assert!(!v.footage[0].loop_clip);
+        assert!(format_check_human(&folder, &v).contains("loop off"));
     }
 
     /// T007: later-sprint audio use — effects, automation, groups, and

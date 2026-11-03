@@ -200,9 +200,13 @@ pub fn detect_with_path(path_value: Option<OsString>) -> FfmpegFinding {
     finding
 }
 
-/// Pinned self-download source (T009 / CAP-016). `sha256` identifies the
-/// `ffmpeg` binary *inside* the downloaded archive — the file that gets
-/// executed. The archive itself is only a transport wrapper.
+/// Explicit self-download source (T009 / CAP-016). `sha256` identifies
+/// the `ffmpeg` binary *inside* the downloaded archive — the file that
+/// gets executed. The archive itself is only a transport wrapper.
+/// Explicit sources come only from the operator/test overrides
+/// (`FRAMESMITH_FFMPEG_URL`, `FRAMESMITH_FFMPEG_SHA256`,
+/// `FRAMESMITH_FFMPEG_VERSION`, `FRAMESMITH_FFMPEG_ENTRY`); ordinary
+/// runs resolve the latest release programmatically instead.
 #[derive(Debug, Clone)]
 pub struct PinSource {
     pub version: String,
@@ -211,66 +215,290 @@ pub struct PinSource {
     pub entry: String,
 }
 
-/// Recorded pinned build for this host (macOS static builds; the hashes
-/// are the publishers' published SHA256 values for the extracted binary,
-/// re-verified locally at implementation time). Platforms without a pin
+/// Automatic self-download source: the project's own FFmpeg binary
+/// registry (`bdsanxz/ffmpeg-registry` releases), resolved
+/// programmatically at download time for the running OS/arch pair.
+/// The registry mirrors the automated vcpkg-matrix release mechanism
+/// (version check, per-OS build, `ffmpeg-{os}-{arch}.zip` assets).
+/// `https://github.com/bdsanxz/ffmpeg-registry/releases`
+pub const FFMPEGBIN_RELEASES_PAGE: &str = "https://github.com/bdsanxz/ffmpeg-registry/releases";
+/// Release metadata endpoint queried for the newest tag and assets.
+pub const FFMPEGBIN_API_LATEST: &str =
+    "https://api.github.com/repos/bdsanxz/ffmpeg-registry/releases/latest";
+
+/// Asset file, archive entry, and installed binary name for this host,
+/// decided by the running OS/arch. Platforms without a published build
 /// return `None`: the bootstrap then refuses with the manual-provision
 /// fix instead of guessing a download.
-pub fn pinned_source() -> Option<PinSource> {
+pub fn ffmpegbin_asset() -> Option<(&'static str, &'static str, &'static str)> {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     {
-        Some(PinSource {
-            version: "9.0".to_string(),
-            url: "https://www.osxexperts.net/ffmpeg9arm.zip".to_string(),
-            sha256: "591260c945d0eef150e3bf82b0ef988bd36a9cecc18ff05d6679617159f0a95e"
-                .to_string(),
-            entry: "ffmpeg".to_string(),
-        })
+        Some(("ffmpeg-osx-arm64.zip", "ffmpeg", "ffmpeg"))
     }
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
     {
-        Some(PinSource {
-            version: "8.0".to_string(),
-            url: "https://www.osxexperts.net/ffmpeg80intel.zip".to_string(),
-            sha256: "df3f1e3facdc1ae0ad0bd898cdfb072fbc9641bf47b11f172844525a05db8d11"
-                .to_string(),
-            entry: "ffmpeg".to_string(),
-        })
+        Some(("ffmpeg-osx-x64.zip", "ffmpeg", "ffmpeg"))
     }
-    #[cfg(not(all(target_os = "macos", any(target_arch = "aarch64", target_arch = "x86_64"))))]
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        Some(("ffmpeg-linux-x64.zip", "ffmpeg", "ffmpeg"))
+    }
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    {
+        Some(("ffmpeg-linux-arm64.zip", "ffmpeg", "ffmpeg"))
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86"))]
+    {
+        Some(("ffmpeg-linux-x86.zip", "ffmpeg", "ffmpeg"))
+    }
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    {
+        Some(("ffmpeg-windows-x64.zip", "ffmpeg.exe", "ffmpeg.exe"))
+    }
+    #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+    {
+        Some(("ffmpeg-windows-arm64.zip", "ffmpeg.exe", "ffmpeg.exe"))
+    }
+    #[cfg(not(any(
+        all(target_os = "macos", target_arch = "aarch64"),
+        all(target_os = "macos", target_arch = "x86_64"),
+        all(target_os = "linux", target_arch = "x86_64"),
+        all(target_os = "linux", target_arch = "aarch64"),
+        all(target_os = "linux", target_arch = "x86"),
+        all(target_os = "windows", target_arch = "x86_64"),
+        all(target_os = "windows", target_arch = "aarch64"),
+    )))]
     {
         None
     }
 }
 
-/// Resolve the effective download source. Explicit overrides
+/// Installed binary file name for this host (`ffmpeg.exe` on Windows,
+/// `ffmpeg` elsewhere).
+pub fn exe_name() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        "ffmpeg.exe"
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        "ffmpeg"
+    }
+}
+
+/// One release asset from the FFmpegBin release metadata: download URL
+/// plus the publisher-reported SHA256 of the archive file itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleaseAsset {
+    pub name: String,
+    pub url: String,
+    /// Hex SHA256 of the downloadable archive (from the `digest` field,
+    /// `sha256:` prefix stripped). Empty when the metadata carries none.
+    pub archive_sha256: String,
+}
+
+/// Read a JSON `"key": "value"` string field from a flat object slice.
+/// Handles `\"` and `\\` escapes; returns `None` when absent.
+fn json_field(obj: &str, key: &str) -> Option<String> {
+    let quoted = format!("\"{key}\"");
+    let mut rest = obj;
+    loop {
+        let at = rest.find(quoted.as_str())?;
+        let mut after = rest[at + quoted.len()..].trim_start();
+        if !after.starts_with(':') {
+            rest = &rest[at + quoted.len()..];
+            continue;
+        }
+        after = after[1..].trim_start();
+        if !after.starts_with('"') {
+            return None;
+        }
+        let mut out = String::new();
+        let mut esc = false;
+        for c in after[1..].chars() {
+            if esc {
+                out.push(c);
+                esc = false;
+            } else if c == '\\' {
+                esc = true;
+            } else if c == '"' {
+                return Some(out);
+            } else {
+                out.push(c);
+            }
+        }
+        return None;
+    }
+}
+
+/// Split a JSON array body into its top-level object slices by brace
+/// depth, skipping over string literals.
+fn top_level_objects(body: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let bytes = body.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        while i < bytes.len() && bytes[i] != b'{' {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            break;
+        }
+        let start = i;
+        let mut depth = 0u32;
+        let mut instr = false;
+        let mut esc = false;
+        while i < bytes.len() {
+            let b = bytes[i];
+            if instr {
+                if esc {
+                    esc = false;
+                } else if b == b'\\' {
+                    esc = true;
+                } else if b == b'"' {
+                    instr = false;
+                }
+            } else if b == b'"' {
+                instr = true;
+            } else if b == b'{' {
+                depth += 1;
+            } else if b == b'}' {
+                depth -= 1;
+                if depth == 0 {
+                    i += 1;
+                    break;
+                }
+            }
+            i += 1;
+        }
+        out.push(&body[start..i.min(body.len())]);
+    }
+    out
+}
+
+/// Parse release metadata into its tag plus usable assets. Assets
+/// without a download URL or without a valid `sha256:` digest are
+/// skipped: verification material is mandatory, never optional.
+pub fn parse_release(body: &str) -> Result<(String, Vec<ReleaseAsset>), String> {
+    let tag = json_field(body, "tag_name")
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| "release metadata has no usable tag_name".to_string())?;
+    let assets_at = body
+        .find("\"assets\"")
+        .ok_or_else(|| "release metadata has no assets list".to_string())?;
+    let open = body[assets_at..]
+        .find('[')
+        .ok_or_else(|| "release metadata has no assets list".to_string())?;
+    let mut depth = 0u32;
+    let mut instr = false;
+    let mut esc = false;
+    let mut end = None;
+    for (n, b) in body[assets_at + open..].bytes().enumerate() {
+        if instr {
+            if esc {
+                esc = false;
+            } else if b == b'\\' {
+                esc = true;
+            } else if b == b'"' {
+                instr = false;
+            }
+        } else if b == b'"' {
+            instr = true;
+        } else if b == b'[' {
+            depth += 1;
+        } else if b == b']' {
+            depth -= 1;
+            if depth == 0 {
+                end = Some(assets_at + open + n);
+                break;
+            }
+        }
+    }
+    let end = end.ok_or_else(|| "release metadata has a truncated assets list".to_string())?;
+    let mut assets = Vec::new();
+    for obj in top_level_objects(&body[assets_at + open..end]) {
+        let (Some(name), Some(url), Some(digest)) = (
+            json_field(obj, "name"),
+            json_field(obj, "browser_download_url"),
+            json_field(obj, "digest"),
+        ) else {
+            continue;
+        };
+        if name.is_empty() || url.is_empty() {
+            continue;
+        }
+        let Some(hex) = digest.strip_prefix("sha256:") else {
+            continue;
+        };
+        if hex.len() != 64 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            continue;
+        }
+        assets.push(ReleaseAsset {
+            name,
+            url,
+            archive_sha256: hex.to_string(),
+        });
+    }
+    if assets.is_empty() {
+        return Err("release metadata carries no verifiable asset".to_string());
+    }
+    Ok((tag, assets))
+}
+
+/// Pick the asset matching this host from parsed release metadata.
+pub fn select_asset<'a>(assets: &'a [ReleaseAsset], wanted: &str) -> Option<&'a ReleaseAsset> {
+    assets.iter().find(|a| a.name == wanted)
+}
+
+/// Fetch release metadata over HTTPS with `curl` (bounded time, no
+/// hangs). Used only for automatic latest-resolution; tests and the
+/// explicit-override path never touch the network.
+pub fn fetch_release(api_url: &str, timeout_secs: u64) -> Result<String, String> {
+    let curl = find_helper("curl")
+        .ok_or_else(|| "no `curl` found on PATH to resolve the latest release".to_string())?;
+    let out = std::process::Command::new(&curl)
+        .args([
+            "-fsSL",
+            "--connect-timeout",
+            "20",
+            "--max-time",
+            &timeout_secs.to_string(),
+            "-H",
+            "Accept: application/vnd.github+json",
+            "-H",
+            "User-Agent: framesmith",
+        ])
+        .arg(api_url)
+        .output()
+        .map_err(|e| format!("could not launch `{}`: {e}", curl.display()))?;
+    if !out.status.success() {
+        let mut detail = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        if detail.is_empty() {
+            detail = format!("curl exited with status {}", out.status);
+        }
+        if detail.len() > 300 {
+            detail.truncate(300);
+        }
+        return Err(format!("release lookup failed: {detail}"));
+    }
+    String::from_utf8(out.stdout)
+        .map_err(|_| "release lookup returned non-UTF-8 metadata".to_string())
+}
+
+/// Resolve the effective explicit download source. All four overrides
 /// (`FRAMESMITH_FFMPEG_URL`, `FRAMESMITH_FFMPEG_SHA256`,
-/// `FRAMESMITH_FFMPEG_VERSION`, `FRAMESMITH_FFMPEG_ENTRY`) win field by
-/// field — this is how tests serve a local fixture and how an operator
-/// could re-pin without rebuilding. Any missing field means there is no
-/// verifiable source, so this returns `None`.
+/// `FRAMESMITH_FFMPEG_VERSION`, `FRAMESMITH_FFMPEG_ENTRY`) must be set —
+/// this is how tests serve a local fixture and how an operator pins a
+/// build without rebuilding. Any missing field means there is no
+/// explicit source, so this returns `None` and the bootstrap resolves
+/// the latest release programmatically instead.
 pub fn source_from_env() -> Option<PinSource> {
-    let pinned = pinned_source();
-    let pick = |key: &str, fallback: Option<String>| {
-        std::env::var(key)
-            .ok()
-            .filter(|v| !v.is_empty())
-            .or(fallback)
-    };
+    let get = |key: &str| std::env::var(key).ok().filter(|v| !v.is_empty());
     Some(PinSource {
-        url: pick("FRAMESMITH_FFMPEG_URL", pinned.as_ref().map(|p| p.url.clone()))?,
-        sha256: pick(
-            "FRAMESMITH_FFMPEG_SHA256",
-            pinned.as_ref().map(|p| p.sha256.clone()),
-        )?,
-        version: pick(
-            "FRAMESMITH_FFMPEG_VERSION",
-            pinned.as_ref().map(|p| p.version.clone()),
-        )?,
-        entry: pick(
-            "FRAMESMITH_FFMPEG_ENTRY",
-            pinned.as_ref().map(|p| p.entry.clone()),
-        )?,
+        url: get("FRAMESMITH_FFMPEG_URL")?,
+        sha256: get("FRAMESMITH_FFMPEG_SHA256")?,
+        version: get("FRAMESMITH_FFMPEG_VERSION")?,
+        entry: get("FRAMESMITH_FFMPEG_ENTRY")?,
     })
 }
 
@@ -288,9 +516,10 @@ pub fn tool_cache_dir() -> PathBuf {
     PathBuf::from(home).join(".framesmith").join("ffmpeg")
 }
 
-/// Installed location of a verified build: `<cache>/<version>/bin/ffmpeg`.
+/// Installed location of a verified build:
+/// `<cache>/<version>/bin/ffmpeg` (`ffmpeg.exe` on Windows).
 pub fn cached_binary(cache_dir: &Path, version: &str) -> PathBuf {
-    cache_dir.join(version).join("bin").join("ffmpeg")
+    cache_dir.join(version).join("bin").join(exe_name())
 }
 
 /// Explicit offline switch (tests and policy-managed hosts): when
@@ -378,19 +607,67 @@ mod tests {
     }
 
     #[test]
-    fn pinned_source_is_complete_and_verifiable() {
-        match pinned_source() {
-            Some(p) => {
-                assert!(!p.version.is_empty());
-                assert!(p.url.starts_with("https://"));
-                assert_eq!(p.sha256.len(), 64);
-                assert!(p.sha256.chars().all(|c| c.is_ascii_hexdigit()));
-                assert!(!p.entry.is_empty());
+    fn host_asset_mapping_is_complete() {
+        match ffmpegbin_asset() {
+            Some((asset, entry, exe)) => {
+                assert!(asset.starts_with("ffmpeg-") && asset.ends_with(".zip"));
+                assert!(!entry.is_empty());
+                assert_eq!(exe, exe_name());
+                assert!(FFMPEGBIN_API_LATEST.starts_with("https://"));
+                assert!(FFMPEGBIN_RELEASES_PAGE.starts_with("https://"));
             }
             None => {
-                // Platforms without a recorded pin: documented gap, not a failure.
+                // Platforms without a published build: documented gap, not a failure.
             }
         }
+    }
+
+    const RELEASE_FIXTURE: &str = r#"{"tag_name": "9.0.2", "assets": [
+        {"name": "ffmpeg-osx-arm64.zip", "browser_download_url": "https://example.invalid/a.zip",
+         "digest": "sha256:939127a5eb284f0eab311a42f1d1f3fd1b088e2c0088f573c7cb2b4e59b0e81b"},
+        {"name": "ffmpeg-osx-x64.zip", "browser_download_url": "",
+         "digest": "sha256:7facc503c7d67e1e58d11468c9c183fedcb7974490b589c079dfda2a9e57fb10"},
+        {"name": "ffmpeg-linux-x64.zip", "browser_download_url": "https://example.invalid/l.zip",
+         "digest": "md5:deadbeef"},
+        {"name": "notes.txt", "browser_download_url": "https://example.invalid/n.txt"}
+    ]}"#;
+
+    #[test]
+    fn release_metadata_parses_and_selects_verifiable_assets() {
+        let (tag, assets) = parse_release(RELEASE_FIXTURE).unwrap();
+        assert_eq!(tag, "9.0.2");
+        // Only the fully verifiable asset survives: empty URL, non-sha256
+        // digest, and missing digest are all skipped, never trusted.
+        assert_eq!(assets.len(), 1);
+        assert_eq!(assets[0].name, "ffmpeg-osx-arm64.zip");
+        assert_eq!(assets[0].archive_sha256.len(), 64);
+        let picked = select_asset(&assets, "ffmpeg-osx-arm64.zip").unwrap();
+        assert_eq!(picked.url, "https://example.invalid/a.zip");
+        assert!(select_asset(&assets, "ffmpeg-windows-x64.zip").is_none());
+        // Garbage metadata fails closed instead of resolving anything.
+        assert!(parse_release("{}").is_err());
+        assert!(parse_release(r#"{"tag_name": "", "assets": []}"#).is_err());
+        assert!(parse_release(r#"{"tag_name": "1.0", "assets": []}"#).is_err());
+    }
+
+    #[test]
+    fn explicit_source_needs_all_four_overrides() {
+        std::env::remove_var("FRAMESMITH_FFMPEG_URL");
+        std::env::remove_var("FRAMESMITH_FFMPEG_SHA256");
+        std::env::remove_var("FRAMESMITH_FFMPEG_VERSION");
+        std::env::remove_var("FRAMESMITH_FFMPEG_ENTRY");
+        assert!(source_from_env().is_none());
+        std::env::set_var("FRAMESMITH_FFMPEG_URL", "file:///tmp/x.zip");
+        assert!(source_from_env().is_none(), "a lone URL is not a verifiable source");
+        std::env::set_var("FRAMESMITH_FFMPEG_SHA256", &"1".repeat(64));
+        std::env::set_var("FRAMESMITH_FFMPEG_VERSION", "9.0-t");
+        std::env::set_var("FRAMESMITH_FFMPEG_ENTRY", "ffmpeg");
+        let explicit = source_from_env().expect("four overrides form a source");
+        assert_eq!(explicit.version, "9.0-t");
+        std::env::remove_var("FRAMESMITH_FFMPEG_URL");
+        std::env::remove_var("FRAMESMITH_FFMPEG_SHA256");
+        std::env::remove_var("FRAMESMITH_FFMPEG_VERSION");
+        std::env::remove_var("FRAMESMITH_FFMPEG_ENTRY");
     }
 
     #[test]

@@ -56,6 +56,29 @@ Expected: exit 0, `examples/text-on-video/out.mp4` (H.264 yuv420p video
 + AAC stereo 48 kHz) showing timed video with text over it and the
 original tone audible.
 
+## Footage reference (Sprint 5, T010)
+
+`reference-footage`: 6 s 720p30 footage proof — VFR phone-style source
+trimmed to `[1,4)` and slowed to half rate as a full-bleed background,
+rotated portrait source trimmed and looped as a pillarbox overlay, and
+a finite GIF sticker with an inferred 2 s duration. No text: text
+parity is Sprint 4 territory, so every pixel exercises footage
+behavior. The HyperFrames equivalent is `reference-footage-hf`
+(same content and timing via `data-media-start`,
+`data-playback-rate`, the native `loop` attribute, and an explicit
+`data-duration="2"` where the KDL side infers). The picture plus speed
+comparison is re-runnable with one command (see
+`evidences/proof-n05-T010/compare.sh`).
+
+```sh
+framesmith check examples/reference-footage
+framesmith render examples/reference-footage
+```
+
+Expected: exit 0; `out.mp4` is 1280x720 H.264 `yuv420p` video plus
+AAC stereo 48 kHz audio; check echoes the effective windows and the
+inferred GIF length; re-renders are byte-identical at any worker count.
+
 ## References (Sprint 4, T002)
 
 Two larger folders proving composed output, each with committed media

@@ -75,6 +75,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Point `path` at a TrueType (.ttf) or OpenType (.otf) font with TrueType outlines, or remove the `font` to use the host system font (bitmap fallback only when the machine has none).",
     },
     CatalogEntry {
+        code: "E_BAD_FOOTAGE",
+        meaning: "A `video` clip names unusable footage intent: a backward or empty trim window, a `trim-start` at or past the source end, a `rate` outside 0.1 to 10, a non-boolean `loop`, a `loop=true` clip or infinitely looping GIF without an explicit `duration` (an unbounded length), or an omitted `duration` with no knowable source end to infer from.",
+        example: "video path=\"clip.mp4\" start=0 duration=2 trim-start=3 trim-end=1 rate=20   // backward window, rate above the ceiling",
+        fix: "Keep `trim-start`/`trim-end` ordered seconds from 0 with `trim-start` below the source end, `rate` from 0.1 to 10 (`rate=2` is double speed, `rate=0.5` is half speed), `loop` as `true`/`false`, every looping clip and infinite GIF carrying an explicit `duration`, and every duration-less clip offering a knowable source end (or its own `trim-end`).",
+    },
+    CatalogEntry {
         code: "E_BAD_FPS",
         meaning: "The composition `fps` is not an integer or exact rational within 1 to 240; decimal fps is rejected, never rounded.",
         example: "composition name=\"t\" width=64 height=64 duration=1 fps=29.97 background=\"#000\" version=1 { }",
@@ -82,9 +88,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_IMAGE",
-        meaning: "An image position, size, or placement is not a usable value, or the file is corrupt or not a PNG/JPEG picture.",
+        meaning: "An image position, size, or placement is not a usable value, the file is corrupt or not a PNG/JPEG/still-GIF/HEIC picture, or the file is an animated GIF (animations play in a `video` clip, not `image`).",
         example: "image path=\"media/photo.png\" start=0 duration=2 placement=\"north\"   // unknown placement",
-        fix: "Use numbers for `x`, `y`, `width`, and `height`, a placement like `placement=\"top-left\"`, and an undamaged PNG or JPEG file.",
+        fix: "Use numbers for `x`, `y`, `width`, and `height`, a placement like `placement=\"top-left\"`, an undamaged PNG, JPEG, still GIF, or HEIC file — and a `video` clip for animated GIFs.",
     },
     CatalogEntry {
         code: "E_BAD_MOTION",
@@ -106,9 +112,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_TIMING",
-        meaning: "A clip start or duration is missing, relative, non-positive, or uses `end=`; every clip needs an absolute `start` and a written `duration`.",
+        meaning: "A clip start or duration is missing, relative, non-positive, or uses `end=`; every clip needs an absolute `start`, and every clip but `video` needs a written `duration` (`video` infers an omitted one).",
         example: "text value=\"Hi\" duration=2   // missing start",
-        fix: "Declare an absolute `start=<seconds >= 0>` and a written `duration=<seconds > 0>` on every clip.",
+        fix: "Declare an absolute `start=<seconds >= 0>` on every clip and a written `duration=<seconds > 0>` on every clip but `video` (which may omit `duration` to infer it).",
     },
     CatalogEntry {
         code: "E_BAD_VERSION",
@@ -234,6 +240,7 @@ mod tests {
         "E_BAD_EASING",
         "E_BAD_FIT",
         "E_BAD_FONT",
+        "E_BAD_FOOTAGE",
         "E_BAD_FPS",
         "E_BAD_IMAGE",
         "E_BAD_MOTION",

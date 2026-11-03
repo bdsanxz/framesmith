@@ -182,7 +182,10 @@ pub fn describe(comp: &Composition, motions: &[ClipMotion], frame: u64) -> Frame
             Clip::Video(v) => items.push(FrameItem::Video(ResolvedVideo {
                 doc,
                 order: v.order,
-                src_t: (t - v.start).max(0.0),
+                // Sprint 5 T002: the clip consumes its source window at
+                // the declared rate — composition seconds past the clip
+                // start advance `rate` source seconds from `trim_start`.
+                src_t: v.trim_start + (t - v.start).max(0.0) * v.rate,
                 fit: v.fit,
                 x: eval.x,
                 y: eval.y,
@@ -287,11 +290,16 @@ mod tests {
             path: "clip.mp4".to_string(),
             start,
             duration,
+            duration_inferred: false,
             fit: Fit::Contain,
             order,
             volume_db: 0.0,
             fade_in: 0.0,
             fade_out: 0.0,
+            trim_start: 0.0,
+            trim_end: None,
+            rate: 1.0,
+            loop_clip: false,
             line: 1,
             column: 1,
         })
@@ -340,6 +348,39 @@ mod tests {
         assert_eq!(late.items.len(), 1);
         assert_eq!(late.items[0].doc(), 1);
         assert_ne!(early, late);
+    }
+
+    #[test]
+    fn video_src_t_follows_trim_and_rate() {
+        // Sprint 5 T002: composition seconds past the clip start advance
+        // `rate` source seconds from `trim_start` (rate 2 over a
+        // 1..3 s window: frame 15 at t=0.5 maps to source 2.0 s).
+        let clip = Clip::Video(VideoClip {
+            path: "clip.mp4".to_string(),
+            start: 0.0,
+            duration: 2.0,
+            duration_inferred: false,
+            fit: Fit::Contain,
+            order: 0,
+            volume_db: 0.0,
+            fade_in: 0.0,
+            fade_out: 0.0,
+            trim_start: 1.0,
+            trim_end: Some(3.0),
+            rate: 2.0,
+            loop_clip: false,
+            line: 1,
+            column: 1,
+        });
+        let comp = comp_with(vec![clip]);
+        let motions = plan_motions(&comp, 30);
+        let at = |k: u64| match &describe(&comp, &motions, k).items[0] {
+            FrameItem::Video(r) => r.src_t,
+            other => panic!("expected video, got {other:?}"),
+        };
+        assert!((at(0) - 1.0).abs() < 1e-9, "clip start maps to trim-start");
+        assert!((at(15) - 2.0).abs() < 1e-9, "t=0.5 at rate 2 maps to source 2.0");
+        assert!((at(29) - (1.0 + 29.0 / 30.0 * 2.0)).abs() < 1e-9);
     }
 
     #[test]

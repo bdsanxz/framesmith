@@ -291,6 +291,28 @@ fn invalid_fixtures_rejected_with_located_diagnostics() {
     }
 }
 
+/// Sprint 5 T007: an animated GIF in `image` is invalid (exit 1) with
+/// a diagnostic naming the file and pointing at `video` — in human,
+/// `--json`, and render-refusal form, with no MP4 left behind.
+#[test]
+fn animated_gif_in_image_refused_pointing_at_video() {
+    let dir = "fixtures/invalid-image-animated";
+    let (root, folder) = stage(dir, "animated");
+    let name = folder.file_name().unwrap().to_string_lossy().into_owned();
+    let (exit, out) = run(&["check", &name], &root);
+    assert_eq!(exit, 1, "{dir}: {out}");
+    assert!(out.contains("error[E_BAD_IMAGE]"), "{dir}: {out}");
+    assert!(out.contains("anim.gif"), "{dir}: {out}");
+    assert!(out.contains("`video`"), "{dir}: {out}");
+    let (exit, out) = run(&["check", "--json", &name], &root);
+    assert_eq!(exit, 1, "{dir}: {out}");
+    assert!(out.contains("\"code\":\"E_BAD_IMAGE\""), "{dir}: {out}");
+    let (exit, _) = run(&["render", &name], &root);
+    assert_eq!(exit, 1, "{dir}");
+    assert!(!folder.join("out.mp4").exists(), "{dir}");
+    assert!(!folder.join("out.mp4.framesmith-part").exists(), "{dir}");
+}
+
 #[test]
 fn corrupt_video_refuses_at_render_naming_the_file() {
     let (root, folder) = stage("fixtures/invalid-corrupt-video", "corrupt");
@@ -311,7 +333,7 @@ fn later_sprint_fixtures_refused_before_the_first_frame() {
     // wait for their sprints.
     for (dir, element, sprint) in [
         ("fixtures/later-audio", "audio", "Sprint 10"),
-        ("fixtures/invalid-image-format", "image", "Sprint 2"),
+        ("fixtures/later-image-format", "image", "later sprint"),
     ] {
         let (root, folder) = stage(dir, "later");
         let name = folder.file_name().unwrap().to_string_lossy().into_owned();

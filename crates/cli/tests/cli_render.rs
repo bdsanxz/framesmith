@@ -472,8 +472,17 @@ fn corrupt_source_refuses_naming_file() {
     assert!(!folder.join("out.mp4").exists());
 }
 
+/// Mean absolute byte difference between two raw RGB24 frames.
+fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
+    assert_eq!(a.len(), b.len());
+    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    sum as f64 / a.len() as f64
+}
+
 #[test]
-fn short_source_refuses_naming_file() {
+fn short_source_holds_last_frame() {
+    // Sprint 5 T003 supersedes the old overrun refusal: a 0.5 s source
+    // in a 1 s clip holds its last frame for the second half.
     let root = tmp("short");
     ffmpeg(&[
         "-f",
@@ -495,13 +504,24 @@ fn short_source_refuses_naming_file() {
         "composition name=\"t\" width=64 height=48 duration=1 fps=30 background=\"#000000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=1 fit=\"cover\"\n}\n",
     );
     let (code, out) = run(&["render", "proj"], &root);
-    assert_eq!(code, 1, "{out}");
-    assert!(out.contains("clip.mp4"), "{out}");
-    assert!(!folder.join("out.mp4").exists());
+    assert_eq!(code, 0, "{out}");
+    let fs = 64 * 48 * 3;
+    let rendered = decode_raw(&folder.join("out.mp4"), 30);
+    let source = decode_raw(&folder.join("clip.mp4"), 15);
+    assert_eq!(rendered.len(), 30 * fs, "1 s at 30 fps");
+    assert_eq!(source.len(), 15 * fs, "0.5 s source at 30 fps");
+    for k in [15usize, 22, 29] {
+        let held = frame_mad(&rendered[k * fs..(k + 1) * fs], &source[14 * fs..15 * fs]);
+        println!("held frame {k}: mad={held:.2}");
+        assert!(held < 15.0, "frame {k} must hold the last frame, mad={held:.2}");
+    }
 }
 
 #[test]
-fn unsupported_codec_refuses_naming_file() {
+fn other_codec_renders_like_any_source() {
+    // Sprint 5 T008 supersedes the old H.264/HEVC-only gate: any
+    // container with a video stream FFmpeg can decode (here MPEG-4
+    // Part 2 in MP4) renders like any other source.
     let root = tmp("codec");
     ffmpeg(&[
         "-f",
@@ -521,10 +541,17 @@ fn unsupported_codec_refuses_naming_file() {
         "composition name=\"t\" width=64 height=48 duration=1 fps=30 background=\"#000000\" version=1 {\n    video path=\"clip.mp4\" start=0 duration=1 fit=\"contain\"\n}\n",
     );
     let (code, out) = run(&["render", "proj"], &root);
-    assert_eq!(code, 1, "{out}");
-    assert!(out.contains("clip.mp4"), "{out}");
-    assert!(out.contains("mpeg4"), "{out}");
-    assert!(!folder.join("out.mp4").exists());
+    assert_eq!(code, 0, "{out}");
+    assert!(folder.join("out.mp4").exists());
+    let fs = 64 * 48 * 3;
+    let rendered = decode_raw(&folder.join("out.mp4"), 30);
+    let source = decode_raw(&folder.join("clip.mp4"), 30);
+    assert_eq!(rendered.len(), 30 * fs, "1 s at 30 fps");
+    for k in [0usize, 15, 29] {
+        let mad = frame_mad(&rendered[k * fs..(k + 1) * fs], &source[k * fs..(k + 1) * fs]);
+        println!("mpeg4 frame {k}: mad={mad:.2}");
+        assert!(mad < 15.0, "frame {k} must match its source frame, mad={mad:.2}");
+    }
 }
 
 /// Corrupt the AAC decoder config (`esds` tag 5 payload) of `mp4` in

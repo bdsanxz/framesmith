@@ -233,9 +233,9 @@ fn render_disabled_refuses_with_source_and_config() {
     assert!(out.contains("E_NO_FFMPEG"), "{out}");
     assert!(out.contains("framesmith.toml"), "{out}");
     assert!(out.contains("ffmpeg_auto_download = false"), "{out}");
-    // The expected source is named: the recorded pin or the override.
+    // The expected source is named: the registry or the override.
     assert!(
-        out.contains("osxexperts.net") || out.contains("pinned FFmpeg"),
+        out.contains("ffmpeg-registry") || out.contains("pinned FFmpeg"),
         "{out}"
     );
     assert!(out.contains("No MP4 was written"), "{out}");

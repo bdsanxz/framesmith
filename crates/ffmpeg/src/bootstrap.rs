@@ -1,4 +1,4 @@
-//! FFmpeg bootstrap: pinned self-download (T009) and disabled/offline
+//! FFmpeg bootstrap: self-download (T009) and disabled/offline
 //! refusal (T010).
 //!
 //! Decision order when a render needs FFmpeg but the host finding is not
@@ -7,14 +7,16 @@
 //! 1. Self-download disabled by configuration → refuse (`E_NO_FFMPEG`),
 //!    naming the expected source and the disabling configuration.
 //! 2. Offline → refuse (`E_NO_FFMPEG`) with the manual-provision fix.
-//! 3. No recorded pin for this platform → refuse (`E_NO_FFMPEG`) with the
-//!    manual-provision fix.
-//! 4. Otherwise download the pinned archive with `curl` (bounded time, no
-//!    hangs), extract the entry, verify its SHA256, verify the binary
-//!    (`-version` plus required encoders), install it into the tool cache,
-//!    announce it, and render with it. Any failure → refuse
-//!    (`E_DOWNLOAD_FAILED`) with the cause; no MP4 is written and the
-//!    composition folder is unchanged.
+//! 3. Explicit override source configured → download that archive with
+//!    `curl` (bounded time, no hangs), extract the entry, verify the
+//!    binary SHA256, verify the binary (`-version` plus required
+//!    encoders), install it into the tool cache, and announce it.
+//! 4. Otherwise resolve the latest `bdsanxz/ffmpeg-registry` release for
+//!    the running OS/arch programmatically, download the matching asset,
+//!    verify the publisher-reported archive digest, verify the binary,
+//!    install it into the tool cache, and announce it.
+//! 5. Any failure → refuse (`E_DOWNLOAD_FAILED`) with the cause; no MP4
+//!    is written and the composition folder is unchanged.
 //!
 //! FFmpeg only ever runs as a separate process: the downloaded file is
 //! executed, never linked or shipped inside this binary.
@@ -33,6 +35,9 @@ pub struct BootstrapConfig {
     pub source: Option<PinSource>,
     pub cache_dir: PathBuf,
     pub curl_timeout_secs: u64,
+    /// Release metadata endpoint override (tests only): `None` resolves
+    /// the newest `ffmpeg-registry` release through the GitHub API.
+    pub release_api_url: Option<String>,
 }
 
 impl BootstrapConfig {
@@ -43,8 +48,30 @@ impl BootstrapConfig {
             source: ffmpeg::source_from_env(),
             cache_dir: ffmpeg::tool_cache_dir(),
             curl_timeout_secs: ffmpeg::download_timeout_secs(),
+            release_api_url: None,
         }
     }
+}
+
+/// What a download verifies before installing the binary.
+#[derive(Debug, Clone)]
+enum ArchiveCheck {
+    /// SHA256 of the extracted binary (explicit override path).
+    InnerBinarySha256(String),
+    /// SHA256 of the downloaded archive, publisher-reported in the
+    /// release metadata (automatic latest path).
+    ArchiveSha256(String),
+}
+
+/// One archive fetch: where to get it, what to unpack, and how to
+/// verify it. Every failure removes its temp artifacts.
+#[derive(Debug, Clone)]
+struct DownloadPlan {
+    url: String,
+    entry: String,
+    exe: String,
+    version: String,
+    check: ArchiveCheck,
 }
 
 /// Bootstrap outcome: either a binary to execute, or a refusal.
@@ -67,7 +94,10 @@ fn expected_source_line(source: Option<&PinSource>) -> String {
             "pinned FFmpeg {} build ({}; SHA256 {})",
             s.version, s.url, s.sha256
         ),
-        None => "a manually installed FFmpeg".to_string(),
+        None => format!(
+            "latest {} release build for this platform (resolved programmatically at download time; see {})",
+            "ffmpeg-registry", ffmpeg::FFMPEGBIN_RELEASES_PAGE,
+        ),
     }
 }
 
@@ -105,27 +135,25 @@ fn offline_message(host_reason: &str, source: Option<&PinSource>) -> String {
     )
 }
 
-fn no_pin_message(host_reason: &str) -> String {
+fn no_published_build_message(host_reason: &str) -> String {
     format!(
         "render refused before the first frame (E_NO_FFMPEG): no suitable FFmpeg ({host_reason}), \
-         and no pinned FFmpeg build is recorded for this platform.\n\
+         and the ffmpeg-registry publishes no build for this platform ({}).\n\
          fix: {} and re-run. No MP4 was written. \
          Validation still works: `framesmith check <folder>`.",
+        ffmpeg::FFMPEGBIN_RELEASES_PAGE,
         install_line(),
     )
 }
 
-fn download_failed_message(host_reason: &str, source: &PinSource, cause: &str) -> String {
+fn download_failed_message(host_reason: &str, what: &str, provenance: &str, cause: &str) -> String {
     format!(
         "render refused before the first frame (E_DOWNLOAD_FAILED): no suitable FFmpeg ({host_reason}); \
-         self-download of the pinned FFmpeg {} build failed: {cause}.\n\
+         self-download of the {what} failed: {cause}.\n\
          fix: check network access and re-run to retry (the folder is unchanged), or {} manually \
-         (pinned build: {}; SHA256 {}). No MP4 was written. \
+         ({provenance}). No MP4 was written. \
          Validation still works: `framesmith check <folder>`.",
-        source.version,
         install_line(),
-        source.url,
-        source.sha256,
     )
 }
 
@@ -157,15 +185,22 @@ pub fn ensure_ffmpeg(host: &FfmpegFinding, cfg: &BootstrapConfig) -> Bootstrap {
             message: offline_message(&host_reason, cfg.source.as_ref()),
         };
     }
-    let source = match &cfg.source {
-        Some(s) => s.clone(),
-        None => {
-            return Bootstrap::Refused {
-                code: "E_NO_FFMPEG",
-                message: no_pin_message(&host_reason),
-            };
-        }
-    };
+    match &cfg.source {
+        Some(explicit) => ensure_explicit(host, &host_reason, explicit, cfg),
+        None => ensure_latest(host, &host_reason, cfg),
+    }
+}
+
+/// Explicit-override path: the operator or test named the exact archive,
+/// entry, version, and binary hash.
+fn ensure_explicit(
+    _host: &FfmpegFinding,
+    host_reason: &str,
+    source: &PinSource,
+    cfg: &BootstrapConfig,
+) -> Bootstrap {
+    let what = format!("pinned FFmpeg {} build", source.version);
+    let provenance = format!("pinned build: {}; SHA256 {}", source.url, source.sha256);
     let cached = ffmpeg::cached_binary(&cfg.cache_dir, &source.version);
     if cached.is_file() {
         match ffmpeg::verify_binary(&cached) {
@@ -185,20 +220,114 @@ pub fn ensure_ffmpeg(host: &FfmpegFinding, cfg: &BootstrapConfig) -> Bootstrap {
             }
         }
     }
-    match download_and_verify(&source, cfg) {
+    let plan = DownloadPlan {
+        url: source.url.clone(),
+        entry: source.entry.clone(),
+        exe: ffmpeg::exe_name().to_string(),
+        version: source.version.clone(),
+        check: ArchiveCheck::InnerBinarySha256(source.sha256.clone()),
+    };
+    match download_and_verify(&plan, cfg) {
         Ok(path) => Bootstrap::Ready {
             ffmpeg_path: path.clone(),
             downloaded: true,
             announcements: vec![format!(
-                "downloaded pinned FFmpeg {} from {} (SHA256 verified) to {}; rendering with it.",
-                source.version,
+                "downloaded {what} from {} (SHA256 verified) to {}; rendering with it.",
                 source.url,
                 path.display()
             )],
         },
         Err(cause) => Bootstrap::Refused {
             code: "E_DOWNLOAD_FAILED",
-            message: download_failed_message(&host_reason, &source, &cause),
+            message: download_failed_message(host_reason, &what, &provenance, &cause),
+        },
+    }
+}
+
+/// Automatic path: resolve the newest registry release for the running
+/// OS/arch, verify the publisher-reported archive digest, verify the
+/// extracted binary, install, and announce.
+fn ensure_latest(
+    _host: &FfmpegFinding,
+    host_reason: &str,
+    cfg: &BootstrapConfig,
+) -> Bootstrap {
+    let fail = |cause: String| Bootstrap::Refused {
+        code: "E_DOWNLOAD_FAILED",
+        message: download_failed_message(
+            host_reason,
+            "latest ffmpeg-registry release lookup",
+            ffmpeg::FFMPEGBIN_RELEASES_PAGE,
+            &cause,
+        ),
+    };
+    let Some((asset_name, entry, exe)) = ffmpeg::ffmpegbin_asset() else {
+        return Bootstrap::Refused {
+            code: "E_NO_FFMPEG",
+            message: no_published_build_message(host_reason),
+        };
+    };
+    let api = cfg
+        .release_api_url
+        .clone()
+        .unwrap_or_else(|| ffmpeg::FFMPEGBIN_API_LATEST.to_string());
+    let body = match ffmpeg::fetch_release(&api, cfg.curl_timeout_secs) {
+        Ok(body) => body,
+        Err(cause) => return fail(cause),
+    };
+    let (tag, assets) = match ffmpeg::parse_release(&body) {
+        Ok(parsed) => parsed,
+        Err(cause) => return fail(cause),
+    };
+    let Some(asset) = ffmpeg::select_asset(&assets, asset_name) else {
+        return fail(format!(
+            "latest release {tag} publishes no {asset_name} for this platform"
+        ));
+    };
+    let what = format!("FFmpeg {tag} release build");
+    let provenance = format!(
+        "release: {}; archive digest {}",
+        asset.url, asset.archive_sha256
+    );
+    let cached = ffmpeg::cached_binary(&cfg.cache_dir, &tag);
+    if cached.is_file() {
+        match ffmpeg::verify_binary(&cached) {
+            Ok(version) => {
+                return Bootstrap::Ready {
+                    ffmpeg_path: cached.clone(),
+                    downloaded: false,
+                    announcements: vec![format!(
+                        "reusing cached FFmpeg {version} at {} (release digest was verified on download).",
+                        cached.display()
+                    )],
+                };
+            }
+            Err(_) => {
+                // Stale cache entry: drop it and fall through to a download.
+                let _ = std::fs::remove_file(&cached);
+            }
+        }
+    }
+    let plan = DownloadPlan {
+        url: asset.url.clone(),
+        entry: entry.to_string(),
+        exe: exe.to_string(),
+        version: tag,
+        check: ArchiveCheck::ArchiveSha256(asset.archive_sha256.clone()),
+    };
+    match download_and_verify(&plan, cfg) {
+        Ok(path) => Bootstrap::Ready {
+            ffmpeg_path: path.clone(),
+            downloaded: true,
+            announcements: vec![format!(
+                "downloaded {what} from {} (release digest and binary verified) to {}; rendering with it.",
+                asset.url,
+                path.display()
+            )],
+        },
+        Err(cause) => Bootstrap::Refused {
+            code: "E_DOWNLOAD_FAILED",
+            message: download_failed_message(host_reason, &what, &provenance, &cause),
         },
     }
 }
@@ -211,20 +340,21 @@ fn rm_rf(path: &Path) {
     }
 }
 
-/// Download the pinned archive, verify entry SHA256 and binary, install
-/// into the cache. Every temp artifact is removed on failure.
-fn download_and_verify(source: &PinSource, cfg: &BootstrapConfig) -> Result<PathBuf, String> {
+/// Download the archive, verify it per the plan, verify the extracted
+/// binary, install into the cache. Every temp artifact is removed on
+/// failure.
+fn download_and_verify(plan: &DownloadPlan, cfg: &BootstrapConfig) -> Result<PathBuf, String> {
     let curl = ffmpeg::find_helper("curl")
-        .ok_or_else(|| "no `curl` found on PATH to fetch the pinned build".to_string())?;
+        .ok_or_else(|| "no `curl` found on PATH to fetch the build".to_string())?;
     let unzip = ffmpeg::find_helper("unzip")
-        .ok_or_else(|| "no `unzip` found on PATH to unpack the pinned build".to_string())?;
+        .ok_or_else(|| "no `unzip` found on PATH to unpack the build".to_string())?;
     if let Err(e) = std::fs::create_dir_all(&cfg.cache_dir) {
         return Err(format!(
             "cannot create tool cache {}: {e}",
             cfg.cache_dir.display()
         ));
     }
-    let tag = format!("{}-{}", std::process::id(), source.version.replace('/', "_"));
+    let tag = format!("{}-{}", std::process::id(), plan.version.replace('/', "_"));
     let tmp_zip = cfg.cache_dir.join(format!(".download-{tag}.zip"));
     let stage = cfg.cache_dir.join(format!(".stage-{tag}"));
     rm_rf(&tmp_zip);
@@ -245,7 +375,7 @@ fn download_and_verify(source: &PinSource, cfg: &BootstrapConfig) -> Result<Path
             "-o",
         ])
         .arg(&tmp_zip)
-        .arg(&source.url)
+        .arg(&plan.url)
         .output()
         .map_err(|e| format!("could not launch `{}`: {e}", curl.display()))?;
     if !curl_out.status.success() {
@@ -261,6 +391,18 @@ fn download_and_verify(source: &PinSource, cfg: &BootstrapConfig) -> Result<Path
         return Err(format!("download failed: {detail}"));
     }
 
+    if let ArchiveCheck::ArchiveSha256(expected) = &plan.check {
+        let bytes =
+            std::fs::read(&tmp_zip).map_err(|e| format!("cannot read downloaded archive: {e}"))?;
+        let found = sha256::sha256_hex(&bytes);
+        if found.to_lowercase() != expected.to_lowercase() {
+            cleanup(&tmp_zip, &stage);
+            return Err(format!(
+                "checksum mismatch for the downloaded archive: expected {expected} but found {found}"
+            ));
+        }
+    }
+
     if let Err(e) = std::fs::create_dir_all(&stage) {
         cleanup(&tmp_zip, &stage);
         return Err(format!("cannot create staging dir: {e}"));
@@ -268,7 +410,7 @@ fn download_and_verify(source: &PinSource, cfg: &BootstrapConfig) -> Result<Path
     let unzip_out = std::process::Command::new(&unzip)
         .args(["-q", "-o"])
         .arg(&tmp_zip)
-        .arg(&source.entry)
+        .arg(&plan.entry)
         .args(["-d"])
         .arg(&stage)
         .output()
@@ -277,26 +419,27 @@ fn download_and_verify(source: &PinSource, cfg: &BootstrapConfig) -> Result<Path
         cleanup(&tmp_zip, &stage);
         return Err(format!(
             "could not unpack entry {:?} from the downloaded archive",
-            source.entry
+            plan.entry
         ));
     }
-    let staged = stage.join(&source.entry);
+    let staged = stage.join(&plan.entry);
     if !staged.is_file() {
         cleanup(&tmp_zip, &stage);
         return Err(format!(
             "downloaded archive did not contain entry {:?}",
-            source.entry
+            plan.entry
         ));
     }
-    let bytes =
-        std::fs::read(&staged).map_err(|e| format!("cannot read downloaded entry: {e}"))?;
-    let found = sha256::sha256_hex(&bytes);
-    if found.to_lowercase() != source.sha256.to_lowercase() {
-        cleanup(&tmp_zip, &stage);
-        return Err(format!(
-            "checksum mismatch for the pinned build: expected {} but found {found}",
-            source.sha256
-        ));
+    if let ArchiveCheck::InnerBinarySha256(expected) = &plan.check {
+        let bytes =
+            std::fs::read(&staged).map_err(|e| format!("cannot read downloaded entry: {e}"))?;
+        let found = sha256::sha256_hex(&bytes);
+        if found.to_lowercase() != expected.to_lowercase() {
+            cleanup(&tmp_zip, &stage);
+            return Err(format!(
+                "checksum mismatch for the pinned build: expected {expected} but found {found}"
+            ));
+        }
     }
     #[cfg(unix)]
     {
@@ -315,12 +458,12 @@ fn download_and_verify(source: &PinSource, cfg: &BootstrapConfig) -> Result<Path
         cleanup(&tmp_zip, &stage);
         return Err(format!("downloaded build failed verification: {e}"));
     }
-    let dest_dir = cfg.cache_dir.join(&source.version).join("bin");
+    let dest_dir = cfg.cache_dir.join(&plan.version).join("bin");
     if let Err(e) = std::fs::create_dir_all(&dest_dir) {
         cleanup(&tmp_zip, &stage);
         return Err(format!("cannot create install dir: {e}"));
     }
-    let dest = dest_dir.join("ffmpeg");
+    let dest = dest_dir.join(&plan.exe);
     rm_rf(&dest);
     if std::fs::rename(&staged, &dest).is_err() {
         if let Err(e) = std::fs::copy(&staged, &dest) {
@@ -504,6 +647,7 @@ mod tests {
             source: Some(fx.source.clone()),
             cache_dir: fx.cache.clone(),
             curl_timeout_secs: 30,
+            release_api_url: None,
         }
     }
 
@@ -563,17 +707,21 @@ mod tests {
     }
 
     #[test]
-    fn no_pin_refuses_with_manual_fix() {
-        let fx = fixture("nopin");
+    fn latest_resolution_failure_refuses_without_writing() {
+        let fx = fixture("noresolve");
         let mut cfg = cfg_for(&fx);
         cfg.source = None;
+        // A bogus metadata endpoint fails deterministically without network.
+        cfg.release_api_url = Some("file:///nonexistent-framesmith-release.json".to_string());
         match ensure_ffmpeg(&unsuitable_host(), &cfg) {
             Bootstrap::Refused { code, message } => {
-                assert_eq!(code, "E_NO_FFMPEG");
-                assert!(message.contains("no pinned FFmpeg build"), "{message}");
+                assert_eq!(code, "E_DOWNLOAD_FAILED", "{message}");
+                assert!(message.contains("release lookup failed"), "{message}");
+                assert!(message.contains("No MP4 was written"), "{message}");
             }
             other => panic!("expected refusal, got {other:?}"),
         }
+        assert!(!fx.cache.exists(), "a failed lookup must fetch nothing");
     }
 
     #[test]

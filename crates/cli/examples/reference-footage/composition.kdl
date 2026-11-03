@@ -1,0 +1,5 @@
+composition name="reference-footage" width=1280 height=720 duration=6 fps=30 background="#101828" version=1 {
+    video path="media/vfr.mp4" start=0 duration=6 trim-start=1 trim-end=4 rate=0.5 fit="cover" order=0
+    video path="media/rot.mp4" start=0.5 duration=5 trim-start=0.5 loop=true fit="contain" order=1
+    video path="media/anim.gif" start=1 fit="contain" order=2
+}

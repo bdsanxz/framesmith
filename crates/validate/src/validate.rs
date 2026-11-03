@@ -73,6 +73,53 @@ pub struct Verdict {
     /// (T009/T010) own download behavior; the foundation records it so
     /// refusal wording can point at the right fix.
     pub ffmpeg_auto_download: bool,
+    /// One entry per `video` clip whose trim/rate declaration validated
+    /// (Sprint 5 T001): the effective source window and effective
+    /// rendered length for `check` output review. Clamp reports live
+    /// here, never as diagnostics, so clamping stays a valid verdict.
+    pub footage: Vec<VideoFootage>,
+}
+
+/// The reviewable footage window of one valid `video` clip (Sprint 5
+/// T001/T009): declared trims plus rate resolved against the probed
+/// source end into the effective window the renderer consumes, the
+/// effective length it renders (`window ÷ rate`), and the resolved
+/// clip length (written, or inferred when `duration` is omitted).
+#[derive(Debug, Clone)]
+pub struct VideoFootage {
+    /// Declared `path`, for matching the entry to its clip.
+    pub path: String,
+    pub line: usize,
+    pub column: usize,
+    /// Declared `trim-start` (default 0).
+    pub trim_start: f64,
+    /// Declared `trim-end` (none means the source end).
+    pub trim_end: Option<f64>,
+    /// Declared `rate` (default 1).
+    pub rate: f64,
+    /// Declared `loop` (default false): the window repeats for the
+    /// whole clip window instead of holding the last frame.
+    pub loop_clip: bool,
+    /// Probed source length in seconds; none when the probe could not
+    /// report one (no FFmpeg on PATH, an unreadable file, or a still
+    /// source such as HEIC with no timeline).
+    pub source_duration: Option<f64>,
+    /// Effective window actually consumed, in source seconds. The end
+    /// is none only when both the declared end and the probe are
+    /// missing; the window is then unreviewable until render probes.
+    pub effective_start: f64,
+    pub effective_end: Option<f64>,
+    /// `(effective_end − effective_start) ÷ rate`, when the end is known.
+    pub effective_duration: Option<f64>,
+    /// Resolved clip length in composition seconds: the written
+    /// `duration`, or the inferred `(trim_end − trim_start) ÷ rate`
+    /// (Sprint 5 T009).
+    pub duration: f64,
+    /// True when `duration` was inferred (no `duration` key written),
+    /// so `check` reviewers can tell it apart from an explicit length.
+    pub inferred: bool,
+    /// True when a past-end `trim-end` was clamped to the source end.
+    pub clamped: bool,
 }
 
 pub const COMPOSITION_FILE: &str = "composition.kdl";
@@ -221,6 +268,7 @@ struct Ctx<'a> {
     folder: &'a Path,
     diags: Vec<Diagnostic>,
     invalid: bool,
+    footage: Vec<VideoFootage>,
 }
 
 impl<'a> Ctx<'a> {
@@ -343,6 +391,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 "point check at an existing folder or create one with `framesmith init`",
             )],
             ffmpeg_auto_download: true,
+            footage: Vec::new(),
         };
     }
 
@@ -372,6 +421,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 composition: None,
                 diagnostics: diags,
                 ffmpeg_auto_download,
+                footage: Vec::new(),
             };
         }
     };
@@ -393,6 +443,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 composition: None,
                 diagnostics: diags,
                 ffmpeg_auto_download,
+                footage: Vec::new(),
             };
         }
     };
@@ -402,6 +453,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         folder,
         diags: config_diags,
         invalid: config_invalid,
+        footage: Vec::new(),
     };
 
     let root = roots.iter().find(|n| n.name == "composition");
@@ -779,6 +831,7 @@ fn finish(ctx: Ctx<'_>, composition: Option<Composition>, ffmpeg_auto_download: 
         },
         diagnostics: ctx.diags,
         ffmpeg_auto_download,
+        footage: ctx.footage,
     }
 }
 
@@ -877,6 +930,103 @@ fn clip_window(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<(f64, f64)> 
         return None;
     }
     Some((start, duration))
+}
+
+/// Shared absolute start check (Sprint 5 T009): the `start` half of
+/// [`clip_window`] for clips whose `duration` is optional. Returns the
+/// start on success; every missing/negative/relative shape is a
+/// diagnostic.
+fn clip_start(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    if let Some(v) = find(node, "end") {
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_TIMING",
+            format!("{what} uses `end=`; end-derived durations are not part of Sprint 1"),
+            "declare an absolute `start=` and a written `duration=` instead",
+        );
+        return None;
+    }
+    match find(node, "start") {
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!("{what} start {x} is invalid; starts are absolute seconds >= 0"),
+                    "set `start=` to an absolute non-negative time in seconds",
+                );
+                None
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!("{what} start is not an absolute time; relative starts are not part of Sprint 1"),
+                    "set `start=` to an absolute non-negative time in seconds",
+                );
+                None
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_TIMING",
+                format!("{what} is missing required `start`; every clip needs an absolute start"),
+                "add `start=<seconds>` to the clip",
+            );
+            None
+        }
+    }
+}
+
+/// Optional clip `duration` (Sprint 5 T009, `video` only): a written
+/// value must be a positive number of seconds; an omitted key means
+/// the length is inferred from the footage window later. Returns None
+/// on a parse failure after reporting it, `Some(None)` when omitted,
+/// `Some(Some(d))` when written. A present `end=` key is refused here
+/// so it keeps the [`clip_window`] wording.
+fn clip_optional_duration(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<f64>> {
+    if let Some(v) = find(node, "end") {
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_TIMING",
+            format!("{what} uses `end=`; end-derived durations are not part of Sprint 1"),
+            "declare an absolute `start=` and a written `duration=` instead",
+        );
+        return None;
+    }
+    match find(node, "duration") {
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x > 0.0 => Some(Some(x)),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!("{what} duration {x} is invalid; durations must be positive"),
+                    "set `duration=` to a positive time in seconds",
+                );
+                None
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!("{what} duration is not a plain duration in seconds"),
+                    "set `duration=` to a positive time in seconds",
+                );
+                None
+            }
+        },
+        None => Some(None),
+    }
 }
 
 /// Explicit paint order: a bare integer (negative allowed); anything
@@ -1250,6 +1400,175 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
     })
 }
 
+/// Render one authored scalar for diagnostics (Sprint 5 T001): the
+/// value the maker wrote, so refusals can name it.
+fn raw_text(v: &RawValue) -> String {
+    match &v.kind {
+        ValueKind::Str(s) => format!("{s:?}"),
+        ValueKind::Int(n) => n.to_string(),
+        ValueKind::Float(x) => x.to_string(),
+        ValueKind::Ratio(n, d) => format!("{n}/{d}"),
+        ValueKind::Bool(b) => b.to_string(),
+    }
+}
+
+/// Find one executable on PATH without shelling out (Sprint 5 T001):
+/// the probe below needs `ffprobe` or `ffmpeg`, whichever the machine
+/// offers. None means the source-end checks are skipped, never guessed.
+fn tool_on_path(name: &str) -> Option<std::path::PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let cand = dir.join(name);
+        if cand.is_file() {
+            return Some(cand);
+        }
+    }
+    None
+}
+
+/// Probe one video source length in seconds (Sprint 5 T001): `ffprobe`
+/// when it is on PATH, else the `Duration:` line of `ffmpeg -i` output
+/// (the same facts render probes). Anything unusable — no FFmpeg on
+/// PATH, an unreadable file, an unparseable reply — is None, and the
+/// caller skips only the source-end checks: declaration checks
+/// (backward, zero-length, rate range) never need the probe.
+fn probe_source_duration(abs: &Path) -> Option<f64> {
+    if let Some(ffprobe) = tool_on_path("ffprobe") {
+        if let Ok(out) = std::process::Command::new(ffprobe)
+            .args([
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+            ])
+            .arg(abs)
+            .output()
+        {
+            if out.status.success() {
+                let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if let Ok(d) = text.parse::<f64>() {
+                    if d.is_finite() && d > 0.0 {
+                        return Some(d);
+                    }
+                }
+            }
+        }
+    }
+    if let Some(ffmpeg) = tool_on_path("ffmpeg") {
+        if let Ok(out) = std::process::Command::new(ffmpeg)
+            .args(["-hide_banner", "-i"])
+            .arg(abs)
+            .output()
+        {
+            let text = String::from_utf8_lossy(&out.stderr);
+            for line in text.lines() {
+                let line = line.trim();
+                if let Some(rest) = line.strip_prefix("Duration:") {
+                    let ts = rest.split(',').next().unwrap_or("").trim();
+                    let mut parts = ts.split(':');
+                    if let (Some(h), Some(m), Some(s)) = (
+                        parts.next().and_then(|p| p.parse::<f64>().ok()),
+                        parts.next().and_then(|p| p.parse::<f64>().ok()),
+                        parts.next().and_then(|p| p.parse::<f64>().ok()),
+                    ) {
+                        let d = h * 3600.0 + m * 60.0 + s;
+                        if d.is_finite() && d > 0.0 {
+                            return Some(d);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Parse one Sprint 5 footage trim (`trim-start`/`trim-end`, either
+/// spelling): absent means the default (0 for the start, the source
+/// end for the end); present must be finite seconds from 0. Returns
+/// None on a parse failure after reporting it, so callers can keep
+/// collecting the clip's remaining footage problems.
+fn footage_trim(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+) -> Option<Option<f64>> {
+    let found = find(node, hyphen).or_else(|| find(node, underscore));
+    match found {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(Some(x)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FOOTAGE",
+                    format!(
+                        "video `{hyphen}` {} must be seconds into the source from 0",
+                        raw_text(v)
+                    ),
+                    format!("set `{hyphen}=<seconds >= 0>` or remove the key"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse the Sprint 5 footage `rate`: absent means unity; present must
+/// be a finite number from 0.1 to 10. Returns None on failure after
+/// reporting it.
+fn footage_rate(ctx: &mut Ctx, node: &RawNode) -> Option<f64> {
+    match find(node, "rate") {
+        None => Some(1.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.1..=10.0).contains(&x) => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FOOTAGE",
+                    format!(
+                        "video `rate` {} is outside the accepted range 0.1 to 10",
+                        raw_text(v)
+                    ),
+                    "set `rate=<0.1 to 10>` (for example `rate=2` for double speed, `rate=0.5` for half speed), or remove the key for unity rate",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse the Sprint 5 footage `loop` flag (T003): absent means no
+/// repeat (an overrunning window holds the last frame); present must
+/// be a `true`/`false` literal. Returns None on failure after
+/// reporting it.
+fn footage_loop(ctx: &mut Ctx, node: &RawNode) -> Option<bool> {
+    match find(node, "loop") {
+        None => Some(false),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FOOTAGE",
+                    format!(
+                        "video `loop` {} must be `true` or `false`; the window repeats only when `loop=true`",
+                        raw_text(v)
+                    ),
+                    "set `loop=true` to repeat the window, or `loop=false` (or remove the key) to hold the last frame",
+                );
+                None
+            }
+        },
+    }
+}
+
 fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
     const KEYS: &[&str] = &[
         "path",
@@ -1262,6 +1581,12 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         "fade_in",
         "fade-out",
         "fade_out",
+        "trim-start",
+        "trim_start",
+        "trim-end",
+        "trim_end",
+        "rate",
+        "loop",
     ];
     for (k, v) in &node.props {
         if LATER_AUDIO_KEYS.contains(&k.as_str()) {
@@ -1285,7 +1610,29 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
             );
         }
     }
-    let (start, duration) = clip_window(ctx, node, "video clip")?;
+    // Sprint 5 footage loop flag (T003), parsed before the clip window:
+    // a looping clip without an explicit `duration` would be unbounded
+    // (REC-005), so it is refused here asking for one — before the
+    // inference below could misname the problem.
+    let loop_opt = footage_loop(ctx, node);
+    if loop_opt == Some(true) && find(node, "duration").is_none() {
+        let (line, col) = find(node, "loop")
+            .map(|v| (v.line, v.column))
+            .unwrap_or((node.name_line, node.name_column));
+        ctx.push(
+            line,
+            col,
+            "E_BAD_FOOTAGE",
+            "looping video clip has no explicit `duration`; a loop without one would be unbounded",
+            "add `duration=<seconds>` to the looping video clip",
+        );
+        return None;
+    }
+    // Sprint 5 T009: `start` stays mandatory, but `duration` is now
+    // optional — an omitted one is inferred from the footage window
+    // once the source end is known.
+    let start = clip_start(ctx, node, "video clip")?;
+    let duration_opt = clip_optional_duration(ctx, node, "video clip")?;
     let path = match find(node, "path").and_then(as_str) {
         Some(s) => s.to_string(),
         None => {
@@ -1299,7 +1646,10 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
             return None;
         }
     };
-    // Referenced media must exist and be readable (T003).
+    // Referenced media must exist and be readable (T003, T008): a
+    // missing file names the file, and so does a file the process
+    // cannot open (permission-denied or disappearing mid-check) —
+    // never a blank picture downstream.
     let resolved = ctx.folder.join(&path);
     if !resolved.is_file() {
         ctx.push(
@@ -1308,6 +1658,16 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
             "E_MISSING_FILE",
             format!("video source {path:?} does not exist or is not readable"),
             "provide the file at the referenced path or fix the `path`",
+        );
+        return None;
+    }
+    if std::fs::File::open(&resolved).is_err() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FILE",
+            format!("video source {path:?} cannot be opened (permission denied or the file disappeared)"),
+            "make the file readable (check its permissions) or point `path` at a readable copy",
         );
         return None;
     }
@@ -1327,22 +1687,173 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
             }
         },
     };
+    // Sprint 5 T007: an infinitely looping GIF without an explicit
+    // `duration` is unbounded (REC-005), like a `loop=true` clip — the
+    // refusal asks for one before any window math. Content-sniffed, so
+    // a renamed file is refused the same way; the head read is bounded
+    // and a missed sniff simply skips this check (the probe below
+    // still gates the source). Only duration-less clips need it: a
+    // written `duration` bounds the animation explicitly.
+    if duration_opt.is_none() {
+        if let Some(head) = read_head(&resolved, 262_144) {
+            if let Some(gif) = gif_info(&head, head.len()) {
+                if gif.infinite {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_FOOTAGE",
+                        format!("video source {path:?} is an infinitely looping GIF with no explicit `duration`; its length would be unbounded"),
+                        "add `duration=<seconds>` to the clip (with `loop=true` to repeat the animation, or without it to play once and hold the last frame)",
+                    );
+                    return None;
+                }
+            }
+        }
+    }
     let order = parse_order(ctx, node)?;
-    // Sprint 3 video sound keys (T007): volume and linear fades shape the
-    // clip's sound in the mix; timing validation for fades uses the clip
-    // window validated above. Mixing itself belongs to T010.
+    // Sprint 3 video sound keys (T007): volume shapes the clip's sound
+    // in the mix; timing validation for fades runs below against the
+    // resolved (written or inferred) clip length. Mixing itself belongs
+    // to T010.
     let volume_db = parse_volume_db(ctx, node, "video clip")?;
+    // Sprint 5 footage trim and rate (T001): the declared source window
+    // plus rate, resolved against the probed source end. Every footage
+    // problem is collected (never just the first), so one bad clip can
+    // name a bad rate, a backward window, and a past-end start together.
+    let ts = footage_trim(ctx, node, "trim-start", "trim_start");
+    let te = footage_trim(ctx, node, "trim-end", "trim_end");
+    let rate_opt = footage_rate(ctx, node);
+    let mut footage_bad = ts.is_none() || te.is_none() || rate_opt.is_none() || loop_opt.is_none();
+    let trim_start = ts.flatten().unwrap_or(0.0);
+    let trim_end = te.flatten();
+    let rate = rate_opt.unwrap_or(1.0);
+    let loop_clip = loop_opt.unwrap_or(false);
+    if ts.is_some() && te.is_some() {
+        if let Some(end) = trim_end {
+            if end < trim_start {
+                let v = find(node, "trim-end")
+                    .or_else(|| find(node, "trim_end"))
+                    .unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FOOTAGE",
+                    format!(
+                        "video trim window {trim_start}..{end} runs backward; trims are seconds into the source"
+                    ),
+                    "set `trim-end` after `trim-start` for a forward window",
+                );
+                footage_bad = true;
+            } else if end == trim_start {
+                let v = find(node, "trim-end")
+                    .or_else(|| find(node, "trim_end"))
+                    .unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FOOTAGE",
+                    format!(
+                        "video trim window {trim_start}..{end} is empty; unlike audio silence, video has no frame to show"
+                    ),
+                    "set `trim-end` after `trim-start` for a positive window",
+                );
+                footage_bad = true;
+            }
+        }
+    }
+    // Source-end checks need probe facts; without them (no FFmpeg on
+    // PATH, or an unreadable file) only the declaration checks above
+    // apply, and the effective end stays unknown until render probes.
+    let source_duration = probe_source_duration(&resolved);
+    let mut effective_end = trim_end;
+    let mut clamped = false;
+    if !footage_bad {
+        if let Some(src) = source_duration {
+            if trim_start >= src {
+                let (line, col) = find(node, "trim-start")
+                    .or_else(|| find(node, "trim_start"))
+                    .map(|v| (v.line, v.column))
+                    .unwrap_or((node.name_line, node.name_column));
+                ctx.push(
+                    line,
+                    col,
+                    "E_BAD_FOOTAGE",
+                    format!(
+                        "video `trim-start` {trim_start} is at or past the source end {src} of {path:?}; the window would be empty"
+                    ),
+                    format!(
+                        "set `trim-start` below {src}, or point `path` at a longer source"
+                    ),
+                );
+                footage_bad = true;
+            } else if let Some(end) = effective_end {
+                if end > src {
+                    effective_end = Some(src);
+                    clamped = true;
+                }
+            } else {
+                effective_end = Some(src);
+            }
+        }
+    }
+    if footage_bad {
+        return None;
+    }
+    // Sprint 5 T009: resolve the clip length — the written `duration`,
+    // or the inferred `(trim_end − trim_start) ÷ rate` using the probed
+    // source end for an omitted `trim-end`. An omitted `duration` with
+    // no knowable end (a still with no declared `trim-end`, or an
+    // unprobable source) has no finite length: refuse asking for one
+    // (REC-005), never guess.
+    let (duration, inferred) = match duration_opt {
+        Some(d) => (d, false),
+        None => match effective_end {
+            Some(e) => ((e - trim_start) / rate, true),
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_FOOTAGE",
+                    format!("video clip omits `duration` but the source end of {path:?} is unknown, so no length can be inferred"),
+                    "add `duration=<seconds>` to the clip (or declare `trim-end=<seconds>` to bound the window)",
+                );
+                return None;
+            }
+        },
+    };
+    let effective_duration = effective_end.map(|e| (e - trim_start) / rate);
     let fade_in = parse_fade(ctx, node, "fade-in", "fade_in", duration, "video clip")?;
     let fade_out = parse_fade(ctx, node, "fade-out", "fade_out", duration, "video clip")?;
+    ctx.footage.push(VideoFootage {
+        path: path.clone(),
+        line: node.name_line,
+        column: node.name_column,
+        trim_start,
+        trim_end,
+        rate,
+        loop_clip,
+        source_duration,
+        effective_start: trim_start,
+        effective_end,
+        effective_duration,
+        duration,
+        inferred,
+        clamped,
+    });
     Some(VideoClip {
         path,
         start,
         duration,
+        duration_inferred: inferred,
         fit,
         order,
         volume_db,
         fade_in,
         fade_out,
+        trim_start,
+        trim_end,
+        rate,
+        loop_clip,
         line: node.name_line,
         column: node.name_column,
     })
@@ -1692,12 +2203,19 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
     })
 }
 
-/// Image file extensions the Sprint 2 renderer decodes. Anything else
-/// (animated images, SVG, and every other format) is refused as
-/// not-yet-supported with its enabling sprint, never rendered guessed.
+/// Image file extensions the renderer decodes (Sprint 2 PNG/JPEG plus
+/// Sprint 5 still GIF and HEIC/HEIF). Anything else (SVG and every
+/// other format) is refused as not-yet-supported with its enabling
+/// sprint, never rendered guessed. An animated GIF keeps its extension
+/// here so it reaches the animated-content refusal pointing at `video`.
 fn image_format_supported(path: &str) -> bool {
     let lower = path.to_lowercase();
-    lower.ends_with(".png") || lower.ends_with(".jpg") || lower.ends_with(".jpeg")
+    lower.ends_with(".png")
+        || lower.ends_with(".jpg")
+        || lower.ends_with(".jpeg")
+        || lower.ends_with(".gif")
+        || lower.ends_with(".heic")
+        || lower.ends_with(".heif")
 }
 
 fn image_magic_ok(bytes: &[u8]) -> bool {
@@ -1705,6 +2223,185 @@ fn image_magic_ok(bytes: &[u8]) -> bool {
     // PNG signature, or a JPEG start-of-image marker.
     (bytes.len() >= 8 && &bytes[..8] == PNG)
         || (bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8)
+}
+
+/// True when `bytes` look like a HEIC/HEIF still (Sprint 5 T007/T008):
+/// an ISO-BMFF `ftyp` box whose major brand or one of its compatible
+/// brands is a HEIF brand. The decoder below still gates the pixels;
+/// this only decides the file is worth handing to it.
+fn heic_magic_ok(bytes: &[u8]) -> bool {
+    const BRANDS: [&[u8; 4]; 10] = [
+        b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs", b"mif1",
+        b"msf1",
+    ];
+    if bytes.len() < 12 || &bytes[4..8] != b"ftyp" {
+        return false;
+    }
+    if BRANDS.iter().any(|b| b[..] == bytes[8..12]) {
+        return true;
+    }
+    let mut pos = 16;
+    while pos + 4 <= bytes.len() {
+        if BRANDS.iter().any(|b| b[..] == bytes[pos..pos + 4]) {
+            return true;
+        }
+        pos += 4;
+        // Brands live at the head of the box; a long scan means these
+        // are pixels, not brands.
+        if pos > 64 {
+            break;
+        }
+    }
+    false
+}
+
+/// What a byte sniff of a GIF source reports (Sprint 5 T007).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct GifInfo {
+    /// Image frames seen, capped at 2: still vs animated is all the
+    /// footage contract needs.
+    frames: u32,
+    /// True when a NETSCAPE application extension declares loop count 0
+    /// (play forever). An absent or nonzero loop count means one
+    /// playthrough (or a finite repeat): a finite native length.
+    infinite: bool,
+    /// True when the walk reached the trailer: the whole input was seen.
+    complete: bool,
+}
+
+/// Sniff GIF bytes (Sprint 5 T007): header, frame count (still vs
+/// animated), and the NETSCAPE infinite-loop flag. Walks block
+/// boundaries — never a substring search, since compressed pixels can
+/// contain any byte value. Stops counting after the second frame but
+/// keeps walking for the loop flag until the trailer. Reads at most
+/// `limit` bytes, so huge movie files only pay for their head.
+/// Returns None when the bytes are not GIF at all.
+fn gif_info(bytes: &[u8], limit: usize) -> Option<GifInfo> {
+    if bytes.len() < 6 || (&bytes[..6] != b"GIF87a" && &bytes[..6] != b"GIF89a") {
+        return None;
+    }
+    let mut info = GifInfo { frames: 0, infinite: false, complete: false };
+    let end = bytes.len().min(limit);
+    let mut pos = 6;
+    // Logical screen descriptor: 7 bytes, then an optional global
+    // color table.
+    if pos + 7 > end {
+        return Some(info);
+    }
+    let packed = bytes[pos + 4];
+    pos += 7;
+    if packed & 0x80 != 0 {
+        let gct = 3usize.saturating_mul(1usize << ((packed & 0x07) + 1));
+        if pos + gct > end {
+            return Some(info);
+        }
+        pos += gct;
+    }
+    loop {
+        if pos >= end {
+            break;
+        }
+        match bytes[pos] {
+            0x3B => {
+                info.complete = true;
+                break;
+            }
+            0x21 => {
+                // Extension: `21 label` plus sub-blocks to the zero
+                // terminator. Only the NETSCAPE application extension
+                // matters here; everything else is skipped.
+                if pos + 2 > end {
+                    break;
+                }
+                let label = bytes[pos + 1];
+                if label == 0xFF {
+                    // `21 FF 0B "NETSCAPE2.0" 03 01 lo hi`: loop count 0
+                    // plays forever.
+                    let p = pos + 2;
+                    if p < end {
+                        let size = bytes[p] as usize;
+                        if size == 11 && p + 12 <= end && &bytes[p + 1..p + 12] == b"NETSCAPE2.0" {
+                            let q = p + 12;
+                            if q + 4 <= end && bytes[q] == 3 && bytes[q + 1] == 1 {
+                                let loops = (bytes[q + 2] as u16) | ((bytes[q + 3] as u16) << 8);
+                                if loops == 0 {
+                                    info.infinite = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                let mut p = pos + 2;
+                loop {
+                    if p >= end {
+                        break;
+                    }
+                    let size = bytes[p] as usize;
+                    p += 1;
+                    if size == 0 {
+                        break;
+                    }
+                    p += size;
+                    if p > end {
+                        p = end;
+                        break;
+                    }
+                }
+                pos = p;
+            }
+            0x2C => {
+                // Image descriptor: `2C` plus 9 bytes, an optional local
+                // color table, LZW minimum code size, and image-data
+                // sub-blocks to the zero terminator.
+                info.frames = (info.frames + 1).min(2);
+                if pos + 10 > end {
+                    break;
+                }
+                let packed = bytes[pos + 9];
+                pos += 10;
+                if packed & 0x80 != 0 {
+                    let lct = 3usize.saturating_mul(1usize << ((packed & 0x07) + 1));
+                    if pos + lct > end {
+                        break;
+                    }
+                    pos += lct;
+                }
+                if pos + 1 > end {
+                    break;
+                }
+                pos += 1;
+                loop {
+                    if pos >= end {
+                        break;
+                    }
+                    let size = bytes[pos] as usize;
+                    pos += 1;
+                    if size == 0 {
+                        break;
+                    }
+                    pos += size;
+                    if pos > end {
+                        break;
+                    }
+                }
+            }
+            _ => break,
+        }
+    }
+    Some(info)
+}
+
+/// Read at most `limit` head bytes of a media file for content sniffing
+/// (Sprint 5 T007): enough for the GIF header, color tables, and the
+/// NETSCAPE loop flag, without paging a whole movie into memory.
+/// Returns None when the file cannot be read here; the probe below
+/// still gates the source, so a missed sniff never renders a guess.
+fn read_head(abs: &std::path::Path, limit: usize) -> Option<Vec<u8>> {
+    use std::io::Read;
+    let file = std::fs::File::open(abs).ok()?;
+    let mut buf = Vec::new();
+    file.take(limit as u64).read_to_end(&mut buf).ok()?;
+    Some(buf)
 }
 
 fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
@@ -1764,20 +2461,44 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
             node.name_line,
             node.name_column,
             "E_UNSUPPORTED",
-            format!("image source {path:?} needs a later sprint: Sprint 2 decodes PNG and JPEG still images only"),
-            "point `path` at a `.png`, `.jpg`, or `.jpeg` file, or wait for the later footage sprint",
+            format!("image source {path:?} needs a later sprint: Framesmith decodes PNG, JPEG, still GIF, and HEIC still images only"),
+            "point `path` at a `.png`, `.jpg`, `.jpeg`, `.gif` (still), `.heic`, or `.heif` file, or wait for a later footage sprint",
         ));
         return None;
     }
     match std::fs::read(&abs) {
         Ok(bytes) => {
-            if !image_magic_ok(&bytes) {
+            // An animated GIF never belongs in `image` (Sprint 5 T007):
+            // it plays in a `video` clip. Content-based, so a renamed
+            // file is refused the same way.
+            if let Some(gif) = gif_info(&bytes, bytes.len()) {
+                if gif.frames > 1 {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_IMAGE",
+                        format!("image source {path:?} is an animated GIF; animations play in a `video` clip, not `image`"),
+                        format!("use `video path={path:?} ...` to play the animation, or point `image` at a still picture"),
+                    );
+                    return None;
+                }
+                if gif.frames == 0 || !gif.complete {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_IMAGE",
+                        format!("image source {path:?} is corrupt or not a readable GIF picture"),
+                        "restore an undamaged still GIF file at the referenced path",
+                    );
+                    return None;
+                }
+            } else if !image_magic_ok(&bytes) && !heic_magic_ok(&bytes) {
                 ctx.push(
                     node.name_line,
                     node.name_column,
                     "E_BAD_IMAGE",
-                    format!("image source {path:?} is corrupt or not a PNG/JPEG picture"),
-                    "restore an undamaged PNG or JPEG file at the referenced path",
+                    format!("image source {path:?} is corrupt or not a PNG/JPEG/GIF-still/HEIC picture"),
+                    "restore an undamaged PNG, JPEG, still GIF, or HEIC file at the referenced path",
                 );
                 return None;
             }
@@ -2353,6 +3074,116 @@ fn validate_font(ctx: &mut Ctx, node: &RawNode) -> Option<FontDecl> {
         line: node.name_line,
         column: node.name_column,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Minimal single-frame GIF: header, GCT, one image, trailer.
+    fn still_gif() -> Vec<u8> {
+        let mut b = Vec::new();
+        b.extend_from_slice(b"GIF89a");
+        b.extend_from_slice(&[1, 0, 1, 0, 0x80, 0, 0]); // 1x1, GCT flag, 2 colors
+        b.extend_from_slice(&[0, 0, 0, 255, 255, 255]); // GCT
+        b.extend_from_slice(&[0x21, 0xF9, 0x04, 0, 0, 0, 0, 0]); // GCE, no delay
+        b.extend_from_slice(&[0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0]); // image
+        b.extend_from_slice(&[2, 2, 0x44, 1, 0]); // LZW + data + terminator
+        b.extend_from_slice(&[0x3B]);
+        b
+    }
+
+    /// Two-frame GIF with a NETSCAPE loop count appended: 0 means
+    /// forever, nonzero means a finite repeat.
+    fn two_frame_gif(loops: u16) -> Vec<u8> {
+        let mut b = Vec::new();
+        b.extend_from_slice(b"GIF89a");
+        b.extend_from_slice(&[1, 0, 1, 0, 0x80, 0, 0]);
+        b.extend_from_slice(&[0, 0, 0, 255, 255, 255]);
+        b.extend_from_slice(b"\x21\xFF\x0BNETSCAPE2.0");
+        b.extend_from_slice(&[3, 1, (loops & 0xFF) as u8, (loops >> 8) as u8, 0]);
+        for _ in 0..2 {
+            b.extend_from_slice(&[0x21, 0xF9, 0x04, 10, 0, 0, 0, 0]); // GCE, 10cs
+            b.extend_from_slice(&[0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0]);
+            b.extend_from_slice(&[2, 2, 0x44, 1, 0]);
+        }
+        b.extend_from_slice(&[0x3B]);
+        b
+    }
+
+    #[test]
+    fn gif_still_is_finite_and_complete() {
+        let bytes = still_gif();
+        let info = gif_info(&bytes, bytes.len()).expect("still GIF parses");
+        assert_eq!(info.frames, 1);
+        assert!(!info.infinite);
+        assert!(info.complete);
+    }
+
+    #[test]
+    fn gif_two_frames_are_animated() {
+        let bytes = two_frame_gif(1);
+        let info = gif_info(&bytes, bytes.len()).expect("animated GIF parses");
+        assert_eq!(info.frames, 2);
+        assert!(!info.infinite, "a nonzero loop count is finite");
+        assert!(info.complete);
+    }
+
+    #[test]
+    fn gif_netscape_zero_loop_is_infinite() {
+        let bytes = two_frame_gif(0);
+        let info = gif_info(&bytes, bytes.len()).expect("looping GIF parses");
+        assert_eq!(info.frames, 2);
+        assert!(info.infinite);
+    }
+
+    #[test]
+    fn gif_no_netscape_is_finite() {
+        let mut bytes = still_gif();
+        // A second frame without any loop extension still plays once.
+        let frame: Vec<u8> = vec![
+            0x21, 0xF9, 0x04, 10, 0, 0, 0, 0, 0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2,
+            0x44, 1, 0,
+        ];
+        bytes.splice(bytes.len() - 1..bytes.len() - 1, frame);
+        let info = gif_info(&bytes, bytes.len()).expect("plays-once GIF parses");
+        assert_eq!(info.frames, 2);
+        assert!(!info.infinite);
+        assert!(info.complete);
+    }
+
+    #[test]
+    fn gif_non_gif_bytes_are_none() {
+        assert!(gif_info(b"fake", 1024).is_none());
+        assert!(gif_info(b"\x89PNG\r\n\x1a\n", 1024).is_none());
+        assert!(gif_info(b"GIF89a", 1024).is_some(), "a bare header still sniffs as GIF");
+    }
+
+    #[test]
+    fn gif_compressed_payload_bytes_cannot_fake_a_frame() {
+        // A 0x2C hiding inside image data is not a frame: the walker
+        // only counts descriptors at block boundaries, skipping data
+        // by its sub-block sizes.
+        let mut bytes = still_gif();
+        let at = bytes.iter().position(|&b| b == 0x44).expect("data byte");
+        bytes[at] = 0x2C;
+        let info = gif_info(&bytes, bytes.len()).expect("parses");
+        assert_eq!(info.frames, 1, "data bytes are skipped by size");
+        assert!(info.complete);
+    }
+
+    #[test]
+    fn heic_ftyp_brands_match() {
+        let mut heic = vec![0u8; 4];
+        heic.extend_from_slice(b"ftypheic");
+        heic.extend_from_slice(&[0, 0, 0, 0]);
+        heic.extend_from_slice(b"mif1");
+        assert!(heic_magic_ok(&heic));
+        let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
+        png.extend_from_slice(&[0u8; 8]);
+        assert!(!heic_magic_ok(&png));
+        assert!(!heic_magic_ok(b"fake"));
+    }
 }
 
 

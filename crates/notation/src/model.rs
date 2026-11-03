@@ -188,15 +188,33 @@ pub struct TextClip {
 }
 
 /// A basic `video` clip (Sprint 1 usable element, plus Sprint 2 order,
-/// plus Sprint 3 sound keys): the clip's sound enters the 48 kHz stereo
-/// mix with the declared `volume_db` (dB, `-inf` is exact silence) and
-/// linear `fade_in`/`fade_out` (seconds) applied, sample-aligned with
+/// plus Sprint 3 sound keys, plus Sprint 5 footage trim, rate, loop,
+/// and GIF/HEIC sources): the clip consumes the source window between
+/// `trim_start` and `trim_end` (seconds into the source; none means the
+/// true source end) at `rate` source seconds per composition second,
+/// for both picture and sound. Without declared keys the whole source
+/// plays at unity rate. With `loop_clip` the window repeats for the
+/// whole clip window; without it a window that outruns the source holds
+/// the last decoded frame as a still while its sound goes silent for
+/// the remainder. An animated GIF plays with its native frame timings;
+/// a still GIF or HEIC still holds one frame for the clip window. The
+/// clip's sound enters the 48 kHz stereo mix with the declared
+/// `volume_db` (dB, `-inf` is exact silence) and linear
+/// `fade_in`/`fade_out` (seconds) applied, sample-aligned with
 /// the picture. Without declared keys the sound mixes at unity gain.
 #[derive(Debug, Clone)]
 pub struct VideoClip {
     pub path: String,
     pub start: f64,
+    /// Clip length in composition seconds: the written `duration`, or
+    /// the inferred `(trim_end − trim_start) ÷ rate` when `duration`
+    /// is omitted (Sprint 5 T009). `duration_inferred` marks the
+    /// inferred case so `check` can show it for review; rendering is
+    /// identical for written and inferred lengths.
     pub duration: f64,
+    /// True when `duration` above was inferred from the footage window
+    /// (no `duration` key written); false for an explicit `duration`.
+    pub duration_inferred: bool,
     pub fit: Fit,
     pub order: i64,
     /// Sound gain in dB (`f64::NEG_INFINITY` is exact silence); default 0.
@@ -205,6 +223,18 @@ pub struct VideoClip {
     pub fade_in: f64,
     /// Linear fade out, in seconds; default 0.
     pub fade_out: f64,
+    /// Source seconds where the window opens (`trim-start`); default 0.
+    pub trim_start: f64,
+    /// Source seconds where the window closes (`trim-end`); none means
+    /// the true source end as reported by the probe.
+    pub trim_end: Option<f64>,
+    /// Source seconds consumed per composition second (`rate`, 0.1–10);
+    /// default 1.
+    pub rate: f64,
+    /// Repeat the source window for the whole clip window (`loop`,
+    /// default false). A looping clip without an explicit `duration`
+    /// is refused as unbounded.
+    pub loop_clip: bool,
     pub line: usize,
     pub column: usize,
 }
@@ -333,8 +363,10 @@ pub struct BoxClip {
     pub column: usize,
 }
 
-/// An `image` clip (Sprint 2 element): a PNG or JPEG source placed with
-/// a fit and a placement inside its target rect.
+/// An `image` clip (Sprint 2 element, plus Sprint 5 HEIC and still-GIF
+/// sources): a PNG, JPEG, HEIC/HEIF, or still-GIF source placed with
+/// a fit and a placement inside its target rect. Pointing `image` at
+/// an animated GIF is refused; animations play in a `video` clip.
 #[derive(Debug, Clone)]
 pub struct ImageClip {
     pub path: String,

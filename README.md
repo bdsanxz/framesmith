@@ -16,7 +16,7 @@ Run the commands below in order. Build steps run from this directory
   from [rustup.rs](https://rustup.rs) and re-run the command.
 - Network access once, OR FFmpeg 6+ with `libx264` and `aac`
   encoders on `PATH`. On first render with no suitable FFmpeg,
-  Framesmith downloads its pinned build itself and announces it; if
+  Framesmith downloads the newest build from its own ffmpeg-registry itself and announces it; if
   the machine is offline instead, the render refuses with the fix
   named (see limit 4).
 
@@ -103,7 +103,7 @@ framesmith errors
 - `render <folder> [-o <file>] [--backend cpu|gpu|auto]
   [--preset draft|standard|high] [--crf N] [--video-bitrate B]
   [--json]` revalidates, reports the FFmpeg finding (reusing the host
-  build, reusing/downloading the pinned build with an announcement, or
+  build, reusing/downloading the registry build with an announcement, or
   refusing before the first frame), draws frames, mixes the 48 kHz
   track, and writes one MP4 atomically. `--crf` and `--video-bitrate`
   together are refused; `--backend gpu` on a machine whose probe finds
@@ -137,8 +137,8 @@ Every limit below is observable: run the command, see the refusal.
    install-or-reconnect fix, and leaves no MP4 and no partial file.
    `framesmith check <folder>` still exits 0 in the same environment:
    validation never needs FFmpeg. With network available instead, the
-   same hidden-FFmpeg render downloads the pinned build, announces
-   `downloaded pinned FFmpeg ... (SHA256 verified)`, and exits 0.
+   same hidden-FFmpeg render downloads the registry build, announces
+   `downloaded FFmpeg ... (release digest and binary verified)`, and exits 0.
 5. **The container is always H.264 `yuv420p` plus AAC stereo
    48 kHz.** Even with no audible input the MP4 carries the silent AAC
    track (`mix: no audible sound; silent track`). Audio starts on its
