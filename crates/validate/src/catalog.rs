@@ -21,10 +21,16 @@ pub struct CatalogEntry {
 /// `errors` output stays stable.
 pub const CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
+        code: "E_AMBIGUOUS_ROOT",
+        meaning: "The project holds several compositions but does not mark exactly one as the render root (`root=true`), or a `root` mark is not `true` or `false`.",
+        example: "composition name=\"a\" { }  composition name=\"b\" { }   // no root marked",
+        fix: "Mark exactly one composition `root=true` (for example on the main cutdown); `render` uses the root by default and `render --composition <name>` selects another.",
+    },
+    CatalogEntry {
         code: "E_BAD_AUDIO",
-        meaning: "An `audio` track or video sound definition names an unusable trim, a volume above +12 dB, or a fade outside its clip window.",
+        meaning: "An `audio` track or video sound definition names an unusable trim, a `rate` outside 0.1 to 10, a volume above +12 dB, a fade outside its clip window, or an omitted `duration` with no knowable source end to infer from.",
         example: "audio path=\"s.wav\" start=0 duration=2 volume=20   // above the +12 dB ceiling",
-        fix: "Point `path` at a readable supported audio file; keep `trim-start`/`trim-end` ordered seconds from 0, `volume` at most +12 dB (`-inf` is silence), and each fade within the clip duration.",
+        fix: "Point `path` at a readable supported audio file; keep `trim-start`/`trim-end` ordered seconds from 0, `rate` from 0.1 to 10, `volume` at most +12 dB (`-inf` is silence), each fade within the clip duration, and every duration-less track offering a knowable source end (or its own `trim-end`).",
     },
     CatalogEntry {
         code: "E_BAD_BOX",
@@ -34,9 +40,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_CANVAS",
-        meaning: "A composition width or height is not a positive whole number of pixels.",
+        meaning: "A composition width or height is not a positive whole number of pixels, or the `canvas` preset is not a known preset name.",
         example: "composition name=\"t\" width=0 height=640 duration=2 fps=30 background=\"#000\" version=1 { }",
-        fix: "Set `width` and `height` to positive integers, e.g. `width=1280 height=720`.",
+        fix: "Set `width` and `height` to positive integers (e.g. `width=1280 height=720`), or set `canvas` to one of `1080p` (alias `fullhd`), `720p`, `square`, `portrait`, `4k` (alias `uhd`); explicit dimensions override the preset.",
     },
     CatalogEntry {
         code: "E_BAD_COLOR",
@@ -52,9 +58,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_DURATION",
-        meaning: "A composition `duration` is missing, not a number, or not positive.",
+        meaning: "A composition `duration` is not a number, not positive, below the 1/60s minimum length, or omitted with no finite clip end to infer from.",
         example: "composition name=\"t\" width=64 height=64 duration=-2 background=\"#000\" version=1 { }",
-        fix: "Set `duration=<positive seconds>` on the composition root, e.g. `duration=3`.",
+        fix: "Set `duration=<positive seconds>` on the composition root, e.g. `duration=3` (at least 1/60s); omit it only when a clip bounds the timeline so the composition can end at the latest finite clip end.",
     },
     CatalogEntry {
         code: "E_BAD_EASING",
@@ -87,10 +93,28 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Use an integer like `fps=30` or an exact rational like `fps=\"30000/1001\"` within 1 to 240.",
     },
     CatalogEntry {
+        code: "E_BAD_HIDDEN",
+        meaning: "A clip `hidden` switch is not `true` or `false`; hidden clips are still validated, never guessed.",
+        example: "text value=\"Hi\" start=0 duration=1 hidden=\"yes\"   // not a boolean",
+        fix: "Set `hidden=true` to hide the clip, or `hidden=false` (or remove the key) to show it.",
+    },
+    CatalogEntry {
+        code: "E_BAD_ID",
+        meaning: "A clip or composition `id` is not 1-64 letters, digits, `-` or `_`; a `start-after` names the clip's own id; or a value that must be a quoted id is not one.",
+        example: "text value=\"Hi\" start=0 duration=1 id=\"has space\"   // spaces are not id characters",
+        fix: "Set `id` to 1-64 letters, digits, `-` or `_` (e.g. `id=\"title-1\"`); point `start-after` at a different declared id.",
+    },
+    CatalogEntry {
         code: "E_BAD_IMAGE",
         meaning: "An image position, size, or placement is not a usable value, the file is corrupt or not a PNG/JPEG/still-GIF/HEIC picture, or the file is an animated GIF (animations play in a `video` clip, not `image`).",
         example: "image path=\"media/photo.png\" start=0 duration=2 placement=\"north\"   // unknown placement",
         fix: "Use numbers for `x`, `y`, `width`, and `height`, a placement like `placement=\"top-left\"`, an undamaged PNG, JPEG, still GIF, or HEIC file — and a `video` clip for animated GIFs.",
+    },
+    CatalogEntry {
+        code: "E_BAD_LABEL",
+        meaning: "A clip `label` is not a quoted editor note.",
+        example: "text value=\"Hi\" start=0 duration=1 label=5   // labels must be quoted strings",
+        fix: "Set `label=\"...\"` to a quoted editor note, or remove the key; labels never change rendered output.",
     },
     CatalogEntry {
         code: "E_BAD_MOTION",
@@ -112,9 +136,15 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_TIMING",
-        meaning: "A clip start or duration is missing, relative, non-positive, or uses `end=`; every clip needs an absolute `start`, and every clip but `video` needs a written `duration` (`video` infers an omitted one).",
+        meaning: "A clip start, duration, or relative start is unusable: a missing or negative absolute start, a non-positive duration, a written or resolved length below the 1/60s minimum, an `end=` key, an absolute `start` combined with `start-after` on one clip, a `start-after` cycle or an effective start before zero, a non-numeric `start-offset` (or one without `start-after`), an unbounded `nest` with no written `duration`, a `nest` trim/rate problem (a backward or empty window, a trim below zero, a `rate` outside 0.1 to 10, or a `trim-start` at or past the child end), a circular `nest` chain, or a `nest` chain deeper than 8 levels.",
         example: "text value=\"Hi\" duration=2   // missing start",
-        fix: "Declare an absolute `start=<seconds >= 0>` on every clip and a written `duration=<seconds > 0>` on every clip but `video` (which may omit `duration` to infer it).",
+        fix: "Declare an absolute `start=<seconds >= 0>` on every clip; write `duration=<seconds > 0>` (at least 1/60s) on every clip but `video`, `audio`, and the stills (which may omit `duration` to infer it) and on every `nest`; use `start-after` without `start`, keep chains cycle-free and at zero or later, pair `start-offset` with a numeric seconds value, and keep `nest` windows forward inside the child timeline with `rate` from 0.1 to 10, chains cycle-free, and at most 8 levels deep.",
+    },
+    CatalogEntry {
+        code: "E_BAD_TRACK",
+        meaning: "A clip `track` is not exactly one of `video`, `audio`, `caption`, or `graphics`. Undeclared tracks default by kind (video to video, audio to audio, everything else to graphics).",
+        example: "text value=\"Hi\" start=0 duration=1 track=\"titles\"   // unknown lane",
+        fix: "Set `track` to `video`, `audio`, `caption`, or `graphics`, or remove the key for the kind default; tracks never change rendered output.",
     },
     CatalogEntry {
         code: "E_BAD_VERSION",
@@ -127,6 +157,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "The pinned FFmpeg self-download failed: the transfer was interrupted, the SHA256 did not match, or the downloaded binary failed verification.",
         example: "render refuses: could not self-provide FFmpeg: checksum mismatch for the pinned build ...",
         fix: "Re-run the render to retry the download; if the failure persists, install FFmpeg manually (see the pinned source in the refusal) and re-run.",
+    },
+    CatalogEntry {
+        code: "E_DUP_ID",
+        meaning: "An `id` is declared more than once in the project; ids must be unique across the whole project (clips and compositions share one namespace).",
+        example: "text value=\"A\" start=0 duration=1 id=\"t\"  text value=\"B\" start=1 duration=1 id=\"t\"   // reused id",
+        fix: "Rename all but one `id=\"t\"` to unique ids so every clip and composition has its own name.",
     },
     CatalogEntry {
         code: "E_MISSING_COMPOSITION",
@@ -175,6 +211,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "A key is not part of the notation (composition, clip, or config keys); unknown keys are errors, never ignored.",
         example: "composition name=\"t\" width=64 height=64 duration=1 bogus=1 background=\"#000\" version=1 { }",
         fix: "Remove the key or check the spelling against the documented keys.",
+    },
+    CatalogEntry {
+        code: "E_UNKNOWN_REF",
+        meaning: "A `start-after` or `nest` reference names no declared id or composition in the project, or a `nest` names a clip id instead of a composition.",
+        example: "text value=\"B\" start=0 duration=1 start-after=\"ghost\"   // no clip or composition is called `ghost`",
+        fix: "Declare `id=\"ghost\"` on the intended clip or composition, fix the spelling, or point `nest` at a composition `name`.",
     },
     CatalogEntry {
         code: "E_UNREADABLE",
@@ -231,6 +273,7 @@ mod tests {
     /// Every code the validator can emit, plus the bootstrap codes.
     /// Keep in sync with `grep -rho '"E_[A-Z_]*"' src/`.
     const KNOWN_EMITTED: &[&str] = &[
+        "E_AMBIGUOUS_ROOT",
         "E_BAD_AUDIO",
         "E_BAD_BOX",
         "E_BAD_CANVAS",
@@ -242,13 +285,18 @@ mod tests {
         "E_BAD_FONT",
         "E_BAD_FOOTAGE",
         "E_BAD_FPS",
+        "E_BAD_HIDDEN",
+        "E_BAD_ID",
         "E_BAD_IMAGE",
+        "E_BAD_LABEL",
         "E_BAD_MOTION",
         "E_BAD_ORDER",
         "E_BAD_SPACING",
         "E_BAD_TIMING",
+        "E_BAD_TRACK",
         "E_BAD_VERSION",
         "E_DOWNLOAD_FAILED",
+        "E_DUP_ID",
         "E_MISSING_COMPOSITION",
         "E_MISSING_DIR",
         "E_MISSING_FIELD",
@@ -257,6 +305,7 @@ mod tests {
         "E_PARSE",
         "E_UNKNOWN_ELEMENT",
         "E_UNKNOWN_KEY",
+        "E_UNKNOWN_REF",
         "E_UNREADABLE",
         "E_UNSUPPORTED",
     ];

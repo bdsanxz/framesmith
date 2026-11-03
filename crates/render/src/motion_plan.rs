@@ -52,7 +52,7 @@ pub fn own_values(clip: &Clip) -> [f64; PROP_COUNT] {
             own[Prop::X.index()] = ic.x;
             own[Prop::Y.index()] = ic.y;
         }
-        Clip::Video(_) | Clip::Audio(_) => {}
+        Clip::Video(_) | Clip::Audio(_) | Clip::Nest(_) => {}
     }
     own
 }
@@ -150,7 +150,12 @@ pub fn set_window(decl: &SetDecl) -> Option<SetWindow> {
     let prop = prop_of(&decl.property)?;
     let start = secs_to_time(decl.start);
     let end = secs_to_time(decl.start + decl.duration);
-    Some(SetWindow { prop, start, end: end.max(start), value: decl.value })
+    Some(SetWindow {
+        prop,
+        start,
+        end: end.max(start),
+        value: decl.value,
+    })
 }
 
 /// Every animated value of one clip at one exact time (T009–T011):
@@ -290,17 +295,26 @@ pub fn plan_motions(comp: &Composition, fps: u32) -> Vec<ClipMotion> {
 mod tests {
     use super::*;
     use motion::{Ease, Kind};
-    use notation::model::{Align, FontStyle, Rgb, TextClip, Wrap};
+    use notation::model::{Align, FontStyle, Rgb, TextClip, TrackKind, Wrap};
 
     fn text_clip(x: f64, y: f64) -> Clip {
         Clip::Text(TextClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             value: "Hi".to_string(),
             start: 0.0,
             duration: 2.0,
             x,
             y,
             size: 48.0,
-            color: Rgb { r: 255, g: 255, b: 255 },
+            color: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             align: Align::Left,
             wrap: Wrap::Off,
             style: FontStyle::Regular,
@@ -319,7 +333,10 @@ mod tests {
         assert_eq!(frame_time(&fps, 0).to_string(), "0");
         assert_eq!(frame_time(&fps, 90).to_string(), "3");
         // Rational rate stays exact: 30000 frames at 30000/1001.
-        let ntsc = Fps { num: 30000, den: 1001 };
+        let ntsc = Fps {
+            num: 30000,
+            den: 1001,
+        };
         assert_eq!(frame_time(&ntsc, 30000).to_string(), "1001");
     }
 
@@ -329,7 +346,10 @@ mod tests {
         let motion = ClipMotion::still(0, &clip, 30);
         for k in [0, 15, 30, 60] {
             let (dx, dy) = motion.offset_at(Time::of_frame(k, 30));
-            assert!((dx, dy) == (0.0, 0.0), "still clip must not drift at frame {k}");
+            assert!(
+                (dx, dy) == (0.0, 0.0),
+                "still clip must not drift at frame {k}"
+            );
         }
     }
 
@@ -352,7 +372,10 @@ mod tests {
         let motion = ClipMotion::with_tweens(0, &clip, &[tween], 30);
         // At the tween midpoint the clip has moved half the distance.
         let (dx, _) = motion.offset_at(Time::new(3, 2));
-        assert!((dx - 50.0).abs() < 1e-9, "halfway tween must offset x by 50, got {dx}");
+        assert!(
+            (dx - 50.0).abs() < 1e-9,
+            "halfway tween must offset x by 50, got {dx}"
+        );
         // Before the tween the clip holds its own position.
         let (dx0, _) = motion.offset_at(Time::ZERO);
         assert!((dx0).abs() < 1e-9, "got {dx0}");
@@ -362,6 +385,11 @@ mod tests {
 
     fn box_clip(x: f64, opacity: f64) -> Clip {
         Clip::Box(notation::model::BoxClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             start: 0.0,
             duration: 4.0,
             x,
@@ -417,6 +445,8 @@ mod tests {
 
     fn comp_with(clips: Vec<Clip>, tweens: Vec<TweenDecl>, sets: Vec<SetDecl>) -> Composition {
         Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 320,
             height: 240,
@@ -443,14 +473,31 @@ mod tests {
         // T009: box x 10 -> 110 over [1, 2) at 30 fps.
         let comp = comp_with(
             vec![box_clip(10.0, 1.0)],
-            vec![tween_decl(0, "x", TweenKind::To, None, Some(110.0), 1.0, 1.0, EaseDecl::Linear)],
+            vec![tween_decl(
+                0,
+                "x",
+                TweenKind::To,
+                None,
+                Some(110.0),
+                1.0,
+                1.0,
+                EaseDecl::Linear,
+            )],
             vec![],
         );
         let motions = plan_motions(&comp, 30);
         let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k)).x;
         assert_eq!(at(0), 10.0, "before the window the authored value holds");
-        assert_eq!(at(30), 10.0, "the start frame shows exactly the start value");
-        assert_eq!(at(45), 60.0, "the midpoint frame is exactly halfway (linear)");
+        assert_eq!(
+            at(30),
+            10.0,
+            "the start frame shows exactly the start value"
+        );
+        assert_eq!(
+            at(45),
+            60.0,
+            "the midpoint frame is exactly halfway (linear)"
+        );
         assert_eq!(at(60), 110.0, "the end frame shows exactly the end value");
         assert_eq!(at(90), 110.0, "past the window the end value holds");
     }
@@ -460,13 +507,26 @@ mod tests {
         // T009: from 60 to authored 10 over [1, 2).
         let comp = comp_with(
             vec![box_clip(10.0, 1.0)],
-            vec![tween_decl(0, "x", TweenKind::From, Some(60.0), None, 1.0, 1.0, EaseDecl::Linear)],
+            vec![tween_decl(
+                0,
+                "x",
+                TweenKind::From,
+                Some(60.0),
+                None,
+                1.0,
+                1.0,
+                EaseDecl::Linear,
+            )],
             vec![],
         );
         let motions = plan_motions(&comp, 30);
         let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k)).x;
         assert_eq!(at(0), 60.0);
-        assert_eq!(at(30), 60.0, "the start frame shows exactly the given value");
+        assert_eq!(
+            at(30),
+            60.0,
+            "the start frame shows exactly the given value"
+        );
         assert_eq!(at(45), 35.0, "linear midpoint between given and authored");
         assert_eq!(at(60), 10.0, "the end frame is back at authored");
     }
@@ -476,7 +536,16 @@ mod tests {
         // T009: 0 -> 100 over [0, 1), authored 10 ignored inside.
         let comp = comp_with(
             vec![box_clip(10.0, 1.0)],
-            vec![tween_decl(0, "x", TweenKind::FromTo, Some(0.0), Some(100.0), 0.0, 1.0, EaseDecl::Linear)],
+            vec![tween_decl(
+                0,
+                "x",
+                TweenKind::FromTo,
+                Some(0.0),
+                Some(100.0),
+                0.0,
+                1.0,
+                EaseDecl::Linear,
+            )],
             vec![],
         );
         let motions = plan_motions(&comp, 30);
@@ -491,7 +560,16 @@ mod tests {
         // T009: a tween naming clip 1 leaves clip 0 still.
         let comp = comp_with(
             vec![box_clip(10.0, 1.0), box_clip(20.0, 1.0)],
-            vec![tween_decl(1, "x", TweenKind::To, None, Some(120.0), 0.0, 1.0, EaseDecl::Linear)],
+            vec![tween_decl(
+                1,
+                "x",
+                TweenKind::To,
+                None,
+                Some(120.0),
+                0.0,
+                1.0,
+                EaseDecl::Linear,
+            )],
             vec![],
         );
         let motions = plan_motions(&comp, 30);
@@ -505,16 +583,46 @@ mod tests {
         let comp = comp_with(
             vec![box_clip(10.0, 1.0)],
             vec![
-                tween_decl(0, "scale", TweenKind::FromTo, Some(1.0), Some(3.0), 0.0, 2.0, EaseDecl::Linear),
-                tween_decl(0, "rotation", TweenKind::To, None, Some(90.0), 0.0, 2.0, EaseDecl::Linear),
-                tween_decl(0, "opacity", TweenKind::From, Some(0.0), None, 0.0, 2.0, EaseDecl::Linear),
+                tween_decl(
+                    0,
+                    "scale",
+                    TweenKind::FromTo,
+                    Some(1.0),
+                    Some(3.0),
+                    0.0,
+                    2.0,
+                    EaseDecl::Linear,
+                ),
+                tween_decl(
+                    0,
+                    "rotation",
+                    TweenKind::To,
+                    None,
+                    Some(90.0),
+                    0.0,
+                    2.0,
+                    EaseDecl::Linear,
+                ),
+                tween_decl(
+                    0,
+                    "opacity",
+                    TweenKind::From,
+                    Some(0.0),
+                    None,
+                    0.0,
+                    2.0,
+                    EaseDecl::Linear,
+                ),
             ],
             vec![],
         );
         let motions = plan_motions(&comp, 30);
         let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k));
         let start = at(0);
-        assert_eq!((start.scale, start.rotation, start.opacity), (1.0, 0.0, 0.0));
+        assert_eq!(
+            (start.scale, start.rotation, start.opacity),
+            (1.0, 0.0, 0.0)
+        );
         let mid = at(30);
         assert_eq!((mid.scale, mid.rotation, mid.opacity), (2.0, 45.0, 0.5));
         let end = at(60);
@@ -554,8 +662,16 @@ mod tests {
         let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k)).x;
         assert_eq!(at(37), 50.0, "before the overlap the first hold shows");
         assert_eq!(at(52), 70.0, "inside the overlap the later hold wins");
-        assert_eq!(at(67), 70.0, "after the first window the later hold still shows");
-        assert_eq!(at(75), 10.0, "after both windows the authored value returns");
+        assert_eq!(
+            at(67),
+            70.0,
+            "after the first window the later hold still shows"
+        );
+        assert_eq!(
+            at(75),
+            10.0,
+            "after both windows the authored value returns"
+        );
     }
 
     #[test]
@@ -563,12 +679,24 @@ mod tests {
         // T011: outside the set window the tweened value shows.
         let comp = comp_with(
             vec![box_clip(0.0, 1.0)],
-            vec![tween_decl(0, "x", TweenKind::To, None, Some(100.0), 0.0, 2.0, EaseDecl::Linear)],
+            vec![tween_decl(
+                0,
+                "x",
+                TweenKind::To,
+                None,
+                Some(100.0),
+                0.0,
+                2.0,
+                EaseDecl::Linear,
+            )],
             vec![set_decl(0, "x", 40.0, 0.5, 0.5)],
         );
         let motions = plan_motions(&comp, 30);
         let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k)).x;
-        assert!((at(7) - 100.0 * 7.0 / 60.0).abs() < 1e-9, "tweened before the set");
+        assert!(
+            (at(7) - 100.0 * 7.0 / 60.0).abs() < 1e-9,
+            "tweened before the set"
+        );
         assert_eq!(at(15), 40.0, "set wins at its start frame");
         assert_eq!(at(29), 40.0, "set wins at its last frame");
         assert!((at(30) - 50.0).abs() < 1e-9, "tweened again after the set");
@@ -603,7 +731,16 @@ mod tests {
         for ease in easings {
             let comp = comp_with(
                 vec![box_clip(0.0, 1.0)],
-                vec![tween_decl(0, "x", TweenKind::To, None, Some(100.0), 0.0, 2.0, ease)],
+                vec![tween_decl(
+                    0,
+                    "x",
+                    TweenKind::To,
+                    None,
+                    Some(100.0),
+                    0.0,
+                    2.0,
+                    ease,
+                )],
                 vec![],
             );
             let motions = plan_motions(&comp, 30);
@@ -614,7 +751,10 @@ mod tests {
         }
         mids.sort();
         mids.dedup();
-        assert!(mids.len() >= 11, "curves must shape middles distinctly, got {mids:?}");
+        assert!(
+            mids.len() >= 11,
+            "curves must shape middles distinctly, got {mids:?}"
+        );
     }
 
     #[test]
@@ -623,11 +763,22 @@ mod tests {
         let run = |n: f64| -> Vec<f64> {
             let comp = comp_with(
                 vec![box_clip(0.0, 1.0)],
-                vec![tween_decl(0, "x", TweenKind::To, None, Some(100.0), 0.0, 1.0, EaseDecl::OutBack(n))],
+                vec![tween_decl(
+                    0,
+                    "x",
+                    TweenKind::To,
+                    None,
+                    Some(100.0),
+                    0.0,
+                    1.0,
+                    EaseDecl::OutBack(n),
+                )],
                 vec![],
             );
             let motions = plan_motions(&comp, 30);
-            (0..=30).map(|k| motions[0].values_at(frame_time(&comp.fps, k)).x).collect()
+            (0..=30)
+                .map(|k| motions[0].values_at(frame_time(&comp.fps, k)).x)
+                .collect()
         };
         let small = run(1.0);
         let big = run(3.0);

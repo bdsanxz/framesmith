@@ -9,10 +9,11 @@
 //!   render refuses before the first frame and writes no MP4)
 
 use notation::model::{
-    AudioClip, BoxClip, Clip, Composition, EaseDecl, Fit, FontDecl, Fps, ImageClip, Placement,
-    SetDecl, TextClip, TweenDecl, TweenKind, VideoClip, parse_color, CONFIG_FILE,
+    parse_color, AudioClip, BoxClip, Clip, Composition, EaseDecl, Fit, FontDecl, Fps, ImageClip,
+    NestClip, Placement, SetDecl, StartAfter, TextClip, TrackKind, TweenDecl, TweenKind, VideoClip,
+    CONFIG_FILE, MIN_DURATION_SECS,
 };
-use notation::parse::{RawNode, RawValue, ValueKind, parse_document};
+use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
 use std::path::Path;
 
 /// One located, coded problem (or, for unsupported use, one
@@ -67,7 +68,16 @@ pub enum Status {
 #[derive(Debug, Clone)]
 pub struct Verdict {
     pub status: Status,
+    /// The selected composition: the root by default (Sprint 6 T006).
+    /// `None` when the project is invalid.
     pub composition: Option<Composition>,
+    /// Every validated composition in document order (Sprint 6 T006).
+    /// Empty when the project is invalid; otherwise `composition` is
+    /// the `root_name` entry of this list.
+    pub compositions: Vec<Composition>,
+    /// Name of the render root (the lone composition, or the one
+    /// marked `root=true`). `None` when the project is invalid.
+    pub root_name: Option<String>,
     pub diagnostics: Vec<Diagnostic>,
     /// Optional `framesmith.toml` setting, default true. Later sprints
     /// (T009/T010) own download behavior; the foundation records it so
@@ -78,6 +88,28 @@ pub struct Verdict {
     /// rendered length for `check` output review. Clamp reports live
     /// here, never as diagnostics, so clamping stays a valid verdict.
     pub footage: Vec<VideoFootage>,
+    /// One entry per resolved length inferred from an omitted `duration`
+    /// (Sprint 6 T003): audio clips (source window at rate, like video),
+    /// stills (text, box, image run until the composition end), and the
+    /// composition itself (until the latest finite clip end). `check`
+    /// shows every entry for review before rendering; video inference
+    /// keeps its own [`VideoFootage`] echo and never duplicates here.
+    pub inferred: Vec<InferredLength>,
+}
+
+/// One reviewable inferred length (Sprint 6 T003): the resolved value
+/// of an omitted `duration`, with the facts it came from. `kind` is
+/// `audio`, `text`, `box`, `image`, or `composition`; `label` carries
+/// the media path (audio, image) or the composition name, and is none
+/// for text and box clips; `detail` states the rule that resolved it.
+#[derive(Debug, Clone)]
+pub struct InferredLength {
+    pub kind: &'static str,
+    pub label: Option<String>,
+    pub line: usize,
+    pub column: usize,
+    pub duration: f64,
+    pub detail: String,
 }
 
 /// The reviewable footage window of one valid `video` clip (Sprint 5
@@ -263,12 +295,51 @@ fn as_int(v: &RawValue) -> Option<i64> {
     }
 }
 
+/// One declared id, collected for project-wide uniqueness checking.
+struct IdEntry {
+    value: String,
+    line: usize,
+    column: usize,
+    /// True for the composition name/id, false for a clip id.
+    is_composition: bool,
+    /// Index of the owning composition in document order (Sprint 6
+    /// T006): clips register their composition's index so a
+    /// `start-after` naming a clip in another composition can refuse
+    /// instead of timing against a timeline it never renders with.
+    comp: usize,
+}
+
+/// One id reference, collected for existence checking.
+struct RefEntry {
+    /// `start-after` or `nest`.
+    kind: &'static str,
+    target: String,
+    line: usize,
+    column: usize,
+    /// The referring clip's own id, when it declares one.
+    owner_id: Option<String>,
+    owner_line: usize,
+    /// True when the target must name a composition (`nest`); false
+    /// when any id in the project namespace answers (`start-after`).
+    needs_composition: bool,
+    /// Index of the referring composition in document order (Sprint 6
+    /// T006), so cross-composition `start-after` targets refuse.
+    comp: usize,
+}
+
 struct Ctx<'a> {
     file: String,
     folder: &'a Path,
     diags: Vec<Diagnostic>,
     invalid: bool,
     footage: Vec<VideoFootage>,
+    inferred: Vec<InferredLength>,
+    ids: Vec<IdEntry>,
+    refs: Vec<RefEntry>,
+    /// Index of the composition currently validating, in document
+    /// order (Sprint 6 T006). Id and reference entries stamp this so
+    /// cross-composition `start-after` targets can refuse.
+    current_comp: usize,
 }
 
 impl<'a> Ctx<'a> {
@@ -283,6 +354,23 @@ impl<'a> Ctx<'a> {
         if code != "E_UNSUPPORTED" {
             self.invalid = true;
         }
+        // One diagnostic per timing error (CAP-005): the inference loop
+        // re-runs relative-start resolution as the composition end goes
+        // from unknown to known, and a re-run must never double-report
+        // the cycle or before-zero it already named. An identical
+        // diagnostic (same location, code, and message) reports the
+        // same error, so it is kept exactly once.
+        let message = message.into();
+        let duplicate = self.diags.iter().any(|d| {
+            d.file == self.file
+                && d.line == line
+                && d.column == column
+                && d.code == code
+                && d.message == message
+        });
+        if duplicate {
+            return;
+        }
         self.diags.push(Diagnostic::new(
             &self.file.clone(),
             line,
@@ -296,6 +384,431 @@ impl<'a> Ctx<'a> {
 
 fn find<'b>(node: &'b RawNode, key: &str) -> Option<&'b RawValue> {
     node.props.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+}
+
+/// Find a hyphenated key under either spelling (`start-after` or
+/// `start_after`): CSS-like hyphenated attributes accept underscore
+/// aliases everywhere.
+fn find_either<'b>(node: &'b RawNode, hyphen: &str, underscore: &str) -> Option<&'b RawValue> {
+    find(node, hyphen).or_else(|| find(node, underscore))
+}
+
+/// Sprint 6 id syntax (T001): 1–64 characters of ASCII letters,
+/// digits, dashes, and underscores. Anything else is refused, never
+/// guessed into a referenceable name.
+fn valid_id_syntax(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= 64
+        && s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Parse one clip `id` (T001): absent means anonymous; present must be
+/// a quoted string with valid id syntax. Returns `None` after
+/// reporting `E_BAD_ID` when the value is unusable, `Some(None)` when
+/// absent, `Some(Some(id))` when declared. The caller registers a
+/// declared id for project-wide uniqueness checking.
+fn parse_clip_id(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<String>> {
+    match find(node, "id") {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some(s) if valid_id_syntax(s) => Some(Some(s.to_string())),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_ID",
+                    format!(
+                        "{what} `id` must be 1-64 letters, digits, `-` or `_`; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set `id=\"<letters-digits-dashes-underscores>\"` on the {what}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one clip `track` (T004): absent means the kind default (video
+/// to video, audio to audio, everything else to graphics; `caption`
+/// only when written). An unknown name fails with `E_BAD_TRACK`
+/// naming the accepted set. One bad value yields exactly this one
+/// diagnostic.
+fn parse_track(ctx: &mut Ctx, node: &RawNode, element: &str, what: &str) -> Option<TrackKind> {
+    match find(node, "track") {
+        None => Some(TrackKind::default_for_clip(element)),
+        Some(v) => match as_str(v).and_then(TrackKind::parse) {
+            Some(t) => Some(t),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TRACK",
+                    format!(
+                        "{what} `track` {} is unknown; accepted tracks are: {}",
+                        raw_text(v),
+                        TrackKind::ACCEPTED.join(", ")
+                    ),
+                    "set `track=` to one of `video`, `audio`, `caption`, or `graphics`, or remove the key for the kind default",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one clip `label` (T004): absent means no note; present must be
+/// a quoted string and rides along with no render effect. A non-string
+/// label fails with `E_BAD_LABEL`, never guessed into text.
+fn parse_label(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<String>> {
+    match find(node, "label") {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some(s) => Some(Some(s.to_string())),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_LABEL",
+                    format!(
+                        "{what} `label` must be a quoted editor note; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set `label=\"...\"` on the {what}, or remove the key"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one clip `hidden` switch (T009): absent means visible;
+/// present must be `true` or `false`. A non-boolean value fails with
+/// `E_BAD_HIDDEN`, never guessed. Hidden clips still validate fully:
+/// every other key on the clip reports its own diagnostics, and the
+/// id stays referenceable.
+fn parse_hidden(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<bool> {
+    match find(node, "hidden") {
+        None => Some(false),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_HIDDEN",
+                    format!(
+                        "{what} `hidden` must be `true` or `false`; found {}",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `hidden=true` to hide the {what}, or `hidden=false` (or remove the key) to show it"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one id reference (`start-after` or the `nest` target): absent
+/// means none; present must be a quoted string. The existence check
+/// runs project-wide after every clip validates, so one bad value
+/// still yields exactly one diagnostic.
+fn parse_ref(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    key: &str,
+    what: &str,
+) -> Option<Option<(String, usize, usize)>> {
+    let found = if key == "start-after" {
+        find_either(node, "start-after", "start_after")
+    } else {
+        find(node, key)
+    };
+    match found {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some(s) => Some(Some((s.to_string(), v.line, v.column))),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "{what} `{key}` must be a quoted id naming another clip or composition; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set `{key}=\"<id>\"` naming a declared `id` (or the composition name)"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Canvas preset table (T005): preset name to canvas pixels. Aliases
+/// (`fullhd` for `1080p`, `uhd` for `4k`) resolve identically.
+fn canvas_preset_dims(name: &str) -> Option<(u32, u32)> {
+    match name {
+        "1080p" | "fullhd" => Some((1920, 1080)),
+        "720p" => Some((1280, 720)),
+        "square" => Some((1080, 1080)),
+        "portrait" => Some((1080, 1920)),
+        "4k" | "uhd" => Some((3840, 2160)),
+        _ => None,
+    }
+}
+
+/// Canonical preset name for a valid `canvas` value: aliases resolve to
+/// their preset (`fullhd` to `1080p`, `uhd` to `4k`).
+fn canvas_canonical(name: &str) -> Option<&'static str> {
+    match name {
+        "1080p" | "fullhd" => Some("1080p"),
+        "720p" => Some("720p"),
+        "square" => Some("square"),
+        "portrait" => Some("portrait"),
+        "4k" | "uhd" => Some("4k"),
+        _ => None,
+    }
+}
+
+/// Accepted canvas spellings for diagnostics, aliases shown with their preset.
+fn accepted_canvases() -> &'static str {
+    "`1080p` (alias `fullhd`), `720p`, `square`, `portrait`, `4k` (alias `uhd`)"
+}
+
+/// Project-wide id and reference check (T001): every duplicate id
+/// (one diagnostic naming every line), every unknown reference
+/// (naming the referring line and the missing id), and every
+/// self-reference. Runs after all clips validate so every problem in
+/// the composition reports together.
+fn check_ids_and_refs(ctx: &mut Ctx) {
+    use std::collections::BTreeMap;
+    let mut by_value: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    for (i, e) in ctx.ids.iter().enumerate() {
+        by_value.entry(e.value.clone()).or_default().push(i);
+    }
+    for (value, idxs) in &by_value {
+        if idxs.len() < 2 {
+            continue;
+        }
+        let lines: Vec<String> = idxs.iter().map(|&i| ctx.ids[i].line.to_string()).collect();
+        let at = &ctx.ids[idxs[idxs.len() - 1]];
+        ctx.push(
+            at.line,
+            at.column,
+            "E_DUP_ID",
+            format!(
+                "duplicate id {value:?} declared at lines {}; ids must be unique across the whole project",
+                lines.join(", ")
+            ),
+            format!("rename all but one `id={value:?}` to unique ids"),
+        );
+    }
+    for r in std::mem::take(&mut ctx.refs) {
+        // A clip that follows itself is refused like a bad reference:
+        // its own id answers, but the relation is meaningless.
+        if let Some(owner) = &r.owner_id {
+            if owner == &r.target {
+                ctx.push(
+                    r.line,
+                    r.column,
+                    "E_BAD_ID",
+                    format!(
+                        "`{}` {:?} names the clip's own id (line {}); a clip cannot follow itself",
+                        r.kind, r.target, r.owner_line,
+                    ),
+                    format!(
+                        "point `{}=` at a different clip or composition id, or remove the key",
+                        r.kind
+                    ),
+                );
+                continue;
+            }
+        }
+        let found = ctx.ids.iter().find(|e| e.value == r.target);
+        match found {
+            None => {
+                ctx.push(
+                    r.line,
+                    r.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "`{}` {:?} names no declared id or composition in this project",
+                        r.kind, r.target
+                    ),
+                    format!(
+                        "declare `id={:?}` on the intended clip or composition, or fix the spelling",
+                        r.target
+                    ),
+                );
+            }
+            Some(hit) if r.needs_composition && !hit.is_composition => {
+                ctx.push(
+                    r.line,
+                    r.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "`{}` {:?} names a clip id, but a nest target must be a composition",
+                        r.kind, r.target
+                    ),
+                    "point `nest=` at the composition `name` (or its `id`), not a clip id",
+                );
+            }
+            Some(_) => {}
+        }
+    }
+}
+
+/// Display name for a clip inside a `start-after` chain diagnostic:
+/// its `id` when declared, else its document position.
+fn chain_name(clips: &[Clip], index: usize) -> String {
+    match clips[index].id() {
+        Some(id) => format!("{id:?}"),
+        None => format!("<clip {}>", index + 1),
+    }
+}
+
+/// Resolve one clip's effective start through its `start-after` chain
+/// (T002): an absolute clip resolves as written; a relative clip
+/// resolves at its target's effective end plus its offset. Returns
+/// `None` after recording exactly one diagnostic (cycle, before-zero)
+/// or silently when the target already failed (unknown, self, dropped,
+/// or upstream failure) so one bad value never cascades.
+#[allow(clippy::too_many_arguments)]
+fn resolve_one(
+    ctx: &mut Ctx,
+    clips: &[Clip],
+    by_id: &std::collections::HashMap<&str, usize>,
+    comp_name: &str,
+    comp_id: Option<&str>,
+    comp_end: Option<f64>,
+    index: usize,
+    resolved: &mut [Option<f64>],
+    failed: &mut [bool],
+    visiting: &mut [bool],
+    stack: &mut Vec<usize>,
+) -> Option<f64> {
+    if let Some(s) = resolved[index] {
+        return Some(s);
+    }
+    if failed[index] {
+        return None;
+    }
+    let (target, offset, line, column) = match clips[index].start_after() {
+        None => return Some(clips[index].start()),
+        Some(sa) => (sa.target.clone(), sa.offset, sa.line, sa.column),
+    };
+    if visiting[index] {
+        let pos = stack.iter().position(|&j| j == index).unwrap_or(0);
+        let mut chain: Vec<String> = stack[pos..].iter().map(|&j| chain_name(clips, j)).collect();
+        chain.push(chain_name(clips, index));
+        ctx.push(
+            line,
+            column,
+            "E_BAD_TIMING",
+            format!(
+                "`start-after` chain cycles: {}; a clip cannot follow itself through other clips",
+                chain.join(" -> ")
+            ),
+            "break the cycle so every `start-after` chain ends at an absolute `start`",
+        );
+        for &j in &stack[pos..] {
+            failed[j] = true;
+        }
+        failed[index] = true;
+        return None;
+    }
+    // A self-reference was already refused (`E_BAD_ID`): never resolve.
+    if clips[index].id() == Some(target.as_str()) {
+        failed[index] = true;
+        return None;
+    }
+    visiting[index] = true;
+    stack.push(index);
+    let target_end = if let Some(&j) = by_id.get(target.as_str()) {
+        resolve_one(ctx, clips, by_id, comp_name, comp_id, comp_end, j, resolved, failed, visiting, stack)
+            // A target whose own duration is still pending (a still with
+            // an omitted `duration` waiting for the composition end)
+            // has no end yet: the follower waits silently for a later
+            // inference pass instead of resolving against `NAN`.
+            .map(|s| s + clips[j].duration())
+            .filter(|e| e.is_finite())
+    } else if Some(target.as_str()) == comp_id || target.as_str() == comp_name {
+        comp_end
+    } else {
+        // Unknown, or a dropped target whose own error already reported:
+        // stay silent so the one bad value yields one diagnostic.
+        None
+    };
+    stack.pop();
+    visiting[index] = false;
+    match target_end {
+        None => {
+            failed[index] = true;
+            None
+        }
+        Some(end) => {
+            let effective = end + offset;
+            if effective < 0.0 {
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "`start-after` {target:?} ends at {end}s with `start-offset` {offset}s, so this clip would start at {effective}s before zero"
+                    ),
+                    "lengthen the referenced window, shrink the negative offset, or give this clip an absolute `start=`",
+                );
+                failed[index] = true;
+                None
+            } else {
+                resolved[index] = Some(effective);
+                Some(effective)
+            }
+        }
+    }
+}
+
+/// Resolve every `start-after` window project-wide (T002): each
+/// relative clip starts exactly at its referenced effective end plus
+/// its offset (negative overlaps are kept as authored); composition
+/// names answer as the composition end. Absolute clips are untouched.
+fn resolve_relative_starts(
+    ctx: &mut Ctx,
+    clips: &mut [Clip],
+    comp_name: &str,
+    comp_id: Option<&str>,
+    comp_duration: Option<f64>,
+) {
+    use std::collections::HashMap;
+    let mut by_id: HashMap<&str, usize> = HashMap::new();
+    for (i, c) in clips.iter().enumerate() {
+        if let Some(id) = c.id() {
+            by_id.entry(id).or_insert(i);
+        }
+    }
+    let comp_end = comp_duration.filter(|d| d.is_finite() && *d > 0.0);
+    let mut resolved: Vec<Option<f64>> = vec![None; clips.len()];
+    let mut failed: Vec<bool> = vec![false; clips.len()];
+    let mut visiting: Vec<bool> = vec![false; clips.len()];
+    let mut stack: Vec<usize> = Vec::new();
+    for i in 0..clips.len() {
+        if clips[i].start_after().is_none() || resolved[i].is_some() || failed[i] {
+            continue;
+        }
+        resolve_one(
+            ctx, clips, &by_id, comp_name, comp_id, comp_end, i, &mut resolved, &mut failed,
+            &mut visiting, &mut stack,
+        );
+    }
+    for (i, c) in clips.iter_mut().enumerate() {
+        if let Some(s) = resolved[i] {
+            c.set_start(s);
+        }
+    }
 }
 
 /// Validate an optional `framesmith.toml` config. Only `key = value`
@@ -382,6 +895,8 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         return Verdict {
             status: Status::Invalid,
             composition: None,
+            compositions: Vec::new(),
+            root_name: None,
             diagnostics: vec![Diagnostic::new(
                 &file,
                 1,
@@ -392,13 +907,12 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             )],
             ffmpeg_auto_download: true,
             footage: Vec::new(),
+            inferred: Vec::new(),
         };
     }
 
     let (ffmpeg_auto_download, config_diags) = validate_config(folder, &config_file);
-    let config_invalid = config_diags
-        .iter()
-        .any(|d| d.code != "E_UNSUPPORTED");
+    let config_invalid = config_diags.iter().any(|d| d.code != "E_UNSUPPORTED");
 
     let text = match std::fs::read_to_string(folder.join(COMPOSITION_FILE)) {
         Ok(t) => t,
@@ -419,9 +933,12 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             return Verdict {
                 status: Status::Invalid,
                 composition: None,
+                compositions: Vec::new(),
+                root_name: None,
                 diagnostics: diags,
                 ffmpeg_auto_download,
                 footage: Vec::new(),
+            inferred: Vec::new(),
             };
         }
     };
@@ -441,9 +958,12 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             return Verdict {
                 status: Status::Invalid,
                 composition: None,
+                compositions: Vec::new(),
+                root_name: None,
                 diagnostics: diags,
                 ffmpeg_auto_download,
                 footage: Vec::new(),
+            inferred: Vec::new(),
             };
         }
     };
@@ -454,10 +974,21 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         diags: config_diags,
         invalid: config_invalid,
         footage: Vec::new(),
+        inferred: Vec::new(),
+        ids: Vec::new(),
+        refs: Vec::new(),
+        current_comp: 0,
     };
 
-    let root = roots.iter().find(|n| n.name == "composition");
-    if root.is_none() {
+    // Several uniquely named `composition` blocks validate together
+    // (Sprint 6 T006); anything else at the top level is refused.
+    let comp_positions: Vec<usize> = roots
+        .iter()
+        .enumerate()
+        .filter(|(_, n)| n.name == "composition")
+        .map(|(i, _)| i)
+        .collect();
+    if comp_positions.is_empty() {
         let (line, col) = roots
             .first()
             .map(|n| (n.name_line, n.name_column))
@@ -479,21 +1010,219 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 "only a single `composition` root is allowed",
             );
         }
-        return finish(ctx, None, ffmpeg_auto_download);
+        return finish(ctx, None, Vec::new(), None, ffmpeg_auto_download);
     }
-    if roots.len() > 1 {
-        for n in roots.iter().filter(|n| n.name != "composition") {
+    for n in roots.iter().filter(|n| n.name != "composition") {
+        ctx.push(
+            n.name_line,
+            n.name_column,
+            "E_UNKNOWN_ELEMENT",
+            format!("unexpected top-level node {:?}", n.name),
+            "keep only `composition` blocks at the top level",
+        );
+    }
+
+    // Exactly one render root (Sprint 6 T006, REC-002): a lone
+    // composition is the root implicitly and any `root` mark on it is
+    // ignored; several compositions require exactly one `root=true`.
+    let marks: Vec<Option<bool>> = comp_positions
+        .iter()
+        .map(|&i| parse_root_mark(&mut ctx, &roots[i]))
+        .collect();
+    let root_pos: usize = if comp_positions.len() == 1 {
+        0
+    } else {
+        let marked: Vec<usize> = marks
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| **m == Some(true))
+            .map(|(i, _)| i)
+            .collect();
+        if marked.len() == 1 {
+            marked[0]
+        } else {
+            if marked.is_empty() {
+                let first = &roots[comp_positions[0]];
+                ctx.push(
+                    first.name_line,
+                    first.name_column,
+                    "E_AMBIGUOUS_ROOT",
+                    format!(
+                        "project has {} compositions but none is marked `root=true`; exactly one composition must be the render root",
+                        comp_positions.len()
+                    ),
+                    "mark exactly one composition `root=true` (`render` uses the root by default and `render --composition <name>` selects another)",
+                );
+            } else {
+                let at = &roots[comp_positions[marked[marked.len() - 1]]];
+                let (line, col) = find(at, "root")
+                    .map(|v| (v.line, v.column))
+                    .unwrap_or((at.name_line, at.name_column));
+                let marked_names: Vec<String> = marked
+                    .iter()
+                    .map(|&i| {
+                        let n = &roots[comp_positions[i]];
+                        let label = find(n, "name")
+                            .and_then(as_str)
+                            .unwrap_or("?");
+                        format!("{label:?} (line {})", n.name_line)
+                    })
+                    .collect();
+                ctx.push(
+                    line,
+                    col,
+                    "E_AMBIGUOUS_ROOT",
+                    format!(
+                        "project marks {} compositions as `root=true` ({}); exactly one composition must be the render root",
+                        marked.len(),
+                        marked_names.join(", ")
+                    ),
+                    "keep a single `root=true` and remove (or set `root=false` on) the other marks",
+                );
+            }
+            0
+        }
+    };
+
+    // --- per-composition validation --------------------------------------
+    // Headers, children, and timing resolve per composition; ids stay
+    // project-wide so duplicates and unknown references report
+    // together (T001). Single-composition projects flow through the
+    // same path, so their diagnostics keep their exact order.
+    let mut partials: Vec<PartialComposition> = Vec::new();
+    for (ci, &ri) in comp_positions.iter().enumerate() {
+        ctx.current_comp = ci;
+        partials.push(validate_composition_parts(&mut ctx, &roots[ri]));
+    }
+    check_cross_composition_refs(&mut ctx, &partials);
+    // --- project-wide ids and references (T001) ------------------------
+    // Every duplicate id, unknown reference, and self-reference reports
+    // here, together with the per-clip problems above.
+    check_ids_and_refs(&mut ctx);
+    let mut compositions: Vec<Composition> = Vec::new();
+    for (ci, partial) in partials.into_iter().enumerate() {
+        ctx.current_comp = ci;
+        compositions.push(finish_composition(&mut ctx, partial));
+    }
+    // Sprint 6 T007: nest uses resolve against the finished composition
+    // ends — past-end trims, circular chains, and over-deep chains
+    // refuse here, before frame one, with the chain and the limit named.
+    check_nest_graph(&mut ctx, &compositions);
+    let (selected, all, root_name) = if !ctx.invalid {
+        let selected = compositions[root_pos].clone();
+        let name = compositions[root_pos].name.clone();
+        (Some(selected), compositions, Some(name))
+    } else {
+        (None, Vec::new(), None)
+    };
+    finish(ctx, selected, all, root_name, ffmpeg_auto_download)
+}
+
+/// One composition's validated header plus children (Sprint 6 T006):
+/// everything `finish_composition` needs to resolve windows, timing,
+/// and motion for exactly this composition.
+struct PartialComposition<'n> {
+    root: &'n RawNode,
+    name: String,
+    comp_id: Option<String>,
+    canvas_name: Option<String>,
+    width: Option<f64>,
+    height: Option<f64>,
+    duration_omitted: bool,
+    duration_written: Option<f64>,
+    fps: Fps,
+    background: notation::model::Rgb,
+    version: u64,
+    clips: Vec<Clip>,
+    fonts: Vec<FontDecl>,
+    pending_stills: Vec<usize>,
+    motion_nodes: Vec<(bool, &'n RawNode)>,
+}
+
+/// Parse one composition `root` mark (Sprint 6 T006): absent means
+/// "not marked"; present must be a bare `true` or `false`.
+fn parse_root_mark(ctx: &mut Ctx, root: &RawNode) -> Option<bool> {
+    match find(root, "root") {
+        None => None,
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_AMBIGUOUS_ROOT",
+                    format!(
+                        "composition `root` must be `true` or `false`, found {}",
+                        raw_text(v)
+                    ),
+                    "set `root=true` on the one default composition, or remove the key",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Refuse `start-after` targets that live in another composition
+/// (Sprint 6 T006): each composition renders its own timeline, so a
+/// clip can only follow clips in its own composition or name the
+/// composition itself (which resolves to its end). `nest` targets
+/// stay project-wide; nest execution is T007.
+fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) {
+    for i in 0..ctx.refs.len() {
+        let (target, line, column, owner) = {
+            let r = &ctx.refs[i];
+            if r.needs_composition {
+                continue;
+            }
+            (r.target.clone(), r.line, r.column, r.comp)
+        };
+        let hits: Vec<(bool, usize)> = ctx
+            .ids
+            .iter()
+            .filter(|e| e.value == target)
+            .map(|e| (e.is_composition, e.comp))
+            .collect();
+        if hits.len() != 1 {
+            // Unknown targets report in `check_ids_and_refs`; duplicated
+            // targets report as `E_DUP_ID` there. Neither needs a second
+            // diagnostic here.
+            continue;
+        }
+        let (hit_is_comp, hit_comp) = hits[0];
+        if hit_comp == owner {
+            continue;
+        }
+        let own = partials[owner].name.clone();
+        let other = partials[hit_comp].name.clone();
+        if hit_is_comp {
             ctx.push(
-                n.name_line,
-                n.name_column,
-                "E_UNKNOWN_ELEMENT",
-                format!("unexpected top-level node {:?}", n.name),
-                "keep a single `composition` root",
+                line,
+                column,
+                "E_UNKNOWN_REF",
+                format!(
+                    "`start-after` {target:?} names composition {other:?}, but this clip is in composition {own:?}; a clip can only follow clips in its own composition or the composition itself"
+                ),
+                format!("point `start-after=` at a clip id in {own:?}, or at {own:?} itself"),
+            );
+        } else {
+            ctx.push(
+                line,
+                column,
+                "E_UNKNOWN_REF",
+                format!(
+                    "`start-after` {target:?} names a clip in composition {other:?}, but this clip is in composition {own:?}; a clip can only follow clips in its own composition"
+                ),
+                format!("point `start-after=` at a clip id in {own:?}"),
             );
         }
     }
-    let root = root.unwrap();
+}
 
+fn validate_composition_parts<'n>(
+    mut ctx: &mut Ctx,
+    root: &'n RawNode,
+) -> PartialComposition<'n> {
     // --- root properties -------------------------------------------------
     let name = match find(root, "name").and_then(as_str) {
         Some(s) => s.to_string(),
@@ -511,8 +1240,11 @@ pub fn validate_folder(folder: &Path) -> Verdict {
     // Unknown root keys are invalid, never ignored (T003).
     const ROOT_KEYS: &[&str] = &[
         "name",
+        "id",
+        "root",
         "width",
         "height",
+        "canvas",
         "duration",
         "fps",
         "background",
@@ -530,10 +1262,88 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         }
     }
 
-    let mut need = |key: &str, what: &str| -> Option<f64> {
+    // Composition `id` (T001): an optional stable reference name with
+    // clip-id syntax, registered in the project namespace for
+    // uniqueness and reference checks.
+    let comp_id = match find(root, "id") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) if valid_id_syntax(s) => Some(s.to_string()),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_ID",
+                    format!(
+                        "composition `id` must be 1-64 letters, digits, `-` or `_`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `id=\"<letters-digits-dashes-underscores>\"` on the composition root",
+                );
+                None
+            }
+        },
+    };
+    // The composition name answers id references too, so a `start-after`
+    // or `nest` can name the composition by `name` or by `id`.
+    if !name.is_empty() {
+        ctx.ids.push(IdEntry {
+            value: name.clone(),
+            line: root.name_line,
+            column: root.name_column,
+            is_composition: true,
+            comp: ctx.current_comp,
+        });
+    }
+    if let Some(id) = &comp_id {
+        if id != &name {
+            let v = find(root, "id").unwrap();
+            ctx.ids.push(IdEntry {
+                value: id.clone(),
+                line: v.line,
+                column: v.column,
+                is_composition: true,
+                comp: ctx.current_comp,
+            });
+        }
+    }
+
+    // Canvas preset (T005): `canvas` names a preset sizing the canvas;
+    // explicit `width`/`height` override it per dimension. An unknown
+    // preset fails with the accepted names. Without `canvas` the
+    // explicit dimensions stay required, exactly as before.
+    let (canvas_dim, canvas_name) = match find(root, "canvas") {
+        None => (None, None),
+        Some(v) => match as_str(v).and_then(|s| {
+            canvas_preset_dims(s).map(|d| (d, canvas_canonical(s).unwrap().to_string()))
+        }) {
+            Some(((w, h), canonical)) => (Some((w as f64, h as f64)), Some(canonical)),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CANVAS",
+                    format!(
+                        "unknown canvas preset {}; accepted presets are: {}",
+                        raw_text(v),
+                        accepted_canvases()
+                    ),
+                    "set `canvas=` to one of the accepted presets, or remove it and use explicit `width`/`height`",
+                );
+                (None, None)
+            }
+        },
+    };
+
+    let mut need = |key: &str, what: &str, preset: Option<f64>| -> Option<f64> {
         match find(root, key).and_then(as_f64) {
             Some(x) => Some(x),
             None => {
+                if find(root, key).is_none() {
+                    if let Some(p) = preset {
+                        return Some(p);
+                    }
+                }
                 let (line, col) = find(root, key)
                     .map(|v| (v.line, v.column))
                     .unwrap_or((root.name_line, root.name_column));
@@ -552,21 +1362,38 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             }
         }
     };
-    let width = need("width", "width");
-    let height = need("height", "height");
-    let duration = need("duration", "duration");
-    for (key, val) in [("width", width), ("height", height), ("duration", duration)] {
+    let width = need("width", "width", canvas_dim.map(|(w, _)| w));
+    let height = need("height", "height", canvas_dim.map(|(_, h)| h));
+    // Composition `duration` (Sprint 6 T003): a written value must be a
+    // positive number of seconds; an omitted key resolves to the latest
+    // finite clip end once relative starts and clip inference land.
+    // `duration_omitted` tells the inference loop an omission apart
+    // from a refused value (a refused value must never infer).
+    let duration_omitted = find(root, "duration").is_none();
+    let duration_written: Option<f64> = match find(root, "duration") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x > 0.0 => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_DURATION",
+                    format!("composition duration must be a positive number, found {}", raw_text(v)),
+                    "set `duration=<positive seconds>` on the composition root",
+                );
+                None
+            }
+        },
+    };
+    for (key, val) in [("width", width), ("height", height)] {
         if let Some(x) = val {
-            if x <= 0.0 || (key != "duration" && x.fract() != 0.0) {
+            if x <= 0.0 || x.fract() != 0.0 {
                 let (line, col) = find(root, key).map(|v| (v.line, v.column)).unwrap();
                 ctx.push(
                     line,
                     col,
-                    if key == "duration" {
-                        "E_BAD_DURATION"
-                    } else {
-                        "E_BAD_CANVAS"
-                    },
+                    "E_BAD_CANVAS",
                     format!("composition {key} must be positive, found {x}"),
                     format!("set `{key}` to a positive value"),
                 );
@@ -615,12 +1442,18 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                         );
                         Fps::from_int(30)
                     } else {
-                        Fps { num: *num, den: *den }
+                        Fps {
+                            num: *num,
+                            den: *den,
+                        }
                     }
                 }
             }
             ValueKind::Str(s) if s.contains('/') => {
-                match s.split_once('/').map(|(a, b)| (a.parse::<u64>(), b.parse::<u64>())) {
+                match s
+                    .split_once('/')
+                    .map(|(a, b)| (a.parse::<u64>(), b.parse::<u64>()))
+                {
                     Some((Ok(num), Ok(den))) if den != 0 => {
                         let value = num as f64 / den as f64;
                         if value < 1.0 || value > 240.0 {
@@ -724,13 +1557,23 @@ pub fn validate_folder(folder: &Path) -> Verdict {
     // --- child elements --------------------------------------------------
     let mut clips: Vec<Clip> = Vec::new();
     let mut fonts: Vec<FontDecl> = Vec::new();
+    // Document indexes into `clips` of stills (text, box, image) whose
+    // omitted `duration` still waits for the composition end. Kept
+    // per composition (T006) so indexes stay valid for this `clips`.
+    let mut pending_stills: Vec<usize> = Vec::new();
     // Motion directives validate after the clip pass so `target`
     // indexes resolve against the declared clip count (T003).
     let mut motion_nodes: Vec<(bool, &RawNode)> = Vec::new();
     for child in &root.children {
         match child.name.as_str() {
+            // Stills (text, box, image) may omit `duration`: the
+            // validator stores `NAN` for the omission and the index
+            // joins `pending_stills` for the inference loop below.
             "text" => {
                 if let Some(c) = validate_text(&mut ctx, child) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
                     clips.push(Clip::Text(c));
                 }
             }
@@ -746,17 +1589,28 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             }
             "box" => {
                 if let Some(c) = validate_box(&mut ctx, child) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
                     clips.push(Clip::Box(c));
                 }
             }
             "image" => {
                 if let Some(c) = validate_image(&mut ctx, child) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
                     clips.push(Clip::Image(c));
                 }
             }
             "audio" => {
                 if let Some(c) = validate_audio(&mut ctx, child) {
                     clips.push(Clip::Audio(c));
+                }
+            }
+            "nest" => {
+                if let Some(c) = validate_nest(&mut ctx, child) {
+                    clips.push(Clip::Nest(c));
                 }
             }
             "tween" => motion_nodes.push((true, child)),
@@ -784,6 +1638,199 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         }
     }
 
+    PartialComposition {
+        root,
+        name,
+        comp_id,
+        canvas_name,
+        width,
+        height,
+        duration_omitted,
+        duration_written,
+        fps,
+        background,
+        version,
+        clips,
+        fonts,
+        pending_stills,
+        motion_nodes,
+    }
+}
+
+/// Resolve one composition's windows, timing, and motion (Sprint 6
+/// T006): relative starts, duration inference, tiny-length refusals,
+/// inferred-length echoes, and motion directives for exactly the clips
+/// in `partial`.
+fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composition {
+    let PartialComposition {
+        root,
+        name,
+        comp_id,
+        canvas_name,
+        width,
+        height,
+        duration_omitted,
+        duration_written,
+        fps,
+        background,
+        version,
+        mut clips,
+        fonts,
+        pending_stills,
+        motion_nodes,
+    } = partial;
+
+    // --- relative starts plus duration inference (T002 + T003) -------
+    // Each `start-after` clip lands exactly at its referenced effective
+    // end plus its offset; cycles and before-zero results refuse here.
+    // Unknown, self, and dropped targets stay silent (already reported
+    // above) so one bad value yields one diagnostic, never a cascade.
+    // An omitted composition `duration` resolves to the latest finite
+    // clip end (relative chains included); an omitted still `duration`
+    // resolves to the composition end minus its start. The three feed
+    // each other — a resolved start moves a finite end, which moves the
+    // composition end, which stretches a still that another clip may
+    // follow — so resolution runs as a small fixpoint. Every round can
+    // only move a window from unknown to known (a default start to a
+    // resolved one, a `NAN` still to a finite length, an unknown
+    // composition end to the latest finite end), so values converge and
+    // the loop stops when a round changes nothing (cap 8 for safety).
+    // Re-runs never double-report thanks to the identical-diagnostic
+    // guard in `Ctx::push`.
+    let mut comp_end: Option<f64> = duration_written;
+    for _ in 0..8 {
+        // The composition end joins the convergence state: inferring it
+        // is itself progress a later round builds on (a `start-after`
+        // naming the composition resolves only once it is known).
+        let before = (
+            comp_end.map(f64::to_bits),
+            clips
+                .iter()
+                .map(|c| (c.start().to_bits(), c.duration().to_bits()))
+                .collect::<Vec<_>>(),
+        );
+        resolve_relative_starts(&mut ctx, &mut clips, &name, comp_id.as_deref(), comp_end);
+        if duration_omitted && comp_end.is_none() {
+            let mut best: Option<f64> = None;
+            for c in &clips {
+                let d = c.duration();
+                if d.is_finite() {
+                    let e = c.start() + d;
+                    if e.is_finite() {
+                        best = Some(best.map_or(e, |b: f64| b.max(e)));
+                    }
+                }
+            }
+            match best {
+                Some(e) if e > 0.0 => comp_end = Some(e),
+                _ => {
+                    ctx.push(
+                        root.name_line,
+                        root.name_column,
+                        "E_BAD_DURATION",
+                        "composition omits `duration` but no finite clip end bounds it, so no length can be inferred",
+                        "add `duration=<seconds>` to the composition, or write `duration=` on the clips so the composition can end at the latest clip end",
+                    );
+                }
+            }
+        }
+        if let Some(end) = comp_end {
+            for c in clips.iter_mut() {
+                if c.duration().is_nan() {
+                    c.set_duration(end - c.start());
+                }
+            }
+        }
+        let settled = (
+            comp_end.map(f64::to_bits),
+            clips
+                .iter()
+                .map(|c| (c.start().to_bits(), c.duration().to_bits()))
+                .collect::<Vec<_>>(),
+        ) == before;
+        if settled {
+            break;
+        }
+    }
+
+    // --- tiny-length refusals (T003, REC-005) --------------------------
+    // Any written or resolved length below 1/60s fails naming the value
+    // and the bound. Pending stills with no composition end to extend
+    // to stay silent here: the composition diagnostic above already
+    // names the one missing bound (no cascade).
+    for c in &clips {
+        let d = c.duration();
+        if d.is_finite() && d < MIN_DURATION_SECS {
+            let (line, col) = c.line_col();
+            ctx.push(
+                line,
+                col,
+                "E_BAD_TIMING",
+                format!(
+                    "{} duration {d}s is below the 1/60s minimum length (about {MIN_DURATION_SECS:.4}s); lengths this short have no frame to show",
+                    c.what(),
+                ),
+                "lengthen the clip to at least 1/60s, or remove it",
+            );
+        }
+    }
+    if let Some(e) = comp_end {
+        if e < MIN_DURATION_SECS {
+            let (line, col) = find(root, "duration")
+                .map(|v| (v.line, v.column))
+                .unwrap_or((root.name_line, root.name_column));
+            ctx.push(
+                line,
+                col,
+                "E_BAD_DURATION",
+                format!(
+                    "composition duration {e}s is below the 1/60s minimum length (about {MIN_DURATION_SECS:.4}s); lengths this short have no frame to show"
+                ),
+                "lengthen the composition to at least 1/60s",
+            );
+        }
+    }
+
+    // --- reviewable inferred lengths (T003) ----------------------------
+    // Every resolved omission lands in `check` output: stills that ran
+    // until the composition end, and the composition when it ended at
+    // the latest finite clip end. (Audio and video inference echo from
+    // their own validators; pending stills with no composition end
+    // echo nothing — the refusal above speaks for them.)
+    for &i in &pending_stills {
+        let d = clips[i].duration();
+        if d.is_finite() {
+            let (line, col) = clips[i].line_col();
+            let kind = match &clips[i] {
+                Clip::Text(_) => "text",
+                Clip::Box(_) => "box",
+                Clip::Image(_) => "image",
+                _ => "still",
+            };
+            let end = comp_end.unwrap_or(d + clips[i].start());
+            ctx.inferred.push(InferredLength {
+                kind,
+                label: None,
+                line,
+                column: col,
+                duration: d,
+                detail: format!("until composition end {end:.3}s"),
+            });
+        }
+    }
+    if duration_omitted {
+        if let Some(e) = comp_end {
+            ctx.inferred.push(InferredLength {
+                kind: "composition",
+                label: Some(name.clone()),
+                line: root.name_line,
+                column: root.name_column,
+                duration: e,
+                detail: "until the latest finite clip end".to_string(),
+            });
+        }
+    }
+
     // --- motion directives (T003) --------------------------------------
     let clip_count = clips.len();
     let mut tweens: Vec<TweenDecl> = Vec::new();
@@ -798,11 +1845,13 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         }
     }
 
-    let composition = Composition {
+    Composition {
         name,
+        id: comp_id,
+        canvas: canvas_name,
         width: width.unwrap_or(0.0) as u32,
         height: height.unwrap_or(0.0) as u32,
-        duration: duration.unwrap_or(0.0),
+        duration: comp_end.unwrap_or(0.0),
         fps,
         background,
         version,
@@ -810,11 +1859,16 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         fonts,
         tweens,
         sets,
-    };
-    finish(ctx, Some(composition), ffmpeg_auto_download)
+    }
 }
 
-fn finish(ctx: Ctx<'_>, composition: Option<Composition>, ffmpeg_auto_download: bool) -> Verdict {
+fn finish(
+    ctx: Ctx<'_>,
+    composition: Option<Composition>,
+    compositions: Vec<Composition>,
+    root_name: Option<String>,
+    ffmpeg_auto_download: bool,
+) -> Verdict {
     let status = if ctx.invalid {
         Status::Invalid
     } else if ctx.diags.iter().any(|d| d.code == "E_UNSUPPORTED") {
@@ -829,15 +1883,36 @@ fn finish(ctx: Ctx<'_>, composition: Option<Composition>, ffmpeg_auto_download: 
         } else {
             composition
         },
+        compositions: if status == Status::Invalid {
+            Vec::new()
+        } else {
+            compositions
+        },
+        root_name: if status == Status::Invalid {
+            None
+        } else {
+            root_name
+        },
         diagnostics: ctx.diags,
         ffmpeg_auto_download,
         footage: ctx.footage,
+        inferred: ctx.inferred,
     }
 }
 
 /// Shared absolute start/duration check (T005). Returns the window on
 /// success; every missing/negative/zero/relative shape is a diagnostic.
+/// Motion directives keep this strict form; clips resolve starts and
+/// durations through the relaxed helpers below.
 fn clip_window(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<(f64, f64)> {
+    clip_window_inner(ctx, node, what)
+}
+
+fn clip_window_inner(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+) -> Option<(f64, f64)> {
     let mut bad = false;
     // `end=`-derived durations stay invalid in Sprint 1.
     if let Some(v) = find(node, "end") {
@@ -919,7 +1994,9 @@ fn clip_window(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<(f64, f64)> 
                 node.name_line,
                 node.name_column,
                 "E_BAD_TIMING",
-                format!("{what} is missing required `duration`; every clip needs a written duration"),
+                format!(
+                    "{what} is missing required `duration`; every clip needs a written duration"
+                ),
                 "add `duration=<seconds>` to the clip",
             );
             bad = true;
@@ -984,12 +2061,34 @@ fn clip_start(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
     }
 }
 
-/// Optional clip `duration` (Sprint 5 T009, `video` only): a written
-/// value must be a positive number of seconds; an omitted key means
-/// the length is inferred from the footage window later. Returns None
-/// on a parse failure after reporting it, `Some(None)` when omitted,
-/// `Some(Some(d))` when written. A present `end=` key is refused here
-/// so it keeps the [`clip_window`] wording.
+/// Absolute start with Sprint 6 relative-start tolerance (T001): a
+/// clip declaring `start-after` (either spelling) may omit `start`;
+/// the start defaults to 0 until T002 resolves the real relative
+/// window. `end=` stays refused.
+fn clip_start_relaxed(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    if find_either(node, "start-after", "start_after").is_some() && find(node, "start").is_none() {
+        if let Some(v) = find(node, "end") {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_TIMING",
+                format!("{what} uses `end=`; end-derived durations are not part of Sprint 1"),
+                "declare an absolute `start=` and a written `duration=` instead",
+            );
+            return None;
+        }
+        return Some(0.0);
+    }
+    clip_start(ctx, node, what)
+}
+
+/// Optional clip `duration` (Sprint 5 T009 for `video`, Sprint 6 T003
+/// for every other clip): a written value must be a positive number of
+/// seconds; an omitted key means the length is inferred later (footage
+/// window for video and audio, composition end for stills). Returns
+/// None on a parse failure after reporting it, `Some(None)` when
+/// omitted, `Some(Some(d))` when written. A present `end=` key is
+/// refused here so it keeps the [`clip_window`] wording.
 fn clip_optional_duration(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<f64>> {
     if let Some(v) = find(node, "end") {
         ctx.push(
@@ -1054,7 +2153,12 @@ fn parse_order(ctx: &mut Ctx, node: &RawNode) -> Option<i64> {
 /// or underscore spelling): absent means the font default, present must
 /// be a non-negative finite number. Zero letter spacing is default
 /// advance. Anything else is a validation error.
-fn parse_spacing(ctx: &mut Ctx, node: &RawNode, hyphen: &str, underscore: &str) -> Option<Option<f64>> {
+fn parse_spacing(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+) -> Option<Option<f64>> {
     let found = find(node, hyphen).or_else(|| find(node, underscore));
     match found {
         None => Some(None),
@@ -1074,11 +2178,152 @@ fn parse_spacing(ctx: &mut Ctx, node: &RawNode, hyphen: &str, underscore: &str) 
     }
 }
 
+/// Validated Sprint 6 clip identity (T001/T004) plus relative start
+/// (T002): the `id`, `track`, and `label` of one clip, with the `id`
+/// registered in the project namespace, and the `start-after` plus
+/// `start-offset` reference recorded for the project-wide existence
+/// check and window resolution.
+struct ClipIdentity {
+    id: Option<String>,
+    track: TrackKind,
+    label: Option<String>,
+    start_after: Option<StartAfter>,
+    hidden: bool,
+}
+
+/// Parse one `start-offset`/`start_offset` value (T002): absent means
+/// `0`; present must be a finite number of seconds (negative overlaps
+/// earlier content). A non-numeric offset fails with `E_BAD_TIMING`,
+/// never guessed to zero.
+fn parse_start_offset(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    match find_either(node, "start-offset", "start_offset") {
+        None => Some(0.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "{what} `start-offset` must be a number of seconds (negative overlaps earlier content); found {}",
+                        raw_text(v)
+                    ),
+                    "set `start-offset=<seconds>` (for example `start-offset=0.5` or `start-offset=-1`), or remove the key",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Shared Sprint 6 clip identity parse (T001/T002/T004): `id`,
+/// `track`, and `label` validate independently, so each bad value
+/// reports its own diagnostic; any failure drops the clip with nothing
+/// registered. On success a declared id joins the project namespace
+/// and a `start-after` reference joins the project-wide existence
+/// check. An absolute `start` together with `start-after` is refused
+/// as ambiguous (exactly one diagnostic, no reference recorded, so
+/// nothing cascades); a lone `start-offset` without `start-after` is
+/// refused the same way.
+fn parse_clip_identity(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    element: &str,
+    what: &str,
+) -> Option<ClipIdentity> {
+    let id = parse_clip_id(ctx, node, what);
+    let track = parse_track(ctx, node, element, what);
+    let label = parse_label(ctx, node, what);
+    let hidden = parse_hidden(ctx, node, what);
+    let start_after_raw = parse_ref(ctx, node, "start-after", what);
+    let (id, track, label, hidden, start_after_raw) = match (id, track, label, hidden, start_after_raw) {
+        (Some(id), Some(track), Some(label), Some(hidden), Some(start_after)) => {
+            (id, track, label, hidden, start_after)
+        }
+        _ => return None,
+    };
+    let has_relative = start_after_raw.is_some();
+    let has_absolute = find(node, "start").is_some();
+    let has_offset = find_either(node, "start-offset", "start_offset").is_some();
+    if has_relative && has_absolute {
+        let (target, line, column) = start_after_raw.unwrap();
+        let _ = target;
+        ctx.push(
+            line,
+            column,
+            "E_BAD_TIMING",
+            format!(
+                "{what} declares both an absolute `start` and a relative `start-after`; one clip cannot use both"
+            ),
+            "remove `start=` to follow the referenced end, or remove `start-after=` (and `start-offset=`) to keep the absolute time",
+        );
+        return None;
+    }
+    if !has_relative && has_offset {
+        let v = find_either(node, "start-offset", "start_offset").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_TIMING",
+            format!("{what} declares `start-offset` without `start-after`; an offset needs a referenced end"),
+            "add `start-after=\"<id>\"` naming the clip to follow, or remove the `start-offset` key",
+        );
+        return None;
+    }
+    let offset = parse_start_offset(ctx, node, what)?;
+    if let Some(id) = &id {
+        ctx.ids.push(IdEntry {
+            value: id.clone(),
+            line: node.name_line,
+            column: node.name_column,
+            is_composition: false,
+            comp: ctx.current_comp,
+        });
+    }
+    let start_after = match start_after_raw {
+        None => None,
+        Some((target, line, column)) => {
+            ctx.refs.push(RefEntry {
+                kind: "start-after",
+                target: target.clone(),
+                line,
+                column,
+                owner_id: id.clone(),
+                owner_line: node.name_line,
+                needs_composition: false,
+                comp: ctx.current_comp,
+            });
+            Some(StartAfter {
+                target,
+                offset,
+                line,
+                column,
+            })
+        }
+    };
+    Some(ClipIdentity {
+        id,
+        track,
+        label,
+        start_after,
+        hidden,
+    })
+}
+
 fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
     const KEYS: &[&str] = &[
         "value",
         "start",
         "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
         "x",
         "y",
         "size",
@@ -1106,7 +2351,21 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
             );
         }
     }
-    let (start, duration) = clip_window(ctx, node, "text clip")?;
+    let identity = parse_clip_identity(ctx, node, "text", "text clip")?;
+    // Sprint 6 T003: `start` resolves like every clip (absolute, or
+    // `start-after` until T002 lands it), but `duration` is optional —
+    // an omitted one runs until the composition end. The `NAN`
+    // sentinel marks the omission for the inference loop; it never
+    // survives validation (a valid verdict carries finite lengths).
+    // Start and duration report independently (like the old shared
+    // window check): a clip missing both names both problems at once.
+    let start = clip_start_relaxed(ctx, node, "text clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "text clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
     let value = match find(node, "value").and_then(as_str) {
         Some(s) => s.to_string(),
         None => {
@@ -1384,6 +2643,11 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         value,
         start,
         duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
         x: px,
         y: py,
         size,
@@ -1574,6 +2838,14 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         "path",
         "start",
         "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
         "fit",
         "order",
         "volume",
@@ -1628,10 +2900,12 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         );
         return None;
     }
+    let identity = parse_clip_identity(ctx, node, "video", "video clip")?;
     // Sprint 5 T009: `start` stays mandatory, but `duration` is now
     // optional — an omitted one is inferred from the footage window
-    // once the source end is known.
-    let start = clip_start(ctx, node, "video clip")?;
+    // once the source end is known. Sprint 6 T001: a `start-after`
+    // reference lets `start` wait for T002's relative resolution.
+    let start = clip_start_relaxed(ctx, node, "video clip")?;
     let duration_opt = clip_optional_duration(ctx, node, "video clip")?;
     let path = match find(node, "path").and_then(as_str) {
         Some(s) => s.to_string(),
@@ -1845,6 +3119,11 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         start,
         duration,
         duration_inferred: inferred,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
         fit,
         order,
         volume_db,
@@ -1859,20 +3138,34 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
     })
 }
 
-/// Validate one Sprint 3 `audio` track (T007): a readable sound source
-/// in a decodable format, an absolute half-open window, ordered
-/// trim seconds into the source, a volume of silence through +12 dB,
-/// and linear fades within the clip window. Every problem is a located
-/// diagnostic; mixing and render-time decode refusal belong to T008.
+/// Validate one Sprint 3 `audio` track (T007) with Sprint 6 T003
+/// duration rules: a readable sound source in a decodable format, an
+/// absolute half-open window, ordered trim seconds into the source, a
+/// `rate` from 0.1 to 10 (default 1, pitch follows speed like video),
+/// a volume of silence through +12 dB, and linear fades within the
+/// clip window. An omitted `duration` resolves to
+/// `(trim_end − trim_start) ÷ rate` using the probed source end,
+/// exactly like video inference, and echoes in `check` output for
+/// review. Every problem is a located diagnostic; mixing and
+/// render-time decode refusal belong to T008.
 fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
     const KEYS: &[&str] = &[
         "path",
         "start",
         "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
         "trim-start",
         "trim_start",
         "trim-end",
         "trim_end",
+        "rate",
         "volume",
         "fade-in",
         "fade_in",
@@ -1886,7 +3179,7 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
                 v.line,
                 v.column,
                 "E_UNSUPPORTED",
-                format!("audio track `{k}` needs Sprint 10; Sprint 3 mixes trim, volume, and linear fades only"),
+                format!("audio track `{k}` needs Sprint 10; Sprint 6 mixes trim, rate, volume, and linear fades only"),
                 "remove the key, or wait for Sprint 10 sound proof",
             ));
             return None;
@@ -1901,7 +3194,15 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
             );
         }
     }
-    let (start, duration) = clip_window(ctx, node, "audio track")?;
+    let identity = parse_clip_identity(ctx, node, "audio", "audio track")?;
+    // Start and duration report independently (like the old shared
+    // window check): a clip missing both names both problems at once.
+    let start = clip_start_relaxed(ctx, node, "audio track");
+    let duration_opt = clip_optional_duration(ctx, node, "audio track");
+    let (start, duration_opt) = match (start, duration_opt) {
+        (Some(s), Some(d)) => (s, d),
+        _ => return None,
+    };
     let path = match find(node, "path").and_then(as_str) {
         Some(s) => s.to_string(),
         None => {
@@ -1939,6 +3240,28 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
         ));
         return None;
     }
+    // Sprint 6 T003 `rate`: absent means unity; present must be finite
+    // from 0.1 to 10, exactly like video. Anything else is refused,
+    // never guessed to unity.
+    let rate = match find(node, "rate") {
+        None => 1.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.1..=10.0).contains(&x) => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_AUDIO",
+                    format!(
+                        "audio track `rate` {} is outside the accepted range 0.1 to 10",
+                        raw_text(v)
+                    ),
+                    "set `rate=<0.1 to 10>` (for example `rate=2` for double speed, `rate=0.5` for half speed), or remove the key for unity rate",
+                );
+                return None;
+            }
+        },
+    };
     let trim_of = |ctx: &mut Ctx, hyphen: &str, underscore: &str| -> Option<Option<f64>> {
         let found = find(node, hyphen).or_else(|| find(node, underscore));
         match found {
@@ -1964,7 +3287,9 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
         // An empty window (end == start) is valid silence; a backward
         // window is refused, never swapped silently.
         if end < trim_start {
-            let v = find(node, "trim-end").or_else(|| find(node, "trim_end")).unwrap();
+            let v = find(node, "trim-end")
+                .or_else(|| find(node, "trim_end"))
+                .unwrap();
             ctx.push(
                 v.line,
                 v.column,
@@ -1975,15 +3300,91 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
             return None;
         }
     }
+    // Source-end facts (same probe the video path uses): without them
+    // only the declaration checks above apply. A past-end `trim-end`
+    // clamps to the probed source end and the clamp echoes for review;
+    // a `trim-start` at or past the source end leaves an empty window.
+    let source_duration = probe_source_duration(&ctx.folder.join(&path));
+    let mut effective_end = trim_end;
+    let mut clamped: Option<(f64, f64)> = None;
+    if let Some(src) = source_duration {
+        if trim_start >= src {
+            let (line, col) = find(node, "trim-start")
+                .or_else(|| find(node, "trim_start"))
+                .map(|v| (v.line, v.column))
+                .unwrap_or((node.name_line, node.name_column));
+            ctx.push(
+                line,
+                col,
+                "E_BAD_AUDIO",
+                format!(
+                    "audio `trim-start` {trim_start} is at or past the source end {src} of {path:?}; the window would be empty"
+                ),
+                format!("set `trim-start` below {src}, or point `path` at a longer source"),
+            );
+            return None;
+        } else if let Some(end) = effective_end {
+            if end > src {
+                effective_end = Some(src);
+                clamped = Some((end, src));
+            }
+        } else {
+            effective_end = Some(src);
+        }
+    }
+    // Resolve the clip length — the written `duration`, or the inferred
+    // `(trim_end − trim_start) ÷ rate` using the probed source end for
+    // an omitted `trim-end`. An omitted `duration` with no knowable end
+    // has no finite length: refuse asking for one (REC-005), never guess.
+    let (duration, inferred) = match duration_opt {
+        Some(d) => (d, false),
+        None => match effective_end {
+            Some(e) => ((e - trim_start) / rate, true),
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_AUDIO",
+                    format!("audio track omits `duration` but the source end of {path:?} is unknown, so no length can be inferred"),
+                    "add `duration=<seconds>` to the audio track (or declare `trim-end=<seconds>` to bound the window)",
+                );
+                return None;
+            }
+        },
+    };
     let volume_db = parse_volume_db(ctx, node, "audio track")?;
     let fade_in = parse_fade(ctx, node, "fade-in", "fade_in", duration, "audio track")?;
     let fade_out = parse_fade(ctx, node, "fade-out", "fade_out", duration, "audio track")?;
+    if inferred {
+        let end = effective_end.unwrap_or(trim_start + duration * rate);
+        let mut detail =
+            format!("from source window {trim_start:.3}s..{end:.3}s at rate {rate}x");
+        if let Some((declared, src)) = clamped {
+            detail.push_str(&format!(
+                "; trim-end {declared:.3}s clamped to source end {src:.3}s"
+            ));
+        }
+        ctx.inferred.push(InferredLength {
+            kind: "audio",
+            label: Some(path.clone()),
+            line: node.name_line,
+            column: node.name_column,
+            duration,
+            detail,
+        });
+    }
     Some(AudioClip {
         path,
         start,
         duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
         trim_start,
         trim_end,
+        rate,
         volume_db,
         fade_in,
         fade_out,
@@ -2035,6 +3436,14 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
     const KEYS: &[&str] = &[
         "start",
         "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
         "x",
         "y",
         "width",
@@ -2070,7 +3479,18 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
             );
         }
     }
-    let (start, duration) = clip_window(ctx, node, "box clip")?;
+    let identity = parse_clip_identity(ctx, node, "box", "box clip")?;
+    // Sprint 6 T003: `duration` is optional — an omitted one runs until
+    // the composition end (`NAN` marks the omission for inference).
+    // Start and duration report independently (like the old shared
+    // window check): a clip missing both names both problems at once.
+    let start = clip_start_relaxed(ctx, node, "box clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "box clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
     let x = box_num(ctx, node, "x", 0.0)?;
     let y = box_num(ctx, node, "y", 0.0)?;
     // Size is required and must be positive: a missing, negative, or
@@ -2105,7 +3525,11 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
     let width = size("width")?;
     let height = size("height")?;
     let fill = match find(node, "fill") {
-        None => notation::model::Rgb { r: 255, g: 255, b: 255 },
+        None => notation::model::Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
         Some(v) => match as_str(v).and_then(parse_color) {
             Some(c) => c,
             None => {
@@ -2144,7 +3568,9 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
             v.line,
             v.column,
             "E_BAD_BOX",
-            format!("box `border-width` {border_width} is invalid; border widths cannot be negative"),
+            format!(
+                "box `border-width` {border_width} is invalid; border widths cannot be negative"
+            ),
             "set `border-width=<pixels >= 0>` on the box clip",
         );
         return None;
@@ -2179,7 +3605,9 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
             line,
             col,
             "E_BAD_BOX",
-            format!("box `opacity` {opacity} is invalid; opacity runs 0 (transparent) to 1 (opaque)"),
+            format!(
+                "box `opacity` {opacity} is invalid; opacity runs 0 (transparent) to 1 (opaque)"
+            ),
             "set `opacity=<number from 0 to 1>` on the box clip",
         );
         return None;
@@ -2188,6 +3616,11 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
     Some(BoxClip {
         start,
         duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
         x,
         y,
         width,
@@ -2231,8 +3664,7 @@ fn image_magic_ok(bytes: &[u8]) -> bool {
 /// this only decides the file is worth handing to it.
 fn heic_magic_ok(bytes: &[u8]) -> bool {
     const BRANDS: [&[u8; 4]; 10] = [
-        b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs", b"mif1",
-        b"msf1",
+        b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"hevm", b"hevs", b"mif1", b"msf1",
     ];
     if bytes.len() < 12 || &bytes[4..8] != b"ftyp" {
         return false;
@@ -2280,7 +3712,11 @@ fn gif_info(bytes: &[u8], limit: usize) -> Option<GifInfo> {
     if bytes.len() < 6 || (&bytes[..6] != b"GIF87a" && &bytes[..6] != b"GIF89a") {
         return None;
     }
-    let mut info = GifInfo { frames: 0, infinite: false, complete: false };
+    let mut info = GifInfo {
+        frames: 0,
+        infinite: false,
+        complete: false,
+    };
     let end = bytes.len().min(limit);
     let mut pos = 6;
     // Logical screen descriptor: 7 bytes, then an optional global
@@ -2409,6 +3845,14 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         "path",
         "start",
         "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
         "x",
         "y",
         "width",
@@ -2428,7 +3872,18 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
             );
         }
     }
-    let (start, duration) = clip_window(ctx, node, "image clip")?;
+    let identity = parse_clip_identity(ctx, node, "image", "image clip")?;
+    // Sprint 6 T003: `duration` is optional — an omitted one runs until
+    // the composition end (`NAN` marks the omission for inference).
+    // Start and duration report independently (like the old shared
+    // window check): a clip missing both names both problems at once.
+    let start = clip_start_relaxed(ctx, node, "image clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "image clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
     let path = match find(node, "path").and_then(as_str) {
         Some(s) => s.to_string(),
         None => {
@@ -2545,7 +4000,9 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
                         v.column,
                         "E_BAD_IMAGE",
                         format!("image `{key}` must be a positive number of canvas pixels"),
-                        format!("set `{key}=<positive pixels>` on the image clip or remove the key"),
+                        format!(
+                            "set `{key}=<positive pixels>` on the image clip or remove the key"
+                        ),
                     );
                     None
                 }
@@ -2591,6 +4048,11 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         path,
         start,
         duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
         x,
         y,
         width,
@@ -2601,6 +4063,403 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         line: node.name_line,
         column: node.name_column,
     })
+}
+
+/// Parse one Sprint 6 `nest` trim (`trim-start`/`trim-end`, either
+/// spelling): absent means the default (0 for the start, the child end
+/// for the end); present must be finite seconds from 0. Returns None
+/// on a parse failure after reporting it, so callers keep collecting
+/// the clip's remaining timing problems.
+fn nest_trim(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+) -> Option<Option<f64>> {
+    let found = find(node, hyphen).or_else(|| find(node, underscore));
+    match found {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(Some(x)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "nest `{hyphen}` {} must be seconds into the child timeline from 0",
+                        raw_text(v)
+                    ),
+                    format!("set `{hyphen}=<seconds >= 0>` or remove the key"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse the Sprint 6 `nest` `rate`: absent means unity; present must
+/// be a finite number from 0.1 to 10, like footage. Returns None on
+/// failure after reporting it.
+fn nest_rate(ctx: &mut Ctx, node: &RawNode) -> Option<f64> {
+    match find(node, "rate") {
+        None => Some(1.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.1..=10.0).contains(&x) => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "nest `rate` {} is outside the accepted range 0.1 to 10",
+                        raw_text(v)
+                    ),
+                    "set `rate=<0.1 to 10>` (for example `rate=2` for double speed, `rate=0.5` for half speed), or remove the key for unity rate",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Validate one Sprint 6 `nest` clip (T001/T007): a named composition
+/// reuse with an absolute half-open window plus `id`/`track`/`label`
+/// and per-use `trim-start`, `trim-end`, `rate`, and `order`. The
+/// `nest` property must name a composition; existence and kind resolve
+/// project-wide after every clip validates, so one bad value still
+/// yields exactly one diagnostic. Child-relative checks (trim past the
+/// child end), cycles, and depth run in [`check_nest_graph`] once every
+/// composition end is known.
+fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
+    const KEYS: &[&str] = &[
+        "nest",
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "trim-start",
+        "trim_start",
+        "trim-end",
+        "trim_end",
+        "rate",
+        "order",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown nest key {k:?}"),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    let identity = parse_clip_identity(ctx, node, "nest", "nest clip")?;
+    // Start and duration report independently (like the old shared
+    // window check): a clip missing both names both problems at once.
+    let start = clip_start_relaxed(ctx, node, "nest clip");
+    // Sprint 6 T003: a nest without a written `duration` is unbounded,
+    // so it is refused until `duration` is written — never guessed from
+    // the child.
+    let duration_parsed = clip_optional_duration(ctx, node, "nest clip");
+    let (start, duration_parsed) = match (start, duration_parsed) {
+        (Some(s), Some(d)) => (s, d),
+        _ => return None,
+    };
+    let duration = match duration_parsed {
+        Some(d) => d,
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_TIMING",
+                "nest clip omits `duration`; an unbounded nest has no finite length until `duration` is written",
+                "add `duration=<seconds>` to the nest clip",
+            );
+            return None;
+        }
+    };
+    // Per-use timing (T007): the child window, rate, and order
+    // validate here with one diagnostic per bad value; the child end
+    // itself is only known after every composition resolves, so
+    // past-end trims wait for `check_nest_graph`.
+    let ts = nest_trim(ctx, node, "trim-start", "trim_start");
+    let te = nest_trim(ctx, node, "trim-end", "trim_end");
+    let rate_opt = nest_rate(ctx, node);
+    let order_opt = parse_order(ctx, node);
+    let timing_bad =
+        ts.is_none() || te.is_none() || rate_opt.is_none() || order_opt.is_none();
+    let trim_start = ts.flatten().unwrap_or(0.0);
+    let trim_end = te.flatten();
+    let rate = rate_opt.unwrap_or(1.0);
+    let order = order_opt.unwrap_or(0);
+    if ts.is_some() && te.is_some() {
+        if let Some(end) = trim_end {
+            if end < trim_start {
+                let v = find(node, "trim-end")
+                    .or_else(|| find(node, "trim_end"))
+                    .unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "nest trim window {trim_start}..{end} runs backward; trims are seconds into the child timeline"
+                    ),
+                    "set `trim-end` after `trim-start` for a forward window",
+                );
+                return None;
+            } else if end == trim_start {
+                let v = find(node, "trim-end")
+                    .or_else(|| find(node, "trim_end"))
+                    .unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "nest trim window {trim_start}..{end} is empty; the use would show no content"
+                    ),
+                    "set `trim-end` after `trim-start` for a positive window",
+                );
+                return None;
+            }
+        }
+    }
+    if timing_bad {
+        return None;
+    }
+    let (target, line, column) = match parse_ref(ctx, node, "nest", "nest clip")? {
+        Some(t) => t,
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "nest clip is missing required `nest`; every nest names one composition",
+                "add `nest=\"<composition name or id>\"` to the nest clip",
+            );
+            return None;
+        }
+    };
+    ctx.refs.push(RefEntry {
+        kind: "nest",
+        target: target.clone(),
+        line,
+        column,
+        owner_id: identity.id.clone(),
+        owner_line: node.name_line,
+        needs_composition: true,
+        comp: ctx.current_comp,
+    });
+    Some(NestClip {
+        target,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        trim_start,
+        trim_end,
+        rate,
+        order,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Deepest allowed `nest` chain (Sprint 6 T007, REC-004), shared with
+/// the renderer through the notation model.
+pub use notation::model::MAX_NEST_DEPTH;
+
+/// Resolve a `nest` target to a composition index by `name` or `id`.
+/// Returns `None` for unknown names and clip ids (both already refused
+/// by the project-wide reference check), so the graph walk stays
+/// silent on them instead of cascading.
+fn nest_target_index(compositions: &[Composition], target: &str) -> Option<usize> {
+    compositions
+        .iter()
+        .position(|c| c.name == target || c.id.as_deref() == Some(target))
+}
+
+/// Display name for a composition inside a `nest` chain diagnostic:
+/// its `name`, which answers references.
+fn nest_chain_name(compositions: &[Composition], index: usize) -> String {
+    format!("{:?}", compositions[index].name)
+}
+
+/// Check every `nest` use once all composition ends are known (Sprint 6
+/// T007): a `trim-start` at or past the child end refuses, a circular
+/// chain refuses naming the chain, and a use chain deeper than
+/// [`MAX_NEST_DEPTH`] refuses naming the chain and the limit. Unknown
+/// targets stay silent (already refused); compositions with no knowable
+/// end skip the trim check (their own diagnostic already covers it).
+fn check_nest_graph(ctx: &mut Ctx, compositions: &[Composition]) {
+    // Trim against the now-known child end.
+    for comp in compositions {
+        for clip in &comp.clips {
+            let Clip::Nest(n) = clip else { continue };
+            let Some(ti) = nest_target_index(compositions, &n.target) else {
+                continue;
+            };
+            let child_end = compositions[ti].duration;
+            if !child_end.is_finite() || child_end <= 0.0 {
+                continue;
+            }
+            if n.trim_start >= child_end {
+                ctx.push(
+                    n.line,
+                    n.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "nest {:?} `trim-start` {} is at or past the child composition {:?} end {child_end}; the use would show no content",
+                        n.target, n.trim_start, compositions[ti].name,
+                    ),
+                    format!(
+                        "set `trim-start` below {child_end}, or point `nest` at a longer composition"
+                    ),
+                );
+            }
+        }
+    }
+    // Cycles and depth: one DFS over the composition use-graph in
+    // document order. A back edge names its cycle; a path longer than
+    // the limit names the chain and the limit. Memoized depths keep the
+    // DAG walk linear; cyclic nodes stay unmemoized so a second path
+    // through them still names its own cycle.
+    let n = compositions.len();
+    let mut adj: Vec<Vec<(usize, usize, usize)>> = vec![Vec::new(); n];
+    for (ci, comp) in compositions.iter().enumerate() {
+        for clip in &comp.clips {
+            let Clip::Nest(nc) = clip else { continue };
+            if let Some(ti) = nest_target_index(compositions, &nc.target) {
+                adj[ci].push((ti, nc.line, nc.column));
+            }
+        }
+    }
+    // Memoized depths keep the DAG walk linear. The memo also carries
+    // the deepest witness chain from each node so an over-deep use
+    // names its full chain, not just the top edge. Cyclic nodes return
+    // a zero depth without memoizing, so a second path through them
+    // still names its own cycle.
+    let mut depth_memo: Vec<Option<(usize, Vec<usize>)>> = vec![None; n];
+    let mut reported_cycles: Vec<Vec<usize>> = Vec::new();
+    let mut reported_depth = false;
+    #[allow(clippy::too_many_arguments)]
+    fn dfs(
+        ctx: &mut Ctx,
+        compositions: &[Composition],
+        adj: &[Vec<(usize, usize, usize)>],
+        depth_memo: &mut [Option<(usize, Vec<usize>)>],
+        reported_cycles: &mut Vec<Vec<usize>>,
+        reported_depth: &mut bool,
+        node: usize,
+        stack: &mut Vec<usize>,
+        in_stack: &mut [bool],
+    ) -> (usize, Vec<usize>) {
+        if let Some((d, chain)) = depth_memo[node].clone() {
+            return (d, chain);
+        }
+        if in_stack[node] {
+            return (0, vec![node]);
+        }
+        in_stack[node] = true;
+        stack.push(node);
+        let mut best: (usize, Vec<usize>) = (0, vec![node]);
+        for (ti, line, column) in adj[node].clone() {
+            if in_stack[ti] {
+                let pos = stack.iter().position(|&j| j == ti).unwrap_or(0);
+                let mut chain: Vec<String> = stack[pos..]
+                    .iter()
+                    .map(|&j| nest_chain_name(compositions, j))
+                    .collect();
+                chain.push(nest_chain_name(compositions, ti));
+                let cycle: Vec<usize> =
+                    stack[pos..].iter().copied().chain(std::iter::once(ti)).collect();
+                if !reported_cycles.contains(&cycle) {
+                    reported_cycles.push(cycle);
+                    ctx.push(
+                        line,
+                        column,
+                        "E_BAD_TIMING",
+                        format!(
+                            "`nest` chain cycles: {}; a composition cannot nest itself through other compositions",
+                            chain.join(" -> ")
+                        ),
+                        "break the cycle so every `nest` chain ends at a composition that nests nothing",
+                    );
+                }
+                continue;
+            }
+            let (child_depth, child_chain) = dfs(
+                ctx,
+                compositions,
+                adj,
+                depth_memo,
+                reported_cycles,
+                reported_depth,
+                ti,
+                stack,
+                in_stack,
+            );
+            let via = child_depth + 1;
+            if via > best.0 {
+                let mut witness = vec![node];
+                witness.extend(child_chain.iter().copied());
+                best = (via, witness);
+            }
+            if via > MAX_NEST_DEPTH && !*reported_depth {
+                *reported_depth = true;
+                let mut witness = vec![node];
+                witness.extend(child_chain);
+                let chain: Vec<String> = witness
+                    .iter()
+                    .map(|&j| nest_chain_name(compositions, j))
+                    .collect();
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "`nest` chain {} nests {via} deep, past the {MAX_NEST_DEPTH}-level limit; nesting deeper than {MAX_NEST_DEPTH} levels refuses",
+                        chain.join(" -> "),
+                    ),
+                    format!(
+                        "flatten the nesting to at most {MAX_NEST_DEPTH} levels (reuse the composition fewer times deep, or split the chain)"
+                    ),
+                );
+            }
+        }
+        stack.pop();
+        in_stack[node] = false;
+        depth_memo[node] = Some(best.clone());
+        best
+    }
+    for root in 0..n {
+        let mut stack: Vec<usize> = Vec::new();
+        let mut in_stack = vec![false; n];
+        dfs(
+            ctx,
+            compositions,
+            &adj,
+            &mut depth_memo,
+            &mut reported_cycles,
+            &mut reported_depth,
+            root,
+            &mut stack,
+            &mut in_stack,
+        );
+    }
 }
 
 /// Parse a `tween` easing value (T003): the nineteen named curves, or
@@ -2639,10 +4498,10 @@ fn parse_ease_value(s: &str) -> EaseParse {
             if t == "out-back" || t.starts_with("out-back") {
                 // `out-back` without a parameter, or a malformed one, is
                 // a validation error, never a guessed overshoot.
-                match t.strip_prefix("out-back").and_then(|r| {
-                    r.strip_prefix('(')
-                        .and_then(|r| r.strip_suffix(')'))
-                }) {
+                match t
+                    .strip_prefix("out-back")
+                    .and_then(|r| r.strip_prefix('(').and_then(|r| r.strip_suffix(')')))
+                {
                     Some(inner) => match inner.trim().parse::<f64>() {
                         Ok(n) if n.is_finite() && n >= 0.0 => EaseParse::Ok(EaseDecl::OutBack(n)),
                         _ => EaseParse::Bad(format!(
@@ -2723,7 +4582,9 @@ fn motion_property(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<String> 
                 node.name_line,
                 node.name_column,
                 "E_BAD_MOTION",
-                format!("{what} is missing required `property`; every directive names what it moves"),
+                format!(
+                    "{what} is missing required `property`; every directive names what it moves"
+                ),
                 "add `property=\"x\"`, `\"y\"`, `\"scale\"`, `\"rotation\"`, or `\"opacity\"`",
             );
             None
@@ -2760,7 +4621,14 @@ fn motion_property(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<String> 
 /// Per-property value range check (T003): opacity runs 0 to 1, every
 /// other value must simply be a finite number. Out-of-range values are
 /// refused, never clamped silently.
-fn motion_value_ok(ctx: &mut Ctx, node: &RawNode, what: &str, property: &str, key: &str, v: f64) -> bool {
+fn motion_value_ok(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    property: &str,
+    key: &str,
+    v: f64,
+) -> bool {
     if !v.is_finite() {
         let loc = find(node, key).unwrap();
         ctx.push(
@@ -2808,21 +4676,23 @@ fn validate_tween(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<Tw
     ok &= property.is_some();
     let kind = match find(node, "kind").and_then(as_str) {
         None => TweenKind::To,
-        Some(s) => match TweenKind::parse(s) {
-            Some(k) => k,
-            None => {
-                let v = find(node, "kind").unwrap();
-                ctx.push(
+        Some(s) => {
+            match TweenKind::parse(s) {
+                Some(k) => k,
+                None => {
+                    let v = find(node, "kind").unwrap();
+                    ctx.push(
                     v.line,
                     v.column,
                     "E_BAD_MOTION",
                     format!("tween `kind` {s:?} is not a tween form; use `to`, `from`, or `from-to`"),
                     "set `kind=\"to\"`, `kind=\"from\"`, or `kind=\"from-to\"` on the tween",
                 );
-                ok = false;
-                TweenKind::To
+                    ok = false;
+                    TweenKind::To
+                }
             }
-        },
+        }
     };
     // Window: absolute start plus positive duration, like clips.
     let window = clip_window(ctx, node, "tween");
@@ -2872,7 +4742,11 @@ fn validate_tween(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<Tw
                     v.line,
                     v.column,
                     "E_BAD_MOTION",
-                    format!("tween `{key}` needs kind `{}`; a `{}` tween carries no `{key}`", kind.name(), kind.name()),
+                    format!(
+                        "tween `{key}` needs kind `{}`; a `{}` tween carries no `{key}`",
+                        kind.name(),
+                        kind.name()
+                    ),
                     format!(
                         "remove `{key}`, or set `kind=\"from-to\"` to move between two given values"
                     ),
@@ -3142,8 +5016,7 @@ mod tests {
         let mut bytes = still_gif();
         // A second frame without any loop extension still plays once.
         let frame: Vec<u8> = vec![
-            0x21, 0xF9, 0x04, 10, 0, 0, 0, 0, 0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2,
-            0x44, 1, 0,
+            0x21, 0xF9, 0x04, 10, 0, 0, 0, 0, 0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x44, 1, 0,
         ];
         bytes.splice(bytes.len() - 1..bytes.len() - 1, frame);
         let info = gif_info(&bytes, bytes.len()).expect("plays-once GIF parses");
@@ -3156,7 +5029,10 @@ mod tests {
     fn gif_non_gif_bytes_are_none() {
         assert!(gif_info(b"fake", 1024).is_none());
         assert!(gif_info(b"\x89PNG\r\n\x1a\n", 1024).is_none());
-        assert!(gif_info(b"GIF89a", 1024).is_some(), "a bare header still sniffs as GIF");
+        assert!(
+            gif_info(b"GIF89a", 1024).is_some(),
+            "a bare header still sniffs as GIF"
+        );
     }
 
     #[test]
@@ -3185,5 +5061,3 @@ mod tests {
         assert!(!heic_magic_ok(b"fake"));
     }
 }
-
-

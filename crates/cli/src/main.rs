@@ -5,8 +5,8 @@
 //! * `framesmith init <name> [--dir <parent>]` — create a minimal project.
 //! * `framesmith check [--json] <folder>` — validate without rendering.
 //! * `framesmith errors [--json] [CODE]` — explain error codes.
-//! * `framesmith render <folder> [-o <out.mp4>] [--backend cpu|gpu|auto]
-//!   [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]`
+//! * `framesmith render <folder> [-o <out.mp4>] [--composition <name>] [--start S] [--end E]
+//!   [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]`
 //!   — validate, bootstrap FFmpeg (pinned self-download or refusal),
 //!   refuse or encode with staged progress.
 //!
@@ -27,9 +27,81 @@ fn usage() -> ! {
          \x20 framesmith init <name> [--dir <parent>]\n\
          \x20 framesmith check [--json] [--backend cpu|gpu|auto] <folder>\n\
          \x20 framesmith errors [--json] [CODE]\n\
-         \x20 framesmith render <folder> [-o <output.mp4>] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]"
+         \x20 framesmith compositions [--json] <folder>\n\
+         \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
+         \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
+         \x20 framesmith render <folder> [-o <output.mp4>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]"
     );
     std::process::exit(2);
+}
+
+fn listing_usage_error(cmd: &str, msg: &str) -> ! {
+    eprintln!("framesmith {cmd}: {msg}.");
+    match cmd {
+        "compositions" => eprintln!("usage: framesmith compositions [--json] <folder>"),
+        _ => eprintln!("usage: framesmith {cmd} [--json] [--composition <name>] <folder> [<name>]"),
+    }
+    std::process::exit(2);
+}
+
+/// Parse `compositions` / `timeline` / `info` arguments (Sprint 6 T010):
+/// at most one `--json`, at most one `--composition <name>`, then one
+/// folder plus an optional positional composition name. Returns
+/// `(folder, name, json)`. The flag and the positional must agree when
+/// both name a composition.
+fn parse_listing_args(cmd: &str, args: &[String]) -> (PathBuf, Option<String>, bool) {
+    let mut json = false;
+    let mut flag_name: Option<String> = None;
+    let mut positionals: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--json" => {
+                if json {
+                    listing_usage_error(cmd, "duplicate --json flag");
+                }
+                json = true;
+            }
+            "--composition" => {
+                i += 1;
+                if i >= args.len() {
+                    listing_usage_error(cmd, "--composition needs a value (a composition name)");
+                }
+                if flag_name.is_some() {
+                    listing_usage_error(cmd, "duplicate --composition flag");
+                }
+                flag_name = Some(args[i].clone());
+            }
+            other if other.starts_with('-') => {
+                listing_usage_error(cmd, &format!("unknown flag {other:?}"));
+            }
+            other => positionals.push(other.to_string()),
+        }
+        i += 1;
+    }
+    if positionals.is_empty() || positionals.len() > 2 {
+        listing_usage_error(
+            cmd,
+            &match cmd {
+                "compositions" => "expected exactly one <folder>".to_string(),
+                _ => "expected one <folder> plus an optional [name]".to_string(),
+            },
+        );
+    }
+    let folder = PathBuf::from(&positionals[0]);
+    let positional_name = positionals.get(1).cloned();
+    let name = match (flag_name, positional_name) {
+        (Some(f), Some(p)) if f != p => listing_usage_error(
+            cmd,
+            &format!("--composition {f:?} disagrees with positional name {p:?}; pass one"),
+        ),
+        (Some(f), _) => Some(f),
+        (None, p) => p,
+    };
+    if cmd == "compositions" && name.is_some() {
+        listing_usage_error(cmd, "expected exactly one <folder> (compositions takes no name)");
+    }
+    (folder, name, json)
 }
 
 fn check_usage_error(msg: &str) -> ! {
@@ -211,6 +283,41 @@ fn main() {
                         }
                         req.json = true;
                     }
+                    "--composition" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --composition needs a value (a composition name).");
+                            std::process::exit(2);
+                        }
+                        if req.composition.is_some() {
+                            eprintln!("framesmith render: duplicate --composition flag.");
+                        }
+                        req.composition = Some(args[i].clone());
+                    }
+                    "--start" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --start needs a value (seconds into the composition).");
+                            std::process::exit(2);
+                        }
+                        if req.start.is_some() {
+                            eprintln!("framesmith render: duplicate --start flag.");
+                            std::process::exit(2);
+                        }
+                        req.start = Some(args[i].clone());
+                    }
+                    "--end" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --end needs a value (seconds into the composition).");
+                            std::process::exit(2);
+                        }
+                        if req.end.is_some() {
+                            eprintln!("framesmith render: duplicate --end flag.");
+                            std::process::exit(2);
+                        }
+                        req.end = Some(args[i].clone());
+                    }
                     other if other.starts_with('-') => {
                         eprintln!("framesmith render: unknown flag {other:?}.");
                         std::process::exit(2);
@@ -235,6 +342,18 @@ fn main() {
                 }
             }
         }
+        "compositions" => {
+            let (folder, _, json) = parse_listing_args("compositions", &args[1..]);
+            commands::cmd_compositions(&folder, json)
+        }
+        "timeline" => {
+            let (folder, name, json) = parse_listing_args("timeline", &args[1..]);
+            commands::cmd_timeline(&folder, name.as_deref(), json)
+        }
+        "info" => {
+            let (folder, name, json) = parse_listing_args("info", &args[1..]);
+            commands::cmd_info(&folder, name.as_deref(), json)
+        }
         "-h" | "--help" | "help" => {
             println!(
                 "framesmith — turn a small KDL composition folder into a playable MP4.\n\n\
@@ -242,7 +361,10 @@ fn main() {
                  \x20 init <name> [--dir <parent>]  create a minimal valid project\n\
                  \x20 check [--json] [--backend cpu|gpu|auto] <folder>  validate without rendering (exit 0 valid, 1 invalid, 2 unsupported)\n\
                  \x20 errors [--json] [CODE]        explain every error code\n\
-                 \x20 render <folder> [-o <file>] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]  validate, bootstrap FFmpeg, refuse or encode"
+                 \x20 compositions [--json] <folder>  list every composition name plus the root\n\
+                 \x20 timeline [--json] [--composition <name>] <folder> [<name>]  list every clip with id, track, label, hidden state, and window\n\
+                 \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
+                 \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]  validate, bootstrap FFmpeg, refuse or encode"
             );
             0
         }

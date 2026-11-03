@@ -1,0 +1,16 @@
+composition name="main" width=64 height=64 fps=30 background="#000000" version=1 root=true {
+    box x=0 y=0 width=64 height=64 fill="#ff0000" start=0 duration=1 id="intro" track="video" label="cold open"
+    nest nest="bumper" start-after="intro" duration=1 trim-start=0 trim-end=1 id="bumper-a" track="video" label="bumper red half"
+    nest nest="bumper" start-after="bumper-a" duration=1 trim-start=1 trim-end=2 id="bumper-b" track="video" label="bumper green half"
+    box x=0 y=0 width=64 height=64 fill="#0000ff" start-after="bumper-b" duration=1 id="outro" track="video" label="close"
+    box x=0 y=0 width=64 height=64 fill="#00ff00" start=1 duration=1 id="ghost" hidden=true track="video" label="cut layer"
+    text value="Framesmith N06" x=0 y=0 size=8 color="#ffffff" start=0 id="title" track="graphics" label="super"
+    audio path="media/tone.wav" start=0 id="bed" track="audio" label="room tone"
+}
+composition name="bumper" width=64 height=64 duration=2 fps=30 background="#000000" version=1 {
+    box x=0 y=0 width=64 height=64 fill="#ff0000" start=0 duration=1 id="b-red" track="video" label="first beat"
+    box x=0 y=0 width=64 height=64 fill="#00ff00" start=1 duration=1 id="b-green" track="video" label="second beat"
+}
+composition name="cutdown" canvas="square" fps=30 background="#112233" version=1 {
+    text value="Cutdown" x=0 y=0 size=8 color="#ffffff" start=0 duration=1 id="ct" track="caption" label="cap"
+}

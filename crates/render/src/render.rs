@@ -30,9 +30,9 @@
 //!   decode failure stops the render, reports the FFmpeg stage, and never
 //!   presents a wrong or truncated MP4 as success.
 
+use crate::frame::{FrameDescription, FrameItem};
+use crate::motion_plan::{plan_motions, snap_fps, ClipMotion};
 use glyph::font::Face;
-use crate::frame::{FrameDescription, FrameItem, describe};
-use crate::motion_plan::{ClipMotion, plan_motions, snap_fps};
 use notation::model::{Clip, Composition, Fit};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -100,6 +100,17 @@ const WORKER_BATCH: usize = 64;
 /// decoded media, and the CPU raster cache. Both renderers draw from the
 /// same [`Prepared`]: the CPU blitter through [`Prepared::cpu_frame`],
 /// the GPU picture path through `gpu::render_frame`.
+/// One transitively nested composition of a render (Sprint 6 T007):
+/// its own clips and motions plus its global document base into the
+/// unified prepared media (layouts, videos, ranges). The root
+/// composition lives in [`Prepared`] proper; the tree holds only the
+/// nested ones, in breadth-first document order.
+pub(crate) struct TreeComp {
+    pub comp: Composition,
+    pub motions: Vec<ClipMotion>,
+    pub base: usize,
+}
+
 pub struct Prepared {
     pub(crate) comp: Composition,
     pub(crate) motions: Vec<ClipMotion>,
@@ -112,11 +123,26 @@ pub struct Prepared {
     pub(crate) ranges: Vec<DecodedRange>,
     pub(crate) images: Vec<DecodedImage>,
     pub(crate) raster: RasterCache,
+    /// Nested compositions reachable from the root (Sprint 6 T007),
+    /// in breadth-first document order. Empty for nest-free projects;
+    /// `layouts`, `videos`, `ranges`, and `images` above already
+    /// include every tree composition's media at the global document
+    /// ids [`TreeComp::base`] records.
+    pub(crate) tree: Vec<TreeComp>,
     /// Footage frame-cache hits and misses for this preparation (Sprint
     /// 5 T006): one lookup per decoded clip window. Read-only after
     /// [`prepare_frames`]; drawing never touches it, so it cannot
     /// change the picture at any worker count.
     pub cache_stats: crate::footage_cache::CacheStats,
+    /// Composition time of output frame 0 (Sprint 6 T008): zero for a
+    /// full render, the `--start` instant for a sub-range render. Every
+    /// drawn frame adds its own frame interval exactly, so ranged frames
+    /// equal the full render's frames at the same instants.
+    pub(crate) range_start: timebase::Time,
+    /// Output media length in seconds (Sprint 6 T008): the composition
+    /// duration for a full render, `end - start` for a sub-range. The
+    /// encoder and the success line use this, never the composition.
+    pub(crate) out_duration: f64,
 }
 
 impl Prepared {
@@ -125,9 +151,21 @@ impl Prepared {
         &self.comp
     }
 
-    /// Borrow the per-clip motion evaluators.
-    pub(crate) fn motion_ref(&self) -> &Vec<ClipMotion> {
-        &self.motions
+    /// The render tree view (Sprint 6 T007): the root plus every nested
+    /// composition with per-composition motions and global bases.
+    pub(crate) fn nest_view(&self) -> crate::frame::NestView<'_> {
+        let mut comps = Vec::with_capacity(1 + self.tree.len());
+        let mut motions = Vec::with_capacity(1 + self.tree.len());
+        let mut bases = Vec::with_capacity(1 + self.tree.len());
+        comps.push(&self.comp);
+        motions.push(self.motions.as_slice());
+        bases.push(0);
+        for t in &self.tree {
+            comps.push(&t.comp);
+            motions.push(t.motions.as_slice());
+            bases.push(t.base);
+        }
+        crate::frame::NestView { comps, motions, bases }
     }
 
     /// Output frame count of the prepared composition.
@@ -145,7 +183,13 @@ impl Prepared {
     /// from a full render exactly on the CPU renderer. The frame is
     /// returned as raw RGB24 bytes (`width * height * 3`).
     pub fn cpu_frame(&mut self, frame: u64) -> Result<Vec<u8>, String> {
-        let desc = describe(&self.comp, &self.motions, frame);
+        let view = self.nest_view();
+        let desc = crate::frame::describe_nested_at(
+            &view,
+            0,
+            frame,
+            self.range_start + crate::motion_plan::frame_time(&self.comp.fps, frame),
+        );
         let mut out = vec![0u8; self.comp.width as usize * self.comp.height as usize * 3];
         draw_description(
             &desc,
@@ -416,29 +460,106 @@ pub fn worker_order(total: usize, workers: usize) -> Vec<u64> {
 }
 
 /// Run the picture pre-first-frame steps of [`render_composition`] —
-/// fonts, motion evaluators, text layouts, video probes with video
-/// smoke decodes, clip-window decodes, and image decodes — and return
-/// the shared [`Prepared`] both renderers draw from. Audio-stream
-/// smoke decodes and the 48 kHz mix (tracks plus video sound) live in
-/// [`build_audio_plan`] (the audio stage, Sprint 3 T008/T010), which
-/// runs after this step. Any failure names its file or stage and writes
-/// no MP4, exactly as the full render would.
-pub fn prepare_frames(
+/// Resolve the render tree in breadth-first document order (Sprint 6
+/// T007): the root first, then every transitively nested composition.
+/// Targets resolve by composition `name` or `id` against `all` (plus
+/// the root itself when it is not listed there). An unknown target or
+/// a chain past 8 edges refuses before the first frame; valid projects
+/// never hit either, because validation gates them first.
+fn nest_render_order<'a>(
+    comp: &'a Composition,
+    all: &'a [Composition],
+) -> Result<Vec<&'a Composition>, String> {
+    fn find<'a>(
+        comp: &'a Composition,
+        all: &'a [Composition],
+        target: &str,
+    ) -> Option<&'a Composition> {
+        if comp.name == target || comp.id.as_deref() == Some(target) {
+            return Some(comp);
+        }
+        all.iter()
+            .find(|c| c.name == target || c.id.as_deref() == Some(target))
+    }
+    let mut order: Vec<&Composition> = vec![comp];
+    let mut depths: Vec<usize> = vec![0];
+    let mut parents: Vec<usize> = vec![usize::MAX];
+    let mut cursor = 0;
+    while cursor < order.len() {
+        let depth = depths[cursor];
+        if depth >= notation::model::MAX_NEST_DEPTH {
+            // Do not expand past the limit: a deeper chain is refused
+            // below with the chain named, never rendered.
+            cursor += 1;
+            continue;
+        }
+        let clips: Vec<(String, usize, usize)> = order[cursor]
+            .clips
+            .iter()
+            .filter_map(|c| match c {
+                Clip::Nest(n) => Some((n.target.clone(), n.line, n.column)),
+                _ => None,
+            })
+            .collect();
+        for (target, line, column) in clips {
+            let Some(hit) = find(comp, all, &target) else {
+                return Err(format!(
+                    "render refused: nest {target:?} names no composition in this project (validation stage); no MP4 was written (at {line}:{column})"
+                ));
+            };
+            if order.iter().any(|c| c.name == hit.name) {
+                continue;
+            }
+            // A use deeper than the limit refuses naming the chain and
+            // the limit, before the first frame.
+            if depth + 1 > notation::model::MAX_NEST_DEPTH {
+                let mut chain: Vec<String> = Vec::new();
+                let mut at = cursor;
+                let mut rev: Vec<&str> = vec![hit.name.as_str()];
+                loop {
+                    rev.push(order[at].name.as_str());
+                    if parents[at] == usize::MAX {
+                        break;
+                    }
+                    at = parents[at];
+                }
+                rev.reverse();
+                chain.extend(rev.iter().map(|s| format!("{s:?}")));
+                return Err(format!(
+                    "render refused: `nest` chain {} nests {} deep, past the {}-level limit; flatten the nesting to at most {} levels (validation stage); no MP4 was written",
+                    chain.join(" -> "),
+                    depth + 1,
+                    notation::model::MAX_NEST_DEPTH,
+                    notation::model::MAX_NEST_DEPTH,
+                ));
+            }
+            parents.push(cursor);
+            depths.push(depth + 1);
+            order.push(hit);
+        }
+        cursor += 1;
+    }
+    Ok(order)
+}
+
+/// Register one composition's declared project fonts (Sprint 6 T007):
+/// every declared font registers under its own family so an explicit
+/// `font-family` can select any of them; the first declared font stays
+/// the default family. The root registers into the preparation's font
+/// set; nested compositions register into a throwaway set (their
+/// shaped blocks carry their own face bytes).
+fn register_comp_fonts(
     comp: &Composition,
     folder: &Path,
-    ffmpeg_bin: &Path,
-) -> Result<Prepared, String> {
+    fonts: &mut layout::Fonts,
+    project_family: &mut Option<String>,
+) -> Result<(), String> {
     // Text faces: first declared project font, else the host system
     // Text engine: parley shaping over the project font plus the
     // machine's fonts, with per-character fallback and FFmpeg-decoded
     // emoji. The project font (first declared `font`) names its own
     // family; without one the generic families resolve on the machine.
     // Origins are always named in the success line.
-    let mut fonts = layout::Fonts::new();
-    let mut project_family: Option<String> = None;
-    // Every declared project font registers under its own family so an
-    // explicit `font-family` can select any of them; the first declared
-    // font stays the default family.
     for (index, decl) in comp.fonts.iter().enumerate() {
         let bytes = std::fs::read(folder.join(&decl.path)).map_err(|e| {
             format!(
@@ -449,28 +570,37 @@ pub fn prepare_frames(
         let family = glyph::tables::family_name(&bytes, 0).unwrap_or_else(|| decl.path.clone());
         fonts.register(bytes, Some(&family)).map_err(|e| {
             let reason = match e {
-                layout::FontError::Unsupported(kind) => format!("{kind} is not supported; use a TrueType (.ttf) font with TrueType outlines"),
+                layout::FontError::Unsupported(kind) => format!(
+                    "{kind} is not supported; use a TrueType (.ttf) font with TrueType outlines"
+                ),
                 layout::FontError::NotAFont => "the file is not a recognized font".to_string(),
                 layout::FontError::Collection(reason) => reason,
                 layout::FontError::Damaged(reason) => reason,
             };
-            format!("render refused: font file {:?} {reason}; no MP4 was written", decl.path)
+            format!(
+                "render refused: font file {:?} {reason}; no MP4 was written",
+                decl.path
+            )
         })?;
         if index == 0 {
-            project_family = Some(family);
+            *project_family = Some(family);
         }
     }
-    // Motion: exact-time clock plus one evaluator per clip. Validated
-    // `tween`/`set` directives (T003) ride in the composition; every
-    // clip still holds its own values until tween/set evaluation lands
-    // (T009/T010/T011) — the evaluator already runs on every frame.
-    let fps_snap = snap_fps(&comp.fps);
-    let motions = plan_motions(comp, fps_snap);
-    // Text layouts: one parley block per text clip, shaped once up
-    // front (text is static within a clip). A layout the machine cannot
-    // serve refuses before the first frame; with no font anywhere the
-    // announced bitmap fallback draws instead of a blank.
-    let raster: RasterCache = HashMap::new();
+    Ok(())
+}
+
+/// Shape one composition's text layouts (Sprint 6 T007): one parley
+/// block per text clip, shaped once up front (text is static within a
+/// clip). A layout the machine cannot serve refuses before the first
+/// frame; with no font anywhere the announced bitmap fallback draws
+/// instead of a blank. Returns the per-clip blocks plus whether this
+/// composition falls back to the bitmap face.
+fn shape_comp_layouts(
+    comp: &Composition,
+    fonts: &mut layout::Fonts,
+    project_family: &Option<String>,
+    ffmpeg_bin: &Path,
+) -> Result<(Vec<Option<layout::Block>>, bool), String> {
     let mut layouts: Vec<Option<layout::Block>> = Vec::with_capacity(comp.clips.len());
     let mut bitmap_fallback = false;
     for clip in &comp.clips {
@@ -482,8 +612,14 @@ pub fn prepare_frames(
         // system variant file for the clip style (`Arial Bold`...), else
         // the generic fallback inside layout. Names the same basenames
         // as the old per-style candidate files.
-        let bold = matches!(tc.style, notation::model::FontStyle::Bold | notation::model::FontStyle::BoldItalic);
-        let italic = matches!(tc.style, notation::model::FontStyle::Italic | notation::model::FontStyle::BoldItalic);
+        let bold = matches!(
+            tc.style,
+            notation::model::FontStyle::Bold | notation::model::FontStyle::BoldItalic
+        );
+        let italic = matches!(
+            tc.style,
+            notation::model::FontStyle::Italic | notation::model::FontStyle::BoldItalic
+        );
         // Explicit `font-family` wins in written try order (project
         // families, then machine families); a list nothing resolves
         // refuses here instead of silently falling back.
@@ -498,9 +634,12 @@ pub fn prepare_frames(
                 }
                 names.clone()
             }
-            None => match &project_family {
+            None => match project_family {
                 Some(family) => vec![family.clone()],
-                None => fonts.resolve_system_style(bold, italic).into_iter().collect(),
+                None => fonts
+                    .resolve_system_style(bold, italic)
+                    .into_iter()
+                    .collect(),
             },
         };
         let style = layout::Style {
@@ -521,18 +660,40 @@ pub fn prepare_frames(
             notation::model::Wrap::Off => None,
             notation::model::Wrap::Width(w) => Some(w as f32),
         };
-        match layout::layout(&mut fonts, &tc.value, &style, wrap, Some(ffmpeg_bin)) {
+        match layout::layout(fonts, &tc.value, &style, wrap, Some(ffmpeg_bin)) {
             Ok(block) => layouts.push(Some(block)),
             Err(layout::TextError::NoFamily) if project_family.is_none() => {
                 bitmap_fallback = true;
                 layouts.push(None);
             }
             Err(e) => {
-                return Err(format!("render refused: text {:?} cannot be laid out ({e}); no MP4 was written", tc.value));
+                return Err(format!(
+                    "render refused: text {:?} cannot be laid out ({e}); no MP4 was written",
+                    tc.value
+                ));
             }
         }
     }
+    Ok((layouts, bitmap_fallback))
+}
 
+/// Probe and decode one composition's videos (Sprint 6 T007): every
+/// referenced video is probed before the first frame, picture streams
+/// are smoke-decoded, and each visible clip window is decoded once
+/// with timestamps. `clip_base` is the composition's global document
+/// base and `video_base` its first index in the unified probe list, so
+/// items address the unified tables. A clip window that outruns its
+/// source is not a refusal (Sprint 5 T003): a looping clip repeats its
+/// window, a non-looping one holds the last decoded frame with a
+/// silent sound remainder.
+fn prepare_comp_videos(
+    comp: &Composition,
+    clip_base: usize,
+    video_base: usize,
+    folder: &Path,
+    ffmpeg_bin: &Path,
+    footage_cache: &mut crate::footage_cache::FootageCache,
+) -> Result<(Vec<ProbedVideo>, Vec<DecodedRange>), String> {
     // Probe every referenced video before the first frame.
     let mut videos: Vec<ProbedVideo> = Vec::new();
     for (idx, clip) in comp.clips.iter().enumerate() {
@@ -541,7 +702,7 @@ pub fn prepare_frames(
             let (eff_start, eff_end) = effective_source_window(v, probed.duration);
             let win_len = eff_end.map(|e| (e - eff_start).max(0.0));
             videos.push(ProbedVideo {
-                clip_idx: idx,
+                clip_idx: clip_base + idx,
                 loop_clip: v.loop_clip,
                 win_start: eff_start,
                 win_len,
@@ -553,9 +714,6 @@ pub fn prepare_frames(
     // undecodable picture refuses before the first frame, naming the
     // file. Audio streams are smoke-decoded in the audio stage
     // ([`build_audio_plan`]), which names the same file on failure.
-    // A clip window that outruns its source is not a refusal (Sprint 5
-    // T003): a looping clip repeats its window, a non-looping one
-    // holds the last decoded frame with a silent sound remainder.
     for pv in &videos {
         smoke_decode(ffmpeg_bin, pv, false)?;
     }
@@ -567,22 +725,21 @@ pub fn prepare_frames(
     // content-keyed frame cache, so an unchanged re-render reuses the
     // stored pictures verbatim (faster, byte-identical) while edited
     // media bytes always decode fresh.
-    let mut footage_cache = crate::footage_cache::FootageCache::open(folder);
     let mut ranges: Vec<DecodedRange> = Vec::with_capacity(videos.len());
-    for (vi, pv) in videos.iter().enumerate() {
-        let (seek, src_len) = match comp.clips.get(pv.clip_idx) {
+    for (local_vi, pv) in videos.iter().enumerate() {
+        let vi = video_base + local_vi;
+        let local_idx = pv.clip_idx - clip_base;
+        let (seek, src_len) = match comp.clips.get(local_idx) {
             Some(Clip::Video(v)) => {
                 let win = clip_window_len(comp, v);
                 let (_, eff_end) = effective_source_window(v, pv.duration);
                 let want = (win * v.rate).max(0.0);
-                let avail = eff_end
-                    .map(|e| (e - v.trim_start).max(0.0))
-                    .unwrap_or(want);
+                let avail = eff_end.map(|e| (e - v.trim_start).max(0.0)).unwrap_or(want);
                 (v.trim_start.max(0.0), want.min(avail))
             }
             _ => (0.0, 0.0),
         };
-        let win = match comp.clips.get(pv.clip_idx) {
+        let win = match comp.clips.get(local_idx) {
             Some(Clip::Video(v)) => clip_window_len(comp, v),
             _ => 0.0,
         };
@@ -613,23 +770,200 @@ pub fn prepare_frames(
         )?;
         ranges.push(range);
     }
-    // Decode every referenced image once (T005): a PNG or JPEG still
-    // decoded to straight RGBA through FFmpeg. A file validation
-    // accepted but FFmpeg cannot decode refuses before the first frame,
-    // naming the file — never a partial MP4.
-    let mut images: Vec<DecodedImage> = Vec::new();
+    Ok((videos, ranges))
+}
+
+/// Decode one composition's images (Sprint 6 T007): a PNG or JPEG still
+/// decoded to straight RGBA through FFmpeg. A file validation
+/// accepted but FFmpeg cannot decode refuses before the first frame,
+/// naming the file — never a partial MP4. Images accumulate into the
+/// shared list, deduplicated by absolute path across the tree.
+fn prepare_comp_images(
+    comp: &Composition,
+    folder: &Path,
+    ffmpeg_bin: &Path,
+    images: &mut Vec<DecodedImage>,
+) -> Result<(), String> {
     for clip in &comp.clips {
         if let Clip::Image(im) = clip {
-            if images.iter().any(|d: &DecodedImage| d.path == folder.join(&im.path)) {
+            if images
+                .iter()
+                .any(|d: &DecodedImage| d.path == folder.join(&im.path))
+            {
                 continue;
             }
             images.push(decode_image(ffmpeg_bin, folder, &im.path)?);
         }
     }
+    Ok(())
+}
 
-    let frames = comp.fps.frame_count(comp.duration) as usize;
+/// Prepare every picture input before the first frame (Sprint 6 T007):
+/// the root composition plus every transitively nested composition —
+/// fonts, motion evaluators, text layouts, video probes with video
+/// smoke decodes, clip-window decodes, and image decodes — and return
+/// the shared [`Prepared`] both renderers draw from. `all` carries
+/// every validated composition so `nest` targets resolve; a project
+/// that validates clean always resolves here. Audio-stream smoke
+/// decodes and the 48 kHz mix (tracks plus video sound) live in
+/// [`build_audio_plan`] (the audio stage, Sprint 3 T008/T010), which
+/// runs after this step. Any failure names its file or stage and writes
+/// no MP4, exactly as the full render would.
+/// One validated sub-range of a composition (Sprint 6 T008): the
+/// composition-time window `[start, end)` rendered as its own
+/// standalone MP4 with picture and sound aligned as in the full
+/// render. `start` defaults to 0 and `end` to the composition length.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RenderRange {
+    pub start: f64,
+    pub end: f64,
+}
+
+/// Validate one `render --start/--end` window against the selected
+/// composition (Sprint 6 T008, REC-003): `None`/`None` renders the
+/// whole composition. An empty, backward, or out-of-range window
+/// refuses before frame one, naming the composition length and the
+/// accepted window. `fps` is the selected composition's rate, so the
+/// refusal can also name the frame count the window would yield.
+pub fn resolve_range(
+    comp_name: &str,
+    duration: f64,
+    fps: &notation::model::Fps,
+    start: Option<f64>,
+    end: Option<f64>,
+) -> Result<Option<RenderRange>, String> {
+    if start.is_none() && end.is_none() {
+        return Ok(None);
+    }
+    let s = start.unwrap_or(0.0);
+    let e = end.unwrap_or(duration);
+    let window = format!("{s:.3}s..{e:.3}s");
+    let accepted = format!("0 <= start < end <= {duration:.3}s");
+    let refuse = |why: String| {
+        format!(
+            "render refused: --start/--end {window} is not a usable sub-range of composition {comp_name:?} (duration {duration:.3}s): {why}; accepted window is {accepted} (validation stage); no MP4 was written"
+        )
+    };
+    for (key, v) in [("--start", s), ("--end", e)] {
+        if !v.is_finite() {
+            return Err(refuse(format!("{key} must be a number of seconds")));
+        }
+    }
+    if s > e {
+        return Err(refuse(format!(
+            "the window runs backward (start {s:.3}s is past end {e:.3}s)"
+        )));
+    }
+    if s == e {
+        return Err(refuse(format!(
+            "the window is empty (start and end are both {s:.3}s)"
+        )));
+    }
+    if s < 0.0 || e > duration || s >= duration {
+        return Err(refuse(format!(
+            "the window reaches outside the composition (composition spans 0..{duration:.3}s)"
+        )));
+    }
+    let frames = fps.frame_count(e - s);
     if frames == 0 {
-        return Err("render refused: the composition has no frames; no MP4 was written".to_string());
+        return Err(refuse(format!(
+            "the window holds no output frame at {fps} fps"
+        )));
+    }
+    Ok(Some(RenderRange { start: s, end: e }))
+}
+
+pub fn prepare_frames(
+    comp: &Composition,
+    all: &[Composition],
+    folder: &Path,
+    ffmpeg_bin: &Path,
+) -> Result<Prepared, String> {
+    prepare_frames_ranged(comp, all, folder, ffmpeg_bin, None)
+}
+
+/// Prepare every picture input for one render (Sprint 6 T008): the
+/// whole composition for a full render, or exactly the `range` window
+/// for a sub-range render. A ranged preparation draws its frame `k`
+/// at the range start plus `k` frame intervals and encodes `end -
+/// start` seconds, so the standalone MP4 aligns with the full render.
+pub fn prepare_frames_ranged(
+    comp: &Composition,
+    all: &[Composition],
+    folder: &Path,
+    ffmpeg_bin: &Path,
+    range: Option<RenderRange>,
+) -> Result<Prepared, String> {
+    // The render tree: the root first, then nested compositions in
+    // breadth-first document order. Nest-free projects prepare exactly
+    // the root, as before.
+    let order = nest_render_order(comp, all)?;
+    let mut footage_cache = crate::footage_cache::FootageCache::open(folder);
+    let raster: RasterCache = HashMap::new();
+    // The root keeps the preparation's font set (its origins are named
+    // in the success line, as before); nested compositions shape with
+    // throwaway sets.
+    let mut fonts = layout::Fonts::new();
+    let mut project_family: Option<String> = None;
+    register_comp_fonts(order[0], folder, &mut fonts, &mut project_family)?;
+    // Motion: exact-time clock plus one evaluator per clip. Validated
+    // `tween`/`set` directives (T003) ride in the composition; every
+    // clip still holds its own values until tween/set evaluation lands
+    // (T009/T010/T011) — the evaluator already runs on every frame.
+    let motions = plan_motions(order[0], snap_fps(&order[0].fps));
+    let (mut layouts, root_fallback) =
+        shape_comp_layouts(order[0], &mut fonts, &project_family, ffmpeg_bin)?;
+    let mut bitmap_fallback = root_fallback;
+    let (mut videos, mut ranges) =
+        prepare_comp_videos(order[0], 0, 0, folder, ffmpeg_bin, &mut footage_cache)?;
+    let mut images: Vec<DecodedImage> = Vec::new();
+    prepare_comp_images(order[0], folder, ffmpeg_bin, &mut images)?;
+    // Nested compositions append their media at their global document
+    // base, so nested items address the unified tables.
+    let mut tree: Vec<TreeComp> = Vec::new();
+    let mut base = order[0].clips.len();
+    for nested in order.iter().skip(1) {
+        let mut nested_fonts = layout::Fonts::new();
+        let mut nested_family: Option<String> = None;
+        register_comp_fonts(nested, folder, &mut nested_fonts, &mut nested_family)?;
+        let nested_motions = plan_motions(nested, snap_fps(&nested.fps));
+        let (nested_layouts, nested_fallback) =
+            shape_comp_layouts(nested, &mut nested_fonts, &nested_family, ffmpeg_bin)?;
+        let video_base = videos.len();
+        let (mut nested_videos, nested_ranges) = prepare_comp_videos(
+            nested,
+            base,
+            video_base,
+            folder,
+            ffmpeg_bin,
+            &mut footage_cache,
+        )?;
+        prepare_comp_images(nested, folder, ffmpeg_bin, &mut images)?;
+        layouts.extend(nested_layouts);
+        bitmap_fallback |= nested_fallback;
+        videos.append(&mut nested_videos);
+        ranges.extend(nested_ranges);
+        tree.push(TreeComp {
+            comp: (*nested).clone(),
+            motions: nested_motions,
+            base,
+        });
+        base += nested.clips.len();
+    }
+
+    // Sprint 6 T008: a sub-range renders exactly `end - start` seconds
+    // from the `--start` instant; a full render keeps the whole
+    // composition from zero. `frame_count` rounds up, so a non-empty
+    // validated window always holds at least one frame.
+    let (range_start, out_duration) = match range {
+        Some(r) => (crate::motion_plan::secs_to_time(r.start), r.end - r.start),
+        None => (timebase::Time::ZERO, comp.duration),
+    };
+    let frames = comp.fps.frame_count(out_duration) as usize;
+    if frames == 0 {
+        return Err(
+            "render refused: the composition has no frames; no MP4 was written".to_string(),
+        );
     }
 
     Ok(Prepared {
@@ -644,22 +978,28 @@ pub fn prepare_frames(
         ranges,
         images,
         raster,
+        tree,
         cache_stats: footage_cache.stats(),
+        range_start,
+        out_duration,
     })
 }
 
 /// Historical entry point preserved for existing callers: every
 /// pre-first-frame step of [`prepare_frames`] plus audio-stream smoke
-/// decodes. The CLI render path uses [`prepare_frames`] plus
-/// [`build_audio_plan`] so the frames stage and the audio stage time
-/// separately (Sprint 3 T006).
-pub fn prepare(
-    comp: &Composition,
-    folder: &Path,
-    ffmpeg_bin: &Path,
-) -> Result<Prepared, String> {
-    let prep = prepare_frames(comp, folder, ffmpeg_bin)?;
-    smoke_audio_streams(ffmpeg_bin, &prep.videos)?;
+/// decodes, for a standalone composition with no siblings to nest. The
+/// CLI render path uses [`prepare_frames`] plus [`build_audio_plan`]
+/// so the frames stage and the audio stage time separately (Sprint 3
+/// T006).
+pub fn prepare(comp: &Composition, folder: &Path, ffmpeg_bin: &Path) -> Result<Prepared, String> {
+    let prep = prepare_frames(comp, std::slice::from_ref(comp), folder, ffmpeg_bin)?;
+    let no_motions: &[ClipMotion] = &[];
+    let view = crate::frame::NestView {
+        comps: vec![comp],
+        motions: vec![no_motions],
+        bases: vec![0],
+    };
+    smoke_audio_streams(ffmpeg_bin, &prep.videos, &view)?;
     Ok(prep)
 }
 
@@ -667,8 +1007,18 @@ pub fn prepare(
 /// undecodable audio stream refuses before the first frame, naming the
 /// file. Runs inside the audio stage ([`build_audio_plan`]); kept as a
 /// separate step so [`prepare`] preserves its historical behavior.
-pub(crate) fn smoke_audio_streams(ffmpeg_bin: &Path, videos: &[ProbedVideo]) -> Result<(), String> {
+/// Hidden clips are absent from the mix (Sprint 6 T009): their sources
+/// are never smoke-decoded, so a corrupt hidden source cannot fail a
+/// render that hides it.
+pub(crate) fn smoke_audio_streams(
+    ffmpeg_bin: &Path,
+    videos: &[ProbedVideo],
+    view: &crate::frame::NestView,
+) -> Result<(), String> {
     for pv in videos.iter().filter(|v| v.has_audio) {
+        if view.is_hidden(pv.clip_idx) {
+            continue;
+        }
         smoke_decode(ffmpeg_bin, pv, true)?;
     }
     Ok(())
@@ -921,109 +1271,97 @@ fn place_into_mix(
     );
 }
 
-/// Build the audio plan (audio stage, Sprint 3 T008/T010, windowed Sprint
-/// 5 T002): smoke-decode every audible video stream, then decode each
-/// audible source — every `audio` track with its trim, plus every
+/// Mix one tree composition's audible clips into `acc` (Sprint 6 T007
+/// for the `nest` arm): every `audio` track with its trim, plus every
 /// `video` clip's sound stream from its source window at its `rate`
-/// (plainly resampled) with the clip's volume and fades — to 48 kHz
-/// stereo PCM, place each sample-accurately at its written start, and
-/// sum all sources in composition document order into one deterministic
-/// staged mix file.
-///
-/// Every audible sound starts within 1 ms of its written time: offsets
-/// round to the nearest 48 kHz sample (at most half a sample of error).
-/// The mix is byte-identical across reruns and worker counts (one fixed
-/// summation order, no randomness). Video without a sound stream
-/// contributes nothing and is not an error; without declared volume or
-/// fades the video sound mixes at unity gain.
-pub fn build_audio_plan(
-    comp: &Composition,
+/// (plainly resampled) with the clip's volume and fades, placed
+/// sample-accurately and clamped to `range_end` — the composition
+/// duration for the root, the scratch length for nested renders.
+/// `base` is the composition's global document base into the unified
+/// `videos` table. A `nest` clip mixes its whole target timeline once
+/// into a scratch buffer, slices its content window, resamples it by
+/// the use `rate`, and places it at the use start; past the content
+/// the use contributes silence. Valid projects never hit the depth cap
+/// or an unresolvable target (validation gates both); the guards keep
+/// direct API misuse silent instead of recursing.
+#[allow(clippy::too_many_arguments)]
+fn place_comp_clips(
+    view: &crate::frame::NestView<'_>,
+    videos: &[ProbedVideo],
     folder: &Path,
     ffmpeg_bin: &Path,
-    prep: &Prepared,
-    mix_path: &Path,
-) -> Result<AudioPlan, String> {
+    acc: &mut [f32],
+    total: usize,
+    range_end: f64,
+    ci: usize,
+    depth: u8,
+    visited: &mut [bool],
+) -> Result<(), String> {
     if crate::cancel::is_cancelled() {
         return Err(crate::cancel::error("audio"));
     }
-    let videos = &prep.videos;
-    smoke_audio_streams(ffmpeg_bin, videos)?;
-    if crate::cancel::is_cancelled() {
-        return Err(crate::cancel::error("audio"));
+    if depth > crate::frame::MAX_NEST_RENDER_DEPTH || visited[ci] {
+        return Ok(());
     }
-
-    // Audibility scan: an `audio` track with a non-empty window clamped
-    // to the composition, or a `video` clip with a sound stream and a
-    // non-empty window. Anything else contributes nothing.
-    let mut audible = false;
-    for (idx, clip) in comp.clips.iter().enumerate() {
-        match clip {
-            Clip::Audio(a) => {
-                let end = (a.start + a.duration).min(comp.duration);
-                if end > a.start && a.start < comp.duration {
-                    audible = true;
-                    break;
-                }
-            }
-            Clip::Video(v) => {
-                let end = (v.start + v.duration).min(comp.duration);
-                if end > v.start
-                    && v.start < comp.duration
-                    && videos.iter().any(|p| p.clip_idx == idx && p.has_audio)
-                {
-                    audible = true;
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-    if !audible {
-        return Ok(AudioPlan {
-            video_segs: Vec::new(),
-            mix_pcm: None,
-        });
-    }
-
-    let total = (comp.duration * MIX_RATE as f64).ceil().max(1.0) as usize;
-    let mut acc = vec![0.0f32; total * MIX_CHANNELS as usize];
+    visited[ci] = true;
+    let comp = view.comps[ci];
+    let base = view.bases[ci];
     for (idx, clip) in comp.clips.iter().enumerate() {
         if crate::cancel::is_cancelled() {
+            visited[ci] = false;
             return Err(crate::cancel::error("audio"));
+        }
+        // Hidden clips contribute no sound (Sprint 6 T009): the mix
+        // treats them as if absent. Picture exclusion rides in the
+        // frame description; ids and windows keep validating.
+        if clip.hidden() {
+            continue;
         }
         match clip {
             Clip::Audio(a) => {
-                let end = (a.start + a.duration).min(comp.duration);
-                if end <= a.start || a.start >= comp.duration {
+                let end = (a.start + a.duration).min(range_end);
+                if end <= a.start || a.start >= range_end {
                     continue;
                 }
                 let window = (end - a.start).max(0.0);
+                // Sprint 6 T003: the audible window in composition
+                // seconds, bounded by the source window at the clip's
+                // `rate` — `take * rate` source seconds from
+                // `trim_start`, plainly resampled like video sound so
+                // pitch follows speed. Unity rate decodes exactly the
+                // historical window, so older mixes stay byte-identical.
                 let avail = a
                     .trim_end
-                    .map(|e| (e - a.trim_start).max(0.0))
+                    .map(|e| (e - a.trim_start).max(0.0) / a.rate)
                     .unwrap_or(window);
                 let take = window.min(avail);
                 if take <= 0.0 {
                     continue;
                 }
-                let pcm = decode_mix_source(
+                let decoded = decode_mix_source(
                     ffmpeg_bin,
                     &folder.join(&a.path),
                     &a.path,
                     a.trim_start,
-                    take,
+                    take * a.rate,
                 )?;
+                let pcm = resample_plain(&decoded, a.rate);
                 let gain = db_to_gain(a.volume_db)?;
-                place_into_mix(&mut acc, &pcm, total, a.start, take, gain, a.fade_in, a.fade_out);
+                place_into_mix(
+                    &mut *acc, &pcm, total, a.start, take, gain, a.fade_in, a.fade_out,
+                );
             }
             Clip::Video(v) => {
                 // Soundless video contributes nothing and is not an error.
-                let pv = match videos.iter().find(|p| p.clip_idx == idx && p.has_audio) {
+                let pv = match videos
+                    .iter()
+                    .find(|p| p.clip_idx == base + idx && p.has_audio)
+                {
                     Some(pv) => pv,
                     None => continue,
                 };
-                let end = (v.start + v.duration).min(comp.duration);
-                if end <= v.start || v.start >= comp.duration {
+                let end = (v.start + v.duration).min(range_end);
+                if end <= v.start || v.start >= range_end {
                     continue;
                 }
                 let take = (end - v.start).max(0.0);
@@ -1058,11 +1396,213 @@ pub fn build_audio_plan(
                     unit
                 };
                 let gain = db_to_gain(v.volume_db)?;
-                place_into_mix(&mut acc, &pcm, total, v.start, take, gain, v.fade_in, v.fade_out);
+                place_into_mix(
+                    &mut *acc, &pcm, total, v.start, take, gain, v.fade_in, v.fade_out,
+                );
+            }
+            Clip::Nest(n) => {
+                // Play the target's local timeline through this use:
+                // mix the whole child once, slice the content window,
+                // resample by the use rate, and place at the use start.
+                let Some(ti) = view.resolve(&n.target) else {
+                    continue;
+                };
+                let child = view.comps[ti];
+                if !child.duration.is_finite() || child.duration <= 0.0 {
+                    continue;
+                }
+                let content_end = n
+                    .trim_end
+                    .map(|e| e.min(child.duration))
+                    .unwrap_or(child.duration);
+                if content_end <= n.trim_start {
+                    continue;
+                }
+                let content_len = (content_end - n.trim_start) / n.rate;
+                let parent_len = n.duration.min(content_len);
+                if parent_len <= 0.0 || n.start >= range_end {
+                    continue;
+                }
+                let child_total = (child.duration * MIX_RATE as f64).ceil().max(1.0) as usize;
+                let mut scratch = vec![0.0f32; child_total * MIX_CHANNELS as usize];
+                place_comp_clips(
+                    view,
+                    videos,
+                    folder,
+                    ffmpeg_bin,
+                    &mut scratch,
+                    child_total,
+                    child.duration,
+                    ti,
+                    depth + 1,
+                    visited,
+                )?;
+                // Slice the use window out of the child mix, quantized
+                // exactly like the staged mix so the slice is stable.
+                let s0 = ((n.trim_start * MIX_RATE as f64).round().max(0.0) as usize)
+                    .min(child_total);
+                let s1 = (s0 + (parent_len * n.rate * MIX_RATE as f64).round().max(0.0) as usize)
+                    .min(child_total);
+                if s1 <= s0 {
+                    continue;
+                }
+                let channels = MIX_CHANNELS as usize;
+                let slice: Vec<i16> = scratch[s0 * channels..s1 * channels]
+                    .iter()
+                    .map(|&x| (x.clamp(-1.0, 1.0) * 32767.0).round() as i16)
+                    .collect();
+                let pcm = resample_plain(&slice, n.rate);
+                place_into_mix(acc, &pcm, total, n.start, parent_len, 1.0, 0.0, 0.0);
             }
             _ => {}
         }
     }
+    visited[ci] = false;
+    Ok(())
+}
+
+/// Whether one tree composition sounds within its clamped window
+/// (Sprint 6 T007): an `audio` track with a non-empty window, a
+/// `video` clip with a sound stream and a non-empty window, or a
+/// `nest` use with a non-empty content window whose target sounds.
+/// Mirrors [`place_comp_clips`] without decoding, so the scan never
+/// misses a placement and never invents one the walk would skip.
+fn subtree_audible(
+    view: &crate::frame::NestView<'_>,
+    videos: &[ProbedVideo],
+    ci: usize,
+    range_end: f64,
+    depth: u8,
+    visited: &mut Vec<bool>,
+) -> bool {
+    if depth > crate::frame::MAX_NEST_RENDER_DEPTH || visited[ci] {
+        return false;
+    }
+    visited[ci] = true;
+    let comp = view.comps[ci];
+    let base = view.bases[ci];
+    for (idx, clip) in comp.clips.iter().enumerate() {
+        // Hidden clips are absent from the mix (Sprint 6 T009), so
+        // they never count as audible — an all-hidden project renders
+        // the silent track exactly like a soundless one.
+        if clip.hidden() {
+            continue;
+        }
+        let hit = match clip {
+            Clip::Audio(a) => {
+                let end = (a.start + a.duration).min(range_end);
+                end > a.start && a.start < range_end
+            }
+            Clip::Video(v) => {
+                let end = (v.start + v.duration).min(range_end);
+                end > v.start
+                    && v.start < range_end
+                    && videos
+                        .iter()
+                        .any(|p| p.clip_idx == base + idx && p.has_audio)
+            }
+            Clip::Nest(n) => match view.resolve(&n.target) {
+                None => false,
+                Some(ti) => {
+                    let child = view.comps[ti];
+                    if !child.duration.is_finite() || child.duration <= 0.0 {
+                        false
+                    } else {
+                        let content_end = n
+                            .trim_end
+                            .map(|e| e.min(child.duration))
+                            .unwrap_or(child.duration);
+                        if content_end <= n.trim_start {
+                            false
+                        } else {
+                            let content_len = (content_end - n.trim_start) / n.rate;
+                            let parent_len = n.duration.min(content_len);
+                            parent_len > 0.0
+                                && n.start < range_end
+                                && subtree_audible(
+                                    view,
+                                    videos,
+                                    ti,
+                                    child.duration,
+                                    depth + 1,
+                                    visited,
+                                )
+                        }
+                    }
+                }
+            },
+            _ => false,
+        };
+        if hit {
+            visited[ci] = false;
+            return true;
+        }
+    }
+    visited[ci] = false;
+    false
+}
+
+/// Build the audio plan (audio stage, Sprint 3 T008/T010, windowed Sprint
+/// 5 T002, nested Sprint 6 T007): smoke-decode every audible video
+/// stream, then decode each audible source — every `audio` track with
+/// its trim, every `video` clip's sound stream from its source window
+/// at its `rate` (plainly resampled) with the clip's volume and fades,
+/// plus every `nest` use's content window resampled at the use `rate`
+/// (picture holds past the content while sound goes silent) — to 48 kHz
+/// stereo PCM, place each sample-accurately at its written start, and
+/// sum all sources in composition document order into one deterministic
+/// staged mix file.
+///
+/// Every audible sound starts within 1 ms of its written time: offsets
+/// round to the nearest 48 kHz sample (at most half a sample of error).
+/// The mix is byte-identical across reruns and worker counts (one fixed
+/// summation order, no randomness). Video without a sound stream
+/// contributes nothing and is not an error; without declared volume or
+/// fades the video sound mixes at unity gain.
+pub fn build_audio_plan(
+    comp: &Composition,
+    folder: &Path,
+    ffmpeg_bin: &Path,
+    prep: &Prepared,
+    mix_path: &Path,
+) -> Result<AudioPlan, String> {
+    if crate::cancel::is_cancelled() {
+        return Err(crate::cancel::error("audio"));
+    }
+    let view = prep.nest_view();
+    let videos = &prep.videos;
+    smoke_audio_streams(ffmpeg_bin, videos, &view)?;
+    if crate::cancel::is_cancelled() {
+        return Err(crate::cancel::error("audio"));
+    }
+
+    // Audibility scan: an `audio` track with a non-empty window clamped
+    // to the composition, a `video` clip with a sound stream and a
+    // non-empty window, or a `nest` use sounding through its content.
+    // Anything else contributes nothing.
+    let mut scan_visited = vec![false; view.comps.len()];
+    if !subtree_audible(&view, videos, 0, comp.duration, 0, &mut scan_visited) {
+        return Ok(AudioPlan {
+            video_segs: Vec::new(),
+            mix_pcm: None,
+        });
+    }
+
+    let total = (comp.duration * MIX_RATE as f64).ceil().max(1.0) as usize;
+    let mut acc = vec![0.0f32; total * MIX_CHANNELS as usize];
+    let mut visited = vec![false; view.comps.len()];
+    place_comp_clips(
+        &view,
+        videos,
+        folder,
+        ffmpeg_bin,
+        &mut acc,
+        total,
+        comp.duration,
+        0,
+        0,
+        &mut visited,
+    )?;
     let mut bytes = Vec::with_capacity(acc.len() * 2);
     for &x in &acc {
         let v = (x.clamp(-1.0, 1.0) * 32767.0).round() as i16;
@@ -1071,17 +1611,55 @@ pub fn build_audio_plan(
     if let Some(parent) = mix_path.parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent).map_err(|e| {
-                format!("render refused: cannot create output directory {}: {e} (audio stage).", parent.display())
+                format!(
+                    "render refused: cannot create output directory {}: {e} (audio stage).",
+                    parent.display()
+                )
             })?;
         }
     }
     std::fs::write(mix_path, &bytes).map_err(|e| {
-        format!("render failed: cannot stage the audio mix {}: {e} (audio stage)", mix_path.display())
+        format!(
+            "render failed: cannot stage the audio mix {}: {e} (audio stage)",
+            mix_path.display()
+        )
     })?;
     Ok(AudioPlan {
         video_segs: Vec::new(),
         mix_pcm: Some(mix_path.to_path_buf()),
     })
+}
+
+/// Crop one staged 48 kHz stereo mix to a sub-range (Sprint 6 T008):
+/// the ranged MP4's sound is exactly the full render's mix sliced to
+/// `[start, end)`, sample-quantized the same way the mix places every
+/// source. A silent composition stages no mix, so there is nothing to
+/// crop. Rewrites the staged file in place; the caller reuses the same
+/// audio plan with a ranged preparation.
+pub fn crop_mix_to_range(mix_path: &Path, start: f64, end: f64) -> Result<(), String> {
+    let bytes = std::fs::read(mix_path).map_err(|e| {
+        format!(
+            "render failed: cannot read the staged audio mix {}: {e} (audio stage)",
+            mix_path.display()
+        )
+    })?;
+    let channels = MIX_CHANNELS as usize;
+    let total = bytes.len() / (2 * channels);
+    let s0 = ((start * MIX_RATE as f64).round().max(0.0) as usize).min(total);
+    let s1 = ((end * MIX_RATE as f64).round().max(0.0) as usize).min(total);
+    if s1 <= s0 {
+        return Err(format!(
+            "render failed: sub-range {start:.3}s..{end:.3}s holds no staged mix samples (audio stage)"
+        ));
+    }
+    let stride = 2 * channels;
+    std::fs::write(&mix_path, &bytes[s0 * stride..s1 * stride]).map_err(|e| {
+        format!(
+            "render failed: cannot stage the ranged audio mix {}: {e} (audio stage)",
+            mix_path.display()
+        )
+    })?;
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -1093,26 +1671,30 @@ pub fn build_audio_plan(
 /// thread-local raster-face cache whose glyph faces are not `Sync` — so
 /// `&DrawView` crosses threads while each worker owns its raster cache.
 pub(crate) struct DrawView<'a> {
-    comp: &'a Composition,
-    motions: &'a Vec<ClipMotion>,
     videos: &'a [ProbedVideo],
     ranges: &'a [DecodedRange],
     images: &'a [DecodedImage],
     layouts: &'a [Option<layout::Block>],
     bitmap_fallback: bool,
+    /// The render tree (Sprint 6 T007): the root plus every nested
+    /// composition, so one frame description resolves every `nest`.
+    nest: crate::frame::NestView<'a>,
+    /// Composition time of output frame 0 (Sprint 6 T008): zero for a
+    /// full render, the `--start` instant for a sub-range.
+    time_offset: timebase::Time,
 }
 
 impl Prepared {
     /// Borrow the thread-shareable draw inputs of this preparation.
     pub(crate) fn draw_view(&self) -> DrawView<'_> {
         DrawView {
-            comp: &self.comp,
-            motions: &self.motions,
             videos: &self.videos,
             ranges: &self.ranges,
             images: &self.images,
             layouts: &self.layouts,
             bitmap_fallback: self.bitmap_fallback,
+            nest: self.nest_view(),
+            time_offset: self.range_start,
         }
     }
 }
@@ -1127,7 +1709,12 @@ pub(crate) fn draw_one_frame_view(
     backend: Backend,
     frame: u64,
 ) -> Result<Vec<u8>, String> {
-    let desc = describe(view.comp, view.motions, frame);
+    let desc = crate::frame::describe_nested_at(
+        &view.nest,
+        0,
+        frame,
+        view.time_offset + crate::motion_plan::frame_time(&view.nest.comps[0].fps, frame),
+    );
     match backend {
         Backend::Gpu => crate::gpu::render_description_split(
             view.videos,
@@ -1219,9 +1806,10 @@ pub(crate) fn draw_batch_parallel_with_workers(
                 }));
                 match outcome {
                     Ok(inner) => inner,
-                    Err(_) => Err(
-                        "worker failed: a frame worker panicked; no MP4 was written".to_string(),
-                    ),
+                    Err(_) => {
+                        Err("worker failed: a frame worker panicked; no MP4 was written"
+                            .to_string())
+                    }
                 }
             }));
         }
@@ -1270,7 +1858,12 @@ fn staged_extras(plan: &AudioPlan) -> Vec<PathBuf> {
 /// Cancel the in-progress encode: stop the FFmpeg child, remove staged
 /// and partial files, and report the interruption with any leftover
 /// paths that could not be removed.
-fn cancel_encode(child: &mut std::process::Child, out: &Path, plan: &AudioPlan, stage: &str) -> String {
+fn cancel_encode(
+    child: &mut std::process::Child,
+    out: &Path,
+    plan: &AudioPlan,
+    stage: &str,
+) -> String {
     let _ = child.kill();
     let _ = child.wait();
     let leftovers = crate::cancel::remove_staged(out, &staged_extras(plan));
@@ -1315,7 +1908,10 @@ pub fn render_staged(
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent).map_err(|e| {
                 remove_work_files(out, plan);
-                format!("render refused: cannot create output directory {}: {e}.", parent.display())
+                format!(
+                    "render refused: cannot create output directory {}: {e}.",
+                    parent.display()
+                )
             })?;
         }
     }
@@ -1324,7 +1920,14 @@ pub fn render_staged(
         return Err(cancel_report("frames/encode", &leftovers));
     }
     let enc = opts.encoder();
-    let args = encode_args(comp, &plan.video_segs, plan.mix_pcm.as_deref(), &tmp, &enc);
+    let args = encode_args(
+        comp,
+        &plan.video_segs,
+        plan.mix_pcm.as_deref(),
+        &tmp,
+        &enc,
+        prep.out_duration,
+    );
     let frames_start = Instant::now();
     let mut child = Command::new(ffmpeg_bin)
         .args(&args)
@@ -1419,14 +2022,20 @@ pub fn render_staged(
         return Err(format!(
             "render failed: ffmpeg encode stage exited with status {}{}; no MP4 was written",
             output.status,
-            if tail.is_empty() { String::new() } else { format!(": {tail}") }
+            if tail.is_empty() {
+                String::new()
+            } else {
+                format!(": {tail}")
+            }
         ));
     }
     // The encoder must have produced output; an empty file is a failure.
     let produced = std::fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0);
     if produced == 0 {
         remove_work_files(out, plan);
-        return Err("render failed: ffmpeg encode stage wrote no data; no MP4 was written".to_string());
+        return Err(
+            "render failed: ffmpeg encode stage wrote no data; no MP4 was written".to_string(),
+        );
     }
     std::fs::rename(&tmp, out).map_err(|e| {
         remove_work_files(out, plan);
@@ -1445,7 +2054,7 @@ pub fn render_staged(
             out.display(),
             comp.width,
             comp.height,
-            comp.duration,
+            prep.out_duration,
             origin_note(
                 prep.project_family.is_some(),
                 &prep.fonts,
@@ -1463,13 +2072,15 @@ pub fn render_staged(
 /// Render one validated composition to `out` using `ffmpeg_bin`.
 /// Returns the human success line on success, or a refusal/failure
 /// message (the caller decides the exit code). Never leaves a partial
-/// MP4 at `out` on failure.
+/// MP4 at `out` on failure. `all` carries every validated composition
+/// so `nest` targets resolve (Sprint 6 T007).
 ///
 /// Frames are computed in bounded consecutive batches (round-robin
 /// within each batch, see [`worker_order`]) and emitted to the encoder
 /// in frame order, so any worker count draws byte-identical pictures.
 pub fn render_composition(
     comp: &Composition,
+    all: &[Composition],
     folder: &Path,
     ffmpeg_bin: &Path,
     out: &Path,
@@ -1478,20 +2089,22 @@ pub fn render_composition(
     // non-CLI callers: the staged pipeline with measured stages that
     // the CLI would print one by one.
     let opts = RenderOptions::default();
-    render_with_options(comp, folder, ffmpeg_bin, out, &opts).map(|(msg, _, _)| msg)
+    render_with_options(comp, all, folder, ffmpeg_bin, out, &opts).map(|(msg, _, _)| msg)
 }
 
 /// Render one validated composition with explicit Sprint 3 options.
 /// Returns the human success line plus the measured frames and encode
 /// stage durations. Staged mix and encode work files are always removed.
+/// `all` carries every validated composition so `nest` targets resolve.
 pub fn render_with_options(
     comp: &Composition,
+    all: &[Composition],
     folder: &Path,
     ffmpeg_bin: &Path,
     out: &Path,
     opts: &RenderOptions,
 ) -> Result<(String, u64, u64), String> {
-    let prep = prepare_frames(comp, folder, ffmpeg_bin)?;
+    let prep = prepare_frames(comp, all, folder, ffmpeg_bin)?;
     let mix_path = mix_staging_path(out);
     let plan = match build_audio_plan(comp, folder, ffmpeg_bin, &prep, &mix_path) {
         Ok(plan) => plan,
@@ -1542,10 +2155,15 @@ fn origin_note(project: bool, fonts: &layout::Fonts, bitmap: bool, text_drawn: b
 /// CPU raster faces for one render, keyed by parley font bytes and
 /// face index: shaping resolves families, this cache parses each used
 /// face once and reuses it across frames.
-pub(crate) fn raster_face<'a>(raster: &'a mut RasterCache, font: &std::sync::Arc<Vec<u8>>, index: u32) -> Result<&'a Face, String> {
+pub(crate) fn raster_face<'a>(
+    raster: &'a mut RasterCache,
+    font: &std::sync::Arc<Vec<u8>>,
+    index: u32,
+) -> Result<&'a Face, String> {
     let key = (std::sync::Arc::as_ptr(font) as usize, index);
     if !raster.contains_key(&key) {
-        let face = Face::load_bytes(font).map_err(|e| format!("render failed: shaped font cannot rasterize ({e})"))?;
+        let face = Face::load_bytes(font)
+            .map_err(|e| format!("render failed: shaped font cannot rasterize ({e})"))?;
         raster.insert(key, face);
     }
     Ok(&raster[&key])
@@ -1574,7 +2192,11 @@ fn tmp_output(out: &Path) -> PathBuf {
 /// Last `n` non-empty stderr lines, joined for the stage report.
 fn stderr_tail(stderr: &[u8], n: usize) -> String {
     let text = String::from_utf8_lossy(stderr);
-    let lines: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    let lines: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
     let start = lines.len().saturating_sub(n);
     lines[start..].join(" | ").chars().take(600).collect()
 }
@@ -1585,12 +2207,18 @@ fn stderr_tail(stderr: &[u8], n: usize) -> String {
 /// s16le 48 kHz stereo. The `standard` preset with no overrides emits no
 /// explicit encoder flags, so its bytes match the Sprint 2 output
 /// exactly; every other preset or override sets only its own axis.
+/// Build the ffmpeg encode arguments. `duration` is the output media
+/// length in seconds: the composition duration for a full render, the
+/// range length for a sub-range render (Sprint 6 T008). The staged mix
+/// (when present) is already cropped to that length; the `atrim` and
+/// `-t` guards only pin the exact container length.
 fn encode_args(
     comp: &Composition,
     audio: &[AudioSeg],
     mix: Option<&Path>,
     tmp: &Path,
     enc: &ResolvedEncoder,
+    duration: f64,
 ) -> Vec<String> {
     let mut args: Vec<String> = vec![
         "-y".into(),
@@ -1657,15 +2285,21 @@ fn encode_args(
         if let Some(m) = mix_input {
             fc.push_str(&format!(
                 "[{m}:a]apad,atrim=duration={:.6}[mix];",
-                comp.duration
+                duration
             ));
         }
         let n_inputs = audio.len() + if mix_input.is_some() { 1 } else { 0 };
         if n_inputs == 1 {
             if mix_input.is_some() {
-                fc.push_str(&format!("[mix]apad,atrim=duration={:.6}[outa]", comp.duration));
+                fc.push_str(&format!(
+                    "[mix]apad,atrim=duration={:.6}[outa]",
+                    duration
+                ));
             } else {
-                fc.push_str(&format!("[s0]apad,atrim=duration={:.6}[outa]", comp.duration));
+                fc.push_str(&format!(
+                    "[s0]apad,atrim=duration={:.6}[outa]",
+                    duration
+                ));
             }
         } else {
             for i in 0..audio.len() {
@@ -1676,7 +2310,7 @@ fn encode_args(
             }
             fc.push_str(&format!(
                 "amix=inputs={n_inputs}:normalize=0:duration=longest,apad,atrim=duration={:.6}[outa]",
-                comp.duration
+                duration
             ));
         }
         args.push("-filter_complex".into());
@@ -1687,12 +2321,7 @@ fn encode_args(
         args.push("[outa]".into());
     }
     if audio.is_empty() && mix_input.is_none() {
-        args.extend([
-            "-map".into(),
-            "0:v".into(),
-            "-map".into(),
-            "1:a".into(),
-        ]);
+        args.extend(["-map".into(), "0:v".into(), "-map".into(), "1:a".into()]);
     }
     // Preset and overrides: each flag sets only its own axis.
     let standard_quiet = enc.from_preset == Preset::Standard
@@ -1723,7 +2352,7 @@ fn encode_args(
         "-ar".into(),
         "48000".into(),
         "-t".into(),
-        format!("{}", comp.duration),
+        format!("{duration}"),
         "-movflags".into(),
         "+faststart".into(),
         // Pinned: the temp file carries a non-standard extension, so the
@@ -1749,9 +2378,7 @@ fn probe_video(ffmpeg_bin: &Path, abs: &Path, rel: &str) -> Result<ProbedVideo, 
         .args(["-hide_banner", "-i", &abs.display().to_string()])
         .output()
         .map_err(|e| {
-            format!(
-                "render refused: cannot probe video source {rel:?} ({e}); no MP4 was written"
-            )
+            format!("render refused: cannot probe video source {rel:?} ({e}); no MP4 was written")
         })?;
     // ffmpeg prints input facts to stderr and exits non-zero without an
     // output file; the facts are still usable when present.
@@ -1906,7 +2533,9 @@ fn parse_duration(text: &str) -> Option<f64> {
 /// `Stream #0:0...: Video: h264 ..., 640x480 ...` → (codec, w, h).
 fn parse_video_stream(line: &str) -> Option<(String, u32, u32)> {
     let after = line.split("Video:").nth(1)?.trim();
-    let codec = after.split(|c: char| c == ' ' || c == '(' || c == ',').next()?;
+    let codec = after
+        .split(|c: char| c == ' ' || c == '(' || c == ',')
+        .next()?;
     if codec.is_empty() {
         return None;
     }
@@ -1980,7 +2609,8 @@ pub(crate) struct DecodedImage {
     /// frames and workers share entries and every hit is byte-identical
     /// to recomputing. The cache lives on the prepared image, dying with
     /// the render, so a changed file can never read stale.
-    pub(crate) scaled: std::sync::Arc<std::sync::Mutex<HashMap<ImageScaleKey, std::sync::Arc<CachedScale>>>>,
+    pub(crate) scaled:
+        std::sync::Arc<std::sync::Mutex<HashMap<ImageScaleKey, std::sync::Arc<CachedScale>>>>,
 }
 
 /// Sampling geometry behind one cached resampled dest rect (T004): the
@@ -2148,7 +2778,17 @@ fn rr_coverage_mapped(
 /// Composite one RGB color over the canvas pixel at `(i, j)` with the
 /// given source alpha (0 transparent to 1 opaque), source-over.
 #[allow(clippy::too_many_arguments)]
-fn blend_over(frame: &mut [u8], cw: u32, chh: u32, i: i64, j: i64, r: u8, g: u8, b: u8, alpha: f64) {
+fn blend_over(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    i: i64,
+    j: i64,
+    r: u8,
+    g: u8,
+    b: u8,
+    alpha: f64,
+) {
     if alpha <= 0.0 || i < 0 || j < 0 || i >= cw as i64 || j >= chh as i64 {
         return;
     }
@@ -2200,20 +2840,42 @@ pub(crate) fn draw_box(frame: &mut [u8], cw: u32, chh: u32, b: &crate::frame::Re
             let ring = (outer - inner).max(0.0);
             if ring > 0.0 {
                 blend_over(
-                    frame, cw, chh, i, j,
-                    b.border_color.r, b.border_color.g, b.border_color.b,
+                    frame,
+                    cw,
+                    chh,
+                    i,
+                    j,
+                    b.border_color.r,
+                    b.border_color.g,
+                    b.border_color.b,
                     ring * alpha,
                 );
             }
             if inner > 0.0 {
                 blend_over(
-                    frame, cw, chh, i, j,
-                    b.fill.r, b.fill.g, b.fill.b,
+                    frame,
+                    cw,
+                    chh,
+                    i,
+                    j,
+                    b.fill.r,
+                    b.fill.g,
+                    b.fill.b,
                     inner * alpha,
                 );
             }
         } else {
-            blend_over(frame, cw, chh, i, j, b.fill.r, b.fill.g, b.fill.b, outer * alpha);
+            blend_over(
+                frame,
+                cw,
+                chh,
+                i,
+                j,
+                b.fill.r,
+                b.fill.g,
+                b.fill.b,
+                outer * alpha,
+            );
         }
     };
     if b.rotation == 0.0 || !b.rotation.is_finite() {
@@ -2355,9 +3017,17 @@ pub(crate) fn draw_image(
     let (tx0, ty0, tx1, ty1) = (im.x, im.y, im.x + tw, im.y + th);
     if im.rotation == 0.0 || !im.rotation.is_finite() {
         let j0 = (dy - 0.5).ceil().max(0.0).max((ty0 - 0.5).ceil().max(0.0)) as i64;
-        let j1 = (dy + dh - 0.5).floor().min(chh as f64 - 1.0).min((ty1 - 0.5).floor()).max(-1.0) as i64;
+        let j1 = (dy + dh - 0.5)
+            .floor()
+            .min(chh as f64 - 1.0)
+            .min((ty1 - 0.5).floor())
+            .max(-1.0) as i64;
         let i0 = (dx - 0.5).ceil().max(0.0).max((tx0 - 0.5).ceil().max(0.0)) as i64;
-        let i1 = (dx + dw - 0.5).floor().min(cw as f64 - 1.0).min((tx1 - 0.5).floor()).max(-1.0) as i64;
+        let i1 = (dx + dw - 0.5)
+            .floor()
+            .min(cw as f64 - 1.0)
+            .min((tx1 - 0.5).floor())
+            .max(-1.0) as i64;
         if j1 < j0 || i1 < i0 {
             return;
         }
@@ -2480,7 +3150,8 @@ pub(crate) fn draw_image(
             if ae <= 0.0 {
                 continue;
             }
-            let o = (((j0 + (k / w) as i64) as u32 * cw + (i0 + (k % w) as i64) as u32) as usize) * 3;
+            let o =
+                (((j0 + (k / w) as i64) as u32 * cw + (i0 + (k % w) as i64) as u32) as usize) * 3;
             if ae >= 1.0 {
                 frame[o] = entry.rgb[k * 3];
                 frame[o + 1] = entry.rgb[k * 3 + 1];
@@ -2489,8 +3160,10 @@ pub(crate) fn draw_image(
             }
             let inv = 1.0 - ae;
             frame[o] = (entry.rgb[k * 3] as f64 * ae + frame[o] as f64 * inv + 0.5) as u8;
-            frame[o + 1] = (entry.rgb[k * 3 + 1] as f64 * ae + frame[o + 1] as f64 * inv + 0.5) as u8;
-            frame[o + 2] = (entry.rgb[k * 3 + 2] as f64 * ae + frame[o + 2] as f64 * inv + 0.5) as u8;
+            frame[o + 1] =
+                (entry.rgb[k * 3 + 1] as f64 * ae + frame[o + 1] as f64 * inv + 0.5) as u8;
+            frame[o + 2] =
+                (entry.rgb[k * 3 + 2] as f64 * ae + frame[o + 2] as f64 * inv + 0.5) as u8;
         }
         return;
     }
@@ -2527,7 +3200,11 @@ pub(crate) fn draw_image(
     let paint = |frame: &mut [u8], i: i64, j: i64, su: f64, sv: f64| {
         let rgba = sample_at(su, sv);
         blend_over(
-            frame, cw, chh, i, j,
+            frame,
+            cw,
+            chh,
+            i,
+            j,
             rgba[0].round() as u8,
             rgba[1].round() as u8,
             rgba[2].round() as u8,
@@ -2612,7 +3289,12 @@ pub(crate) fn draw_description(
     frame: &mut [u8],
 ) -> Result<(), String> {
     // Background fill.
-    fill_canvas(frame, desc.background.r, desc.background.g, desc.background.b);
+    fill_canvas(
+        frame,
+        desc.background.r,
+        desc.background.g,
+        desc.background.b,
+    );
     let cw = desc.width;
     let chh = desc.height;
     for item in &desc.items {
@@ -2622,7 +3304,10 @@ pub(crate) fn draw_description(
                     .iter()
                     .position(|p| p.clip_idx == v.doc)
                     .ok_or_else(|| {
-                        format!("render failed: video clip #{} was not probed (decode stage)", v.doc)
+                        format!(
+                            "render failed: video clip #{} was not probed (decode stage)",
+                            v.doc
+                        )
                     })?;
                 let pv = &videos[vi];
                 let range = &ranges[vi];
@@ -2644,21 +3329,32 @@ pub(crate) fn draw_description(
                 let fs = range.width as usize * range.height as usize * 3;
                 let pic = &range.frames[j * fs..(j + 1) * fs];
                 blit_fit(
-                    frame, cw, chh, pic, range.width, range.height, v.fit,
-                    v.x, v.y, v.scale, v.rotation, v.opacity,
+                    frame,
+                    cw,
+                    chh,
+                    pic,
+                    range.width,
+                    range.height,
+                    v.fit,
+                    v.x,
+                    v.y,
+                    v.scale,
+                    v.rotation,
+                    v.opacity,
                 );
             }
-            FrameItem::Text(tc) => {
-                match layouts.get(tc.doc).and_then(|laid| laid.as_ref()) {
-                    Some(block) => draw_text_block(frame, cw, chh, raster, block, tc)?,
-                    None if bitmap_fallback => {
-                        draw_bitmap_text_item(frame, cw, chh, tc);
-                    }
-                    None => {
-                        return Err("render failed: text layout is missing and no bitmap fallback applies".to_string());
-                    }
+            FrameItem::Text(tc) => match layouts.get(tc.doc).and_then(|laid| laid.as_ref()) {
+                Some(block) => draw_text_block(frame, cw, chh, raster, block, tc)?,
+                None if bitmap_fallback => {
+                    draw_bitmap_text_item(frame, cw, chh, tc);
                 }
-            }
+                None => {
+                    return Err(
+                        "render failed: text layout is missing and no bitmap fallback applies"
+                            .to_string(),
+                    );
+                }
+            },
             FrameItem::Box(b) => {
                 draw_box(frame, cw, chh, b);
             }
@@ -2667,7 +3363,10 @@ pub(crate) fn draw_description(
                     .iter()
                     .find(|d| d.path.ends_with(&im.path))
                     .ok_or_else(|| {
-                        format!("render failed: image source {:?} was not decoded (decode stage)", im.path)
+                        format!(
+                            "render failed: image source {:?} was not decoded (decode stage)",
+                            im.path
+                        )
                     })?;
                 draw_image(frame, cw, chh, im, decoded);
             }
@@ -2723,7 +3422,9 @@ pub(crate) fn ffprobe_for(ffmpeg_bin: &Path) -> Option<PathBuf> {
         let name = "ffprobe.exe";
         #[cfg(not(windows))]
         let name = "ffprobe";
-        std::env::split_paths(&paths).map(|dir| dir.join(name)).find(|cand| cand.is_file())
+        std::env::split_paths(&paths)
+            .map(|dir| dir.join(name))
+            .find(|cand| cand.is_file())
     })
 }
 
@@ -2787,7 +3488,11 @@ fn probe_packet_pts(ffprobe_bin: &Path, pv: &ProbedVideo) -> Result<Option<Vec<f
         Ok(out) => out.stdout,
     };
     let text = String::from_utf8_lossy(&stdout);
-    let listed: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    let listed: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
     if listed.is_empty() {
         return Ok(None);
     }
@@ -2869,7 +3574,12 @@ fn decode_range(
     // GIF decode would time-slip. GIFs are short; decoding from zero
     // with a packet-counted budget keeps every native timestamp
     // (including per-frame delays) exact.
-    let fallback = || ((seek - 0.5).max(0.0), ((src_len + 0.5) * 60.0).ceil() as usize + 8);
+    let fallback = || {
+        (
+            (seek - 0.5).max(0.0),
+            ((src_len + 0.5) * 60.0).ceil() as usize + 8,
+        )
+    };
     let (target, budget) = if pv.codec == "gif" {
         match ffprobe_for(ffmpeg_bin) {
             Some(ffprobe) => match probe_packet_pts(&ffprobe, pv)? {
@@ -2925,15 +3635,12 @@ fn decode_range(
         "rgb24".into(),
         "-".into(),
     ]);
-    let out = Command::new(ffmpeg_bin)
-        .args(&args)
-        .output()
-        .map_err(|e| {
-            format!(
-                "render failed: cannot decode video source {:?} ({e})",
-                pv.path.display()
-            )
-        })?;
+    let out = Command::new(ffmpeg_bin).args(&args).output().map_err(|e| {
+        format!(
+            "render failed: cannot decode video source {:?} ({e})",
+            pv.path.display()
+        )
+    })?;
     if !out.status.success() {
         let tail = stderr_tail(&out.stderr, 3);
         return Err(format!(
@@ -3073,13 +3780,7 @@ fn typical_gap(pts: &[f64]) -> f64 {
 
 /// Where the source picture lands on the canvas for `fit`.
 /// Returns (dx, dy, dw, dh): destination rect in canvas pixels.
-fn fit_rect(
-    cw: u32,
-    chh: u32,
-    sw: u32,
-    sh: u32,
-    fit: Fit,
-) -> (f64, f64, f64, f64) {
+fn fit_rect(cw: u32, chh: u32, sw: u32, sh: u32, fit: Fit) -> (f64, f64, f64, f64) {
     let (cw, chh, sw, sh) = (cw as f64, chh as f64, sw as f64, sh as f64);
     match fit {
         Fit::Fill => (0.0, 0.0, cw, chh),
@@ -3143,7 +3844,14 @@ pub(crate) fn blit_fit(
     let inva = 1.0 - alpha;
     // Blend one resampled texel over the canvas (the old `paint` tail).
     // Every float expression is the old one, in the old order.
-    let blend = |frame: &mut [u8], o: usize, p00: usize, p10: usize, p01: usize, p11: usize, fx: f64, fy: f64| {
+    let blend = |frame: &mut [u8],
+                 o: usize,
+                 p00: usize,
+                 p10: usize,
+                 p01: usize,
+                 p11: usize,
+                 fx: f64,
+                 fy: f64| {
         if p11 + 2 >= src.len() {
             return;
         }
@@ -3157,8 +3865,7 @@ pub(crate) fn blit_fit(
             if opaque {
                 frame[o + c] = v;
             } else {
-                frame[o + c] =
-                    (v as f64 * alpha + frame[o + c] as f64 * inva + 0.5) as u8;
+                frame[o + c] = (v as f64 * alpha + frame[o + c] as f64 * inva + 0.5) as u8;
             }
         }
     };
@@ -3199,9 +3906,9 @@ pub(crate) fn blit_fit(
                     frame[orow..orow + n].copy_from_slice(&src[srow..srow + n]);
                 } else {
                     for k in 0..n {
-                        frame[orow + k] =
-                            (src[srow + k] as f64 * alpha + frame[orow + k] as f64 * inva
-                                + 0.5) as u8;
+                        frame[orow + k] = (src[srow + k] as f64 * alpha
+                            + frame[orow + k] as f64 * inva
+                            + 0.5) as u8;
                     }
                 }
             }
@@ -3316,11 +4023,31 @@ fn draw_block_scaled(
         };
         let color = (run.colour[0], run.colour[1], run.colour[2]);
         for g in &run.glyphs {
-            face.blit_gid(frame, cw, chh, g.id, g.ch, run.size as f64 * s, x + g.x as f64 * s, y + g.y as f64 * s, color, eff);
+            face.blit_gid(
+                frame,
+                cw,
+                chh,
+                g.id,
+                g.ch,
+                run.size as f64 * s,
+                x + g.x as f64 * s,
+                y + g.y as f64 * s,
+                color,
+                eff,
+            );
         }
     }
     for pic in &block.pictures {
-        blend_rgba(frame, cw, chh, &pic.rgba, pic.width, pic.height, (x + pic.x as f64 * s).round() as i64, (y + pic.y as f64 * s).round() as i64);
+        blend_rgba(
+            frame,
+            cw,
+            chh,
+            &pic.rgba,
+            pic.width,
+            pic.height,
+            (x + pic.x as f64 * s).round() as i64,
+            (y + pic.y as f64 * s).round() as i64,
+        );
     }
     Ok(())
 }
@@ -3350,11 +4077,33 @@ fn draw_block_layer(
         };
         let color = (run.colour[0], run.colour[1], run.colour[2]);
         for g in &run.glyphs {
-            face.blit_gid_layer(layer, cw, chh, g.id, g.ch, run.size as f64 * s, x + g.x as f64 * s, y + g.y as f64 * s, color, eff, global_alpha);
+            face.blit_gid_layer(
+                layer,
+                cw,
+                chh,
+                g.id,
+                g.ch,
+                run.size as f64 * s,
+                x + g.x as f64 * s,
+                y + g.y as f64 * s,
+                color,
+                eff,
+                global_alpha,
+            );
         }
     }
     for pic in &block.pictures {
-        blend_rgba_layer(layer, cw, chh, &pic.rgba, pic.width, pic.height, (x + pic.x as f64 * s).round() as i64, (y + pic.y as f64 * s).round() as i64, global_alpha);
+        blend_rgba_layer(
+            layer,
+            cw,
+            chh,
+            &pic.rgba,
+            pic.width,
+            pic.height,
+            (x + pic.x as f64 * s).round() as i64,
+            (y + pic.y as f64 * s).round() as i64,
+            global_alpha,
+        );
     }
     Ok(())
 }
@@ -3385,10 +4134,25 @@ fn draw_block_scaled_faded(
         };
         let color = (run.colour[0], run.colour[1], run.colour[2]);
         for g in &run.glyphs {
-            face.blit_gid_faded(frame, cw, chh, g.id, g.ch, run.size as f64 * s, x + g.x as f64 * s, y + g.y as f64 * s, color, eff, global_alpha);
+            face.blit_gid_faded(
+                frame,
+                cw,
+                chh,
+                g.id,
+                g.ch,
+                run.size as f64 * s,
+                x + g.x as f64 * s,
+                y + g.y as f64 * s,
+                color,
+                eff,
+                global_alpha,
+            );
         }
     }
-    debug_assert!(block.pictures.is_empty(), "faded direct path takes no emoji pictures");
+    debug_assert!(
+        block.pictures.is_empty(),
+        "faded direct path takes no emoji pictures"
+    );
     Ok(())
 }
 
@@ -3416,17 +4180,47 @@ pub(crate) fn draw_text_block(
             return draw_block_scaled(frame, cw, chh, raster, block, tc.x, tc.y, tc.scale);
         }
         if block.pictures.is_empty() {
-            return draw_block_scaled_faded(frame, cw, chh, raster, block, tc.x, tc.y, tc.scale, tc.opacity.clamp(0.0, 1.0));
+            return draw_block_scaled_faded(
+                frame,
+                cw,
+                chh,
+                raster,
+                block,
+                tc.x,
+                tc.y,
+                tc.scale,
+                tc.opacity.clamp(0.0, 1.0),
+            );
         }
         let mut layer = vec![0u8; cw as usize * chh as usize * 4];
-        draw_block_layer(&mut layer, cw, chh, raster, block, tc.x, tc.y, tc.scale, tc.opacity.clamp(0.0, 1.0))?;
+        draw_block_layer(
+            &mut layer,
+            cw,
+            chh,
+            raster,
+            block,
+            tc.x,
+            tc.y,
+            tc.scale,
+            tc.opacity.clamp(0.0, 1.0),
+        )?;
         if let Some(bbox) = layer_ink_bbox(&layer, cw, chh) {
             composite_layer_bbox(frame, cw, chh, &layer, bbox, tc.x, tc.y, 0.0);
         }
         return Ok(());
     }
     let mut layer = vec![0u8; cw as usize * chh as usize * 4];
-    draw_block_layer(&mut layer, cw, chh, raster, block, tc.x, tc.y, tc.scale, tc.opacity.clamp(0.0, 1.0))?;
+    draw_block_layer(
+        &mut layer,
+        cw,
+        chh,
+        raster,
+        block,
+        tc.x,
+        tc.y,
+        tc.scale,
+        tc.opacity.clamp(0.0, 1.0),
+    )?;
     if let Some(bbox) = layer_ink_bbox(&layer, cw, chh) {
         composite_layer_bbox(frame, cw, chh, &layer, bbox, tc.x, tc.y, tc.rotation);
     }
@@ -3437,7 +4231,15 @@ pub(crate) fn draw_text_block(
 /// machine offers none. Draws from the resolved description with the
 /// built-in 5x7 face (unknown cells draw hollow, never blank),
 /// announced in the note. Bitmap text scaled by `s` about `(x, y)`.
-fn draw_bitmap_text_scaled(frame: &mut [u8], cw: u32, chh: u32, tc: &crate::frame::ResolvedText, x: f64, y: f64, s: f64) {
+fn draw_bitmap_text_scaled(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    tc: &crate::frame::ResolvedText,
+    x: f64,
+    y: f64,
+    s: f64,
+) {
     let face = Face::fallback();
     let laid = face.layout(&tc.value, tc.size, None);
     // The declared separation wins; zero spacing means default advance.
@@ -3448,7 +4250,17 @@ fn draw_bitmap_text_scaled(frame: &mut [u8], cw: u32, chh: u32, tc: &crate::fram
         let baseline = y + laid.ascent * s + li as f64 * advance * s;
         let mut dx = 0.0;
         for g in &line.glyphs {
-            face.blit(frame, cw, chh, g.ch, tc.size * s, x + g.x * s + dx * s, baseline, color, tc.style);
+            face.blit(
+                frame,
+                cw,
+                chh,
+                g.ch,
+                tc.size * s,
+                x + g.x * s + dx * s,
+                baseline,
+                color,
+                tc.style,
+            );
             dx += spacing;
         }
     }
@@ -3457,7 +4269,12 @@ fn draw_bitmap_text_scaled(frame: &mut [u8], cw: u32, chh: u32, tc: &crate::fram
 /// Bitmap text item with motion (T010): still transforms draw directly;
 /// rotated or faded text renders into a scratch layer and composites only
 /// its ink box (T004 speed).
-pub(crate) fn draw_bitmap_text_item(frame: &mut [u8], cw: u32, chh: u32, tc: &crate::frame::ResolvedText) {
+pub(crate) fn draw_bitmap_text_item(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    tc: &crate::frame::ResolvedText,
+) {
     if tc.scale <= 0.0 || !tc.scale.is_finite() || tc.opacity <= 0.0 {
         return;
     }
@@ -3466,14 +4283,41 @@ pub(crate) fn draw_bitmap_text_item(frame: &mut [u8], cw: u32, chh: u32, tc: &cr
         return;
     }
     let mut layer = vec![0u8; cw as usize * chh as usize * 4];
-    draw_bitmap_text_layer(&mut layer, cw, chh, tc, tc.scale, tc.opacity.clamp(0.0, 1.0));
+    draw_bitmap_text_layer(
+        &mut layer,
+        cw,
+        chh,
+        tc,
+        tc.scale,
+        tc.opacity.clamp(0.0, 1.0),
+    );
     if let Some(bbox) = layer_ink_bbox(&layer, cw, chh) {
-        composite_layer_bbox(frame, cw, chh, &layer, bbox, tc.x, tc.y, if tc.rotation.is_finite() { tc.rotation } else { 0.0 });
+        composite_layer_bbox(
+            frame,
+            cw,
+            chh,
+            &layer,
+            bbox,
+            tc.x,
+            tc.y,
+            if tc.rotation.is_finite() {
+                tc.rotation
+            } else {
+                0.0
+            },
+        );
     }
 }
 
 /// Bitmap text into an RGBA `layer`, carrying `global_alpha`.
-fn draw_bitmap_text_layer(layer: &mut [u8], cw: u32, chh: u32, tc: &crate::frame::ResolvedText, s: f64, global_alpha: f64) {
+fn draw_bitmap_text_layer(
+    layer: &mut [u8],
+    cw: u32,
+    chh: u32,
+    tc: &crate::frame::ResolvedText,
+    s: f64,
+    global_alpha: f64,
+) {
     let face = Face::fallback();
     let laid = face.layout(&tc.value, tc.size, None);
     let advance = tc.line_height.unwrap_or(laid.line_height);
@@ -3483,7 +4327,19 @@ fn draw_bitmap_text_layer(layer: &mut [u8], cw: u32, chh: u32, tc: &crate::frame
         let baseline = tc.y + laid.ascent * s + li as f64 * advance * s;
         let mut dx = 0.0;
         for g in &line.glyphs {
-            face.blit_gid_layer(layer, cw, chh, 0, g.ch, tc.size * s, tc.x + g.x * s + dx * s, baseline, color, tc.style, global_alpha);
+            face.blit_gid_layer(
+                layer,
+                cw,
+                chh,
+                0,
+                g.ch,
+                tc.size * s,
+                tc.x + g.x * s + dx * s,
+                baseline,
+                color,
+                tc.style,
+                global_alpha,
+            );
             dx += spacing;
         }
     }
@@ -3699,8 +4555,12 @@ fn composite_layer_bbox(
     // The two-pixel guard absorbs float rounding at the edges.
     let gx = [bx0 as f64 - 1.0, bx1 as f64 + 1.0];
     let gy = [by0 as f64 - 1.0, by1 as f64 + 1.0];
-    let (mut lo_x, mut lo_y, mut hi_x, mut hi_y) =
-        (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+    let (mut lo_x, mut lo_y, mut hi_x, mut hi_y) = (
+        f64::INFINITY,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::NEG_INFINITY,
+    );
     for &cx in &gx {
         for &cy in &gy {
             let qx = cx - ax + 0.5;
@@ -3806,9 +4666,14 @@ fn blend_rgba_layer(
             if out_a <= 0.0 {
                 continue;
             }
-            layer[o] = ((rgba[s] as f64 * a + layer[o] as f64 * dst_a * (1.0 - a)) / out_a + 0.5) as u8;
-            layer[o + 1] = ((rgba[s + 1] as f64 * a + layer[o + 1] as f64 * dst_a * (1.0 - a)) / out_a + 0.5) as u8;
-            layer[o + 2] = ((rgba[s + 2] as f64 * a + layer[o + 2] as f64 * dst_a * (1.0 - a)) / out_a + 0.5) as u8;
+            layer[o] =
+                ((rgba[s] as f64 * a + layer[o] as f64 * dst_a * (1.0 - a)) / out_a + 0.5) as u8;
+            layer[o + 1] = ((rgba[s + 1] as f64 * a + layer[o + 1] as f64 * dst_a * (1.0 - a))
+                / out_a
+                + 0.5) as u8;
+            layer[o + 2] = ((rgba[s + 2] as f64 * a + layer[o + 2] as f64 * dst_a * (1.0 - a))
+                / out_a
+                + 0.5) as u8;
             layer[o + 3] = (out_a * 255.0 + 0.5) as u8;
         }
     }
@@ -3858,7 +4723,7 @@ fn blend_rgba(frame: &mut [u8], cw: u32, chh: u32, rgba: &[u8], w: u32, h: u32, 
 mod tests {
     use super::*;
     use crate::frame::{ResolvedBox, ResolvedImage};
-    use notation::model::{Fit, PlaceH, PlaceV, Placement, Rgb};
+    use notation::model::{Fit, PlaceH, PlaceV, Placement, Rgb, TrackKind};
     use std::path::PathBuf;
 
     fn test_box(x: f64, y: f64, w: f64, h: f64, fill: Rgb) -> ResolvedBox {
@@ -3896,16 +4761,28 @@ mod tests {
         let mut a = vec![3u8; 32 * 32 * 3];
         let mut b = vec![3u8; 32 * 32 * 3];
         draw_image(&mut a, 32, 32, &im, &decoded);
-        assert_eq!(decoded.scaled.lock().unwrap().len(), 1, "miss inserts one entry");
+        assert_eq!(
+            decoded.scaled.lock().unwrap().len(),
+            1,
+            "miss inserts one entry"
+        );
         draw_image(&mut b, 32, 32, &im, &decoded);
-        assert_eq!(decoded.scaled.lock().unwrap().len(), 1, "same geometry hits");
+        assert_eq!(
+            decoded.scaled.lock().unwrap().len(),
+            1,
+            "same geometry hits"
+        );
         assert_eq!(a, b, "hit draws byte-identical pixels");
         assert_ne!(a, vec![3u8; 32 * 32 * 3], "the picture actually painted");
         let mut im2 = im.clone();
         im2.x = 4.0;
         let mut c = vec![3u8; 32 * 32 * 3];
         draw_image(&mut c, 32, 32, &im2, &decoded);
-        assert_eq!(decoded.scaled.lock().unwrap().len(), 2, "moved picture keys again");
+        assert_eq!(
+            decoded.scaled.lock().unwrap().len(),
+            2,
+            "moved picture keys again"
+        );
         assert_ne!(b, c, "moved picture paints differently");
         // A faded draw at cached geometry blends the same rect: compare
         // against a fresh (uncached) source, which must match exactly.
@@ -3916,7 +4793,10 @@ mod tests {
         im3.opacity = 0.5;
         draw_image(&mut faded_hit, 32, 32, &im3, &decoded);
         draw_image(&mut faded_fresh, 32, 32, &im3, &fresh);
-        assert_eq!(faded_hit, faded_fresh, "cached rect fades exactly like a fresh sample");
+        assert_eq!(
+            faded_hit, faded_fresh,
+            "cached rect fades exactly like a fresh sample"
+        );
     }
 
     #[test]
@@ -3946,7 +4826,17 @@ mod tests {
     fn half_opacity_blends_with_the_canvas() {
         // T004: opacity 0.5 blends fill and background evenly.
         let mut frame = vec![0u8; 32 * 32 * 3];
-        let mut b = test_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 200, g: 100, b: 0 });
+        let mut b = test_box(
+            8.0,
+            8.0,
+            16.0,
+            16.0,
+            Rgb {
+                r: 200,
+                g: 100,
+                b: 0,
+            },
+        );
         b.opacity = 0.5;
         draw_box(&mut frame, 32, 32, &b);
         assert_eq!(pixel(&frame, 32, 16, 16), (100, 50, 0));
@@ -3984,9 +4874,18 @@ mod tests {
     #[test]
     fn image_fit_sizes_match_object_fit() {
         // T005: `fill` stretches, `contain` letterboxes, `cover` bleeds.
-        assert_eq!(image_fit_size(100.0, 100.0, 200.0, 50.0, Fit::Fill), (100.0, 100.0));
-        assert_eq!(image_fit_size(100.0, 100.0, 200.0, 50.0, Fit::Contain), (100.0, 25.0));
-        assert_eq!(image_fit_size(100.0, 100.0, 200.0, 50.0, Fit::Cover), (400.0, 100.0));
+        assert_eq!(
+            image_fit_size(100.0, 100.0, 200.0, 50.0, Fit::Fill),
+            (100.0, 100.0)
+        );
+        assert_eq!(
+            image_fit_size(100.0, 100.0, 200.0, 50.0, Fit::Contain),
+            (100.0, 25.0)
+        );
+        assert_eq!(
+            image_fit_size(100.0, 100.0, 200.0, 50.0, Fit::Cover),
+            (400.0, 100.0)
+        );
     }
 
     fn solid_image(w: u32, h: u32, r: u8, g: u8, b: u8, a: u8) -> DecodedImage {
@@ -4025,7 +4924,13 @@ mod tests {
         // T005: a `fill` picture stretches over the whole target.
         let mut frame = vec![0u8; 32 * 32 * 3];
         let decoded = solid_image(4, 4, 255, 0, 0, 255);
-        draw_image(&mut frame, 32, 32, &test_image(Fit::Fill, Placement::center()), &decoded);
+        draw_image(
+            &mut frame,
+            32,
+            32,
+            &test_image(Fit::Fill, Placement::center()),
+            &decoded,
+        );
         assert_eq!(pixel(&frame, 32, 0, 0), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 31, 31), (255, 0, 0));
     }
@@ -4041,14 +4946,26 @@ mod tests {
             &mut left,
             32,
             32,
-            &test_image(Fit::Contain, Placement { x: PlaceH::Left, y: PlaceV::Center }),
+            &test_image(
+                Fit::Contain,
+                Placement {
+                    x: PlaceH::Left,
+                    y: PlaceV::Center,
+                },
+            ),
             &decoded,
         );
         draw_image(
             &mut right,
             32,
             32,
-            &test_image(Fit::Contain, Placement { x: PlaceH::Right, y: PlaceV::Center }),
+            &test_image(
+                Fit::Contain,
+                Placement {
+                    x: PlaceH::Right,
+                    y: PlaceV::Center,
+                },
+            ),
             &decoded,
         );
         assert_ne!(left, right, "placements must differ");
@@ -4063,7 +4980,13 @@ mod tests {
         // T005: source alpha composites over the canvas.
         let mut frame = vec![77u8; 32 * 32 * 3];
         let decoded = solid_image(4, 4, 255, 0, 0, 0);
-        draw_image(&mut frame, 32, 32, &test_image(Fit::Fill, Placement::center()), &decoded);
+        draw_image(
+            &mut frame,
+            32,
+            32,
+            &test_image(Fit::Fill, Placement::center()),
+            &decoded,
+        );
         assert!(frame.iter().all(|&v| v == 77));
     }
 
@@ -4097,7 +5020,11 @@ mod tests {
         assert_eq!(pixel(&frame, 32, 8, 8), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 23, 23), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 31, 31), (255, 0, 0));
-        assert_eq!(pixel(&frame, 32, 7, 16), (0, 0, 0), "top-left anchors the growth");
+        assert_eq!(
+            pixel(&frame, 32, 7, 16),
+            (0, 0, 0),
+            "top-left anchors the growth"
+        );
         // Half scale shrinks to 8x8.
         let mut half = vec![0u8; 32 * 32 * 3];
         let mut h = motion_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 255, g: 0, b: 0 });
@@ -4115,11 +5042,31 @@ mod tests {
         let mut b = motion_box(8.0, 4.0, 16.0, 8.0, Rgb { r: 0, g: 255, b: 0 });
         b.rotation = 90.0;
         draw_box(&mut frame, 32, 32, &b);
-        assert_eq!(pixel(&frame, 32, 16, 8), (0, 255, 0), "center stays covered");
-        assert_eq!(pixel(&frame, 32, 16, 0), (0, 255, 0), "turned box reaches the top middle");
-        assert_eq!(pixel(&frame, 32, 16, 15), (0, 255, 0), "and the bottom middle");
-        assert_eq!(pixel(&frame, 32, 8, 4), (0, 0, 0), "old corner is now empty");
-        assert_eq!(pixel(&frame, 32, 23, 4), (0, 0, 0), "old corner is now empty");
+        assert_eq!(
+            pixel(&frame, 32, 16, 8),
+            (0, 255, 0),
+            "center stays covered"
+        );
+        assert_eq!(
+            pixel(&frame, 32, 16, 0),
+            (0, 255, 0),
+            "turned box reaches the top middle"
+        );
+        assert_eq!(
+            pixel(&frame, 32, 16, 15),
+            (0, 255, 0),
+            "and the bottom middle"
+        );
+        assert_eq!(
+            pixel(&frame, 32, 8, 4),
+            (0, 0, 0),
+            "old corner is now empty"
+        );
+        assert_eq!(
+            pixel(&frame, 32, 23, 4),
+            (0, 0, 0),
+            "old corner is now empty"
+        );
     }
 
     #[test]
@@ -4149,25 +5096,82 @@ mod tests {
         }
         // Still identity: full-canvas red.
         let mut still = vec![9u8; 32 * 32 * 3];
-        blit_fit(&mut still, 32, 32, &src, sw, sh, Fit::Fill, 0.0, 0.0, 1.0, 0.0, 1.0);
+        blit_fit(
+            &mut still,
+            32,
+            32,
+            &src,
+            sw,
+            sh,
+            Fit::Fill,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+        );
         assert_eq!(pixel(&still, 32, 0, 0), (255, 0, 0));
         assert_eq!(pixel(&still, 32, 31, 31), (255, 0, 0));
         // Shifted right by 8: left strip keeps the canvas.
         let mut moved = vec![9u8; 32 * 32 * 3];
-        blit_fit(&mut moved, 32, 32, &src, sw, sh, Fit::Fill, 8.0, 0.0, 1.0, 0.0, 1.0);
+        blit_fit(
+            &mut moved,
+            32,
+            32,
+            &src,
+            sw,
+            sh,
+            Fit::Fill,
+            8.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+        );
         assert_eq!(pixel(&moved, 32, 0, 16), (9, 9, 9));
         assert_eq!(pixel(&moved, 32, 8, 16), (255, 0, 0));
         // Opacity 0 paints nothing.
         let mut gone = vec![9u8; 32 * 32 * 3];
-        blit_fit(&mut gone, 32, 32, &src, sw, sh, Fit::Fill, 0.0, 0.0, 1.0, 0.0, 0.0);
+        blit_fit(
+            &mut gone,
+            32,
+            32,
+            &src,
+            sw,
+            sh,
+            Fit::Fill,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+        );
         assert!(gone.iter().all(|&v| v == 9));
         // Half opacity blends evenly.
         let mut half = vec![0u8; 32 * 32 * 3];
-        blit_fit(&mut half, 32, 32, &src, sw, sh, Fit::Fill, 0.0, 0.0, 1.0, 0.0, 0.5);
+        blit_fit(
+            &mut half,
+            32,
+            32,
+            &src,
+            sw,
+            sh,
+            Fit::Fill,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.5,
+        );
         assert_eq!(pixel(&half, 32, 16, 16), (128, 0, 0));
     }
 
-    fn test_text(value: &str, scale: f64, rotation: f64, opacity: f64) -> crate::frame::ResolvedText {
+    fn test_text(
+        value: &str,
+        scale: f64,
+        rotation: f64,
+        opacity: f64,
+    ) -> crate::frame::ResolvedText {
         crate::frame::ResolvedText {
             doc: 0,
             order: 0,
@@ -4175,7 +5179,11 @@ mod tests {
             x: 4.0,
             y: 4.0,
             size: 14.0,
-            color: Rgb { r: 255, g: 255, b: 255 },
+            color: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             style: notation::model::FontStyle::Regular,
             line_height: None,
             letter_spacing: None,
@@ -4212,7 +5220,10 @@ mod tests {
         let (bx0, bx1, by1, bn) = ink_extent(&two, 64);
         assert!(an > 10, "fallback ink must draw, got {an} pixels");
         assert_eq!(ax0, bx0, "scale anchors at the top-left");
-        assert!((bx1 - bx0) >= (ax1 - ax0) * 2 - 2, "width doubles: {ax0}..{ax1} vs {bx0}..{bx1}");
+        assert!(
+            (bx1 - bx0) >= (ax1 - ax0) * 2 - 2,
+            "width doubles: {ax0}..{ax1} vs {bx0}..{bx1}"
+        );
         assert!(bn > an * 2, "ink area grows: {an} vs {bn}");
         let _ = ay1;
         let _ = by1;
@@ -4230,7 +5241,10 @@ mod tests {
         draw_bitmap_text_item(&mut half, 64, 32, &test_text("HI", 1.0, 0.0, 0.5));
         let peak = |f: &[u8]| f.chunks_exact(3).map(|p| p[0]).max().unwrap_or(0);
         assert!(peak(&full) > 200, "opaque ink covers the canvas");
-        assert!(peak(&half) > 20 && peak(&half) < peak(&full), "faded ink blends");
+        assert!(
+            peak(&half) > 20 && peak(&half) < peak(&full),
+            "faded ink blends"
+        );
     }
 
     #[test]
@@ -4255,7 +5269,20 @@ mod tests {
             px[1] = 255;
         }
         let mut turned = vec![9u8; 32 * 32 * 3];
-        blit_fit(&mut turned, 32, 32, &src, 8, 4, Fit::Fill, 0.0, 0.0, 1.0, 90.0, 1.0);
+        blit_fit(
+            &mut turned,
+            32,
+            32,
+            &src,
+            8,
+            4,
+            Fit::Fill,
+            0.0,
+            0.0,
+            1.0,
+            90.0,
+            1.0,
+        );
         assert_eq!(pixel(&turned, 32, 16, 16), (0, 255, 0));
     }
 
@@ -4275,7 +5302,10 @@ mod tests {
         let tc = test_text("Hi", 1.0, 0.0, 0.5);
         let mut raster = RasterCache::new();
         draw_text_block(&mut frame, 32, 32, &mut raster, &block, &tc).unwrap();
-        assert!(frame.iter().all(|&v| v == 7), "empty faded text draws nothing");
+        assert!(
+            frame.iter().all(|&v| v == 7),
+            "empty faded text draws nothing"
+        );
     }
 
     #[test]
@@ -4349,7 +5379,10 @@ mod tests {
         composite_layer(&mut frame, 32, 32, &layer, 16.0, 16.0, 90.0);
         assert_eq!(pixel(&frame, 32, 20, 16), (10, 10, 10));
         let (r, g, b) = pixel(&frame, 32, 15, 20);
-        assert!(r > 200 && g < 55 && b < 55, "turned pixel lands below, got ({r}, {g}, {b})");
+        assert!(
+            r > 200 && g < 55 && b < 55,
+            "turned pixel lands below, got ({r}, {g}, {b})"
+        );
     }
 
     #[test]
@@ -4359,36 +5392,70 @@ mod tests {
         // orders follow document order.
         use crate::frame::{describe, FrameDescription};
         use crate::motion_plan::plan_motions;
-        use notation::model::{BoxClip, Composition, Fps, Rgb};
+        use notation::model::{BoxClip, Composition, Fps, Rgb, TrackKind};
         fn comp(order_first: bool, tie: bool) -> Composition {
             let (red_order, blue_order) = if tie { (0, 0) } else { (1, 0) };
             let mut clips = vec![
                 BoxClip {
-                    start: 0.0, duration: 1.0, x: 4.0, y: 4.0,
-                    width: 16.0, height: 16.0,
+                    id: None,
+                    track: TrackKind::Graphics,
+                    label: None,
+                    start_after: None,
+                    hidden: false,
+                    start: 0.0,
+                    duration: 1.0,
+                    x: 4.0,
+                    y: 4.0,
+                    width: 16.0,
+                    height: 16.0,
                     fill: Rgb { r: 255, g: 0, b: 0 },
-                    radius: 0.0, border_width: 0.0,
+                    radius: 0.0,
+                    border_width: 0.0,
                     border_color: Rgb { r: 0, g: 0, b: 0 },
-                    opacity: 1.0, order: red_order, line: 1, column: 1,
+                    opacity: 1.0,
+                    order: red_order,
+                    line: 1,
+                    column: 1,
                 },
                 BoxClip {
-                    start: 0.0, duration: 1.0, x: 8.0, y: 8.0,
-                    width: 16.0, height: 16.0,
+                    id: None,
+                    track: TrackKind::Graphics,
+                    label: None,
+                    start_after: None,
+                    hidden: false,
+                    start: 0.0,
+                    duration: 1.0,
+                    x: 8.0,
+                    y: 8.0,
+                    width: 16.0,
+                    height: 16.0,
                     fill: Rgb { r: 0, g: 0, b: 255 },
-                    radius: 0.0, border_width: 0.0,
+                    radius: 0.0,
+                    border_width: 0.0,
                     border_color: Rgb { r: 0, g: 0, b: 0 },
-                    opacity: 1.0, order: blue_order, line: 1, column: 1,
+                    opacity: 1.0,
+                    order: blue_order,
+                    line: 1,
+                    column: 1,
                 },
             ];
             if !order_first {
                 clips.swap(0, 1);
             }
             Composition {
-                name: "t".to_string(), width: 32, height: 32, duration: 1.0,
-                fps: Fps::from_int(30), background: Rgb { r: 0, g: 0, b: 0 },
+                id: None,
+                canvas: None,
+                name: "t".to_string(),
+                width: 32,
+                height: 32,
+                duration: 1.0,
+                fps: Fps::from_int(30),
+                background: Rgb { r: 0, g: 0, b: 0 },
                 version: 1,
                 clips: clips.into_iter().map(notation::model::Clip::Box).collect(),
-                fonts: Vec::new(), tweens: Vec::new(), sets: Vec::new(),
+                fonts: Vec::new(),
+                tweens: Vec::new(),
+                sets: Vec::new(),
             }
         }
         fn draw(comp: &Composition) -> Vec<u8> {
@@ -4416,7 +5483,9 @@ mod tests {
 
     #[test]
     fn durations_parse() {
-        assert!((parse_duration("  Duration: 00:00:03.00, start: 0.0").unwrap() - 3.0).abs() < 1e-9);
+        assert!(
+            (parse_duration("  Duration: 00:00:03.00, start: 0.0").unwrap() - 3.0).abs() < 1e-9
+        );
         assert!((parse_duration("Duration: 01:02:03.50, x").unwrap() - 3723.5).abs() < 1e-9);
         assert!(parse_duration("no duration here").is_none());
     }
@@ -4449,7 +5518,10 @@ mod tests {
         assert!((dx).abs() < 1e-9);
         assert!((dy + 20.0).abs() < 1e-9);
         // Fill: exact canvas, no centering.
-        assert_eq!(fit_rect(320, 200, 160, 120, Fit::Fill), (0.0, 0.0, 320.0, 200.0));
+        assert_eq!(
+            fit_rect(320, 200, 160, 120, Fit::Fill),
+            (0.0, 0.0, 320.0, 200.0)
+        );
     }
 
     #[test]
@@ -4475,6 +5547,8 @@ mod tests {
     fn encode_args_pin_the_standard_mp4() {
         use notation::model::{Composition, Fps, Rgb};
         let comp = Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 64,
             height: 48,
@@ -4489,9 +5563,11 @@ mod tests {
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let standard = RenderOptions::default().encoder();
-        let no_audio = encode_args(&comp, &[], None, &tmp, &standard);
+        let no_audio = encode_args(&comp, &[], None, &tmp, &standard, comp.duration);
         let joined = no_audio.join(" ");
-        for flag in ["libx264", "yuv420p", "aac", "48000", "rawvideo", "-f", "mp4"] {
+        for flag in [
+            "libx264", "yuv420p", "aac", "48000", "rawvideo", "-f", "mp4",
+        ] {
             assert!(joined.contains(flag), "{joined}");
         }
         // Sprint 3 T002: `standard` with no overrides emits no explicit
@@ -4500,7 +5576,10 @@ mod tests {
         assert!(!joined.contains("-preset"), "{joined}");
         assert!(!joined.contains("-b:v"), "{joined}");
         // The output path is the last argument (fake-FFmpeg compatible).
-        assert_eq!(no_audio.last().unwrap(), &"/tmp/x.framesmith-part".to_string());
+        assert_eq!(
+            no_audio.last().unwrap(),
+            &"/tmp/x.framesmith-part".to_string()
+        );
         // With audio: filter trims and delays, still standard codecs.
         let seg = AudioSeg {
             path: PathBuf::from("/tmp/a.mp4"),
@@ -4508,7 +5587,7 @@ mod tests {
             trim_len: 1.0,
             delay_ms: 500,
         };
-        let with_audio = encode_args(&comp, &[seg], None, &tmp, &standard).join(" ");
+        let with_audio = encode_args(&comp, &[seg], None, &tmp, &standard, comp.duration).join(" ");
         assert!(with_audio.contains("adelay=500"), "{with_audio}");
         assert!(with_audio.contains("atrim"), "{with_audio}");
         assert!(!with_audio.contains("volume"), "{with_audio}");
@@ -4562,7 +5641,9 @@ mod tests {
             ..RenderOptions::default()
         };
         assert_eq!(RenderOptions::default().encoder(), named.encoder());
-        assert!(RenderOptions::default().announce().contains("preset=standard"));
+        assert!(RenderOptions::default()
+            .announce()
+            .contains("preset=standard"));
         // `--crf` overrides only the CRF axis of the active preset.
         let over = RenderOptions {
             preset: Preset::Draft,
@@ -4585,6 +5666,8 @@ mod tests {
     fn encoder_flags_follow_presets_and_overrides() {
         use notation::model::{Composition, Fps, Rgb};
         let comp = Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 64,
             height: 48,
@@ -4603,7 +5686,7 @@ mod tests {
             ..RenderOptions::default()
         }
         .encoder();
-        let joined = encode_args(&comp, &[], None, &tmp, &draft).join(" ");
+        let joined = encode_args(&comp, &[], None, &tmp, &draft, comp.duration).join(" ");
         assert!(joined.contains("-crf 30"), "{joined}");
         assert!(joined.contains("-preset veryfast"), "{joined}");
         let high = RenderOptions {
@@ -4611,12 +5694,12 @@ mod tests {
             ..RenderOptions::default()
         }
         .encoder();
-        let joined = encode_args(&comp, &[], None, &tmp, &high).join(" ");
+        let joined = encode_args(&comp, &[], None, &tmp, &high, comp.duration).join(" ");
         assert!(joined.contains("-crf 18"), "{joined}");
         assert!(joined.contains("-preset slow"), "{joined}");
         // A staged mix joins the encoder as a raw 48 kHz stereo input.
         let mix = PathBuf::from("/tmp/x.framesmith-mix.pcm");
-        let joined = encode_args(&comp, &[], Some(&mix), &tmp, &high).join(" ");
+        let joined = encode_args(&comp, &[], Some(&mix), &tmp, &high, comp.duration).join(" ");
         assert!(joined.contains("s16le"), "{joined}");
         assert!(joined.contains("48000"), "{joined}");
         assert!(joined.contains("[mix]"), "{joined}");
@@ -4673,10 +5756,23 @@ mod tests {
     fn worker_order_covers_every_frame_exactly_once() {
         // T015: any worker count visits every frame once; one worker
         // keeps canonical order; two workers stride round-robin.
-        for (total, workers) in [(0usize, 1), (1, 1), (5, 1), (5, 2), (5, 3), (60, 8), (10, 64), (7, 100)] {
+        for (total, workers) in [
+            (0usize, 1),
+            (1, 1),
+            (5, 1),
+            (5, 2),
+            (5, 3),
+            (60, 8),
+            (10, 64),
+            (7, 100),
+        ] {
             let mut got = worker_order(total, workers);
             got.sort_unstable();
-            assert_eq!(got, (0..total as u64).collect::<Vec<_>>(), "total={total} workers={workers}");
+            assert_eq!(
+                got,
+                (0..total as u64).collect::<Vec<_>>(),
+                "total={total} workers={workers}"
+            );
         }
         assert_eq!(worker_order(6, 1), vec![0, 1, 2, 3, 4, 5]);
         assert_eq!(worker_order(6, 2), vec![0, 2, 4, 1, 3, 5]);
@@ -4688,6 +5784,8 @@ mod tests {
         use crate::motion_plan::plan_motions;
         use notation::model::{Composition, Fps, Rgb};
         let comp = Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 64,
             height: 48,
@@ -4715,13 +5813,21 @@ mod tests {
             ranges: Vec::new(),
             images: Vec::new(),
             raster: RasterCache::new(),
+            tree: Vec::new(),
             cache_stats: crate::footage_cache::CacheStats::default(),
+            range_start: timebase::Time::ZERO,
+            out_duration: 1.0,
         }
     }
 
     fn red_box() -> notation::model::Clip {
-        use notation::model::{BoxClip, Rgb};
+        use notation::model::{BoxClip, Rgb, TrackKind};
         notation::model::Clip::Box(BoxClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             start: 0.0,
             duration: 1.0,
             x: 4.0,
@@ -4755,7 +5861,10 @@ mod tests {
         // Solo frame equality through the same parallel path.
         let solo = draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[7], 4).unwrap();
         let full7 = serial.iter().find(|(k, _)| *k == 7).unwrap();
-        assert_eq!(solo[0].1, full7.1, "solo frame 7 must equal full-render frame 7");
+        assert_eq!(
+            solo[0].1, full7.1,
+            "solo frame 7 must equal full-render frame 7"
+        );
         // Frame order is ascending whatever the visit order.
         let order: Vec<u64> = serial.iter().map(|(k, _)| *k).collect();
         assert_eq!(order, frames);
@@ -4770,8 +5879,13 @@ mod tests {
         // Sprint 3 T003: a worker failure aborts the batch with the
         // underlying reason named. A video clip with no probed source
         // fails every frame that draws it, serially or in parallel.
-        use notation::model::{Clip, Fit, VideoClip};
+        use notation::model::{Clip, Fit, TrackKind, VideoClip};
         let prep = box_prep(vec![Clip::Video(VideoClip {
+            id: None,
+            track: TrackKind::Video,
+            label: None,
+            start_after: None,
+            hidden: false,
             path: "clip.mp4".to_string(),
             start: 0.0,
             duration: 1.0,
@@ -4789,10 +5903,8 @@ mod tests {
             column: 1,
         })]);
         for w in [1, 2, 4] {
-            let err =
-                draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[0, 1, 2], w).expect_err(
-                    "a frame no probe covers must fail at worker count {w}",
-                );
+            let err = draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[0, 1, 2], w)
+                .expect_err("a frame no probe covers must fail at worker count {w}");
             assert!(err.contains("was not probed"), "{err}");
         }
     }
@@ -4809,11 +5921,19 @@ mod tests {
         assert_eq!(worker_count(), fallback, "unset means the machine default");
         for good in ["1", "2", "8", "64", " 4 "] {
             std::env::set_var("FRAMESMITH_WORKERS", good);
-            assert_eq!(worker_count(), good.trim().parse::<usize>().unwrap(), "{good:?} wins");
+            assert_eq!(
+                worker_count(),
+                good.trim().parse::<usize>().unwrap(),
+                "{good:?} wins"
+            );
         }
         for bad in ["0", "65", "100", "abc", "", "-3", "2.5"] {
             std::env::set_var("FRAMESMITH_WORKERS", bad);
-            assert_eq!(worker_count(), fallback, "{bad:?} falls back to the machine default");
+            assert_eq!(
+                worker_count(),
+                fallback,
+                "{bad:?} falls back to the machine default"
+            );
         }
         match saved {
             Some(v) => std::env::set_var("FRAMESMITH_WORKERS", v),
@@ -4935,15 +6055,24 @@ mod tests {
                 .count()
         };
         let base = crossings(&tone);
-        assert!((base as i32 - 880).abs() <= 4, "base tone crosses ~880, got {base}");
+        assert!(
+            (base as i32 - 880).abs() <= 4,
+            "base tone crosses ~880, got {base}"
+        );
         let fast = resample_plain(&tone, 2.0);
         assert_eq!(fast.len() / 2, 24000, "rate 2 halves the frame count");
         let cf = crossings(&fast);
-        assert!((cf as i32 - 880).abs() <= 6, "rate 2 keeps the source crossings in half the time (pitch doubles), got {cf}");
+        assert!(
+            (cf as i32 - 880).abs() <= 6,
+            "rate 2 keeps the source crossings in half the time (pitch doubles), got {cf}"
+        );
         let slow = resample_plain(&tone, 0.5);
         assert_eq!(slow.len() / 2, 96000, "rate 0.5 doubles the frame count");
         let cs = crossings(&slow);
-        assert!((cs as i32 - 880).abs() <= 6, "rate 0.5 spreads the source crossings over double time (pitch halves), got {cs}");
+        assert!(
+            (cs as i32 - 880).abs() <= 6,
+            "rate 0.5 spreads the source crossings over double time (pitch halves), got {cs}"
+        );
         // Unity returns the input unchanged, sample for sample.
         assert_eq!(resample_plain(&tone, 1.0), tone, "rate 1 is the identity");
         assert!(resample_plain(&[], 2.0).is_empty());
@@ -4960,6 +6089,11 @@ mod tests {
         // the true source end, an omitted trim-end means the source
         // end, and an unknown source end stays unknown.
         let clip = |ts: f64, te: Option<f64>| notation::model::VideoClip {
+            id: None,
+            track: TrackKind::Video,
+            label: None,
+            start_after: None,
+            hidden: false,
             path: "c.mp4".into(),
             start: 0.0,
             duration: 1.0,
@@ -4976,11 +6110,23 @@ mod tests {
             line: 1,
             column: 1,
         };
-        assert_eq!(effective_source_window(&clip(1.0, Some(9.0)), Some(4.0)), (1.0, Some(4.0)));
-        assert_eq!(effective_source_window(&clip(1.0, Some(3.0)), Some(4.0)), (1.0, Some(3.0)));
-        assert_eq!(effective_source_window(&clip(0.0, None), Some(4.0)), (0.0, Some(4.0)));
+        assert_eq!(
+            effective_source_window(&clip(1.0, Some(9.0)), Some(4.0)),
+            (1.0, Some(4.0))
+        );
+        assert_eq!(
+            effective_source_window(&clip(1.0, Some(3.0)), Some(4.0)),
+            (1.0, Some(3.0))
+        );
+        assert_eq!(
+            effective_source_window(&clip(0.0, None), Some(4.0)),
+            (0.0, Some(4.0))
+        );
         assert_eq!(effective_source_window(&clip(1.0, None), None), (1.0, None));
-        assert_eq!(effective_source_window(&clip(1.0, Some(9.0)), None), (1.0, Some(9.0)));
+        assert_eq!(
+            effective_source_window(&clip(1.0, Some(9.0)), None),
+            (1.0, Some(9.0))
+        );
     }
 
     #[test]
@@ -5023,8 +6169,14 @@ mod tests {
         // Before the first timestamp: the first picture applies.
         assert_eq!(pick_picture_or_hold(&range, 0.0), Some(0));
         // Wrapping then holding covers the loop path too.
-        assert_eq!(pick_picture_or_hold(&range, wrap_loop_time(5.0, 1.0, Some(2.0))), Some(0));
-        assert_eq!(pick_picture_or_hold(&range, wrap_loop_time(4.5, 1.0, Some(2.0))), Some(1));
+        assert_eq!(
+            pick_picture_or_hold(&range, wrap_loop_time(5.0, 1.0, Some(2.0))),
+            Some(0)
+        );
+        assert_eq!(
+            pick_picture_or_hold(&range, wrap_loop_time(4.5, 1.0, Some(2.0))),
+            Some(1)
+        );
     }
 
     #[test]
@@ -5043,9 +6195,11 @@ mod tests {
     fn rotation_parses_display_matrix_and_tag_lines() {
         // Sprint 5 T005: the demuxer-computed display matrix wins, the
         // legacy `rotate` tag is the fallback, absence means stored.
-        let matrix = "Stream #0:0: Video: h264, 320x240\n      Display Matrix: rotation of 90.00 degrees";
+        let matrix =
+            "Stream #0:0: Video: h264, 320x240\n      Display Matrix: rotation of 90.00 degrees";
         assert!((parse_container_rotation(matrix) - 90.0).abs() < 1e-9);
-        let neg = "Stream #0:0: Video: h264, 320x240\n      Display Matrix: rotation of -90.00 degrees";
+        let neg =
+            "Stream #0:0: Video: h264, 320x240\n      Display Matrix: rotation of -90.00 degrees";
         assert!((parse_container_rotation(neg) - 270.0).abs() < 1e-9);
         let half = "Display Matrix: rotation of 180.00 degrees";
         assert!((parse_container_rotation(half) - 180.0).abs() < 1e-9);
@@ -5077,7 +6231,10 @@ mod tests {
         assert_eq!(oriented_dimensions(320, 240, 0.0), (320, 240));
         assert_eq!(oriented_dimensions(320, 240, 180.0), (320, 240));
         assert_eq!(oriented_dimensions(320, 240, 45.0), (320, 240));
-        assert_eq!(oriented_dimensions(320, 240, normalize_rotation(-90.0)), (240, 320));
+        assert_eq!(
+            oriented_dimensions(320, 240, normalize_rotation(-90.0)),
+            (240, 320)
+        );
     }
 
     #[test]
@@ -5085,14 +6242,20 @@ mod tests {
         // Sprint 5 T004: every packet timestamp must parse; one N/A
         // (raw streams carry no timing) poisons the whole reply, and an
         // empty reply maps nothing.
-        assert_eq!(parse_packet_pts("0.000000\n0.033333\n0.066667\n").unwrap(), vec![0.0, 0.033333, 0.066667]);
+        assert_eq!(
+            parse_packet_pts("0.000000\n0.033333\n0.066667\n").unwrap(),
+            vec![0.0, 0.033333, 0.066667]
+        );
         assert!(parse_packet_pts("0.000000\nN/A\n0.066667\n").is_err());
         assert!(parse_packet_pts("").is_err());
         assert!(parse_packet_pts("bogus\n").is_err());
         assert!(parse_packet_pts("nan\n").is_err());
         assert!(parse_packet_pts("inf\n").is_err());
         // Negative timestamps (edit lists) are valid timing.
-        assert_eq!(parse_packet_pts("-0.040000\n0.000000\n").unwrap(), vec![-0.04, 0.0]);
+        assert_eq!(
+            parse_packet_pts("-0.040000\n0.000000\n").unwrap(),
+            vec![-0.04, 0.0]
+        );
     }
 
     #[test]
@@ -5100,19 +6263,41 @@ mod tests {
         // Sprint 5 T004: the decode starts 1 ms before the frame whose
         // interval covers the window opening — including a VFR gap —
         // and at zero for windows opening before the first frame.
-        let pts: Vec<f64> = [0.0, 0.033333, 0.966667, 2.0, 2.033333].into_iter().collect();
+        let pts: Vec<f64> = [0.0, 0.033333, 0.966667, 2.0, 2.033333]
+            .into_iter()
+            .collect();
         let start = decode_start_for_seek(&pts, 1.5);
-        assert!((start - 0.965667).abs() < 1e-9, "backs up 1 ms before the covering 0.966667 frame, got {start}");
+        assert!(
+            (start - 0.965667).abs() < 1e-9,
+            "backs up 1 ms before the covering 0.966667 frame, got {start}"
+        );
         let exact = decode_start_for_seek(&pts, 2.0);
-        assert!((exact - 1.999).abs() < 1e-9, "an exact frame time still includes its own frame, got {exact}");
-        assert!((decode_start_for_seek(&pts, 0.0) - 0.0).abs() < 1e-9, "zero stays zero (historical shape)");
-        assert!((decode_start_for_seek(&pts, 0.01) - 0.0).abs() < 1e-9, "first-frame coverage clamps to zero");
+        assert!(
+            (exact - 1.999).abs() < 1e-9,
+            "an exact frame time still includes its own frame, got {exact}"
+        );
+        assert!(
+            (decode_start_for_seek(&pts, 0.0) - 0.0).abs() < 1e-9,
+            "zero stays zero (historical shape)"
+        );
+        assert!(
+            (decode_start_for_seek(&pts, 0.01) - 0.0).abs() < 1e-9,
+            "first-frame coverage clamps to zero"
+        );
         // A seek before the first timestamp decodes from the start.
         let late: Vec<f64> = [0.5, 0.533333].into_iter().collect();
         assert!((decode_start_for_seek(&late, 0.1) - 0.0).abs() < 1e-9);
         // Budgets count the window plus two spare slots.
-        assert_eq!(decode_frame_budget(&pts, 0.965667, 1.7), 3, "covering frame only (+2 spare)");
-        assert_eq!(decode_frame_budget(&pts, 0.0, 2.1), 7, "five window packets (+2 spare)");
+        assert_eq!(
+            decode_frame_budget(&pts, 0.965667, 1.7),
+            3,
+            "covering frame only (+2 spare)"
+        );
+        assert_eq!(
+            decode_frame_budget(&pts, 0.0, 2.1),
+            7,
+            "five window packets (+2 spare)"
+        );
     }
 
     #[test]
@@ -5128,10 +6313,18 @@ mod tests {
             frames: vec![0u8; 5 * fs],
             pts: vec![0.9, 0.933333, 0.966667, 2.0, 2.033333],
         };
-        assert_eq!(pick_picture(&range, 1.5), Some(2), "gap instant shows the covering frame");
+        assert_eq!(
+            pick_picture(&range, 1.5),
+            Some(2),
+            "gap instant shows the covering frame"
+        );
         assert_eq!(pick_picture(&range, 0.966667), Some(2));
         assert_eq!(pick_picture(&range, 1.999), Some(2));
-        assert_eq!(pick_picture(&range, 2.0), Some(3), "the next frame starts exactly at its timestamp");
+        assert_eq!(
+            pick_picture(&range, 2.0),
+            Some(3),
+            "the next frame starts exactly at its timestamp"
+        );
         assert_eq!(pick_picture(&range, 0.95), Some(1));
         // Holding past the source end still applies past the last frame.
         assert_eq!(pick_picture_or_hold(&range, 99.0), Some(4));
@@ -5151,7 +6344,91 @@ mod tests {
         assert!(acc.iter().all(|&x| x == 0.0));
         let mut acc = vec![0.0f32; 2 * 4800];
         place_into_mix(&mut acc, &tone, 4800, 0.0, 0.1, 1.0, 0.1, 0.0);
-        assert!(acc[0].abs() < acc[2 * 4799].abs() * 0.05, "{} vs {}", acc[0], acc[2 * 4799]);
+        assert!(
+            acc[0].abs() < acc[2 * 4799].abs() * 0.05,
+            "{} vs {}",
+            acc[0],
+            acc[2 * 4799]
+        );
         assert!((acc[2 * 4799] - 10000.0 / 32768.0).abs() < 1e-6);
+    }
+
+    // --- Sprint 6 T008: sub-range validation ---------------------------------
+
+    fn range_fps() -> notation::model::Fps {
+        notation::model::Fps::from_int(30)
+    }
+
+    #[test]
+    fn range_defaults_to_the_whole_composition() {
+        assert_eq!(resolve_range("main", 4.0, &range_fps(), None, None), Ok(None));
+        assert_eq!(
+            resolve_range("main", 4.0, &range_fps(), Some(0.0), None),
+            Ok(Some(RenderRange { start: 0.0, end: 4.0 }))
+        );
+        assert_eq!(
+            resolve_range("main", 4.0, &range_fps(), None, Some(2.5)),
+            Ok(Some(RenderRange { start: 0.0, end: 2.5 }))
+        );
+        assert_eq!(
+            resolve_range("main", 4.0, &range_fps(), Some(1.0), Some(3.0)),
+            Ok(Some(RenderRange { start: 1.0, end: 3.0 }))
+        );
+    }
+
+    #[test]
+    fn range_refusals_name_the_window_and_the_bounds() {
+        // Empty: start and end coincide.
+        let e = resolve_range("main", 4.0, &range_fps(), Some(2.0), Some(2.0)).unwrap_err();
+        assert!(e.contains("empty"), "{e}");
+        assert!(e.contains("4.000s"), "{e}");
+        assert!(e.contains("accepted window is 0 <= start < end <= 4.000s"), "{e}");
+        assert!(e.contains("no MP4 was written"), "{e}");
+        // Backward: start runs past end.
+        let e = resolve_range("main", 4.0, &range_fps(), Some(3.0), Some(1.0)).unwrap_err();
+        assert!(e.contains("backward"), "{e}");
+        assert!(e.contains("\"main\""), "{e}");
+        // Out of range: past the end, before zero, or starting at the end.
+        for (s, e2) in [(0.0, 9.0), (-1.0, 2.0), (4.0, 5.0), (1.0, 4.0001)] {
+            let e =
+                resolve_range("main", 4.0, &range_fps(), Some(s), Some(e2)).unwrap_err();
+            assert!(e.contains("outside the composition"), "{e}");
+            assert!(e.contains("no MP4 was written"), "{e}");
+        }
+        // End exactly at the duration is the closed edge, not out of range.
+        assert!(resolve_range("main", 4.0, &range_fps(), Some(1.0), Some(4.0)).is_ok());
+        // Non-finite bounds never render.
+        for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(
+                resolve_range("main", 4.0, &range_fps(), Some(bad), Some(2.0)).is_err()
+            );
+            assert!(
+                resolve_range("main", 4.0, &range_fps(), Some(0.0), Some(bad)).is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn range_crop_slices_the_full_mix_samples() {
+        // 4 s of stereo silence with a marker second: the [1,3) crop is
+        // exactly the full mix sliced to those sample frames.
+        let dir = std::env::temp_dir().join(format!(
+            "framesmith-range-crop-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let mix = dir.join("mix.pcm");
+        let mut bytes = vec![0u8; 4 * 48000 * 2 * 2];
+        for i in (48000 * 2)..(96000 * 2) {
+            let v = (i as i16).to_le_bytes();
+            bytes[i * 2] = v[0];
+            bytes[i * 2 + 1] = v[1];
+        }
+        std::fs::write(&mix, &bytes).unwrap();
+        crop_mix_to_range(&mix, 1.0, 3.0).unwrap();
+        let got = std::fs::read(&mix).unwrap();
+        assert_eq!(got.len(), 2 * 48000 * 2 * 2);
+        assert_eq!(&got[..], &bytes[48000 * 2 * 2..144000 * 2 * 2]);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

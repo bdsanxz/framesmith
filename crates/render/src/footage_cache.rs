@@ -262,7 +262,9 @@ fn decode_entry(bytes: &[u8], key: &EntryKey, video_idx: usize) -> Option<Decode
     off += frames_len;
     let mut pts = Vec::with_capacity(count);
     for k in 0..count {
-        pts.push(f64::from_le_bytes(bytes[off + k * 8..off + k * 8 + 8].try_into().ok()?));
+        pts.push(f64::from_le_bytes(
+            bytes[off + k * 8..off + k * 8 + 8].try_into().ok()?,
+        ));
         if !pts[k].is_finite() {
             return None;
         }
@@ -476,7 +478,7 @@ impl FootageCache {
 /// `(name, bytes, mtime)` of every cache entry file in `dir`.
 fn read_entries(dir: &Path) -> Option<Vec<(String, u64, (u64, u64, u64))>> {
     let mut out = Vec::new();
-    for entry in std::fs::read_dir(dir).ok()? .flatten() {
+    for entry in std::fs::read_dir(dir).ok()?.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
         if !name.starts_with(ENTRY_PREFIX) || !name.ends_with(ENTRY_SUFFIX) {
             continue;
@@ -569,7 +571,10 @@ mod tests {
             entry_key(base.content_hash, 1.0, 2.0, 64, 48, 0.0, 7, false),
         ];
         for v in variants {
-            assert!(decode_entry(&bytes, &v, 0).is_none(), "variant {v:?} must miss");
+            assert!(
+                decode_entry(&bytes, &v, 0).is_none(),
+                "variant {v:?} must miss"
+            );
         }
     }
 
@@ -629,9 +634,17 @@ mod tests {
         // Second lookup hits without calling the decoder (which would
         // fail the render if called).
         let hit2 = cache
-            .decode_window(Path::new("ffmpeg"), &media, 1.0, 2.0, 64, 48, 0.0, 0, || {
-                Err("decoder must not run on a hit".to_string())
-            })
+            .decode_window(
+                Path::new("ffmpeg"),
+                &media,
+                1.0,
+                2.0,
+                64,
+                48,
+                0.0,
+                0,
+                || Err("decoder must not run on a hit".to_string()),
+            )
             .unwrap();
         assert_eq!(hit2.frames, range.frames);
         assert_eq!(hit2.pts, range.pts);
@@ -648,9 +661,17 @@ mod tests {
         std::fs::write(&names[0], b"garbage-not-an-entry").unwrap();
         let fresh = range_of(0, 2);
         let hit3 = cache
-            .decode_window(Path::new("ffmpeg"), &media, 1.0, 2.0, 64, 48, 0.0, 0, || {
-                Ok(fresh.clone())
-            })
+            .decode_window(
+                Path::new("ffmpeg"),
+                &media,
+                1.0,
+                2.0,
+                64,
+                48,
+                0.0,
+                0,
+                || Ok(fresh.clone()),
+            )
             .unwrap();
         assert_eq!(hit3.frames, fresh.frames);
         assert_eq!(cache.stats(), CacheStats { hits: 1, misses: 2 });
@@ -671,9 +692,17 @@ mod tests {
         let mut first_render = FootageCache::open(&folder);
         let first = range_of(0, 1);
         first_render
-            .decode_window(Path::new("ffmpeg"), &media, 0.0, 1.0, 64, 48, 0.0, 0, || {
-                Ok(first.clone())
-            })
+            .decode_window(
+                Path::new("ffmpeg"),
+                &media,
+                0.0,
+                1.0,
+                64,
+                48,
+                0.0,
+                0,
+                || Ok(first.clone()),
+            )
             .unwrap();
         assert_eq!(first_render.stats().misses, 1);
         // One flipped byte, then a second render with a fresh cache
@@ -688,10 +717,20 @@ mod tests {
         let mut second_render = FootageCache::open(&folder);
         let mut decoder_ran = false;
         let got = second_render
-            .decode_window(Path::new("ffmpeg"), &media, 0.0, 1.0, 64, 48, 0.0, 0, || {
-                decoder_ran = true;
-                Ok(second.clone())
-            })
+            .decode_window(
+                Path::new("ffmpeg"),
+                &media,
+                0.0,
+                1.0,
+                64,
+                48,
+                0.0,
+                0,
+                || {
+                    decoder_ran = true;
+                    Ok(second.clone())
+                },
+            )
             .unwrap();
         assert!(decoder_ran, "edited bytes must force a fresh decode");
         assert_eq!(got.frames, second.frames);

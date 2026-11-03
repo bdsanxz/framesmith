@@ -122,7 +122,69 @@ impl FrameItem {
             FrameItem::Image(r) => r.order,
         }
     }
+
+    /// Shift the paint order (Sprint 6 T007): nested items stack
+    /// shifted by their nest clip's own order, so one use layers as a
+    /// unit while the child's internal layering stays intact.
+    pub fn shift_order(&mut self, by: i64) {
+        match self {
+            FrameItem::Text(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Video(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Box(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Image(r) => r.order = r.order.saturating_add(by),
+        }
+    }
 }
+
+/// One render's composition tree (Sprint 6 T007): the root plus every
+/// transitively nested composition, with per-composition motions and
+/// each composition's global document base. Global document ids
+/// (`bases[ci] + local index`) address the unified prepared media
+/// (layouts, videos, ranges); motions stay per composition.
+pub struct NestView<'a> {
+    pub comps: Vec<&'a Composition>,
+    pub motions: Vec<&'a [ClipMotion]>,
+    pub bases: Vec<usize>,
+}
+
+impl<'a> NestView<'a> {
+    /// A single-composition view: global ids are the clip indexes, and
+    /// a `nest` clip resolves to nothing, so it stays an empty window
+    /// exactly as before nesting executes.
+    pub fn single(comp: &'a Composition, motions: &'a [ClipMotion]) -> Self {
+        Self {
+            comps: vec![comp],
+            motions: vec![motions],
+            bases: vec![0],
+        }
+    }
+
+    /// Resolve a `nest` target to a tree position by composition `name`
+    /// or `id`, in tree order.
+    pub fn resolve(&self, target: &str) -> Option<usize> {
+        self.comps
+            .iter()
+            .position(|c| c.name == target || c.id.as_deref() == Some(target))
+    }
+
+    /// Whether the clip at global document id `global` hides its picture
+    /// and sound (Sprint 6 T009): hidden clips render as if absent. A
+    /// global id outside every composition is never hidden.
+    pub fn is_hidden(&self, global: usize) -> bool {
+        for (ci, comp) in self.comps.iter().enumerate() {
+            let base = self.bases[ci];
+            if global >= base && global - base < comp.clips.len() {
+                return comp.clips[global - base].hidden();
+            }
+        }
+        false
+    }
+}
+
+/// Defensive recursion cap for picture resolution (Sprint 6 T007):
+/// valid projects nest at most 8 deep and refuse before frame one, so
+/// this cap never triggers on valid input.
+pub const MAX_NEST_RENDER_DEPTH: u8 = 16;
 
 /// The single reference both renderers draw frame `frame` from.
 #[derive(Debug, Clone, PartialEq)]
@@ -143,26 +205,99 @@ pub struct FrameDescription {
 /// Derive the description of output frame `frame`: exact time
 /// `frame / fps`, one entry per clip visible in its half-open window,
 /// motion evaluated at that same instant, painted in written order.
+///
+/// Visibility is exact rational membership (Sprint 6 CAP-003): the
+/// written seconds read exactly, so a clip ending exactly at the
+/// composition end is on the final frame — the frame at the
+/// composition end minus one frame interval — by construction rather
+/// than by float luck. Mid-timeline boundaries behave exactly as the
+/// half-open rule states; only float dust at the boundary changes.
 pub fn describe(comp: &Composition, motions: &[ClipMotion], frame: u64) -> FrameDescription {
+    let view = NestView::single(comp, motions);
+    describe_nested(&view, 0, frame)
+}
+
+/// Derive the description of output frame `frame` of the tree root
+/// (Sprint 6 T007): like [`describe`], but `nest` clips play their
+/// target composition's local timeline with per-use trim and rate, and
+/// past its content the picture holds the child's last state. The
+/// child's paint orders ride shifted by the nest clip's own order.
+pub fn describe_nested(view: &NestView, root: usize, frame: u64) -> FrameDescription {
     use crate::motion_plan::frame_time;
-    let now = frame_time(&comp.fps, frame);
+    let comp = view.comps[root];
+    describe_nested_at(view, root, frame, frame_time(&comp.fps, frame))
+}
+
+/// Derive the description of the tree root at one exact composition
+/// time (Sprint 6 T008): the same derivation as [`describe_nested`],
+/// but the instant is given directly, so a sub-range render draws its
+/// output frame `out_frame` at composition time `now`. Exact rational
+/// times keep ranged frames identical to the full render's frames at
+/// the same instants.
+pub fn describe_nested_at(
+    view: &NestView,
+    root: usize,
+    out_frame: u64,
+    now: Time,
+) -> FrameDescription {
+    let comp = view.comps[root];
+    let mut items = collect_items(view, root, now, 0);
+    // Written order decides; document order breaks ties, and no other
+    // stacking (element kind or timing) overrides it. `sort_by` is
+    // stable, so equal orders keep document order.
+    items.sort_by_key(|item| item.order());
+    FrameDescription {
+        frame: out_frame,
+        time: now,
+        t: now.to_f64(),
+        width: comp.width,
+        height: comp.height,
+        background: comp.background,
+        items,
+    }
+}
+
+/// Collect the visible items of one composition at one exact time,
+/// resolving `nest` clips recursively (Sprint 6 T007). Document ids are
+/// global (`bases[ci] + local index`) so the items address the unified
+/// prepared media. Unresolvable targets and empty child timelines
+/// contribute nothing; valid projects never hit the depth cap.
+fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameItem> {
+    use crate::motion_plan::secs_to_time;
+    if depth > MAX_NEST_RENDER_DEPTH {
+        return Vec::new();
+    }
+    let comp = view.comps[ci];
+    let base = view.bases[ci];
     let t = now.to_f64();
     let mut items: Vec<FrameItem> = Vec::new();
-    for (doc, clip) in comp.clips.iter().enumerate() {
-        if !notation::model::clip_visible(clip.start(), clip.duration(), t) {
+    for (local, clip) in comp.clips.iter().enumerate() {
+        // Hidden clips contribute no picture (Sprint 6 T009): the
+        // frame shows them as if absent. Sound exclusion rides in the
+        // audio plan; ids and windows keep validating regardless.
+        if clip.hidden() {
             continue;
         }
-        let eval = motions.get(doc).map(|m| m.values_at(now)).unwrap_or_else(|| {
-            // No motion entry: the clip holds its own values.
-            let own = crate::motion_plan::own_values(clip);
-            crate::motion_plan::Evaluated {
-                x: own[Prop::X.index()],
-                y: own[Prop::Y.index()],
-                scale: own[Prop::Scale.index()],
-                rotation: own[Prop::Rotation.index()],
-                opacity: own[Prop::Opacity.index()],
-            }
-        });
+        let doc = base + local;
+        let start_t = secs_to_time(clip.start());
+        let end_t = start_t + secs_to_time(clip.duration());
+        if now < start_t || now >= end_t {
+            continue;
+        }
+        let eval = view.motions[ci]
+            .get(local)
+            .map(|m| m.values_at(now))
+            .unwrap_or_else(|| {
+                // No motion entry: the clip holds its own values.
+                let own = crate::motion_plan::own_values(clip);
+                crate::motion_plan::Evaluated {
+                    x: own[Prop::X.index()],
+                    y: own[Prop::Y.index()],
+                    scale: own[Prop::Scale.index()],
+                    rotation: own[Prop::Rotation.index()],
+                    opacity: own[Prop::Opacity.index()],
+                }
+            });
         match clip {
             Clip::Text(tc) => items.push(FrameItem::Text(ResolvedText {
                 doc,
@@ -211,6 +346,33 @@ pub fn describe(comp: &Composition, motions: &[ClipMotion], frame: u64) -> Frame
             // Audio tracks draw no picture: they ride in the composition
             // for the T008 mixer and never emit a frame item.
             Clip::Audio(_) => {}
+            // A `nest` clip plays its target's local timeline at the
+            // mapped child time; past the content the hold shows the
+            // child's last state (the sound side stays silent there).
+            Clip::Nest(n) => {
+                let Some(ti) = view.resolve(&n.target) else {
+                    continue;
+                };
+                let child = view.comps[ti];
+                if !child.duration.is_finite() || child.duration <= 0.0 {
+                    continue;
+                }
+                let content_end = n
+                    .trim_end
+                    .map(|e| e.min(child.duration))
+                    .unwrap_or(child.duration);
+                let c = n.trim_start + (t - n.start).max(0.0) * n.rate;
+                let child_now = if c < content_end {
+                    secs_to_time(c)
+                } else {
+                    let interval = 1.0 / child.fps.value().max(1.0);
+                    secs_to_time((content_end - interval).max(n.trim_start))
+                };
+                for mut item in collect_items(view, ti, child_now, depth + 1) {
+                    item.shift_order(n.order);
+                    items.push(item);
+                }
+            }
             Clip::Image(im) => items.push(FrameItem::Image(ResolvedImage {
                 doc,
                 order: im.order,
@@ -227,29 +389,21 @@ pub fn describe(comp: &Composition, motions: &[ClipMotion], frame: u64) -> Frame
             })),
         }
     }
-    // Written order decides; document order breaks ties, and no other
-    // stacking (element kind or timing) overrides it. `sort_by` is
-    // stable, so equal orders keep document order.
-    items.sort_by_key(|item| item.order());
-    FrameDescription {
-        frame,
-        time: now,
-        t,
-        width: comp.width,
-        height: comp.height,
-        background: comp.background,
-        items,
-    }
+    items
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::motion_plan::plan_motions;
-    use notation::model::{Align, BoxClip, Composition, FontStyle, Fps, Rgb, TextClip, VideoClip, Wrap};
+    use notation::model::{
+        Align, BoxClip, Composition, FontStyle, Fps, Rgb, TextClip, TrackKind, VideoClip, Wrap,
+    };
 
     fn comp_with(clips: Vec<Clip>) -> Composition {
         Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 320,
             height: 240,
@@ -266,13 +420,22 @@ mod tests {
 
     fn text(start: f64, duration: f64, order: i64, x: f64) -> Clip {
         Clip::Text(TextClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             value: "Hi".to_string(),
             start,
             duration,
             x,
             y: 10.0,
             size: 24.0,
-            color: Rgb { r: 255, g: 255, b: 255 },
+            color: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             align: Align::Left,
             wrap: Wrap::Off,
             style: FontStyle::Regular,
@@ -287,6 +450,11 @@ mod tests {
 
     fn video(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Video(VideoClip {
+            id: None,
+            track: TrackKind::Video,
+            label: None,
+            start_after: None,
+            hidden: false,
             path: "clip.mp4".to_string(),
             start,
             duration,
@@ -307,6 +475,11 @@ mod tests {
 
     fn boxed(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Box(BoxClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             start,
             duration,
             x: 5.0,
@@ -351,11 +524,41 @@ mod tests {
     }
 
     #[test]
+    fn boundary_clip_is_visible_on_the_final_frame() {
+        // Sprint 6 CAP-003: a clip ending exactly at the composition end
+        // shows on the final frame (the frame at the composition end
+        // minus one frame interval); a clip starting exactly at the end
+        // does not. A rational-fps grid exercises the same rule without
+        // float luck.
+        let comp = comp_with(vec![text(0.0, 2.0, 0, 80.0), text(2.0, 1.0, 0, 90.0)]);
+        let motions = plan_motions(&comp, 30);
+        let last = describe(&comp, &motions, 59);
+        let docs: Vec<usize> = last.items.iter().map(FrameItem::doc).collect();
+        assert_eq!(docs, vec![0], "final frame shows the boundary clip only");
+        let mut ntsc = comp_with(vec![text(0.0, 2.0, 0, 80.0)]);
+        ntsc.fps = Fps {
+            num: 30000,
+            den: 1001,
+        };
+        let frames = ntsc.fps.frame_count(ntsc.duration) as u64;
+        assert_eq!(frames, 60);
+        let motions = plan_motions(&ntsc, 30);
+        let last = describe(&ntsc, &motions, frames - 1);
+        assert_eq!(last.items.len(), 1, "rational grid keeps the final instant");
+        assert_eq!(last.items[0].doc(), 0);
+    }
+
+    #[test]
     fn video_src_t_follows_trim_and_rate() {
         // Sprint 5 T002: composition seconds past the clip start advance
         // `rate` source seconds from `trim_start` (rate 2 over a
         // 1..3 s window: frame 15 at t=0.5 maps to source 2.0 s).
         let clip = Clip::Video(VideoClip {
+            id: None,
+            track: TrackKind::Video,
+            label: None,
+            start_after: None,
+            hidden: false,
             path: "clip.mp4".to_string(),
             start: 0.0,
             duration: 2.0,
@@ -379,19 +582,30 @@ mod tests {
             other => panic!("expected video, got {other:?}"),
         };
         assert!((at(0) - 1.0).abs() < 1e-9, "clip start maps to trim-start");
-        assert!((at(15) - 2.0).abs() < 1e-9, "t=0.5 at rate 2 maps to source 2.0");
+        assert!(
+            (at(15) - 2.0).abs() < 1e-9,
+            "t=0.5 at rate 2 maps to source 2.0"
+        );
         assert!((at(29) - (1.0 + 29.0 / 30.0 * 2.0)).abs() < 1e-9);
     }
 
     #[test]
     fn written_order_wins_over_document_order() {
         // Box written first in the document but ordered after the text.
-        let comp = comp_with(vec![boxed(0.0, 2.0, 5), text(0.0, 2.0, -1, 80.0), video(0.0, 2.0, 5)]);
+        let comp = comp_with(vec![
+            boxed(0.0, 2.0, 5),
+            text(0.0, 2.0, -1, 80.0),
+            video(0.0, 2.0, 5),
+        ]);
         let motions = plan_motions(&comp, 30);
         let desc = describe(&comp, &motions, 0);
         let docs: Vec<usize> = desc.items.iter().map(FrameItem::doc).collect();
         // order -1 first, then the two order-5 clips in document order.
-        assert_eq!(docs, vec![1, 0, 2], "paint follows written order, ties keep document order");
+        assert_eq!(
+            docs,
+            vec![1, 0, 2],
+            "paint follows written order, ties keep document order"
+        );
     }
 
     #[test]
@@ -401,7 +615,11 @@ mod tests {
         let desc = describe(&comp, &motions, 7);
         match &desc.items[0] {
             FrameItem::Text(r) => {
-                assert!((r.x - 80.0).abs() < 1e-9, "still clips hold authored values, got {}", r.x);
+                assert!(
+                    (r.x - 80.0).abs() < 1e-9,
+                    "still clips hold authored values, got {}",
+                    r.x
+                );
                 assert!((r.y - 10.0).abs() < 1e-9);
             }
             other => panic!("expected text, got {other:?}"),
@@ -414,6 +632,11 @@ mod tests {
 
     fn image_clip(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Image(notation::model::ImageClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             path: "photo.png".to_string(),
             start,
             duration,
@@ -431,6 +654,8 @@ mod tests {
 
     fn motion_comp(clips: Vec<Clip>, tweens: Vec<TweenDecl>, sets: Vec<SetDecl>) -> Composition {
         Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 320,
             height: 240,
@@ -488,7 +713,11 @@ mod tests {
         let docs: Vec<usize> = desc.items.iter().map(FrameItem::doc).collect();
         // Visible at t=1: box order 0, image+text order 1 (doc order),
         // video order 3 — regardless of kind or start time.
-        assert_eq!(docs, vec![2, 1, 3, 0], "order decides, ties keep document order");
+        assert_eq!(
+            docs,
+            vec![2, 1, 3, 0],
+            "order decides, ties keep document order"
+        );
     }
 
     #[test]
@@ -496,7 +725,11 @@ mod tests {
         // T006: clips with equal (or absent-equal default) orders keep
         // document order even when kinds interleave.
         let comp = motion_comp(
-            vec![video(0.0, 2.0, 0), boxed(0.0, 2.0, 0), text(0.0, 2.0, 0, 80.0)],
+            vec![
+                video(0.0, 2.0, 0),
+                boxed(0.0, 2.0, 0),
+                text(0.0, 2.0, 0, 80.0),
+            ],
             vec![],
             vec![],
         );
@@ -512,11 +745,22 @@ mod tests {
         // over [0, 1) at 30 fps: exact starts, halfway midpoints, exact
         // ends at the exact rational frame times.
         let comp = motion_comp(
-            vec![boxed(0.0, 2.0, 0), text(0.0, 2.0, 0, 10.0), video(0.0, 2.0, 0)],
+            vec![
+                boxed(0.0, 2.0, 0),
+                text(0.0, 2.0, 0, 10.0),
+                video(0.0, 2.0, 0),
+            ],
             vec![
                 tween(0, "x", TweenKind::To, None, Some(105.0), EaseDecl::Linear),
                 tween(1, "y", TweenKind::From, Some(60.0), None, EaseDecl::Linear),
-                tween(2, "x", TweenKind::FromTo, Some(0.0), Some(90.0), EaseDecl::Linear),
+                tween(
+                    2,
+                    "x",
+                    TweenKind::FromTo,
+                    Some(0.0),
+                    Some(90.0),
+                    EaseDecl::Linear,
+                ),
             ],
             vec![],
         );
@@ -571,9 +815,30 @@ mod tests {
             vec![text(0.0, 2.0, 0, 10.0), video(0.0, 2.0, 0)],
             vec![
                 tween(0, "scale", TweenKind::To, None, Some(2.0), EaseDecl::Linear),
-                tween(0, "opacity", TweenKind::From, Some(0.25), None, EaseDecl::Linear),
-                tween(1, "x", TweenKind::FromTo, Some(0.0), Some(60.0), EaseDecl::Linear),
-                tween(1, "rotation", TweenKind::To, None, Some(45.0), EaseDecl::Linear),
+                tween(
+                    0,
+                    "opacity",
+                    TweenKind::From,
+                    Some(0.25),
+                    None,
+                    EaseDecl::Linear,
+                ),
+                tween(
+                    1,
+                    "x",
+                    TweenKind::FromTo,
+                    Some(0.0),
+                    Some(60.0),
+                    EaseDecl::Linear,
+                ),
+                tween(
+                    1,
+                    "rotation",
+                    TweenKind::To,
+                    None,
+                    Some(45.0),
+                    EaseDecl::Linear,
+                ),
             ],
             vec![],
         );
@@ -602,9 +867,30 @@ mod tests {
         let comp = motion_comp(
             vec![boxed(0.0, 2.0, 0)],
             vec![
-                tween(0, "scale", TweenKind::FromTo, Some(1.0), Some(3.0), EaseDecl::Linear),
-                tween(0, "rotation", TweenKind::To, None, Some(90.0), EaseDecl::Linear),
-                tween(0, "opacity", TweenKind::From, Some(0.0), None, EaseDecl::Linear),
+                tween(
+                    0,
+                    "scale",
+                    TweenKind::FromTo,
+                    Some(1.0),
+                    Some(3.0),
+                    EaseDecl::Linear,
+                ),
+                tween(
+                    0,
+                    "rotation",
+                    TweenKind::To,
+                    None,
+                    Some(90.0),
+                    EaseDecl::Linear,
+                ),
+                tween(
+                    0,
+                    "opacity",
+                    TweenKind::From,
+                    Some(0.0),
+                    None,
+                    EaseDecl::Linear,
+                ),
             ],
             vec![],
         );
@@ -671,10 +957,20 @@ mod tests {
         assert_eq!((s1, e1), (5.0, 105.0));
         assert_eq!((s2, e2), (5.0, 105.0));
         assert_eq!(m0, 55.0);
-        assert!(m1 < m0 && m0 < m2, "in-quad lags, out-quad leads: {m1} {m0} {m2}");
+        assert!(
+            m1 < m0 && m0 < m2,
+            "in-quad lags, out-quad leads: {m1} {m0} {m2}"
+        );
         let comp = motion_comp(
             vec![boxed(0.0, 2.0, 0)],
-            vec![tween(0, "x", TweenKind::To, None, Some(105.0), EaseDecl::OutBack(1.7))],
+            vec![tween(
+                0,
+                "x",
+                TweenKind::To,
+                None,
+                Some(105.0),
+                EaseDecl::OutBack(1.7),
+            )],
             vec![],
         );
         let motions = plan_motions(&comp, 30);
@@ -685,5 +981,61 @@ mod tests {
             })
             .fold(0.0f64, f64::max);
         assert!(peak > 105.0, "out-back passes its end, peak {peak}");
+    }
+
+    #[test]
+    fn hidden_clips_leave_no_frame_item() {
+        use crate::motion_plan::{frame_time, secs_to_time};
+        // A hidden fullscreen box over the background draws nothing: the
+        // frame holds the background with no items.
+        let mut hide = boxed(0.0, 2.0, 0);
+        match &mut hide {
+            Clip::Box(b) => b.hidden = true,
+            _ => unreachable!(),
+        }
+        let comp = comp_with(vec![hide]);
+        let motions = plan_motions(&comp, 30);
+        let view = NestView::single(&comp, &motions);
+        for k in [0, 15, 59] {
+            let desc = describe(&comp, &motions, k);
+            assert!(desc.items.is_empty(), "hidden box at frame {k}");
+            let at = describe_nested_at(
+                &view,
+                0,
+                k,
+                secs_to_time(0.0) + frame_time(&comp.fps, k),
+            );
+            assert!(at.items.is_empty(), "hidden box at ranged frame {k}");
+        }
+    }
+
+    #[test]
+    fn ranged_instants_match_full_render_instants_exactly() {
+        use crate::motion_plan::{frame_time, secs_to_time};
+        // Sprint 6 T008: a sub-range starting on a frame boundary draws
+        // the identical description the full render draws at the same
+        // composition instants — exact rational times, no float drift.
+        let mut comp = comp_with(vec![text(0.0, 4.0, 0, 80.0), boxed(2.0, 2.0, 1)]);
+        comp.duration = 4.0;
+        let motions = plan_motions(&comp, 30);
+        let view = NestView::single(&comp, &motions);
+        let base = secs_to_time(1.0);
+        for k in [0, 1, 29, 30, 59, 89] {
+            let full = describe(&comp, &motions, 30 + k);
+            let mut ranged = describe_nested_at(
+                &view,
+                0,
+                k,
+                base + frame_time(&comp.fps, k),
+            );
+            // The output index is the range's own; everything a renderer
+            // consumes — the instant and the items — must match exactly.
+            ranged.frame = full.frame;
+            assert_eq!(
+                ranged, full,
+                "ranged frame {k} must equal full frame {}",
+                30 + k
+            );
+        }
     }
 }

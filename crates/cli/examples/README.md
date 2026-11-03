@@ -104,6 +104,35 @@ Expected: exit 0 each time; `out.mp4` files are 1920x1080 H.264
 equivalents of both references are benchmark inputs owned by the
 Sprint 4 proof tasks, not part of these folders.
 
+## Structured reference (Sprint 6, T011)
+
+`structured-reference`: one project proving the timing/structure
+behaviors end to end — relative starts, a twice-used nested bumper
+with differing trims, a hidden layer, a canvas preset, inferred
+durations, and two compositions. The root `main` (64x64, 30fps,
+inferred 4 s) chains `intro` → `bumper-a` (trim [0,1), red half) →
+`bumper-b` (trim [1,2), green half) → `outro` via `start-after`, hides
+a green `ghost` box over [1,2), and infers the `title` text and `bed`
+audio (committed `media/tone.wav`, exactly 4 s) spans to the
+composition end. Reusable `bumper` is red [0,1) + green [1,2);
+`cutdown` uses canvas preset `square` with an inferred 1 s duration.
+
+```sh
+framesmith check examples/structured-reference
+framesmith render examples/structured-reference
+framesmith render examples/structured-reference --composition cutdown
+framesmith render examples/structured-reference --start 1 --end 3
+```
+
+Expected: exit 0 each time; `timeline` lists the authored windows
+with the hidden flag, `info` reports both canvases and the inferred
+durations, root/named/range MP4s carry exact windows with aligned
+sound, and every re-render is byte-identical. Six invalid variants
+(duplicate id, start-after cycle, ambiguous root, sub-1/60 s length,
+circular nest, empty sub-range) refuse before frame one. The
+one-command proof is `evidences/proof-n06-T011/prove.sh`
+(`tests/cli_n06_t011_reference.rs` covers the same gates in the suite).
+
 ## Proof
 
 `tests/cli_examples_fixtures.rs` renders both examples from temp copies,

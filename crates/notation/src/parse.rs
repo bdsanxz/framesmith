@@ -254,9 +254,7 @@ pub fn parse_document(text: &str) -> Result<Vec<RawNode>, ParseError> {
             let (k, v) = tok.split_once('=').ok_or(ParseError {
                 line: line_no,
                 column: *col,
-                message: format!(
-                    "expected `key=value`, found positional argument {tok:?}"
-                ),
+                message: format!("expected `key=value`, found positional argument {tok:?}"),
             })?;
             if k.is_empty() {
                 return Err(ParseError {
@@ -322,10 +320,18 @@ mod tests {
     fn utf8_values_survive_tokenizing() {
         // Multi-byte characters must pass through whole: the old
         // byte-push shredded emoji into Latin-1 mojibake.
-        let nodes = parse_ok("composition name=\"t\" {\n    text value=\"A😀Z\" start=0 duration=1\n}\n");
-        let (_, v) = nodes[0].children[0].props.iter().find(|(k, _)| k == "value").unwrap();
+        let nodes =
+            parse_ok("composition name=\"t\" {\n    text value=\"A😀Z\" start=0 duration=1\n}\n");
+        let (_, v) = nodes[0].children[0]
+            .props
+            .iter()
+            .find(|(k, _)| k == "value")
+            .unwrap();
         match v {
-            RawValue { kind: ValueKind::Str(s), .. } => assert_eq!(s, "A😀Z"),
+            RawValue {
+                kind: ValueKind::Str(s),
+                ..
+            } => assert_eq!(s, "A😀Z"),
             other => panic!("expected a string, got {other:?}"),
         }
     }
@@ -347,7 +353,8 @@ mod tests {
 
     #[test]
     fn locations_are_reported() {
-        let err = parse_document("composition name=\"x\" {\n    text value=\"oops\n}\n").unwrap_err();
+        let err =
+            parse_document("composition name=\"x\" {\n    text value=\"oops\n}\n").unwrap_err();
         assert_eq!(err.line, 2);
     }
 

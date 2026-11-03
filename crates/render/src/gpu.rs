@@ -18,9 +18,7 @@
 //! [`compare_frames`]. CPU reruns stay byte-identical; only the
 //! CPU-to-GPU comparison uses tolerance.
 
-use crate::frame::{
-    FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedText,
-};
+use crate::frame::{FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedText};
 use crate::render::Prepared;
 use std::fmt::Write;
 
@@ -185,7 +183,9 @@ pub fn consume(desc: &FrameDescription) -> String {
 /// render within tolerance, because the description depends only on the
 /// frame number.
 pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> {
-    let desc = crate::frame::describe(prep.composition(), prep.motion_ref(), frame);
+    let view = prep.nest_view();
+    let at = prep.range_start + crate::motion_plan::frame_time(&prep.composition().fps, frame);
+    let desc = crate::frame::describe_nested_at(&view, 0, frame, at);
     render_description(prep, &desc)
 }
 
@@ -196,10 +196,7 @@ pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> 
 /// with the CPU blitter, fed with [`quantize`]-quantized motion values,
 /// so the comparison measures the backend gap rather than a second
 /// drawing algorithm.
-pub fn render_description(
-    prep: &mut Prepared,
-    desc: &FrameDescription,
-) -> Result<Vec<u8>, String> {
+pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Result<Vec<u8>, String> {
     // Disjoint field borrows: the media stays shared while the raster
     // cache goes to the traversal mutably.
     let Prepared {
@@ -211,7 +208,15 @@ pub fn render_description(
         raster,
         ..
     } = prep;
-    render_description_split(videos, ranges, images, layouts, *bitmap_fallback, raster, desc)
+    render_description_split(
+        videos,
+        ranges,
+        images,
+        layouts,
+        *bitmap_fallback,
+        raster,
+        desc,
+    )
 }
 
 /// Split-borrow core of [`render_description`]: the same traversal over
@@ -227,10 +232,18 @@ pub(crate) fn render_description_split(
     raster: &mut crate::render::RasterCache,
     desc: &FrameDescription,
 ) -> Result<Vec<u8>, String> {
-    use crate::render::{blit_fit, draw_bitmap_text_item, draw_box, draw_image, draw_text_block, fill_canvas, pick_picture_or_hold, wrap_loop_time};
+    use crate::render::{
+        blit_fit, draw_bitmap_text_item, draw_box, draw_image, draw_text_block, fill_canvas,
+        pick_picture_or_hold, wrap_loop_time,
+    };
     let (cw, chh) = (desc.width, desc.height);
     let mut frame = vec![0u8; cw as usize * chh as usize * 3];
-    fill_canvas(&mut frame, desc.background.r, desc.background.g, desc.background.b);
+    fill_canvas(
+        &mut frame,
+        desc.background.r,
+        desc.background.g,
+        desc.background.b,
+    );
     for item in &desc.items {
         match item {
             FrameItem::Video(v) => {
@@ -238,7 +251,10 @@ pub(crate) fn render_description_split(
                     .iter()
                     .position(|p| p.clip_idx == v.doc)
                     .ok_or_else(|| {
-                        format!("gpu render failed: video clip #{} was not probed (decode stage)", v.doc)
+                        format!(
+                            "gpu render failed: video clip #{} was not probed (decode stage)",
+                            v.doc
+                        )
                     })?;
                 let (sw, sh, pic) = {
                     let range = &ranges[vi];
@@ -258,12 +274,25 @@ pub(crate) fn render_description_split(
                         )
                     })?;
                     let fs = range.width as usize * range.height as usize * 3;
-                    (range.width, range.height, range.frames[j * fs..(j + 1) * fs].to_vec())
+                    (
+                        range.width,
+                        range.height,
+                        range.frames[j * fs..(j + 1) * fs].to_vec(),
+                    )
                 };
                 blit_fit(
-                    &mut frame, cw, chh, &pic, sw, sh, v.fit,
-                    quantize(v.x), quantize(v.y), quantize(v.scale),
-                    quantize(v.rotation), quantize(v.opacity),
+                    &mut frame,
+                    cw,
+                    chh,
+                    &pic,
+                    sw,
+                    sh,
+                    v.fit,
+                    quantize(v.x),
+                    quantize(v.y),
+                    quantize(v.scale),
+                    quantize(v.rotation),
+                    quantize(v.opacity),
                 );
             }
             FrameItem::Text(tc) => {
@@ -275,8 +304,7 @@ pub(crate) fn render_description_split(
                     y: quantize(tc.y),
                     ..tc.clone()
                 };
-                let block: Option<layout::Block> =
-                    layouts.get(q.doc).and_then(|laid| laid.clone());
+                let block: Option<layout::Block> = layouts.get(q.doc).and_then(|laid| laid.clone());
                 match block {
                     Some(block) => {
                         draw_text_block(&mut frame, cw, chh, raster, &block, &q)
@@ -310,7 +338,10 @@ pub(crate) fn render_description_split(
                     .iter()
                     .find(|d| d.path.ends_with(&im.path))
                     .ok_or_else(|| {
-                        format!("gpu render failed: image source {:?} was not decoded (decode stage)", im.path)
+                        format!(
+                            "gpu render failed: image source {:?} was not decoded (decode stage)",
+                            im.path
+                        )
                     })?
                     .clone();
                 let q = ResolvedImage {
@@ -355,7 +386,9 @@ pub fn compare_frames(cpu: &[u8], gpu: &[u8]) -> Result<Comparison, String> {
         ));
     }
     if cpu.is_empty() || cpu.len() % 3 != 0 {
-        return Err("comparison refused: pictures are not whole RGB24 frames; no pass granted".to_string());
+        return Err(
+            "comparison refused: pictures are not whole RGB24 frames; no pass granted".to_string(),
+        );
     }
     let pixels = cpu.len() / 3;
     let mut max_abs: u8 = 0;
@@ -410,7 +443,10 @@ impl Comparison {
     /// no pass granted for that fixture.
     pub fn report(&self, fixture: &str, frame: u64) -> String {
         if self.pass() {
-            format!("fixture `{fixture}` frame {frame}: PASS ({})", self.distance())
+            format!(
+                "fixture `{fixture}` frame {frame}: PASS ({})",
+                self.distance()
+            )
         } else {
             format!(
                 "fixture `{fixture}` frame {frame}: FAIL — outside tolerance ({}); defect belongs to the renderer, no pass granted",
@@ -426,11 +462,13 @@ mod tests {
     use crate::frame::describe;
     use crate::motion_plan::plan_motions;
     use notation::model::{
-        Align, BoxClip, Composition, FontStyle, Fps, Rgb, TextClip, Wrap,
+        Align, BoxClip, Composition, FontStyle, Fps, Rgb, TextClip, TrackKind, Wrap,
     };
 
     fn composition() -> Composition {
         Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 320,
             height: 240,
@@ -440,13 +478,22 @@ mod tests {
             version: 1,
             clips: vec![
                 notation::model::Clip::Text(TextClip {
+                    id: None,
+                    track: TrackKind::Graphics,
+                    label: None,
+                    start_after: None,
+                    hidden: false,
                     value: "Hi".to_string(),
                     start: 0.0,
                     duration: 2.0,
                     x: 80.0,
                     y: 10.0,
                     size: 24.0,
-                    color: Rgb { r: 255, g: 255, b: 255 },
+                    color: Rgb {
+                        r: 255,
+                        g: 255,
+                        b: 255,
+                    },
                     align: Align::Left,
                     wrap: Wrap::Off,
                     style: FontStyle::Regular,
@@ -458,6 +505,11 @@ mod tests {
                     column: 1,
                 }),
                 notation::model::Clip::Box(BoxClip {
+                    id: None,
+                    track: TrackKind::Graphics,
+                    label: None,
+                    start_after: None,
+                    hidden: false,
                     start: 0.0,
                     duration: 2.0,
                     x: 5.0,
@@ -502,7 +554,10 @@ mod tests {
         let a = consume(&describe(&comp, &motions, 0));
         let b = consume(&describe(&comp, &motions, 29));
         assert_ne!(a, b);
-        assert!(a.contains("frame=0") && b.contains("frame=29"), "{a} vs {b}");
+        assert!(
+            a.contains("frame=0") && b.contains("frame=29"),
+            "{a} vs {b}"
+        );
     }
 
     #[test]
@@ -551,6 +606,8 @@ mod tests {
 
     fn still_comp(clips: Vec<Clip>) -> Composition {
         Composition {
+            id: None,
+            canvas: None,
             name: "t".to_string(),
             width: 64,
             height: 64,
@@ -567,6 +624,11 @@ mod tests {
 
     fn red_box(x: f64, y: f64, order: i64) -> Clip {
         Clip::Box(BoxClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             start: 0.0,
             duration: 2.0,
             x,
@@ -599,6 +661,11 @@ mod tests {
         let comp = still_comp(vec![
             red_box(4.0, 4.0, 1),
             Clip::Box(BoxClip {
+                id: None,
+                track: TrackKind::Graphics,
+                label: None,
+                start_after: None,
+                hidden: false,
                 start: 0.0,
                 duration: 2.0,
                 x: 30.0,
@@ -608,7 +675,11 @@ mod tests {
                 fill: Rgb { r: 0, g: 255, b: 0 },
                 radius: 6.0,
                 border_width: 3.0,
-                border_color: Rgb { r: 255, g: 255, b: 255 },
+                border_color: Rgb {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
                 opacity: 0.5,
                 order: 2,
                 line: 2,
@@ -632,6 +703,11 @@ mod tests {
         // second, so it must cover the red one on both renderers.
         let comp = still_comp(vec![
             Clip::Box(BoxClip {
+                id: None,
+                track: TrackKind::Graphics,
+                label: None,
+                start_after: None,
+                hidden: false,
                 start: 0.0,
                 duration: 2.0,
                 x: 10.0,
@@ -671,13 +747,22 @@ mod tests {
         // and letter spacing. Both sides share the same prepared
         // layouts, so the assertion holds on any machine font set.
         let comp = still_comp(vec![Clip::Text(TextClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
             value: "Hi Ag".to_string(),
             start: 0.0,
             duration: 2.0,
             x: 4.0,
             y: 4.0,
             size: 12.0,
-            color: Rgb { r: 255, g: 255, b: 255 },
+            color: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             align: Align::Left,
             wrap: Wrap::Off,
             style: FontStyle::Regular,
@@ -737,8 +822,16 @@ mod tests {
         let cpu0 = prep.cpu_frame(0).expect("cpu 0");
         let cpu29 = prep.cpu_frame(29).expect("cpu 29");
         let gpu29 = render_frame(&mut prep, 29).expect("gpu 29");
-        assert_ne!(row_red(&cpu0, 0), row_red(&cpu29, 29), "cpu shows the tween");
-        assert_ne!(row_red(&cpu0, 0), row_red(&gpu29, 29), "gpu shows the tween");
+        assert_ne!(
+            row_red(&cpu0, 0),
+            row_red(&cpu29, 29),
+            "cpu shows the tween"
+        );
+        assert_ne!(
+            row_red(&cpu0, 0),
+            row_red(&gpu29, 29),
+            "gpu shows the tween"
+        );
     }
 
     #[test]

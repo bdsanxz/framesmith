@@ -105,6 +105,54 @@ impl Fit {
     }
 }
 
+/// Track kind of a clip (Sprint 6 `track` key): the display vocabulary
+/// timelines use. `caption` only ever comes from a written `track`;
+/// undeclared tracks default by element kind (video to video, audio
+/// to audio, everything else to graphics). Unknown spellings are
+/// refused, never guessed into a lane.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrackKind {
+    Video,
+    Audio,
+    Caption,
+    Graphics,
+}
+
+impl TrackKind {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "video" => Some(TrackKind::Video),
+            "audio" => Some(TrackKind::Audio),
+            "caption" => Some(TrackKind::Caption),
+            "graphics" => Some(TrackKind::Graphics),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            TrackKind::Video => "video",
+            TrackKind::Audio => "audio",
+            TrackKind::Caption => "caption",
+            TrackKind::Graphics => "graphics",
+        }
+    }
+
+    /// Default track for an undeclared `track` key, by element name:
+    /// `video` clips ride the video lane, `audio` clips the audio lane,
+    /// every other element (text, box, image, nest) the graphics lane.
+    pub fn default_for_clip(element: &str) -> Self {
+        match element {
+            "video" => TrackKind::Video,
+            "audio" => TrackKind::Audio,
+            _ => TrackKind::Graphics,
+        }
+    }
+
+    /// Accepted spellings for diagnostics, in spec order.
+    pub const ACCEPTED: [&'static str; 4] = ["video", "audio", "caption", "graphics"];
+}
+
 /// Horizontal alignment of wrapped text lines (Sprint 1 `align` key).
 /// Only these three spellings are valid; anything else is a diagnostic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -157,13 +205,39 @@ pub enum Wrap {
     Width(f64),
 }
 
+/// A relative start (Sprint 6 `start-after` plus optional
+/// `start-offset`): the clip begins exactly at the referenced clip's
+/// effective end plus the offset (negative overlaps earlier content).
+/// Resolution (T002) turns this into an absolute `start`; validation
+/// refuses self-reference, cycles, unknown ids, before-zero results,
+/// and absolute-plus-relative ambiguity.
+#[derive(Debug, Clone)]
+pub struct StartAfter {
+    /// Referenced clip or composition id, as written.
+    pub target: String,
+    /// Seconds after the referenced end (may be negative).
+    pub offset: f64,
+    /// Location of the `start-after` value, for diagnostics.
+    pub line: usize,
+    pub column: usize,
+}
+
 /// A `text` clip (Sprint 1 usable element, plus Sprint 2 paint order,
-/// line height and letter spacing).
+/// line height and letter spacing, plus Sprint 6 id/track/label).
 #[derive(Debug, Clone)]
 pub struct TextClip {
     pub value: String,
     pub start: f64,
     pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
     pub x: f64,
     pub y: f64,
     pub size: f64,
@@ -183,6 +257,9 @@ pub struct TextClip {
     /// separated); none means the project font, else the machine style
     /// fallback. At least one name must resolve at render time.
     pub font_family: Option<Vec<String>>,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
     pub line: usize,
     pub column: usize,
 }
@@ -206,6 +283,12 @@ pub struct TextClip {
 pub struct VideoClip {
     pub path: String,
     pub start: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to video when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
     /// Clip length in composition seconds: the written `duration`, or
     /// the inferred `(trim_end − trim_start) ÷ rate` when `duration`
     /// is omitted (Sprint 5 T009). `duration_inferred` marks the
@@ -215,6 +298,9 @@ pub struct VideoClip {
     /// True when `duration` above was inferred from the footage window
     /// (no `duration` key written); false for an explicit `duration`.
     pub duration_inferred: bool,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
     pub fit: Fit,
     pub order: i64,
     /// Sound gain in dB (`f64::NEG_INFINITY` is exact silence); default 0.
@@ -235,26 +321,59 @@ pub struct VideoClip {
     /// default false). A looping clip without an explicit `duration`
     /// is refused as unbounded.
     pub loop_clip: bool,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
     pub line: usize,
     pub column: usize,
 }
 
-/// An `audio` track (Sprint 3 element): a sound source placed in a
-/// half-open window with trim, volume, and linear fades. `trim_start`
-/// and `trim_end` select the source window in seconds (`trim_end` none
-/// means the source end); `volume_db` is the gain in dB (`-inf` is
-/// exact silence, values above +12 are refused); `fade_in`/`fade_out`
-/// are linear amplitude ramps in seconds over the clip window.
+/// Smallest resolvable clip or composition length in seconds (Sprint 6
+/// T003): any written or inferred length below one frame at 60 fps is
+/// refused naming the value and the bound, never rendered as a sliver.
+pub const MIN_DURATION_SECS: f64 = 1.0 / 60.0;
+
+/// Deepest allowed `nest` chain in edges (Sprint 6 T007, REC-004): a
+/// use chain longer than 8 edges refuses naming the chain and the
+/// limit, before the first frame.
+pub const MAX_NEST_DEPTH: usize = 8;
+
+/// An `audio` track (Sprint 3 element, plus Sprint 5 footage trim and
+/// Sprint 6 rate/inference): a sound source placed in a half-open
+/// window with trim, rate, volume, and linear fades. `trim_start` and
+/// `trim_end` select the source window in seconds (`trim_end` none
+/// means the source end); `rate` consumes that many source seconds per
+/// composition second (0.1–10, default 1, pitch follows speed like
+/// video); `volume_db` is the gain in dB (`-inf` is exact silence,
+/// values above +12 are refused); `fade_in`/`fade_out` are linear
+/// amplitude ramps in seconds over the clip window. An omitted
+/// `duration` resolves to `(trim_end − trim_start) ÷ rate` using the
+/// probed source end, exactly like video inference.
 #[derive(Debug, Clone)]
 pub struct AudioClip {
     pub path: String,
     pub start: f64,
     pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to audio when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
     pub trim_start: f64,
     pub trim_end: Option<f64>,
+    /// Source seconds consumed per composition second (`rate`, 0.1–10);
+    /// default 1. Pitch follows speed, exactly like video.
+    pub rate: f64,
     pub volume_db: f64,
     pub fade_in: f64,
     pub fade_out: f64,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
     pub line: usize,
     pub column: usize,
 }
@@ -283,7 +402,10 @@ pub enum PlaceV {
 
 impl Placement {
     pub fn center() -> Self {
-        Self { x: PlaceH::Center, y: PlaceV::Center }
+        Self {
+            x: PlaceH::Center,
+            y: PlaceV::Center,
+        }
     }
 
     /// Parse `"center"`, `"left"`, `"top-right"`, `"left top"` and other
@@ -348,6 +470,15 @@ impl Placement {
 pub struct BoxClip {
     pub start: f64,
     pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
     pub x: f64,
     pub y: f64,
     pub width: f64,
@@ -359,6 +490,9 @@ pub struct BoxClip {
     /// 0 transparent to 1 opaque.
     pub opacity: f64,
     pub order: i64,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
     pub line: usize,
     pub column: usize,
 }
@@ -372,6 +506,15 @@ pub struct ImageClip {
     pub path: String,
     pub start: f64,
     pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
     pub x: f64,
     pub y: f64,
     /// Target rect size; defaults to the composition canvas.
@@ -380,6 +523,9 @@ pub struct ImageClip {
     pub fit: Fit,
     pub placement: Placement,
     pub order: i64,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
     pub line: usize,
     pub column: usize,
 }
@@ -567,6 +713,46 @@ pub const LATER_PROPERTIES: [&str; 13] = [
     "typed",
 ];
 
+/// A `nest` clip (Sprint 6 structural element): plays another
+/// composition's local timeline inside this one with per-use
+/// `trim-start`, `trim-end`, and `rate` (T007). At parent time `p` the
+/// child shows its local time `trim_start + (p - start) * rate`; past
+/// the content end the picture holds the child's last state while its
+/// sound goes silent. The child's paint orders ride shifted by the
+/// nest's own `order`, so the use stacks as one unit.
+#[derive(Debug, Clone)]
+pub struct NestClip {
+    /// Name of the nested composition, as written.
+    pub target: String,
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    /// Child seconds where the use opens (`trim-start`); default 0.
+    pub trim_start: f64,
+    /// Child seconds where the use closes (`trim-end`); none means the
+    /// child composition end. Past-end values clamp to the child end.
+    pub trim_end: Option<f64>,
+    /// Child seconds consumed per parent second (`rate`, 0.1–10);
+    /// default 1. Pitch follows speed, like footage.
+    pub rate: f64,
+    /// Explicit paint order (default 0); the nested items stack shifted
+    /// by this value, ties falling back to document order.
+    pub order: i64,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
 #[derive(Debug, Clone)]
 pub enum Clip {
     Text(TextClip),
@@ -574,6 +760,7 @@ pub enum Clip {
     Box(BoxClip),
     Image(ImageClip),
     Audio(AudioClip),
+    Nest(NestClip),
 }
 
 impl Clip {
@@ -584,6 +771,44 @@ impl Clip {
             Clip::Box(c) => c.start,
             Clip::Image(c) => c.start,
             Clip::Audio(c) => c.start,
+            Clip::Nest(c) => c.start,
+        }
+    }
+
+    /// Overwrite the absolute start (T002 relative resolution writes the
+    /// resolved effective window back here, so every consumer renders it).
+    pub fn set_start(&mut self, start: f64) {
+        match self {
+            Clip::Text(c) => c.start = start,
+            Clip::Video(c) => c.start = start,
+            Clip::Box(c) => c.start = start,
+            Clip::Image(c) => c.start = start,
+            Clip::Audio(c) => c.start = start,
+            Clip::Nest(c) => c.start = start,
+        }
+    }
+
+    /// The clip's own `id`, when declared.
+    pub fn id(&self) -> Option<&str> {
+        match self {
+            Clip::Text(c) => c.id.as_deref(),
+            Clip::Video(c) => c.id.as_deref(),
+            Clip::Box(c) => c.id.as_deref(),
+            Clip::Image(c) => c.id.as_deref(),
+            Clip::Audio(c) => c.id.as_deref(),
+            Clip::Nest(c) => c.id.as_deref(),
+        }
+    }
+
+    /// The declared relative start, when `start-after` was written.
+    pub fn start_after(&self) -> Option<&StartAfter> {
+        match self {
+            Clip::Text(c) => c.start_after.as_ref(),
+            Clip::Video(c) => c.start_after.as_ref(),
+            Clip::Box(c) => c.start_after.as_ref(),
+            Clip::Image(c) => c.start_after.as_ref(),
+            Clip::Audio(c) => c.start_after.as_ref(),
+            Clip::Nest(c) => c.start_after.as_ref(),
         }
     }
 
@@ -594,12 +819,54 @@ impl Clip {
             Clip::Box(c) => c.duration,
             Clip::Image(c) => c.duration,
             Clip::Audio(c) => c.duration,
+            Clip::Nest(c) => c.duration,
+        }
+    }
+
+    /// Overwrite the resolved duration (T003 inference writes the
+    /// inferred still length back here, so every consumer renders it).
+    /// A `NAN` duration marks a still whose omitted length is still
+    /// pending against the composition end; it never survives
+    /// validation (a valid verdict carries only finite lengths).
+    pub fn set_duration(&mut self, duration: f64) {
+        match self {
+            Clip::Text(c) => c.duration = duration,
+            Clip::Video(c) => c.duration = duration,
+            Clip::Box(c) => c.duration = duration,
+            Clip::Image(c) => c.duration = duration,
+            Clip::Audio(c) => c.duration = duration,
+            Clip::Nest(c) => c.duration = duration,
+        }
+    }
+
+    /// Diagnostic display name of the clip kind (`text clip`, ...).
+    pub fn what(&self) -> &'static str {
+        match self {
+            Clip::Text(_) => "text clip",
+            Clip::Video(_) => "video clip",
+            Clip::Box(_) => "box clip",
+            Clip::Image(_) => "image clip",
+            Clip::Audio(_) => "audio track",
+            Clip::Nest(_) => "nest clip",
+        }
+    }
+
+    /// Source location of the clip node, for located diagnostics.
+    pub fn line_col(&self) -> (usize, usize) {
+        match self {
+            Clip::Text(c) => (c.line, c.column),
+            Clip::Video(c) => (c.line, c.column),
+            Clip::Box(c) => (c.line, c.column),
+            Clip::Image(c) => (c.line, c.column),
+            Clip::Audio(c) => (c.line, c.column),
+            Clip::Nest(c) => (c.line, c.column),
         }
     }
 
     /// Explicit paint order (default 0); ties fall back to document order.
     /// Audio tracks draw no picture, so they carry order 0 and never
-    /// take part in paint sorting.
+    /// take part in paint sorting. A nest clip's own order shifts its
+    /// nested items, which stack as one unit.
     pub fn order(&self) -> i64 {
         match self {
             Clip::Text(c) => c.order,
@@ -607,6 +874,58 @@ impl Clip {
             Clip::Box(c) => c.order,
             Clip::Image(c) => c.order,
             Clip::Audio(_) => 0,
+            Clip::Nest(c) => c.order,
+        }
+    }
+
+    /// Visibility switch (Sprint 6 T009): `true` means the clip
+    /// contributes no picture and no sound, as if absent, while its id
+    /// stays referenceable and its windows keep validating.
+    pub fn hidden(&self) -> bool {
+        match self {
+            Clip::Text(c) => c.hidden,
+            Clip::Video(c) => c.hidden,
+            Clip::Box(c) => c.hidden,
+            Clip::Image(c) => c.hidden,
+            Clip::Audio(c) => c.hidden,
+            Clip::Nest(c) => c.hidden,
+        }
+    }
+
+    /// Display lane of the clip (`track` key, else the kind default).
+    pub fn track(&self) -> TrackKind {
+        match self {
+            Clip::Text(c) => c.track,
+            Clip::Video(c) => c.track,
+            Clip::Box(c) => c.track,
+            Clip::Image(c) => c.track,
+            Clip::Audio(c) => c.track,
+            Clip::Nest(c) => c.track,
+        }
+    }
+
+    /// Editor display note of the clip (`label` key), when declared.
+    pub fn label(&self) -> Option<&str> {
+        match self {
+            Clip::Text(c) => c.label.as_deref(),
+            Clip::Video(c) => c.label.as_deref(),
+            Clip::Box(c) => c.label.as_deref(),
+            Clip::Image(c) => c.label.as_deref(),
+            Clip::Audio(c) => c.label.as_deref(),
+            Clip::Nest(c) => c.label.as_deref(),
+        }
+    }
+
+    /// Element name of the clip (`text`, `video`, `box`, `image`,
+    /// `audio`, `nest`): the `kind` timelines and info report per row.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Clip::Text(_) => "text",
+            Clip::Video(_) => "video",
+            Clip::Box(_) => "box",
+            Clip::Image(_) => "image",
+            Clip::Audio(_) => "audio",
+            Clip::Nest(_) => "nest",
         }
     }
 }
@@ -618,6 +937,11 @@ pub const CONFIG_FILE: &str = "framesmith.toml";
 #[derive(Debug, Clone)]
 pub struct Composition {
     pub name: String,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Canvas preset name in canonical form (`1080p`, `720p`, `square`,
+    /// `portrait`, `4k`); none when sized by explicit `width`/`height`.
+    pub canvas: Option<String>,
     pub width: u32,
     pub height: u32,
     pub duration: f64,
@@ -687,10 +1011,20 @@ mod tests {
     fn color_forms() {
         assert_eq!(
             parse_color("#ffffff"),
-            Some(Rgb { r: 255, g: 255, b: 255 })
+            Some(Rgb {
+                r: 255,
+                g: 255,
+                b: 255
+            })
         );
-        assert_eq!(parse_color("#1A1A2e").map(|c| c.to_hex()), Some("1a1a2e".into()));
-        assert_eq!(parse_color("#abc").map(|c| c.to_hex()), Some("aabbcc".into()));
+        assert_eq!(
+            parse_color("#1A1A2e").map(|c| c.to_hex()),
+            Some("1a1a2e".into())
+        );
+        assert_eq!(
+            parse_color("#abc").map(|c| c.to_hex()),
+            Some("aabbcc".into())
+        );
         assert!(parse_color("ffffff").is_none());
         assert!(parse_color("#ffff").is_none());
         assert!(parse_color("#gggggg").is_none());
@@ -701,7 +1035,10 @@ mod tests {
         let f = Fps::from_int(30);
         assert_eq!(f.value(), 30.0);
         assert_eq!(f.frame_count(3.0), 90);
-        let ntsc = Fps { num: 30000, den: 1001 };
+        let ntsc = Fps {
+            num: 30000,
+            den: 1001,
+        };
         assert!((ntsc.value() - 29.97002997).abs() < 1e-6);
         assert_eq!(format!("{ntsc}"), "30000/1001");
     }

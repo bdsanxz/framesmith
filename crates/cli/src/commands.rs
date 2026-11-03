@@ -17,6 +17,7 @@
 //!   writes one standard MP4 (H.264 yuv420p + AAC stereo 48 kHz).
 
 use ffmpeg::bootstrap;
+use notation::model::Composition;
 use validate::catalog::{self, json_escape};
 use ffmpeg::ffmpeg as ffmpeg_mod;
 use log::log;
@@ -170,6 +171,36 @@ fn format_footage_human(f: &validate_mod::VideoFootage) -> String {
     out
 }
 
+/// One inferred length as human text (Sprint 6 T003): the resolved
+/// value of an omitted `duration` with the rule that resolved it, so
+/// inference is reviewable before rendering.
+fn format_inferred_human(f: &validate_mod::InferredLength) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let length = if f.kind == "composition" {
+        format!("duration {:.3}s", f.duration)
+    } else {
+        format!("clip duration {:.3}s", f.duration)
+    };
+    match &f.label {
+        Some(label) => {
+            let _ = writeln!(
+                out,
+                "inferred {} {label:?} ({}:{}): {length} (inferred {}).",
+                f.kind, f.line, f.column, f.detail
+            );
+        }
+        None => {
+            let _ = writeln!(
+                out,
+                "inferred {} ({}:{}): {length} (inferred {}).",
+                f.kind, f.line, f.column, f.detail
+            );
+        }
+    }
+    out
+}
+
 /// Human-readable check report. Pure function so tests can compare it
 /// against the `--json` form and the render refusal text (T006/T007).
 pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
@@ -180,6 +211,9 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
     }
     for f in &verdict.footage {
         out.push_str(&format_footage_human(f));
+    }
+    for f in &verdict.inferred {
+        out.push_str(&format_inferred_human(f));
     }
     match verdict.status {
         Status::Valid => {
@@ -194,6 +228,25 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
                 c.fps,
                 c.clips.len()
             );
+            // Sprint 6 T006: multi-composition projects name every
+            // composition plus the root, so the default render target
+            // is reviewable. Single-composition output is unchanged.
+            if verdict.compositions.len() > 1 {
+                let parts: Vec<String> = verdict
+                    .compositions
+                    .iter()
+                    .map(|m| {
+                        let mark =
+                            if Some(m.name.as_str()) == verdict.root_name.as_deref() {
+                                " (root)"
+                            } else {
+                                ""
+                            };
+                        format!("{:?}{mark} ({} clip(s))", m.name, m.clips.len())
+                    })
+                    .collect();
+                let _ = writeln!(out, "compositions: {}.", parts.join(", "));
+            }
         }
         Status::Invalid => {
             let _ = writeln!(
@@ -218,6 +271,14 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
 /// as the human text, one line of JSON carrying file, line, column and
 /// code per item. Pure function for testability.
 pub fn format_check_json(folder: &Path, verdict: &Verdict) -> String {
+    format_verdict_json("check", folder, verdict)
+}
+
+/// Machine-readable verdict report with a caller-chosen command name
+/// (Sprint 6 T010): the `check` JSON shape with the same diagnostics,
+/// footage, inferred lengths, compositions, and root, so every listing
+/// command refuses exactly like `check` while naming itself.
+pub fn format_verdict_json(cmd: &str, folder: &Path, verdict: &Verdict) -> String {
     use std::fmt::Write;
     let (status, exit) = match verdict.status {
         Status::Valid => ("valid", 0),
@@ -227,7 +288,8 @@ pub fn format_check_json(folder: &Path, verdict: &Verdict) -> String {
     let mut out = String::new();
     let _ = write!(
         out,
-        "{{\"tool\":\"framesmith\",\"command\":\"check\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"diagnostics\":[",
+        "{{\"tool\":\"framesmith\",\"command\":\"{}\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"diagnostics\":[",
+        json_escape(cmd),
         json_escape(&folder.display().to_string())
     );
     for (i, d) in verdict.diagnostics.iter().enumerate() {
@@ -276,7 +338,46 @@ pub fn format_check_json(folder: &Path, verdict: &Verdict) -> String {
             if f.clamped { "true" } else { "false" },
         );
     }
-    out.push_str("]}");
+    // Sprint 6 T003: the same inferred lengths as the human echo, so
+    // omitted audio, still, and composition lengths are reviewable
+    // machine-readably.
+    out.push_str("],\"inferred\":[");
+    for (i, f) in verdict.inferred.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let label = match &f.label {
+            Some(l) => format!("\"{}\"", json_escape(l)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"kind\":\"{}\",\"label\":{},\"line\":{},\"column\":{},\"duration\":{},\"detail\":\"{}\"}}",
+            json_escape(f.kind),
+            label,
+            f.line,
+            f.column,
+            num(Some(f.duration)),
+            json_escape(&f.detail),
+        );
+    }
+    // Sprint 6 T006: every composition name plus the render root, so
+    // the default render target is reviewable machine-readably.
+    out.push_str("],\"compositions\":[");
+    for (i, c) in verdict.compositions.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(out, "\"{}\"", json_escape(&c.name));
+    }
+    out.push_str("],\"root\":");
+    match &verdict.root_name {
+        Some(r) => {
+            let _ = write!(out, "\"{}\"", json_escape(r));
+        }
+        None => out.push_str("null"),
+    }
+    out.push('}');
     out
 }
 
@@ -370,6 +471,484 @@ pub fn cmd_check(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
     code
 }
 
+/// One composition row as human text (Sprint 6 T010): its name, the
+/// root mark when it is the default render target, and its clip count.
+fn format_composition_row(c: &Composition, is_root: bool) -> String {
+    if is_root {
+        format!("{:?} (root, {} clip(s))", c.name, c.clips.len())
+    } else {
+        format!("{:?} ({} clip(s))", c.name, c.clips.len())
+    }
+}
+
+/// Human-readable `compositions` report (Sprint 6 T010): every
+/// composition name in document order plus the root mark. Pure function
+/// so tests can compare it against the `--json` form.
+pub fn format_compositions_human(folder: &Path, verdict: &Verdict) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(out, "compositions in {}:", folder.display());
+    for c in &verdict.compositions {
+        let is_root = Some(c.name.as_str()) == verdict.root_name.as_deref();
+        let _ = writeln!(out, "  {}.", format_composition_row(c, is_root));
+    }
+    out
+}
+
+/// Machine-readable `compositions` report (Sprint 6 T010): the same
+/// names, clip counts, and root as the human text. Pure function.
+pub fn format_compositions_json(folder: &Path, verdict: &Verdict) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"compositions\",\"folder\":\"{}\",\"status\":\"valid\",\"exit\":0,\"compositions\":[",
+        json_escape(&folder.display().to_string())
+    );
+    for (i, c) in verdict.compositions.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let is_root = Some(c.name.as_str()) == verdict.root_name.as_deref();
+        let _ = write!(
+            out,
+            "{{\"name\":\"{}\",\"clips\":{},\"root\":{}}}",
+            json_escape(&c.name),
+            c.clips.len(),
+            if is_root { "true" } else { "false" }
+        );
+    }
+    out.push_str("],\"root\":");
+    match &verdict.root_name {
+        Some(r) => {
+            let _ = write!(out, "\"{}\"", json_escape(r));
+        }
+        None => out.push_str("null"),
+    }
+    out.push('}');
+    out
+}
+
+/// One timeline row as human text (Sprint 6 T010): the clip kind, id,
+/// track, label, hidden state, and effective window — the same window
+/// `render` draws, since both read the resolved verdict composition.
+fn format_timeline_row(index: usize, clip: &notation::model::Clip) -> String {
+    let id = match clip.id() {
+        Some(id) => format!("{id:?}"),
+        None => "-".to_string(),
+    };
+    let label = match clip.label() {
+        Some(label) => format!("{label:?}"),
+        None => "-".to_string(),
+    };
+    let visibility = if clip.hidden() { "hidden" } else { "visible" };
+    format!(
+        "  [{index}] {} id={id} track={} label={label} {visibility} window {:.3}s..{:.3}s",
+        clip.kind(),
+        clip.track().name(),
+        clip.start(),
+        clip.start() + clip.duration()
+    )
+}
+
+/// Human-readable `timeline` report (Sprint 6 T010): one row per clip
+/// in document order with id, track, label, hidden state, and the
+/// effective window. Pure function for testability.
+pub fn format_timeline_human(folder: &Path, comp: &Composition) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "timeline of composition {:?} in {} ({} clip(s), {}x{}, {:.3}s, {}fps):",
+        comp.name,
+        folder.display(),
+        comp.clips.len(),
+        comp.width,
+        comp.height,
+        comp.duration,
+        comp.fps
+    );
+    if comp.clips.is_empty() {
+        let _ = writeln!(out, "  (no clips)");
+    }
+    for (i, clip) in comp.clips.iter().enumerate() {
+        let _ = writeln!(out, "{}.", format_timeline_row(i, clip));
+    }
+    out
+}
+
+/// Machine-readable `timeline` report (Sprint 6 T010): the same rows as
+/// the human text, one object per clip. Pure function.
+pub fn format_timeline_json(
+    folder: &Path,
+    verdict: &Verdict,
+    comp: &Composition,
+) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"timeline\",\"folder\":\"{}\",\"status\":\"valid\",\"exit\":0,\"composition\":\"{}\",\"root\":",
+        json_escape(&folder.display().to_string()),
+        json_escape(&comp.name)
+    );
+    match &verdict.root_name {
+        Some(r) => {
+            let _ = write!(out, "\"{}\"", json_escape(r));
+        }
+        None => out.push_str("null"),
+    }
+    let _ = write!(
+        out,
+        ",\"canvas\":{{\"width\":{},\"height\":{},\"preset\":",
+        comp.width, comp.height
+    );
+    match &comp.canvas {
+        Some(p) => {
+            let _ = write!(out, "\"{}\"", json_escape(p));
+        }
+        None => out.push_str("null"),
+    }
+    let _ = write!(
+        out,
+        "}},\"duration\":{},\"fps\":\"{}\",\"frames\":{},\"clips\":[",
+        comp.duration,
+        comp.fps,
+        comp.fps.frame_count(comp.duration)
+    );
+    for (i, clip) in comp.clips.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let id = match clip.id() {
+            Some(id) => format!("\"{}\"", json_escape(id)),
+            None => "null".to_string(),
+        };
+        let label = match clip.label() {
+            Some(label) => format!("\"{}\"", json_escape(label)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"index\":{i},\"kind\":\"{}\",\"id\":{id},\"track\":\"{}\",\"label\":{label},\"hidden\":{},\"start\":{},\"end\":{}}}",
+            clip.kind(),
+            clip.track().name(),
+            if clip.hidden() { "true" } else { "false" },
+            clip.start(),
+            clip.start() + clip.duration()
+        );
+    }
+    out.push_str("]}");
+    out
+}
+
+/// Per-kind clip counts of one composition, in element order
+/// (text, video, box, image, audio, nest).
+fn count_clips_by_kind(comp: &Composition) -> [usize; 6] {
+    let mut counts = [0usize; 6];
+    for clip in &comp.clips {
+        let at = match clip.kind() {
+            "text" => 0,
+            "video" => 1,
+            "box" => 2,
+            "image" => 3,
+            "audio" => 4,
+            _ => 5,
+        };
+        counts[at] += 1;
+    }
+    counts
+}
+
+/// Human-readable `info` report (Sprint 6 T010): the canvas, duration,
+/// and clip counts of one composition. Pure function for testability.
+pub fn format_info_human(folder: &Path, comp: &Composition) -> String {
+    use std::fmt::Write;
+    const KINDS: [&str; 6] = ["text", "video", "box", "image", "audio", "nest"];
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "info for composition {:?} in {}:",
+        comp.name,
+        folder.display()
+    );
+    match &comp.canvas {
+        Some(preset) => {
+            let _ = writeln!(
+                out,
+                "  canvas: {}x{} (preset {preset:?}).",
+                comp.width, comp.height
+            );
+        }
+        None => {
+            let _ = writeln!(out, "  canvas: {}x{}.", comp.width, comp.height);
+        }
+    }
+    let _ = writeln!(
+        out,
+        "  duration: {:.3}s ({} frames at {}fps).",
+        comp.duration,
+        comp.fps.frame_count(comp.duration),
+        comp.fps
+    );
+    let counts = count_clips_by_kind(comp);
+    let hidden = comp.clips.iter().filter(|c| c.hidden()).count();
+    let kinds: Vec<String> = KINDS
+        .iter()
+        .zip(counts.iter())
+        .map(|(k, n)| format!("{k}={n}"))
+        .collect();
+    let _ = writeln!(
+        out,
+        "  clips: {} total ({}; hidden={}).",
+        comp.clips.len(),
+        kinds.join(", "),
+        hidden
+    );
+    out
+}
+
+/// Machine-readable `info` report (Sprint 6 T010): the same canvas,
+/// duration, and clip counts as the human text. Pure function.
+pub fn format_info_json(folder: &Path, comp: &Composition) -> String {
+    use std::fmt::Write;
+    const KINDS: [&str; 6] = ["text", "video", "box", "image", "audio", "nest"];
+    let mut out = String::new();
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"info\",\"folder\":\"{}\",\"status\":\"valid\",\"exit\":0,\"composition\":\"{}\",\"canvas\":{{\"width\":{},\"height\":{},\"preset\":",
+        json_escape(&folder.display().to_string()),
+        json_escape(&comp.name),
+        comp.width,
+        comp.height
+    );
+    match &comp.canvas {
+        Some(p) => {
+            let _ = write!(out, "\"{}\"", json_escape(p));
+        }
+        None => out.push_str("null"),
+    }
+    let counts = count_clips_by_kind(comp);
+    let hidden = comp.clips.iter().filter(|c| c.hidden()).count();
+    let _ = write!(
+        out,
+        "}},\"duration\":{},\"fps\":\"{}\",\"frames\":{},\"clips\":{{\"total\":{},\"by_kind\":{{",
+        comp.duration,
+        comp.fps,
+        comp.fps.frame_count(comp.duration),
+        comp.clips.len()
+    );
+    for (i, (k, n)) in KINDS.iter().zip(counts.iter()).enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(out, "\"{k}\":{n}");
+    }
+    let _ = write!(out, "}},\"hidden\":{hidden}");
+    out.push_str("}}");
+    out
+}
+
+/// Refuse a listing exactly like `check` (Sprint 6 T010 §9): the same
+/// diagnostics in the requested form, the same exit code (1 invalid,
+/// 2 unsupported), and no listing output.
+fn refuse_listing(cmd: &str, folder: &Path, verdict: &Verdict, json: bool) -> i32 {
+    let run = log::run_id();
+    if json {
+        println!("{}", format_verdict_json(cmd, folder, verdict));
+    } else {
+        print!("{}", format_check_human(folder, &verdict));
+    }
+    let code = match verdict.status {
+        Status::Valid => 0,
+        Status::Invalid => 1,
+        Status::Unsupported => 2,
+    };
+    let (level, what) = match verdict.status {
+        Status::Valid => ("info", format!("{cmd} valid")),
+        Status::Invalid => ("warn", format!("{cmd} invalid")),
+        Status::Unsupported => ("warn", format!("{cmd} unsupported")),
+    };
+    note_log(
+        folder,
+        "info",
+        cmd,
+        &run,
+        &format!("{cmd} start folder={}", folder.display()),
+        json,
+    );
+    note_log(
+        folder,
+        level,
+        cmd,
+        &run,
+        &format!(
+            "{what}: {} diagnostic(s), exit {code}",
+            verdict.diagnostics.len()
+        ),
+        json,
+    );
+    code
+}
+
+/// Pick the composition one listing names (Sprint 6 T010): the root by
+/// default, or the `--composition` name (a composition `name` or `id`).
+/// An unknown name refuses with the available names; the caller lists
+/// nothing on refusal. Only call with a valid verdict — invalid
+/// projects refuse through [`refuse_listing`] before selection.
+fn select_listing(
+    cmd: &str,
+    verdict: &Verdict,
+    name: Option<&str>,
+) -> Result<Composition, String> {
+    match name {
+        None => Ok(verdict
+            .composition
+            .clone()
+            .expect("valid verdict carries a composition")),
+        Some(want) => verdict
+            .compositions
+            .iter()
+            .find(|c| c.name == want || c.id.as_deref() == Some(want))
+            .cloned()
+            .ok_or_else(|| {
+                let mut available: Vec<String> =
+                    verdict.compositions.iter().map(|c| c.name.clone()).collect();
+                available.sort();
+                let list = available
+                    .iter()
+                    .map(|n| format!("{n:?}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!(
+                    "{cmd} refused: unknown composition {want:?}: the project holds {list}; pass one of those names (validation stage); nothing was listed"
+                )
+            }),
+    }
+}
+
+/// `compositions`: list every composition name plus the root, in human
+/// text or `--json` with identical content. Invalid projects refuse
+/// like `check`. Returns the process exit code.
+pub fn cmd_compositions(folder: &Path, json: bool) -> i32 {
+    let run = log::run_id();
+    let verdict = validate_folder(folder);
+    if verdict.status != Status::Valid {
+        return refuse_listing("compositions", folder, &verdict, json);
+    }
+    if json {
+        println!("{}", format_compositions_json(folder, &verdict));
+    } else {
+        print!("{}", format_compositions_human(folder, &verdict));
+    }
+    note_log(
+        folder,
+        "info",
+        "compositions",
+        &run,
+        &format!(
+            "compositions: {} composition(s), root={:?}",
+            verdict.compositions.len(),
+            verdict.root_name.as_deref().unwrap_or("-")
+        ),
+        json,
+    );
+    0
+}
+
+/// `timeline`: list every clip of one composition with id, track,
+/// label, hidden state, and effective window — the windows `render`
+/// draws. Names the root composition by default. Invalid projects
+/// refuse like `check`; an unknown name refuses with no listing.
+/// Returns the process exit code.
+pub fn cmd_timeline(folder: &Path, name: Option<&str>, json: bool) -> i32 {
+    let run = log::run_id();
+    let verdict = validate_folder(folder);
+    if verdict.status != Status::Valid {
+        return refuse_listing("timeline", folder, &verdict, json);
+    }
+    let comp = match select_listing("timeline", &verdict, name) {
+        Ok(c) => c,
+        Err(msg) => {
+            if json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"timeline\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                    json_escape(&folder.display().to_string()),
+                    json_escape(&msg)
+                );
+            } else {
+                println!("{msg}");
+            }
+            note_log(folder, "warn", "timeline", &run, &msg, json);
+            return 1;
+        }
+    };
+    if json {
+        println!("{}", format_timeline_json(folder, &verdict, &comp));
+    } else {
+        print!("{}", format_timeline_human(folder, &comp));
+    }
+    note_log(
+        folder,
+        "info",
+        "timeline",
+        &run,
+        &format!(
+            "timeline: composition {:?}, {} clip(s)",
+            comp.name,
+            comp.clips.len()
+        ),
+        json,
+    );
+    0
+}
+
+/// `info`: summarize one composition's canvas, duration, and clip
+/// counts. Names the root composition by default. Invalid projects
+/// refuse like `check`; an unknown name refuses with no listing.
+/// Returns the process exit code.
+pub fn cmd_info(folder: &Path, name: Option<&str>, json: bool) -> i32 {
+    let run = log::run_id();
+    let verdict = validate_folder(folder);
+    if verdict.status != Status::Valid {
+        return refuse_listing("info", folder, &verdict, json);
+    }
+    let comp = match select_listing("info", &verdict, name) {
+        Ok(c) => c,
+        Err(msg) => {
+            if json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"info\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                    json_escape(&folder.display().to_string()),
+                    json_escape(&msg)
+                );
+            } else {
+                println!("{msg}");
+            }
+            note_log(folder, "warn", "info", &run, &msg, json);
+            return 1;
+        }
+    };
+    if json {
+        println!("{}", format_info_json(folder, &comp));
+    } else {
+        print!("{}", format_info_human(folder, &comp));
+    }
+    note_log(
+        folder,
+        "info",
+        "info",
+        &run,
+        &format!(
+            "info: composition {:?}, {} clip(s)",
+            comp.name,
+            comp.clips.len()
+        ),
+        json,
+    );
+    0
+}
+
 /// Render a fully valid folder to a standard MP4 using one explicit
 /// Flags for one `render` run (Sprint 3 T001/T002/T006): the backend
 /// choice, the quality preset with exclusive encoder overrides, and
@@ -381,6 +960,16 @@ pub struct RenderRequest {
     pub crf: Option<String>,
     pub video_bitrate: Option<String>,
     pub json: bool,
+    /// Named composition to render (Sprint 6 T006): a composition
+    /// `name` (or `id`). None renders the root.
+    pub composition: Option<String>,
+    /// Sub-range start in composition seconds (Sprint 6 T008): the raw
+    /// `--start` flag text, parsed and validated after composition
+    /// selection. None renders from zero.
+    pub start: Option<String>,
+    /// Sub-range end in composition seconds (Sprint 6 T008): the raw
+    /// `--end` flag text. None renders to the composition end.
+    pub end: Option<String>,
 }
 
 /// Flag choices resolved before the first frame (T001/T002): the
@@ -580,6 +1169,54 @@ fn format_render_json(ctx: &RenderJson) -> String {
     out
 }
 
+/// Parse one raw `--start`/`--end` flag value (Sprint 6 T008): absent
+/// means the composition edge (0 for `--start`, the duration for
+/// `--end`); present must be a finite number of seconds. Anything else
+/// refuses with the flag named, before the first frame.
+fn parse_range_bound(raw: Option<&str>, flag: &str) -> Result<Option<f64>, String> {
+    match raw {
+        None => Ok(None),
+        Some(text) => match text.trim().parse::<f64>() {
+            Ok(v) if v.is_finite() => Ok(Some(v)),
+            _ => Err(format!(
+                "render refused: {flag} {text:?} is not a number of seconds: pass {flag}=<seconds> (for example {flag}=1.5), or omit the flag (validation stage); no MP4 was written"
+            )),
+        },
+    }
+}
+
+/// Pick the composition one `render` run encodes (Sprint 6 T006):
+/// the root by default, or the `--composition` name (a composition
+/// `name` or `id`). An unknown name refuses with the available names;
+/// the caller writes no output on refusal. Only call with a valid or
+/// supported verdict (invalid projects refuse before selection).
+fn select_composition(verdict: &Verdict, name: Option<&str>) -> Result<Composition, String> {
+    match name {
+        None => Ok(verdict
+            .composition
+            .clone()
+            .expect("valid verdict carries a composition")),
+        Some(want) => verdict
+            .compositions
+            .iter()
+            .find(|c| c.name == want || c.id.as_deref() == Some(want))
+            .cloned()
+            .ok_or_else(|| {
+                let mut available: Vec<String> =
+                    verdict.compositions.iter().map(|c| c.name.clone()).collect();
+                available.sort();
+                let list = available
+                    .iter()
+                    .map(|n| format!("{n:?}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!(
+                    "render refused: unknown composition {want:?}: the project holds {list}; pass one of those names to `--composition` (validation stage); no MP4 was written"
+                )
+            }),
+    }
+}
+
 /// `render`: revalidate, select the backend, report FFmpeg state, build
 /// the 48 kHz mix, draw frames (possibly in parallel), encode atomically,
 /// and report staged progress with measured per-stage timings (T001,
@@ -751,7 +1388,67 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             }
         }
     }
-    let comp = verdict.composition.unwrap();
+    // Sprint 6 T003: every other inferred length (audio, stills, the
+    // composition) announces the same way, so the render summary shows
+    // what `check` reviewed.
+    for f in &verdict.inferred {
+        for line in format_inferred_human(f).lines() {
+            let note = format!("stage validate: note: {line}");
+            stage_line(json, &note);
+            note_log(folder, "info", "render", &run, &note, json);
+        }
+    }
+    // Sprint 6 T006: the root renders by default; `--composition`
+    // selects another composition by name (or `id`). An unknown name
+    // refuses before the first frame with no MP4 written.
+    let comp = match select_composition(&verdict, req.composition.as_deref()) {
+        Ok(c) => c,
+        Err(msg) => {
+            stage_line(json, &msg);
+            note_log(folder, "warn", "render", &run, &msg, json);
+            if json {
+                let enc = render::render::RenderOptions::default().encoder();
+                println!(
+                    "{}",
+                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &enc, output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                );
+            }
+            return 1;
+        }
+    };
+    // Sprint 6 T008: `--start`/`--end` renders exactly that
+    // composition-time window as a standalone MP4 on the selected
+    // composition. Empty, backward, and out-of-range windows refuse
+    // here — before bootstrap, output preflight, and frame one — with
+    // the composition length and the accepted window named, and no MP4
+    // written. Two absent flags render the whole composition.
+    let range = match (|| -> Result<Option<render::render::RenderRange>, String> {
+        let s = parse_range_bound(req.start.as_deref(), "--start")?;
+        let e = parse_range_bound(req.end.as_deref(), "--end")?;
+        render::render::resolve_range(&comp.name, comp.duration, &comp.fps, s, e)
+    })() {
+        Ok(r) => r,
+        Err(msg) => {
+            stage_line(json, &msg);
+            note_log(folder, "warn", "render", &run, &msg, json);
+            if json {
+                let enc = render::render::RenderOptions::default().encoder();
+                println!(
+                    "{}",
+                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &enc, output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                );
+            }
+            return 1;
+        }
+    };
+    if let Some(r) = range {
+        let note = format!(
+            "stage validate: note: rendering sub-range {:.3}s..{:.3}s of composition {:?} as its own MP4.",
+            r.start, r.end, comp.name
+        );
+        stage_line(json, &note);
+        note_log(folder, "info", "render", &run, &note, json);
+    }
     if render::cancel::is_cancelled() {
         return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &folder.join("out.mp4"), "validate", &mut stages, total_start, 0, "");
     }
@@ -860,7 +1557,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             opts.announce()
         ),
     );
-    let prep = match render::render::prepare_frames(&comp, folder, &ffmpeg_bin) {
+    // Sprint 6 T008: a sub-range prepares exactly its own window (its
+    // frame `k` is the range start plus `k` frame intervals); a full
+    // render prepares the whole composition exactly as before.
+    let prep = match render::render::prepare_frames_ranged(&comp, &verdict.compositions, folder, &ffmpeg_bin, range) {
         Ok(prep) => prep,
         Err(e) => {
             if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
@@ -942,6 +1642,43 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         let ms = audio_start.elapsed().as_millis() as u64;
         return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &out, "audio", &mut stages, total_start, ms, "");
     }
+    // Sprint 6 T008: the staged mix spans the whole composition, so a
+    // sub-range crops it to exactly its own window — sample for sample
+    // the full render's mix sliced to `[start, end)`. A silent
+    // composition stages no mix, so there is nothing to crop.
+    if let (Some(r), Some(mix)) = (range, plan.mix_pcm.as_deref()) {
+        if let Err(e) = render::render::crop_mix_to_range(mix, r.start, r.end) {
+            let audio_ms = audio_start.elapsed().as_millis() as u64;
+            let frames_ms = frames_start.elapsed().as_millis() as u64;
+            push_stage(&mut stages, render::render::StageTiming::ok(
+                "frames",
+                frames_ms,
+                prepared_note.clone(),
+            ));
+            push_stage(&mut stages, render::render::StageTiming::failed(
+                "audio",
+                audio_ms,
+                "range crop failed".to_string(),
+            ));
+            stage_line(json, &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"));
+            stage_line(json, &format!("stage audio: failed ({audio_ms}ms): {e}"));
+            print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+            note_log(folder, "error", "render", &run, &e, json);
+            if json {
+                println!(
+                    "{}",
+                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                );
+            } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
+                println!("{e}");
+            } else {
+                println!("render failed: {e}");
+            }
+            // The staged mix must not survive a failed range crop.
+            let _ = std::fs::remove_file(mix);
+            return 1;
+        }
+    }
     let audio_ms = audio_start.elapsed().as_millis() as u64;
     let audio_note = match &plan.mix_pcm {
         Some(_) => "mix: audible sources mixed at 48 kHz stereo".to_string(),
@@ -988,6 +1725,13 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 return 1;
             }
         };
+    // Sprint 6 T008: the success line names the sub-range, so both the
+    // human progress line and the `--json` message say which window the
+    // standalone MP4 holds. A full render reads exactly as before.
+    let done_msg = match range {
+        Some(r) => format!("{done_msg} [range {:.3}s..{:.3}s]", r.start, r.end),
+        None => done_msg,
+    };
     let frames_ms = frames_start.elapsed().as_millis() as u64;
     push_stage(&mut stages, render::render::StageTiming::ok(
         "frames",
@@ -2531,5 +3275,103 @@ mod tests {
         assert!(!entry.fix.is_empty());
         assert_eq!(cmd_errors(Some("E_BAD_AUDIO"), false), 0);
         assert_eq!(cmd_errors(Some("E_BAD_AUDIO"), true), 0);
+    }
+
+    const T010_TWO_COMP: &str = "composition name=\"main\" width=64 height=64 duration=2 fps=30 background=\"#000\" version=1 root=true {\n    box x=0 y=0 width=64 height=64 fill=\"#ff0000\" start=0.5 duration=1 id=\"red\" track=\"video\" label=\"cover\"\n    box x=0 y=0 width=64 height=64 fill=\"#0000ff\" start=1.5 duration=0.5 hidden=true\n}\ncomposition name=\"cut\" canvas=\"square\" duration=1 fps=30 background=\"#112233\" version=1 {\n    text value=\"Cut\" x=0 y=0 size=8 color=\"#fff\" start=0 duration=1 id=\"ct\" track=\"caption\" label=\"cap\"\n}\n";
+
+    /// Sprint 6 T010: the `compositions` human and JSON forms carry the
+    /// same names, clip counts, and root.
+    #[test]
+    fn compositions_forms_carry_the_same_names_and_root() {
+        let folder = tmp_dir("t010unit");
+        write(&folder, validate_mod::COMPOSITION_FILE, T010_TWO_COMP);
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        let human = format_compositions_human(&folder, &v);
+        let json = format_compositions_json(&folder, &v);
+        for name in ["main", "cut"] {
+            assert!(human.contains(&format!("{name:?}")), "{human}");
+            assert!(json.contains(&format!("\"name\":\"{name}\"")), "{json}");
+        }
+        assert!(human.contains("\"main\" (root, 2 clip(s))"), "{human}");
+        assert!(json.contains("\"name\":\"main\",\"clips\":2,\"root\":true"), "{json}");
+        assert!(json.contains("\"name\":\"cut\",\"clips\":1,\"root\":false"), "{json}");
+        assert!(json.contains("\"root\":\"main\""), "{json}");
+        assert_eq!(cmd_compositions(&folder, false), 0);
+        assert_eq!(cmd_compositions(&folder, true), 0);
+    }
+
+    /// Sprint 6 T010: the `timeline` human and JSON forms carry the
+    /// same rows — id, track, label, hidden state, and window.
+    #[test]
+    fn timeline_forms_carry_the_same_rows() {
+        let folder = tmp_dir("t010unit");
+        write(&folder, validate_mod::COMPOSITION_FILE, T010_TWO_COMP);
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        let comp = v.composition.as_ref().unwrap();
+        let human = format_timeline_human(&folder, comp);
+        let json = format_timeline_json(&folder, &v, comp);
+        assert!(human.contains("[0] box id=\"red\" track=video label=\"cover\" visible window 0.500s..1.500s."), "{human}");
+        assert!(human.contains("[1] box id=- track=graphics label=- hidden window 1.500s..2.000s."), "{human}");
+        assert!(json.contains("\"id\":\"red\",\"track\":\"video\",\"label\":\"cover\",\"hidden\":false,\"start\":0.5,\"end\":1.5"), "{json}");
+        assert!(json.contains("\"id\":null,\"track\":\"graphics\",\"label\":null,\"hidden\":true,\"start\":1.5,\"end\":2"), "{json}");
+        assert_eq!(cmd_timeline(&folder, None, false), 0);
+        assert_eq!(cmd_timeline(&folder, Some("cut"), true), 0);
+        assert_eq!(cmd_timeline(&folder, Some("ghost"), false), 1);
+        assert_eq!(cmd_timeline(&folder, Some("ghost"), true), 1);
+    }
+
+    /// Sprint 6 T010: the `info` human and JSON forms carry the same
+    /// canvas, duration, and clip counts.
+    #[test]
+    fn info_forms_carry_the_same_summary() {
+        let folder = tmp_dir("t010unit");
+        write(&folder, validate_mod::COMPOSITION_FILE, T010_TWO_COMP);
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
+        let comp = v.composition.as_ref().unwrap();
+        let human = format_info_human(&folder, comp);
+        let json = format_info_json(&folder, comp);
+        assert!(human.contains("canvas: 64x64."), "{human}");
+        assert!(human.contains("duration: 2.000s (60 frames at 30fps)."), "{human}");
+        assert!(human.contains("clips: 2 total (text=0, video=0, box=2, image=0, audio=0, nest=0; hidden=1)."), "{human}");
+        assert!(json.contains("\"canvas\":{\"width\":64,\"height\":64,\"preset\":null}"), "{json}");
+        assert!(json.contains("\"duration\":2,\"fps\":\"30\",\"frames\":60"), "{json}");
+        assert!(json.contains("\"total\":2"), "{json}");
+        assert!(json.contains("\"hidden\":1"), "{json}");
+        let cut = v.compositions.iter().find(|c| c.name == "cut").unwrap();
+        let cut_human = format_info_human(&folder, cut);
+        assert!(cut_human.contains("canvas: 1080x1080 (preset \"square\")."), "{cut_human}");
+        assert_eq!(cmd_info(&folder, None, false), 0);
+        assert_eq!(cmd_info(&folder, Some("cut"), true), 0);
+        assert_eq!(cmd_info(&folder, Some("ghost"), false), 1);
+        assert_eq!(cmd_info(&folder, Some("ghost"), true), 1);
+    }
+
+    /// Sprint 6 T010: listing refusals carry the same diagnostics as
+    /// `check`, only under the listing command name.
+    #[test]
+    fn listing_refusals_match_check_diagnostics() {
+        let folder = tmp_dir("t010unit");
+        write(
+            &folder,
+            validate_mod::COMPOSITION_FILE,
+            "composition name=\"t\" width=64 height=64 duration=1 bogus=1 background=\"#000\" version=1 {\n}\n",
+        );
+        let v = validate_folder(&folder);
+        assert_eq!(v.status, Status::Invalid);
+        let check = format_check_json(&folder, &v);
+        let timeline = format_verdict_json("timeline", &folder, &v);
+        assert!(timeline.contains("\"command\":\"timeline\""), "{timeline}");
+        // Same diagnostic payload, only the command name differs.
+        let strip = |s: &str, cmd: &str| s.replace(&format!("\"command\":\"{cmd}\""), "\"command\":\"?\"");
+        assert_eq!(strip(&timeline, "timeline"), strip(&check, "check"));
+        assert_eq!(cmd_compositions(&folder, false), 1);
+        assert_eq!(cmd_compositions(&folder, true), 1);
+        assert_eq!(cmd_timeline(&folder, None, false), 1);
+        assert_eq!(cmd_timeline(&folder, None, true), 1);
+        assert_eq!(cmd_info(&folder, None, false), 1);
+        assert_eq!(cmd_info(&folder, None, true), 1);
     }
 }
