@@ -106,9 +106,7 @@ pub(crate) fn table_dir(data: &[u8], base: usize) -> Option<Vec<TableEntry>> {
 
 pub(crate) fn find_table(dir: &[TableEntry], tag: &[u8; 4]) -> Option<(usize, usize)> {
     let want = u32::from_be_bytes(*tag);
-    dir.iter()
-        .find(|e| e.tag == want)
-        .map(|e| (e.off, e.len))
+    dir.iter().find(|e| e.tag == want).map(|e| (e.off, e.len))
 }
 
 pub(crate) fn tag(b0: u8, b1: u8, b2: u8, b3: u8) -> [u8; 4] {
@@ -330,7 +328,10 @@ impl TtFace {
 
     fn line_metrics_px(&self, size_px: f64) -> (f64, f64) {
         let s = size_px / self.upm;
-        (self.asc_em * s, (self.asc_em - self.desc_em + self.gap_em) * s)
+        (
+            self.asc_em * s,
+            (self.asc_em - self.desc_em + self.gap_em) * s,
+        )
     }
 }
 
@@ -351,7 +352,8 @@ pub(crate) fn parse_cmap(data: &[u8], off: usize, len: usize) -> Result<Vec<(u32
         let sub = be32(data, o + 4).ok_or("truncated `cmap` record")? as usize;
         let fmt = be16(data, off + sub).ok_or("truncated `cmap` subtable")?;
         // Prefer Unicode encodings; record positions of both formats.
-        if (platform == 3 && encoding == 1) || (platform == 0) || (platform == 3 && encoding == 10) {
+        if (platform == 3 && encoding == 1) || (platform == 0) || (platform == 3 && encoding == 10)
+        {
             match fmt {
                 12 => f12 = Some(sub),
                 4 => {
@@ -600,12 +602,7 @@ impl TtFace {
         Some(contours)
     }
 
-    fn parse_composite(
-        &self,
-        start: usize,
-        end: usize,
-        depth: u8,
-    ) -> Option<Vec<Vec<(f64, f64)>>> {
+    fn parse_composite(&self, start: usize, end: usize, depth: u8) -> Option<Vec<Vec<(f64, f64)>>> {
         let data = &self.data;
         let mut o = start + 10;
         let mut out: Vec<Vec<(f64, f64)>> = Vec::new();
@@ -948,9 +945,18 @@ impl Face {
         let shared = "/System/Library/Fonts";
         let dejavu = "/usr/share/fonts/truetype/dejavu";
         let names: &[&str] = match style {
-            S::Regular => &["Arial.ttf", "Verdana.ttf", "Helvetica.ttc", "DejaVuSans.ttf"],
+            S::Regular => &[
+                "Arial.ttf",
+                "Verdana.ttf",
+                "Helvetica.ttc",
+                "DejaVuSans.ttf",
+            ],
             S::Bold => &["Arial Bold.ttf", "Verdana Bold.ttf", "DejaVuSans-Bold.ttf"],
-            S::Italic => &["Arial Italic.ttf", "Verdana Italic.ttf", "DejaVuSans-Oblique.ttf"],
+            S::Italic => &[
+                "Arial Italic.ttf",
+                "Verdana Italic.ttf",
+                "DejaVuSans-Oblique.ttf",
+            ],
             S::BoldItalic => &[
                 "Arial Bold Italic.ttf",
                 "Verdana Bold Italic.ttf",
@@ -976,13 +982,15 @@ impl Face {
             }
         };
         for n in names {
-            cands.push((
-                std::path::PathBuf::from(format!("{}/{n}", dir_of(n))),
-                true,
-            ));
+            cands.push((std::path::PathBuf::from(format!("{}/{n}", dir_of(n))), true));
         }
         if style != S::Regular {
-            for n in ["Arial.ttf", "Verdana.ttf", "Helvetica.ttc", "DejaVuSans.ttf"] {
+            for n in [
+                "Arial.ttf",
+                "Verdana.ttf",
+                "Helvetica.ttc",
+                "DejaVuSans.ttf",
+            ] {
                 cands.push((
                     std::path::PathBuf::from(format!("{}/{n}", dir_of(n))),
                     false,
@@ -1086,7 +1094,10 @@ impl Face {
                 let need = if cur.is_empty() { ww } else { space_w + ww };
                 if let Some(limit) = wrap_px {
                     if !cur.is_empty() && cur_w + need > limit {
-                        lines.push(LaidLine { glyphs: cur, width: cur_w });
+                        lines.push(LaidLine {
+                            glyphs: cur,
+                            width: cur_w,
+                        });
                         cur = Vec::new();
                         cur_w = 0.0;
                     }
@@ -1104,11 +1115,21 @@ impl Face {
                 }
             }
         }
-        lines.push(LaidLine { glyphs: cur, width: cur_w });
+        lines.push(LaidLine {
+            glyphs: cur,
+            width: cur_w,
+        });
         let width = lines.iter().map(|l| l.width).fold(0.0f64, f64::max);
-        let height = ascent + line_height * (lines.len().saturating_sub(1) as f64)
+        let height = ascent
+            + line_height * (lines.len().saturating_sub(1) as f64)
             + (line_height - ascent).max(0.0);
-        LaidText { lines, width, height, ascent, line_height }
+        LaidText {
+            lines,
+            width,
+            height,
+            ascent,
+            line_height,
+        }
     }
 
     /// Design units per em of a TrueType face; `None` for the bitmap face.
@@ -1135,7 +1156,18 @@ impl Face {
         color: (u8, u8, u8),
         style: notation::model::FontStyle,
     ) {
-        self.blit_gid(canvas, cw, chh, self.gid_of(ch), ch, size_px, pen_x, baseline_y, color, style)
+        self.blit_gid(
+            canvas,
+            cw,
+            chh,
+            self.gid_of(ch),
+            ch,
+            size_px,
+            pen_x,
+            baseline_y,
+            color,
+            style,
+        )
     }
 
     /// Blend glyph `gid` (from this face's `cmap`) over a straight-RGBA
@@ -1182,7 +1214,19 @@ impl Face {
                 };
                 blend_mask_layer(layer, lw, lh, &g.cov, g.w, g.h, x0, y0, color, shear, alpha);
                 if emb > 0 {
-                    blend_mask_layer(layer, lw, lh, &g.cov, g.w, g.h, x0 + emb, y0, color, shear, alpha);
+                    blend_mask_layer(
+                        layer,
+                        lw,
+                        lh,
+                        &g.cov,
+                        g.w,
+                        g.h,
+                        x0 + emb,
+                        y0,
+                        color,
+                        shear,
+                        alpha,
+                    );
                 }
             }
             Face::Bitmap => {
@@ -1198,7 +1242,11 @@ impl Face {
                 let y0 = (baseline_y - 7.0 * unit).round() as i64;
                 let h = (7.0 * unit).ceil() as u32;
                 let w = (5.0 * unit).ceil() as u32;
-                let emb = if bold { unit.max(1.0).round() as i64 } else { 0 };
+                let emb = if bold {
+                    unit.max(1.0).round() as i64
+                } else {
+                    0
+                };
                 for j in 0..h {
                     let src_row = ((j as f64) / unit).floor() as usize;
                     if src_row >= 7 {
@@ -1215,7 +1263,15 @@ impl Face {
                             let x = x0 + i as i64 + slant;
                             blend_pixel_layer(layer, lw, lh, x, y0 + j as i64, color, alpha);
                             if emb > 0 {
-                                blend_pixel_layer(layer, lw, lh, x + emb, y0 + j as i64, color, alpha);
+                                blend_pixel_layer(
+                                    layer,
+                                    lw,
+                                    lh,
+                                    x + emb,
+                                    y0 + j as i64,
+                                    color,
+                                    alpha,
+                                );
                             }
                         }
                     }
@@ -1263,7 +1319,18 @@ impl Face {
                 };
                 blend_mask(canvas, cw, chh, &g.cov, g.w, g.h, x0, y0, color, shear);
                 if emb > 0 {
-                    blend_mask(canvas, cw, chh, &g.cov, g.w, g.h, x0 + emb, y0, color, shear);
+                    blend_mask(
+                        canvas,
+                        cw,
+                        chh,
+                        &g.cov,
+                        g.w,
+                        g.h,
+                        x0 + emb,
+                        y0,
+                        color,
+                        shear,
+                    );
                 }
             }
             Face::Bitmap => {
@@ -1280,7 +1347,11 @@ impl Face {
                 let y0 = (baseline_y - 7.0 * unit).round() as i64;
                 let h = (7.0 * unit).ceil() as u32;
                 let w = (5.0 * unit).ceil() as u32;
-                let emb = if bold { unit.max(1.0).round() as i64 } else { 0 };
+                let emb = if bold {
+                    unit.max(1.0).round() as i64
+                } else {
+                    0
+                };
                 for j in 0..h {
                     let src_row = ((j as f64) / unit).floor() as usize;
                     if src_row >= 7 {
@@ -1350,9 +1421,23 @@ impl Face {
                 } else {
                     0
                 };
-                blend_mask_faded(canvas, cw, chh, &gface.cov, gface.w, gface.h, x0, y0, color, shear, g);
+                blend_mask_faded(
+                    canvas, cw, chh, &gface.cov, gface.w, gface.h, x0, y0, color, shear, g,
+                );
                 if emb > 0 {
-                    blend_mask_faded(canvas, cw, chh, &gface.cov, gface.w, gface.h, x0 + emb, y0, color, shear, g);
+                    blend_mask_faded(
+                        canvas,
+                        cw,
+                        chh,
+                        &gface.cov,
+                        gface.w,
+                        gface.h,
+                        x0 + emb,
+                        y0,
+                        color,
+                        shear,
+                        g,
+                    );
                 }
             }
             Face::Bitmap => {
@@ -1372,7 +1457,11 @@ impl Face {
                 let y0 = (baseline_y - 7.0 * unit).round() as i64;
                 let h = (7.0 * unit).ceil() as u32;
                 let w = (5.0 * unit).ceil() as u32;
-                let emb = if bold { unit.max(1.0).round() as i64 } else { 0 };
+                let emb = if bold {
+                    unit.max(1.0).round() as i64
+                } else {
+                    0
+                };
                 for j in 0..h {
                     let src_row = ((j as f64) / unit).floor() as usize;
                     if src_row >= 7 {
@@ -1540,7 +1629,8 @@ fn blend_pixel_layer(
         return;
     }
     // Straight-alpha source-over; un-premultiply back into the layer.
-    let mix = |src: u8, dst: u8| ((src as f64 * a + dst as f64 * dst_a * (1.0 - a)) / out_a + 0.5) as u8;
+    let mix =
+        |src: u8, dst: u8| ((src as f64 * a + dst as f64 * dst_a * (1.0 - a)) / out_a + 0.5) as u8;
     layer[o] = mix(color.0, layer[o]);
     layer[o + 1] = mix(color.1, layer[o + 1]);
     layer[o + 2] = mix(color.2, layer[o + 2]);
@@ -1548,15 +1638,7 @@ fn blend_pixel_layer(
 }
 
 /// Blend one canvas pixel toward `color` with alpha `a` (0-255).
-fn blend_pixel(
-    canvas: &mut [u8],
-    cw: u32,
-    chh: u32,
-    x: i64,
-    y: i64,
-    color: (u8, u8, u8),
-    a: u8,
-) {
+fn blend_pixel(canvas: &mut [u8], cw: u32, chh: u32, x: i64, y: i64, color: (u8, u8, u8), a: u8) {
     if x < 0 || y < 0 || x >= cw as i64 || y >= chh as i64 {
         return;
     }
@@ -1597,7 +1679,7 @@ mod tests {
         u16b(&mut g, 2); // endPts[0]
         u16b(&mut g, 0); // no instructions
         g.extend_from_slice(&[0x01, 0x01, 0x01]); // all on-curve
-        // x deltas (long): 0, +500, -250
+                                                  // x deltas (long): 0, +500, -250
         i16b(&mut g, 0);
         i16b(&mut g, 500);
         i16b(&mut g, -250);
@@ -1630,7 +1712,7 @@ mod tests {
         u16b(&mut c, 3); // platform
         u16b(&mut c, 1); // encoding
         u32b(&mut c, 12); // offset
-        // subtable at +12:
+                          // subtable at +12:
         u16b(&mut c, 4); // format
         u16b(&mut c, 32); // length
         u16b(&mut c, 0); // language
@@ -1803,19 +1885,59 @@ mod tests {
         // Blit leaves the mark on the canvas.
         let mut canvas = vec![0u8; 32 * 32 * 3];
         use notation::model::FontStyle as S;
-        face.blit(&mut canvas, 32, 32, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Regular);
+        face.blit(
+            &mut canvas,
+            32,
+            32,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Regular,
+        );
         assert!(canvas.iter().any(|b| *b > 0));
         // Unknown chars draw the hollow box, never blank.
         let mut canvas2 = vec![0u8; 32 * 32 * 3];
-        face.blit(&mut canvas2, 32, 32, 'é', 16.0, 0.0, 14.0, (255, 255, 255), S::Regular);
+        face.blit(
+            &mut canvas2,
+            32,
+            32,
+            'é',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Regular,
+        );
         assert!(canvas2.iter().any(|b| *b > 0));
         // Faux bold puts down at least as much ink; faux italic moves it.
         let mut canvas3 = vec![0u8; 32 * 32 * 3];
-        face.blit(&mut canvas3, 32, 32, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Bold);
+        face.blit(
+            &mut canvas3,
+            32,
+            32,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Bold,
+        );
         let ink = |c: &[u8]| c.iter().map(|b| *b as u32).sum::<u32>();
         assert!(ink(&canvas3) >= ink(&canvas));
         let mut canvas4 = vec![0u8; 32 * 32 * 3];
-        face.blit(&mut canvas4, 32, 32, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Italic);
+        face.blit(
+            &mut canvas4,
+            32,
+            32,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Italic,
+        );
         assert!(canvas4 != canvas);
     }
 
@@ -1828,17 +1950,67 @@ mod tests {
         let face = Face::fallback();
         let gid = face.gid_of('A');
         let mut opaque = vec![9u8; 32 * 32 * 3];
-        face.blit_gid(&mut opaque, 32, 32, gid, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Regular);
+        face.blit_gid(
+            &mut opaque,
+            32,
+            32,
+            gid,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Regular,
+        );
         let mut full = vec![9u8; 32 * 32 * 3];
-        face.blit_gid_faded(&mut full, 32, 32, gid, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Regular, 1.0);
+        face.blit_gid_faded(
+            &mut full,
+            32,
+            32,
+            gid,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Regular,
+            1.0,
+        );
         assert_eq!(full, opaque, "alpha 1.0 is the opaque blit exactly");
         let mut gone = vec![9u8; 32 * 32 * 3];
-        face.blit_gid_faded(&mut gone, 32, 32, gid, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Regular, 0.0);
+        face.blit_gid_faded(
+            &mut gone,
+            32,
+            32,
+            gid,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Regular,
+            0.0,
+        );
         assert!(gone.iter().all(|&v| v == 9), "alpha 0.0 draws nothing");
         let mut half = vec![9u8; 32 * 32 * 3];
-        face.blit_gid_faded(&mut half, 32, 32, gid, 'A', 16.0, 0.0, 14.0, (255, 255, 255), S::Regular, 0.5);
+        face.blit_gid_faded(
+            &mut half,
+            32,
+            32,
+            gid,
+            'A',
+            16.0,
+            0.0,
+            14.0,
+            (255, 255, 255),
+            S::Regular,
+            0.5,
+        );
         let peak = |c: &[u8]| c.chunks_exact(3).map(|p| p[0]).max().unwrap_or(0);
-        assert!(peak(&half) > 9 && peak(&half) < peak(&opaque), "alpha 0.5 blends");
+        assert!(
+            peak(&half) > 9 && peak(&half) < peak(&opaque),
+            "alpha 0.5 blends"
+        );
     }
 
     #[test]
@@ -1855,4 +2027,3 @@ mod tests {
         assert_eq!(flatten_closed(&[(1.0, 2.0, true)]), vec![(1.0, 2.0)]);
     }
 }
-

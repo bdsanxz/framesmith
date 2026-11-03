@@ -105,7 +105,14 @@ fn decode_source_pass(mp4: &Path, extra: &[&str]) -> Vec<u8> {
 
 /// Decode pictures with an extra video filter (e.g. scale), optionally
 /// capped to `frames` pictures (`None` decodes the whole stream).
-fn decode_filtered(mp4: &Path, filter: &str, w: u32, h: u32, extra: &[&str], frames: Option<u32>) -> Vec<u8> {
+fn decode_filtered(
+    mp4: &Path,
+    filter: &str,
+    w: u32,
+    h: u32,
+    extra: &[&str],
+    frames: Option<u32>,
+) -> Vec<u8> {
     let dim = format!("{w}x{h}");
     let path = mp4.display().to_string();
     let count = frames.map(|n| n.to_string());
@@ -115,7 +122,15 @@ fn decode_filtered(mp4: &Path, filter: &str, w: u32, h: u32, extra: &[&str], fra
     if let Some(n) = count.as_ref() {
         args.extend(["-frames:v", n.as_str()]);
     }
-    args.extend(["-f", "rawvideo", "-pix_fmt", "rgb24", "-s", dim.as_str(), "-"]);
+    args.extend([
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-s",
+        dim.as_str(),
+        "-",
+    ]);
     let out = Command::new("ffmpeg")
         .args(["-y"])
         .args(args)
@@ -127,7 +142,11 @@ fn decode_filtered(mp4: &Path, filter: &str, w: u32, h: u32, extra: &[&str], fra
 
 fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
@@ -190,7 +209,10 @@ fn stamp_rotation_90(mp4: &Path) {
         .output()
         .expect("probe rotated mp4");
     let text = String::from_utf8_lossy(&out.stderr);
-    assert!(text.contains("rotation of 90"), "rotation matrix took: {text}");
+    assert!(
+        text.contains("rotation of 90"),
+        "rotation matrix took: {text}"
+    );
 }
 
 /// Last index whose presentation timestamp covers `t`.
@@ -238,7 +260,10 @@ fn vfr_gap_renders_the_covering_frame() {
         let want = &source[want_idx * fs..(want_idx + 1) * fs];
         let good = frame_mad(got, want);
         println!("frame {k}: src_t={src_t:.4} covering source frame {want_idx}, mad={good:.2}");
-        assert!(good < 15.0, "frame {k} must show covering source frame {want_idx}, mad={good:.2}");
+        assert!(
+            good < 15.0,
+            "frame {k} must show covering source frame {want_idx}, mad={good:.2}"
+        );
     }
     // The gap opening shows the covering frame, not the next one: the
     // 1.5 s instant belongs to source frame 29 (pts 0.966667).
@@ -247,8 +272,14 @@ fn vfr_gap_renders_the_covering_frame() {
     let right = frame_mad(first, &source[29 * fs..30 * fs]);
     let wrong = frame_mad(first, &source[30 * fs..31 * fs]);
     println!("first frame: covering={right:.2} next={wrong:.2}");
-    assert!(right < 15.0, "first frame must be the covering frame, mad={right:.2}");
-    assert!(right < wrong * 0.5, "first frame must not slip to the next frame ({right:.2} vs {wrong:.2})");
+    assert!(
+        right < 15.0,
+        "first frame must be the covering frame, mad={right:.2}"
+    );
+    assert!(
+        right < wrong * 0.5,
+        "first frame must not slip to the next frame ({right:.2} vs {wrong:.2})"
+    );
 }
 
 /// Trim, rate, and loop compose with VFR sampling: a doubled window
@@ -268,7 +299,10 @@ fn vfr_composes_with_trim_rate_and_loop() {
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("loop"), "render summary announces loop clips: {out}");
+    assert!(
+        out.contains("loop"),
+        "render summary announces loop clips: {out}"
+    );
     let (w, h) = (64u32, 48u32);
     let rendered = decode_filtered(&folder.join("out.mp4"), "null", w, h, &[], None);
     let source = decode_source_pass(&folder.join("vfr.mp4"), &[]);
@@ -282,12 +316,18 @@ fn vfr_composes_with_trim_rate_and_loop() {
         let want = &source[want_idx * fs..(want_idx + 1) * fs];
         let good = frame_mad(got, want);
         println!("frame {k}: wrapped src_t={src_t:.4} covering {want_idx}, mad={good:.2}");
-        assert!(good < 15.0, "looped frame {k} must show covering frame {want_idx}, mad={good:.2}");
+        assert!(
+            good < 15.0,
+            "looped frame {k} must show covering frame {want_idx}, mad={good:.2}"
+        );
     }
     // The loop point repeats the window opening exactly.
     let reopen = frame_mad(&rendered[30 * fs..31 * fs], &rendered[0..fs]);
     println!("loop-point self mad: {reopen:.2}");
-    assert!(reopen < 15.0, "the loop point reopens the window, mad={reopen:.2}");
+    assert!(
+        reopen < 15.0,
+        "the loop point reopens the window, mad={reopen:.2}"
+    );
 }
 
 /// A source whose timing is unparseable (a raw Annex B stream carries
@@ -314,8 +354,14 @@ fn unparseable_timing_refuses_naming_the_file() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "unparseable timing refuses: {out}");
     assert!(out.contains("raw.h264"), "refusal names the file: {out}");
-    assert!(out.contains("re-encode"), "refusal points at re-encoding: {out}");
-    assert!(!folder.join("out.mp4").exists(), "no partial MP4 is left behind");
+    assert!(
+        out.contains("re-encode"),
+        "refusal points at re-encoding: {out}"
+    );
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no partial MP4 is left behind"
+    );
     assert!(
         !folder.join("out.mp4.framesmith-part").exists(),
         "no staged partial is left behind"
@@ -345,14 +391,34 @@ fn rotated_source_renders_upright() {
     assert_eq!(rendered.len(), 30 * fs, "1 s at 30 fps");
     // Player-visible reference: autorotate the stored pixels, then fit
     // (contain is exact here: oriented 48x64 on a 48x64 canvas).
-    let upright = decode_filtered(&folder.join("rot.mp4"), "scale=48:64", w, h, &["-autorotate"], Some(1));
-    let sideways = decode_filtered(&folder.join("rot.mp4"), "scale=48:64", w, h, &["-noautorotate"], Some(1));
+    let upright = decode_filtered(
+        &folder.join("rot.mp4"),
+        "scale=48:64",
+        w,
+        h,
+        &["-autorotate"],
+        Some(1),
+    );
+    let sideways = decode_filtered(
+        &folder.join("rot.mp4"),
+        "scale=48:64",
+        w,
+        h,
+        &["-noautorotate"],
+        Some(1),
+    );
     let first = &rendered[0..fs];
     let good = frame_mad(first, &upright[0..fs]);
     let bad = frame_mad(first, &sideways[0..fs]);
     println!("upright={good:.2} sideways={bad:.2}");
-    assert!(good < 15.0, "rendered frame must match the player-visible picture, mad={good:.2}");
-    assert!(bad > good * 3.0 + 10.0, "rendered frame must not be the sideways stored picture ({good:.2} vs {bad:.2})");
+    assert!(
+        good < 15.0,
+        "rendered frame must match the player-visible picture, mad={good:.2}"
+    );
+    assert!(
+        bad > good * 3.0 + 10.0,
+        "rendered frame must not be the sideways stored picture ({good:.2} vs {bad:.2})"
+    );
 }
 
 /// `fit` and placement apply to the oriented picture: a portrait source
@@ -388,9 +454,19 @@ fn rotated_fit_applies_to_the_oriented_picture() {
     println!("columns: left={left:.1} middle={middle:.1} right={right:.1}");
     assert!(left < 8.0, "left bar stays background, mean={left:.1}");
     assert!(right < 8.0, "right bar stays background, mean={right:.1}");
-    assert!(middle > 20.0, "the centered oriented picture paints, mean={middle:.1}");
+    assert!(
+        middle > 20.0,
+        "the centered oriented picture paints, mean={middle:.1}"
+    );
     // The centered picture matches the player-visible reference.
-    let upright = decode_filtered(&folder.join("rot.mp4"), "scale=48:64", 48, 64, &["-autorotate"], Some(1));
+    let upright = decode_filtered(
+        &folder.join("rot.mp4"),
+        "scale=48:64",
+        48,
+        64,
+        &["-autorotate"],
+        Some(1),
+    );
     let mut expect = vec![0u8; fs];
     for y in 0..64 {
         for x in 0..48u32 {
@@ -401,7 +477,10 @@ fn rotated_fit_applies_to_the_oriented_picture() {
     }
     let fit_mad = frame_mad(frame, &expect);
     println!("fit mad: {fit_mad:.2}");
-    assert!(fit_mad < 15.0, "contained picture matches the oriented reference, mad={fit_mad:.2}");
+    assert!(
+        fit_mad < 15.0,
+        "contained picture matches the oriented reference, mad={fit_mad:.2}"
+    );
 }
 
 /// Rotation composes with trim, rate, and loop: a re-timed looping
@@ -424,7 +503,14 @@ fn rotated_composes_with_trim_rate_and_loop() {
     let rendered = decode_filtered(&folder.join("out.mp4"), "null", w, h, &[], None);
     // Oriented reference timeline: every autorotated stored frame scaled
     // to the canvas (contain is exact here).
-    let upright = decode_filtered(&folder.join("rot.mp4"), "scale=48:64", w, h, &["-autorotate"], None);
+    let upright = decode_filtered(
+        &folder.join("rot.mp4"),
+        "scale=48:64",
+        w,
+        h,
+        &["-autorotate"],
+        None,
+    );
     let fs = (w * h * 3) as usize;
     assert_eq!(upright.len(), 120 * fs, "4 s oriented reference at 30 fps");
     // Window [1, 3) at rate 2 repeats every composition second.
@@ -434,7 +520,10 @@ fn rotated_composes_with_trim_rate_and_loop() {
         let want = &upright[src_idx * fs..(src_idx + 1) * fs];
         let good = frame_mad(got, want);
         println!("frame {k}: oriented source frame {src_idx}, mad={good:.2}");
-        assert!(good < 15.0, "frame {k} must show oriented source frame {src_idx}, mad={good:.2}");
+        assert!(
+            good < 15.0,
+            "frame {k} must show oriented source frame {src_idx}, mad={good:.2}"
+        );
     }
 }
 
@@ -460,6 +549,9 @@ fn unrotated_source_renders_as_stored() {
         let want = &source[(15 + k) * fs..(15 + k + 1) * fs];
         let good = frame_mad(got, want);
         println!("frame {k}: stored source frame {}, mad={good:.2}", 15 + k);
-        assert!(good < 15.0, "frame {k} must match the stored picture, mad={good:.2}");
+        assert!(
+            good < 15.0,
+            "frame {k} must match the stored picture, mad={good:.2}"
+        );
     }
 }

@@ -88,8 +88,22 @@ fn gen_video_with_sound(dir: &Path, name: &str, tone: &Path, seconds: f64) {
 fn decode_audio(mp4: &Path) -> Vec<i16> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:a", "-f", "s16le",
-            "-acodec", "pcm_s16le", "-ar", "48000", "-ac", "2", "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:a",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-",
         ])
         .output()
         .expect("decode mp4 audio");
@@ -101,8 +115,20 @@ fn decode_audio(mp4: &Path) -> Vec<i16> {
 fn decode_video(mp4: &Path, w: u32, h: u32) -> Vec<u8> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:v", "-f", "rawvideo",
-            "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"), "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:v",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-s",
+            &format!("{w}x{h}"),
+            "-",
         ])
         .output()
         .expect("decode mp4 video");
@@ -114,21 +140,31 @@ fn decode_video(mp4: &Path, w: u32, h: u32) -> Vec<u8> {
 fn crossings(pcm: &[i16], from: usize, to: usize) -> usize {
     let to = to.min(pcm.len() / 2);
     (from.max(1)..to)
-        .filter(|&j| (pcm[(j - 1) * 2] <= 0 && pcm[j * 2] > 0) || (pcm[(j - 1) * 2] >= 0 && pcm[j * 2] < 0))
+        .filter(|&j| {
+            (pcm[(j - 1) * 2] <= 0 && pcm[j * 2] > 0) || (pcm[(j - 1) * 2] >= 0 && pcm[j * 2] < 0)
+        })
         .count()
 }
 
 /// Mean absolute byte difference between two frames.
 fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
 /// Mean absolute sample difference between two same-length slices.
 fn pcm_mad(a: &[i16], b: &[i16]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
@@ -154,7 +190,10 @@ fn loop_repeats_window_picture_and_sound_across_two_loop_points() {
     write(
         &folder,
         "composition.kdl",
-        &comp(3.0, "video path=\"clip.mp4\" start=0 duration=3 trim-start=0 trim-end=1 loop=true"),
+        &comp(
+            3.0,
+            "video path=\"clip.mp4\" start=0 duration=3 trim-start=0 trim-end=1 loop=true",
+        ),
     );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
@@ -177,21 +216,40 @@ fn loop_repeats_window_picture_and_sound_across_two_loop_points() {
     }
     // Sound: three 1 s thirds, each the same 440 Hz unit.
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert!(pcm.len() >= 3 * 48000 * 2, "at least 3 s of stereo mix, got {}", pcm.len() / 2);
+    assert!(
+        pcm.len() >= 3 * 48000 * 2,
+        "at least 3 s of stereo mix, got {}",
+        pcm.len() / 2
+    );
     let pcm = &pcm[..3 * 48000 * 2];
-    let thirds: Vec<&[i16]> =
-        vec![&pcm[0..48000 * 2], &pcm[48000 * 2..96000 * 2], &pcm[96000 * 2..144000 * 2]];
-    let xa: Vec<usize> =
-        vec![crossings(&pcm, 1000, 47000), crossings(&pcm, 49000, 95000), crossings(&pcm, 97000, 143000)];
+    let thirds: Vec<&[i16]> = vec![
+        &pcm[0..48000 * 2],
+        &pcm[48000 * 2..96000 * 2],
+        &pcm[96000 * 2..144000 * 2],
+    ];
+    let xa: Vec<usize> = vec![
+        crossings(&pcm, 1000, 47000),
+        crossings(&pcm, 49000, 95000),
+        crossings(&pcm, 97000, 143000),
+    ];
     println!("looped third crossings: {xa:?}");
     for (i, &x) in xa.iter().enumerate() {
-        assert!(x > 700 && x < 1100, "third {i} must carry the 440 Hz unit, crossings={x}");
+        assert!(
+            x > 700 && x < 1100,
+            "third {i} must carry the 440 Hz unit, crossings={x}"
+        );
     }
     let rep01 = pcm_mad(thirds[0], thirds[1]);
     let rep12 = pcm_mad(thirds[1], thirds[2]);
     println!("looped sound repetition mad: {rep01:.1} / {rep12:.1}");
-    assert!(rep01 < 600.0, "second pass must repeat the first, mad={rep01:.1}");
-    assert!(rep12 < 600.0, "third pass must repeat the second, mad={rep12:.1}");
+    assert!(
+        rep01 < 600.0,
+        "second pass must repeat the first, mad={rep01:.1}"
+    );
+    assert!(
+        rep12 < 600.0,
+        "third pass must repeat the second, mad={rep12:.1}"
+    );
 }
 
 /// A non-looping overrun holds the last frame while its sound goes
@@ -203,7 +261,11 @@ fn non_loop_overrun_holds_picture_and_silences_sound() {
     gen_tone(&folder.join("tone.wav"), 440, 2.0);
     gen_video_with_sound(&folder, "clip.mp4", &folder.join("tone.wav"), 2.0);
     // Whole 2 s source in a 4 s clip: 2 s of play, 2 s of hold.
-    write(&folder, "composition.kdl", &comp(4.0, "video path=\"clip.mp4\" start=0 duration=4"));
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(4.0, "video path=\"clip.mp4\" start=0 duration=4"),
+    );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
@@ -217,18 +279,27 @@ fn non_loop_overrun_holds_picture_and_silences_sound() {
         let got = &rendered[k * fs..(k + 1) * fs];
         let held = frame_mad(got, &source[59 * fs..60 * fs]);
         println!("hold frame {k}: held-mad={held:.2}");
-        assert!(held < 15.0, "frame {k} must hold the last frame, mad={held:.2}");
+        assert!(
+            held < 15.0,
+            "frame {k} must hold the last frame, mad={held:.2}"
+        );
     }
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert!(pcm.len() >= 4 * 48000 * 2, "at least 4 s of stereo mix, got {}", pcm.len() / 2);
+    assert!(
+        pcm.len() >= 4 * 48000 * 2,
+        "at least 4 s of stereo mix, got {}",
+        pcm.len() / 2
+    );
     let pcm = &pcm[..4 * 48000 * 2];
     let head_x = crossings(&pcm, 1000, 95000);
     println!("head crossings: {head_x}");
-    assert!(head_x > 1400 && head_x < 2100, "head must carry the 440 Hz tone, crossings={head_x}");
+    assert!(
+        head_x > 1400 && head_x < 2100,
+        "head must carry the 440 Hz tone, crossings={head_x}"
+    );
     let tail = &pcm[2 * 48000 * 2..];
     let peak = tail.iter().map(|s| s.abs()).max().unwrap_or(0);
-    let mean: f64 =
-        tail.iter().map(|s| s.abs() as u64).sum::<u64>() as f64 / tail.len() as f64;
+    let mean: f64 = tail.iter().map(|s| s.abs() as u64).sum::<u64>() as f64 / tail.len() as f64;
     println!("silent tail: peak={peak} mean={mean:.2}");
     assert!(peak < 1000, "tail sound must be silent, peak={peak}");
     assert!(mean < 50.0, "tail sound must be silent, mean={mean:.2}");
@@ -254,8 +325,14 @@ fn loop_without_duration_fails_asking_for_duration() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("duration"), "{out}");
-    assert!(!folder.join("out.mp4").exists(), "no MP4 survives the refusal");
-    assert!(!folder.join("out.mp4.framesmith-part").exists(), "no partial survives the refusal");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no MP4 survives the refusal"
+    );
+    assert!(
+        !folder.join("out.mp4.framesmith-part").exists(),
+        "no partial survives the refusal"
+    );
 }
 
 /// Loop composes with trim and rate: the repeated unit is the trimmed
@@ -269,7 +346,10 @@ fn loop_composes_with_trim_and_rate() {
     write(
         &folder,
         "composition.kdl",
-        &comp(3.0, "video path=\"clip.mp4\" start=0 duration=3 trim-start=1 trim-end=3 rate=2 loop=true"),
+        &comp(
+            3.0,
+            "video path=\"clip.mp4\" start=0 duration=3 trim-start=1 trim-end=3 rate=2 loop=true",
+        ),
     );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
@@ -284,20 +364,40 @@ fn loop_composes_with_trim_and_rate() {
     // Unit frame k maps to source frame 30 + ((2k) mod 60): frame 0 and
     // frame 30 (the first loop point) both show source frame 30, frame
     // 15 shows source frame 60.
-    for (k, src) in [(0usize, 30usize), (15, 60), (30, 30), (45, 60), (60, 30), (75, 60)] {
+    for (k, src) in [
+        (0usize, 30usize),
+        (15, 60),
+        (30, 30),
+        (45, 60),
+        (60, 30),
+        (75, 60),
+    ] {
         let got = &rendered[k * fs..(k + 1) * fs];
         let mad = frame_mad(got, &source[src * fs..(src + 1) * fs]);
         println!("looped unit frame {k}: src={src} mad={mad:.2}");
-        assert!(mad < 15.0, "frame {k} must show unit frame {src}, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "frame {k} must show unit frame {src}, mad={mad:.2}"
+        );
     }
     // Sound: three 1 s thirds at ~880 Hz (440 Hz played double speed).
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert!(pcm.len() >= 3 * 48000 * 2, "at least 3 s of stereo mix, got {}", pcm.len() / 2);
+    assert!(
+        pcm.len() >= 3 * 48000 * 2,
+        "at least 3 s of stereo mix, got {}",
+        pcm.len() / 2
+    );
     let pcm = &pcm[..3 * 48000 * 2];
-    let xa: Vec<usize> =
-        vec![crossings(&pcm, 1000, 47000), crossings(&pcm, 49000, 95000), crossings(&pcm, 97000, 143000)];
+    let xa: Vec<usize> = vec![
+        crossings(&pcm, 1000, 47000),
+        crossings(&pcm, 49000, 95000),
+        crossings(&pcm, 97000, 143000),
+    ];
     println!("pitched loop crossings: {xa:?}");
     for (i, &x) in xa.iter().enumerate() {
-        assert!(x > 1400 && x < 2200, "third {i} must carry the doubled unit, crossings={x}");
+        assert!(
+            x > 1400 && x < 2200,
+            "third {i} must carry the doubled unit, crossings={x}"
+        );
     }
 }

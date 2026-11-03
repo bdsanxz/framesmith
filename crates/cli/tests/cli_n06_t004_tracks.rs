@@ -94,7 +94,9 @@ fn tracks_and_labels_change_no_rendered_byte() {
     write(
         &root.join("plain"),
         "composition.kdl",
-        &format!("{OPEN}text value=\"Hi\" start=0 duration=1 x=4 y=4 size=16 color=\"#ffffff\"\n}}\n"),
+        &format!(
+            "{OPEN}text value=\"Hi\" start=0 duration=1 x=4 y=4 size=16 color=\"#ffffff\"\n}}\n"
+        ),
     );
     write(
         &root.join("tagged"),
@@ -112,5 +114,8 @@ fn tracks_and_labels_change_no_rendered_byte() {
     let a = std::fs::read(root.join("plain").join("out.mp4")).unwrap();
     let b = std::fs::read(root.join("tagged").join("out.mp4")).unwrap();
     assert!(!a.is_empty() && !b.is_empty());
-    assert_eq!(a, b, "track/label declarations must not change a rendered byte");
+    assert_eq!(
+        a, b,
+        "track/label declarations must not change a rendered byte"
+    );
 }

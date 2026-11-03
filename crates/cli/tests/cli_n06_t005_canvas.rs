@@ -123,7 +123,10 @@ fn explicit_dims_override_the_preset_byte_identically() {
     let a = std::fs::read(root.join("sized").join("out.mp4")).unwrap();
     let b = std::fs::read(root.join("preset").join("out.mp4")).unwrap();
     assert!(!a.is_empty() && !b.is_empty());
-    assert_eq!(a, b, "explicit dims over a preset must match explicit dims alone");
+    assert_eq!(
+        a, b,
+        "explicit dims over a preset must match explicit dims alone"
+    );
 
     // A partial override resizes only that dimension.
     std::fs::create_dir_all(root.join("partial")).unwrap();

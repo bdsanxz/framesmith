@@ -19,7 +19,13 @@ fn secs(text: &str) -> Time {
     Time::parse(text).unwrap()
 }
 
-fn from_to(start: &[(Prop, f64)], end: &[(Prop, f64)], at: &str, duration: &str, ease: Ease) -> Tween {
+fn from_to(
+    start: &[(Prop, f64)],
+    end: &[(Prop, f64)],
+    at: &str,
+    duration: &str,
+    ease: Ease,
+) -> Tween {
     Tween {
         target: "#a".into(),
         kind: Kind::FromTo,
@@ -28,6 +34,7 @@ fn from_to(start: &[(Prop, f64)], end: &[(Prop, f64)], at: &str, duration: &str,
         at: secs(at),
         duration: secs(duration),
         ease,
+        reversed: false,
     }
 }
 
@@ -40,6 +47,7 @@ fn set(list: &[(Prop, f64)], at: &str) -> Tween {
         at: secs(at),
         duration: Time::ZERO,
         ease: Ease::Linear,
+        reversed: false,
     }
 }
 
@@ -63,7 +71,13 @@ fn out_back(p: f64, n: f64) -> f64 {
 
 #[test]
 fn a_blur_tween_from_20_to_0_is_10_at_its_middle() {
-    let tl = timeline(&[from_to(&[(Prop::Blur, 20.0)], &[(Prop::Blur, 0.0)], "0", "1", Ease::Linear)]);
+    let tl = timeline(&[from_to(
+        &[(Prop::Blur, 20.0)],
+        &[(Prop::Blur, 0.0)],
+        "0",
+        "1",
+        Ease::Linear,
+    )]);
     assert_eq!(at(&tl, Prop::Blur, "0"), 20.0);
     assert_eq!(at(&tl, Prop::Blur, "0.5"), 10.0);
     assert_eq!(at(&tl, Prop::Blur, "1"), 0.0);
@@ -96,15 +110,27 @@ fn a_set_on_blur_is_sharp_before_its_time_and_blurred_from_it() {
 fn an_out_back_easing_holds_blur_at_0_where_it_carries_the_value_below_0() {
     // From 4 to 0 over one second with out-back(1.7): the value is 4 - 4 e(p). It is below 0 from about p = 0.370 on, and it is
     // held at 0 there; before that it is the eased value.
-    let tl = timeline(&[from_to(&[(Prop::Blur, 4.0)], &[(Prop::Blur, 0.0)], "0", "1", Ease::OutBack(1.7))]);
+    let tl = timeline(&[from_to(
+        &[(Prop::Blur, 4.0)],
+        &[(Prop::Blur, 0.0)],
+        "0",
+        "1",
+        Ease::OutBack(1.7),
+    )]);
     let before = 11.0 / 30.0;
     let expected_before = 4.0 - 4.0 * out_back(before, 1.7);
-    assert!((expected_before - 0.016).abs() < 1e-3, "worked value {expected_before}");
+    assert!(
+        (expected_before - 0.016).abs() < 1e-3,
+        "worked value {expected_before}"
+    );
     assert!((at(&tl, Prop::Blur, "0.3667") - expected_before).abs() < 1e-3);
     for time in ["0.5", "0.5667", "0.9667", "1"] {
         assert_eq!(at(&tl, Prop::Blur, time), 0.0, "held at 0 at {time} s");
     }
-    assert!(4.0 - 4.0 * out_back(17.0 / 30.0, 1.7) < 0.0, "the easing is below 0 here");
+    assert!(
+        4.0 - 4.0 * out_back(17.0 / 30.0, 1.7) < 0.0,
+        "the easing is below 0 here"
+    );
 }
 
 #[test]
@@ -116,15 +142,27 @@ fn an_out_back_easing_holds_brightness_at_0_where_it_carries_the_value_below_0()
         "1",
         Ease::OutBack(1.7),
     )]);
-    assert!((at(&tl, Prop::Brightness, "0.3667") - (1.0 - out_back(11.0 / 30.0, 1.7))).abs() < 1e-3);
+    assert!(
+        (at(&tl, Prop::Brightness, "0.3667") - (1.0 - out_back(11.0 / 30.0, 1.7))).abs() < 1e-3
+    );
     for time in ["0.5", "0.5667", "0.9667", "1"] {
-        assert_eq!(at(&tl, Prop::Brightness, time), 0.0, "held at 0 at {time} s");
+        assert_eq!(
+            at(&tl, Prop::Brightness, time),
+            0.0,
+            "held at 0 at {time} s"
+        );
     }
 }
 
 #[test]
 fn a_property_with_no_tween_keeps_its_own_value() {
-    let tl = timeline(&[from_to(&[(Prop::X, 0.0)], &[(Prop::X, 10.0)], "0", "1", Ease::Linear)]);
+    let tl = timeline(&[from_to(
+        &[(Prop::X, 0.0)],
+        &[(Prop::X, 10.0)],
+        "0",
+        "1",
+        Ease::Linear,
+    )]);
     assert!(tl.elements[0].tracks[Prop::Blur.index()].is_none());
     assert!(tl.elements[0].tracks[Prop::Brightness.index()].is_none());
     assert_eq!(Prop::Blur.own_value(), 0.0);

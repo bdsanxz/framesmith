@@ -4,8 +4,9 @@ use crate::Ease;
 use serde::{Deserialize, Serialize};
 use timebase::Time;
 
-/// The eleven properties a tween can change, in the order used everywhere: the nine that move the element, then the blur and
-/// the brightness of its picture (`docs/spec/motion.md`, Properties).
+/// The properties a tween can change, in the order used everywhere: the nine that move the element, then the blur and
+/// the brightness of its picture (`docs/spec/motion.md`, Properties), then the Sprint 7 visual properties (CAP-005/006).
+/// New variants are always appended so the indexes of the older ones never move.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Prop {
@@ -26,10 +27,34 @@ pub enum Prop {
     Blur,
     /// The factor each colour is multiplied by (`docs/spec/motion.md`, Properties).
     Brightness,
+    /// Animated box/image width in canvas pixels (Sprint 7 motion, CAP-006).
+    Width,
+    /// Animated box/image height in canvas pixels (Sprint 7 motion, CAP-006).
+    Height,
+    /// Red channel of an animated box fill or border color, straight 0-255 (Sprint 7 motion, CAP-006).
+    FillR,
+    /// Green channel of an animated box fill or border color, straight 0-255.
+    FillG,
+    /// Blue channel of an animated box fill or border color, straight 0-255.
+    FillB,
+    /// Animated box corner radius in canvas pixels (Sprint 7 motion, CAP-006).
+    Radius,
+    /// Animated box border width in canvas pixels (Sprint 7 motion, CAP-006).
+    BorderWidth,
+    /// Red channel of an animated box border color, straight 0-255.
+    BorderR,
+    /// Green channel of an animated box border color, straight 0-255.
+    BorderG,
+    /// Blue channel of an animated box border color, straight 0-255.
+    BorderB,
+    /// Animated text font size in canvas pixels (Sprint 7 motion, CAP-006).
+    FontSize,
+    /// Animated text letter spacing in canvas pixels (Sprint 7 motion, CAP-006).
+    LetterSpacing,
 }
 
 /// The number of properties.
-pub const PROP_COUNT: usize = 13;
+pub const PROP_COUNT: usize = 25;
 
 pub const PROPS: [Prop; PROP_COUNT] = [
     Prop::X,
@@ -45,6 +70,18 @@ pub const PROPS: [Prop; PROP_COUNT] = [
     Prop::Typed,
     Prop::Blur,
     Prop::Brightness,
+    Prop::Width,
+    Prop::Height,
+    Prop::FillR,
+    Prop::FillG,
+    Prop::FillB,
+    Prop::Radius,
+    Prop::BorderWidth,
+    Prop::BorderR,
+    Prop::BorderG,
+    Prop::BorderB,
+    Prop::FontSize,
+    Prop::LetterSpacing,
 ];
 
 impl Prop {
@@ -63,6 +100,18 @@ impl Prop {
             Prop::Typed => "typed",
             Prop::Blur => "blur",
             Prop::Brightness => "brightness",
+            Prop::Width => "width",
+            Prop::Height => "height",
+            Prop::FillR => "fill-r",
+            Prop::FillG => "fill-g",
+            Prop::FillB => "fill-b",
+            Prop::Radius => "radius",
+            Prop::BorderWidth => "border-width",
+            Prop::BorderR => "border-r",
+            Prop::BorderG => "border-g",
+            Prop::BorderB => "border-b",
+            Prop::FontSize => "font-size",
+            Prop::LetterSpacing => "letter-spacing",
         }
     }
 
@@ -79,10 +128,28 @@ impl Prop {
     /// `count` is 0, and `typed` is every character, without end.
     pub fn own_value(self) -> f64 {
         match self {
-            Prop::X | Prop::Y | Prop::Rotation | Prop::SkewY | Prop::RotateX | Prop::RotateY | Prop::Count => 0.0,
+            Prop::X
+            | Prop::Y
+            | Prop::Rotation
+            | Prop::SkewY
+            | Prop::RotateX
+            | Prop::RotateY
+            | Prop::Count => 0.0,
             Prop::Scale | Prop::ScaleX | Prop::Opacity | Prop::Brightness => 1.0,
             Prop::Typed => f64::INFINITY,
-            Prop::Blur => 0.0,
+            Prop::Blur
+            | Prop::Width
+            | Prop::Height
+            | Prop::FillR
+            | Prop::FillG
+            | Prop::FillB
+            | Prop::Radius
+            | Prop::BorderWidth
+            | Prop::BorderR
+            | Prop::BorderG
+            | Prop::BorderB
+            | Prop::FontSize
+            | Prop::LetterSpacing => 0.0,
         }
     }
 
@@ -134,6 +201,12 @@ pub struct Tween {
     pub at: Time,
     pub duration: Time,
     pub ease: Ease,
+    /// Whether the tween plays backward (Sprint 7 motion, CAP-004):
+    /// a `yoyo` repeat's alternate passes evaluate the same easing at
+    /// the mirrored progress, tracing the forward values exactly in
+    /// reverse. `false` evaluates exactly as before.
+    #[serde(default)]
+    pub reversed: bool,
 }
 
 impl Tween {

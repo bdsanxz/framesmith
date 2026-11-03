@@ -9,7 +9,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -36,7 +36,8 @@ fn codes(dir: &Path) -> Vec<String> {
         .collect()
 }
 
-const BUMPER: &str = "composition name=\"bumper\" width=64 height=64 duration=2 background=\"#000\" version=1 {\n\
+const BUMPER: &str =
+    "composition name=\"bumper\" width=64 height=64 duration=2 background=\"#000\" version=1 {\n\
      box x=0 y=0 width=64 height=64 fill=\"#ff0000\" start=0 duration=1\n\
      box x=0 y=0 width=64 height=64 fill=\"#00ff00\" start=1 duration=1\n\
      }\n";
@@ -85,7 +86,10 @@ fn nest_underscore_spellings_and_order_validate() {
     assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
     match &v.composition.expect("root").clips[0] {
         notation::model::Clip::Nest(n) => {
-            assert_eq!((n.trim_start, n.trim_end, n.rate, n.order), (0.0, Some(2.0), 0.5, 3));
+            assert_eq!(
+                (n.trim_start, n.trim_end, n.rate, n.order),
+                (0.0, Some(2.0), 0.5, 3)
+            );
         }
         other => panic!("expected a nest clip, found {other:?}"),
     }
@@ -99,7 +103,10 @@ fn nest_defaults_are_unity_window_and_zero_order() {
     assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
     match &v.composition.expect("root").clips[0] {
         notation::model::Clip::Nest(n) => {
-            assert_eq!((n.trim_start, n.trim_end, n.rate, n.order), (0.0, None, 1.0, 0));
+            assert_eq!(
+                (n.trim_start, n.trim_end, n.rate, n.order),
+                (0.0, None, 1.0, 0)
+            );
         }
         other => panic!("expected a nest clip, found {other:?}"),
     }
@@ -134,23 +141,37 @@ fn nest_backward_window_refuses() {
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
-    assert!(v.diagnostics[0].message.contains("backward"), "{}", v.diagnostics[0]);
+    assert!(
+        v.diagnostics[0].message.contains("backward"),
+        "{}",
+        v.diagnostics[0]
+    );
 }
 
 #[test]
 fn nest_empty_window_refuses() {
     let dir = tmp("timing-empty");
-    write_comp(&dir, &main_with("nest nest=\"bumper\" start=0 duration=2 trim-start=1 trim-end=1"));
+    write_comp(
+        &dir,
+        &main_with("nest nest=\"bumper\" start=0 duration=2 trim-start=1 trim-end=1"),
+    );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
-    assert!(v.diagnostics[0].message.contains("empty"), "{}", v.diagnostics[0]);
+    assert!(
+        v.diagnostics[0].message.contains("empty"),
+        "{}",
+        v.diagnostics[0]
+    );
 }
 
 #[test]
 fn nest_negative_trim_refuses_at_the_key() {
     let dir = tmp("timing-negative");
-    write_comp(&dir, &main_with("nest nest=\"bumper\" start=0 duration=2 trim-start=-1"));
+    write_comp(
+        &dir,
+        &main_with("nest nest=\"bumper\" start=0 duration=2 trim-start=-1"),
+    );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
@@ -165,24 +186,36 @@ fn nest_rate_outside_point_one_to_ten_refuses() {
         let dir = tmp(&format!("timing-rate-{tag}"));
         write_comp(
             &dir,
-            &main_with(&format!("nest nest=\"bumper\" start=0 duration=2 rate={rate}")),
+            &main_with(&format!(
+                "nest nest=\"bumper\" start=0 duration=2 rate={rate}"
+            )),
         );
         let v = validate_folder(&dir);
         assert_eq!(v.status, Status::Invalid, "{tag}: {:?}", v.diagnostics);
         assert_eq!(codes(&dir), vec!["E_BAD_TIMING"], "{tag}");
-        assert!(v.diagnostics[0].message.contains("0.1 to 10"), "{tag}: {}", v.diagnostics[0]);
+        assert!(
+            v.diagnostics[0].message.contains("0.1 to 10"),
+            "{tag}: {}",
+            v.diagnostics[0]
+        );
     }
 }
 
 #[test]
 fn nest_trim_start_past_child_end_refuses() {
     let dir = tmp("timing-past-end");
-    write_comp(&dir, &main_with("nest nest=\"bumper\" start=0 duration=2 trim-start=2"));
+    write_comp(
+        &dir,
+        &main_with("nest nest=\"bumper\" start=0 duration=2 trim-start=2"),
+    );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
     let d = &v.diagnostics[0];
-    assert!(d.message.contains("bumper") && d.message.contains('2'), "{d}");
+    assert!(
+        d.message.contains("bumper") && d.message.contains('2'),
+        "{d}"
+    );
     assert!(!d.fix.is_empty());
 }
 
@@ -206,7 +239,11 @@ fn nest_without_duration_refuses_until_bounded() {
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
-    assert!(v.diagnostics[0].message.contains("unbounded"), "{}", v.diagnostics[0]);
+    assert!(
+        v.diagnostics[0].message.contains("unbounded"),
+        "{}",
+        v.diagnostics[0]
+    );
 }
 
 #[test]
@@ -269,7 +306,11 @@ fn self_nest_refuses_naming_the_chain() {
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
-    assert!(v.diagnostics[0].message.contains("\"a\" -> \"a\""), "{}", v.diagnostics[0]);
+    assert!(
+        v.diagnostics[0].message.contains("\"a\" -> \"a\""),
+        "{}",
+        v.diagnostics[0]
+    );
 }
 
 #[test]
@@ -291,7 +332,9 @@ fn three_cycle_names_the_whole_chain() {
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
     assert!(
-        v.diagnostics[0].message.contains("\"a\" -> \"b\" -> \"c\" -> \"a\""),
+        v.diagnostics[0]
+            .message
+            .contains("\"a\" -> \"b\" -> \"c\" -> \"a\""),
         "{}",
         v.diagnostics[0]
     );
@@ -328,8 +371,14 @@ fn eight_levels_validate_nine_refuse() {
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert_eq!(codes(&dir), vec!["E_BAD_TIMING"]);
     let d = &v.diagnostics[0];
-    assert!(d.message.contains("8-level limit") || d.message.contains("8"), "{d}");
-    assert!(d.message.contains("\"c0\"") && d.message.contains("\"c9\""), "{d}");
+    assert!(
+        d.message.contains("8-level limit") || d.message.contains("8"),
+        "{d}"
+    );
+    assert!(
+        d.message.contains("\"c0\"") && d.message.contains("\"c9\""),
+        "{d}"
+    );
     assert!(!d.fix.is_empty());
 }
 
@@ -351,11 +400,14 @@ fn nest_covers_a_child_with_relative_starts() {
          box x=0 y=0 width=64 height=64 fill=\"#ff0000\" start=0 duration=1 id=\"first\"\n\
          box x=0 y=0 width=64 height=64 fill=\"#00ff00\" duration=1 start-after=\"first\"\n\
          }\n",
-
     );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
-    let child = v.compositions.iter().find(|c| c.name == "bumper").expect("bumper");
+    let child = v
+        .compositions
+        .iter()
+        .find(|c| c.name == "bumper")
+        .expect("bumper");
     assert_eq!(child.duration, 2.0);
     // The parent omits `duration`: it ends at the latest finite clip
     // end — the follower at 5, past the nest end at 4.

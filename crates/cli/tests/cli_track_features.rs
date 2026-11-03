@@ -64,8 +64,22 @@ fn gen_tone(path: &Path, freq: u32, seconds: f64) {
 fn decode_audio(mp4: &Path) -> Vec<i16> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:a", "-f", "s16le",
-            "-acodec", "pcm_s16le", "-ar", "48000", "-ac", "2", "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:a",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-",
         ])
         .output()
         .expect("decode mp4 audio");
@@ -92,7 +106,9 @@ fn rms(pcm: &[i16], from: usize, to: usize) -> f64 {
 fn peak(pcm: &[i16], from: usize, to: usize) -> i32 {
     let mut m = 0i32;
     for i in from.min(pcm.len() / 2)..to.min(pcm.len() / 2) {
-        m = m.max(pcm[2 * i].abs() as i32).max(pcm[2 * i + 1].abs() as i32);
+        m = m
+            .max(pcm[2 * i].abs() as i32)
+            .max(pcm[2 * i + 1].abs() as i32);
     }
     m
 }
@@ -121,11 +137,20 @@ fn trims_on_both_ends_sound_exactly_the_window() {
     assert_eq!(pcm.len() / 2, 144000, "full-duration mix");
     let onset = onset_frame(&pcm, 500).expect("trimmed tone must be audible");
     println!("both-ends onset: frame {onset}, written 24000");
-    assert!(onset.abs_diff(24000) <= 48, "onset {onset} misses written start 24000");
+    assert!(
+        onset.abs_diff(24000) <= 48,
+        "onset {onset} misses written start 24000"
+    );
     // Silence before the written start is exact digital zero.
-    assert!(pcm[..2 * 23000].iter().all(|&x| x == 0), "nothing sounds before the window");
+    assert!(
+        pcm[..2 * 23000].iter().all(|&x| x == 0),
+        "nothing sounds before the window"
+    );
     // The two-second window ends back in silence.
-    assert!(peak(&pcm, 121500, pcm.len() / 2) < 500, "nothing sounds past the window end");
+    assert!(
+        peak(&pcm, 121500, pcm.len() / 2) < 500,
+        "nothing sounds past the window end"
+    );
 }
 
 // --- T009: silence, unity, +12 dB -------------------------------------------
@@ -151,14 +176,20 @@ fn silence_unity_and_plus12_render_at_written_gains() {
         decode_audio(&dir.join("out.mp4"))
     };
     let silent = render_gain("silent", "-inf");
-    assert!(silent.iter().all(|&x| x == 0), "silence volume renders digital zero");
+    assert!(
+        silent.iter().all(|&x| x == 0),
+        "silence volume renders digital zero"
+    );
     let unity = render_gain("unity", "0");
     let loud = render_gain("loud", "12");
     let r0 = rms(&unity, 5000, 40000);
     let r12 = rms(&loud, 5000, 40000);
     let ratio = r12 / r0.max(1.0);
     println!("+12 dB vs unity rms ratio: {ratio:.3} (written 3.981)");
-    assert!((ratio - 3.981).abs() < 0.6, "+12 dB must quadruple amplitude: {ratio}");
+    assert!(
+        (ratio - 3.981).abs() < 0.6,
+        "+12 dB must quadruple amplitude: {ratio}"
+    );
 }
 
 // --- T009: linear fades -------------------------------------------------------
@@ -192,10 +223,16 @@ fn linear_fades_reach_full_gain_and_silence_at_written_ends() {
     let late = rms(&faded, 43000, 46000);
     println!("fade rms: early={early:.1} late={late:.1} flat-mid={mid_flat:.1}");
     assert!(early < late * 0.35, "fade-in must ramp from near silence");
-    assert!((late / mid_flat.max(1.0) - 1.0).abs() < 0.25, "fade-in reaches full gain");
+    assert!(
+        (late / mid_flat.max(1.0) - 1.0).abs() < 0.25,
+        "fade-in reaches full gain"
+    );
     // The fade-out tail falls back toward silence.
     let tail = rms(&faded, 92000, 95500);
-    assert!(tail < late * 0.3, "fade-out must fall toward silence: {tail} vs {late}");
+    assert!(
+        tail < late * 0.3,
+        "fade-out must fall toward silence: {tail} vs {late}"
+    );
 }
 
 // --- T009: refusals ------------------------------------------------------------
@@ -248,7 +285,10 @@ fn overlong_fade_loud_volume_and_undecodable_format_are_refused() {
     let (code, out) = run(&["render", "bad"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("bad.wav"), "refusal names the file: {out}");
-    assert!(out.contains("audio stage"), "refusal names the audio stage: {out}");
+    assert!(
+        out.contains("audio stage"),
+        "refusal names the audio stage: {out}"
+    );
     assert!(!bad.join("out.mp4").exists(), "no MP4 on refusal");
     assert!(!bad.join("out.mp4.framesmith-part").exists());
 }

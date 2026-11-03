@@ -7,7 +7,7 @@
 //! the `read-fonts` queries the old engine used; shaping itself is
 //! parley's business, in the `text` crate.
 
-use super::font::{be16, be32, find_table, parse_cmap, tag, table_dir, Face};
+use super::font::{be16, be32, find_table, parse_cmap, table_dir, tag, Face};
 
 /// Offset of face `index` in a `ttcf` file, or `0` for a plain sfnt.
 /// `None` when the header or the offset lies outside the bytes.
@@ -25,7 +25,9 @@ fn face_base(bytes: &[u8], index: u32) -> Option<usize> {
         // failing; callers pass indices they discovered, so this only
         // guards damaged headers.
         let _ = n;
-        be32(bytes, 12 + i * 4).map(|o| o as usize).filter(|&o| o < bytes.len())
+        be32(bytes, 12 + i * 4)
+            .map(|o| o as usize)
+            .filter(|&o| o < bytes.len())
     } else {
         (index == 0).then_some(0)
     }
@@ -213,15 +215,27 @@ pub fn sbix_graphic(bytes: &[u8], index: u32, glyph: usize, size_px: f32) -> Opt
         }
         let ox = be16(bytes, gstart)? as i16;
         let oy = be16(bytes, gstart + 2)? as i16;
-        let kind = [bytes[gstart + 4], bytes[gstart + 5], bytes[gstart + 6], bytes[gstart + 7]];
+        let kind = [
+            bytes[gstart + 4],
+            bytes[gstart + 5],
+            bytes[gstart + 6],
+            bytes[gstart + 7],
+        ];
         if kind != *b"png " {
             continue;
         }
         let entry = (ppem, gstart + 8, gend - gstart - 8, ox, oy, kind);
-        if largest.as_ref().is_none_or(|(best_ppem, ..)| ppem > *best_ppem) {
+        if largest
+            .as_ref()
+            .is_none_or(|(best_ppem, ..)| ppem > *best_ppem)
+        {
             largest = Some(entry.clone());
         }
-        if f32::from(ppem) >= size_px && best.as_ref().is_none_or(|(best_ppem, ..)| ppem < *best_ppem) {
+        if f32::from(ppem) >= size_px
+            && best
+                .as_ref()
+                .is_none_or(|(best_ppem, ..)| ppem < *best_ppem)
+        {
             best = Some(entry);
         }
     }
@@ -256,7 +270,10 @@ pub fn one_face(bytes: &[u8], index: u32) -> Option<Vec<u8>> {
         if record + 16 > bytes.len() {
             return None;
         }
-        let (offset, length) = (be32(bytes, record + 8)? as usize, be32(bytes, record + 12)? as usize);
+        let (offset, length) = (
+            be32(bytes, record + 8)? as usize,
+            be32(bytes, record + 12)? as usize,
+        );
         let data = bytes.get(offset..offset.checked_add(length)?)?;
         alone.extend_from_slice(bytes.get(record..record + 8)?);
         alone.extend_from_slice(&u32::try_from(at).ok()?.to_be_bytes());
@@ -276,7 +293,9 @@ impl Face {
     pub fn gid_of(&self, ch: char) -> u16 {
         match self {
             Face::Tt(t) => t.gid(ch as u32),
-            Face::Bitmap => matches!(ch, '\u{20}'..='\u{7e}').then_some(ch as u16).unwrap_or(0),
+            Face::Bitmap => matches!(ch, '\u{20}'..='\u{7e}')
+                .then_some(ch as u16)
+                .unwrap_or(0),
         }
     }
 

@@ -129,10 +129,7 @@ fn render_self_downloads_verifies_and_renders() {
             ("FRAMESMITH_FFMPEG_SHA256", sha.as_str()),
             ("FRAMESMITH_FFMPEG_VERSION", "9.0-t"),
             ("FRAMESMITH_FFMPEG_ENTRY", "ffmpeg"),
-            (
-                "FRAMESMITH_FFMPEG_DIR",
-                cache.to_string_lossy().as_ref(),
-            ),
+            ("FRAMESMITH_FFMPEG_DIR", cache.to_string_lossy().as_ref()),
             ("FRAMESMITH_DOWNLOAD_TIMEOUT_SECS", "30"),
         ],
     );
@@ -154,7 +151,10 @@ fn render_self_downloads_verifies_and_renders() {
         assert!(log.contains(field), "{log}");
     }
     // The composition itself is untouched by the download.
-    assert_eq!(std::fs::read(folder.join("composition.kdl")).unwrap(), before);
+    assert_eq!(
+        std::fs::read(folder.join("composition.kdl")).unwrap(),
+        before
+    );
     assert!(cache.join("9.0-t").join("bin").join("ffmpeg").is_file());
 }
 
@@ -200,10 +200,7 @@ fn render_checksum_mismatch_writes_no_mp4() {
             ("FRAMESMITH_FFMPEG_SHA256", &"0".repeat(64)),
             ("FRAMESMITH_FFMPEG_VERSION", "9.0-t"),
             ("FRAMESMITH_FFMPEG_ENTRY", "ffmpeg"),
-            (
-                "FRAMESMITH_FFMPEG_DIR",
-                cache.to_string_lossy().as_ref(),
-            ),
+            ("FRAMESMITH_FFMPEG_DIR", cache.to_string_lossy().as_ref()),
         ],
     );
     assert_eq!(code, 1, "{out}");
@@ -211,7 +208,10 @@ fn render_checksum_mismatch_writes_no_mp4() {
     assert!(out.contains("No MP4 was written"), "{out}");
     assert!(!folder.join("out.mp4").exists());
     assert!(!cache.join("9.0-t").join("bin").join("ffmpeg").exists());
-    assert_eq!(std::fs::read(folder.join("composition.kdl")).unwrap(), before);
+    assert_eq!(
+        std::fs::read(folder.join("composition.kdl")).unwrap(),
+        before
+    );
 }
 
 #[test]
@@ -224,10 +224,7 @@ fn render_disabled_refuses_with_source_and_config() {
     let (code, out) = run(
         &["render", "proj"],
         &root,
-        &[(
-            "FRAMESMITH_FFMPEG_DIR",
-            cache.to_string_lossy().as_ref(),
-        )],
+        &[("FRAMESMITH_FFMPEG_DIR", cache.to_string_lossy().as_ref())],
     );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_NO_FFMPEG"), "{out}");
@@ -240,7 +237,10 @@ fn render_disabled_refuses_with_source_and_config() {
     );
     assert!(out.contains("No MP4 was written"), "{out}");
     assert!(!folder.join("out.mp4").exists());
-    assert!(!cache.exists(), "a disabled download must not fetch anything");
+    assert!(
+        !cache.exists(),
+        "a disabled download must not fetch anything"
+    );
     // The refusal points at the catalog entry that explains it.
     assert!(out.contains("framesmith errors E_NO_FFMPEG"), "{out}");
 }
@@ -256,10 +256,7 @@ fn render_offline_refuses_with_manual_fix_and_check_still_works() {
         &root,
         &[
             ("FRAMESMITH_OFFLINE", "1"),
-            (
-                "FRAMESMITH_FFMPEG_DIR",
-                cache.to_string_lossy().as_ref(),
-            ),
+            ("FRAMESMITH_FFMPEG_DIR", cache.to_string_lossy().as_ref()),
         ],
     );
     assert_eq!(code, 1, "{out}");
@@ -268,11 +265,7 @@ fn render_offline_refuses_with_manual_fix_and_check_still_works() {
     assert!(!folder.join("out.mp4").exists());
     assert!(!cache.exists(), "offline refusal must not fetch anything");
     // Validation keeps working with no FFmpeg available.
-    let (code, out) = run(
-        &["check", "proj"],
-        &root,
-        &[("FRAMESMITH_OFFLINE", "1")],
-    );
+    let (code, out) = run(&["check", "proj"], &root, &[("FRAMESMITH_OFFLINE", "1")]);
     assert_eq!(code, 0, "{out}");
 }
 
@@ -286,17 +279,14 @@ fn render_unreachable_source_fails_safe_without_hanging() {
         &["render", "proj"],
         &root,
         &[
-            ("FRAMESMITH_FFMPEG_URL", "http://127.0.0.1:9/ffmpeg-test.zip"),
             (
-                "FRAMESMITH_FFMPEG_SHA256",
-                &"1".repeat(64),
+                "FRAMESMITH_FFMPEG_URL",
+                "http://127.0.0.1:9/ffmpeg-test.zip",
             ),
+            ("FRAMESMITH_FFMPEG_SHA256", &"1".repeat(64)),
             ("FRAMESMITH_FFMPEG_VERSION", "9.0-t"),
             ("FRAMESMITH_FFMPEG_ENTRY", "ffmpeg"),
-            (
-                "FRAMESMITH_FFMPEG_DIR",
-                cache.to_string_lossy().as_ref(),
-            ),
+            ("FRAMESMITH_FFMPEG_DIR", cache.to_string_lossy().as_ref()),
             ("FRAMESMITH_DOWNLOAD_TIMEOUT_SECS", "15"),
         ],
     );

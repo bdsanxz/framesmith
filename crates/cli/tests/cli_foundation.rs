@@ -49,7 +49,10 @@ fn init_check_render_golden_path() {
     assert!(out.contains("ok:") || out.contains("valid"), "{out}");
     let (code, out) = run(&["render", "hello"], &root);
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("ffmpeg:"), "render must report the FFmpeg finding: {out}");
+    assert!(
+        out.contains("ffmpeg:"),
+        "render must report the FFmpeg finding: {out}"
+    );
     let mp4 = root.join("hello").join("out.mp4");
     assert!(mp4.is_file(), "render must write an MP4: {out}");
     assert!(std::fs::metadata(&mp4).unwrap().len() > 0);

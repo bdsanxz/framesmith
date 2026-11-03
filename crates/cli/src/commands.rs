@@ -17,13 +17,13 @@
 //!   writes one standard MP4 (H.264 yuv420p + AAC stereo 48 kHz).
 
 use ffmpeg::bootstrap;
-use notation::model::Composition;
-use validate::catalog::{self, json_escape};
 use ffmpeg::ffmpeg as ffmpeg_mod;
 use log::log;
-use validate::validate as validate_mod;
-use validate_mod::{Status, Verdict, validate_folder};
+use notation::model::Composition;
 use std::path::{Path, PathBuf};
+use validate::catalog::{self, json_escape};
+use validate::validate as validate_mod;
+use validate_mod::{validate_folder, Status, Verdict};
 
 /// Project-name rule (reported verbatim in refusal messages): 1–64
 /// characters, ASCII letters/digits/`-`/`_`, starting with a letter
@@ -42,9 +42,7 @@ pub fn name_error(name: &str) -> Option<String> {
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
     {
-        return Some(
-            "name may only contain letters, digits, `-` and `_`".to_string(),
-        );
+        return Some("name may only contain letters, digits, `-` and `_`".to_string());
     }
     if name == "." || name == ".." {
         return Some("name must not be `.` or `..`".to_string());
@@ -124,8 +122,15 @@ pub fn cmd_init(name: &str, parent: &Path) -> i32 {
         );
         return 1;
     }
-    println!("created project {} ({}).", target.display(), validate_mod::COMPOSITION_FILE);
-    println!("next: run `framesmith check {}` to validate it.", target.display());
+    println!(
+        "created project {} ({}).",
+        target.display(),
+        validate_mod::COMPOSITION_FILE
+    );
+    println!(
+        "next: run `framesmith check {}` to validate it.",
+        target.display()
+    );
     0
 }
 
@@ -168,6 +173,27 @@ fn format_footage_human(f: &validate_mod::VideoFootage) -> String {
             );
         }
     }
+    out
+}
+
+/// One stagger clamp as human text (Sprint 7 motion, CAP-002): the
+/// staggered directive, its piece count and largest delay, and the
+/// overflow cut at the target clip window, so clamping is reviewable
+/// before rendering while the verdict stays valid.
+fn format_stagger_clamp_human(f: &validate_mod::StaggerClamp) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let grid = match (f.grid_cols, f.grid_rows) {
+        (Some(c), Some(r)) => format!(" grid {c}x{r}"),
+        (Some(c), None) => format!(" grid {c} columns"),
+        _ => String::new(),
+    };
+    let _ = writeln!(
+        out,
+        "note: {} target={} ({}:{}): stagger {:.3}s across {} pieces from {}{} delays the last piece by {:.3}s; motion ends at {:.3}s, past clip end {:.3}s; clamped to the clip window (overflow {:.3}s).",
+        f.kind, f.target, f.line, f.column, f.stagger, f.pieces, f.origin, grid, f.max_delay,
+        f.motion_end, f.clip_end, f.overflow
+    );
     out
 }
 
@@ -215,6 +241,9 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
     for f in &verdict.inferred {
         out.push_str(&format_inferred_human(f));
     }
+    for f in &verdict.stagger_clamps {
+        out.push_str(&format_stagger_clamp_human(f));
+    }
     match verdict.status {
         Status::Valid => {
             let c = verdict.composition.as_ref().unwrap();
@@ -236,12 +265,11 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict) -> String {
                     .compositions
                     .iter()
                     .map(|m| {
-                        let mark =
-                            if Some(m.name.as_str()) == verdict.root_name.as_deref() {
-                                " (root)"
-                            } else {
-                                ""
-                            };
+                        let mark = if Some(m.name.as_str()) == verdict.root_name.as_deref() {
+                            " (root)"
+                        } else {
+                            ""
+                        };
                         format!("{:?}{mark} ({} clip(s))", m.name, m.clips.len())
                     })
                     .collect();
@@ -361,6 +389,39 @@ pub fn format_verdict_json(cmd: &str, folder: &Path, verdict: &Verdict) -> Strin
             json_escape(&f.detail),
         );
     }
+    // Sprint 7 motion: every stagger clamp as reviewable numbers, so
+    // overflow cuts are machine-readable like footage clamps.
+    out.push_str("],\"stagger_clamps\":[");
+    for (i, f) in verdict.stagger_clamps.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let grid_cols = match f.grid_cols {
+            Some(c) => c.to_string(),
+            None => "null".to_string(),
+        };
+        let grid_rows = match f.grid_rows {
+            Some(r) => r.to_string(),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"kind\":\"{}\",\"target\":{},\"line\":{},\"column\":{},\"pieces\":{},\"stagger\":{},\"origin\":\"{}\",\"grid_cols\":{},\"grid_rows\":{},\"max_delay\":{},\"motion_end\":{},\"clip_end\":{},\"overflow\":{}}}",
+            json_escape(f.kind),
+            f.target,
+            f.line,
+            f.column,
+            f.pieces,
+            num(Some(f.stagger)),
+            json_escape(f.origin),
+            grid_cols,
+            grid_rows,
+            num(Some(f.max_delay)),
+            num(Some(f.motion_end)),
+            num(Some(f.clip_end)),
+            num(Some(f.overflow)),
+        );
+    }
     // Sprint 6 T006: every composition name plus the render root, so
     // the default render target is reviewable machine-readably.
     out.push_str("],\"compositions\":[");
@@ -423,9 +484,8 @@ fn note_log(folder: &Path, level: &str, component: &str, run: &str, msg: &str, j
 pub fn cmd_check(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
     if let Some(raw) = backend {
         if render::render::Backend::parse(raw).is_none() {
-            let msg = format!(
-                "framesmith check: unknown --backend {raw:?}: expected cpu, gpu, or auto."
-            );
+            let msg =
+                format!("framesmith check: unknown --backend {raw:?}: expected cpu, gpu, or auto.");
             eprintln!("{msg}");
             return 1;
         }
@@ -579,11 +639,7 @@ pub fn format_timeline_human(folder: &Path, comp: &Composition) -> String {
 
 /// Machine-readable `timeline` report (Sprint 6 T010): the same rows as
 /// the human text, one object per clip. Pure function.
-pub fn format_timeline_json(
-    folder: &Path,
-    verdict: &Verdict,
-    comp: &Composition,
-) -> String {
+pub fn format_timeline_json(folder: &Path, verdict: &Verdict, comp: &Composition) -> String {
     use std::fmt::Write;
     let mut out = String::new();
     let _ = write!(
@@ -796,11 +852,7 @@ fn refuse_listing(cmd: &str, folder: &Path, verdict: &Verdict, json: bool) -> i3
 /// An unknown name refuses with the available names; the caller lists
 /// nothing on refusal. Only call with a valid verdict — invalid
 /// projects refuse through [`refuse_listing`] before selection.
-fn select_listing(
-    cmd: &str,
-    verdict: &Verdict,
-    name: Option<&str>,
-) -> Result<Composition, String> {
+fn select_listing(cmd: &str, verdict: &Verdict, name: Option<&str>) -> Result<Composition, String> {
     match name {
         None => Ok(verdict
             .composition
@@ -1129,7 +1181,10 @@ fn format_render_json(ctx: &RenderJson) -> String {
         }
         None => out.push_str("null"),
     }
-    let _ = write!(out, ",\"cache\":{{\"hits\":{cache_hits},\"misses\":{cache_misses}}}");
+    let _ = write!(
+        out,
+        ",\"cache\":{{\"hits\":{cache_hits},\"misses\":{cache_misses}}}"
+    );
     let _ = write!(
         out,
         ",\"output\":\"{}\",\"message\":\"{}\",\"diagnostics\":[",
@@ -1245,7 +1300,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 let enc = render::render::RenderOptions::default().encoder();
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: "unknown", preset: "unknown", enc: &enc, output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &[], total_ms: 0 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: "unknown",
+                        preset: "unknown",
+                        enc: &enc,
+                        output: "",
+                        message: &e,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &[],
+                        total_ms: 0
+                    })
                 );
             }
             return 1;
@@ -1281,10 +1350,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         vlevel,
         "check",
         &run,
-        &format!(
-            "{vwhat}: {} diagnostic(s)",
-            verdict.diagnostics.len()
-        ),
+        &format!("{vwhat}: {} diagnostic(s)", verdict.diagnostics.len()),
         json,
     );
     match verdict.status {
@@ -1293,18 +1359,38 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 "render refused: {} is invalid (validation stage); fix the problems above and re-run. No MP4 was written.",
                 folder.display()
             );
-            push_stage(&mut stages, render::render::StageTiming::failed(
-                "validate",
-                validate_ms,
-                format!("{} problem(s)", verdict.diagnostics.len()),
-            ));
-            stage_line(json, &format!("stage validate: failed ({validate_ms}ms): {msg}"));
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::failed(
+                    "validate",
+                    validate_ms,
+                    format!("{} problem(s)", verdict.diagnostics.len()),
+                ),
+            );
+            stage_line(
+                json,
+                &format!("stage validate: failed ({validate_ms}ms): {msg}"),
+            );
             print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
             note_log(folder, "warn", "render", &run, &msg, json);
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &verdict.diagnostics, stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &msg,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &verdict.diagnostics,
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             } else {
                 println!("{msg}");
@@ -1322,18 +1408,38 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 folder.display(),
                 names.join("; ")
             );
-            push_stage(&mut stages, render::render::StageTiming::failed(
-                "validate",
-                validate_ms,
-                format!("{} later-sprint use(s)", verdict.diagnostics.len()),
-            ));
-            stage_line(json, &format!("stage validate: failed ({validate_ms}ms): {msg}"));
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::failed(
+                    "validate",
+                    validate_ms,
+                    format!("{} later-sprint use(s)", verdict.diagnostics.len()),
+                ),
+            );
+            stage_line(
+                json,
+                &format!("stage validate: failed ({validate_ms}ms): {msg}"),
+            );
             print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
             note_log(folder, "warn", "render", &run, &msg, json);
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "unsupported", exit: 2, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &verdict.diagnostics, stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "unsupported",
+                        exit: 2,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &msg,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &verdict.diagnostics,
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             } else {
                 println!(
@@ -1348,11 +1454,14 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             return 2;
         }
         Status::Valid => {
-            push_stage(&mut stages, render::render::StageTiming::ok(
-                "validate",
-                validate_ms,
-                format!("{} diagnostic(s)", verdict.diagnostics.len()),
-            ));
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::ok(
+                    "validate",
+                    validate_ms,
+                    format!("{} diagnostic(s)", verdict.diagnostics.len()),
+                ),
+            );
             stage_line(json, &format!("stage validate: ok ({validate_ms}ms)"));
         }
     }
@@ -1367,7 +1476,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         if json {
             println!(
                 "{}",
-                format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: "gpu", preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                format_render_json(&RenderJson {
+                    folder,
+                    status: "invalid",
+                    exit: 1,
+                    backend: "gpu",
+                    preset: opts.preset.name(),
+                    enc: &opts.encoder(),
+                    output: "",
+                    message: &msg,
+                    cache_hits: 0,
+                    cache_misses: 0,
+                    diagnostics: &[],
+                    stages: &stages,
+                    total_ms: total_start.elapsed().as_millis() as u64
+                })
             );
         } else {
             println!("{msg}");
@@ -1380,7 +1503,13 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // declared trim/rate/loop keys, an inferred duration, or a clamp
     // announce; plain clips render exactly as before with no new lines.
     for f in &verdict.footage {
-        if f.trim_start != 0.0 || f.trim_end.is_some() || f.rate != 1.0 || f.loop_clip || f.clamped || f.inferred {
+        if f.trim_start != 0.0
+            || f.trim_end.is_some()
+            || f.rate != 1.0
+            || f.loop_clip
+            || f.clamped
+            || f.inferred
+        {
             for line in format_footage_human(f).lines() {
                 let note = format!("stage validate: note: {line}");
                 stage_line(json, &note);
@@ -1410,7 +1539,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 let enc = render::render::RenderOptions::default().encoder();
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &enc, output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &enc,
+                        output: "",
+                        message: &msg,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             }
             return 1;
@@ -1435,7 +1578,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 let enc = render::render::RenderOptions::default().encoder();
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "invalid", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &enc, output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &enc,
+                        output: "",
+                        message: &msg,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             }
             return 1;
@@ -1450,13 +1607,33 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         note_log(folder, "info", "render", &run, &note, json);
     }
     if render::cancel::is_cancelled() {
-        return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &folder.join("out.mp4"), "validate", &mut stages, total_start, 0, "");
+        return cmd_cancelled(
+            folder,
+            &run,
+            json,
+            opts.backend.name(),
+            opts.preset.name(),
+            &opts.encoder(),
+            &folder.join("out.mp4"),
+            "validate",
+            &mut stages,
+            total_start,
+            0,
+            "",
+        );
     }
 
     // Detection only reads host state; the folder is never modified (T008).
     let finding = ffmpeg_mod::detect();
     stage_line(json, &finding.to_string());
-    note_log(folder, "info", "bootstrap", &run, &finding.to_string(), json);
+    note_log(
+        folder,
+        "info",
+        "bootstrap",
+        &run,
+        &finding.to_string(),
+        json,
+    );
     // Bootstrap: reuse the host binary, self-download the pinned build,
     // or refuse before the first frame (T009/T010). The composition is
     // never touched here; only the tool cache may gain the pinned build.
@@ -1482,7 +1659,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &message, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "failed",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &message,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             }
             return 1;
@@ -1509,7 +1700,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         if json {
             println!(
                 "{}",
-                format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                format_render_json(&RenderJson {
+                    folder,
+                    status: "failed",
+                    exit: 1,
+                    backend: opts.backend.name(),
+                    preset: opts.preset.name(),
+                    enc: &opts.encoder(),
+                    output: "",
+                    message: &msg,
+                    cache_hits: 0,
+                    cache_misses: 0,
+                    diagnostics: &[],
+                    stages: &stages,
+                    total_ms: total_start.elapsed().as_millis() as u64
+                })
             );
         } else {
             println!("{msg}");
@@ -1531,7 +1736,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &msg, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "failed",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &msg,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             } else {
                 println!("{msg}");
@@ -1560,27 +1779,59 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // Sprint 6 T008: a sub-range prepares exactly its own window (its
     // frame `k` is the range start plus `k` frame intervals); a full
     // render prepares the whole composition exactly as before.
-    let prep = match render::render::prepare_frames_ranged(&comp, &verdict.compositions, folder, &ffmpeg_bin, range) {
+    let prep = match render::render::prepare_frames_ranged(
+        &comp,
+        &verdict.compositions,
+        folder,
+        &ffmpeg_bin,
+        range,
+    ) {
         Ok(prep) => prep,
         Err(e) => {
             if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
                 let ms = frames_start.elapsed().as_millis() as u64;
                 let detail = without_cancel_prefix(&e).unwrap_or("").to_string();
-                return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &out, "frames", &mut stages, total_start, ms, &detail);
+                return cmd_cancelled(
+                    folder,
+                    &run,
+                    json,
+                    opts.backend.name(),
+                    opts.preset.name(),
+                    &opts.encoder(),
+                    &out,
+                    "frames",
+                    &mut stages,
+                    total_start,
+                    ms,
+                    &detail,
+                );
             }
             let ms = frames_start.elapsed().as_millis() as u64;
-            push_stage(&mut stages, render::render::StageTiming::failed(
-                "frames",
-                ms,
-                "prepare failed".to_string(),
-            ));
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::failed("frames", ms, "prepare failed".to_string()),
+            );
             stage_line(json, &format!("stage frames: failed ({ms}ms): {e}"));
             print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
             note_log(folder, "error", "render", &run, &e, json);
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "failed",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &e,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                 println!("{e}");
@@ -1592,7 +1843,20 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     };
     if render::cancel::is_cancelled() {
         let ms = frames_start.elapsed().as_millis() as u64;
-        return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &out, "frames", &mut stages, total_start, ms, "");
+        return cmd_cancelled(
+            folder,
+            &run,
+            json,
+            opts.backend.name(),
+            opts.preset.name(),
+            &opts.encoder(),
+            &out,
+            "frames",
+            &mut stages,
+            total_start,
+            ms,
+            "",
+        );
     }
     let prepared_note = format!("prepared {} frame(s)", prep.frames());
     // Audio stage: smoke-decode video sound and build the Framesmith
@@ -1607,28 +1871,60 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
                 let audio_ms = audio_start.elapsed().as_millis() as u64;
                 let detail = without_cancel_prefix(&e).unwrap_or("").to_string();
-                return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &out, "audio", &mut stages, total_start, audio_ms, &detail);
+                return cmd_cancelled(
+                    folder,
+                    &run,
+                    json,
+                    opts.backend.name(),
+                    opts.preset.name(),
+                    &opts.encoder(),
+                    &out,
+                    "audio",
+                    &mut stages,
+                    total_start,
+                    audio_ms,
+                    &detail,
+                );
             }
             let audio_ms = audio_start.elapsed().as_millis() as u64;
             let frames_ms = frames_start.elapsed().as_millis() as u64;
-            push_stage(&mut stages, render::render::StageTiming::ok(
-                "frames",
-                frames_ms,
-                prepared_note.clone(),
-            ));
-            push_stage(&mut stages, render::render::StageTiming::failed(
-                "audio",
-                audio_ms,
-                "mix build failed".to_string(),
-            ));
-            stage_line(json, &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"));
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::ok("frames", frames_ms, prepared_note.clone()),
+            );
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::failed(
+                    "audio",
+                    audio_ms,
+                    "mix build failed".to_string(),
+                ),
+            );
+            stage_line(
+                json,
+                &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
+            );
             stage_line(json, &format!("stage audio: failed ({audio_ms}ms): {e}"));
             print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
             note_log(folder, "error", "render", &run, &e, json);
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "failed",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &e,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                 println!("{e}");
@@ -1640,7 +1936,20 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     };
     if render::cancel::is_cancelled() {
         let ms = audio_start.elapsed().as_millis() as u64;
-        return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &out, "audio", &mut stages, total_start, ms, "");
+        return cmd_cancelled(
+            folder,
+            &run,
+            json,
+            opts.backend.name(),
+            opts.preset.name(),
+            &opts.encoder(),
+            &out,
+            "audio",
+            &mut stages,
+            total_start,
+            ms,
+            "",
+        );
     }
     // Sprint 6 T008: the staged mix spans the whole composition, so a
     // sub-range crops it to exactly its own window — sample for sample
@@ -1650,24 +1959,43 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         if let Err(e) = render::render::crop_mix_to_range(mix, r.start, r.end) {
             let audio_ms = audio_start.elapsed().as_millis() as u64;
             let frames_ms = frames_start.elapsed().as_millis() as u64;
-            push_stage(&mut stages, render::render::StageTiming::ok(
-                "frames",
-                frames_ms,
-                prepared_note.clone(),
-            ));
-            push_stage(&mut stages, render::render::StageTiming::failed(
-                "audio",
-                audio_ms,
-                "range crop failed".to_string(),
-            ));
-            stage_line(json, &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"));
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::ok("frames", frames_ms, prepared_note.clone()),
+            );
+            push_stage(
+                &mut stages,
+                render::render::StageTiming::failed(
+                    "audio",
+                    audio_ms,
+                    "range crop failed".to_string(),
+                ),
+            );
+            stage_line(
+                json,
+                &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
+            );
             stage_line(json, &format!("stage audio: failed ({audio_ms}ms): {e}"));
             print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
             note_log(folder, "error", "render", &run, &e, json);
             if json {
                 println!(
                     "{}",
-                    format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "failed",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &e,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
                 );
             } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                 println!("{e}");
@@ -1684,12 +2012,14 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         Some(_) => "mix: audible sources mixed at 48 kHz stereo".to_string(),
         None => "mix: no audible sound; silent track".to_string(),
     };
-    stage_line(json, &format!("stage audio: ok ({audio_ms}ms): {audio_note}"));
-    push_stage(&mut stages, render::render::StageTiming::ok(
-        "audio",
-        audio_ms,
-        audio_note.clone(),
-    ));
+    stage_line(
+        json,
+        &format!("stage audio: ok ({audio_ms}ms): {audio_note}"),
+    );
+    push_stage(
+        &mut stages,
+        render::render::StageTiming::ok("audio", audio_ms, audio_note.clone()),
+    );
 
     // Frames stage, second half, plus encode: draw in parallel in bounded
     // batches, re-emit in frame order, and rename the MP4 into place.
@@ -1700,22 +2030,52 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
                     let frames_ms = frames_start.elapsed().as_millis() as u64;
                     let detail = without_cancel_prefix(&e).unwrap_or("").to_string();
-                    let stage: &'static str = if e.contains("encode") { "encode" } else { "frames" };
-                    return cmd_cancelled(folder, &run, json, opts.backend.name(), opts.preset.name(), &opts.encoder(), &out, stage, &mut stages, total_start, frames_ms, &detail);
+                    let stage: &'static str = if e.contains("encode") {
+                        "encode"
+                    } else {
+                        "frames"
+                    };
+                    return cmd_cancelled(
+                        folder,
+                        &run,
+                        json,
+                        opts.backend.name(),
+                        opts.preset.name(),
+                        &opts.encoder(),
+                        &out,
+                        stage,
+                        &mut stages,
+                        total_start,
+                        frames_ms,
+                        &detail,
+                    );
                 }
                 let frames_ms = frames_start.elapsed().as_millis() as u64;
-                push_stage(&mut stages, render::render::StageTiming::failed(
-                    "frames",
-                    frames_ms,
-                    prepared_note.clone(),
-                ));
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed("frames", frames_ms, prepared_note.clone()),
+                );
                 stage_line(json, &format!("stage frames: failed ({frames_ms}ms): {e}"));
                 print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
                 note_log(folder, "error", "render", &run, &e, json);
                 if json {
                     println!(
                         "{}",
-                        format_render_json(&RenderJson { folder, status: "failed", exit: 1, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: "", message: &e, cache_hits: 0, cache_misses: 0, diagnostics: &[], stages: &stages, total_ms: total_start.elapsed().as_millis() as u64 })
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "failed",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &e,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
                     );
                 } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
                     println!("{e}");
@@ -1733,16 +2093,22 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         None => done_msg,
     };
     let frames_ms = frames_start.elapsed().as_millis() as u64;
-    push_stage(&mut stages, render::render::StageTiming::ok(
-        "frames",
-        frames_ms,
-        format!("{prepared_note}; drew {draw_ms}ms"),
-    ));
-    push_stage(&mut stages, render::render::StageTiming::ok(
-        "encode",
-        encode_ms,
-        "ffmpeg encode and atomic rename".to_string(),
-    ));
+    push_stage(
+        &mut stages,
+        render::render::StageTiming::ok(
+            "frames",
+            frames_ms,
+            format!("{prepared_note}; drew {draw_ms}ms"),
+        ),
+    );
+    push_stage(
+        &mut stages,
+        render::render::StageTiming::ok(
+            "encode",
+            encode_ms,
+            "ffmpeg encode and atomic rename".to_string(),
+        ),
+    );
     stage_line(
         json,
         &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
@@ -1758,11 +2124,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     stage_line(json, &done_msg);
     note_log(folder, "info", "render", &run, &done_msg, json);
     let total_ms = total_start.elapsed().as_millis() as u64;
-    push_stage(&mut stages, render::render::StageTiming::ok(
-        "done",
-        total_ms,
-        done_msg.clone(),
-    ));
+    push_stage(
+        &mut stages,
+        render::render::StageTiming::ok("done", total_ms, done_msg.clone()),
+    );
     stage_line(json, "stage done: ok");
     print_timing_line(json, &stages, total_ms);
     note_log(
@@ -1783,7 +2148,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     if json {
         println!(
             "{}",
-            format_render_json(&RenderJson { folder, status: "valid", exit: 0, backend: opts.backend.name(), preset: opts.preset.name(), enc: &opts.encoder(), output: &out.display().to_string(), message: &done_msg, cache_hits, cache_misses, diagnostics: &[], stages: &stages, total_ms })
+            format_render_json(&RenderJson {
+                folder,
+                status: "valid",
+                exit: 0,
+                backend: opts.backend.name(),
+                preset: opts.preset.name(),
+                enc: &opts.encoder(),
+                output: &out.display().to_string(),
+                message: &done_msg,
+                cache_hits,
+                cache_misses,
+                diagnostics: &[],
+                stages: &stages,
+                total_ms
+            })
         );
     }
     0
@@ -1837,10 +2216,7 @@ fn cmd_cancelled(
         detail.to_string()
     };
     if !leftovers.is_empty() && !msg.contains("leftover") {
-        let names: Vec<String> = leftovers
-            .iter()
-            .map(|p| p.display().to_string())
-            .collect();
+        let names: Vec<String> = leftovers.iter().map(|p| p.display().to_string()).collect();
         msg.push_str(&format!(
             " leftover path(s) that could not be removed: {}.",
             names.join(", ")
@@ -1904,7 +2280,8 @@ pub fn cmd_errors(code: Option<&str>, json: bool) -> i32 {
         None => {
             if json {
                 use std::fmt::Write;
-                let mut out = String::from("{\"tool\":\"framesmith\",\"command\":\"errors\",\"codes\":[");
+                let mut out =
+                    String::from("{\"tool\":\"framesmith\",\"command\":\"errors\",\"codes\":[");
                 for (i, e) in catalog::CATALOG.iter().enumerate() {
                     if i > 0 {
                         out.push(',');
@@ -2019,17 +2396,23 @@ mod tests {
         let root = tmp_dir("empty");
         std::fs::create_dir_all(root.join("proj")).unwrap();
         assert_eq!(cmd_init("proj", &root), 0);
-        assert_eq!(
-            validate_folder(&root.join("proj")).status,
-            Status::Valid
-        );
+        assert_eq!(validate_folder(&root.join("proj")).status, Status::Valid);
     }
 
     #[test]
     fn init_rejects_bad_names() {
         let root = tmp_dir("names");
         let bad65 = "x".repeat(65);
-        for bad in ["", "has space", "a/b", "..", ".", "-x!", "é", bad65.as_str()] {
+        for bad in [
+            "",
+            "has space",
+            "a/b",
+            "..",
+            ".",
+            "-x!",
+            "é",
+            bad65.as_str(),
+        ] {
             assert_eq!(cmd_init(bad, &root), 1, "name {bad:?}");
         }
         // Nothing may be created for bad names: only entries allowed are
@@ -2120,11 +2503,7 @@ mod tests {
     fn unknown_config_keys_are_invalid() {
         let folder = tmp_dir("unknowncfg");
         write(&folder, validate_mod::COMPOSITION_FILE, VALID);
-        write(
-            &folder,
-            notation::model::CONFIG_FILE,
-            "bogus_key = true\n",
-        );
+        write(&folder, notation::model::CONFIG_FILE, "bogus_key = true\n");
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Invalid);
         assert!(v.diagnostics.iter().any(|d| d.code == "E_UNKNOWN_KEY"));
@@ -2247,7 +2626,15 @@ mod tests {
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
         let codes: Vec<&str> = v.diagnostics.iter().map(|d| d.code).collect();
-        for want in ["E_BAD_BOX", "E_BAD_COLOR", "E_BAD_ORDER", "E_BAD_SPACING", "E_MISSING_FILE", "E_BAD_FIT", "E_BAD_IMAGE"] {
+        for want in [
+            "E_BAD_BOX",
+            "E_BAD_COLOR",
+            "E_BAD_ORDER",
+            "E_BAD_SPACING",
+            "E_MISSING_FILE",
+            "E_BAD_FIT",
+            "E_BAD_IMAGE",
+        ] {
             assert!(codes.contains(&want), "missing {want} in {codes:?}");
         }
         for d in &v.diagnostics {
@@ -2256,7 +2643,12 @@ mod tests {
         }
         let human = format_check_human(&folder, &v);
         let json = format_check_json(&folder, &v);
-        for want in ["E_BAD_BOX", "E_BAD_ORDER", "E_BAD_SPACING", "E_MISSING_FILE"] {
+        for want in [
+            "E_BAD_BOX",
+            "E_BAD_ORDER",
+            "E_BAD_SPACING",
+            "E_MISSING_FILE",
+        ] {
             assert!(human.contains(want), "{human}");
             assert!(json.contains(want), "{json}");
         }
@@ -2275,7 +2667,10 @@ mod tests {
         );
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Unsupported, "{:?}", v.diagnostics);
-        assert!(v.diagnostics.iter().any(|d| d.code == "E_UNSUPPORTED" && d.message.contains("photo.webp")));
+        assert!(v
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "E_UNSUPPORTED" && d.message.contains("photo.webp")));
     }
 
     /// Sprint 5 T007: an animated GIF in `image` is invalid (exit 1)
@@ -2380,7 +2775,11 @@ mod tests {
         assert_eq!(cmd_render(&folder, None), 1);
         let after = validate_folder(&folder);
         assert_eq!(
-            before.diagnostics.iter().map(|d| d.code).collect::<Vec<_>>(),
+            before
+                .diagnostics
+                .iter()
+                .map(|d| d.code)
+                .collect::<Vec<_>>(),
             after.diagnostics.iter().map(|d| d.code).collect::<Vec<_>>(),
             "render must refuse with the same diagnostics check reports"
         );
@@ -2547,8 +2946,8 @@ mod tests {
         let v = validate_folder(&folder);
         assert!(!v.diagnostics.is_empty());
         for d in &v.diagnostics {
-            let entry =
-                catalog::lookup(d.code).unwrap_or_else(|| panic!("{} has no catalog entry", d.code));
+            let entry = catalog::lookup(d.code)
+                .unwrap_or_else(|| panic!("{} has no catalog entry", d.code));
             assert!(!entry.meaning.is_empty());
             assert!(!entry.example.is_empty());
             assert!(!entry.fix.is_empty());
@@ -2568,7 +2967,12 @@ mod tests {
                 ),
             );
             let v = validate_folder(&folder);
-            assert_eq!(v.status, Status::Invalid, "size={size}: {:?}", v.diagnostics);
+            assert_eq!(
+                v.status,
+                Status::Invalid,
+                "size={size}: {:?}",
+                v.diagnostics
+            );
             assert!(v.diagnostics.iter().any(|d| d.code == "E_BAD_TIMING"));
         }
         // align is exactly left/center/right.
@@ -2592,7 +2996,12 @@ mod tests {
                 ),
             );
             let v = validate_folder(&folder);
-            assert_eq!(v.status, Status::Invalid, "wrap={wrap}: {:?}", v.diagnostics);
+            assert_eq!(
+                v.status,
+                Status::Invalid,
+                "wrap={wrap}: {:?}",
+                v.diagnostics
+            );
         }
         // position is an "X,Y" pair.
         let folder = tmp_dir("badpos");
@@ -2727,8 +3136,9 @@ mod tests {
         }
         // The bad easing names the accepted set.
         assert!(
-            v.diagnostics.iter().any(|d| d.code == "E_BAD_EASING"
-                && d.message.contains("in-out-sine")),
+            v.diagnostics
+                .iter()
+                .any(|d| d.code == "E_BAD_EASING" && d.message.contains("in-out-sine")),
             "{:?}",
             v.diagnostics
         );
@@ -2752,9 +3162,14 @@ mod tests {
 
     #[test]
     fn later_motion_properties_and_easings_wait_for_sprint_7() {
-        // T003: well-formed use of beyond-Sprint-2 properties and easings
-        // exits 2 naming the property/easing with its enabling sprint.
-        for prop in ["scale-x", "blur", "rotate-x", "typed"] {
+        // T003 plus Sprint 7 motion (T005/T006): well-formed use of
+        // beyond-today properties exits 2 naming the property with its
+        // enabling sprint. `blur` and `rotate-x` animate since T005/T006
+        // (asserted valid below); `scale-x` and `typed` still wait for
+        // Sprint 7, and `brightness` moved to the Sprint 11 filter set.
+        // Sprint 7 motion (T007) enables the full easing curve set:
+        // those easings validate cleanly and land in the composition.
+        for prop in ["scale-x", "typed"] {
             let folder = tmp_dir("laterprop");
             write(
                 &folder,
@@ -2775,7 +3190,52 @@ mod tests {
             assert_eq!(cmd_render(&folder, None), 2);
             assert!(!folder.join("out.mp4").exists());
         }
-        for ease in ["spring", "bounce", "cubic-bezier(0.25,0.1,0.25,1)"] {
+        // Beyond-blur filters wait for Sprint 11, even well-formed.
+        for prop in ["brightness", "filter", "contrast"] {
+            let folder = tmp_dir("laterfilter");
+            write(
+                &folder,
+                validate_mod::COMPOSITION_FILE,
+                &format!("composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {{\n    text value=\"Hi\" start=0 duration=2\n    tween target=0 property=\"{prop}\" kind=\"to\" start=0 duration=1 to=1\n}}\n"),
+            );
+            let v = validate_folder(&folder);
+            assert_eq!(v.status, Status::Unsupported, "{prop}: {:?}", v.diagnostics);
+            assert!(
+                v.diagnostics.iter().any(|d| d.code == "E_UNSUPPORTED"
+                    && d.message.contains(prop)
+                    && d.message.contains("Sprint 11")),
+                "{prop}: {:?}",
+                v.diagnostics
+            );
+            assert_eq!(cmd_check(&folder, false, None), 2);
+            assert_eq!(cmd_check(&folder, true, None), 2);
+            assert_eq!(cmd_render(&folder, None), 2);
+            assert!(!folder.join("out.mp4").exists());
+        }
+        // Sprint 7 motion properties validate clean and check green.
+        for (prop, to) in [("blur", "2"), ("rotate-x", "45"), ("rotation-y", "30")] {
+            let folder = tmp_dir("nowprop");
+            write(
+                &folder,
+                validate_mod::COMPOSITION_FILE,
+                &format!("composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {{\n    text value=\"Hi\" start=0 duration=2\n    tween target=0 property=\"{prop}\" kind=\"to\" start=0 duration=1 to={to}\n}}\n"),
+            );
+            let v = validate_folder(&folder);
+            assert_eq!(v.status, Status::Valid, "{prop}: {:?}", v.diagnostics);
+            assert!(v.diagnostics.is_empty(), "{prop}: {:?}", v.diagnostics);
+            assert_eq!(cmd_check(&folder, false, None), 0);
+        }
+        for ease in [
+            "spring",
+            "spring(100,5)",
+            "bounce",
+            "elastic",
+            "wiggle",
+            "wiggle(2)",
+            "hold",
+            "steps(4)",
+            "cubic-bezier(0.25,0.1,0.25,1)",
+        ] {
             let folder = tmp_dir("laterease");
             write(
                 &folder,
@@ -2783,13 +3243,9 @@ mod tests {
                 &format!("composition name=\"t\" width=64 height=64 duration=2 background=\"#000\" version=1 {{\n    text value=\"Hi\" start=0 duration=2\n    tween target=0 property=\"x\" kind=\"to\" start=0 duration=1 to=10 ease=\"{ease}\"\n}}\n"),
             );
             let v = validate_folder(&folder);
-            assert_eq!(v.status, Status::Unsupported, "{ease}: {:?}", v.diagnostics);
-            assert!(
-                v.diagnostics.iter().any(|d| d.code == "E_UNSUPPORTED"
-                    && d.message.contains("Sprint 7")),
-                "{ease}: {:?}",
-                v.diagnostics
-            );
+            assert_eq!(v.status, Status::Valid, "{ease}: {:?}", v.diagnostics);
+            assert!(v.diagnostics.is_empty(), "{ease}: {:?}", v.diagnostics);
+            assert_eq!(cmd_check(&folder, false, None), 0);
         }
     }
 
@@ -2821,7 +3277,10 @@ mod tests {
     #[test]
     fn missing_files_are_located() {
         let folder = tmp_dir("missing");
-        assert_eq!(validate_folder(&folder.join("nope")).status, Status::Invalid);
+        assert_eq!(
+            validate_folder(&folder.join("nope")).status,
+            Status::Invalid
+        );
         write(
             &folder,
             validate_mod::COMPOSITION_FILE,
@@ -2920,11 +3379,20 @@ mod tests {
         for d in &v.diagnostics {
             assert!(!d.file.is_empty() && d.line >= 1 && d.column >= 1, "{d:?}");
             assert!(!d.fix.is_empty(), "{d:?}");
-            assert!(catalog::lookup(d.code).is_some(), "{} has no catalog entry", d.code);
+            assert!(
+                catalog::lookup(d.code).is_some(),
+                "{} has no catalog entry",
+                d.code
+            );
         }
         let human = format_check_human(&folder, &v);
         let json = format_check_json(&folder, &v);
-        for want in ["E_MISSING_FILE", "E_BAD_AUDIO", "E_UNKNOWN_KEY", "E_UNSUPPORTED"] {
+        for want in [
+            "E_MISSING_FILE",
+            "E_BAD_AUDIO",
+            "E_UNKNOWN_KEY",
+            "E_UNSUPPORTED",
+        ] {
             let in_human = human.matches(&format!("error[{want}]")).count();
             let in_json = json.matches(&format!("\"code\":\"{want}\"")).count();
             assert!(in_human >= 1, "{human}");
@@ -2949,9 +3417,18 @@ mod tests {
         assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
         // Each sound misuse is its own invalid verdict.
         for (tag, line) in [
-            ("loud", "video path=\"clip.mp4\" start=0 duration=2 volume=12.5"),
-            ("fade", "video path=\"clip.mp4\" start=0 duration=2 fade-out=9"),
-            ("shape", "video path=\"clip.mp4\" start=0 duration=2 volume=\"loud\""),
+            (
+                "loud",
+                "video path=\"clip.mp4\" start=0 duration=2 volume=12.5",
+            ),
+            (
+                "fade",
+                "video path=\"clip.mp4\" start=0 duration=2 fade-out=9",
+            ),
+            (
+                "shape",
+                "video path=\"clip.mp4\" start=0 duration=2 volume=\"loud\"",
+            ),
         ] {
             let folder = tmp_dir("vidsndbad");
             std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
@@ -2993,13 +3470,31 @@ mod tests {
     #[test]
     fn video_trim_and_rate_declarations_validate_without_probe() {
         for (tag, line) in [
-            ("backward", "video path=\"clip.mp4\" start=0 duration=2 trim-start=3 trim-end=1"),
-            ("zero", "video path=\"clip.mp4\" start=0 duration=2 trim-start=2 trim-end=2"),
-            ("low", "video path=\"clip.mp4\" start=0 duration=2 rate=0.05"),
+            (
+                "backward",
+                "video path=\"clip.mp4\" start=0 duration=2 trim-start=3 trim-end=1",
+            ),
+            (
+                "zero",
+                "video path=\"clip.mp4\" start=0 duration=2 trim-start=2 trim-end=2",
+            ),
+            (
+                "low",
+                "video path=\"clip.mp4\" start=0 duration=2 rate=0.05",
+            ),
             ("high", "video path=\"clip.mp4\" start=0 duration=2 rate=20"),
-            ("zero-rate", "video path=\"clip.mp4\" start=0 duration=2 rate=0"),
-            ("negative-rate", "video path=\"clip.mp4\" start=0 duration=2 rate=-1"),
-            ("negative-trim", "video path=\"clip.mp4\" start=0 duration=2 trim-start=-1"),
+            (
+                "zero-rate",
+                "video path=\"clip.mp4\" start=0 duration=2 rate=0",
+            ),
+            (
+                "negative-rate",
+                "video path=\"clip.mp4\" start=0 duration=2 rate=-1",
+            ),
+            (
+                "negative-trim",
+                "video path=\"clip.mp4\" start=0 duration=2 trim-start=-1",
+            ),
         ] {
             let folder = tmp_dir("vidfootage");
             std::fs::write(folder.join("clip.mp4"), b"fake").unwrap();
@@ -3018,7 +3513,10 @@ mod tests {
                 v.diagnostics
             );
             for d in &v.diagnostics {
-                assert!(!d.file.is_empty() && d.line >= 1 && d.column >= 1, "{tag}: {d:?}");
+                assert!(
+                    !d.file.is_empty() && d.line >= 1 && d.column >= 1,
+                    "{tag}: {d:?}"
+                );
                 assert!(!d.fix.is_empty(), "{tag}: {d:?}");
                 assert!(validate::catalog::lookup(d.code).is_some());
             }
@@ -3072,11 +3570,7 @@ mod tests {
         assert_eq!(cmd_check(&folder, true, None), 1);
         let human = format_check_human(&folder, &v);
         let json = format_check_json(&folder, &v);
-        assert_eq!(
-            human.matches("error[E_BAD_FOOTAGE]").count(),
-            3,
-            "{human}"
-        );
+        assert_eq!(human.matches("error[E_BAD_FOOTAGE]").count(), 3, "{human}");
         assert_eq!(
             json.matches("\"code\":\"E_BAD_FOOTAGE\"").count(),
             3,
@@ -3123,8 +3617,9 @@ mod tests {
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
         assert!(
-            v.diagnostics.iter().any(|d| d.code == "E_BAD_FOOTAGE"
-                && d.message.contains("backward")),
+            v.diagnostics
+                .iter()
+                .any(|d| d.code == "E_BAD_FOOTAGE" && d.message.contains("backward")),
             "{:?}",
             v.diagnostics
         );
@@ -3164,8 +3659,9 @@ mod tests {
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
         assert!(
-            v.diagnostics.iter().any(|d| d.code == "E_BAD_FOOTAGE"
-                && d.message.contains("explicit `duration`")),
+            v.diagnostics
+                .iter()
+                .any(|d| d.code == "E_BAD_FOOTAGE" && d.message.contains("explicit `duration`")),
             "{:?}",
             v.diagnostics
         );
@@ -3182,8 +3678,9 @@ mod tests {
         let v = validate_folder(&folder);
         assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
         assert!(
-            v.diagnostics.iter().any(|d| d.code == "E_BAD_FOOTAGE"
-                && d.message.contains("`true` or `false`")),
+            v.diagnostics
+                .iter()
+                .any(|d| d.code == "E_BAD_FOOTAGE" && d.message.contains("`true` or `false`")),
             "{:?}",
             v.diagnostics
         );
@@ -3206,8 +3703,14 @@ mod tests {
     #[test]
     fn later_sprint_audio_use_names_enabling_sprint() {
         for (tag, body) in [
-            ("key", "audio path=\"s.wav\" start=0 duration=1 effect=\"reverb\""),
-            ("vkey", "video path=\"clip.mp4\" start=0 duration=1 ducking=0.5"),
+            (
+                "key",
+                "audio path=\"s.wav\" start=0 duration=1 effect=\"reverb\"",
+            ),
+            (
+                "vkey",
+                "video path=\"clip.mp4\" start=0 duration=1 ducking=0.5",
+            ),
             ("elem", "automation lane=\"volume\" start=0 duration=1"),
             ("group", "group name=\"drums\""),
         ] {
@@ -3257,7 +3760,11 @@ mod tests {
         assert_eq!(cmd_render(&folder, None), 1);
         let after = validate_folder(&folder);
         assert_eq!(
-            before.diagnostics.iter().map(|d| d.code).collect::<Vec<_>>(),
+            before
+                .diagnostics
+                .iter()
+                .map(|d| d.code)
+                .collect::<Vec<_>>(),
             after.diagnostics.iter().map(|d| d.code).collect::<Vec<_>>(),
             "render must refuse with the same diagnostics check reports"
         );
@@ -3294,8 +3801,14 @@ mod tests {
             assert!(json.contains(&format!("\"name\":\"{name}\"")), "{json}");
         }
         assert!(human.contains("\"main\" (root, 2 clip(s))"), "{human}");
-        assert!(json.contains("\"name\":\"main\",\"clips\":2,\"root\":true"), "{json}");
-        assert!(json.contains("\"name\":\"cut\",\"clips\":1,\"root\":false"), "{json}");
+        assert!(
+            json.contains("\"name\":\"main\",\"clips\":2,\"root\":true"),
+            "{json}"
+        );
+        assert!(
+            json.contains("\"name\":\"cut\",\"clips\":1,\"root\":false"),
+            "{json}"
+        );
         assert!(json.contains("\"root\":\"main\""), "{json}");
         assert_eq!(cmd_compositions(&folder, false), 0);
         assert_eq!(cmd_compositions(&folder, true), 0);
@@ -3312,8 +3825,16 @@ mod tests {
         let comp = v.composition.as_ref().unwrap();
         let human = format_timeline_human(&folder, comp);
         let json = format_timeline_json(&folder, &v, comp);
-        assert!(human.contains("[0] box id=\"red\" track=video label=\"cover\" visible window 0.500s..1.500s."), "{human}");
-        assert!(human.contains("[1] box id=- track=graphics label=- hidden window 1.500s..2.000s."), "{human}");
+        assert!(
+            human.contains(
+                "[0] box id=\"red\" track=video label=\"cover\" visible window 0.500s..1.500s."
+            ),
+            "{human}"
+        );
+        assert!(
+            human.contains("[1] box id=- track=graphics label=- hidden window 1.500s..2.000s."),
+            "{human}"
+        );
         assert!(json.contains("\"id\":\"red\",\"track\":\"video\",\"label\":\"cover\",\"hidden\":false,\"start\":0.5,\"end\":1.5"), "{json}");
         assert!(json.contains("\"id\":null,\"track\":\"graphics\",\"label\":null,\"hidden\":true,\"start\":1.5,\"end\":2"), "{json}");
         assert_eq!(cmd_timeline(&folder, None, false), 0);
@@ -3334,15 +3855,32 @@ mod tests {
         let human = format_info_human(&folder, comp);
         let json = format_info_json(&folder, comp);
         assert!(human.contains("canvas: 64x64."), "{human}");
-        assert!(human.contains("duration: 2.000s (60 frames at 30fps)."), "{human}");
-        assert!(human.contains("clips: 2 total (text=0, video=0, box=2, image=0, audio=0, nest=0; hidden=1)."), "{human}");
-        assert!(json.contains("\"canvas\":{\"width\":64,\"height\":64,\"preset\":null}"), "{json}");
-        assert!(json.contains("\"duration\":2,\"fps\":\"30\",\"frames\":60"), "{json}");
+        assert!(
+            human.contains("duration: 2.000s (60 frames at 30fps)."),
+            "{human}"
+        );
+        assert!(
+            human.contains(
+                "clips: 2 total (text=0, video=0, box=2, image=0, audio=0, nest=0; hidden=1)."
+            ),
+            "{human}"
+        );
+        assert!(
+            json.contains("\"canvas\":{\"width\":64,\"height\":64,\"preset\":null}"),
+            "{json}"
+        );
+        assert!(
+            json.contains("\"duration\":2,\"fps\":\"30\",\"frames\":60"),
+            "{json}"
+        );
         assert!(json.contains("\"total\":2"), "{json}");
         assert!(json.contains("\"hidden\":1"), "{json}");
         let cut = v.compositions.iter().find(|c| c.name == "cut").unwrap();
         let cut_human = format_info_human(&folder, cut);
-        assert!(cut_human.contains("canvas: 1080x1080 (preset \"square\")."), "{cut_human}");
+        assert!(
+            cut_human.contains("canvas: 1080x1080 (preset \"square\")."),
+            "{cut_human}"
+        );
         assert_eq!(cmd_info(&folder, None, false), 0);
         assert_eq!(cmd_info(&folder, Some("cut"), true), 0);
         assert_eq!(cmd_info(&folder, Some("ghost"), false), 1);
@@ -3365,7 +3903,8 @@ mod tests {
         let timeline = format_verdict_json("timeline", &folder, &v);
         assert!(timeline.contains("\"command\":\"timeline\""), "{timeline}");
         // Same diagnostic payload, only the command name differs.
-        let strip = |s: &str, cmd: &str| s.replace(&format!("\"command\":\"{cmd}\""), "\"command\":\"?\"");
+        let strip =
+            |s: &str, cmd: &str| s.replace(&format!("\"command\":\"{cmd}\""), "\"command\":\"?\"");
         assert_eq!(strip(&timeline, "timeline"), strip(&check, "check"));
         assert_eq!(cmd_compositions(&folder, false), 1);
         assert_eq!(cmd_compositions(&folder, true), 1);

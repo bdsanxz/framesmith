@@ -107,8 +107,22 @@ fn gen_video_with_sound(dir: &Path, name: &str, tone: &Path, seconds: f64) {
 fn decode_audio(mp4: &Path) -> Vec<i16> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:a", "-f", "s16le",
-            "-acodec", "pcm_s16le", "-ar", "48000", "-ac", "2", "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:a",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-",
         ])
         .output()
         .expect("decode mp4 audio");
@@ -120,8 +134,20 @@ fn decode_audio(mp4: &Path) -> Vec<i16> {
 fn decode_video(mp4: &Path, w: u32, h: u32) -> Vec<u8> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:v", "-f", "rawvideo",
-            "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"), "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:v",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-s",
+            &format!("{w}x{h}"),
+            "-",
         ])
         .output()
         .expect("decode mp4 video");
@@ -154,14 +180,20 @@ fn onset_frame(pcm: &[i16], threshold: i16) -> Option<usize> {
 fn crossings(pcm: &[i16], from: usize, to: usize) -> usize {
     let to = to.min(pcm.len() / 2);
     (from.max(1)..to)
-        .filter(|&j| (pcm[(j - 1) * 2] <= 0 && pcm[j * 2] > 0) || (pcm[(j - 1) * 2] >= 0 && pcm[j * 2] < 0))
+        .filter(|&j| {
+            (pcm[(j - 1) * 2] <= 0 && pcm[j * 2] > 0) || (pcm[(j - 1) * 2] >= 0 && pcm[j * 2] < 0)
+        })
         .count()
 }
 
 /// Mean absolute byte difference between two frames.
 fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
@@ -219,7 +251,10 @@ fn trimmed_clip_pictures_match_the_source_window() {
     write(
         &folder,
         "composition.kdl",
-        &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2 trim-start=1 trim-end=3"),
+        &comp(
+            2.0,
+            "video path=\"clip.mp4\" start=0 duration=2 trim-start=1 trim-end=3",
+        ),
     );
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
@@ -237,7 +272,10 @@ fn trimmed_clip_pictures_match_the_source_window() {
         let good = frame_mad(got, want);
         let bad = frame_mad(got, wrong);
         println!("frame {k}: mapped={good:.2} untrimmed={bad:.2}");
-        assert!(good < 15.0, "frame {k} must match its window frame, mad={good:.2}");
+        assert!(
+            good < 15.0,
+            "frame {k} must match its window frame, mad={good:.2}"
+        );
         assert!(good < bad * 0.5, "frame {k} must match the window better than the untrimmed frame ({good:.2} vs {bad:.2})");
         worst = worst.max(good);
     }
@@ -255,7 +293,10 @@ fn retimed_clip_pictures_follow_rate() {
     write(
         &folder,
         "composition.kdl",
-        &comp(1.0, "video path=\"clip.mp4\" start=0 duration=1 trim-start=1 trim-end=3 rate=2"),
+        &comp(
+            1.0,
+            "video path=\"clip.mp4\" start=0 duration=1 trim-start=1 trim-end=3 rate=2",
+        ),
     );
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
@@ -271,11 +312,19 @@ fn retimed_clip_pictures_follow_rate() {
         let want = &source[src_idx * fs..(src_idx + 1) * fs];
         let good = frame_mad(got, want);
         println!("frame {k}: source frame {src_idx}, mad={good:.2}");
-        assert!(good < 15.0, "frame {k} must match source frame {src_idx}, mad={good:.2}");
+        assert!(
+            good < 15.0,
+            "frame {k} must match source frame {src_idx}, mad={good:.2}"
+        );
     }
     let dur = ffprobe(&folder.join("out.mp4"), "format=duration");
-    let secs: f64 = dur.lines().find(|l| l.starts_with("duration=")).unwrap()["duration=".len()..].parse().unwrap();
-    assert!((secs - 1.0).abs() < 0.1, "output lasts the window/rate (1 s), got {secs}");
+    let secs: f64 = dur.lines().find(|l| l.starts_with("duration=")).unwrap()["duration=".len()..]
+        .parse()
+        .unwrap();
+    assert!(
+        (secs - 1.0).abs() < 0.1,
+        "output lasts the window/rate (1 s), got {secs}"
+    );
 }
 
 /// Clip sound starts within 1 ms of its scaled written time and stays
@@ -303,15 +352,27 @@ fn trimmed_sound_aligns_and_pitch_follows_rate() {
     assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
     let onset = onset_frame(&pcm, 500).expect("clip sound must be audible");
     println!("sound onset: frame {onset}, written 24000");
-    assert!(onset.abs_diff(24000) <= 48, "sound {onset} misses its scaled written time 24000 by more than 1 ms");
-    assert!(pcm[..2 * 23000].iter().all(|&x| x == 0), "silence before the clip starts");
+    assert!(
+        onset.abs_diff(24000) <= 48,
+        "sound {onset} misses its scaled written time 24000 by more than 1 ms"
+    );
+    assert!(
+        pcm[..2 * 23000].iter().all(|&x| x == 0),
+        "silence before the clip starts"
+    );
     // The 1 s window carries ~880 Hz (440 Hz source at rate 2): ~1760
     // zero crossings, present in both halves (no mid-clip dropout).
     let early = crossings(&pcm, 24000, 48000);
     let late = crossings(&pcm, 48000, 72000);
     println!("crossings: early={early} late={late}");
-    assert!((early as i32 - 880).abs() <= 90, "first half carries doubled pitch, got {early}");
-    assert!((late as i32 - 880).abs() <= 90, "second half stays aligned, got {late}");
+    assert!(
+        (early as i32 - 880).abs() <= 90,
+        "first half carries doubled pitch, got {early}"
+    );
+    assert!(
+        (late as i32 - 880).abs() <= 90,
+        "second half stays aligned, got {late}"
+    );
 }
 
 /// A unity-rate trimmed clip keeps its source pitch: the same window
@@ -324,16 +385,25 @@ fn unity_rate_trim_keeps_source_pitch() {
     write(
         &folder,
         "composition.kdl",
-        &comp(2.0, "video path=\"vsound.mp4\" start=0.5 duration=1 trim-start=1 trim-end=2"),
+        &comp(
+            2.0,
+            "video path=\"vsound.mp4\" start=0.5 duration=1 trim-start=1 trim-end=2",
+        ),
     );
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
     let onset = onset_frame(&pcm, 500).expect("clip sound must be audible");
-    assert!(onset.abs_diff(24000) <= 48, "sound {onset} misses 24000 by more than 1 ms");
+    assert!(
+        onset.abs_diff(24000) <= 48,
+        "sound {onset} misses 24000 by more than 1 ms"
+    );
     let mid = crossings(&pcm, 24000, 72000);
     println!("unity crossings over 1 s: {mid}");
-    assert!((mid as i32 - 880).abs() <= 90, "unity trim keeps 440 Hz (~880 crossings/s), got {mid}");
+    assert!(
+        (mid as i32 - 880).abs() <= 90,
+        "unity trim keeps 440 Hz (~880 crossings/s), got {mid}"
+    );
 }
 
 /// A `trim-end` past the source end renders up to the true end: check
@@ -347,14 +417,20 @@ fn past_end_trim_end_renders_to_the_true_end() {
     write(
         &folder,
         "composition.kdl",
-        &comp(3.0, "video path=\"clip.mp4\" start=0 duration=3 trim-start=1 trim-end=9"),
+        &comp(
+            3.0,
+            "video path=\"clip.mp4\" start=0 duration=3 trim-start=1 trim-end=9",
+        ),
     );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("clamped to"), "{out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("clamped to"), "render summary repeats the clamp: {out}");
+    assert!(
+        out.contains("clamped to"),
+        "render summary repeats the clamp: {out}"
+    );
     let (w, h) = (64u32, 48u32);
     let rendered = decode_video(&folder.join("out.mp4"), w, h);
     let source = decode_video(&folder.join("clip.mp4"), w, h);
@@ -366,8 +442,14 @@ fn past_end_trim_end_renders_to_the_true_end() {
     let near_end = frame_mad(tail, &source[119 * fs..120 * fs]);
     let early = frame_mad(tail, &source[30 * fs..31 * fs]);
     println!("tail: near-end={near_end:.2} early={early:.2}");
-    assert!(near_end < 15.0, "tail must match the true end, mad={near_end:.2}");
-    assert!(near_end < early * 0.5, "tail must come from the true end ({near_end:.2} vs {early:.2})");
+    assert!(
+        near_end < 15.0,
+        "tail must match the true end, mad={near_end:.2}"
+    );
+    assert!(
+        near_end < early * 0.5,
+        "tail must come from the true end ({near_end:.2} vs {early:.2})"
+    );
 }
 
 /// Sprint 5 T003 supersedes the old overrun refusal: a non-looping clip
@@ -381,10 +463,16 @@ fn overrun_holds_the_last_frame() {
     write(
         &folder,
         "composition.kdl",
-        &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2 trim-start=1"),
+        &comp(
+            2.0,
+            "video path=\"clip.mp4\" start=0 duration=2 trim-start=1",
+        ),
     );
     let (code, out) = run(&["check", "."], &folder);
-    assert_eq!(code, 0, "window 1..2 is valid, check echoes the 1 s effective length: {out}");
+    assert_eq!(
+        code, 0,
+        "window 1..2 is valid, check echoes the 1 s effective length: {out}"
+    );
     assert!(out.contains("effective length 1.000s"), "{out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
@@ -398,15 +486,24 @@ fn overrun_holds_the_last_frame() {
     let first = &rendered[0 * fs..1 * fs];
     let first_mad = frame_mad(first, &source[30 * fs..31 * fs]);
     println!("first frame mapped mad: {first_mad:.2}");
-    assert!(first_mad < 15.0, "first frame must play the window, mad={first_mad:.2}");
+    assert!(
+        first_mad < 15.0,
+        "first frame must play the window, mad={first_mad:.2}"
+    );
     // The overrun second holds the last source frame (index 59).
     for k in [30usize, 45, 59] {
         let got = &rendered[k * fs..(k + 1) * fs];
         let held = frame_mad(got, &source[59 * fs..60 * fs]);
         let wrong = frame_mad(got, &source[30 * fs..31 * fs]);
         println!("held frame {k}: held={held:.2} window-start={wrong:.2}");
-        assert!(held < 15.0, "frame {k} must hold the last frame, mad={held:.2}");
-        assert!(held < wrong * 0.5, "frame {k} must hold, not replay ({held:.2} vs {wrong:.2})");
+        assert!(
+            held < 15.0,
+            "frame {k} must hold the last frame, mad={held:.2}"
+        );
+        assert!(
+            held < wrong * 0.5,
+            "frame {k} must hold, not replay ({held:.2} vs {wrong:.2})"
+        );
     }
 }
 
@@ -420,7 +517,10 @@ fn offline_render_is_deterministic_and_playable() {
     write(
         &folder,
         "composition.kdl",
-        &comp(1.0, "video path=\"clip.mp4\" start=0 duration=1 trim-start=1 trim-end=3 rate=2"),
+        &comp(
+            1.0,
+            "video path=\"clip.mp4\" start=0 duration=1 trim-start=1 trim-end=3 rate=2",
+        ),
     );
     let offline = [("FRAMESMITH_OFFLINE", "1")];
     let (code, out) = run_env(&["render", ".", "-o", "out.mp4"], &folder, &offline);
@@ -433,14 +533,19 @@ fn offline_render_is_deterministic_and_playable() {
     println!("deterministic bytes: {}", first.len());
     // Playback suitability: H.264 yuv420p video plus AAC stereo audio
     // at 48 kHz, composition length, moov before mdat (faststart).
-    let streams = ffprobe(&folder.join("out.mp4"), "stream=codec_name,pix_fmt,sample_rate,channels");
+    let streams = ffprobe(
+        &folder.join("out.mp4"),
+        "stream=codec_name,pix_fmt,sample_rate,channels",
+    );
     println!("{streams}");
     assert!(streams.contains("codec_name=h264"), "{streams}");
     assert!(streams.contains("pix_fmt=yuv420p"), "{streams}");
     assert!(streams.contains("codec_name=aac"), "{streams}");
     assert!(streams.contains("sample_rate=48000"), "{streams}");
     let dur = ffprobe(&folder.join("out.mp4"), "format=duration");
-    let secs: f64 = dur.lines().find(|l| l.starts_with("duration=")).unwrap()["duration=".len()..].parse().unwrap();
+    let secs: f64 = dur.lines().find(|l| l.starts_with("duration=")).unwrap()["duration=".len()..]
+        .parse()
+        .unwrap();
     assert!((secs - 1.0).abs() < 0.1, "output lasts 1 s, got {secs}");
     let (moov, mdat) = moov_mdat_order(&folder.join("out.mp4"));
     println!("moov={moov:?} mdat={mdat:?}");

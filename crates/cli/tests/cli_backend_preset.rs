@@ -128,7 +128,10 @@ fn backend_auto_matches_no_flag_on_this_machine() {
     // and render byte-identical MP4s.
     let root = tmp("backend-auto");
     valid_proj(&root, "proj");
-    let (code, a) = run(&["render", "proj", "-o", "a.mp4", "--backend", "auto"], &root);
+    let (code, a) = run(
+        &["render", "proj", "-o", "a.mp4", "--backend", "auto"],
+        &root,
+    );
     assert_eq!(code, 0, "{a}");
     let (code, b) = run(&["render", "proj", "-o", "b.mp4"], &root);
     assert_eq!(code, 0, "{b}");
@@ -158,7 +161,10 @@ fn backend_gpu_refuses_without_gpu_before_first_frame() {
     // The `--json` form carries the same refusal machine-readably.
     let (code, out) = run(&["render", "proj", "--backend", "gpu", "--json"], &root);
     assert_eq!(code, 1, "{out}");
-    let json = out.lines().find(|l| l.starts_with("{\"tool\"")).unwrap_or("");
+    let json = out
+        .lines()
+        .find(|l| l.starts_with("{\"tool\""))
+        .unwrap_or("");
     assert!(json.contains("\"backend\":\"gpu\""), "{json}");
     assert!(json.contains("no GPU renderer is available"), "{json}");
     assert!(!folder.join("out.mp4").exists());
@@ -202,10 +208,18 @@ fn gpu_backend_draws_when_the_probe_reports_one() {
     let root = tmp("backend-gpu");
     valid_proj(&root, "proj");
     let env = [("FRAMESMITH_GPU_AVAILABLE", "1")];
-    let (code, out) = run_env(&["render", "proj", "-o", "gpu.mp4", "--backend", "gpu"], &root, &env);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "gpu.mp4", "--backend", "gpu"],
+        &root,
+        &env,
+    );
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("backend=gpu"), "{out}");
-    let (code, out) = run_env(&["render", "proj", "-o", "cpu.mp4", "--backend", "cpu"], &root, &env);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "cpu.mp4", "--backend", "cpu"],
+        &root,
+        &env,
+    );
     assert_eq!(code, 0, "{out}");
     for mp4 in ["gpu.mp4", "cpu.mp4"] {
         let streams = ffprobe_csv(&root.join(mp4));
@@ -223,7 +237,11 @@ fn gpu_backend_draws_when_the_probe_reports_one() {
     assert!(max <= 32, "backend gap too large: max={max}");
     assert!(mean < 8.0, "backend gap too large: mean={mean:.4}");
     // `auto` follows the probe too.
-    let (code, out) = run_env(&["render", "proj", "-o", "auto.mp4", "--backend", "auto"], &root, &env);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "auto.mp4", "--backend", "auto"],
+        &root,
+        &env,
+    );
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("backend=gpu"), "{out}");
 }
@@ -240,18 +258,40 @@ fn presets_announce_settings_and_trade_size() {
         ("standard", "crf=23", "x264-preset=default"),
         ("high", "crf=18", "x264-preset=slow"),
     ] {
-        let (code, out) = run(&["render", "proj", "-o", &format!("{preset}.mp4"), "--preset", preset], &root);
+        let (code, out) = run(
+            &[
+                "render",
+                "proj",
+                "-o",
+                &format!("{preset}.mp4"),
+                "--preset",
+                preset,
+            ],
+            &root,
+        );
         assert_eq!(code, 0, "{preset}: {out}");
         assert!(out.contains(&format!("preset={preset}")), "{preset}: {out}");
         assert!(out.contains(crf), "{preset}: {out}");
         assert!(out.contains(speed), "{preset}: {out}");
         let streams = ffprobe_csv(&root.join(format!("{preset}.mp4")));
-        for want in ["codec_name=h264", "width=160", "pix_fmt=yuv420p", "codec_name=aac"] {
+        for want in [
+            "codec_name=h264",
+            "width=160",
+            "pix_fmt=yuv420p",
+            "codec_name=aac",
+        ] {
             assert!(streams.contains(want), "{preset}: {streams}");
         }
-        sizes.push(std::fs::metadata(root.join(format!("{preset}.mp4"))).unwrap().len());
+        sizes.push(
+            std::fs::metadata(root.join(format!("{preset}.mp4")))
+                .unwrap()
+                .len(),
+        );
     }
-    println!("preset-sizes: draft={} standard={} high={}", sizes[0], sizes[1], sizes[2]);
+    println!(
+        "preset-sizes: draft={} standard={} high={}",
+        sizes[0], sizes[1], sizes[2]
+    );
     assert!(
         sizes[0] < sizes[1] && sizes[1] < sizes[2],
         "draft < standard < high in file size: {sizes:?}"
@@ -264,7 +304,10 @@ fn no_preset_behaves_exactly_like_standard() {
     valid_proj(&root, "proj");
     let (code, a) = run(&["render", "proj", "-o", "a.mp4"], &root);
     assert_eq!(code, 0, "{a}");
-    let (code, b) = run(&["render", "proj", "-o", "b.mp4", "--preset", "standard"], &root);
+    let (code, b) = run(
+        &["render", "proj", "-o", "b.mp4", "--preset", "standard"],
+        &root,
+    );
     assert_eq!(code, 0, "{b}");
     assert!(a.contains("preset=standard"), "{a}");
     assert_eq!(
@@ -315,7 +358,10 @@ fn preset_refusals_write_no_mp4() {
         &root,
     );
     assert_eq!(code, 1, "{out}");
-    assert!(out.contains("--crf") && out.contains("--video-bitrate"), "{out}");
+    assert!(
+        out.contains("--crf") && out.contains("--video-bitrate"),
+        "{out}"
+    );
     // Unknown preset name.
     let (code, out) = run(&["render", "proj", "--preset", "ultra"], &root);
     assert_eq!(code, 1, "{out}");

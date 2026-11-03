@@ -19,7 +19,11 @@ static RUN_SEQ: AtomicU64 = AtomicU64::new(1);
 
 /// Unique id for this process's runs: `run-<pid>-<seq>`.
 pub fn run_id() -> String {
-    format!("run-{}-{}", std::process::id(), RUN_SEQ.fetch_add(1, Ordering::SeqCst))
+    format!(
+        "run-{}-{}",
+        std::process::id(),
+        RUN_SEQ.fetch_add(1, Ordering::SeqCst)
+    )
 }
 
 /// Current UTC time as ISO-8601 `YYYY-MM-DDTHH:MM:SSZ`.
@@ -58,7 +62,13 @@ fn format_timestamp(secs: u64) -> String {
 
 /// Append one line to `<folder>/logs/framesmith.log`.
 /// Creates the `logs` directory when needed. Never touches the composition.
-pub fn append(folder: &Path, level: &str, component: &str, run: &str, msg: &str) -> Result<(), String> {
+pub fn append(
+    folder: &Path,
+    level: &str,
+    component: &str,
+    run: &str,
+    msg: &str,
+) -> Result<(), String> {
     let dir = folder.join("logs");
     if let Err(e) = std::fs::create_dir_all(&dir) {
         return Err(format!("cannot create {}: {e}", dir.display()));
@@ -78,9 +88,9 @@ pub fn append(folder: &Path, level: &str, component: &str, run: &str, msg: &str)
         .append(true)
         .open(&path)
     {
-        Ok(mut f) => f.write_all(line.as_bytes()).map_err(|e| {
-            format!("cannot write {}: {e}", path.display())
-        }),
+        Ok(mut f) => f
+            .write_all(line.as_bytes())
+            .map_err(|e| format!("cannot write {}: {e}", path.display())),
         Err(e) => Err(format!("cannot open {}: {e}", path.display())),
     }
 }

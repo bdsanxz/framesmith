@@ -60,7 +60,10 @@ worked_values! {
 
 #[test]
 fn every_named_curve_is_exact_at_both_ends_and_out_of_range_takes_the_nearer_end() {
-    for ease in Ease::ALL.into_iter().chain([Ease::OutBack(1.7), Ease::OutBack(0.0)]) {
+    for ease in Ease::ALL
+        .into_iter()
+        .chain([Ease::OutBack(1.7), Ease::OutBack(0.0)])
+    {
         assert_eq!(ease.apply(0.0), 0.0, "{}", ease.name());
         assert_eq!(ease.apply(1.0), 1.0, "{}", ease.name());
         assert_eq!(ease.apply(-0.5), 0.0, "{}", ease.name());
@@ -102,7 +105,11 @@ fn each_in_out_curve_passes_through_one_half_at_the_middle() {
         Ease::InOutSine,
         Ease::InOutExpo,
     ] {
-        assert!((ease.apply(0.5) - 0.5).abs() <= TOLERANCE, "{}", ease.name());
+        assert!(
+            (ease.apply(0.5) - 0.5).abs() <= TOLERANCE,
+            "{}",
+            ease.name()
+        );
     }
 }
 
@@ -131,7 +138,10 @@ fn out_back_of_0_never_rises_above_1_and_is_out_cubic() {
     for i in 0..=10000 {
         let p = i as f64 / 10000.0;
         assert!(ease.apply(p) <= 1.0, "at {p}");
-        assert!((ease.apply(p) - Ease::OutCubic.apply(p)).abs() <= TOLERANCE, "at {p}");
+        assert!(
+            (ease.apply(p) - Ease::OutCubic.apply(p)).abs() <= TOLERANCE,
+            "at {p}"
+        );
     }
 }
 
@@ -154,7 +164,10 @@ fn out_back_peaks_where_the_spec_works_it_out_for_other_n() {
         let place = 1.0 - 2.0 * n / (3.0 * (n + 1.0));
         let largest = 1.0 + 4.0 * n * n * n / (27.0 * (n + 1.0) * (n + 1.0));
         assert!((ease.apply(place) - largest).abs() <= TOLERANCE, "n = {n}");
-        assert!(ease.apply(place - 1e-3) < ease.apply(place) && ease.apply(place + 1e-3) < ease.apply(place));
+        assert!(
+            ease.apply(place - 1e-3) < ease.apply(place)
+                && ease.apply(place + 1e-3) < ease.apply(place)
+        );
     }
 }
 

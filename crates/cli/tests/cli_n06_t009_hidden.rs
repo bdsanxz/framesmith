@@ -164,9 +164,15 @@ fn hidden_box_renders_as_if_absent() {
 
     // The hidden box leaves only the background, exactly like no box.
     let hidden_frames = decode_video(&root.join("hidden.mp4"), 64, 64);
-    assert!(!is_red(center(&hidden_frames, 0, 64, 64)), "hidden box draws nothing");
+    assert!(
+        !is_red(center(&hidden_frames, 0, 64, 64)),
+        "hidden box draws nothing"
+    );
     let shown_frames = decode_video(&root.join("shown.mp4"), 64, 64);
-    assert!(is_red(center(&shown_frames, 0, 64, 64)), "visible box draws red");
+    assert!(
+        is_red(center(&shown_frames, 0, 64, 64)),
+        "visible box draws red"
+    );
     assert_eq!(
         std::fs::read(root.join("hidden.mp4")).unwrap(),
         std::fs::read(root.join("clean.mp4")).unwrap(),
@@ -264,11 +270,23 @@ fn hidden_nest_skips_picture_and_sound() {
     assert_eq!(code, 0, "{out}");
 
     let hidden_frames = decode_video(&root.join("hidden.mp4"), 64, 64);
-    assert!(!is_red(center(&hidden_frames, 0, 64, 64)), "hidden nest draws nothing");
+    assert!(
+        !is_red(center(&hidden_frames, 0, 64, 64)),
+        "hidden nest draws nothing"
+    );
     let shown_frames = decode_video(&root.join("shown.mp4"), 64, 64);
-    assert!(is_red(center(&shown_frames, 0, 64, 64)), "visible nest draws the child");
-    assert!(rms(&decode_audio(&root.join("hidden.mp4"))) < 50.0, "hidden nest is silent");
-    assert!(rms(&decode_audio(&root.join("shown.mp4"))) > 200.0, "visible nest sounds");
+    assert!(
+        is_red(center(&shown_frames, 0, 64, 64)),
+        "visible nest draws the child"
+    );
+    assert!(
+        rms(&decode_audio(&root.join("hidden.mp4"))) < 50.0,
+        "hidden nest is silent"
+    );
+    assert!(
+        rms(&decode_audio(&root.join("shown.mp4"))) > 200.0,
+        "visible nest sounds"
+    );
 }
 
 // --- references and validation -----------------------------------------------------
@@ -319,5 +337,8 @@ fn hidden_errors_still_refuse_check_and_render() {
     );
     let (code, text) = run(&["check", "q"], &root);
     assert_eq!(code, 1, "{text}");
-    assert!(text.contains("E_UNKNOWN_KEY"), "hidden unknown keys still fail: {text}");
+    assert!(
+        text.contains("E_UNKNOWN_KEY"),
+        "hidden unknown keys still fail: {text}"
+    );
 }

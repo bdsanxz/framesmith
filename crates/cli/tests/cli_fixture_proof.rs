@@ -147,10 +147,7 @@ fn decode_audio(mp4: &Path) -> Vec<i16> {
         .expect("decode mp4 audio");
     assert!(out.status.success());
     let (pairs, _) = out.stdout.as_chunks::<2>();
-    pairs
-        .iter()
-        .map(|b| i16::from_le_bytes(*b))
-        .collect()
+    pairs.iter().map(|b| i16::from_le_bytes(*b)).collect()
 }
 
 fn onset_frame(pcm: &[i16], threshold: i16) -> Option<usize> {
@@ -189,8 +186,14 @@ fn still_fixture_passes_with_container_backend_and_worker_agreement() {
     assert_eq!(code, 0, "{out}");
     let mp4 = folder.join("out.mp4");
     let csv = ffprobe_csv(&mp4);
-    assert!(csv.contains("h264,yuv420p"), "video must be H.264 yuv420p: {csv}");
-    assert!(csv.contains("aac,48000,2"), "audio must be AAC 48 kHz stereo: {csv}");
+    assert!(
+        csv.contains("h264,yuv420p"),
+        "video must be H.264 yuv420p: {csv}"
+    );
+    assert!(
+        csv.contains("aac,48000,2"),
+        "audio must be AAC 48 kHz stereo: {csv}"
+    );
 
     // Backend variants agree.
     let (code, out) = run(
@@ -265,9 +268,8 @@ fn marked_audio_verdict_names_fixture_track_and_distance_on_mistune() {
     verify_onset("marked-audio", "audio#0", onset, 48000, 48)
         .expect("onset must sit within 1 ms of its written time");
     // A deliberately mistuned expectation is a named defect, never a pass.
-    let err = verify_onset("marked-audio", "audio#0", onset, 52800, 48).expect_err(
-        "a fixture 100 ms outside its bounds must not pass",
-    );
+    let err = verify_onset("marked-audio", "audio#0", onset, 52800, 48)
+        .expect_err("a fixture 100 ms outside its bounds must not pass");
     assert!(err.contains("fixture=marked-audio"), "{err}");
     assert!(err.contains("track=audio#0"), "{err}");
     assert!(err.contains("distance="), "{err}");
@@ -281,7 +283,10 @@ fn refusal_drills_write_no_mp4() {
     let name = folder.file_name().unwrap().to_string_lossy().into_owned();
     let (code, out) = run(&["render", &name], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(!folder.join("out.mp4").exists(), "no partial MP4 on refusal");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no partial MP4 on refusal"
+    );
     assert!(
         !folder.join("out.mp4.framesmith-part").exists(),
         "no staged leftover on refusal"
@@ -293,7 +298,10 @@ fn refusal_drills_write_no_mp4() {
     let (code, out) = run(&["render", &name], &root);
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("Sprint 10"), "{out}");
-    assert!(!folder.join("out.mp4").exists(), "no partial MP4 on refusal");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no partial MP4 on refusal"
+    );
 
     // Undecodable audio: exit 1 naming the file and stage, no MP4.
     let root = tmp("badaudio11");
@@ -309,5 +317,8 @@ fn refusal_drills_write_no_mp4() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("bad.wav"), "{out}");
     assert!(out.contains("audio stage"), "{out}");
-    assert!(!folder.join("out.mp4").exists(), "no partial MP4 on refusal");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no partial MP4 on refusal"
+    );
 }

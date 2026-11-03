@@ -64,9 +64,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_EASING",
-        meaning: "A `tween` names an unknown easing, or `out-back` carries a missing or non-numeric overshoot; the system never guesses a curve.",
+        meaning: "A `tween`, `key`, or `frame` names an unknown easing, or a parameterized easing carries missing, non-numeric, or out-of-range parameters; the system never guesses a curve.",
         example: "tween target=0 property=\"x\" kind=\"to\" start=0 duration=1 to=10 ease=\"fast\"   // unknown easing",
-        fix: "Set `ease=` to one of the nineteen named curves (e.g. `linear`, `in-out-sine`) or `ease=\"out-back(1.7)\"` with a numeric overshoot.",
+        fix: "Set `ease=` to one of the nineteen named curves (e.g. `linear`, `in-out-sine`), `ease=\"out-back(1.7)\"` with a numeric overshoot, or a full-curve spelling: `cubic-bezier(x1,y1,x2,y2)`, `steps(n)`, `spring` or `spring(stiffness,damping)`, `bounce`, `elastic`, `wiggle` or `wiggle(n)`, or `hold`.",
     },
     CatalogEntry {
         code: "E_BAD_FIT",
@@ -118,9 +118,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_MOTION",
-        meaning: "A `tween` or `set` names no target clip, names an unusable property, uses an unknown form, or carries a missing, mistimed, or unreadable window or value.",
+        meaning: "A `tween`, `set`, or `key` names no target clip, names an unusable property (or a property its clip kind does not carry), uses an unknown form, carries a missing, mistimed, or unreadable window or value, or (for `key`) chains fewer than two stops, unordered stops, or duplicate stop times; or a visual clip carries an unreadable 3D turn (`rotation-x`/`rotation-y` degrees, a non-positive `perspective`, an unknown `origin`) or a malformed `filter`.",
         example: "tween property=\"x\" kind=\"to\" start=0 duration=1 to=10   // missing target",
-        fix: "Name a clip with `target=<index from 0>`, a property with `property=\"x\"`, `\"y\"`, `\"scale\"`, `\"rotation\"`, or `\"opacity\"`, a form with `kind=\"to\"`, `\"from\"`, or `\"from-to\"`, an absolute `start` with a positive `duration`, and the values the form needs (`to`, `from`, or both; `value` for `set`).",
+        fix: "Name a clip with `target=<index from 0>`, a property with `property=\"x\"`, `\"y\"`, `\"scale\"`, `\"rotation\"`, `\"opacity\"`, `\"rotation-x\"`, `\"rotation-y\"`, `\"width\"`, `\"height\"`, `\"fill\"`, `\"radius\"`, `\"border-width\"`, `\"border-color\"`, `\"blur\"`, `\"font-size\"`, or `\"letter-spacing\"`, a form with `kind=\"to\"`, `\"from\"`, or `\"from-to\"`, an absolute `start` with a positive `duration`, and the values the form needs (`to`, `from`, or both; `value` for `set`; hex colors for `fill`/`border-color`). Chain keyframes as `key` elements with at least two `frame at=<seconds> value=<number>` stops in rising time order. Keep `rotation-x`/`rotation-y` to finite degrees, `perspective` to positive pixels (or omit it for flat), `origin` to a placement like `\"center\"` or `\"top-left\"`, and `filter` to `\"none\"` or `\"blur(N)\"`.",
     },
     CatalogEntry {
         code: "E_BAD_ORDER",
@@ -214,9 +214,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_UNKNOWN_REF",
-        meaning: "A `start-after` or `nest` reference names no declared id or composition in the project, or a `nest` names a clip id instead of a composition.",
-        example: "text value=\"B\" start=0 duration=1 start-after=\"ghost\"   // no clip or composition is called `ghost`",
-        fix: "Declare `id=\"ghost\"` on the intended clip or composition, fix the spelling, or point `nest` at a composition `name`.",
+        meaning: "A `start-after` or `nest` reference names no declared id, `mark`, or composition in the project, or a `nest` names a clip id instead of a composition.",
+        example: "text value=\"B\" start=0 duration=1 start-after=\"ghost\"   // no clip, mark, or composition is called `ghost`",
+        fix: "Declare `id=\"ghost\"` on the intended clip or composition, declare a `mark` named `ghost`, fix the spelling, or point `nest` at a composition `name`.",
     },
     CatalogEntry {
         code: "E_UNREADABLE",

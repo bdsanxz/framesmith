@@ -10,8 +10,9 @@
 
 use notation::model::{
     parse_color, AudioClip, BoxClip, Clip, Composition, EaseDecl, Fit, FontDecl, Fps, ImageClip,
-    NestClip, Placement, SetDecl, StartAfter, TextClip, TrackKind, TweenDecl, TweenKind, VideoClip,
-    CONFIG_FILE, MIN_DURATION_SECS,
+    InputDecl, KeyDecl, KeyStop, MarkDecl, NestClip, Placement, ReplicateGroup, Rgb, SetDecl,
+    SplitMode, StaggerGrid, StaggerOrigin, StartAfter, TextClip, TrackKind, Turn3D, TweenDecl,
+    TweenKind, VideoClip, CONFIG_FILE, MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
 use std::path::Path;
@@ -79,6 +80,11 @@ pub struct Verdict {
     /// marked `root=true`). `None` when the project is invalid.
     pub root_name: Option<String>,
     pub diagnostics: Vec<Diagnostic>,
+    /// One entry per staggered `tween`/`key` whose pieces run past
+    /// the target clip window (Sprint 7 motion, CAP-002): the cut is
+    /// reviewable here with the numbers, never a diagnostic, so
+    /// clamping stays a valid verdict.
+    pub stagger_clamps: Vec<StaggerClamp>,
     /// Optional `framesmith.toml` setting, default true. Later sprints
     /// (T009/T010) own download behavior; the foundation records it so
     /// refusal wording can point at the right fix.
@@ -110,6 +116,42 @@ pub struct InferredLength {
     pub column: usize,
     pub duration: f64,
     pub detail: String,
+}
+
+/// One reviewable stagger clamp (Sprint 7 motion, CAP-002): a `tween`
+/// or `key` whose staggered pieces run past the target clip window.
+/// Split pieces inherit the clip window, so a delayed piece never
+/// extends it silently: the motion past the window end is cut, and
+/// the cut is reported here with the numbers, never as a diagnostic,
+/// so clamping stays a valid verdict.
+#[derive(Debug, Clone)]
+pub struct StaggerClamp {
+    /// `tween` or `key`, for matching the entry to its directive.
+    pub kind: &'static str,
+    /// Document index of the target clip.
+    pub target: usize,
+    pub line: usize,
+    pub column: usize,
+    /// Animated pieces of the target (split pieces of a split text
+    /// clip, else one).
+    pub pieces: usize,
+    /// Declared per-piece delay in seconds.
+    pub stagger: f64,
+    /// Declared origin (`start`, `center`, or `end`).
+    pub origin: &'static str,
+    /// Declared grid columns, when a `stagger-grid` is written.
+    pub grid_cols: Option<usize>,
+    /// Declared grid rows (`colsxrows` form), if any.
+    pub grid_rows: Option<usize>,
+    /// Largest piece delay in seconds.
+    pub max_delay: f64,
+    /// Latest animated instant in seconds (repeat passes and the
+    /// largest piece delay included).
+    pub motion_end: f64,
+    /// Target clip window end in seconds.
+    pub clip_end: f64,
+    /// `motion_end` past `clip_end` in seconds.
+    pub overflow: f64,
 }
 
 /// The reviewable footage window of one valid `video` clip (Sprint 5
@@ -161,8 +203,8 @@ pub const COMPOSITION_FILE: &str = "composition.kdl";
 /// Sprint 2 (T002); tweens and sets validate since Sprint 2 (T003);
 /// `audio` validates since Sprint 3 (T007), so only later sound-shaping
 /// elements (Sprint 10), hardware encode (Sprint 25), and similar still
-/// wait here — later motion properties and easings are marked at the
-/// key level inside `validate_tween`/`validate_set`.
+/// wait here — later motion properties are marked at the
+/// key level inside `motion_property`.
 pub fn unsupported_sprint(element: &str) -> Option<u32> {
     match element {
         // Sprint 10 sound proof: effects chains, automation, groups,
@@ -300,8 +342,13 @@ struct IdEntry {
     value: String,
     line: usize,
     column: usize,
-    /// True for the composition name/id, false for a clip id.
+    /// True for the composition name/id, false for a clip id or mark.
     is_composition: bool,
+    /// True for a `mark` name (Sprint 7 motion, CAP-003): marks share
+    /// the project id namespace so a `start-after` target resolves
+    /// unambiguously, and a mark colliding with a clip or composition
+    /// id fails as a duplicate.
+    is_mark: bool,
     /// Index of the owning composition in document order (Sprint 6
     /// T006): clips register their composition's index so a
     /// `start-after` naming a clip in another composition can refuse
@@ -334,6 +381,7 @@ struct Ctx<'a> {
     invalid: bool,
     footage: Vec<VideoFootage>,
     inferred: Vec<InferredLength>,
+    stagger_clamps: Vec<StaggerClamp>,
     ids: Vec<IdEntry>,
     refs: Vec<RefEntry>,
     /// Index of the composition currently validating, in document
@@ -636,12 +684,12 @@ fn check_ids_and_refs(ctx: &mut Ctx) {
                     r.column,
                     "E_UNKNOWN_REF",
                     format!(
-                        "`{}` {:?} names no declared id or composition in this project",
+                        "`{}` {:?} names no declared id, mark, or composition in this project",
                         r.kind, r.target
                     ),
                     format!(
-                        "declare `id={:?}` on the intended clip or composition, or fix the spelling",
-                        r.target
+                        "declare `id={:?}` on the intended clip or composition, declare a `mark` named {:?}, or fix the spelling",
+                        r.target, r.target
                     ),
                 );
             }
@@ -685,6 +733,7 @@ fn resolve_one(
     comp_name: &str,
     comp_id: Option<&str>,
     comp_end: Option<f64>,
+    marks: &[MarkDecl],
     index: usize,
     resolved: &mut [Option<f64>],
     failed: &mut [bool],
@@ -729,13 +778,21 @@ fn resolve_one(
     visiting[index] = true;
     stack.push(index);
     let target_end = if let Some(&j) = by_id.get(target.as_str()) {
-        resolve_one(ctx, clips, by_id, comp_name, comp_id, comp_end, j, resolved, failed, visiting, stack)
-            // A target whose own duration is still pending (a still with
-            // an omitted `duration` waiting for the composition end)
-            // has no end yet: the follower waits silently for a later
-            // inference pass instead of resolving against `NAN`.
-            .map(|s| s + clips[j].duration())
-            .filter(|e| e.is_finite())
+        resolve_one(
+            ctx, clips, by_id, comp_name, comp_id, comp_end, marks, j, resolved, failed, visiting,
+            stack,
+        )
+        // A target whose own duration is still pending (a still with
+        // an omitted `duration` waiting for the composition end)
+        // has no end yet: the follower waits silently for a later
+        // inference pass instead of resolving against `NAN`.
+        .map(|s| s + clips[j].duration())
+        .filter(|e| e.is_finite())
+    } else if let Some(m) = marks.iter().find(|m| m.name == target) {
+        // A `mark` target (Sprint 7 motion, CAP-003): the clip starts
+        // exactly at the marked instant plus its offset. Marks need no
+        // inference pass — the instant is written, never pending.
+        Some(m.at)
     } else if Some(target.as_str()) == comp_id || target.as_str() == comp_name {
         comp_end
     } else {
@@ -782,6 +839,7 @@ fn resolve_relative_starts(
     comp_name: &str,
     comp_id: Option<&str>,
     comp_duration: Option<f64>,
+    marks: &[MarkDecl],
 ) {
     use std::collections::HashMap;
     let mut by_id: HashMap<&str, usize> = HashMap::new();
@@ -800,8 +858,18 @@ fn resolve_relative_starts(
             continue;
         }
         resolve_one(
-            ctx, clips, &by_id, comp_name, comp_id, comp_end, i, &mut resolved, &mut failed,
-            &mut visiting, &mut stack,
+            ctx,
+            clips,
+            &by_id,
+            comp_name,
+            comp_id,
+            comp_end,
+            marks,
+            i,
+            &mut resolved,
+            &mut failed,
+            &mut visiting,
+            &mut stack,
         );
     }
     for (i, c) in clips.iter_mut().enumerate() {
@@ -908,6 +976,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             ffmpeg_auto_download: true,
             footage: Vec::new(),
             inferred: Vec::new(),
+            stagger_clamps: Vec::new(),
         };
     }
 
@@ -938,7 +1007,8 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 diagnostics: diags,
                 ffmpeg_auto_download,
                 footage: Vec::new(),
-            inferred: Vec::new(),
+                inferred: Vec::new(),
+                stagger_clamps: Vec::new(),
             };
         }
     };
@@ -963,7 +1033,8 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 diagnostics: diags,
                 ffmpeg_auto_download,
                 footage: Vec::new(),
-            inferred: Vec::new(),
+                inferred: Vec::new(),
+                stagger_clamps: Vec::new(),
             };
         }
     };
@@ -975,6 +1046,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         invalid: config_invalid,
         footage: Vec::new(),
         inferred: Vec::new(),
+        stagger_clamps: Vec::new(),
         ids: Vec::new(),
         refs: Vec::new(),
         current_comp: 0,
@@ -1062,9 +1134,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                     .iter()
                     .map(|&i| {
                         let n = &roots[comp_positions[i]];
-                        let label = find(n, "name")
-                            .and_then(as_str)
-                            .unwrap_or("?");
+                        let label = find(n, "name").and_then(as_str).unwrap_or("?");
                         format!("{label:?} (line {})", n.name_line)
                     })
                     .collect();
@@ -1137,6 +1207,414 @@ struct PartialComposition<'n> {
     fonts: Vec<FontDecl>,
     pending_stills: Vec<usize>,
     motion_nodes: Vec<(bool, &'n RawNode)>,
+    key_nodes: Vec<&'n RawNode>,
+    marks: Vec<MarkDecl>,
+    inputs: Vec<InputDecl>,
+    replicates: Vec<ReplicateGroup>,
+}
+
+/// Validate a `mark` element (Sprint 7 motion, CAP-003): a required
+/// quoted `name` (id syntax, registered in the project namespace so a
+/// duplicate fails as `E_DUP_ID`) and a required `at` time in finite
+/// seconds >= 0. Marks carry no children. Whether the instant falls
+/// inside composition time is checked in `finish_composition`, once the
+/// (possibly inferred) composition end is known.
+fn validate_mark(ctx: &mut Ctx, node: &RawNode) -> Option<MarkDecl> {
+    const KEYS: &[&str] = &["name", "at"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown `mark` attribute {k:?}; a `mark` holds `name` and `at`"),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_TIMING",
+            "mark carries no children; a `mark` is one `name` with one `at` time",
+            "remove the child elements from the mark",
+        );
+        ok = false;
+    }
+    let name = match find(node, "name").and_then(as_str) {
+        Some(s) if valid_id_syntax(s) => Some(s.to_string()),
+        _ => {
+            match find(node, "name") {
+                Some(v) => ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_ID",
+                    format!(
+                        "mark `name` must be 1-64 letters, digits, `-` or `_`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `name=\"<letters-digits-dashes-underscores>\"` on the mark",
+                ),
+                None => ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_ID",
+                    "mark is missing required `name`; every mark names one instant",
+                    "add `name=\"<letters-digits-dashes-underscores>\"` to the mark",
+                ),
+            }
+            ok = false;
+            None
+        }
+    };
+    let at = match find(node, "at").and_then(as_f64) {
+        Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+        Some(x) => {
+            let v = find(node, "at").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_TIMING",
+                format!("mark `at` {x} is invalid; marks sit at seconds >= 0"),
+                "set `at=<seconds from 0>` on the mark",
+            );
+            ok = false;
+            None
+        }
+        None => {
+            match find(node, "at") {
+                Some(v) => ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TIMING",
+                    "mark `at` is not a readable time in seconds",
+                    "set `at=<seconds from 0>` on the mark",
+                ),
+                None => ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_TIMING",
+                    "mark is missing required `at`; every mark names one instant in seconds",
+                    "add `at=<seconds from 0>` to the mark",
+                ),
+            }
+            ok = false;
+            None
+        }
+    };
+    if !ok {
+        return None;
+    }
+    let (name, at) = (name.unwrap(), at.unwrap());
+    ctx.ids.push(IdEntry {
+        value: name.clone(),
+        line: node.name_line,
+        column: node.name_column,
+        is_composition: false,
+        is_mark: true,
+        comp: ctx.current_comp,
+    });
+    Some(MarkDecl {
+        name,
+        at,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Largest `replicate` clone count (Sprint 7 motion, CAP-010): like
+/// `repeat`, counts above 1000 are refused as unbounded-like, naming
+/// the bound.
+pub const REPLICATE_MAX: usize = 1000;
+
+/// Validate an `input` element (Sprint 7 motion, CAP-010): a required
+/// quoted `name` in expression identifier syntax (unique per
+/// composition, never a reserved `t`/`i`/constant/function name) and
+/// a required finite numeric `value`. `expr` reads these by name;
+/// anything else is refused before frame one.
+fn validate_input(ctx: &mut Ctx, node: &RawNode, declared: &[InputDecl]) -> Option<InputDecl> {
+    const KEYS: &[&str] = &["name", "value"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown `input` attribute {k:?}; an `input` holds `name` and `value`"),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_MOTION",
+            "input carries no children; an `input` is one `name` with one `value`",
+            "remove the child elements from the input",
+        );
+        ok = false;
+    }
+    let name = match find(node, "name").and_then(as_str) {
+        Some(s) if motion::expr::valid_name(s) => Some(s.to_string()),
+        Some(_) => {
+            let v = find(node, "name").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_ID",
+                format!(
+                    "input `name` must be 1-64 letters, digits, or underscores, not starting with a digit; found {}",
+                    raw_text(v)
+                ),
+                "set `name=\"<letters-digits-underscores>\"` on the input",
+            );
+            ok = false;
+            None
+        }
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_ID",
+                "input is missing required `name`; every input names one number",
+                "add `name=\"<letters-digits-underscores>\"` to the input",
+            );
+            ok = false;
+            None
+        }
+    };
+    if let Some(ref n) = name {
+        if motion::expr::reserved(n) {
+            let v = find(node, "name").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("input `name` {n:?} is reserved; `t`, `i`, constants, and function names cannot be inputs"),
+                "rename the input to a non-reserved identifier",
+            );
+            ok = false;
+        }
+        if declared.iter().any(|d| &d.name == n) {
+            let v = find(node, "name").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_DUP_ID",
+                format!("duplicate input {n:?}; every input name is unique per composition"),
+                "rename the input or remove the duplicate",
+            );
+            ok = false;
+        }
+    }
+    let value = match find(node, "value").and_then(as_f64) {
+        Some(x) if x.is_finite() => Some(x),
+        Some(x) => {
+            let v = find(node, "value").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("input `value` {x} is invalid; inputs hold one finite number"),
+                "set `value=<number>` on the input",
+            );
+            ok = false;
+            None
+        }
+        None => {
+            match find(node, "value") {
+                Some(v) => ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    "input `value` is not a readable number",
+                    "set `value=<number>` on the input",
+                ),
+                None => ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_MOTION",
+                    "input is missing required `value`; every input names the number it holds",
+                    "add `value=<number>` to the input",
+                ),
+            }
+            ok = false;
+            None
+        }
+    };
+    if !ok {
+        return None;
+    }
+    Some(InputDecl {
+        name: name.unwrap(),
+        value: value.unwrap(),
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Validate a `replicate` element (Sprint 7 motion, CAP-010): a
+/// required whole-number `count` of 1 to 1000 and exactly one
+/// template clip child (`text`, `box`, `image`, or `video`). The
+/// template expands to `count` clones inline (clone `k` exposes
+/// piece index `i = k`), registered in `replicates`. Non-positive
+/// counts fail; the template carries no `id` (clones would collide
+/// in the project namespace).
+fn validate_replicate(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    clips: &mut Vec<Clip>,
+    pending_stills: &mut Vec<usize>,
+    replicates: &mut Vec<ReplicateGroup>,
+) {
+    const KEYS: &[&str] = &["count"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown `replicate` attribute {k:?}; a `replicate` holds `count` and one template clip"),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    let count = match find(node, "count").and_then(as_f64) {
+        Some(x) if x.is_finite() && x.fract() == 0.0 && x >= 1.0 && x <= REPLICATE_MAX as f64 => {
+            Some(x as usize)
+        }
+        Some(x) => {
+            let v = find(node, "count").unwrap();
+            let why = if !x.is_finite() || x.fract() != 0.0 {
+                "a whole number of clones"
+            } else if x < 1.0 {
+                "at least 1 clone"
+            } else {
+                &format!("at most {REPLICATE_MAX} clones")
+            };
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("replicate `count` {x} is invalid; a replicate clones {why}"),
+                format!("set `count=<whole number from 1 to {REPLICATE_MAX}>` on the replicate"),
+            );
+            ok = false;
+            None
+        }
+        None => {
+            match find(node, "count") {
+                Some(v) => ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    "replicate `count` is not a readable whole number",
+                    "set `count=<whole number>` on the replicate",
+                ),
+                None => ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_MOTION",
+                    "replicate is missing required `count`; every replicate names its clone count",
+                    "add `count=<whole number>` to the replicate",
+                ),
+            }
+            ok = false;
+            None
+        }
+    };
+    if node.children.is_empty() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_MOTION",
+            "replicate holds no template clip; a `replicate` clones one `text`, `box`, `image`, or `video` child",
+            "add one template clip inside the replicate",
+        );
+        ok = false;
+    } else if node.children.len() > 1 {
+        let extra = &node.children[1];
+        ctx.push(
+            extra.name_line,
+            extra.name_column,
+            "E_BAD_MOTION",
+            format!(
+                "replicate holds {} template clips; a `replicate` clones exactly one child",
+                node.children.len()
+            ),
+            "keep one template clip inside the replicate",
+        );
+        ok = false;
+    }
+    if !ok {
+        return;
+    }
+    let template = &node.children[0];
+    if find(template, "id").is_some() {
+        let v = find(template, "id").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "replicate template carries `id`; every clone would share it in the project namespace",
+            "remove `id` from the template clip; clones expose `i` instead",
+        );
+        return;
+    }
+    let clip = match template.name.as_str() {
+        "text" => validate_text(ctx, template).map(Clip::Text),
+        "box" => validate_box(ctx, template).map(Clip::Box),
+        "image" => validate_image(ctx, template).map(Clip::Image),
+        "video" => validate_video(ctx, template).map(Clip::Video),
+        "audio" | "nest" | "font" => {
+            ctx.push(
+                template.name_line,
+                template.name_column,
+                "E_BAD_MOTION",
+                format!(
+                    "replicate template is `{}`; a `replicate` clones one picture clip (`text`, `box`, `image`, or `video`)",
+                    template.name
+                ),
+                "template a picture clip inside the replicate",
+            );
+            return;
+        }
+        other => {
+            ctx.push(
+                template.name_line,
+                template.name_column,
+                "E_BAD_MOTION",
+                format!(
+                    "replicate template is `{other}`; a `replicate` clones one `text`, `box`, `image`, or `video` child, never motion or another replicate"
+                ),
+                "template one picture clip inside the replicate",
+            );
+            return;
+        }
+    };
+    let Some(clip) = clip else {
+        return;
+    };
+    let count = count.unwrap();
+    let first = clips.len();
+    let still_omitted = clip.duration().is_nan();
+    for _ in 0..count {
+        clips.push(clip.clone());
+        if still_omitted {
+            pending_stills.push(clips.len() - 1);
+        }
+    }
+    replicates.push(ReplicateGroup { first, count });
 }
 
 /// Parse one composition `root` mark (Sprint 6 T006): absent means
@@ -1177,11 +1655,11 @@ fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) 
             }
             (r.target.clone(), r.line, r.column, r.comp)
         };
-        let hits: Vec<(bool, usize)> = ctx
+        let hits: Vec<(bool, bool, usize)> = ctx
             .ids
             .iter()
             .filter(|e| e.value == target)
-            .map(|e| (e.is_composition, e.comp))
+            .map(|e| (e.is_composition, e.is_mark, e.comp))
             .collect();
         if hits.len() != 1 {
             // Unknown targets report in `check_ids_and_refs`; duplicated
@@ -1189,7 +1667,7 @@ fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) 
             // diagnostic here.
             continue;
         }
-        let (hit_is_comp, hit_comp) = hits[0];
+        let (hit_is_comp, hit_is_mark, hit_comp) = hits[0];
         if hit_comp == owner {
             continue;
         }
@@ -1205,6 +1683,16 @@ fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) 
                 ),
                 format!("point `start-after=` at a clip id in {own:?}, or at {own:?} itself"),
             );
+        } else if hit_is_mark {
+            ctx.push(
+                line,
+                column,
+                "E_UNKNOWN_REF",
+                format!(
+                    "`start-after` {target:?} names a mark in composition {other:?}, but this clip is in composition {own:?}; a clip can only follow clips or marks in its own composition"
+                ),
+                format!("point `start-after=` at a clip id or mark in {own:?}"),
+            );
         } else {
             ctx.push(
                 line,
@@ -1219,10 +1707,7 @@ fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) 
     }
 }
 
-fn validate_composition_parts<'n>(
-    mut ctx: &mut Ctx,
-    root: &'n RawNode,
-) -> PartialComposition<'n> {
+fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> PartialComposition<'n> {
     // --- root properties -------------------------------------------------
     let name = match find(root, "name").and_then(as_str) {
         Some(s) => s.to_string(),
@@ -1292,6 +1777,7 @@ fn validate_composition_parts<'n>(
             line: root.name_line,
             column: root.name_column,
             is_composition: true,
+            is_mark: false,
             comp: ctx.current_comp,
         });
     }
@@ -1303,6 +1789,7 @@ fn validate_composition_parts<'n>(
                 line: v.line,
                 column: v.column,
                 is_composition: true,
+                is_mark: false,
                 comp: ctx.current_comp,
             });
         }
@@ -1379,7 +1866,10 @@ fn validate_composition_parts<'n>(
                     v.line,
                     v.column,
                     "E_BAD_DURATION",
-                    format!("composition duration must be a positive number, found {}", raw_text(v)),
+                    format!(
+                        "composition duration must be a positive number, found {}",
+                        raw_text(v)
+                    ),
                     "set `duration=<positive seconds>` on the composition root",
                 );
                 None
@@ -1564,6 +2054,18 @@ fn validate_composition_parts<'n>(
     // Motion directives validate after the clip pass so `target`
     // indexes resolve against the declared clip count (T003).
     let mut motion_nodes: Vec<(bool, &RawNode)> = Vec::new();
+    let mut key_nodes: Vec<&RawNode> = Vec::new();
+    // Named instants (Sprint 7 motion, CAP-003): `start-after` accepts
+    // them once the composition end is known in `finish_composition`.
+    let mut marks: Vec<MarkDecl> = Vec::new();
+    // Declared expression inputs (Sprint 7 motion, CAP-010): `expr`
+    // resolves bare names against these once motion validates in
+    // `finish_composition`.
+    let mut inputs: Vec<InputDecl> = Vec::new();
+    // `replicate` expansions (Sprint 7 motion, CAP-010): template
+    // clips expand to indexed clones inline below, so `target`
+    // indexes resolve against the final clip count like any clip.
+    let mut replicates: Vec<ReplicateGroup> = Vec::new();
     for child in &root.children {
         match child.name.as_str() {
             // Stills (text, box, image) may omit `duration`: the
@@ -1615,6 +2117,26 @@ fn validate_composition_parts<'n>(
             }
             "tween" => motion_nodes.push((true, child)),
             "set" => motion_nodes.push((false, child)),
+            "key" => key_nodes.push(child),
+            "mark" => {
+                if let Some(m) = validate_mark(&mut ctx, child) {
+                    marks.push(m);
+                }
+            }
+            "input" => {
+                if let Some(d) = validate_input(&mut ctx, child, &inputs) {
+                    inputs.push(d);
+                }
+            }
+            "replicate" => {
+                validate_replicate(
+                    &mut ctx,
+                    child,
+                    &mut clips,
+                    &mut pending_stills,
+                    &mut replicates,
+                );
+            }
             other if unsupported_sprint(other).is_some() => {
                 let sprint = unsupported_sprint(other).unwrap();
                 ctx.diags.push(Diagnostic::new(
@@ -1632,7 +2154,7 @@ fn validate_composition_parts<'n>(
                     child.name_column,
                     "E_UNKNOWN_ELEMENT",
                     format!("unknown element `{other}`"),
-                    "use `text`, `font`, `video`, `box`, `image`, `audio`, `tween`, or `set`, or remove the element",
+                    "use `text`, `font`, `video`, `box`, `image`, `audio`, `tween`, `key`, `set`, `mark`, `input`, or `replicate`, or remove the element",
                 );
             }
         }
@@ -1654,6 +2176,10 @@ fn validate_composition_parts<'n>(
         fonts,
         pending_stills,
         motion_nodes,
+        key_nodes,
+        marks,
+        inputs,
+        replicates,
     }
 }
 
@@ -1678,6 +2204,10 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         fonts,
         pending_stills,
         motion_nodes,
+        key_nodes,
+        marks,
+        inputs,
+        replicates,
     } = partial;
 
     // --- relative starts plus duration inference (T002 + T003) -------
@@ -1709,7 +2239,14 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
                 .map(|c| (c.start().to_bits(), c.duration().to_bits()))
                 .collect::<Vec<_>>(),
         );
-        resolve_relative_starts(&mut ctx, &mut clips, &name, comp_id.as_deref(), comp_end);
+        resolve_relative_starts(
+            &mut ctx,
+            &mut clips,
+            &name,
+            comp_id.as_deref(),
+            comp_end,
+            &marks,
+        );
         if duration_omitted && comp_end.is_none() {
             let mut best: Option<f64> = None;
             for c in &clips {
@@ -1750,6 +2287,28 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         ) == before;
         if settled {
             break;
+        }
+    }
+
+    // --- mark range refusals (Sprint 7 motion, CAP-003) ---------------
+    // A mark past the composition end names no instant a `start-after`
+    // can follow into visible time, so it fails naming the instant and
+    // the bound. Without a known composition end the composition
+    // diagnostic above already speaks (no cascade).
+    if let Some(end) = comp_end {
+        for m in &marks {
+            if m.at > end {
+                ctx.push(
+                    m.line,
+                    m.column,
+                    "E_BAD_TIMING",
+                    format!(
+                        "mark {:?} at {}s is outside composition time (composition runs 0 to {}s); a `start-after` naming it would start past the end",
+                        m.name, m.at, end
+                    ),
+                    "move the mark inside the composition (`at=<seconds up to the duration>`), or lengthen the composition",
+                );
+            }
         }
     }
 
@@ -1831,18 +2390,73 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         }
     }
 
-    // --- motion directives (T003) --------------------------------------
-    let clip_count = clips.len();
+    // --- motion directives (T003 plus Sprint 7 keys and expressions) ---
+    let input_names: Vec<&str> = inputs.iter().map(|d| d.name.as_str()).collect();
+    let input_values: Vec<f64> = inputs.iter().map(|d| d.value).collect();
     let mut tweens: Vec<TweenDecl> = Vec::new();
     let mut sets: Vec<SetDecl> = Vec::new();
     for (is_tween, node) in motion_nodes {
         if is_tween {
-            if let Some(t) = validate_tween(&mut ctx, node, clip_count) {
+            if let Some(t) = validate_tween(
+                &mut ctx,
+                node,
+                &clips,
+                &input_names,
+                &input_values,
+                fps,
+                &replicates,
+            ) {
                 tweens.push(t);
             }
-        } else if let Some(s) = validate_set(&mut ctx, node, clip_count) {
+        } else if let Some(s) = validate_set(&mut ctx, node, &clips) {
             sets.push(s);
         }
+    }
+    let mut keys: Vec<KeyDecl> = Vec::new();
+    for node in key_nodes {
+        if let Some(k) = validate_key(&mut ctx, node, &clips) {
+            keys.push(k);
+        }
+    }
+    // --- stagger overflow (Sprint 7 motion, CAP-002) -------------------
+    // Split pieces inherit the target clip window: a staggered piece
+    // running past the window end is cut, and the cut is reported with
+    // the numbers, never as a diagnostic.
+    for t in &tweens {
+        stagger_overflow(
+            &mut ctx,
+            &clips,
+            "tween",
+            t.target,
+            t.line,
+            t.column,
+            t.stagger,
+            t.stagger_from,
+            t.stagger_grid,
+            t.start,
+            t.duration,
+            t.repeat,
+            t.repeat_delay,
+        );
+    }
+    for k in &keys {
+        let first = k.stops.first().map(|s| s.at).unwrap_or(0.0);
+        let last = k.stops.last().map(|s| s.at).unwrap_or(0.0);
+        stagger_overflow(
+            &mut ctx,
+            &clips,
+            "key",
+            k.target,
+            k.line,
+            k.column,
+            k.stagger,
+            k.stagger_from,
+            k.stagger_grid,
+            first,
+            (last - first).max(0.0),
+            k.repeat,
+            k.repeat_delay,
+        );
     }
 
     Composition {
@@ -1859,6 +2473,10 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         fonts,
         tweens,
         sets,
+        keys,
+        marks,
+        inputs,
+        replicates,
     }
 }
 
@@ -1897,6 +2515,7 @@ fn finish(
         ffmpeg_auto_download,
         footage: ctx.footage,
         inferred: ctx.inferred,
+        stagger_clamps: ctx.stagger_clamps,
     }
 }
 
@@ -1908,11 +2527,7 @@ fn clip_window(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<(f64, f64)> 
     clip_window_inner(ctx, node, what)
 }
 
-fn clip_window_inner(
-    ctx: &mut Ctx,
-    node: &RawNode,
-    what: &str,
-) -> Option<(f64, f64)> {
+fn clip_window_inner(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<(f64, f64)> {
     let mut bad = false;
     // `end=`-derived durations stay invalid in Sprint 1.
     if let Some(v) = find(node, "end") {
@@ -2237,12 +2852,13 @@ fn parse_clip_identity(
     let label = parse_label(ctx, node, what);
     let hidden = parse_hidden(ctx, node, what);
     let start_after_raw = parse_ref(ctx, node, "start-after", what);
-    let (id, track, label, hidden, start_after_raw) = match (id, track, label, hidden, start_after_raw) {
-        (Some(id), Some(track), Some(label), Some(hidden), Some(start_after)) => {
-            (id, track, label, hidden, start_after)
-        }
-        _ => return None,
-    };
+    let (id, track, label, hidden, start_after_raw) =
+        match (id, track, label, hidden, start_after_raw) {
+            (Some(id), Some(track), Some(label), Some(hidden), Some(start_after)) => {
+                (id, track, label, hidden, start_after)
+            }
+            _ => return None,
+        };
     let has_relative = start_after_raw.is_some();
     let has_absolute = find(node, "start").is_some();
     let has_offset = find_either(node, "start-offset", "start_offset").is_some();
@@ -2278,6 +2894,7 @@ fn parse_clip_identity(
             line: node.name_line,
             column: node.name_column,
             is_composition: false,
+            is_mark: false,
             comp: ctx.current_comp,
         });
     }
@@ -2311,6 +2928,212 @@ fn parse_clip_identity(
     })
 }
 
+/// Text-effect keys (Sprint 7 motion, CAP-009/REC-004) that only
+/// `text` clips may carry. Every other clip kind lists these as known
+/// keys and refuses them with `E_BAD_MOTION` naming the input, so a
+/// split on non-text fails loudly instead of as an unknown key.
+const TEXT_FX_KEYS: &[&str] = &[
+    "split",
+    "typewriter",
+    "count-from",
+    "count_from",
+    "count-to",
+    "count_to",
+    "decimals",
+];
+
+/// Refuse text-effect keys on a non-text clip (Sprint 7 motion,
+/// REC-004): `split`, `typewriter`, and the count keys apply to text
+/// clips only. Returns true when at least one is present (each naming
+/// its own diagnostic); the caller drops the clip.
+fn reject_text_fx(ctx: &mut Ctx, node: &RawNode, what: &str) -> bool {
+    let mut found = false;
+    for key in TEXT_FX_KEYS {
+        if let Some(v) = find(node, key) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("{what} carries `{key}`, but split, typewriter, and count effects apply to text clips only"),
+                "move the effect to a `text` clip, or remove the key",
+            );
+            found = true;
+        }
+    }
+    found
+}
+
+/// Parsed Sprint 7 text effects of one `text` clip (CAP-009).
+struct TextFx {
+    split: Option<notation::model::SplitMode>,
+    typewriter: bool,
+    count_from: Option<f64>,
+    count_to: Option<f64>,
+    decimals: u32,
+}
+
+/// Parse `split` / `typewriter` / `count-from` / `count-to` /
+/// `decimals` of a `text` clip (Sprint 7 motion, CAP-009/REC-004):
+/// each split mode addresses pieces individually; `typewriter`
+/// reveals them across the window; the count range renders the
+/// interpolated number. Splits with unknown modes, a typewriter
+/// without a split, half-written or contradictory counts, and
+/// `decimals` without a count all fail with `E_BAD_MOTION`.
+fn parse_text_fx(ctx: &mut Ctx, node: &RawNode) -> Option<TextFx> {
+    let mut ok = true;
+    let split = match find(node, "split") {
+        None => None,
+        Some(v) => match as_str(v).and_then(notation::model::SplitMode::parse) {
+            Some(m) => Some(m),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "text `split` {} is not a split mode; accepted modes are: {}",
+                        raw_text(v),
+                        notation::model::SplitMode::ACCEPTED.join(", ")
+                    ),
+                    "set `split=\"chars\"`, `split=\"words\"`, or `split=\"lines\"`, or remove the key",
+                );
+                ok = false;
+                None
+            }
+        },
+    };
+    let typewriter = match find(node, "typewriter") {
+        None => false,
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => *b,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("text `typewriter` must be `true` or `false`; found {}", raw_text(v)),
+                    "set `typewriter=true` to reveal split pieces across the window, or remove the key",
+                );
+                ok = false;
+                false
+            }
+        },
+    };
+    let mut count_opt = |hyphen: &str, underscore: &str| -> Option<Option<f64>> {
+        match find(node, hyphen).or_else(|| find(node, underscore)) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(Some(x)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MOTION",
+                        format!(
+                            "text `{hyphen}` must be a finite number; found {}",
+                            raw_text(v)
+                        ),
+                        format!("set `{hyphen}=<number>` or remove the key"),
+                    );
+                    ok = false;
+                    Some(None)
+                }
+            },
+        }
+    };
+    let count_from = count_opt("count-from", "count_from")?;
+    let count_to = count_opt("count-to", "count_to")?;
+    let decimals = match find(node, "decimals") {
+        None => 0,
+        Some(v) => match as_int(v) {
+            Some(n) if n >= 0 => n as u32,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "text `decimals` must be a whole number of decimal places >= 0; found {}",
+                        raw_text(v)
+                    ),
+                    "set `decimals=<places from 0>` or remove the key",
+                );
+                ok = false;
+                0
+            }
+        },
+    };
+    // Contradictory modes (REC-004): a typewriter reveals split
+    // pieces, so it needs a split; counting numbers contradicts
+    // splitting pieces and revealing them; `decimals` alone counts
+    // nothing.
+    if typewriter && split.is_none() {
+        let v = find(node, "typewriter").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "text `typewriter=true` needs a `split`; the reveal shows split pieces across the window",
+            "add `split=\"chars\"`, `split=\"words\"`, or `split=\"lines\"`, or set `typewriter=false`",
+        );
+        ok = false;
+    }
+    let counting = count_from.is_some() || count_to.is_some();
+    if count_from.is_some() != count_to.is_some() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_MOTION",
+            "text count needs both `count-from` and `count-to`; a half-written range counts nothing",
+            "add the missing end of the range (`count-from=<number>` and `count-to=<number>`), or remove both keys",
+        );
+        ok = false;
+    }
+    if counting && split.is_some() {
+        let v = find(node, "split").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "text cannot both `split` into pieces and count from `count-from` to `count-to`; the modes contradict",
+            "keep `split` (with optional `typewriter`) for piece reveals, or keep the count range for numbers",
+        );
+        ok = false;
+    }
+    if counting && typewriter {
+        let v = find(node, "typewriter").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "text cannot both `typewriter` pieces and count from `count-from` to `count-to`; the modes contradict",
+            "keep `typewriter` with a `split` for piece reveals, or keep the count range for numbers",
+        );
+        ok = false;
+    }
+    if !counting && find(node, "decimals").is_some() {
+        let v = find(node, "decimals").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "text `decimals` needs a count range; decimal places format the counted number",
+            "add `count-from=<number>` and `count-to=<number>`, or remove `decimals`",
+        );
+        ok = false;
+    }
+    if !ok {
+        return None;
+    }
+    Some(TextFx {
+        split,
+        typewriter,
+        count_from,
+        count_to,
+        decimals,
+    })
+}
+
 fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
     const KEYS: &[&str] = &[
         "value",
@@ -2339,6 +3162,24 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         "line_height",
         "letter-spacing",
         "letter_spacing",
+        "split",
+        "typewriter",
+        "count-from",
+        "count_from",
+        "count-to",
+        "count_to",
+        "decimals",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
     ];
     for (k, v) in &node.props {
         if !KEYS.contains(&k.as_str()) && k != "end" {
@@ -2639,6 +3480,9 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
             }
         },
     };
+    let fx = parse_text_fx(ctx, node)?;
+    let turn = clip_turn(ctx, node, "text clip")?;
+    let filter_blur = clip_filter(ctx, node, "text clip")?;
     Some(TextClip {
         value,
         start,
@@ -2659,6 +3503,13 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         line_height,
         letter_spacing,
         font_family,
+        split: fx.split,
+        typewriter: fx.typewriter,
+        count_from: fx.count_from,
+        count_to: fx.count_to,
+        decimals: fx.decimals,
+        turn,
+        filter_blur,
         line: node.name_line,
         column: node.name_column,
     })
@@ -2859,6 +3710,17 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         "trim_end",
         "rate",
         "loop",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
     ];
     for (k, v) in &node.props {
         if LATER_AUDIO_KEYS.contains(&k.as_str()) {
@@ -2872,7 +3734,7 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
             ));
             return None;
         }
-        if !KEYS.contains(&k.as_str()) && k != "end" {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
             ctx.push(
                 v.line,
                 v.column,
@@ -2881,6 +3743,9 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
                 "remove the key or check the spelling",
             );
         }
+    }
+    if reject_text_fx(ctx, node, "video clip") {
+        return None;
     }
     // Sprint 5 footage loop flag (T003), parsed before the clip window:
     // a looping clip without an explicit `duration` would be unbounded
@@ -3098,6 +3963,8 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
     let effective_duration = effective_end.map(|e| (e - trim_start) / rate);
     let fade_in = parse_fade(ctx, node, "fade-in", "fade_in", duration, "video clip")?;
     let fade_out = parse_fade(ctx, node, "fade-out", "fade_out", duration, "video clip")?;
+    let turn = clip_turn(ctx, node, "video clip")?;
+    let filter_blur = clip_filter(ctx, node, "video clip")?;
     ctx.footage.push(VideoFootage {
         path: path.clone(),
         line: node.name_line,
@@ -3133,6 +4000,8 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         trim_end,
         rate,
         loop_clip,
+        turn,
+        filter_blur,
         line: node.name_line,
         column: node.name_column,
     })
@@ -3184,7 +4053,7 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
             ));
             return None;
         }
-        if !KEYS.contains(&k.as_str()) && k != "end" {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
             ctx.push(
                 v.line,
                 v.column,
@@ -3193,6 +4062,9 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
                 "remove the key or check the spelling",
             );
         }
+    }
+    if reject_text_fx(ctx, node, "audio track") {
+        return None;
     }
     let identity = parse_clip_identity(ctx, node, "audio", "audio track")?;
     // Start and duration report independently (like the old shared
@@ -3357,8 +4229,7 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
     let fade_out = parse_fade(ctx, node, "fade-out", "fade_out", duration, "audio track")?;
     if inferred {
         let end = effective_end.unwrap_or(trim_start + duration * rate);
-        let mut detail =
-            format!("from source window {trim_start:.3}s..{end:.3}s at rate {rate}x");
+        let mut detail = format!("from source window {trim_start:.3}s..{end:.3}s at rate {rate}x");
         if let Some((declared, src)) = clamped {
             detail.push_str(&format!(
                 "; trim-end {declared:.3}s clamped to source end {src:.3}s"
@@ -3456,6 +4327,17 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         "border_color",
         "opacity",
         "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
     ];
     for (k, v) in &node.props {
         if RICH_BOX_KEYS.contains(&k.as_str()) {
@@ -3469,7 +4351,7 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
             ));
             return None;
         }
-        if !KEYS.contains(&k.as_str()) && k != "end" {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
             ctx.push(
                 v.line,
                 v.column,
@@ -3478,6 +4360,9 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
                 "remove the key or check the spelling",
             );
         }
+    }
+    if reject_text_fx(ctx, node, "box clip") {
+        return None;
     }
     let identity = parse_clip_identity(ctx, node, "box", "box clip")?;
     // Sprint 6 T003: `duration` is optional — an omitted one runs until
@@ -3613,6 +4498,8 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         return None;
     }
     let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "box clip")?;
+    let filter_blur = clip_filter(ctx, node, "box clip")?;
     Some(BoxClip {
         start,
         duration,
@@ -3631,6 +4518,8 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         border_color,
         opacity,
         order,
+        turn,
+        filter_blur,
         line: node.name_line,
         column: node.name_column,
     })
@@ -3860,9 +4749,20 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         "fit",
         "placement",
         "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
     ];
     for (k, v) in &node.props {
-        if !KEYS.contains(&k.as_str()) && k != "end" {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
             ctx.push(
                 v.line,
                 v.column,
@@ -3871,6 +4771,9 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
                 "remove the key or check the spelling",
             );
         }
+    }
+    if reject_text_fx(ctx, node, "image clip") {
+        return None;
     }
     let identity = parse_clip_identity(ctx, node, "image", "image clip")?;
     // Sprint 6 T003: `duration` is optional — an omitted one runs until
@@ -4044,6 +4947,8 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         },
     };
     let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "image clip")?;
+    let filter_blur = clip_filter(ctx, node, "image clip")?;
     Some(ImageClip {
         path,
         start,
@@ -4060,6 +4965,8 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         fit,
         placement,
         order,
+        turn,
+        filter_blur,
         line: node.name_line,
         column: node.name_column,
     })
@@ -4070,12 +4977,7 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
 /// for the end); present must be finite seconds from 0. Returns None
 /// on a parse failure after reporting it, so callers keep collecting
 /// the clip's remaining timing problems.
-fn nest_trim(
-    ctx: &mut Ctx,
-    node: &RawNode,
-    hyphen: &str,
-    underscore: &str,
-) -> Option<Option<f64>> {
+fn nest_trim(ctx: &mut Ctx, node: &RawNode, hyphen: &str, underscore: &str) -> Option<Option<f64>> {
     let found = find(node, hyphen).or_else(|| find(node, underscore));
     match found {
         None => Some(None),
@@ -4152,7 +5054,7 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
         "order",
     ];
     for (k, v) in &node.props {
-        if !KEYS.contains(&k.as_str()) && k != "end" {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
             ctx.push(
                 v.line,
                 v.column,
@@ -4161,6 +5063,9 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
                 "remove the key or check the spelling",
             );
         }
+    }
+    if reject_text_fx(ctx, node, "nest clip") {
+        return None;
     }
     let identity = parse_clip_identity(ctx, node, "nest", "nest clip")?;
     // Start and duration report independently (like the old shared
@@ -4195,8 +5100,7 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
     let te = nest_trim(ctx, node, "trim-end", "trim_end");
     let rate_opt = nest_rate(ctx, node);
     let order_opt = parse_order(ctx, node);
-    let timing_bad =
-        ts.is_none() || te.is_none() || rate_opt.is_none() || order_opt.is_none();
+    let timing_bad = ts.is_none() || te.is_none() || rate_opt.is_none() || order_opt.is_none();
     let trim_start = ts.flatten().unwrap_or(0.0);
     let trim_end = te.flatten();
     let rate = rate_opt.unwrap_or(1.0);
@@ -4384,8 +5288,11 @@ fn check_nest_graph(ctx: &mut Ctx, compositions: &[Composition]) {
                     .map(|&j| nest_chain_name(compositions, j))
                     .collect();
                 chain.push(nest_chain_name(compositions, ti));
-                let cycle: Vec<usize> =
-                    stack[pos..].iter().copied().chain(std::iter::once(ti)).collect();
+                let cycle: Vec<usize> = stack[pos..]
+                    .iter()
+                    .copied()
+                    .chain(std::iter::once(ti))
+                    .collect();
                 if !reported_cycles.contains(&cycle) {
                     reported_cycles.push(cycle);
                     ctx.push(
@@ -4462,64 +5369,201 @@ fn check_nest_graph(ctx: &mut Ctx, compositions: &[Composition]) {
     }
 }
 
-/// Parse a `tween` easing value (T003): the nineteen named curves, or
-/// parameterized `out-back(n)`. Later easings are marked, never parsed.
+/// Parse a `tween`/`key`/`frame` easing value (T003 plus the Sprint 7
+/// motion set): the nineteen named curves, parameterized `out-back(n)`,
+/// and the full curve set (`cubic-bezier`, `steps`, `spring`, `bounce`,
+/// `elastic`, `wiggle`, `hold`). Ease names accept underscore aliases
+/// (`in_quad`, `out_back(1.7)`, `cubic_bezier(...)`); parameters must be
+/// numeric. Anything else is a validation error, never a guessed curve.
 enum EaseParse {
     Ok(EaseDecl),
-    /// Well-formed but waiting for Sprint 7 motion proof.
-    Later(String),
-    /// Unknown name or malformed `out-back` parameter.
+    /// Unknown name or malformed parameters.
     Bad(String),
+}
+
+/// Split an easing value into its dash-normalized name and optional
+/// parenthesized parameters. `None` means unbalanced parentheses.
+fn split_ease_call(t: &str) -> Option<(String, Option<String>)> {
+    match t.find('(') {
+        None => Some((t.replace('_', "-"), None)),
+        Some(i) => {
+            let name = t[..i].trim().replace('_', "-");
+            let inner = t[i + 1..].trim().strip_suffix(')')?;
+            Some((name, Some(inner.to_string())))
+        }
+    }
+}
+
+/// One finite number parameter, with surrounding whitespace allowed.
+fn ease_number(text: &str) -> Option<f64> {
+    let x: f64 = text.trim().parse().ok()?;
+    x.is_finite().then_some(x)
+}
+
+/// One positive whole-count parameter (`steps(n)`, `wiggle(n)`).
+fn ease_count(text: &str) -> Option<u32> {
+    let x: f64 = text.trim().parse().ok()?;
+    if x.is_finite() && x.fract() == 0.0 && x >= 1.0 && x <= u32::MAX as f64 {
+        Some(x as u32)
+    } else {
+        None
+    }
 }
 
 fn parse_ease_value(s: &str) -> EaseParse {
     let t = s.trim();
-    match t {
-        "linear" => EaseParse::Ok(EaseDecl::Linear),
-        "in-quad" => EaseParse::Ok(EaseDecl::InQuad),
-        "out-quad" => EaseParse::Ok(EaseDecl::OutQuad),
-        "in-out-quad" => EaseParse::Ok(EaseDecl::InOutQuad),
-        "in-cubic" => EaseParse::Ok(EaseDecl::InCubic),
-        "out-cubic" => EaseParse::Ok(EaseDecl::OutCubic),
-        "in-out-cubic" => EaseParse::Ok(EaseDecl::InOutCubic),
-        "in-quart" => EaseParse::Ok(EaseDecl::InQuart),
-        "out-quart" => EaseParse::Ok(EaseDecl::OutQuart),
-        "in-out-quart" => EaseParse::Ok(EaseDecl::InOutQuart),
-        "in-quint" => EaseParse::Ok(EaseDecl::InQuint),
-        "out-quint" => EaseParse::Ok(EaseDecl::OutQuint),
-        "in-out-quint" => EaseParse::Ok(EaseDecl::InOutQuint),
-        "in-sine" => EaseParse::Ok(EaseDecl::InSine),
-        "out-sine" => EaseParse::Ok(EaseDecl::OutSine),
-        "in-out-sine" => EaseParse::Ok(EaseDecl::InOutSine),
-        "in-expo" => EaseParse::Ok(EaseDecl::InExpo),
-        "out-expo" => EaseParse::Ok(EaseDecl::OutExpo),
-        "in-out-expo" => EaseParse::Ok(EaseDecl::InOutExpo),
-        _ => {
-            if t == "out-back" || t.starts_with("out-back") {
-                // `out-back` without a parameter, or a malformed one, is
-                // a validation error, never a guessed overshoot.
-                match t
-                    .strip_prefix("out-back")
-                    .and_then(|r| r.strip_prefix('(').and_then(|r| r.strip_suffix(')')))
-                {
-                    Some(inner) => match inner.trim().parse::<f64>() {
-                        Ok(n) if n.is_finite() && n >= 0.0 => EaseParse::Ok(EaseDecl::OutBack(n)),
-                        _ => EaseParse::Bad(format!(
-                            "easing {t:?} needs a numeric overshoot, e.g. `ease=\"out-back(1.7)\"`"
-                        )),
-                    },
-                    None => EaseParse::Bad(format!(
-                        "easing {t:?} needs a numeric overshoot, e.g. `ease=\"out-back(1.7)\"`"
-                    )),
-                }
-            } else if notation::model::EaseDecl::LATER.contains(&t)
-                || t.starts_with("cubic-bezier(")
-            {
-                EaseParse::Later(t.to_string())
-            } else {
-                EaseParse::Bad(format!("unknown easing {t:?}"))
-            }
+    let (name, params) = match split_ease_call(t) {
+        Some(split) => split,
+        None => {
+            return EaseParse::Bad(format!("easing {t:?} has unbalanced parentheses"));
         }
+    };
+    // Bare curves take no parameters: `linear(...)` is malformed, never
+    // a different curve.
+    macro_rules! bare {
+        ($decl:expr) => {
+            match params {
+                None => EaseParse::Ok($decl),
+                Some(_) => EaseParse::Bad(format!(
+                    "easing {t:?} takes no parameters; write `ease=\"{name}\"`"
+                )),
+            }
+        };
+    }
+    match name.as_str() {
+        "linear" => bare!(EaseDecl::Linear),
+        "in-quad" => bare!(EaseDecl::InQuad),
+        "out-quad" => bare!(EaseDecl::OutQuad),
+        "in-out-quad" => bare!(EaseDecl::InOutQuad),
+        "in-cubic" => bare!(EaseDecl::InCubic),
+        "out-cubic" => bare!(EaseDecl::OutCubic),
+        "in-out-cubic" => bare!(EaseDecl::InOutCubic),
+        "in-quart" => bare!(EaseDecl::InQuart),
+        "out-quart" => bare!(EaseDecl::OutQuart),
+        "in-out-quart" => bare!(EaseDecl::InOutQuart),
+        "in-quint" => bare!(EaseDecl::InQuint),
+        "out-quint" => bare!(EaseDecl::OutQuint),
+        "in-out-quint" => bare!(EaseDecl::InOutQuint),
+        "in-sine" => bare!(EaseDecl::InSine),
+        "out-sine" => bare!(EaseDecl::OutSine),
+        "in-out-sine" => bare!(EaseDecl::InOutSine),
+        "in-expo" => bare!(EaseDecl::InExpo),
+        "out-expo" => bare!(EaseDecl::OutExpo),
+        "in-out-expo" => bare!(EaseDecl::InOutExpo),
+        "bounce" => bare!(EaseDecl::Bounce),
+        "elastic" => bare!(EaseDecl::Elastic),
+        "hold" => bare!(EaseDecl::Hold),
+        "out-back" => match params {
+            // `out-back` without a parameter, or a malformed one, is a
+            // validation error, never a guessed overshoot.
+            Some(inner) => match ease_number(&inner) {
+                Some(n) if n >= 0.0 => EaseParse::Ok(EaseDecl::OutBack(n)),
+                _ => EaseParse::Bad(format!(
+                    "easing {t:?} needs a numeric overshoot, e.g. `ease=\"out-back(1.7)\"`"
+                )),
+            },
+            None => EaseParse::Bad(format!(
+                "easing {t:?} needs a numeric overshoot, e.g. `ease=\"out-back(1.7)\"`"
+            )),
+        },
+        "cubic-bezier" => match params {
+            Some(inner) => {
+                let parts: Vec<&str> = inner.split(',').collect();
+                if parts.len() != 4 {
+                    EaseParse::Bad(format!(
+                        "easing {t:?} needs four numbers, e.g. `ease=\"cubic-bezier(0.25,0.1,0.25,1)\"`"
+                    ))
+                } else {
+                    match (
+                        ease_number(parts[0]),
+                        ease_number(parts[1]),
+                        ease_number(parts[2]),
+                        ease_number(parts[3]),
+                    ) {
+                        (Some(x1), Some(y1), Some(x2), Some(y2))
+                            if (0.0..=1.0).contains(&x1) && (0.0..=1.0).contains(&x2) =>
+                        {
+                            EaseParse::Ok(EaseDecl::CubicBezier(x1, y1, x2, y2))
+                        }
+                        _ => EaseParse::Bad(format!(
+                            "easing {t:?} needs four numbers `cubic-bezier(x1,y1,x2,y2)` with x1 and x2 from 0 to 1, e.g. `ease=\"cubic-bezier(0.25,0.1,0.25,1)\"`"
+                        )),
+                    }
+                }
+            }
+            None => EaseParse::Bad(format!(
+                "easing {t:?} needs four numbers, e.g. `ease=\"cubic-bezier(0.25,0.1,0.25,1)\"`"
+            )),
+        },
+        "steps" => match params {
+            Some(inner) => match ease_count(&inner) {
+                Some(n) => EaseParse::Ok(EaseDecl::Steps(n)),
+                _ => EaseParse::Bad(format!(
+                    "easing {t:?} needs a positive whole step count, e.g. `ease=\"steps(4)\"`"
+                )),
+            },
+            None => EaseParse::Bad(format!(
+                "easing {t:?} needs a positive whole step count, e.g. `ease=\"steps(4)\"`"
+            )),
+        },
+        "spring" => match params {
+            None => EaseParse::Ok(EaseDecl::Spring(
+                motion::SPRING_DEFAULT_STIFFNESS,
+                motion::SPRING_DEFAULT_DAMPING,
+            )),
+            Some(inner) => {
+                let parts: Vec<&str> = inner.split(',').collect();
+                if parts.len() != 2 {
+                    EaseParse::Bad(format!(
+                        "easing {t:?} needs `spring` or two numbers, e.g. `ease=\"spring\"` or `ease=\"spring(100,5)\"`"
+                    ))
+                } else {
+                    match (ease_number(parts[0]), ease_number(parts[1])) {
+                        (Some(s), Some(d)) if s > 0.0 && d >= 0.0 => {
+                            EaseParse::Ok(EaseDecl::Spring(s, d))
+                        }
+                        _ => EaseParse::Bad(format!(
+                            "easing {t:?} needs `spring` or `spring(stiffness,damping)` with a positive stiffness and a non-negative damping, e.g. `ease=\"spring(100,5)\"`"
+                        )),
+                    }
+                }
+            }
+        },
+        "wiggle" => match params {
+            None => EaseParse::Ok(EaseDecl::Wiggle(motion::WIGGLE_DEFAULT_COUNT)),
+            Some(inner) => match ease_count(&inner) {
+                Some(n) => EaseParse::Ok(EaseDecl::Wiggle(n)),
+                _ => EaseParse::Bad(format!(
+                    "easing {t:?} needs `wiggle` or a positive whole wiggle count, e.g. `ease=\"wiggle(3)\"`"
+                )),
+            },
+        },
+        _ => EaseParse::Bad(format!("unknown easing {t:?}")),
+    }
+}
+
+/// Shared `ease` value check for `tween`, `key`, and `frame`: parses the
+/// full curve set, reporting `E_BAD_EASING` naming the accepted forms on
+/// anything else. Returns `None` after reporting (the caller marks its
+/// own failure and falls back), `Some(None)` when no `ease` is written,
+/// and `Some(Some(curve))` when one parses.
+fn motion_ease_opt(ctx: &mut Ctx, node: &RawNode) -> Option<Option<EaseDecl>> {
+    match find(node, "ease").and_then(as_str) {
+        None => Some(None),
+        Some(s) => match parse_ease_value(s) {
+            EaseParse::Ok(e) => Some(Some(e)),
+            EaseParse::Bad(detail) => {
+                let v = find(node, "ease").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_EASING",
+                    format!("{detail}; accepted easings are: {}", accepted_easings()),
+                    "set `ease=` to a named curve or `ease=\"out-back(1.7)\"`",
+                );
+                None
+            }
+        },
     }
 }
 
@@ -4527,6 +5571,15 @@ fn parse_ease_value(s: &str) -> EaseParse {
 fn accepted_easings() -> String {
     let mut names: Vec<&str> = notation::model::EaseDecl::NAMED.to_vec();
     names.push("out-back(n)");
+    names.push("cubic-bezier(x1,y1,x2,y2)");
+    names.push("steps(n)");
+    names.push("spring");
+    names.push("spring(stiffness,damping)");
+    names.push("bounce");
+    names.push("elastic");
+    names.push("wiggle");
+    names.push("wiggle(n)");
+    names.push("hold");
     names.join(", ")
 }
 
@@ -4573,10 +5626,69 @@ fn motion_target(ctx: &mut Ctx, node: &RawNode, what: &str, clip_count: usize) -
     }
 }
 
-/// Shared motion property check (T003): exactly one of the five Sprint 2
-/// properties. Later properties are marked with Sprint 7, never drawn.
-fn motion_property(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<String> {
-    match find(node, "property").and_then(as_str) {
+/// Canonical motion property name (Sprint 7 motion, CAP-005/006):
+/// the hyphenated spelling with underscores normalized, aliases
+/// resolved (`rotate-x` to `rotation-x`, `size` to `font-size`,
+/// `fill-color` to `fill`, `border-radius` to `radius`). Returns the
+/// canonical `MOTION_PROPERTIES` entry, or `None` when the spelling
+/// names no animatable property.
+fn canonical_property(s: &str) -> Option<&'static str> {
+    let norm = s.replace('_', "-");
+    if let Some(found) = notation::model::MOTION_PROPERTIES
+        .iter()
+        .find(|p| **p == norm)
+    {
+        return Some(found);
+    }
+    notation::model::MOTION_ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == norm)
+        .map(|(_, canonical)| *canonical)
+}
+
+/// Whether a canonical motion property exists on a target clip kind
+/// (Sprint 7 motion, CAP-005/006): the geometric properties, the 3D
+/// turns, and blur ride every clip like before, but attribute
+/// properties need the clip carrying them — sizes on boxes and images,
+/// fill/radius/border on boxes, font metrics on text. Anything else is
+/// a refusal naming the clip kind, never a silent no-op.
+fn property_kind_ok(property: &str, clip: &Clip) -> bool {
+    match property {
+        "width" | "height" => matches!(clip, Clip::Box(_) | Clip::Image(_)),
+        "fill" | "radius" | "border-width" | "border-color" => matches!(clip, Clip::Box(_)),
+        "font-size" | "letter-spacing" => matches!(clip, Clip::Text(_)),
+        _ => true,
+    }
+}
+
+/// Whether a canonical motion property holds colors rather than
+/// numbers (Sprint 7 motion, CAP-006): `fill` and `border-color`
+/// interpolate straight RGBA from hex colors.
+fn property_is_color(property: &str) -> bool {
+    matches!(property, "fill" | "border-color")
+}
+
+/// Human list of the animatable properties, for diagnostics.
+fn animatable_list() -> String {
+    "`x`, `y`, `scale`, `rotation`, `opacity`, `rotation-x`, `rotation-y`, `width`, `height`, `fill`, `radius`, `border-width`, `border-color`, `blur`, `font-size`, and `letter-spacing`".to_string()
+}
+
+/// Shared motion property check (T003 plus Sprint 7 motion,
+/// CAP-005/006): exactly one animatable property, stored canonical.
+/// Later properties are marked with Sprint 7, beyond-blur filters with
+/// Sprint 11, `clip-shape` names the numeric shape fields (the clip's
+/// shape animates through `width`, `height`, and `radius`), and an
+/// attribute property on a clip lacking it fails naming the clip kind.
+/// `target` is the resolved clip index for the kind check; a missing
+/// target skips only that check.
+fn motion_property(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    clips: &[Clip],
+    target: Option<usize>,
+) -> Option<String> {
+    let raw = match find(node, "property").and_then(as_str) {
         None => {
             ctx.push(
                 node.name_line,
@@ -4585,42 +5697,104 @@ fn motion_property(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<String> 
                 format!(
                     "{what} is missing required `property`; every directive names what it moves"
                 ),
-                "add `property=\"x\"`, `\"y\"`, `\"scale\"`, `\"rotation\"`, or `\"opacity\"`",
+                format!("add `property=` to one of {}", animatable_list()),
             );
-            None
+            return None;
         }
-        Some(s) if notation::model::MOTION_PROPERTIES.contains(&s) => Some(s.to_string()),
-        Some(s) if notation::model::LATER_PROPERTIES.contains(&s) => {
-            ctx.diags.push(Diagnostic::new(
-                &ctx.file.clone(),
-                node.name_line,
-                node.name_column,
-                "E_UNSUPPORTED",
-                format!(
-                    "{what} property {s:?} needs Sprint 7; Sprint 2 tweens only `x`, `y`, `scale`, `rotation`, and `opacity`"
-                ),
-                "move one of the five Sprint 2 properties, or wait for Sprint 7 motion proof",
-            ));
-            None
+        Some(s) => s.to_string(),
+    };
+    if let Some(canonical) = canonical_property(&raw) {
+        if let Some(idx) = target {
+            if let Some(clip) = clips.get(idx) {
+                if !property_kind_ok(canonical, clip) {
+                    let loc = find(node, "property").unwrap();
+                    ctx.push(
+                        loc.line,
+                        loc.column,
+                        "E_BAD_MOTION",
+                        format!(
+                            "{what} property {raw:?} needs a {} clip; target {idx} is {}",
+                            match canonical {
+                                "width" | "height" => "box or image",
+                                "fill" | "radius" | "border-width" | "border-color" => "box",
+                                _ => "text",
+                            },
+                            clip.what()
+                        ),
+                        format!(
+                            "animate {raw:?} on a clip carrying it, or pick one of {}",
+                            animatable_list()
+                        ),
+                    );
+                    return None;
+                }
+            }
         }
-        Some(s) => {
-            ctx.push(
-                find(node, "property").map(|v| v.line).unwrap_or(node.name_line),
-                find(node, "property").map(|v| v.column).unwrap_or(node.name_column),
-                "E_BAD_MOTION",
-                format!(
-                    "{what} property {s:?} is not animatable; Sprint 2 moves `x`, `y`, `scale`, `rotation`, and `opacity`"
-                ),
-                "set `property=` to one of `x`, `y`, `scale`, `rotation`, or `opacity`",
-            );
-            None
-        }
+        return Some(canonical.to_string());
     }
+    let norm = raw.replace('_', "-");
+    if notation::model::LATER_PROPERTIES.contains(&norm.as_str()) {
+        ctx.diags.push(Diagnostic::new(
+            &ctx.file.clone(),
+            node.name_line,
+            node.name_column,
+            "E_UNSUPPORTED",
+            format!(
+                "{what} property {raw:?} needs Sprint 7; animatable today are {}",
+                animatable_list()
+            ),
+            "move one of the animatable properties, or wait for the named sprint",
+        ));
+        return None;
+    }
+    if notation::model::FILTER_PROPERTIES.contains(&norm.as_str()) {
+        ctx.diags.push(Diagnostic::new(
+            &ctx.file.clone(),
+            node.name_line,
+            node.name_column,
+            "E_UNSUPPORTED",
+            format!(
+                "{what} property {raw:?} is a filter beyond blur and needs Sprint 11; only `blur` animates today"
+            ),
+            "animate `blur` for softness, or wait for Sprint 11 picture treatments",
+        ));
+        return None;
+    }
+    if norm == "clip-shape" {
+        let loc = find(node, "property").unwrap();
+        ctx.push(
+            loc.line,
+            loc.column,
+            "E_BAD_MOTION",
+            format!(
+                "{what} property {raw:?} names no single value; the clip's shape animates through its numeric fields `width`, `height`, `radius`, and `border-width`"
+            ),
+            "animate `width`, `height`, `radius`, or `border-width` on the clip instead",
+        );
+        return None;
+    }
+    ctx.push(
+        find(node, "property")
+            .map(|v| v.line)
+            .unwrap_or(node.name_line),
+        find(node, "property")
+            .map(|v| v.column)
+            .unwrap_or(node.name_column),
+        "E_BAD_MOTION",
+        format!(
+            "{what} property {raw:?} is not animatable; animatable today are {}",
+            animatable_list()
+        ),
+        format!("set `property=` to one of {}", animatable_list()),
+    );
+    None
 }
 
-/// Per-property value range check (T003): opacity runs 0 to 1, every
-/// other value must simply be a finite number. Out-of-range values are
-/// refused, never clamped silently.
+/// Per-property value range check (T003 plus Sprint 7 motion,
+/// CAP-005/006): opacity runs 0 to 1, sizes run positive, radii and
+/// spacing and blur run 0 and up, every other numeric value must simply
+/// be finite. Out-of-range values are refused, never clamped silently
+/// (eased overshoot still clamps at draw time, like blur always did).
 fn motion_value_ok(
     ctx: &mut Ctx,
     node: &RawNode,
@@ -4640,23 +5814,810 @@ fn motion_value_ok(
         );
         return false;
     }
-    if property == "opacity" && !(0.0..=1.0).contains(&v) {
+    let range: Option<(&str, &str)> = match property {
+        "opacity" => {
+            if !(0.0..=1.0).contains(&v) {
+                Some(("0 (transparent) to 1 (opaque)", "0 to 1"))
+            } else {
+                None
+            }
+        }
+        "width" | "height" | "font-size" => {
+            if v <= 0.0 {
+                Some(("a positive number of pixels", "positive pixels"))
+            } else {
+                None
+            }
+        }
+        "radius" | "letter-spacing" | "border-width" | "blur" => {
+            if v < 0.0 {
+                Some(("0 pixels and up", "0 and up"))
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+    if let Some((runs, fix_range)) = range {
         let loc = find(node, key).unwrap();
         ctx.push(
             loc.line,
             loc.column,
             "E_BAD_MOTION",
-            format!("{what} `{key}` {v} is invalid; opacity runs 0 (transparent) to 1 (opaque)"),
-            format!("set `{key}=<number from 0 to 1>` on the directive"),
+            format!("{what} `{key}` {v} is invalid; {property} runs {runs}"),
+            format!("set `{key}=<number {fix_range}>` on the directive"),
         );
         return false;
     }
     true
 }
 
-fn validate_tween(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<TweenDecl> {
+/// Find the first present spelling among hyphenated, underscored, and
+/// legacy aliases: canonical hyphen first, so a clip writing both the
+/// canonical key and an alias keeps the canonical value.
+fn find_any<'b>(node: &'b RawNode, keys: &[&str]) -> Option<&'b RawValue> {
+    keys.iter().find_map(|k| find(node, k))
+}
+
+/// Shared 3D-turn clip attributes (Sprint 7 motion, CAP-005):
+/// `rotation-x`/`rotation-y` (plus `rotate-x`/`rotate-y`, either
+/// underscore form) as finite degrees defaulting to 0, `perspective`
+/// as finite positive pixels (absent renders flat), and `origin` as a
+/// placement defaulting to `center`. A non-positive perspective and an
+/// unknown origin keyword fail with `E_BAD_MOTION`, the origin refusal
+/// listing the accepted values.
+fn clip_turn(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Turn3D> {
+    const RX: &[&str] = &["rotation-x", "rotation_x", "rotate-x", "rotate_x"];
+    const RY: &[&str] = &["rotation-y", "rotation_y", "rotate-y", "rotate_y"];
+    let mut ok = true;
+    let mut degrees = |keys: &[&str], canonical: &str| -> f64 {
+        match find_any(node, keys) {
+            None => 0.0,
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => x,
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MOTION",
+                        format!("{what} `{canonical}` must be a number of degrees"),
+                        format!("set `{canonical}=<degrees>` on the {what}"),
+                    );
+                    ok = false;
+                    0.0
+                }
+            },
+        }
+    };
+    let rotation_x = degrees(RX, "rotation-x");
+    let rotation_y = degrees(RY, "rotation-y");
+    let perspective = match find(node, "perspective") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(p) if p.is_finite() && p > 0.0 => Some(p),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "{what} `perspective` {} is invalid; perspective runs positive pixels (flat when omitted)",
+                        raw_text(v)
+                    ),
+                    format!("set `perspective=<pixels above 0>` on the {what}, or remove the key for a flat turn"),
+                );
+                ok = false;
+                None
+            }
+        },
+    };
+    let origin = match find(node, "origin").and_then(as_str) {
+        None => Placement::center(),
+        Some(s) => match Placement::parse(s) {
+            Some(p) => p,
+            None => {
+                let v = find(node, "origin").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "{what} `origin` {s:?} is not an origin; use `center`, `top`, `bottom`, `left`, `right`, `top-left`, `top-right`, `bottom-left`, `bottom-right`, or a pair like `\"left top\"`"
+                    ),
+                    format!("set `origin=\"center\"` (or another placement) on the {what}"),
+                );
+                ok = false;
+                Placement::center()
+            }
+        },
+    };
+    if !ok {
+        return None;
+    }
+    Some(Turn3D {
+        rotation_x,
+        rotation_y,
+        perspective,
+        origin,
+    })
+}
+
+/// Shared static `filter` clip key (Sprint 7 motion, CAP-006): absent
+/// or `none` draws sharp (sigma 0); `blur(N)`/`blur(Npx)` draws a
+/// static Gaussian blur of N canvas pixels. Any other filter shape is
+/// still Sprint 11 and fails as unsupported naming the sprint; a
+/// malformed `blur(...)` fails with `E_BAD_MOTION` naming the form.
+fn clip_filter(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    let found = match find(node, "filter") {
+        None => return Some(0.0),
+        Some(v) => v,
+    };
+    let raw = match as_str(found) {
+        Some(s) => s.trim().to_string(),
+        None => {
+            ctx.push(
+                found.line,
+                found.column,
+                "E_BAD_MOTION",
+                format!(
+                    "{what} `filter` {} is not a filter; use `\"none\"` or `\"blur(<pixels >= 0>)\"`",
+                    raw_text(found)
+                ),
+                format!("set `filter=\"none\"` or `filter=\"blur(2)\"` on the {what}"),
+            );
+            return None;
+        }
+    };
+    if raw.eq_ignore_ascii_case("none") {
+        return Some(0.0);
+    }
+    if let Some(inner) = raw
+        .strip_prefix("blur(")
+        .and_then(|rest| rest.strip_suffix(')'))
+    {
+        // A parenthesized remainder is a filter list (or a second
+        // function): beyond one blur, so Sprint 11, not malformed.
+        if inner.contains('(') || inner.contains(')') {
+            let v = find(node, "filter").unwrap();
+            ctx.diags.push(Diagnostic::new(
+                &ctx.file.clone(),
+                v.line,
+                v.column,
+                "E_UNSUPPORTED",
+                format!("{what} `filter` {raw:?} needs Sprint 11; only `none` and `blur(N)` exist today"),
+                "use `filter=\"none\"` or `filter=\"blur(2)\"`, animate `blur` with a tween or key, or wait for Sprint 11 picture treatments",
+            ));
+            return None;
+        }
+        let num = inner
+            .trim()
+            .strip_suffix("px")
+            .unwrap_or(inner.trim())
+            .trim();
+        match num.parse::<f64>() {
+            Ok(sigma) if sigma.is_finite() && sigma >= 0.0 => return Some(sigma),
+            _ => {
+                let v = find(node, "filter").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `filter` {raw:?} is not a blur; use `filter=\"blur(<pixels >= 0>)\"` or `\"none\"`"),
+                    format!("set `filter=\"blur(2)\"` on the {what}, or remove the key"),
+                );
+                return None;
+            }
+        }
+    }
+    let v = find(node, "filter").unwrap();
+    ctx.diags.push(Diagnostic::new(
+        &ctx.file.clone(),
+        v.line,
+        v.column,
+        "E_UNSUPPORTED",
+        format!("{what} `filter` {raw:?} needs Sprint 11; only `none` and `blur(N)` exist today"),
+        "use `filter=\"none\"` or `filter=\"blur(2)\"`, animate `blur` with a tween or key, or wait for Sprint 11 picture treatments",
+    ));
+    None
+}
+
+/// Shared `stagger` delay check (Sprint 7 motion, CAP-002): absent
+/// means 0 (no cascade); present must be a finite number of seconds
+/// >= 0. A negative stagger fails with `E_BAD_MOTION` naming the
+/// bound, never shifts pieces backward silently.
+fn motion_stagger(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    match find(node, "stagger") {
+        None => Some(0.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `stagger` {x} is invalid; stagger delays run 0 seconds and up"),
+                    format!("set `stagger=<seconds from 0>` on the {what}"),
+                );
+                None
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `stagger` is not a readable number of seconds"),
+                    format!("set `stagger=<seconds from 0>` on the {what}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Shared `stagger-from` origin check (Sprint 7 motion, CAP-002):
+/// absent means `start`; present must name `start`, `center`, or
+/// `end` (either hyphenated or underscored spelling).
+fn motion_stagger_origin(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<StaggerOrigin> {
+    match find_either(node, "stagger-from", "stagger_from").and_then(as_str) {
+        None => Some(StaggerOrigin::Start),
+        Some(s) => match s {
+            "start" => Some(StaggerOrigin::Start),
+            "center" => Some(StaggerOrigin::Center),
+            "end" => Some(StaggerOrigin::End),
+            _ => {
+                let v = find_either(node, "stagger-from", "stagger_from").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "{what} `stagger-from` {s:?} is not a stagger origin; use `start`, `center`, or `end`"
+                    ),
+                    format!("set `stagger-from=\"start\"`, `\"center\"`, or `\"end\"` on the {what}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Shared `stagger-grid` check (Sprint 7 motion, CAP-002): absent
+/// means the 1D piece order; present must be a positive whole column
+/// count (`stagger-grid=4`) or `<columns>x<rows>` (`stagger-grid="4x3"`).
+fn motion_stagger_grid(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<StaggerGrid>> {
+    let raw = match find_either(node, "stagger-grid", "stagger_grid") {
+        None => return Some(None),
+        Some(v) => v,
+    };
+    let parse_count = |s: &str| -> Option<usize> {
+        let n: i64 = s.trim().parse().ok()?;
+        (n >= 1).then_some(n as usize)
+    };
+    let grid = match &raw.kind {
+        ValueKind::Int(n) if *n >= 1 => Some(StaggerGrid {
+            cols: *n as usize,
+            rows: None,
+        }),
+        ValueKind::Str(s) => {
+            let parts: Vec<&str> = s.split('x').collect();
+            match parts.as_slice() {
+                [c] => parse_count(c).map(|cols| StaggerGrid { cols, rows: None }),
+                [c, r] => match (parse_count(c), parse_count(r)) {
+                    (Some(cols), Some(rows)) => Some(StaggerGrid {
+                        cols,
+                        rows: Some(rows),
+                    }),
+                    _ => None,
+                },
+                _ => None,
+            }
+        }
+        _ => None,
+    };
+    match grid {
+        Some(g) => Some(Some(g)),
+        None => {
+            ctx.push(
+                raw.line,
+                raw.column,
+                "E_BAD_MOTION",
+                format!(
+                    "{what} `stagger-grid` is not a grid; use a positive whole column count or `<columns>x<rows>`"
+                ),
+                format!("set `stagger-grid=<columns>` or `stagger-grid=\"<columns>x<rows>\"` on the {what}"),
+            );
+            None
+        }
+    }
+}
+
+/// Shared `repeat` count check (Sprint 7 motion, CAP-004): absent
+/// means 1 (run once); present must be a whole number of passes from
+/// 1 to 1000. A non-positive count names an endless repeat and fails;
+/// an over-limit count and an unbounded marker (`infinite`,
+/// `endless`, `forever`, `unbounded`) fail the same way, all naming
+/// the accepted range. Counts arrive validated, never guessed.
+fn motion_repeat(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<u32> {
+    const BOUND: &str = "repeat counts run 1 (once) to 1000 passes";
+    let raw = match find(node, "repeat") {
+        None => return Some(REPEAT_MIN),
+        Some(v) => v,
+    };
+    let bad = |ctx: &mut Ctx, detail: String| {
+        ctx.push(
+            raw.line,
+            raw.column,
+            "E_BAD_MOTION",
+            format!("{what} `repeat` {detail}; {BOUND}"),
+            format!("set `repeat=<whole passes from 1 to 1000>` on the {what}"),
+        );
+    };
+    match &raw.kind {
+        ValueKind::Int(n) => {
+            if *n < REPEAT_MIN as i64 {
+                bad(ctx, format!("{n} names an endless repeat"));
+                None
+            } else if *n > REPEAT_MAX as i64 {
+                bad(ctx, format!("{n} is past the 1000-pass bound"));
+                None
+            } else {
+                Some(*n as u32)
+            }
+        }
+        ValueKind::Float(x) => {
+            if x.is_finite()
+                && x.fract() == 0.0
+                && *x >= REPEAT_MIN as f64
+                && *x <= REPEAT_MAX as f64
+            {
+                Some(*x as u32)
+            } else if x.is_finite() && x.fract() != 0.0 {
+                bad(ctx, format!("{x} is not a whole number of passes"));
+                None
+            } else if *x < REPEAT_MIN as f64 {
+                bad(ctx, format!("{x} names an endless repeat"));
+                None
+            } else {
+                bad(ctx, format!("{x} is past the 1000-pass bound"));
+                None
+            }
+        }
+        ValueKind::Str(s) => {
+            let t = s.trim().to_lowercase();
+            if ["infinite", "endless", "forever", "unbounded", "loop"].contains(&t.as_str()) {
+                bad(ctx, format!("{s:?} names an endless repeat"));
+                return None;
+            }
+            match s.trim().parse::<f64>() {
+                Ok(x)
+                    if x.is_finite()
+                        && x.fract() == 0.0
+                        && x >= REPEAT_MIN as f64
+                        && x <= REPEAT_MAX as f64 =>
+                {
+                    Some(x as u32)
+                }
+                Ok(x) if x.is_finite() && x.fract() != 0.0 => {
+                    bad(ctx, format!("{s:?} is not a whole number of passes"));
+                    None
+                }
+                Ok(x) if x < REPEAT_MIN as f64 => {
+                    bad(ctx, format!("{s:?} names an endless repeat"));
+                    None
+                }
+                Ok(_) => {
+                    bad(ctx, format!("{s:?} is past the 1000-pass bound"));
+                    None
+                }
+                Err(_) => {
+                    bad(ctx, format!("{s:?} is not a readable pass count"));
+                    None
+                }
+            }
+        }
+        _ => {
+            bad(ctx, "is not a readable pass count".to_string());
+            None
+        }
+    }
+}
+
+/// Shared `yoyo` switch check (Sprint 7 motion, CAP-004): absent means
+/// `false`; present must be `true` or `false`, like `typewriter`.
+fn motion_yoyo(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<bool> {
+    match find(node, "yoyo") {
+        None => Some(false),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `yoyo` must be `true` or `false`; alternate passes reverse only when `yoyo=true`"),
+                    format!("set `yoyo=true` or `yoyo=false` on the {what}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Shared `repeat-delay` gap check (Sprint 7 motion, CAP-004): absent
+/// means 0 (no gap); present must be a finite number of seconds >= 0
+/// holding end values between passes. A negative gap fails naming
+/// the bound, never overlaps passes silently.
+fn motion_repeat_delay(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    match find_either(node, "repeat-delay", "repeat_delay") {
+        None => Some(0.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `repeat-delay` {x} is invalid; gap seconds run 0 and up"),
+                    format!("set `repeat-delay=<seconds from 0>` on the {what}"),
+                );
+                None
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `repeat-delay` is not a readable number of seconds"),
+                    format!("set `repeat-delay=<seconds from 0>` on the {what}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Shared `orient` check (Sprint 7 motion, CAP-008): absent means
+/// false (no tangent rotation); present must be `true` or `false`.
+/// Anything else fails with `E_BAD_MOTION`, never guessed.
+fn motion_orient(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<bool> {
+    match find(node, "orient") {
+        None => Some(false),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("{what} `orient` must be `true` or `false`; the clip follows the path tangent only when `orient=true`"),
+                    format!("set `orient=true` or `orient=false` on the {what}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Shared path-data check (Sprint 7 motion, CAP-008): the raw value of
+/// `key` must be a string parsing as SVG-subset path data (`M`, `L`,
+/// `C`, `Q`, `A`, `Z`). Unparseable data fails with `E_BAD_MOTION`
+/// naming the command, never guessed. Returns the raw data on
+/// success; `Ok(None)` when the key is absent.
+fn motion_path_data(
+    ctx: &mut Ctx,
+    what: &str,
+    key: &str,
+    value: Option<&RawValue>,
+) -> Result<Option<String>, ()> {
+    let Some(v) = value else {
+        return Ok(None);
+    };
+    let raw = match as_str(v) {
+        Some(s) => s.to_string(),
+        None => {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("{what} `{key}` is not readable path data; paths are quoted strings like `\"M10,10 L110,10\"`"),
+                format!("set `{key}=\"M<x>,<y> ...\"` on the {what}"),
+            );
+            return Err(());
+        }
+    };
+    if let Err(e) = motion::path::parse(&raw) {
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            format!("{what} `{key}` {e}; use `M`, `L`, `C`, `Q`, `A`, or `Z` commands with plain numbers"),
+            format!("fix the `{key}` path data on the {what}"),
+        );
+        return Err(());
+    }
+    Ok(Some(raw))
+}
+
+/// Shared morph-structure check (Sprint 7 motion, CAP-008): two parsed
+/// paths interpolate only across the same command structure. Anything
+/// else fails with `E_BAD_MOTION` naming the first differing command.
+fn motion_path_morph(
+    ctx: &mut Ctx,
+    what: &str,
+    detail: &str,
+    line: usize,
+    column: usize,
+    from: &motion::path::Path,
+    to: &motion::path::Path,
+) -> bool {
+    match motion::path::morph(from, to, 0.0) {
+        Ok(_) => true,
+        Err(e) => {
+            ctx.push(
+                line,
+                column,
+                "E_BAD_MOTION",
+                format!("{what} {detail} morphs across structures: {e}"),
+                format!("give both paths the same command structure, or travel one path"),
+            );
+            false
+        }
+    }
+}
+
+/// Animated pieces of a target clip (Sprint 7 motion, CAP-002): the
+/// split pieces of a split text clip, else the single clip itself. An
+/// empty split value animates no pieces.
+fn stagger_pieces(clip: &Clip) -> usize {
+    match clip {
+        Clip::Text(tc) => match tc.split {
+            Some(SplitMode::Chars) => tc.value.chars().count(),
+            Some(SplitMode::Words) => tc.value.split_whitespace().count(),
+            Some(SplitMode::Lines) => tc.value.split('\n').count(),
+            None => 1,
+        },
+        _ => 1,
+    }
+}
+
+/// Record one stagger clamp (Sprint 7 motion, CAP-002): when the
+/// staggered, repeated motion of `kind` on `target` runs past the
+/// target clip window, the motion past the window end is cut, and the
+/// cut lands in the reviewable clamp list with the numbers. A single
+/// piece, an unstaggered directive, and a motion window fitting the
+/// clip record nothing, so fitting motion stays silent.
+#[allow(clippy::too_many_arguments)]
+fn stagger_overflow(
+    ctx: &mut Ctx,
+    clips: &[Clip],
+    kind: &'static str,
+    target: usize,
+    line: usize,
+    column: usize,
+    stagger: f64,
+    origin: StaggerOrigin,
+    grid: Option<StaggerGrid>,
+    window_start: f64,
+    window_len: f64,
+    repeat: u32,
+    gap: f64,
+) {
+    if !(stagger > 0.0) || !stagger.is_finite() {
+        return;
+    }
+    let Some(clip) = clips.get(target) else {
+        return;
+    };
+    let pieces = stagger_pieces(clip);
+    if pieces <= 1 {
+        return;
+    }
+    let motion_origin = match origin {
+        StaggerOrigin::Start => motion::StaggerOrigin::Start,
+        StaggerOrigin::Center => motion::StaggerOrigin::Center,
+        StaggerOrigin::End => motion::StaggerOrigin::End,
+    };
+    let motion_grid = grid.map(|g| {
+        (
+            g.cols,
+            g.rows.unwrap_or(motion::stagger_grid_rows(pieces, g.cols)),
+        )
+    });
+    let max_delay = motion::stagger_max_delay_grid(pieces, stagger, motion_origin, motion_grid);
+    let motion_end = motion::repeat_motion_end(window_start, window_len, repeat, gap) + max_delay;
+    let clip_end = clip.start() + clip.duration();
+    let overflow = motion_end - clip_end;
+    if overflow > 1e-9 {
+        ctx.stagger_clamps.push(StaggerClamp {
+            kind,
+            target,
+            line,
+            column,
+            pieces,
+            stagger,
+            origin: origin.name(),
+            grid_cols: grid.map(|g| g.cols),
+            grid_rows: grid.and_then(|g| g.rows),
+            max_delay,
+            motion_end,
+            clip_end,
+            overflow,
+        });
+    }
+}
+
+/// Shared stagger-plus-repeat block of a `tween` or `key` (Sprint 7
+/// motion, CAP-002/CAP-004): the delay distribution and the replay
+/// shape. Every bad key reports (never just the first), and the
+/// caller marks its own failure; returns `None` after reporting, else
+/// the six values in declaration order.
+#[allow(clippy::type_complexity)]
+fn motion_stagger_repeat(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+) -> Option<(f64, StaggerOrigin, Option<StaggerGrid>, u32, bool, f64)> {
+    let stagger = motion_stagger(ctx, node, what);
+    let origin = motion_stagger_origin(ctx, node, what);
+    let grid = motion_stagger_grid(ctx, node, what);
+    let repeat = motion_repeat(ctx, node, what);
+    let yoyo = motion_yoyo(ctx, node, what);
+    let gap = motion_repeat_delay(ctx, node, what);
+    Some((stagger?, origin?, grid?, repeat?, yoyo?, gap?))
+}
+
+/// Largest sampled `i` values when range-checking an expression
+/// (Sprint 7 motion, CAP-010): sampling covers every replicate clone
+/// and every split piece of the target, so a per-piece violation is
+/// refused before frame one.
+fn expr_sample_is(target: usize, clips: &[Clip], replicates: &[ReplicateGroup]) -> Vec<f64> {
+    for group in replicates {
+        if target >= group.first && target < group.first + group.count {
+            return (0..group.count).map(|k| k as f64).collect();
+        }
+    }
+    if let Some(Clip::Text(tc)) = clips.get(target) {
+        if let Some(mode) = tc.split {
+            let n = match mode {
+                SplitMode::Chars => tc.value.chars().count(),
+                SplitMode::Words => tc.value.split_whitespace().count(),
+                SplitMode::Lines => tc.value.split('\n').count(),
+            };
+            if n > 0 {
+                return (0..n).map(|k| k as f64).collect();
+            }
+        }
+    }
+    vec![0.0]
+}
+
+/// Range rule of one numeric motion property (Sprint 7 motion,
+/// CAP-010): mirrors `motion_value_ok` so sampled expression values
+/// refuse exactly where written endpoint values would. Returns the
+/// human range when `v` violates it.
+fn expr_range_violation(property: &str, v: f64) -> Option<&'static str> {
+    if !v.is_finite() {
+        return Some("a finite number");
+    }
+    match property {
+        "opacity" if !(0.0..=1.0).contains(&v) => Some("0 (transparent) to 1 (opaque)"),
+        "width" | "height" | "font-size" if v <= 0.0 => Some("a positive number of pixels"),
+        "radius" | "letter-spacing" | "border-width" | "blur" if v < 0.0 => Some("0 pixels and up"),
+        _ => None,
+    }
+}
+
+/// Validate one `expr` tween value (Sprint 7 motion, CAP-010): the
+/// source parses as a pure expression over `t`, `i`, and the
+/// declared inputs, and every sampled instant (each frame of the
+/// window at `fps`, plus the window end, over every sampled `i`)
+/// evaluates finite and in the property's range. The first violation
+/// reports with its instant; the maker fixes the function, not each
+/// instant.
+#[allow(clippy::too_many_arguments)]
+fn motion_expr(
+    ctx: &mut Ctx,
+    what: &str,
+    property: Option<&str>,
+    source: &str,
+    value_line: usize,
+    value_column: usize,
+    input_names: &[&str],
+    input_values: &[f64],
+    target: Option<usize>,
+    clips: &[Clip],
+    replicates: &[ReplicateGroup],
+    window: Option<(f64, f64)>,
+    fps: Fps,
+) -> Option<()> {
+    let parsed = match motion::expr::parse(source, input_names) {
+        Ok(e) => e,
+        Err(err) => {
+            ctx.push(
+                value_line,
+                // The expression starts after the opening quote, so the
+                // byte offset lands on the offending character.
+                value_column + 1 + err.offset,
+                "E_BAD_MOTION",
+                format!("{what} `expr` is not pure: {}", err.message),
+                "write a pure expression over `t`, `i`, declared `input` names, and seeded `random(seed[,min,max])`",
+            );
+            return None;
+        }
+    };
+    // Sampled instants: every frame time of the window plus its end,
+    // so the check replays exactly what drawing evaluates. Sampling
+    // needs the property, target, and window; purity above never
+    // waits for them, so one bad key never hides an impure
+    // expression.
+    let (Some(property), Some(target), Some((start, duration))) = (property, target, window) else {
+        // Pure, but nothing to sample against: the missing key
+        // already reported, so this is not a second failure.
+        return Some(());
+    };
+    let rate = fps.value().max(1.0);
+    let frames = (duration * rate).ceil().max(1.0) as u64;
+    // Long windows sample evenly (at most 4096 instants): the check
+    // stays proportional to the window, never to its frame count.
+    let stride = frames.div_ceil(4096).max(1);
+    let mut instants: Vec<f64> = (0..frames)
+        .step_by(stride as usize)
+        .map(|k| start + k as f64 / rate)
+        .take_while(|t| *t < start + duration)
+        .collect();
+    instants.push(start + duration);
+    for &i in &expr_sample_is(target, clips, replicates) {
+        for &t in &instants {
+            let v = parsed.eval(t, i, input_values);
+            if let Some(range) = expr_range_violation(property, v) {
+                ctx.push(
+                    value_line,
+                    value_column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "{what} `expr` evaluates to {v} at t={t:.6}s i={i} (outside {range} for {property}); motion never shows an out-of-range value"
+                    ),
+                    format!("keep `{property}` expressions within {range} over the whole window"),
+                );
+                return None;
+            }
+        }
+    }
+    Some(())
+}
+
+fn validate_tween(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    clips: &[Clip],
+    input_names: &[&str],
+    input_values: &[f64],
+    fps: Fps,
+    replicates: &[ReplicateGroup],
+) -> Option<TweenDecl> {
     const KEYS: &[&str] = &[
-        "target", "property", "kind", "start", "duration", "ease", "from", "to",
+        "target",
+        "property",
+        "kind",
+        "start",
+        "duration",
+        "ease",
+        "from",
+        "to",
+        "expr",
+        "path",
+        "path-to",
+        "path_to",
+        "orient",
+        "stagger",
+        "stagger-from",
+        "stagger_from",
+        "stagger-grid",
+        "stagger_grid",
+        "repeat",
+        "yoyo",
+        "repeat-delay",
+        "repeat_delay",
     ];
     for (k, v) in &node.props {
         if !KEYS.contains(&k.as_str()) && k != "end" {
@@ -4670,9 +6631,124 @@ fn validate_tween(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<Tw
         }
     }
     let mut ok = true;
-    let target = motion_target(ctx, node, "tween", clip_count);
+    let target = motion_target(ctx, node, "tween", clips.len());
     ok &= target.is_some();
-    let property = motion_property(ctx, node, "tween");
+    // Path travel (Sprint 7 motion, CAP-008): `path` replaces the
+    // numeric shape — a path tween carries no `property`, `kind`,
+    // `from`, or `to`. `path-to` morphs toward a second path of the
+    // same structure; `orient` follows the tangent.
+    let path_value = find(node, "path");
+    let path_to_value = find_either(node, "path-to", "path_to");
+    let is_path = path_value.is_some() || path_to_value.is_some();
+    let orient = motion_orient(ctx, node, "tween");
+    ok &= orient.is_some();
+    if is_path {
+        for key in ["property", "kind", "from", "to", "expr"] {
+            if let Some(v) = find(node, key) {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("tween `{key}` conflicts with `path`; a path tween places the clip with `path` (`path-to` morphs, `orient` turns), not a named property with numbers or an expression"),
+                    "remove the numeric key, or remove `path` to animate one property",
+                );
+                ok = false;
+            }
+        }
+        if path_value.is_none() {
+            let v = path_to_value.unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                "tween `path-to` needs `path`; a morph interpolates from the travel path toward `path-to`",
+                "add `path=\"M<x>,<y> ...\"` to the tween, or remove `path-to`",
+            );
+            ok = false;
+        }
+    } else if orient.is_some() && find(node, "orient").is_some() {
+        let v = find(node, "orient").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "tween `orient` rides path motion; a numeric tween carries no `path`, so `orient` has no tangent to follow",
+            "add `path=\"M<x>,<y> ...\"` to the tween, or remove `orient`",
+        );
+        ok = false;
+    }
+    let (path, path_to) = if is_path {
+        let path = match motion_path_data(ctx, "tween", "path", path_value) {
+            Ok(p) => p,
+            Err(()) => {
+                ok = false;
+                None
+            }
+        };
+        let path_to = match motion_path_data(ctx, "tween", "path-to", path_to_value) {
+            Ok(p) => p,
+            Err(()) => {
+                ok = false;
+                None
+            }
+        };
+        match (&path, &path_to) {
+            (Some(a), Some(b)) => {
+                let pa = motion::path::parse(a).expect("path data parses after validation");
+                let pb = motion::path::parse(b).expect("path data parses after validation");
+                let v = path_to_value.unwrap();
+                ok &= motion_path_morph(ctx, "tween", "`path-to`", v.line, v.column, &pa, &pb);
+            }
+            _ => {}
+        }
+        (path, path_to)
+    } else {
+        (None, None)
+    };
+    if is_path {
+        let window = clip_window(ctx, node, "tween");
+        ok &= window.is_some();
+        let ease = match motion_ease_opt(ctx, node) {
+            Some(e) => e.unwrap_or(EaseDecl::Linear),
+            None => {
+                ok = false;
+                EaseDecl::Linear
+            }
+        };
+        let stagger_repeat = motion_stagger_repeat(ctx, node, "tween");
+        ok &= stagger_repeat.is_some();
+        if !ok {
+            return None;
+        }
+        let (start, duration) = window.unwrap();
+        let (stagger, stagger_from, stagger_grid, repeat, yoyo, repeat_delay) =
+            stagger_repeat.unwrap();
+        return Some(TweenDecl {
+            target: target.unwrap(),
+            property: String::new(),
+            kind: TweenKind::To,
+            from: None,
+            to: None,
+            from_color: None,
+            to_color: None,
+            start,
+            duration,
+            ease,
+            stagger,
+            stagger_from,
+            stagger_grid,
+            repeat,
+            yoyo,
+            repeat_delay,
+            path,
+            path_to,
+            orient: orient.unwrap_or(false),
+            expr: None,
+            line: node.name_line,
+            column: node.name_column,
+        });
+    }
+    let property = motion_property(ctx, node, "tween", clips, target);
     ok &= property.is_some();
     let kind = match find(node, "kind").and_then(as_str) {
         None => TweenKind::To,
@@ -4697,43 +6773,95 @@ fn validate_tween(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<Tw
     // Window: absolute start plus positive duration, like clips.
     let window = clip_window(ctx, node, "tween");
     ok &= window.is_some();
-    // Easing: nineteen names plus `out-back(n)`; anything else names
-    // the accepted set, later easings wait for Sprint 7.
-    let ease = match find(node, "ease").and_then(as_str) {
-        None => EaseDecl::Linear,
-        Some(s) => match parse_ease_value(s) {
-            EaseParse::Ok(e) => e,
-            EaseParse::Later(name) => {
-                let v = find(node, "ease").unwrap();
-                ctx.diags.push(Diagnostic::new(
-                    &ctx.file.clone(),
-                    v.line,
-                    v.column,
-                    "E_UNSUPPORTED",
-                    format!("tween easing {name:?} needs Sprint 7; Sprint 2 eases with the nineteen named curves plus `out-back(n)`"),
-                    "ease with a Sprint 2 curve, or wait for Sprint 7 motion proof",
-                ));
-                ok = false;
-                EaseDecl::Linear
-            }
-            EaseParse::Bad(detail) => {
-                let v = find(node, "ease").unwrap();
+    // Easing: the nineteen names, `out-back(n)`, and the Sprint 7 curve
+    // set; anything else names the accepted forms.
+    let ease = match motion_ease_opt(ctx, node) {
+        Some(e) => e.unwrap_or(EaseDecl::Linear),
+        None => {
+            ok = false;
+            EaseDecl::Linear
+        }
+    };
+    // Expression (Sprint 7 motion, CAP-010): `expr` replaces the
+    // endpoint numbers with a pure per-frame value function of `t`,
+    // `i`, and declared inputs. It conflicts with `from`/`to`, with
+    // path travel, with color properties (one number cannot paint a
+    // color), with non-default `kind`/`ease` (nothing to shape
+    // between), and with stagger/repeat windows (those belong to
+    // segment motion).
+    let expr_entry: Option<(String, usize, usize)> = match find(node, "expr") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) => Some((s.to_string(), v.line, v.column)),
+            None => {
                 ctx.push(
                     v.line,
                     v.column,
-                    "E_BAD_EASING",
-                    format!("{detail}; accepted easings are: {}", accepted_easings()),
-                    "set `ease=` to a named curve or `ease=\"out-back(1.7)\"`",
+                    "E_BAD_MOTION",
+                    "tween `expr` must be a quoted string holding the expression",
+                    "set `expr=\"t*30\"` on the tween",
                 );
                 ok = false;
-                EaseDecl::Linear
+                None
             }
         },
     };
+    let is_expr = expr_entry.is_some();
+    if is_expr {
+        for key in ["from", "to"] {
+            if let Some(v) = find(node, key) {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("tween `{key}` conflicts with `expr`; an expression tween evaluates `expr` per frame over the window, not endpoint numbers"),
+                    "remove the endpoint key, or remove `expr` to move between two given values",
+                );
+                ok = false;
+            }
+        }
+        if let Some(v) = find(node, "kind") {
+            if !matches!(as_str(v), Some("to")) {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    "tween `kind` conflicts with `expr`; an expression tween evaluates per frame with no from/to form",
+                    "remove `kind`, or remove `expr` to move between two given values",
+                );
+                ok = false;
+            }
+        }
+        if find(node, "ease").is_some() && ease != EaseDecl::Linear {
+            let v = find(node, "ease").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                "tween `ease` conflicts with `expr`; an expression evaluates directly per frame, with no segment to shape",
+                "remove `ease`, or remove `expr` to ease between two given values",
+            );
+            ok = false;
+        }
+        if let Some(p) = property.as_deref() {
+            if property_is_color(p) {
+                let v = find(node, "expr").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("tween `expr` on {p:?} holds a color; an expression yields one number, so colors animate with `from`/`to`"),
+                    "animate the color with `from=\"#rrggbb\"`/`to=\"#rrggbb\"` instead of `expr`",
+                );
+                ok = false;
+            }
+        }
+    }
     // Values: `to` needs `to`, `from` needs `from`, `from-to` needs
     // both; a value under the wrong form is refused, never reinterpreted.
-    let need_from = matches!(kind, TweenKind::From | TweenKind::FromTo);
-    let need_to = matches!(kind, TweenKind::To | TweenKind::FromTo);
+    // An expression tween carries neither endpoint.
+    let need_from = matches!(kind, TweenKind::From | TweenKind::FromTo) && !is_expr;
+    let need_to = matches!(kind, TweenKind::To | TweenKind::FromTo) && !is_expr;
     let mut read_value = |key: &str, needed: bool| -> Option<Option<f64>> {
         let present = find(node, key);
         if !needed {
@@ -4792,27 +6920,175 @@ fn validate_tween(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<Tw
             },
         }
     };
-    let from = read_value("from", need_from)?;
-    let to = read_value("to", need_to)?;
+    // Colors (Sprint 7 motion, CAP-006): `fill` and `border-color`
+    // endpoints are hex colors interpolated in straight RGBA, never
+    // numbers. Numeric properties carry no colors.
+    let is_color = property.as_deref().is_some_and(property_is_color);
+    let (from, to) = if is_color || is_expr {
+        (None, None)
+    } else {
+        (read_value("from", need_from)?, read_value("to", need_to)?)
+    };
+    let mut read_color = |key: &str, needed: bool| -> Option<Option<Rgb>> {
+        let present = find(node, key);
+        if !needed {
+            if let Some(v) = present {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!(
+                        "tween `{key}` needs kind `{}`; a `{}` tween carries no `{key}`",
+                        kind.name(),
+                        kind.name()
+                    ),
+                    format!(
+                        "remove `{key}`, or set `kind=\"from-to\"` to move between two given colors"
+                    ),
+                );
+                ok = false;
+                return Some(None);
+            }
+        }
+        if needed && present.is_none() {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MOTION",
+                format!("tween kind `{}` is missing required `{key}`", kind.name()),
+                format!("add `{key}=\"#rrggbb\"` to the tween"),
+            );
+            ok = false;
+            return Some(None);
+        }
+        match present {
+            None => Some(None),
+            Some(v) => match as_str(v).and_then(parse_color) {
+                Some(c) => Some(Some(c)),
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MOTION",
+                        format!(
+                            "tween `{key}` {} is not a `#rgb` or `#rrggbb` color",
+                            raw_text(v)
+                        ),
+                        format!("set `{key}=\"#rrggbb\"` on the tween"),
+                    );
+                    ok = false;
+                    Some(None)
+                }
+            },
+        }
+    };
+    let (from_color, to_color) = if is_color {
+        (read_color("from", need_from)?, read_color("to", need_to)?)
+    } else {
+        (None, None)
+    };
+    // Stagger plus repeat (Sprint 7 motion, CAP-002/CAP-004): the delay
+    // distribution and the replay shape; every bad key reports.
+    let stagger_repeat = motion_stagger_repeat(ctx, node, "tween");
+    ok &= stagger_repeat.is_some();
+    // Expression cascades and replays (Sprint 7 motion, CAP-010): an
+    // expression evaluates per frame over one window, so a cascade,
+    // a replay, or a gap has no segment to distribute.
+    if is_expr {
+        if let Some((stagger, _, _, repeat, yoyo, gap)) = stagger_repeat {
+            let mut conflict = |key: &str, message: String, fix: &str| {
+                let v = find(node, key).unwrap();
+                ctx.push(v.line, v.column, "E_BAD_MOTION", message, fix);
+                ok = false;
+            };
+            if stagger != 0.0 {
+                conflict(
+                    "stagger",
+                    "tween `stagger` conflicts with `expr`; an expression evaluates per frame over one window, with no cascade to distribute".to_string(),
+                    "remove `stagger`, or remove `expr` to cascade segment motion",
+                );
+            }
+            if repeat != 1 {
+                conflict(
+                    "repeat",
+                    "tween `repeat` conflicts with `expr`; an expression evaluates per frame over one window, with no replay".to_string(),
+                    "remove `repeat`, or remove `expr` to replay segment motion",
+                );
+            }
+            if yoyo {
+                conflict(
+                    "yoyo",
+                    "tween `yoyo` conflicts with `expr`; an expression evaluates per frame over one window, with no pass to reverse".to_string(),
+                    "remove `yoyo`, or remove `expr` to reverse segment motion",
+                );
+            }
+            if gap != 0.0 {
+                let key = if find(node, "repeat-delay").is_some() {
+                    "repeat-delay"
+                } else {
+                    "repeat_delay"
+                };
+                conflict(
+                    key,
+                    "tween `repeat-delay` conflicts with `expr`; an expression evaluates per frame over one window, with no gap to hold".to_string(),
+                    "remove `repeat-delay`, or remove `expr` to gap segment motion",
+                );
+            }
+        }
+    }
+    // Purity plus range (Sprint 7 motion, CAP-010): the expression
+    // parses pure and samples in-range at every drawn instant, or the
+    // tween reports with the instant named.
+    if let Some(entry) = expr_entry.as_ref() {
+        ok &= motion_expr(
+            ctx,
+            "tween",
+            property.as_deref(),
+            &entry.0,
+            entry.1,
+            entry.2,
+            input_names,
+            input_values,
+            target,
+            clips,
+            replicates,
+            window,
+            fps,
+        )
+        .is_some();
+    }
     if !ok {
         return None;
     }
     let (start, duration) = window.unwrap();
+    let (stagger, stagger_from, stagger_grid, repeat, yoyo, repeat_delay) = stagger_repeat.unwrap();
     Some(TweenDecl {
         target: target.unwrap(),
         property: property.unwrap(),
         kind,
         from,
         to,
+        from_color,
+        to_color,
         start,
         duration,
         ease,
+        stagger,
+        stagger_from,
+        stagger_grid,
+        repeat,
+        yoyo,
+        repeat_delay,
+        path: None,
+        path_to: None,
+        orient: false,
+        expr: expr_entry.map(|entry| entry.0),
         line: node.name_line,
         column: node.name_column,
     })
 }
 
-fn validate_set(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<SetDecl> {
+fn validate_set(ctx: &mut Ctx, node: &RawNode, clips: &[Clip]) -> Option<SetDecl> {
     const KEYS: &[&str] = &["target", "property", "start", "duration", "value"];
     for (k, v) in &node.props {
         if !KEYS.contains(&k.as_str()) && k != "end" {
@@ -4826,12 +7102,32 @@ fn validate_set(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<SetD
         }
     }
     let mut ok = true;
-    let target = motion_target(ctx, node, "set", clip_count);
+    let target = motion_target(ctx, node, "set", clips.len());
     ok &= target.is_some();
-    let property = motion_property(ctx, node, "set");
+    let property = motion_property(ctx, node, "set", clips, target);
     ok &= property.is_some();
     let window = clip_window(ctx, node, "set");
     ok &= window.is_some();
+    // Colors hold no single number (Sprint 7 motion, CAP-006): a set on
+    // `fill` or `border-color` names the tween or key that interpolates
+    // them instead.
+    if property.as_deref().is_some_and(property_is_color) {
+        let (line, column) = match find(node, "value") {
+            Some(v) => (v.line, v.column),
+            None => (node.name_line, node.name_column),
+        };
+        ctx.push(
+            line,
+            column,
+            "E_BAD_MOTION",
+            format!(
+                "set property {:?} holds a color; a `set` holds one number, so colors animate with `tween` or `key`",
+                property.as_deref().unwrap_or("")
+            ),
+            "animate the color with a `tween` or `key` instead of a `set`",
+        );
+        ok = false;
+    }
     let value = match find(node, "value") {
         None => {
             ctx.push(
@@ -4876,6 +7172,470 @@ fn validate_set(ctx: &mut Ctx, node: &RawNode, clip_count: usize) -> Option<SetD
         value,
         start,
         duration,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// One parsed `frame` stop plus whether its `at` parsed: order checks
+/// skip stops with unreadable times (already reported) so one bad value
+/// never cascades into a false unordered diagnostic. `is_path` marks
+/// stops that travel a `path` instead of holding a `value` (even when
+/// the path itself failed); `has_value` marks stops that carry a
+/// `value` key, for the mixed-shape check.
+struct RawStop {
+    at: f64,
+    at_ok: bool,
+    is_path: bool,
+    has_value: bool,
+    stop: Option<KeyStop>,
+    line: usize,
+    column: usize,
+}
+
+/// Validate one `frame` stop of a `key` (Sprint 7 motion): a required
+/// `at` time in absolute seconds >= 0, a required numeric `value`
+/// (range-checked like tween values) or — for path keys — a required
+/// `path` of SVG-subset data, and an optional `ease` for the segment
+/// running to the next stop. `index` numbers the stop from 1 in
+/// document order so every diagnostic names it.
+fn validate_frame(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    label: &str,
+    index: usize,
+    property: Option<&str>,
+) -> RawStop {
+    const KEYS: &[&str] = &["at", "value", "path", "ease"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown `frame` attribute {k:?}; a `frame` holds `at`, `value` (or `path`), and `ease`"),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_MOTION",
+            format!("key {label} stop {index} carries no children; a `frame` is one `at` time with one `value`"),
+            "remove the child elements from the stop",
+        );
+        ok = false;
+    }
+    let (at, at_ok) = match find(node, "at") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MOTION",
+                format!("key {label} stop {index} is missing required `at`; every stop names its time in seconds"),
+                format!("add `at=<seconds>` to stop {index} of the key"),
+            );
+            ok = false;
+            (0.0, false)
+        }
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => (x, true),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("key {label} stop {index} `at` {x} is invalid; stops sit at absolute seconds >= 0"),
+                    format!("set `at=<seconds from 0>` on stop {index} of the key"),
+                );
+                ok = false;
+                (0.0, false)
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MOTION",
+                    format!("key {label} stop {index} `at` is not a readable number"),
+                    format!("set `at=<seconds>` on stop {index} of the key"),
+                );
+                ok = false;
+                (0.0, false)
+            }
+        },
+    };
+    // Colors (Sprint 7 motion, CAP-006): a `fill` or `border-color`
+    // stop holds a hex color interpolated in straight RGBA; every other
+    // stop holds a number range-checked like tween values.
+    let stop_what = format!("key {label} stop {index}");
+    let is_color = property.is_some_and(property_is_color);
+    let mut value_color: Option<Rgb> = None;
+    // Path stops (Sprint 7 motion, CAP-008): `path` replaces `value` —
+    // the segment leaving the stop travels it, morphing toward the
+    // next stop's path. `value` and `path` never share one stop.
+    let is_path = find(node, "path").is_some();
+    let has_value = find(node, "value").is_some();
+    let mut stop_path: Option<String> = None;
+    if is_path && has_value {
+        let v = find(node, "value").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            format!("key {label} stop {index} carries both `value` and `path`; a path stop travels `path`, not a number"),
+            format!("remove `value` from stop {index} of the key, or remove `path` to hold a number"),
+        );
+        ok = false;
+    }
+    if is_path {
+        match motion_path_data(ctx, &stop_what, "path", find(node, "path")) {
+            Ok(p) => stop_path = p,
+            Err(()) => ok = false,
+        }
+    }
+    let value = if is_path {
+        0.0
+    } else {
+        match find(node, "value") {
+            None => {
+                ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MOTION",
+                format!("key {label} stop {index} is missing required `value`; every stop names the value it holds"),
+                format!(
+                    "add `value=<{}>` to stop {index} of the key",
+                    if is_color { "color like \"#rrggbb\"" } else { "number" }
+                ),
+            );
+                ok = false;
+                0.0
+            }
+            Some(v) if is_color => match as_str(v).and_then(parse_color) {
+                Some(c) => {
+                    value_color = Some(c);
+                    0.0
+                }
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MOTION",
+                        format!(
+                        "key {label} stop {index} `value` {} is not a `#rgb` or `#rrggbb` color",
+                        raw_text(v)
+                    ),
+                        format!("set `value=\"#rrggbb\"` on stop {index} of the key"),
+                    );
+                    ok = false;
+                    0.0
+                }
+            },
+            Some(v) => match as_f64(v) {
+                // Range-checked exactly like tween values
+                // (`motion_value_ok`), but naming the stop: every keyframe
+                // refusal names its stop.
+                Some(x) => {
+                    if !motion_value_ok(ctx, node, &stop_what, property.unwrap_or(""), "value", x) {
+                        ok = false;
+                    }
+                    x
+                }
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MOTION",
+                        format!("key {label} stop {index} `value` is not a readable number"),
+                        format!("set `value=<number>` on stop {index} of the key"),
+                    );
+                    ok = false;
+                    0.0
+                }
+            },
+        }
+    };
+    let ease = match motion_ease_opt(ctx, node) {
+        Some(e) => e,
+        None => {
+            ok = false;
+            None
+        }
+    };
+    let stop = ok.then(|| KeyStop {
+        at,
+        value,
+        value_color,
+        path: stop_path,
+        ease,
+        line: node.name_line,
+        column: node.name_column,
+    });
+    RawStop {
+        at,
+        at_ok,
+        is_path,
+        has_value,
+        stop,
+        line: node.name_line,
+        column: node.name_column,
+    }
+}
+
+/// Validate a `key` element (Sprint 7 motion, CAP-001): a `target` clip,
+/// an animatable `property`, an optional key-level `ease` fallback, and
+/// at least two `frame` stops in strictly rising time order. Every stop
+/// problem reports together, each naming its stop; unordered, duplicate,
+/// unknown-property, and wrong-shape stops all fail before frame one.
+fn validate_key(ctx: &mut Ctx, node: &RawNode, clips: &[Clip]) -> Option<KeyDecl> {
+    const KEYS: &[&str] = &[
+        "target",
+        "property",
+        "ease",
+        "path",
+        "path-to",
+        "path_to",
+        "orient",
+        "stagger",
+        "stagger-from",
+        "stagger_from",
+        "stagger-grid",
+        "stagger_grid",
+        "repeat",
+        "yoyo",
+        "repeat-delay",
+        "repeat_delay",
+    ];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown `key` attribute {k:?}; a `key` holds `target`, `property`, and `ease`, with `frame` stops inside"
+                ),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    let target = motion_target(ctx, node, "key", clips.len());
+    ok &= target.is_some();
+    // Path stops (Sprint 7 motion, CAP-008): a `path` rides the `frame`
+    // stops, never the `key` element — the segment leaving each stop
+    // travels that stop's path, morphing toward the next stop's.
+    if let Some(v) = find(node, "path").or_else(|| find_either(node, "path-to", "path_to")) {
+        let key = if find(node, "path").is_some() {
+            "path"
+        } else {
+            "path-to"
+        };
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            format!("key `{key}` rides `frame` stops, not the `key` element; every stop of a path key carries its own `path`"),
+            "move the path data into `frame at=<seconds> path=\"M<x>,<y> ...\"` stops",
+        );
+        ok = false;
+    }
+    let orient = motion_orient(ctx, node, "key");
+    ok &= orient.is_some();
+    let ease = match motion_ease_opt(ctx, node) {
+        Some(e) => e,
+        None => {
+            ok = false;
+            None
+        }
+    };
+    // The property peek stays diagnostic-free: numeric keys require
+    // exactly one animatable property below, while path keys refuse
+    // it. Labels read the canonical spelling, like before.
+    let property_raw = find(node, "property").and_then(as_str).map(str::to_string);
+    let label = match (
+        &target,
+        property_raw.as_deref().and_then(canonical_property),
+    ) {
+        (Some(t), Some(p)) => format!("target={t} property={p:?}"),
+        _ => format!("at {}:{}", node.name_line, node.name_column),
+    };
+    let mut stops: Vec<RawStop> = Vec::new();
+    for child in &node.children {
+        if child.name != "frame" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_MOTION",
+                format!(
+                    "key {label} holds only `frame` stops; found `{}`",
+                    child.name
+                ),
+                "use `frame at=<seconds> value=<number>` stops inside the key, or move the element out",
+            );
+            ok = false;
+            continue;
+        }
+        stops.push(validate_frame(
+            ctx,
+            child,
+            &label,
+            stops.len() + 1,
+            property_raw.as_deref().and_then(canonical_property),
+        ));
+        // A failed stop fails its key: the assembly below unwraps every
+        // stop, so validity must be tracked here, not just reported.
+        ok &= stops.last().is_some_and(|s| s.stop.is_some());
+    }
+    if stops.len() < 2 {
+        let held = match stops.len() {
+            0 => "no `frame` stops".to_string(),
+            _ => "a single `frame` stop".to_string(),
+        };
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_MOTION",
+            format!("key {label} holds {held}; every key chains at least two stops"),
+            "add at least two `frame at=<seconds> value=<number>` stops in time order inside the key",
+        );
+        ok = false;
+    }
+    // Stops run in time order: an earlier-or-equal time names its stop.
+    // Stops with unreadable times stay out of the comparison (already
+    // reported) so one bad value never cascades. Every offending stop
+    // reports, not just the first.
+    for i in 1..stops.len() {
+        if !stops[i].at_ok || !stops[i - 1].at_ok {
+            continue;
+        }
+        if stops[i].at < stops[i - 1].at {
+            ctx.push(
+                stops[i].line,
+                stops[i].column,
+                "E_BAD_MOTION",
+                format!(
+                    "key {label} stop {} at {}s runs before stop {} at {}s; stops run in time order",
+                    i + 1,
+                    stops[i].at,
+                    i,
+                    stops[i - 1].at
+                ),
+                "reorder the `frame` stops of the key so `at` times rise",
+            );
+            ok = false;
+        } else if stops[i].at == stops[i - 1].at {
+            ctx.push(
+                stops[i].line,
+                stops[i].column,
+                "E_BAD_MOTION",
+                format!(
+                    "key {label} stops {} and {} share `at` {}s; zero-length segments are refused as duplicate times",
+                    i,
+                    i + 1,
+                    stops[i].at
+                ),
+                "give each stop its own `at` time; instantaneous jumps use `hold` plus `set`",
+            );
+            ok = false;
+        }
+    }
+    // Path keys (Sprint 7 motion, CAP-008): any path stop makes the
+    // key a path key — `property` must be absent (the stops travel
+    // their own paths) and every other stop must travel too. Morph
+    // compatibility is checked per consecutive parsed pair, naming
+    // the later stop; numeric keys keep the required-property check.
+    let has_path = stops.iter().any(|s| s.is_path);
+    let property: Option<String> = if has_path {
+        if let Some(raw) = &property_raw {
+            let v = find(node, "property").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("key property {raw:?} conflicts with path stops; a path key carries no `property` — every stop travels its own `path`"),
+                "remove `property` from the key, or remove the stop `path` keys to animate one property",
+            );
+            ok = false;
+        }
+        for (i, stop) in stops.iter().enumerate() {
+            if !stop.is_path && stop.has_value {
+                ctx.push(
+                    stop.line,
+                    stop.column,
+                    "E_BAD_MOTION",
+                    format!("key {label} stop {} carries `value`; every stop of a path key carries `path`", i + 1),
+                    format!("replace `value=<number>` with `path=\"M<x>,<y> ...\"` on stop {} of the key", i + 1),
+                );
+                ok = false;
+            }
+        }
+        for (i, pair) in stops.windows(2).enumerate() {
+            let (a, b) = (&pair[0], &pair[1]);
+            let (Some(sa), Some(sb)) = (a.stop.as_ref(), b.stop.as_ref()) else {
+                continue;
+            };
+            let (Some(pa), Some(pb)) = (sa.path.as_deref(), sb.path.as_deref()) else {
+                continue;
+            };
+            // Both stops parsed (their data validated above), so these
+            // re-parses cannot fail.
+            let a_path = motion::path::parse(pa).expect("stop path parses after validation");
+            let b_path = motion::path::parse(pb).expect("stop path parses after validation");
+            ok &= motion_path_morph(
+                ctx,
+                &format!("key {label} stop {}", i + 2),
+                "`path`",
+                b.line,
+                b.column,
+                &a_path,
+                &b_path,
+            );
+        }
+        None
+    } else {
+        let property = motion_property(ctx, node, "key", clips, target);
+        ok &= property.is_some();
+        property
+    };
+    if !has_path && orient.is_some() && find(node, "orient").is_some() {
+        let v = find(node, "orient").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_MOTION",
+            "key `orient` rides path motion; a numeric key carries no path stops, so `orient` has no tangent to follow",
+            "add `path=\"M<x>,<y> ...\"` to the `frame` stops of the key, or remove `orient`",
+        );
+        ok = false;
+    }
+    // Stagger plus repeat (Sprint 7 motion, CAP-002/CAP-004): the delay
+    // distribution and the replay shape; every bad key reports.
+    let stagger_repeat = motion_stagger_repeat(ctx, node, "key");
+    ok &= stagger_repeat.is_some();
+    if !ok {
+        return None;
+    }
+    let (stagger, stagger_from, stagger_grid, repeat, yoyo, repeat_delay) = stagger_repeat.unwrap();
+    Some(KeyDecl {
+        target: target.unwrap(),
+        // Path keys travel their stops' paths, not a named property.
+        property: property.unwrap_or_default(),
+        ease,
+        stops: stops.into_iter().map(|s| s.stop.unwrap()).collect(),
+        stagger,
+        stagger_from,
+        stagger_grid,
+        repeat,
+        yoyo,
+        repeat_delay,
+        orient: orient.unwrap_or(false),
         line: node.name_line,
         column: node.name_column,
     })

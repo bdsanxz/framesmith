@@ -162,7 +162,11 @@ fn main_with(uses: &str, duration: u32) -> String {
 #[test]
 fn nested_bumper_renders_the_child_timeline() {
     let root = tmp("picture");
-    write(&root.join("p"), "composition.kdl", &main_with("nest nest=\"bumper\" start=0 duration=2", 2));
+    write(
+        &root.join("p"),
+        "composition.kdl",
+        &main_with("nest nest=\"bumper\" start=0 duration=2", 2),
+    );
     let (code, out) = run(&["check", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["render", "p"], &root);
@@ -172,10 +176,22 @@ fn nested_bumper_renders_the_child_timeline() {
     let frames = decode_video(&mp4, 64, 64);
     assert_eq!(frames.len(), 4 * 64 * 64 * 3);
     // fps=2: frame k shows child second k/2.
-    assert!(is_red(center(&frames, 0, 64, 64)), "frame 0 shows the red half");
-    assert!(is_red(center(&frames, 1, 64, 64)), "frame 1 shows the red half");
-    assert!(is_green(center(&frames, 2, 64, 64)), "frame 2 shows the green half");
-    assert!(is_green(center(&frames, 3, 64, 64)), "frame 3 shows the green half");
+    assert!(
+        is_red(center(&frames, 0, 64, 64)),
+        "frame 0 shows the red half"
+    );
+    assert!(
+        is_red(center(&frames, 1, 64, 64)),
+        "frame 1 shows the red half"
+    );
+    assert!(
+        is_green(center(&frames, 2, 64, 64)),
+        "frame 2 shows the green half"
+    );
+    assert!(
+        is_green(center(&frames, 3, 64, 64)),
+        "frame 3 shows the green half"
+    );
 }
 
 #[test]
@@ -197,8 +213,14 @@ fn nested_child_with_different_fps_maps_by_time() {
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
-    assert!(is_red(center(&frames, 0, 64, 64)), "t=0 shows child red at 30fps");
-    assert!(is_green(center(&frames, 2, 64, 64)), "t=1 shows child green at 30fps");
+    assert!(
+        is_red(center(&frames, 0, 64, 64)),
+        "t=0 shows child red at 30fps"
+    );
+    assert!(
+        is_green(center(&frames, 2, 64, 64)),
+        "t=1 shows child green at 30fps"
+    );
 }
 
 #[test]
@@ -216,10 +238,22 @@ fn per_use_trims_select_different_halves() {
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
-    assert!(is_green(center(&frames, 0, 64, 64)), "first use shows the green half");
-    assert!(is_green(center(&frames, 1, 64, 64)), "first use shows the green half");
-    assert!(is_red(center(&frames, 2, 64, 64)), "second use shows the red half");
-    assert!(is_red(center(&frames, 3, 64, 64)), "second use shows the red half");
+    assert!(
+        is_green(center(&frames, 0, 64, 64)),
+        "first use shows the green half"
+    );
+    assert!(
+        is_green(center(&frames, 1, 64, 64)),
+        "first use shows the green half"
+    );
+    assert!(
+        is_red(center(&frames, 2, 64, 64)),
+        "second use shows the red half"
+    );
+    assert!(
+        is_red(center(&frames, 3, 64, 64)),
+        "second use shows the red half"
+    );
 }
 
 #[test]
@@ -235,10 +269,22 @@ fn rate_two_plays_the_child_at_double_speed() {
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
     // Child second 2c at parent second c: t=0 red, t=0.5 green, then the
     // 1s of content holds green for the rest of the use.
-    assert!(is_red(center(&frames, 0, 64, 64)), "t=0 shows child 0 (red)");
-    assert!(is_green(center(&frames, 1, 64, 64)), "t=0.5 shows child 1 (green)");
-    assert!(is_green(center(&frames, 2, 64, 64)), "t=1 holds the last state");
-    assert!(is_green(center(&frames, 3, 64, 64)), "t=1.5 holds the last state");
+    assert!(
+        is_red(center(&frames, 0, 64, 64)),
+        "t=0 shows child 0 (red)"
+    );
+    assert!(
+        is_green(center(&frames, 1, 64, 64)),
+        "t=0.5 shows child 1 (green)"
+    );
+    assert!(
+        is_green(center(&frames, 2, 64, 64)),
+        "t=1 holds the last state"
+    );
+    assert!(
+        is_green(center(&frames, 3, 64, 64)),
+        "t=1.5 holds the last state"
+    );
 }
 
 #[test]
@@ -254,7 +300,10 @@ fn hold_last_picture_past_the_content() {
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
     assert_eq!(frames.len(), 8 * 64 * 64 * 3);
     for k in 2..8 {
-        assert!(is_green(center(&frames, k, 64, 64)), "frame {k} holds green past 2s");
+        assert!(
+            is_green(center(&frames, k, 64, 64)),
+            "frame {k} holds green past 2s"
+        );
     }
 }
 
@@ -277,7 +326,10 @@ fn nest_order_layers_the_use_as_one_unit() {
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(b > 180 && r < 100 && g < 100, "blue covers the nest: r={r} g={g} b={b}");
+    assert!(
+        b > 180 && r < 100 && g < 100,
+        "blue covers the nest: r={r} g={g} b={b}"
+    );
 }
 
 // --- sound -------------------------------------------------------------------
@@ -305,8 +357,16 @@ fn hold_region_is_silent_while_content_sounds() {
     let pcm = decode_audio(&root.join("p").join("out.mp4"));
     assert_eq!(pcm.len(), 4 * 48000 * 2);
     let half = pcm.len() / 2;
-    assert!(rms(&pcm[..half]) > 200.0, "content half sounds: rms={}", rms(&pcm[..half]));
-    assert!(rms(&pcm[half..]) < 50.0, "hold half is silent: rms={}", rms(&pcm[half..]));
+    assert!(
+        rms(&pcm[..half]) > 200.0,
+        "content half sounds: rms={}",
+        rms(&pcm[..half])
+    );
+    assert!(
+        rms(&pcm[half..]) < 50.0,
+        "hold half is silent: rms={}",
+        rms(&pcm[half..])
+    );
     // The held picture still shows the child's red box at t=3.
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
     assert!(is_red(center(&frames, 6, 64, 64)), "t=3 holds the red box");
@@ -338,7 +398,10 @@ fn nested_audio_follows_trim_and_rate() {
     // silence for the rest of the 2s use.
     let tone_end = (0.75 * 48000.0) as usize * 2;
     assert!(rms(&pcm[..tone_end]) > 200.0, "trimmed content sounds");
-    assert!(rms(&pcm[tone_end + 4800..]) < 50.0, "past the content is silent");
+    assert!(
+        rms(&pcm[tone_end + 4800..]) < 50.0,
+        "past the content is silent"
+    );
 }
 
 // --- refusals ------------------------------------------------------------------
@@ -377,7 +440,10 @@ fn circular_nest_refuses_check_and_render() {
     assert!(out.contains("\"a\" -> \"b\" -> \"a\""), "{out}");
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(!root.join("p").join("out.mp4").exists(), "no partial MP4: {out}");
+    assert!(
+        !root.join("p").join("out.mp4").exists(),
+        "no partial MP4: {out}"
+    );
 }
 
 #[test]
@@ -403,22 +469,36 @@ fn deep_nest_refuses_naming_the_limit() {
     assert!(out.contains("\"c0\"") && out.contains("\"c9\""), "{out}");
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(!root.join("p").join("out.mp4").exists(), "no partial MP4: {out}");
+    assert!(
+        !root.join("p").join("out.mp4").exists(),
+        "no partial MP4: {out}"
+    );
 }
 
 #[test]
 fn unbounded_and_unknown_nests_refuse_before_frame_one() {
     let root = tmp("refuse-unbounded");
-    write_two_comp(&root, "nest nest=\"bumper\" start=0", "box x=0 y=0 width=1 height=1 fill=\"#fff\" start=0 duration=1");
+    write_two_comp(
+        &root,
+        "nest nest=\"bumper\" start=0",
+        "box x=0 y=0 width=1 height=1 fill=\"#fff\" start=0 duration=1",
+    );
     let (code, out) = run(&["check", "p"], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(out.contains("E_BAD_TIMING") && out.contains("unbounded"), "{out}");
+    assert!(
+        out.contains("E_BAD_TIMING") && out.contains("unbounded"),
+        "{out}"
+    );
     let (code, _) = run(&["render", "p"], &root);
     assert_eq!(code, 1);
     assert!(!root.join("p").join("out.mp4").exists());
 
     let root = tmp("refuse-unknown");
-    write_two_comp(&root, "nest nest=\"ghost\" start=0 duration=1", "box x=0 y=0 width=1 height=1 fill=\"#fff\" start=0 duration=1");
+    write_two_comp(
+        &root,
+        "nest nest=\"ghost\" start=0 duration=1",
+        "box x=0 y=0 width=1 height=1 fill=\"#fff\" start=0 duration=1",
+    );
     let (code, out) = run(&["check", "p"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_UNKNOWN_REF"), "{out}");
@@ -432,7 +512,11 @@ fn unbounded_and_unknown_nests_refuse_before_frame_one() {
 #[test]
 fn nested_rerender_is_byte_identical() {
     let root = tmp("identical");
-    write(&root.join("p"), "composition.kdl", &main_with("nest nest=\"bumper\" start=0 duration=2 rate=2", 2));
+    write(
+        &root.join("p"),
+        "composition.kdl",
+        &main_with("nest nest=\"bumper\" start=0 duration=2 rate=2", 2),
+    );
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let first = std::fs::read(root.join("p").join("out.mp4")).unwrap();
@@ -445,7 +529,11 @@ fn nested_rerender_is_byte_identical() {
 #[test]
 fn named_render_of_the_child_ignores_the_use() {
     let root = tmp("select-child");
-    write(&root.join("p"), "composition.kdl", &main_with("nest nest=\"bumper\" start=0 duration=2", 2));
+    write(
+        &root.join("p"),
+        "composition.kdl",
+        &main_with("nest nest=\"bumper\" start=0 duration=2", 2),
+    );
     let (code, out) = run(&["render", "--composition", "bumper", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);

@@ -75,7 +75,9 @@ impl Time {
         if whole.len() > MAX_WHOLE_DIGITS || fraction.len() > MAX_FRACTION_DIGITS {
             return None;
         }
-        if !whole.bytes().all(|b| b.is_ascii_digit()) || !fraction.bytes().all(|b| b.is_ascii_digit()) {
+        if !whole.bytes().all(|b| b.is_ascii_digit())
+            || !fraction.bytes().all(|b| b.is_ascii_digit())
+        {
             return None;
         }
         let mut num: i128 = 0;
@@ -182,14 +184,20 @@ impl PartialOrd for Time {
 impl std::ops::Add for Time {
     type Output = Time;
     fn add(self, other: Time) -> Time {
-        Time::new(self.num * other.den + other.num * self.den, self.den * other.den)
+        Time::new(
+            self.num * other.den + other.num * self.den,
+            self.den * other.den,
+        )
     }
 }
 
 impl std::ops::Sub for Time {
     type Output = Time;
     fn sub(self, other: Time) -> Time {
-        Time::new(self.num * other.den - other.num * self.den, self.den * other.den)
+        Time::new(
+            self.num * other.den - other.num * self.den,
+            self.den * other.den,
+        )
     }
 }
 
@@ -211,7 +219,10 @@ impl fmt::Display for Time {
             }
         } else {
             let rounded = format!("{:.6}", self.to_f64());
-            rounded.trim_end_matches('0').trim_end_matches('.').to_string()
+            rounded
+                .trim_end_matches('0')
+                .trim_end_matches('.')
+                .to_string()
         };
         f.write_str(&text)
     }
@@ -226,7 +237,8 @@ impl serde::Serialize for Time {
 impl<'de> serde::Deserialize<'de> for Time {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Time, D::Error> {
         let text = String::deserialize(deserializer)?;
-        Time::from_exact(&text).ok_or_else(|| serde::de::Error::custom(format!("\"{text}\" is not an exact time")))
+        Time::from_exact(&text)
+            .ok_or_else(|| serde::de::Error::custom(format!("\"{text}\" is not an exact time")))
     }
 }
 

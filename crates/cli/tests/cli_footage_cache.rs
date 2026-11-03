@@ -144,7 +144,9 @@ fn cache_bytes(folder: &Path) -> u64 {
 /// `total=(\d+)ms` from the timing summary line.
 fn total_ms(output: &str) -> u64 {
     let tag = "total=";
-    let at = output.find(tag).expect("timing line reports total: {output}");
+    let at = output
+        .find(tag)
+        .expect("timing line reports total: {output}");
     let rest = &output[at + tag.len()..];
     let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
     digits.parse().expect("total_ms parses: {output}")
@@ -188,7 +190,10 @@ fn second_render_is_faster_and_byte_identical_with_hits_reported() {
         t2 < t1,
         "cached re-render is faster (first {t1}ms, second {t2}ms):\n{first}\n{second}"
     );
-    println!("cache-report: first {t1}ms, second {t2}ms, {} bytes identical", a.len());
+    println!(
+        "cache-report: first {t1}ms, second {t2}ms, {} bytes identical",
+        a.len()
+    );
 }
 
 /// The `--json` render document carries the same hit/miss report
@@ -288,7 +293,11 @@ fn missing_and_corrupt_cache_render_correctly_with_misses() {
         std::fs::write(entry.path(), b"garbage-not-a-cache-entry").unwrap();
     }
     // Plus one truncated entry for the partial-write case.
-    if let Some(entry) = std::fs::read_dir(cache_dir(&folder)).unwrap().flatten().next() {
+    if let Some(entry) = std::fs::read_dir(cache_dir(&folder))
+        .unwrap()
+        .flatten()
+        .next()
+    {
         let half = std::fs::read(entry.path()).unwrap();
         std::fs::write(entry.path(), &half[..half.len() / 2]).unwrap();
     }
@@ -347,12 +356,26 @@ fn eviction_keeps_output_correct_inside_the_bound() {
     std::fs::create_dir_all(&folder).unwrap();
     // Two distinct sources so two entries compete for the bound.
     ffmpeg(&[
-        "-f", "lavfi", "-i", "testsrc=duration=2:size=64x48:rate=30", "-c:v", "libx264",
-        "-pix_fmt", "yuv420p", &folder.join("a.mp4").display().to_string(),
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=duration=2:size=64x48:rate=30",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        &folder.join("a.mp4").display().to_string(),
     ]);
     ffmpeg(&[
-        "-f", "lavfi", "-i", "smptebars=duration=2:size=64x48:rate=30", "-c:v", "libx264",
-        "-pix_fmt", "yuv420p", &folder.join("b.mp4").display().to_string(),
+        "-f",
+        "lavfi",
+        "-i",
+        "smptebars=duration=2:size=64x48:rate=30",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        &folder.join("b.mp4").display().to_string(),
     ]);
     write(
         &folder,

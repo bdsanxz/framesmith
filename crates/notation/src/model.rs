@@ -222,8 +222,105 @@ pub struct StartAfter {
     pub column: usize,
 }
 
+/// How a `text` clip splits into individually addressable pieces
+/// (Sprint 7 motion, CAP-009): `chars` splits per Unicode scalar value,
+/// `words` splits on whitespace runs (joined with single spaces),
+/// `lines` splits on newlines. Only `text` clips carry a split.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SplitMode {
+    Chars,
+    Words,
+    Lines,
+}
+
+impl SplitMode {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "chars" => Some(SplitMode::Chars),
+            "words" => Some(SplitMode::Words),
+            "lines" => Some(SplitMode::Lines),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            SplitMode::Chars => "chars",
+            SplitMode::Words => "words",
+            SplitMode::Lines => "lines",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 3] = ["chars", "words", "lines"];
+}
+
+/// A named composition instant (Sprint 7 motion, CAP-003): a `mark`
+/// element names one time in seconds that `start-after` accepts as a
+/// target, resolving to that instant plus any `start-offset`.
+#[derive(Debug, Clone)]
+pub struct MarkDecl {
+    /// Mark name, unique across the project like an `id`.
+    pub name: String,
+    /// Named instant in composition seconds.
+    pub at: f64,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// The 3D turn of a visual clip (Sprint 7 motion, CAP-005):
+/// `rotation-x`/`rotation-y` in degrees about the horizontal and
+/// vertical axes through the `origin` point, foreshortened by
+/// `perspective` (finite positive pixels; `None` renders flat with
+/// orthographic foreshortening). The identity (both angles zero) draws
+/// exactly as before, with or without a perspective.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Turn3D {
+    pub rotation_x: f64,
+    pub rotation_y: f64,
+    pub perspective: Option<f64>,
+    pub origin: Placement,
+}
+
+impl Turn3D {
+    /// No 3D turn: zero angles, flat projection, centered origin.
+    pub fn flat() -> Self {
+        Self {
+            rotation_x: 0.0,
+            rotation_y: 0.0,
+            perspective: None,
+            origin: Placement::center(),
+        }
+    }
+
+    /// True when both angles are zero (or non-finite, drawn flat like
+    /// a zero 2D rotation): the element draws through the old fast
+    /// path byte-identically, whatever the perspective or origin.
+    pub fn is_identity(&self) -> bool {
+        (self.rotation_x == 0.0 || !self.rotation_x.is_finite())
+            && (self.rotation_y == 0.0 || !self.rotation_y.is_finite())
+    }
+
+    /// Origin as fractions of the element rect: left/center/right to
+    /// 0/0.5/1 horizontally, top/center/bottom to 0/0.5/1 vertically.
+    pub fn origin_fractions(&self) -> (f64, f64) {
+        let fx = match self.origin.x {
+            PlaceH::Left => 0.0,
+            PlaceH::Center => 0.5,
+            PlaceH::Right => 1.0,
+        };
+        let fy = match self.origin.y {
+            PlaceV::Top => 0.0,
+            PlaceV::Center => 0.5,
+            PlaceV::Bottom => 1.0,
+        };
+        (fx, fy)
+    }
+}
+
 /// A `text` clip (Sprint 1 usable element, plus Sprint 2 paint order,
-/// line height and letter spacing, plus Sprint 6 id/track/label).
+/// line height and letter spacing, plus Sprint 6 id/track/label, plus
+/// Sprint 7 split/typewriter/count text effects).
 #[derive(Debug, Clone)]
 pub struct TextClip {
     pub value: String,
@@ -257,6 +354,29 @@ pub struct TextClip {
     /// separated); none means the project font, else the machine style
     /// fallback. At least one name must resolve at render time.
     pub font_family: Option<Vec<String>>,
+    /// Split mode (Sprint 7 motion, CAP-009): none means the whole
+    /// value shows; a split addresses each piece for motion while the
+    /// full value still shows unless `typewriter` reveals it.
+    pub split: Option<SplitMode>,
+    /// Typewriter reveal (Sprint 7 motion, CAP-009): `true` shows
+    /// split pieces progressively across the clip window (needs
+    /// `split`); `false` (default) shows the whole value.
+    pub typewriter: bool,
+    /// Count range (Sprint 7 motion, CAP-009): `count-from` and
+    /// `count-to` render the interpolated number with `decimals`
+    /// decimal places (default 0). Counting contradicts `split` and
+    /// `typewriter`; `decimals` needs a count range.
+    pub count_from: Option<f64>,
+    pub count_to: Option<f64>,
+    pub decimals: u32,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005): rotation about
+    /// the horizontal/vertical axes through `origin`, foreshortened by
+    /// `perspective` (flat when omitted). Identity by default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp. Only `blur(N)`/`none` exist; any other
+    /// `filter` is a Sprint 11 refusal at validation.
+    pub filter_blur: f64,
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
@@ -321,6 +441,11 @@ pub struct VideoClip {
     /// default false). A looping clip without an explicit `duration`
     /// is refused as unbounded.
     pub loop_clip: bool,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
@@ -490,6 +615,11 @@ pub struct BoxClip {
     /// 0 transparent to 1 opaque.
     pub opacity: f64,
     pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
@@ -523,6 +653,11 @@ pub struct ImageClip {
     pub fit: Fit,
     pub placement: Placement,
     pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
@@ -567,10 +702,10 @@ impl TweenKind {
     }
 }
 
-/// One easing curve of a `tween` (T003): the nineteen named curves of
-/// `CAP-009` plus parameterized `out-back(n)`. Later easings
-/// (`cubic-bezier`, `steps`, `spring`, `bounce`, `elastic`, `wiggle`,
-/// `hold`) are refused as not-yet-supported, never parsed here.
+/// One easing curve of a `tween` or `key` (T003 plus the Sprint 7 motion
+/// set): the nineteen named curves of `CAP-009`, parameterized
+/// `out-back(n)`, and the full curve set (`cubic-bezier`, `steps`,
+/// `spring`, `bounce`, `elastic`, `wiggle`, `hold`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EaseDecl {
     Linear,
@@ -593,6 +728,13 @@ pub enum EaseDecl {
     OutExpo,
     InOutExpo,
     OutBack(f64),
+    CubicBezier(f64, f64, f64, f64),
+    Steps(u32),
+    Spring(f64, f64),
+    Bounce,
+    Elastic,
+    Wiggle(u32),
+    Hold,
 }
 
 impl EaseDecl {
@@ -619,17 +761,6 @@ impl EaseDecl {
         "in-out-expo",
     ];
 
-    /// Later easings refused as not-yet-supported (Sprint 7 motion proof).
-    pub const LATER: [&'static str; 7] = [
-        "cubic-bezier",
-        "steps",
-        "spring",
-        "bounce",
-        "elastic",
-        "wiggle",
-        "hold",
-    ];
-
     pub fn name(self) -> String {
         match self {
             EaseDecl::Linear => "linear".into(),
@@ -652,9 +783,54 @@ impl EaseDecl {
             EaseDecl::OutExpo => "out-expo".into(),
             EaseDecl::InOutExpo => "in-out-expo".into(),
             EaseDecl::OutBack(n) => format!("out-back({n})"),
+            EaseDecl::CubicBezier(x1, y1, x2, y2) => {
+                format!("cubic-bezier({x1},{y1},{x2},{y2})")
+            }
+            EaseDecl::Steps(n) => format!("steps({n})"),
+            EaseDecl::Spring(s, d) => format!("spring({s},{d})"),
+            EaseDecl::Bounce => "bounce".into(),
+            EaseDecl::Elastic => "elastic".into(),
+            EaseDecl::Wiggle(n) => format!("wiggle({n})"),
+            EaseDecl::Hold => "hold".into(),
         }
     }
 }
+
+/// Where staggered piece delays are measured from (Sprint 7 motion,
+/// CAP-002): the first piece, the middle, or the last piece.
+/// Written `stagger-from` (or `stagger_from`); default `start`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StaggerOrigin {
+    Start,
+    Center,
+    End,
+}
+
+impl StaggerOrigin {
+    pub fn name(self) -> &'static str {
+        match self {
+            StaggerOrigin::Start => "start",
+            StaggerOrigin::Center => "center",
+            StaggerOrigin::End => "end",
+        }
+    }
+}
+
+/// A 2D stagger grid (Sprint 7 motion, CAP-002): pieces lay row-major
+/// in `cols` columns (rows derived from the piece count, at least the
+/// declared `rows` when written `colsxrows`). Written `stagger-grid`
+/// (or `stagger_grid`) as `<columns>` or `<columns>x<rows>`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StaggerGrid {
+    pub cols: usize,
+    pub rows: Option<usize>,
+}
+
+/// Repeat bounds (Sprint 7 motion, CAP-004): `repeat` replays a motion
+/// 1 to 1000 times; anything else (non-positive, over-limit, or an
+/// unbounded marker) is refused naming the bound.
+pub const REPEAT_MIN: u32 = 1;
+pub const REPEAT_MAX: u32 = 1000;
 
 /// A validated `tween` directive (T003): smooth motion of one property
 /// of one clip over a half-open window. Drawing (T009/T010/T012)
@@ -663,14 +839,57 @@ impl EaseDecl {
 pub struct TweenDecl {
     /// Document index of the target clip.
     pub target: usize,
-    /// One of `x`, `y`, `scale`, `rotation`, `opacity`.
+    /// Canonical animatable property name (aliases normalized at
+    /// validation): one of `MOTION_PROPERTIES`.
     pub property: String,
     pub kind: TweenKind,
     pub from: Option<f64>,
     pub to: Option<f64>,
+    /// Color endpoints for `fill`/`border-color` tweens (Sprint 7
+    /// motion, CAP-006): straight RGBA interpolation runs over these,
+    /// channel by channel. `None` for every numeric property.
+    pub from_color: Option<Rgb>,
+    pub to_color: Option<Rgb>,
     pub start: f64,
     pub duration: f64,
     pub ease: EaseDecl,
+    /// Per-piece delay in seconds (Sprint 7 motion, CAP-002): each
+    /// animated piece starts `stagger` times its order index from
+    /// `stagger_from` later. Default 0 (no cascade).
+    pub stagger: f64,
+    /// Stagger origin (Sprint 7 motion, CAP-002). Default `start`.
+    pub stagger_from: StaggerOrigin,
+    /// Stagger grid (Sprint 7 motion, CAP-002); none means the 1D
+    /// piece order.
+    pub stagger_grid: Option<StaggerGrid>,
+    /// Replay count (Sprint 7 motion, CAP-004): 1 runs once, more
+    /// replays the motion. Always 1 to 1000 after validation.
+    pub repeat: u32,
+    /// Whether alternate passes run backward (Sprint 7 motion,
+    /// CAP-004). Default false.
+    pub yoyo: bool,
+    /// Held end values between passes in seconds (Sprint 7 motion,
+    /// CAP-004). Default 0.
+    pub repeat_delay: f64,
+    /// Path travel (Sprint 7 motion, CAP-008): the SVG-subset path
+    /// the clip follows by eased distance along true curve length.
+    /// Present means a path tween: `property`, `kind`, `from`, and
+    /// `to` must be absent. None means a numeric tween.
+    pub path: Option<String>,
+    /// Path morph destination (Sprint 7 motion, CAP-008): the path
+    /// the travel interpolates toward, same structure required.
+    /// Written `path-to` (or `path_to`).
+    pub path_to: Option<String>,
+    /// Whether the clip rotates to the path tangent (Sprint 7 motion,
+    /// CAP-008): the tangent heading adds to the tweened rotation.
+    /// Default false. Refused without `path`.
+    pub orient: bool,
+    /// Pure seeded expression (Sprint 7 motion, CAP-010): the value
+    /// function of `t`, `i`, and declared inputs evaluated per frame
+    /// over the tween window. Present means an expression tween:
+    /// `from`, `to`, and path keys must be absent. None means a
+    /// numeric or path tween.
+    pub expr: Option<String>,
     pub line: usize,
     pub column: usize,
 }
@@ -683,7 +902,7 @@ pub struct TweenDecl {
 pub struct SetDecl {
     /// Document index of the target clip.
     pub target: usize,
-    /// One of `x`, `y`, `scale`, `rotation`, `opacity`.
+    /// Canonical animatable property name (one of `MOTION_PROPERTIES`).
     pub property: String,
     pub value: f64,
     pub start: f64,
@@ -692,26 +911,136 @@ pub struct SetDecl {
     pub column: usize,
 }
 
-/// Properties tweenable and settable in Sprint 2. Anything else is
-/// refused as not-yet-supported with its enabling sprint (T003).
-pub const MOTION_PROPERTIES: [&str; 5] = ["x", "y", "scale", "rotation", "opacity"];
+/// One validated `frame` stop inside a `key` (Sprint 7 motion): the value
+/// at `at` seconds, with the easing of the segment running to the next
+/// stop (none means the key easing, then linear). The last stop's easing
+/// is accepted and ignored: no segment leaves it. A path stop carries
+/// `path` instead of `value` (Sprint 7 motion, CAP-008).
+#[derive(Debug, Clone)]
+pub struct KeyStop {
+    pub at: f64,
+    pub value: f64,
+    /// Color value for `fill`/`border-color` stops (Sprint 7 motion,
+    /// CAP-006): the interpolated color endpoint. `None` for every
+    /// numeric property (`value` then holds the number).
+    pub value_color: Option<Rgb>,
+    /// Path travel of a path stop (Sprint 7 motion, CAP-008): the
+    /// segment leaving this stop morphs toward the next stop's path.
+    /// `None` for numeric stops.
+    pub path: Option<String>,
+    pub ease: Option<EaseDecl>,
+    pub line: usize,
+    pub column: usize,
+}
 
-/// Well-formed motion properties that wait for Sprint 7 motion proof.
-pub const LATER_PROPERTIES: [&str; 13] = [
-    "scale-x",
-    "scale-y",
-    "skew",
-    "skew-x",
-    "skew-y",
-    "rotate-x",
-    "rotate-y",
+/// A validated `key` directive (Sprint 7 motion): chained motion of one
+/// property of one clip through at least two `frame` stops in time
+/// order. Drawing evaluates each stop-to-stop segment with its own
+/// easing; validation only guarantees the stops are well-defined.
+#[derive(Debug, Clone)]
+pub struct KeyDecl {
+    /// Document index of the target clip.
+    pub target: usize,
+    /// Canonical animatable property name (one of `MOTION_PROPERTIES`).
+    pub property: String,
+    /// Key-level easing: the fallback for stops carrying no `ease`.
+    pub ease: Option<EaseDecl>,
+    /// Stops in document order with strictly rising `at` times.
+    pub stops: Vec<KeyStop>,
+    /// Per-piece delay in seconds (Sprint 7 motion, CAP-002): each
+    /// animated piece starts `stagger` times its order index from
+    /// `stagger_from` later. Default 0 (no cascade).
+    pub stagger: f64,
+    /// Stagger origin (Sprint 7 motion, CAP-002). Default `start`.
+    pub stagger_from: StaggerOrigin,
+    /// Stagger grid (Sprint 7 motion, CAP-002); none means the 1D
+    /// piece order.
+    pub stagger_grid: Option<StaggerGrid>,
+    /// Replay count (Sprint 7 motion, CAP-004): 1 runs once, more
+    /// replays the whole stop chain. Always 1 to 1000 after
+    /// validation.
+    pub repeat: u32,
+    /// Whether alternate passes run backward (Sprint 7 motion,
+    /// CAP-004). Default false.
+    pub yoyo: bool,
+    /// Held end values between passes in seconds (Sprint 7 motion,
+    /// CAP-004). Default 0.
+    pub repeat_delay: f64,
+    /// Whether the clip rotates to the path tangent (Sprint 7 motion,
+    /// CAP-008): the tangent heading adds to the keyed rotation.
+    /// Default false. Refused on keys without path stops.
+    pub orient: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Properties tweenable and settable (Sprint 2 five, plus the Sprint 7
+/// motion set): the five geometric ones, the 3D turns, the visual
+/// properties, and blur. Anything else is refused as not-yet-supported
+/// with its enabling sprint. Canonical hyphenated spellings; validation
+/// also accepts the aliases below.
+pub const MOTION_PROPERTIES: [&str; 16] = [
+    "x",
+    "y",
+    "scale",
+    "rotation",
+    "opacity",
     "rotation-x",
     "rotation-y",
+    "width",
+    "height",
+    "fill",
+    "radius",
+    "border-width",
+    "border-color",
     "blur",
-    "brightness",
-    "count",
-    "typed",
+    "font-size",
+    "letter-spacing",
 ];
+
+/// Aliased motion property spellings, each mapping to its canonical
+/// `MOTION_PROPERTIES` name: `rotate-x`/`rotate-y` predate the task
+/// text, `size` is the text clip's own key, `fill-color` and
+/// `border-radius` are the CSS-vocabulary names. Every hyphenated name
+/// also accepts its underscore form.
+pub const MOTION_ALIASES: [(&str, &str); 5] = [
+    ("rotate-x", "rotation-x"),
+    ("rotate-y", "rotation-y"),
+    ("size", "font-size"),
+    ("fill-color", "fill"),
+    ("border-radius", "radius"),
+];
+
+/// Well-formed motion properties that still wait for later proof
+/// (Sprint 7 paths/expressions and beyond).
+pub const LATER_PROPERTIES: [&str; 7] = [
+    "scale-x", "scale-y", "skew", "skew-x", "skew-y", "count", "typed",
+];
+
+/// Filter properties beyond blur (Sprint 7 motion, CAP-006): valid
+/// shapes, but still Sprint 11 — refused as unsupported naming Sprint
+/// 11, never drawn. `brightness` moved here from the Sprint 7 set: it
+/// is a filter, not a Sprint 7 motion property.
+pub const FILTER_PROPERTIES: [&str; 11] = [
+    "brightness",
+    "filter",
+    "contrast",
+    "saturate",
+    "saturation",
+    "grayscale",
+    "greyscale",
+    "hue-rotate",
+    "sepia",
+    "invert",
+    "drop-shadow",
+];
+
+/// The clip's shape animates through its numeric fields (Sprint 7
+/// motion, CAP-006 "shapes by numeric fields"): `width`, `height`, and
+/// `radius` (plus `border-width`) interpolate the drawn geometry, so no
+/// separate `clip-shape` property exists. `clip-shape` names nothing
+/// animatable and is refused with this list.
+pub const SHAPE_NUMERIC_PROPERTIES: [&str; 4] = ["width", "height", "radius", "border-width"];
 
 /// A `nest` clip (Sprint 6 structural element): plays another
 /// composition's local timeline inside this one with per-use
@@ -933,6 +1262,33 @@ impl Clip {
 /// Optional project configuration file name, read from the folder root.
 pub const CONFIG_FILE: &str = "framesmith.toml";
 
+/// One declared expression input (Sprint 7 motion, CAP-010): an
+/// `input` element names one finite number an `expr` may read by
+/// name. Names use expression identifier syntax (letters, digits,
+/// underscores, no leading digit), are unique per composition, and
+/// never collide with `t`, `i`, constants, or function names.
+#[derive(Debug, Clone)]
+pub struct InputDecl {
+    /// Declared name, as written.
+    pub name: String,
+    /// Declared value: always finite after validation.
+    pub value: f64,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One `replicate` expansion (Sprint 7 motion, CAP-010): `count`
+/// clones of one template clip, in document order starting at clip
+/// `first`. Clone `k` exposes piece index `i = k` to expressions
+/// (and to stagger distributions).
+#[derive(Debug, Clone, Copy)]
+pub struct ReplicateGroup {
+    /// Document index of the first clone.
+    pub first: usize,
+    /// Number of clones (always positive after validation).
+    pub count: usize,
+}
+
 /// Validated composition root (CAP-002 / T003).
 #[derive(Debug, Clone)]
 pub struct Composition {
@@ -956,6 +1312,46 @@ pub struct Composition {
     /// Validated `set` directives, in written order (T003). Drawing
     /// (T011) evaluates them; overlapping sets resolve later-wins there.
     pub sets: Vec<SetDecl>,
+    /// Validated `key` directives, in written order (Sprint 7 motion).
+    /// Drawing expands each into stop-to-stop tweens below the sets.
+    pub keys: Vec<KeyDecl>,
+    /// Validated `mark` elements, in written order (Sprint 7 motion,
+    /// CAP-003). `start-after` accepts a mark name, resolving to the
+    /// marked instant; marks outside composition time are refused.
+    pub marks: Vec<MarkDecl>,
+    /// Declared expression inputs, in written order (Sprint 7 motion,
+    /// CAP-010). Every `expr` in this composition resolves bare names
+    /// against these; anything else is refused as unknown.
+    pub inputs: Vec<InputDecl>,
+    /// `replicate` expansions, in document order (Sprint 7 motion,
+    /// CAP-010). Empty for replicate-free compositions.
+    pub replicates: Vec<ReplicateGroup>,
+}
+
+impl Composition {
+    /// The replicate piece index of clip `clip_idx`: the clone offset
+    /// inside its group, or 0 for ordinary clips. This is the `i` an
+    /// expression reads for the clip.
+    pub fn replicate_index(&self, clip_idx: usize) -> usize {
+        for group in &self.replicates {
+            if clip_idx >= group.first && clip_idx < group.first + group.count {
+                return clip_idx - group.first;
+            }
+        }
+        0
+    }
+
+    /// Declared input values in declaration order, for expression
+    /// evaluation: entry `k` answers variable `k`.
+    pub fn input_values(&self) -> Vec<f64> {
+        self.inputs.iter().map(|d| d.value).collect()
+    }
+
+    /// Declared input names in declaration order, matching
+    /// [`Composition::input_values`].
+    pub fn input_names(&self) -> Vec<&str> {
+        self.inputs.iter().map(|d| d.name.as_str()).collect()
+    }
 }
 
 /// Half-open visibility rule (T005 / CAP-004): a clip with start `S` and

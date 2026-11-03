@@ -25,16 +25,25 @@ pub struct ResolvedText {
     /// Evaluated canvas position (authored plus motion offset).
     pub x: f64,
     pub y: f64,
+    /// Evaluated font size in canvas pixels (authored, or animated).
     pub size: f64,
     pub color: Rgb,
     pub style: notation::model::FontStyle,
     pub line_height: Option<f64>,
+    /// Evaluated letter spacing in canvas pixels (authored, or
+    /// animated; `None` means the font default).
     pub letter_spacing: Option<f64>,
     /// Evaluated motion (T010): uniform scale about the top-left,
     /// rotation in degrees about the top-left, opacity 0 to 1.
     pub scale: f64,
     pub rotation: f64,
     pub opacity: f64,
+    /// Evaluated 3D turn in degrees plus static perspective/origin
+    /// (Sprint 7 motion, CAP-005) and blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
 }
 
 /// One visible video element at one frame time.
@@ -53,6 +62,12 @@ pub struct ResolvedVideo {
     pub scale: f64,
     pub rotation: f64,
     pub opacity: f64,
+    /// Evaluated 3D turn plus static perspective/origin (CAP-005) and
+    /// blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
 }
 
 /// One visible box element at one frame time.
@@ -62,6 +77,7 @@ pub struct ResolvedBox {
     pub order: i64,
     pub x: f64,
     pub y: f64,
+    /// Evaluated extents, fill, and border (authored, or animated).
     pub width: f64,
     pub height: f64,
     pub fill: Rgb,
@@ -73,6 +89,12 @@ pub struct ResolvedBox {
     /// rotation in degrees about the box center.
     pub scale: f64,
     pub rotation: f64,
+    /// Evaluated 3D turn plus static perspective/origin (CAP-005) and
+    /// blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
 }
 
 /// One visible image element at one frame time.
@@ -83,6 +105,9 @@ pub struct ResolvedImage {
     pub path: String,
     pub x: f64,
     pub y: f64,
+    /// Evaluated target extents (authored, or animated when a
+    /// `width`/`height` tween or set names the clip; `None` fills the
+    /// canvas as before).
     pub width: Option<f64>,
     pub height: Option<f64>,
     pub fit: Fit,
@@ -93,6 +118,17 @@ pub struct ResolvedImage {
     pub scale: f64,
     pub rotation: f64,
     pub opacity: f64,
+    /// Evaluated 3D turn plus static perspective/origin (CAP-005) and
+    /// blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
+}
+
+/// Round one straight-RGBA channel to a byte, deterministically.
+pub fn channel_byte(v: f64) -> u8 {
+    v.round().clamp(0.0, 255.0) as u8
 }
 
 /// One visible element at one frame time, in paint order.
@@ -284,35 +320,47 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
         if now < start_t || now >= end_t {
             continue;
         }
-        let eval = view.motions[ci]
-            .get(local)
-            .map(|m| m.values_at(now))
-            .unwrap_or_else(|| {
-                // No motion entry: the clip holds its own values.
-                let own = crate::motion_plan::own_values(clip);
-                crate::motion_plan::Evaluated {
-                    x: own[Prop::X.index()],
-                    y: own[Prop::Y.index()],
-                    scale: own[Prop::Scale.index()],
-                    rotation: own[Prop::Rotation.index()],
-                    opacity: own[Prop::Opacity.index()],
-                }
-            });
+        let motion = view.motions[ci].get(local);
+        let eval = motion.map(|m| m.values_at(now)).unwrap_or_else(|| {
+            // No motion entry: the clip holds its own values.
+            let comp = view.comps[ci];
+            crate::motion_plan::ClipMotion::still_on(
+                local,
+                clip,
+                30,
+                (f64::from(comp.width), f64::from(comp.height)),
+            )
+            .values_at(now)
+        });
+        // Whether a tween or set names the property: evaluated values
+        // then win over the authored fields (Sprint 7 motion, CAP-006).
+        // Clips without a motion entry never touch anything.
+        let touches = |prop: Prop| motion.is_some_and(|m| m.touches(prop));
         match clip {
             Clip::Text(tc) => items.push(FrameItem::Text(ResolvedText {
                 doc,
                 order: tc.order,
-                value: tc.value.clone(),
+                // Sprint 7 text effects (CAP-009): a typewriter reveal
+                // or count range shows its own string at this instant;
+                // still and merely-split clips show the authored value.
+                value: crate::textfx::display_value(tc, t),
                 x: eval.x,
                 y: eval.y,
-                size: tc.size,
+                size: eval.font_size,
                 color: tc.color,
                 style: tc.style,
                 line_height: tc.line_height,
-                letter_spacing: tc.letter_spacing,
+                letter_spacing: match (tc.letter_spacing, touches(Prop::LetterSpacing)) {
+                    (Some(_), _) | (None, true) => Some(eval.letter_spacing),
+                    (None, false) => None,
+                },
                 scale: eval.scale,
                 rotation: eval.rotation,
                 opacity: eval.opacity,
+                rotate_x: eval.rotate_x,
+                rotate_y: eval.rotate_y,
+                blur: eval.blur,
+                turn: tc.turn,
             })),
             Clip::Video(v) => items.push(FrameItem::Video(ResolvedVideo {
                 doc,
@@ -327,21 +375,37 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 scale: eval.scale,
                 rotation: eval.rotation,
                 opacity: eval.opacity,
+                rotate_x: eval.rotate_x,
+                rotate_y: eval.rotate_y,
+                blur: eval.blur,
+                turn: v.turn,
             })),
             Clip::Box(b) => items.push(FrameItem::Box(ResolvedBox {
                 doc,
                 order: b.order,
                 x: eval.x,
                 y: eval.y,
-                width: b.width,
-                height: b.height,
-                fill: b.fill,
-                radius: b.radius,
-                border_width: b.border_width,
-                border_color: b.border_color,
+                width: eval.width,
+                height: eval.height,
+                fill: Rgb {
+                    r: channel_byte(eval.fill[0]),
+                    g: channel_byte(eval.fill[1]),
+                    b: channel_byte(eval.fill[2]),
+                },
+                radius: eval.radius,
+                border_width: eval.border_width,
+                border_color: Rgb {
+                    r: channel_byte(eval.border[0]),
+                    g: channel_byte(eval.border[1]),
+                    b: channel_byte(eval.border[2]),
+                },
                 opacity: eval.opacity,
                 scale: eval.scale,
                 rotation: eval.rotation,
+                rotate_x: eval.rotate_x,
+                rotate_y: eval.rotate_y,
+                blur: eval.blur,
+                turn: b.turn,
             })),
             // Audio tracks draw no picture: they ride in the composition
             // for the T008 mixer and never emit a frame item.
@@ -379,13 +443,29 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 path: im.path.clone(),
                 x: eval.x,
                 y: eval.y,
-                width: im.width,
-                height: im.height,
+                // Animated extents win when a `width`/`height` tween or
+                // set names the clip; otherwise the authored fields
+                // stand, exactly as before (`None` still fills the
+                // canvas downstream).
+                width: match (im.width, touches(Prop::Width)) {
+                    (None, false) => None,
+                    (Some(_), false) => im.width,
+                    (_, true) => Some(eval.width),
+                },
+                height: match (im.height, touches(Prop::Height)) {
+                    (None, false) => None,
+                    (Some(_), false) => im.height,
+                    (_, true) => Some(eval.height),
+                },
                 fit: im.fit,
                 placement: im.placement,
                 scale: eval.scale,
                 rotation: eval.rotation,
                 opacity: eval.opacity,
+                rotate_x: eval.rotate_x,
+                rotate_y: eval.rotate_y,
+                blur: eval.blur,
+                turn: im.turn,
             })),
         }
     }
@@ -415,6 +495,10 @@ mod tests {
             fonts: Vec::new(),
             tweens: Vec::new(),
             sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         }
     }
 
@@ -443,8 +527,15 @@ mod tests {
             line_height: None,
             letter_spacing: Some(2.0),
             font_family: None,
+            split: None,
+            typewriter: false,
+            count_from: None,
+            count_to: None,
+            decimals: 0,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })
     }
 
@@ -470,6 +561,8 @@ mod tests {
             loop_clip: false,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })
     }
 
@@ -494,6 +587,8 @@ mod tests {
             order,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })
     }
 
@@ -548,6 +643,172 @@ mod tests {
         assert_eq!(last.items[0].doc(), 0);
     }
 
+    // --- Sprint 7 motion (T005/T006): animated visual properties ---
+
+    fn tween_on(
+        target: usize,
+        property: &str,
+        kind: notation::model::TweenKind,
+        from: Option<f64>,
+        to: Option<f64>,
+        from_color: Option<Rgb>,
+        to_color: Option<Rgb>,
+    ) -> notation::model::TweenDecl {
+        notation::model::TweenDecl {
+            target,
+            property: property.to_string(),
+            kind,
+            from,
+            to,
+            from_color,
+            to_color,
+            start: 0.0,
+            duration: 1.0,
+            ease: notation::model::EaseDecl::Linear,
+            stagger: 0.0,
+            stagger_from: notation::model::StaggerOrigin::Start,
+            stagger_grid: None,
+            repeat: 1,
+            yoyo: false,
+            repeat_delay: 0.0,
+            path: None,
+            path_to: None,
+            orient: false,
+            expr: None,
+            line: 1,
+            column: 1,
+        }
+    }
+
+    fn comp_with_motion(clips: Vec<Clip>, tweens: Vec<notation::model::TweenDecl>) -> Composition {
+        Composition {
+            tweens,
+            ..comp_with(clips)
+        }
+    }
+
+    #[test]
+    fn box_description_carries_animated_geometry_and_paint() {
+        // T006: width 40->80, fill red->blue, radius 2->10, all over
+        // [0, 1) linear; frame 15 is exactly halfway.
+        use notation::model::TweenKind;
+        let comp = comp_with_motion(
+            vec![boxed(0.0, 2.0, 0)],
+            vec![
+                tween_on(
+                    0,
+                    "width",
+                    TweenKind::FromTo,
+                    Some(40.0),
+                    Some(80.0),
+                    None,
+                    None,
+                ),
+                tween_on(
+                    0,
+                    "fill",
+                    TweenKind::FromTo,
+                    None,
+                    None,
+                    Some(Rgb { r: 255, g: 0, b: 0 }),
+                    Some(Rgb { r: 0, g: 0, b: 255 }),
+                ),
+                tween_on(
+                    0,
+                    "radius",
+                    TweenKind::FromTo,
+                    Some(2.0),
+                    Some(10.0),
+                    None,
+                    None,
+                ),
+            ],
+        );
+        let motions = plan_motions(&comp, 30);
+        let at = |k: u64| match &describe(&comp, &motions, k).items[0] {
+            FrameItem::Box(r) => r.clone(),
+            other => panic!("expected box, got {other:?}"),
+        };
+        let mid = at(15);
+        assert_eq!(mid.width, 60.0, "halfway width");
+        assert_eq!(
+            mid.fill,
+            Rgb {
+                r: 128,
+                g: 0,
+                b: 128
+            },
+            "straight-RGBA midpoint rounds half away (127.5 -> 128)"
+        );
+        assert_eq!(mid.radius, 6.0, "halfway radius");
+        assert_eq!(at(30).width, 80.0, "end lands");
+        assert_eq!(at(30).fill, Rgb { r: 0, g: 0, b: 255 });
+    }
+
+    #[test]
+    fn text_description_carries_animated_metrics_and_turn() {
+        // T005/T006: font-size 24->48, rotation-x 0->90 over [0, 1);
+        // letter-spacing stays the authored 2.0 (Some) without motion.
+        use notation::model::TweenKind;
+        let comp = comp_with_motion(
+            vec![text(0.0, 2.0, 0, 80.0)],
+            vec![
+                tween_on(
+                    0,
+                    "font-size",
+                    TweenKind::FromTo,
+                    Some(24.0),
+                    Some(48.0),
+                    None,
+                    None,
+                ),
+                tween_on(
+                    0,
+                    "rotation-x",
+                    TweenKind::FromTo,
+                    Some(0.0),
+                    Some(90.0),
+                    None,
+                    None,
+                ),
+            ],
+        );
+        let motions = plan_motions(&comp, 30);
+        let at = |k: u64| match &describe(&comp, &motions, k).items[0] {
+            FrameItem::Text(r) => r.clone(),
+            other => panic!("expected text, got {other:?}"),
+        };
+        let mid = at(15);
+        assert_eq!(mid.size, 36.0, "halfway font size");
+        assert_eq!(mid.rotate_x, 45.0, "halfway turn");
+        assert_eq!(mid.rotate_y, 0.0, "untouched axis stays 0");
+        assert_eq!(mid.letter_spacing, Some(2.0), "authored spacing stands");
+        assert_eq!(mid.blur, 0.0, "no blur without motion");
+    }
+
+    #[test]
+    fn static_turn_and_filter_reach_the_description() {
+        // T005/T006: static rotation and filter blur land in every
+        // resolved item with the perspective and origin intact.
+        let mut clip = boxed(0.0, 2.0, 0);
+        if let Clip::Box(bc) = &mut clip {
+            bc.turn.rotation_x = 10.0;
+            bc.turn.perspective = Some(300.0);
+            bc.filter_blur = 2.5;
+        }
+        let comp = comp_with(vec![clip]);
+        let motions = plan_motions(&comp, 30);
+        match &describe(&comp, &motions, 0).items[0] {
+            FrameItem::Box(r) => {
+                assert_eq!(r.rotate_x, 10.0);
+                assert_eq!(r.blur, 2.5);
+                assert_eq!(r.turn.perspective, Some(300.0));
+                assert_eq!(r.turn.origin, notation::model::Placement::center());
+            }
+            other => panic!("expected box, got {other:?}"),
+        }
+    }
+
     #[test]
     fn video_src_t_follows_trim_and_rate() {
         // Sprint 5 T002: composition seconds past the clip start advance
@@ -574,6 +835,8 @@ mod tests {
             loop_clip: false,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         });
         let comp = comp_with(vec![clip]);
         let motions = plan_motions(&comp, 30);
@@ -628,7 +891,7 @@ mod tests {
 
     // --- Sprint 2 motion descriptions (T006, T009–T012) ---------------
 
-    use notation::model::{EaseDecl, SetDecl, TweenDecl, TweenKind};
+    use notation::model::{EaseDecl, SetDecl, StaggerOrigin, TweenDecl, TweenKind};
 
     fn image_clip(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Image(notation::model::ImageClip {
@@ -649,6 +912,8 @@ mod tests {
             order,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })
     }
 
@@ -667,6 +932,10 @@ mod tests {
             fonts: Vec::new(),
             tweens,
             sets,
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         }
     }
 
@@ -687,8 +956,20 @@ mod tests {
             start: 0.0,
             duration: 1.0,
             ease,
+            stagger: 0.0,
+            stagger_from: StaggerOrigin::Start,
+            stagger_grid: None,
+            repeat: 1,
+            yoyo: false,
+            repeat_delay: 0.0,
+            path: None,
+            path_to: None,
+            orient: false,
+            expr: None,
             line: 1,
             column: 1,
+            from_color: None,
+            to_color: None,
         }
     }
 
@@ -999,13 +1280,164 @@ mod tests {
         for k in [0, 15, 59] {
             let desc = describe(&comp, &motions, k);
             assert!(desc.items.is_empty(), "hidden box at frame {k}");
-            let at = describe_nested_at(
-                &view,
-                0,
-                k,
-                secs_to_time(0.0) + frame_time(&comp.fps, k),
-            );
+            let at = describe_nested_at(&view, 0, k, secs_to_time(0.0) + frame_time(&comp.fps, k));
             assert!(at.items.is_empty(), "hidden box at ranged frame {k}");
+        }
+    }
+
+    // --- Sprint 7 text effects and nested motion (T002 + T003) -----
+
+    fn fx_text(
+        value: &str,
+        split: notation::model::SplitMode,
+        typewriter: bool,
+        count: Option<(f64, f64, u32)>,
+    ) -> Clip {
+        let mut c = text(0.0, 2.0, 0, 80.0);
+        let Clip::Text(tc) = &mut c else {
+            panic!("fx_text builds a text clip");
+        };
+        tc.value = value.to_string();
+        tc.split = Some(split);
+        tc.typewriter = typewriter;
+        if let Some((from, to, decimals)) = count {
+            tc.count_from = Some(from);
+            tc.count_to = Some(to);
+            tc.decimals = decimals;
+        }
+        c
+    }
+
+    fn text_value(desc: &FrameDescription) -> &str {
+        match desc.items.as_slice() {
+            [FrameItem::Text(r)] => r.value.as_str(),
+            other => panic!("expected one text item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn typewriter_reveal_shows_piece_prefixes_per_frame() {
+        use notation::model::SplitMode;
+        // Sprint 7 T002: "abcd" with chars + typewriter over [0, 2) at
+        // 30 fps: frame 0 shows nothing, then one more piece every
+        // half second, all four by the final frame.
+        let comp = comp_with(vec![fx_text("abcd", SplitMode::Chars, true, None)]);
+        let motions = plan_motions(&comp, 30);
+        let desc = |k: u64| describe(&comp, &motions, k);
+        assert_eq!(text_value(&desc(0)), "");
+        assert_eq!(text_value(&desc(15)), "a");
+        assert_eq!(text_value(&desc(30)), "ab");
+        assert_eq!(text_value(&desc(45)), "abc");
+        assert_eq!(text_value(&desc(59)), "abcd");
+    }
+
+    #[test]
+    fn count_clips_show_the_interpolated_number() {
+        use notation::model::SplitMode;
+        // Sprint 7 T002: 0 to 100 over [0, 2) at 30 fps renders the
+        // interpolated whole number; 0 to 1 with two decimals renders
+        // the fractional value. The authored value never shows.
+        let comp = comp_with(vec![fx_text(
+            "ignored",
+            SplitMode::Chars,
+            false,
+            Some((0.0, 100.0, 0)),
+        )]);
+        let motions = plan_motions(&comp, 30);
+        let desc = |k: u64| describe(&comp, &motions, k);
+        assert_eq!(text_value(&desc(0)), "0");
+        assert_eq!(text_value(&desc(30)), "50");
+        assert_eq!(text_value(&desc(59)), "98");
+
+        let comp = comp_with(vec![fx_text(
+            "ignored",
+            SplitMode::Words,
+            false,
+            Some((0.0, 1.0, 2)),
+        )]);
+        let motions = plan_motions(&comp, 30);
+        assert_eq!(text_value(&describe(&comp, &motions, 15)), "0.25");
+        assert_eq!(text_value(&describe(&comp, &motions, 59)), "0.98");
+    }
+
+    #[test]
+    fn nested_motion_plays_scaled_through_nest_rate() {
+        use notation::model::{EaseDecl, NestClip, StaggerOrigin, TweenDecl, TweenKind};
+        // Sprint 7 T003: a child tween from 0 to 100 over child [0, 2)
+        // plays at double speed under a nest `rate=2` — parent t=0.5
+        // (frame 15) already shows the child t=1.0 value.
+        let mut child = comp_with(vec![boxed(0.0, 4.0, 0)]);
+        child.duration = 4.0;
+        child.name = "kid".to_string();
+        let child_tween = TweenDecl {
+            target: 0,
+            property: "x".to_string(),
+            kind: TweenKind::FromTo,
+            from: Some(0.0),
+            to: Some(100.0),
+            start: 0.0,
+            duration: 2.0,
+            ease: EaseDecl::Linear,
+            stagger: 0.0,
+            stagger_from: StaggerOrigin::Start,
+            stagger_grid: None,
+            repeat: 1,
+            yoyo: false,
+            repeat_delay: 0.0,
+            path: None,
+            path_to: None,
+            orient: false,
+            expr: None,
+            line: 1,
+            column: 1,
+            from_color: None,
+            to_color: None,
+        };
+        child.tweens = vec![child_tween];
+        let root = comp_with(vec![Clip::Nest(NestClip {
+            target: "kid".to_string(),
+            start: 0.0,
+            duration: 2.0,
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            trim_start: 0.0,
+            trim_end: None,
+            rate: 2.0,
+            order: 0,
+            hidden: false,
+            line: 1,
+            column: 1,
+        })]);
+        let root_motions = plan_motions(&root, 30);
+        let child_motions = plan_motions(&child, 30);
+        let view = NestView {
+            comps: vec![&root, &child],
+            motions: vec![&root_motions, &child_motions],
+            bases: vec![0, 1],
+        };
+        let at = crate::motion_plan::frame_time(&root.fps, 15);
+        let desc = describe_nested_at(&view, 0, 15, at);
+        match desc.items.as_slice() {
+            [FrameItem::Box(r)] => assert!(
+                (r.x - 50.0).abs() < 1e-9,
+                "rate 2 maps parent t=0.5 to child t=1.0, x=50, got {}",
+                r.x
+            ),
+            other => panic!("expected one nested box, got {other:?}"),
+        }
+        // At rate 1 the same instant would show x=25: the scale comes
+        // from the nest rate, not the child timeline alone.
+        let at0 = crate::motion_plan::frame_time(&root.fps, 0);
+        let desc0 = describe_nested_at(&view, 0, 0, at0);
+        match desc0.items.as_slice() {
+            [FrameItem::Box(r)] => assert!(
+                (r.x - 0.0).abs() < 1e-9,
+                "both timelines start at x=0, got {}",
+                r.x
+            ),
+            other => panic!("expected one nested box, got {other:?}"),
         }
     }
 
@@ -1022,17 +1454,13 @@ mod tests {
         let base = secs_to_time(1.0);
         for k in [0, 1, 29, 30, 59, 89] {
             let full = describe(&comp, &motions, 30 + k);
-            let mut ranged = describe_nested_at(
-                &view,
-                0,
-                k,
-                base + frame_time(&comp.fps, k),
-            );
+            let mut ranged = describe_nested_at(&view, 0, k, base + frame_time(&comp.fps, k));
             // The output index is the range's own; everything a renderer
             // consumes — the instant and the items — must match exactly.
             ranged.frame = full.frame;
             assert_eq!(
-                ranged, full,
+                ranged,
+                full,
                 "ranged frame {k} must equal full frame {}",
                 30 + k
             );

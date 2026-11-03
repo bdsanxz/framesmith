@@ -182,26 +182,67 @@ fn sub_range_aligns_picture_and_sound_with_the_full_render() {
     project(&root);
     let (code, out) = run(&["render", "p", "-o", "full.mp4"], &root);
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run(&["render", "p", "-o", "range.mp4", "--start", "1", "--end", "3"], &root);
+    let (code, out) = run(
+        &[
+            "render",
+            "p",
+            "-o",
+            "range.mp4",
+            "--start",
+            "1",
+            "--end",
+            "3",
+        ],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("[range 1.000s..3.000s]"), "success names the range: {out}");
+    assert!(
+        out.contains("[range 1.000s..3.000s]"),
+        "success names the range: {out}"
+    );
 
     // Picture: 60 frames of its own; the first half shows comp red, the
     // second half comp blue — the cut lands exactly mid-range.
     let full = decode_video(&root.join("full.mp4"), 64, 64);
-    assert_eq!(full.len(), 120 * 64 * 64 * 3, "full render holds 120 frames");
+    assert_eq!(
+        full.len(),
+        120 * 64 * 64 * 3,
+        "full render holds 120 frames"
+    );
     let ranged = decode_video(&root.join("range.mp4"), 64, 64);
-    assert_eq!(ranged.len(), 60 * 64 * 64 * 3, "range holds its own 60 frames");
-    assert!(is_red(center(&ranged, 0, 64, 64)), "range frame 0 is comp t=1 red");
-    assert!(is_red(center(&ranged, 29, 64, 64)), "range frame 29 is comp t=1.967 red");
-    assert!(is_blue(center(&ranged, 30, 64, 64)), "range frame 30 is comp t=2 blue");
-    assert!(is_blue(center(&ranged, 59, 64, 64)), "range frame 59 is comp t=2.967 blue");
+    assert_eq!(
+        ranged.len(),
+        60 * 64 * 64 * 3,
+        "range holds its own 60 frames"
+    );
+    assert!(
+        is_red(center(&ranged, 0, 64, 64)),
+        "range frame 0 is comp t=1 red"
+    );
+    assert!(
+        is_red(center(&ranged, 29, 64, 64)),
+        "range frame 29 is comp t=1.967 red"
+    );
+    assert!(
+        is_blue(center(&ranged, 30, 64, 64)),
+        "range frame 30 is comp t=2 blue"
+    );
+    assert!(
+        is_blue(center(&ranged, 59, 64, 64)),
+        "range frame 59 is comp t=2.967 blue"
+    );
 
     // Sound: the tone fills the whole range (it spans comp [1, 3)),
     // while the full render starts with a silent second.
     let full_mix = decode_audio(&root.join("full.mp4"));
-    assert!(rms(&full_mix[..48000 * 2]) < 50.0, "full render starts silent");
-    assert!(rms(&full_mix[48000 * 2..144000 * 2]) > 200.0, "full render tones in [1, 3)");
+    assert!(
+        rms(&full_mix[..48000 * 2]) < 50.0,
+        "full render starts silent"
+    );
+    assert!(
+        rms(&full_mix[48000 * 2..144000 * 2]) > 200.0,
+        "full render tones in [1, 3)"
+    );
     let range_mix = decode_audio(&root.join("range.mp4"));
     assert!(rms(&range_mix) > 200.0, "range mix tones throughout");
     assert!(
@@ -214,15 +255,24 @@ fn sub_range_aligns_picture_and_sound_with_the_full_render() {
 fn sub_range_rerenders_byte_identically() {
     let root = tmp("rerun");
     project(&root);
-    let (code, out) = run(&["render", "p", "-o", "a.mp4", "--start", "1", "--end", "3"], &root);
+    let (code, out) = run(
+        &["render", "p", "-o", "a.mp4", "--start", "1", "--end", "3"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run(&["render", "p", "-o", "b.mp4", "--start", "1", "--end", "3"], &root);
+    let (code, out) = run(
+        &["render", "p", "-o", "b.mp4", "--start", "1", "--end", "3"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let (a, b) = (
         std::fs::read(root.join("a.mp4")).unwrap(),
         std::fs::read(root.join("b.mp4")).unwrap(),
     );
-    assert!(!a.is_empty() && a == b, "same range re-renders byte-identically");
+    assert!(
+        !a.is_empty() && a == b,
+        "same range re-renders byte-identically"
+    );
 }
 
 // --- refusals ------------------------------------------------------------------
@@ -257,15 +307,30 @@ fn empty_window_refuses() {
 #[test]
 fn backward_window_refuses() {
     let root = tmp("backward");
-    refused(&root, &["--start", "3", "--end", "1"], "backward", "backward.mp4");
+    refused(
+        &root,
+        &["--start", "3", "--end", "1"],
+        "backward",
+        "backward.mp4",
+    );
 }
 
 #[test]
 fn out_of_range_windows_refuse() {
     let root = tmp("oor-end");
-    refused(&root, &["--end", "9"], "outside the composition", "oor1.mp4");
+    refused(
+        &root,
+        &["--end", "9"],
+        "outside the composition",
+        "oor1.mp4",
+    );
     let root = tmp("oor-start");
-    refused(&root, &["--start", "-1"], "outside the composition", "oor2.mp4");
+    refused(
+        &root,
+        &["--start", "-1"],
+        "outside the composition",
+        "oor2.mp4",
+    );
     let root = tmp("oor-both");
     refused(
         &root,
@@ -316,22 +381,52 @@ fn named_composition_sub_range_renders_its_own_content() {
          }\n",
     );
     let (code, out) = run(
-        &["render", "p", "-o", "cut.mp4", "--composition", "cut", "--start", "0.5", "--end", "1.5"],
+        &[
+            "render",
+            "p",
+            "-o",
+            "cut.mp4",
+            "--composition",
+            "cut",
+            "--start",
+            "0.5",
+            "--end",
+            "1.5",
+        ],
         &root,
     );
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("cut.mp4"), 64, 64);
-    assert_eq!(frames.len(), 30 * 64 * 64 * 3, "range holds its own 30 frames");
+    assert_eq!(
+        frames.len(),
+        30 * 64 * 64 * 3,
+        "range holds its own 30 frames"
+    );
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(g > 180 && r < 100 && b < 100, "named range shows the cut content");
+    assert!(
+        g > 180 && r < 100 && b < 100,
+        "named range shows the cut content"
+    );
 
     // The refusal names the selected composition's own window, not the root's.
     let (code, text) = run(
-        &["render", "p", "-o", "bad.mp4", "--composition", "cut", "--end", "9"],
+        &[
+            "render",
+            "p",
+            "-o",
+            "bad.mp4",
+            "--composition",
+            "cut",
+            "--end",
+            "9",
+        ],
         &root,
     );
     assert_eq!(code, 1, "{text}");
-    assert!(text.contains("accepted window is 0 <= start < end <= 2.000s"), "{text}");
+    assert!(
+        text.contains("accepted window is 0 <= start < end <= 2.000s"),
+        "{text}"
+    );
     assert!(text.contains("\"cut\""), "{text}");
     assert!(!root.join("bad.mp4").exists());
 }

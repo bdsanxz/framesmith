@@ -98,7 +98,11 @@ fn mean_rgb(frame: &[u8]) -> (f64, f64, f64) {
         g += frame[3 * i + 1] as u64;
         b += frame[3 * i + 2] as u64;
     }
-    (r as f64 / n as f64, g as f64 / n as f64, b as f64 / n as f64)
+    (
+        r as f64 / n as f64,
+        g as f64 / n as f64,
+        b as f64 / n as f64,
+    )
 }
 
 /// Pixels far from `bg` (text/video marks survive yuv420p roundtrips).
@@ -185,7 +189,10 @@ fn text_on_color_renders_standard_mp4() {
     }
     // T011: the text mark is actually drawn over the background.
     let raw = decode_raw(&mp4, 1);
-    assert!(marked_pixels(&raw, (0x11, 0x22, 0x33)) > 50, "text must be drawn");
+    assert!(
+        marked_pixels(&raw, (0x11, 0x22, 0x33)) > 50,
+        "text must be drawn"
+    );
 }
 
 #[test]
@@ -248,10 +255,17 @@ fn clip_windows_gate_text_visibility() {
     assert_eq!(raw.len(), 30 * fs);
     // Half-open [0, 0.5): frames 0..15 show text, 15..30 do not.
     for k in [0, 7, 14] {
-        assert!(marked_pixels(&raw[k * fs..(k + 1) * fs], (0, 0, 0)) > 20, "frame {k}");
+        assert!(
+            marked_pixels(&raw[k * fs..(k + 1) * fs], (0, 0, 0)) > 20,
+            "frame {k}"
+        );
     }
     for k in [15, 20, 29] {
-        assert_eq!(marked_pixels(&raw[k * fs..(k + 1) * fs], (0, 0, 0)), 0, "frame {k}");
+        assert_eq!(
+            marked_pixels(&raw[k * fs..(k + 1) * fs], (0, 0, 0)),
+            0,
+            "frame {k}"
+        );
     }
 }
 
@@ -259,7 +273,11 @@ fn clip_windows_gate_text_visibility() {
 fn solid_source(path: &Path, cols: &[(u8, u8, u8)], w: u32, h: u32, fps: u32) {
     let mut raw = Vec::with_capacity(cols.len() * w as usize * h as usize * 3);
     for c in cols {
-        raw.extend(std::iter::repeat(*c).take(w as usize * h as usize).flat_map(|p| [p.0, p.1, p.2]));
+        raw.extend(
+            std::iter::repeat(*c)
+                .take(w as usize * h as usize)
+                .flat_map(|p| [p.0, p.1, p.2]),
+        );
     }
     let raw_path = path.with_extension("raw");
     std::fs::write(&raw_path, &raw).unwrap();
@@ -307,7 +325,10 @@ fn video_fits_place_picture() {
         // Corner pixel: letterbox blue for contain, red picture otherwise.
         let (r, g, b) = (raw[0] as i32, raw[1] as i32, raw[2] as i32);
         if corner_red {
-            assert!(r > 150 && g < 150 && b < 150, "fit={fit}: corner {r},{g},{b}");
+            assert!(
+                r > 150 && g < 150 && b < 150,
+                "fit={fit}: corner {r},{g},{b}"
+            );
         } else {
             assert!(b > 150 && r < 150, "fit={fit}: corner {r},{g},{b}");
         }
@@ -331,7 +352,13 @@ fn differing_fps_has_no_drift() {
     let root = tmp("fpsdrift");
     // 15 distinct colors at 15fps; 30fps output must show floor(k/2) exactly.
     let cols: Vec<(u8, u8, u8)> = (0..15)
-        .map(|j| ((j * 37 % 256) as u8, (j * 91 % 256) as u8, (j * 53 % 256) as u8))
+        .map(|j| {
+            (
+                (j * 37 % 256) as u8,
+                (j * 91 % 256) as u8,
+                (j * 53 % 256) as u8,
+            )
+        })
         .collect();
     let src = root.join("cycle.mp4");
     solid_source(&src, &cols, 64, 48, 15);
@@ -350,7 +377,10 @@ fn differing_fps_has_no_drift() {
         let (r, g, b) = mean_rgb(&raw[k * fs..(k + 1) * fs]);
         let (er, eg, eb) = cols[k / 2];
         let d = (r - er as f64).abs() + (g - eg as f64).abs() + (b - eb as f64).abs();
-        assert!(d < 60.0, "frame {k}: got ({r:.0},{g:.0},{b:.0}) want {er},{eg},{eb}");
+        assert!(
+            d < 60.0,
+            "frame {k}: got ({r:.0},{g:.0},{b:.0}) want {er},{eg},{eb}"
+        );
     }
     // Same-folder rerun decodes identically.
     assert_eq!(run(&["render", "proj", "-o", "b.mp4"], &root).0, 0);
@@ -361,7 +391,9 @@ fn differing_fps_has_no_drift() {
 fn higher_fps_source_downsamples_exactly() {
     let root = tmp("fpsdown");
     // Alternating red/green at 60fps; 30fps output lands on even frames.
-    let cols: Vec<(u8, u8, u8)> = (0..60).map(|j| if j % 2 == 0 { (255, 0, 0) } else { (0, 255, 0) }).collect();
+    let cols: Vec<(u8, u8, u8)> = (0..60)
+        .map(|j| if j % 2 == 0 { (255, 0, 0) } else { (0, 255, 0) })
+        .collect();
     let src = root.join("alt.mp4");
     solid_source(&src, &cols, 64, 48, 60);
     let folder = root.join("proj");
@@ -423,7 +455,10 @@ fn audio_passes_through_unchanged() {
     to_wav(&mp4, &root.join("out.wav"));
     let src_db = mean_volume_db(&root.join("src.wav"));
     let out_db = mean_volume_db(&root.join("out.wav"));
-    assert!((src_db - out_db).abs() < 3.0, "src {src_db} vs out {out_db}");
+    assert!(
+        (src_db - out_db).abs() < 3.0,
+        "src {src_db} vs out {out_db}"
+    );
 }
 
 #[test]
@@ -475,7 +510,11 @@ fn corrupt_source_refuses_naming_file() {
 /// Mean absolute byte difference between two raw RGB24 frames.
 fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
@@ -513,7 +552,10 @@ fn short_source_holds_last_frame() {
     for k in [15usize, 22, 29] {
         let held = frame_mad(&rendered[k * fs..(k + 1) * fs], &source[14 * fs..15 * fs]);
         println!("held frame {k}: mad={held:.2}");
-        assert!(held < 15.0, "frame {k} must hold the last frame, mad={held:.2}");
+        assert!(
+            held < 15.0,
+            "frame {k} must hold the last frame, mad={held:.2}"
+        );
     }
 }
 
@@ -548,9 +590,15 @@ fn other_codec_renders_like_any_source() {
     let source = decode_raw(&folder.join("clip.mp4"), 30);
     assert_eq!(rendered.len(), 30 * fs, "1 s at 30 fps");
     for k in [0usize, 15, 29] {
-        let mad = frame_mad(&rendered[k * fs..(k + 1) * fs], &source[k * fs..(k + 1) * fs]);
+        let mad = frame_mad(
+            &rendered[k * fs..(k + 1) * fs],
+            &source[k * fs..(k + 1) * fs],
+        );
         println!("mpeg4 frame {k}: mad={mad:.2}");
-        assert!(mad < 15.0, "frame {k} must match its source frame, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "frame {k} must match its source frame, mad={mad:.2}"
+        );
     }
 }
 
@@ -646,7 +694,10 @@ fn encode_failure_reports_stage_and_writes_no_mp4() {
     let out = Command::new("sh")
         .args([
             "-c",
-            &format!("ulimit -f 4; exec {} render proj -o out.mp4", bin().display()),
+            &format!(
+                "ulimit -f 4; exec {} render proj -o out.mp4",
+                bin().display()
+            ),
         ])
         .current_dir(&root)
         .output()
@@ -701,7 +752,10 @@ fn project_font_renders_with_attributes() {
     assert_eq!(code, 0, "{out}");
     assert!(!out.contains("built-in default face"), "{out}");
     let raw = decode_raw(&folder.join("out.mp4"), 1);
-    assert!(marked_pixels(&raw, (0x10, 0x10, 0x10)) > 100, "project font must draw");
+    assert!(
+        marked_pixels(&raw, (0x10, 0x10, 0x10)) > 100,
+        "project font must draw"
+    );
 }
 
 /// Two project fonts of different families, or skip when the machine
@@ -709,10 +763,7 @@ fn project_font_renders_with_attributes() {
 fn two_family_ttfs() -> Option<((PathBuf, &'static str), (PathBuf, &'static str))> {
     for pair in [
         (
-            (
-                "/System/Library/Fonts/Supplemental/Arial.ttf",
-                "Arial",
-            ),
+            ("/System/Library/Fonts/Supplemental/Arial.ttf", "Arial"),
             (
                 "/System/Library/Fonts/Supplemental/Andale Mono.ttf",
                 "Andale Mono",
@@ -882,7 +933,6 @@ fn font_style_must_be_known() {
     assert!(!folder.join("out.mp4").exists());
 }
 
-
 /// Skip style tests on machines without a bold system variant.
 fn has_bold_variant() -> bool {
     [
@@ -1009,7 +1059,11 @@ fn system_font_override_is_honored() {
     std::fs::create_dir_all(&folder).unwrap();
     write(&folder, "composition.kdl", SYSFONT_COMP);
     let custom = root.join("Custom.ttf").display().to_string();
-    let (code, out) = run_env(&["render", "proj"], &root, &[("FRAMESMITH_SYSTEM_FONT", &custom)]);
+    let (code, out) = run_env(
+        &["render", "proj"],
+        &root,
+        &[("FRAMESMITH_SYSTEM_FONT", &custom)],
+    );
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("using system font Custom.ttf"), "{out}");
     let raw = decode_raw(&folder.join("out.mp4"), 1);
@@ -1029,13 +1083,21 @@ fn sprint2_box_and_images_render_to_standard_mp4() {
     std::fs::create_dir_all(folder.join("media")).unwrap();
     // Deterministic still sources: a red/green split PNG and a blue JPEG.
     ffmpeg(&[
-        "-f", "lavfi", "-i", "testsrc=size=64x48:rate=1:duration=1",
-        "-frames:v", "1",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=64x48:rate=1:duration=1",
+        "-frames:v",
+        "1",
         &folder.join("media/photo.png").display().to_string(),
     ]);
     ffmpeg(&[
-        "-f", "lavfi", "-i", "color=c=blue:size=48x64:rate=1:duration=1",
-        "-frames:v", "1",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=blue:size=48x64:rate=1:duration=1",
+        "-frames:v",
+        "1",
         &folder.join("media/photo.jpg").display().to_string(),
     ]);
     write(
@@ -1057,9 +1119,15 @@ fn sprint2_box_and_images_render_to_standard_mp4() {
     assert_eq!(raw.len(), 320 * 240 * 3);
     // Box fill dominates the frame: strongly red on average.
     let (r, g, b) = mean_rgb(&raw);
-    assert!(r > 100.0 && r > g + 30.0 && r > b + 30.0, "red box must dominate: {r},{g},{b}");
+    assert!(
+        r > 100.0 && r > g + 30.0 && r > b + 30.0,
+        "red box must dominate: {r},{g},{b}"
+    );
     // The border ring leaves near-white marks; the pictures add variety.
-    assert!(marked_pixels(&raw, (0x10, 0x10, 0x10)) > 1000, "box, border and pictures must mark the frame");
+    assert!(
+        marked_pixels(&raw, (0x10, 0x10, 0x10)) > 1000,
+        "box, border and pictures must mark the frame"
+    );
 }
 
 /// A PNG-signature file with a corrupt body passes the magic check but
@@ -1113,8 +1181,14 @@ fn success_writes_one_complete_mp4_without_leftovers() {
             leftovers.push(name);
         }
     }
-    assert!(leftovers.is_empty(), "staged/work files remain: {leftovers:?}");
-    assert!(folder.join("logs").join("framesmith.log").is_file(), "run log is kept");
+    assert!(
+        leftovers.is_empty(),
+        "staged/work files remain: {leftovers:?}"
+    );
+    assert!(
+        folder.join("logs").join("framesmith.log").is_file(),
+        "run log is kept"
+    );
 }
 
 /// T004: re-rendering a folder replaces the previous MP4 atomically —
@@ -1159,7 +1233,10 @@ fn uncreatable_output_dir_refuses_with_path_named() {
     let (code, out) = run(&["render", "proj", "-o", "blocker/out.mp4"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("blocker"), "refusal names the path: {out}");
-    assert!(out.contains("output stage"), "refusal names the stage: {out}");
+    assert!(
+        out.contains("output stage"),
+        "refusal names the stage: {out}"
+    );
     assert!(!root.join("blocker").join("out.mp4").exists());
 }
 
@@ -1190,7 +1267,10 @@ fn unwritable_output_dir_refuses_with_path_named() {
     std::fs::set_permissions(&outdir, perms).unwrap();
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("locked"), "refusal names the path: {out}");
-    assert!(out.contains("output stage"), "refusal names the stage: {out}");
+    assert!(
+        out.contains("output stage"),
+        "refusal names the stage: {out}"
+    );
     assert!(!outdir.join("out.mp4").exists());
     assert!(!outdir.join("out.mp4.framesmith-part").exists());
 }

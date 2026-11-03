@@ -157,9 +157,14 @@ fn timeline_shows_every_row_and_matches_json() {
     let (root, _) = project("timeline");
     let (code, human) = run(&["timeline", "p"], &root);
     assert_eq!(code, 0, "{human}");
-    assert!(human.contains("timeline of composition \"main\""), "{human}");
     assert!(
-        human.contains("[0] box id=\"red\" track=video label=\"cover\" visible window 0.500s..1.500s."),
+        human.contains("timeline of composition \"main\""),
+        "{human}"
+    );
+    assert!(
+        human.contains(
+            "[0] box id=\"red\" track=video label=\"cover\" visible window 0.500s..1.500s."
+        ),
         "{human}"
     );
     assert!(
@@ -167,12 +172,17 @@ fn timeline_shows_every_row_and_matches_json() {
         "{human}"
     );
     assert!(
-        human.contains("[2] text id=\"tail\" track=graphics label=\"follower\" visible window 1.500s..2.000s."),
+        human.contains(
+            "[2] text id=\"tail\" track=graphics label=\"follower\" visible window 1.500s..2.000s."
+        ),
         "{human}"
     );
     let (code, json) = run_stdout(&["timeline", "--json", "p"], &root);
     assert_eq!(code, 0, "{json}");
-    assert!(json.contains("\"composition\":\"main\",\"root\":\"main\""), "{json}");
+    assert!(
+        json.contains("\"composition\":\"main\",\"root\":\"main\""),
+        "{json}"
+    );
     assert!(
         json.contains("{\"index\":0,\"kind\":\"box\",\"id\":\"red\",\"track\":\"video\",\"label\":\"cover\",\"hidden\":false,\"start\":0.5,\"end\":1.5}"),
         "{json}"
@@ -195,7 +205,9 @@ fn timeline_names_other_compositions_positionally_or_by_flag() {
     assert_eq!(code, 0, "{human}");
     assert!(human.contains("timeline of composition \"cut\""), "{human}");
     assert!(
-        human.contains("[0] text id=\"ct\" track=caption label=\"cap\" visible window 0.000s..1.000s."),
+        human.contains(
+            "[0] text id=\"ct\" track=caption label=\"cap\" visible window 0.000s..1.000s."
+        ),
         "{human}"
     );
     let (code, flagged) = run(&["timeline", "--composition", "cut", "p"], &root);
@@ -217,16 +229,27 @@ fn info_summarizes_canvas_duration_and_counts_in_both_forms() {
     assert_eq!(code, 0, "{human}");
     assert!(human.contains("info for composition \"main\""), "{human}");
     assert!(human.contains("canvas: 64x64."), "{human}");
-    assert!(human.contains("duration: 2.000s (60 frames at 30fps)."), "{human}");
     assert!(
-        human.contains("clips: 3 total (text=1, video=0, box=2, image=0, audio=0, nest=0; hidden=1)."),
+        human.contains("duration: 2.000s (60 frames at 30fps)."),
+        "{human}"
+    );
+    assert!(
+        human.contains(
+            "clips: 3 total (text=1, video=0, box=2, image=0, audio=0, nest=0; hidden=1)."
+        ),
         "{human}"
     );
     let (code, json) = run_stdout(&["info", "--json", "p"], &root);
     assert_eq!(code, 0, "{json}");
     assert!(json.contains("\"composition\":\"main\""), "{json}");
-    assert!(json.contains("\"canvas\":{\"width\":64,\"height\":64,\"preset\":null}"), "{json}");
-    assert!(json.contains("\"duration\":2,\"fps\":\"30\",\"frames\":60"), "{json}");
+    assert!(
+        json.contains("\"canvas\":{\"width\":64,\"height\":64,\"preset\":null}"),
+        "{json}"
+    );
+    assert!(
+        json.contains("\"duration\":2,\"fps\":\"30\",\"frames\":60"),
+        "{json}"
+    );
     assert!(
         json.contains("\"clips\":{\"total\":3,\"by_kind\":{\"text\":1,\"video\":0,\"box\":2,\"image\":0,\"audio\":0,\"nest\":0},\"hidden\":1}"),
         "{json}"
@@ -234,8 +257,14 @@ fn info_summarizes_canvas_duration_and_counts_in_both_forms() {
     // A preset-sized composition reports the preset and its dimensions.
     let (code, human) = run(&["info", "p", "cut"], &root);
     assert_eq!(code, 0, "{human}");
-    assert!(human.contains("canvas: 1080x1080 (preset \"square\")."), "{human}");
-    assert!(human.contains("duration: 1.000s (30 frames at 30fps)."), "{human}");
+    assert!(
+        human.contains("canvas: 1080x1080 (preset \"square\")."),
+        "{human}"
+    );
+    assert!(
+        human.contains("duration: 1.000s (30 frames at 30fps)."),
+        "{human}"
+    );
 }
 
 // --- refusal parity --------------------------------------------------------------
@@ -275,7 +304,10 @@ fn invalid_projects_refuse_like_check_on_every_command() {
         let (code, out) = run_stdout(&args, &root);
         assert_eq!(code, 1, "{args:?}: {out}");
         assert!(out.contains("E_DUP_ID"), "{args:?}: {out}");
-        assert!(out.contains("\"status\":\"invalid\",\"exit\":1"), "{args:?}: {out}");
+        assert!(
+            out.contains("\"status\":\"invalid\",\"exit\":1"),
+            "{args:?}: {out}"
+        );
         assert!(!out.contains("\"clips\":["), "{args:?}: {out}");
     }
 }
@@ -330,8 +362,14 @@ fn listings_match_what_render_produces() {
     assert_eq!(frames.len(), 60 * 64 * 64 * 3, "60 frames at 30fps");
     assert!(is_black(center(&frames, 7, 64, 64)), "t=0.25 is background");
     assert!(is_red(center(&frames, 30, 64, 64)), "t=1.0 is red");
-    assert!(!is_red(center(&frames, 45, 64, 64)), "t=1.5 is past the red end");
-    assert!(is_black(center(&frames, 52, 64, 64)), "t=1.75 hides blue, shows background");
+    assert!(
+        !is_red(center(&frames, 45, 64, 64)),
+        "t=1.5 is past the red end"
+    );
+    assert!(
+        is_black(center(&frames, 52, 64, 64)),
+        "t=1.75 hides blue, shows background"
+    );
     // Re-rendering is byte-identical, so the listing stays truthful.
     let (code, out) = run(&["render", "p", "-o", "root2.mp4"], &root);
     assert_eq!(code, 0, "{out}");

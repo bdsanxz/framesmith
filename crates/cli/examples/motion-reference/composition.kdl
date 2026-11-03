@@ -1,0 +1,31 @@
+composition name="main" width=320 height=280 duration=4 fps=30 background="#000000" version=1 root=true {
+    box x=10 y=4 width=24 height=20 fill="#ff0000" start=0 duration=4
+    key target=0 property="x" {
+        frame at=0 value=10
+        frame at=0.5 value=70 ease="in-quad"
+        frame at=1 value=130
+    }
+    box x=10 y=30 width=24 height=20 fill="#00ff00" start=0 duration=4
+    tween target=1 property="x" kind="from-to" from=10 to=130 start=0 duration=1 repeat=2 yoyo=true
+    box x=60 y=56 width=40 height=40 fill="#0000ff" start=0 duration=4
+    key target=2 property="rotation-x" {
+        frame at=0 value=0
+        frame at=1 value=60
+    }
+    box x=150 y=110 width=20 height=60 fill="#ffff00" start=0 duration=4
+    tween target=3 path="M150,110 L150,150" start=0 duration=2 orient=true
+    text value="motion" x=10 y=200 size=24 color="#ffffff" start=0 duration=4 split="chars" typewriter=true
+    tween target=4 property="opacity" kind="from-to" from=1 to=1 start=0 duration=4 stagger=0.5
+    replicate count=3 {
+        box x=10 y=236 width=16 height=10 fill="#ff0000" start=0 duration=4
+    }
+    tween target=5 property="x" kind="from-to" from=10 to=250 start=0 duration=4
+    tween target=6 property="x" kind="from-to" from=10 to=250 start=0 duration=4
+    tween target=7 property="x" kind="from-to" from=10 to=250 start=0 duration=4
+    tween target=5 property="y" expr="236+i*12+random(i,0,6)" start=0 duration=4
+    tween target=6 property="y" expr="236+i*12+random(i,0,6)" start=0 duration=4
+    tween target=7 property="y" expr="236+i*12+random(i,0,6)" start=0 duration=4
+}
+composition name="wrap" width=320 height=280 duration=4 fps=30 background="#000000" version=1 {
+    nest nest="main" start=0 duration=4
+}

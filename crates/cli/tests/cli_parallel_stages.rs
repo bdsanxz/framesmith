@@ -80,15 +80,33 @@ fn worker_counts_render_byte_identical_mp4s() {
     let folder = root.join("proj");
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("composition.kdl"), animated_comp()).unwrap();
-    let (code, out) = run_env(&["render", "proj", "-o", "w1.mp4"], &root, &[("FRAMESMITH_WORKERS", "1")]);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "w1.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "1")],
+    );
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run_env(&["render", "proj", "-o", "w8.mp4"], &root, &[("FRAMESMITH_WORKERS", "8")]);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "w8.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "8")],
+    );
     assert_eq!(code, 0, "{out}");
     let a = std::fs::read(root.join("w1.mp4")).unwrap();
     let b = std::fs::read(root.join("w8.mp4")).unwrap();
-    println!("worker-bytes: 1 worker = {} bytes, 8 workers = {} bytes", a.len(), b.len());
-    assert_eq!(a, b, "1 worker and 8 workers must render byte-identical MP4s");
-    assert_eq!(decode_raw(&root.join("w1.mp4"), 30), decode_raw(&root.join("w8.mp4"), 30));
+    println!(
+        "worker-bytes: 1 worker = {} bytes, 8 workers = {} bytes",
+        a.len(),
+        b.len()
+    );
+    assert_eq!(
+        a, b,
+        "1 worker and 8 workers must render byte-identical MP4s"
+    );
+    assert_eq!(
+        decode_raw(&root.join("w1.mp4"), 30),
+        decode_raw(&root.join("w8.mp4"), 30)
+    );
 }
 
 #[test]
@@ -101,7 +119,11 @@ fn parallel_batches_emit_frames_in_time_order() {
     std::fs::create_dir_all(&folder).unwrap();
     let comp = "composition name=\"t\" width=128 height=96 duration=3 fps=30 background=\"#101010\" version=1 {\n    box x=4 y=20 width=24 height=24 fill=\"#ff0000\" radius=0 opacity=1 order=1 start=0 duration=3\n    tween target=0 property=\"x\" kind=\"to\" start=0 duration=3 to=100 ease=\"linear\"\n}\n";
     std::fs::write(folder.join("composition.kdl"), comp).unwrap();
-    let (code, out) = run_env(&["render", "proj", "-o", "w8.mp4"], &root, &[("FRAMESMITH_WORKERS", "8")]);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "w8.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "8")],
+    );
     assert_eq!(code, 0, "{out}");
     let raw = decode_raw(&root.join("w8.mp4"), 90);
     assert_eq!(raw.len(), 128 * 96 * 3 * 90);
@@ -124,7 +146,10 @@ fn parallel_batches_emit_frames_in_time_order() {
             }
         }
         let expected = 4.0 + 96.0 * k as f64 / 90.0;
-        assert!(edge >= prev, "frame {k}: box edge {edge} must not move back past {prev}");
+        assert!(
+            edge >= prev,
+            "frame {k}: box edge {edge} must not move back past {prev}"
+        );
         assert!(
             (edge as f64 - expected).abs() <= 3.0,
             "frame {k}: edge {edge} must sit on its own time (want {expected:.1})"
@@ -135,7 +160,10 @@ fn parallel_batches_emit_frames_in_time_order() {
         last = edge;
         prev = edge;
     }
-    assert!(last - first >= 80, "box must cross the frame ({first} -> {last})");
+    assert!(
+        last - first >= 80,
+        "box must cross the frame ({first} -> {last})"
+    );
 }
 
 #[test]
@@ -144,9 +172,16 @@ fn invalid_worker_setting_falls_back_and_says_so() {
     let folder = root.join("proj");
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("composition.kdl"), animated_comp()).unwrap();
-    let (code, out) = run_env(&["render", "proj"], &root, &[("FRAMESMITH_WORKERS", "bogus")]);
+    let (code, out) = run_env(
+        &["render", "proj"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "bogus")],
+    );
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("workers: invalid FRAMESMITH_WORKERS=\"bogus\""), "{out}");
+    assert!(
+        out.contains("workers: invalid FRAMESMITH_WORKERS=\"bogus\""),
+        "{out}"
+    );
     assert!(out.contains("using "), "{out}");
     assert!(folder.join("out.mp4").is_file());
 }
@@ -162,7 +197,11 @@ fn parallelism_changes_neither_verdict() {
     )
     .unwrap();
     for workers in ["1", "8"] {
-        let (code, out) = run_env(&["render", "bad"], &root, &[("FRAMESMITH_WORKERS", workers)]);
+        let (code, out) = run_env(
+            &["render", "bad"],
+            &root,
+            &[("FRAMESMITH_WORKERS", workers)],
+        );
         assert_eq!(code, 1, "workers={workers}: {out}");
         assert!(out.contains("E_BAD_TIMING"), "workers={workers}: {out}");
         assert!(!bad.join("out.mp4").exists());
@@ -181,18 +220,34 @@ fn human_progress_names_every_stage_with_measured_timings() {
     std::fs::write(folder.join("composition.kdl"), animated_comp()).unwrap();
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 0, "{out}");
-    for stage in ["stage validate:", "stage frames:", "stage audio:", "stage encode:", "stage done:"] {
+    for stage in [
+        "stage validate:",
+        "stage frames:",
+        "stage audio:",
+        "stage encode:",
+        "stage done:",
+    ] {
         assert!(out.contains(stage), "missing {stage}: {out}");
     }
     assert!(out.contains("timing:"), "{out}");
-    for stage in ["validate=", "frames=", "audio=", "encode=", "done=", "total="] {
+    for stage in [
+        "validate=",
+        "frames=",
+        "audio=",
+        "encode=",
+        "done=",
+        "total=",
+    ] {
         assert!(out.contains(stage), "timing misses {stage}: {out}");
     }
     assert!(out.contains("backend=cpu"), "{out}");
     assert!(out.contains("preset=standard"), "{out}");
     // Progress never claims an estimated completion time.
     for banned in ["ETA", "eta", "remaining", "estimated", "%", "complete in"] {
-        assert!(!out.contains(banned), "progress must not estimate completion ({banned}): {out}");
+        assert!(
+            !out.contains(banned),
+            "progress must not estimate completion ({banned}): {out}"
+        );
     }
 }
 
@@ -231,18 +286,26 @@ fn json_progress_carries_the_same_stages_and_durations() {
     let mut last = 0;
     for name in STAGE_NAMES {
         let tag = format!("\"name\":\"{name}\",\"status\":\"ok\",\"duration_ms\":");
-        let pos = doc.find(&tag).unwrap_or_else(|| panic!("missing stage {name}: {doc}"));
+        let pos = doc
+            .find(&tag)
+            .unwrap_or_else(|| panic!("missing stage {name}: {doc}"));
         assert!(pos > last, "stages out of order at {name}: {doc}");
         last = pos;
         let rest = &doc[pos + tag.len()..];
         let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
-        assert!(!digits.is_empty(), "stage {name} has no measured duration: {doc}");
+        assert!(
+            !digits.is_empty(),
+            "stage {name} has no measured duration: {doc}"
+        );
     }
     // Human and JSON agree on the stage sequence.
     let (code, human) = run(&["render", "proj", "-o", "h.mp4"], &root);
     assert_eq!(code, 0, "{human}");
     for name in STAGE_NAMES {
-        assert!(human.contains(&format!("stage {name}")), "human misses {name}: {human}");
+        assert!(
+            human.contains(&format!("stage {name}")),
+            "human misses {name}: {human}"
+        );
     }
 }
 
@@ -260,7 +323,10 @@ fn failing_renders_name_the_failed_stage_in_both_forms() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("stage validate: failed"), "{out}");
     assert!(out.contains("(validation stage)"), "{out}");
-    assert!(out.contains("timing: validate="), "timing covers reached stages: {out}");
+    assert!(
+        out.contains("timing: validate="),
+        "timing covers reached stages: {out}"
+    );
     assert!(!folder.join("out.mp4").exists());
     // The `--json` form names the same failed stage machine-readably.
     let out = Command::new(bin())
@@ -271,6 +337,9 @@ fn failing_renders_name_the_failed_stage_in_both_forms() {
     let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
     let doc = stdout.trim();
     assert!(doc.contains("\"status\":\"invalid\""), "{doc}");
-    assert!(doc.contains("\"name\":\"validate\",\"status\":\"failed\""), "{doc}");
+    assert!(
+        doc.contains("\"name\":\"validate\",\"status\":\"failed\""),
+        "{doc}"
+    );
     assert!(doc.contains("\"timing_ms\""), "{doc}");
 }

@@ -53,8 +53,20 @@ fn gen_testsrc(dir: &Path, name: &str, seconds: f64, extra: &[&str]) {
 fn decode_video(path: &Path, w: u32, h: u32) -> Vec<u8> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &path.display().to_string(), "-map", "0:v", "-f", "rawvideo",
-            "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"), "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &path.display().to_string(),
+            "-map",
+            "0:v",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-s",
+            &format!("{w}x{h}"),
+            "-",
         ])
         .output()
         .expect("decode video");
@@ -65,7 +77,11 @@ fn decode_video(path: &Path, w: u32, h: u32) -> Vec<u8> {
 /// Mean absolute byte difference between two frames.
 fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
@@ -80,8 +96,14 @@ fn comp(duration: f64, clip_line: &str) -> String {
 }
 
 fn assert_no_outputs(folder: &Path, name: &str) {
-    assert!(!folder.join("out.mp4").exists(), "{name}: no partial MP4 may remain");
-    assert!(!folder.join("out.mp4.framesmith-part").exists(), "{name}: no staged partial may remain");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "{name}: no partial MP4 may remain"
+    );
+    assert!(
+        !folder.join("out.mp4.framesmith-part").exists(),
+        "{name}: no staged partial may remain"
+    );
 }
 
 /// An MKV source renders with trim, rate, and fit applying: output
@@ -89,7 +111,12 @@ fn assert_no_outputs(folder: &Path, name: &str) {
 #[test]
 fn mkv_source_renders_with_trim_rate_and_fit() {
     let folder = tmp("mkv");
-    gen_testsrc(&folder, "clip.mkv", 4.0, &["-c:v", "libx264", "-pix_fmt", "yuv420p"]);
+    gen_testsrc(
+        &folder,
+        "clip.mkv",
+        4.0,
+        &["-c:v", "libx264", "-pix_fmt", "yuv420p"],
+    );
     write(
         &folder,
         "composition.kdl",
@@ -110,7 +137,10 @@ fn mkv_source_renders_with_trim_rate_and_fit() {
         let want = &source[(30 + 2 * k) * fs..(30 + 2 * k + 1) * fs];
         let mad = frame_mad(got, want);
         println!("mkv frame {k}: mapped-mad={mad:.2}");
-        assert!(mad < 15.0, "mkv frame {k} must follow trim+rate, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "mkv frame {k} must follow trim+rate, mad={mad:.2}"
+        );
     }
 }
 
@@ -119,8 +149,17 @@ fn mkv_source_renders_with_trim_rate_and_fit() {
 #[test]
 fn webm_source_renders() {
     let folder = tmp("webm");
-    gen_testsrc(&folder, "clip.webm", 2.0, &["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "30"]);
-    write(&folder, "composition.kdl", &comp(2.0, "video path=\"clip.webm\" start=0 duration=2"));
+    gen_testsrc(
+        &folder,
+        "clip.webm",
+        2.0,
+        &["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "30"],
+    );
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(2.0, "video path=\"clip.webm\" start=0 duration=2"),
+    );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
@@ -131,9 +170,15 @@ fn webm_source_renders() {
     let fs = (w * h * 3) as usize;
     assert_eq!(rendered.len(), 60 * fs, "2 s at 30 fps");
     for k in [0usize, 15, 30, 59] {
-        let mad = frame_mad(&rendered[k * fs..(k + 1) * fs], &source[k * fs..(k + 1) * fs]);
+        let mad = frame_mad(
+            &rendered[k * fs..(k + 1) * fs],
+            &source[k * fs..(k + 1) * fs],
+        );
         println!("webm frame {k}: mapped-mad={mad:.2}");
-        assert!(mad < 20.0, "webm frame {k} must match its source frame, mad={mad:.2}");
+        assert!(
+            mad < 20.0,
+            "webm frame {k} must match its source frame, mad={mad:.2}"
+        );
     }
 }
 
@@ -142,7 +187,11 @@ fn webm_source_renders() {
 #[test]
 fn missing_source_refuses_naming_the_file() {
     let folder = tmp("missing");
-    write(&folder, "composition.kdl", &comp(2.0, "video path=\"gone.mp4\" start=0 duration=2"));
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(2.0, "video path=\"gone.mp4\" start=0 duration=2"),
+    );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_MISSING_FILE"), "{out}");
@@ -158,9 +207,15 @@ fn missing_source_refuses_naming_the_file() {
 #[test]
 fn corrupt_source_refuses_before_frame_one() {
     let folder = tmp("corrupt");
-    let junk: Vec<u8> = (0..1024u32).map(|i| (i.wrapping_mul(2654435761) >> 8) as u8).collect();
+    let junk: Vec<u8> = (0..1024u32)
+        .map(|i| (i.wrapping_mul(2654435761) >> 8) as u8)
+        .collect();
     std::fs::write(folder.join("junk.mp4"), &junk).unwrap();
-    write(&folder, "composition.kdl", &comp(2.0, "video path=\"junk.mp4\" start=0 duration=2"));
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(2.0, "video path=\"junk.mp4\" start=0 duration=2"),
+    );
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("junk.mp4"), "{out}");
@@ -173,7 +228,11 @@ fn corrupt_source_refuses_before_frame_one() {
 fn non_video_source_refuses_before_frame_one() {
     let folder = tmp("nonvideo");
     write(&folder, "notes.txt", "this is plain text, not a movie.\n");
-    write(&folder, "composition.kdl", &comp(2.0, "video path=\"notes.txt\" start=0 duration=2"));
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(2.0, "video path=\"notes.txt\" start=0 duration=2"),
+    );
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("render refused"), "{out}");
@@ -186,8 +245,17 @@ fn non_video_source_refuses_before_frame_one() {
 #[test]
 fn disappearing_source_refuses_naming_the_file() {
     let folder = tmp("disappearing");
-    gen_testsrc(&folder, "clip.mp4", 2.0, &["-c:v", "libx264", "-pix_fmt", "yuv420p"]);
-    write(&folder, "composition.kdl", &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2"));
+    gen_testsrc(
+        &folder,
+        "clip.mp4",
+        2.0,
+        &["-c:v", "libx264", "-pix_fmt", "yuv420p"],
+    );
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2"),
+    );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
     std::fs::remove_file(folder.join("clip.mp4")).unwrap();
@@ -203,14 +271,31 @@ fn disappearing_source_refuses_naming_the_file() {
 fn permission_denied_source_refuses_naming_the_file() {
     use std::os::unix::fs::PermissionsExt;
     let folder = tmp("perms");
-    gen_testsrc(&folder, "clip.mp4", 2.0, &["-c:v", "libx264", "-pix_fmt", "yuv420p"]);
-    write(&folder, "composition.kdl", &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2"));
-    std::fs::set_permissions(folder.join("clip.mp4"), std::fs::Permissions::from_mode(0o000)).unwrap();
+    gen_testsrc(
+        &folder,
+        "clip.mp4",
+        2.0,
+        &["-c:v", "libx264", "-pix_fmt", "yuv420p"],
+    );
+    write(
+        &folder,
+        "composition.kdl",
+        &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2"),
+    );
+    std::fs::set_permissions(
+        folder.join("clip.mp4"),
+        std::fs::Permissions::from_mode(0o000),
+    )
+    .unwrap();
     // A privileged test runner can still open the file: without a real
     // denial there is nothing to assert, so report and stop.
     if std::fs::File::open(folder.join("clip.mp4")).is_ok() {
         println!("skip: process can open mode-000 files (privileged runner)");
-        std::fs::set_permissions(folder.join("clip.mp4"), std::fs::Permissions::from_mode(0o644)).unwrap();
+        std::fs::set_permissions(
+            folder.join("clip.mp4"),
+            std::fs::Permissions::from_mode(0o644),
+        )
+        .unwrap();
         return;
     }
     let (code, out) = run(&["check", "."], &folder);
@@ -220,5 +305,9 @@ fn permission_denied_source_refuses_naming_the_file() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("clip.mp4"), "{out}");
     assert_no_outputs(&folder, "permission-denied");
-    std::fs::set_permissions(folder.join("clip.mp4"), std::fs::Permissions::from_mode(0o644)).unwrap();
+    std::fs::set_permissions(
+        folder.join("clip.mp4"),
+        std::fs::Permissions::from_mode(0o644),
+    )
+    .unwrap();
 }

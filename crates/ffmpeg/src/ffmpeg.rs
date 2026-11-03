@@ -159,10 +159,7 @@ pub fn detect_with_path(path_value: Option<OsString>) -> FfmpegFinding {
     let version_out = match run_capture(&ffmpeg, &["-version"]) {
         Some(o) => o,
         None => {
-            finding.reason = format!(
-                "could not run `{}` to read its version",
-                ffmpeg.display()
-            );
+            finding.reason = format!("could not run `{}` to read its version", ffmpeg.display());
             return finding;
         }
     };
@@ -176,9 +173,8 @@ pub fn detect_with_path(path_value: Option<OsString>) -> FfmpegFinding {
     finding.version = Some(version);
     finding.major = Some(major);
     if major < MIN_FFMPEG_MAJOR {
-        finding.reason = format!(
-            "ffmpeg major version {major} is older than the minimum {MIN_FFMPEG_MAJOR}"
-        );
+        finding.reason =
+            format!("ffmpeg major version {major} is older than the minimum {MIN_FFMPEG_MAJOR}");
         return finding;
     }
     let encoders_out = run_capture(&ffmpeg, &["-hide_banner", "-encoders"]).unwrap_or_default();
@@ -192,7 +188,10 @@ pub fn detect_with_path(path_value: Option<OsString>) -> FfmpegFinding {
         if !finding.has_audio_encoder {
             missing.push(REQUIRED_AUDIO_ENCODER);
         }
-        finding.reason = format!("ffmpeg is missing required encoder(s): {}", missing.join(", "));
+        finding.reason = format!(
+            "ffmpeg is missing required encoder(s): {}",
+            missing.join(", ")
+        );
         return finding;
     }
     finding.suitable = true;
@@ -579,7 +578,8 @@ mod tests {
 
     #[test]
     fn version_lines_parse() {
-        let (v, m) = parse_version("ffmpeg version 9.0.2 Copyright (c) 2000-2026\nbuilt with").unwrap();
+        let (v, m) =
+            parse_version("ffmpeg version 9.0.2 Copyright (c) 2000-2026\nbuilt with").unwrap();
         assert_eq!((v.as_str(), m), ("9.0.2", 9));
         let (v, m) = parse_version("ffprobe version 6.1.1\n").unwrap();
         assert_eq!((v.as_str(), m), ("6.1.1", 6));
@@ -658,7 +658,10 @@ mod tests {
         std::env::remove_var("FRAMESMITH_FFMPEG_ENTRY");
         assert!(source_from_env().is_none());
         std::env::set_var("FRAMESMITH_FFMPEG_URL", "file:///tmp/x.zip");
-        assert!(source_from_env().is_none(), "a lone URL is not a verifiable source");
+        assert!(
+            source_from_env().is_none(),
+            "a lone URL is not a verifiable source"
+        );
         std::env::set_var("FRAMESMITH_FFMPEG_SHA256", &"1".repeat(64));
         std::env::set_var("FRAMESMITH_FFMPEG_VERSION", "9.0-t");
         std::env::set_var("FRAMESMITH_FFMPEG_ENTRY", "ffmpeg");

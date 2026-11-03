@@ -107,7 +107,11 @@ fn frame_of(raw: &[u8], k: usize, w: u32, h: u32) -> &[u8] {
 fn solid_source(path: &Path, cols: &[(u8, u8, u8)], w: u32, h: u32, fps: u32) {
     let mut raw = Vec::with_capacity(cols.len() * w as usize * h as usize * 3);
     for c in cols {
-        raw.extend(std::iter::repeat(*c).take(w as usize * h as usize).flat_map(|p| [p.0, p.1, p.2]));
+        raw.extend(
+            std::iter::repeat(*c)
+                .take(w as usize * h as usize)
+                .flat_map(|p| [p.0, p.1, p.2]),
+        );
     }
     let raw_path = path.with_extension("raw");
     std::fs::write(&raw_path, &raw).unwrap();
@@ -149,10 +153,26 @@ fn position_tween_moves_box_through_exact_path() {
     let raw = decode_raw(&mp4, 60);
     // Box centers: frame 0 -> 30, frame 15 -> 80, frame 30/59 -> 130.
     let cx = |k: usize| red_centroid_x(frame_of(&raw, k, 160, 120), 160).unwrap();
-    assert!((cx(0) - 30.0).abs() < 3.0, "start frame shows authored x, got {}", cx(0));
-    assert!((cx(15) - 80.0).abs() < 3.0, "mid frame is halfway, got {}", cx(15));
-    assert!((cx(30) - 130.0).abs() < 3.0, "end frame shows end value, got {}", cx(30));
-    assert!((cx(59) - 130.0).abs() < 3.0, "past the window the end holds, got {}", cx(59));
+    assert!(
+        (cx(0) - 30.0).abs() < 3.0,
+        "start frame shows authored x, got {}",
+        cx(0)
+    );
+    assert!(
+        (cx(15) - 80.0).abs() < 3.0,
+        "mid frame is halfway, got {}",
+        cx(15)
+    );
+    assert!(
+        (cx(30) - 130.0).abs() < 3.0,
+        "end frame shows end value, got {}",
+        cx(30)
+    );
+    assert!(
+        (cx(59) - 130.0).abs() < 3.0,
+        "past the window the end holds, got {}",
+        cx(59)
+    );
 }
 
 #[test]
@@ -205,10 +225,26 @@ fn set_holds_then_releases() {
     assert_eq!(run(&["render", "proj", "-o", "out.mp4"], &root).0, 0);
     let raw = decode_raw(&mp4, 60);
     let cx = |k: usize| red_centroid_x(frame_of(&raw, k, 160, 120), 160).unwrap();
-    assert!((cx(14) - 30.0).abs() < 3.0, "frame before the window, got {}", cx(14));
-    assert!((cx(15) - 70.0).abs() < 3.0, "first window frame holds, got {}", cx(15));
-    assert!((cx(29) - 70.0).abs() < 3.0, "last window frame holds, got {}", cx(29));
-    assert!((cx(30) - 30.0).abs() < 3.0, "first frame after releases, got {}", cx(30));
+    assert!(
+        (cx(14) - 30.0).abs() < 3.0,
+        "frame before the window, got {}",
+        cx(14)
+    );
+    assert!(
+        (cx(15) - 70.0).abs() < 3.0,
+        "first window frame holds, got {}",
+        cx(15)
+    );
+    assert!(
+        (cx(29) - 70.0).abs() < 3.0,
+        "last window frame holds, got {}",
+        cx(29)
+    );
+    assert!(
+        (cx(30) - 30.0).abs() < 3.0,
+        "first frame after releases, got {}",
+        cx(30)
+    );
 }
 
 #[test]
@@ -236,8 +272,16 @@ fn scale_and_opacity_tweens_show_on_frames() {
         }
         max
     };
-    assert!((extent(0) as f64 - 79.0).abs() < 3.0, "start extent, got {}", extent(0));
-    assert!((extent(30) as f64 - 119.0).abs() < 3.0, "end extent doubled, got {}", extent(30));
+    assert!(
+        (extent(0) as f64 - 79.0).abs() < 3.0,
+        "start extent, got {}",
+        extent(0)
+    );
+    assert!(
+        (extent(30) as f64 - 119.0).abs() < 3.0,
+        "end extent doubled, got {}",
+        extent(30)
+    );
 
     let root = tmp("fade");
     let folder = root.join("proj");
@@ -251,8 +295,14 @@ fn scale_and_opacity_tweens_show_on_frames() {
     let mp4 = root.join("out.mp4");
     assert_eq!(run(&["render", "proj", "-o", "out.mp4"], &root).0, 0);
     let raw = decode_raw(&mp4, 60);
-    assert!(red_count(frame_of(&raw, 0, 160, 120)) < 10, "opacity 0 is fully transparent");
-    assert!(red_count(frame_of(&raw, 30, 160, 120)) > 1500, "opacity 1 is fully opaque");
+    assert!(
+        red_count(frame_of(&raw, 0, 160, 120)) < 10,
+        "opacity 0 is fully transparent"
+    );
+    assert!(
+        red_count(frame_of(&raw, 30, 160, 120)) > 1500,
+        "opacity 1 is fully opaque"
+    );
 }
 
 #[test]
@@ -284,9 +334,15 @@ fn rotation_tween_turns_box_on_frames() {
         (min, max)
     };
     let (lo0, hi0) = red_rows(0);
-    assert!(lo0 >= 49 && hi0 <= 70, "unturned rows 50..70, got {lo0}..{hi0}");
+    assert!(
+        lo0 >= 49 && hi0 <= 70,
+        "unturned rows 50..70, got {lo0}..{hi0}"
+    );
     let (lo1, hi1) = red_rows(30);
-    assert!(lo1 <= 32 && hi1 >= 88, "turned rows span 30..90, got {lo1}..{hi1}");
+    assert!(
+        lo1 <= 32 && hi1 >= 88,
+        "turned rows span 30..90, got {lo1}..{hi1}"
+    );
 }
 
 #[test]
@@ -328,9 +384,21 @@ fn easing_midpoint_differs_and_outback_overshoots() {
     // the ends and middles compare by red centroid, not by bytes: the
     // box is 20 wide, so its center is x + 10.
     let cx = |raw: &[u8], k: usize| red_centroid_x(frame_of(raw, k, 160, 120), 160).unwrap();
-    assert!((cx(&lin, 30) - 110.0).abs() < 3.0, "linear ends at 100, got {}", cx(&lin, 30));
-    assert!((cx(&quad, 30) - 110.0).abs() < 3.0, "in-quad ends at 100, got {}", cx(&quad, 30));
-    assert!((cx(&lin, 15) - 60.0).abs() < 3.0, "linear midpoint is halfway, got {}", cx(&lin, 15));
+    assert!(
+        (cx(&lin, 30) - 110.0).abs() < 3.0,
+        "linear ends at 100, got {}",
+        cx(&lin, 30)
+    );
+    assert!(
+        (cx(&quad, 30) - 110.0).abs() < 3.0,
+        "in-quad ends at 100, got {}",
+        cx(&quad, 30)
+    );
+    assert!(
+        (cx(&lin, 15) - 60.0).abs() < 3.0,
+        "linear midpoint is halfway, got {}",
+        cx(&lin, 15)
+    );
     assert!(
         cx(&quad, 15) < cx(&lin, 15) - 10.0,
         "in-quad lags the linear middle: {} vs {}",
@@ -346,9 +414,20 @@ fn easing_midpoint_differs_and_outback_overshoots() {
     let raw = decode_raw(&folder.join("out.mp4"), 60);
     let cx = |k: usize| red_centroid_x(frame_of(&raw, k, 160, 120), 160).unwrap();
     let peak = (0..30).map(cx).fold(0.0f64, f64::max);
-    assert!(peak > cx(30) + 2.0, "out-back passes its end (peak {peak}, end {})", cx(30));
-    assert!((cx(30) - 110.0).abs() < 3.0, "out-back settles at the end, got {}", cx(30));
-    assert!((cx(45) - cx(30)).abs() < 1.0, "settled value holds past the window");
+    assert!(
+        peak > cx(30) + 2.0,
+        "out-back passes its end (peak {peak}, end {})",
+        cx(30)
+    );
+    assert!(
+        (cx(30) - 110.0).abs() < 3.0,
+        "out-back settles at the end, got {}",
+        cx(30)
+    );
+    assert!(
+        (cx(45) - cx(30)).abs() < 1.0,
+        "settled value holds past the window"
+    );
 }
 
 #[test]
@@ -391,7 +470,11 @@ fn swapped_document_positions_render_identical_pictures() {
             })
             .collect()
     };
-    assert_eq!(signature(&a), signature(&b), "swapped documents with fixed orders render identically");
+    assert_eq!(
+        signature(&a),
+        signature(&b),
+        "swapped documents with fixed orders render identically"
+    );
 }
 
 #[test]
@@ -427,7 +510,7 @@ fn motion_refusals_name_location_and_code() {
         ),
         (
             "laterprop",
-            "composition name=\"t\" width=64 height=64 duration=2 fps=30 background=\"#000\" version=1 {\n    box x=4 y=4 width=20 height=12 fill=\"#ff0000\" start=0 duration=2\n    tween target=0 property=\"blur\" kind=\"to\" start=0 duration=1 to=3 ease=\"linear\"\n}\n",
+            "composition name=\"t\" width=64 height=64 duration=2 fps=30 background=\"#000\" version=1 {\n    box x=4 y=4 width=20 height=12 fill=\"#ff0000\" start=0 duration=2\n    tween target=0 property=\"scale-x\" kind=\"to\" start=0 duration=1 to=3 ease=\"linear\"\n}\n",
             "E_UNSUPPORTED",
             2,
         ),
@@ -437,8 +520,14 @@ fn motion_refusals_name_location_and_code() {
         std::fs::create_dir_all(&folder).unwrap();
         write(&folder, "composition.kdl", body);
         let (status, out) = run(&["check", "."], &folder);
-        assert_eq!(status, exit, "{tag}: check must exit {exit}, got {status}: {out}");
-        assert!(out.contains(code), "{tag}: diagnostics must name {code}: {out}");
+        assert_eq!(
+            status, exit,
+            "{tag}: check must exit {exit}, got {status}: {out}"
+        );
+        assert!(
+            out.contains(code),
+            "{tag}: diagnostics must name {code}: {out}"
+        );
         let (rstatus, _) = run(&["render", ".", "-o", "out.mp4"], &folder);
         assert_eq!(rstatus, exit, "{tag}: render must exit {exit}");
         assert!(!folder.join("out.mp4").exists(), "{tag}: no MP4 on refusal");

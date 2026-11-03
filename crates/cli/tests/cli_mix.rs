@@ -92,10 +92,7 @@ fn decode_audio(mp4: &Path) -> Vec<i16> {
         .expect("decode mp4 audio");
     assert!(out.status.success());
     let (pairs, _) = out.stdout.as_chunks::<2>();
-    pairs
-        .iter()
-        .map(|b| i16::from_le_bytes(*b))
-        .collect()
+    pairs.iter().map(|b| i16::from_le_bytes(*b)).collect()
 }
 
 /// First stereo frame index where either channel exceeds `threshold`.
@@ -115,7 +112,9 @@ fn rms(pcm: &[i16], from: usize, to: usize) -> f64 {
 fn peak(pcm: &[i16], from: usize, to: usize) -> i32 {
     let mut m = 0i32;
     for i in from.min(pcm.len() / 2)..to.min(pcm.len() / 2) {
-        m = m.max(pcm[2 * i].abs() as i32).max(pcm[2 * i + 1].abs() as i32);
+        m = m
+            .max(pcm[2 * i].abs() as i32)
+            .max(pcm[2 * i + 1].abs() as i32);
     }
     m
 }
@@ -162,14 +161,20 @@ fn marked_audio_starts_within_1ms_of_its_written_time() {
     let pcm = decode_audio(&folder.join("out.mp4"));
     assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
     let onset = onset_frame(&pcm, 500).expect("tone must be audible");
-    println!("onset: frame {onset}, written 48000, error {} samples", onset as i64 - 48000);
+    println!(
+        "onset: frame {onset}, written 48000, error {} samples",
+        onset as i64 - 48000
+    );
     assert!(
         onset.abs_diff(48000) <= 48,
         "onset {onset} is more than 1 ms (48 samples) from written time 48000"
     );
     // Silence before the written start is exact digital zero.
     let pre: Vec<i16> = pcm[..2 * 47000].to_vec();
-    assert!(pre.iter().all(|&x| x == 0), "sound starts only at its written time");
+    assert!(
+        pre.iter().all(|&x| x == 0),
+        "sound starts only at its written time"
+    );
 }
 
 #[test]
@@ -189,7 +194,10 @@ fn trim_and_placement_anchor_the_sound() {
     let pcm = decode_audio(&folder.join("out.mp4"));
     let onset = onset_frame(&pcm, 500).expect("trimmed tone must be audible");
     println!("trim onset: frame {onset}, written 24000");
-    assert!(onset.abs_diff(24000) <= 48, "trimmed onset {onset} misses written time 24000");
+    assert!(
+        onset.abs_diff(24000) <= 48,
+        "trimmed onset {onset} misses written time 24000"
+    );
     // The taken window is one second: sound ends back in silence.
     let tail = peak(&pcm, 73000, pcm.len() / 2);
     assert!(tail < 200, "trim window ends in silence, tail peak {tail}");
@@ -228,8 +236,14 @@ fn overlapping_tracks_sum_without_silent_limiting() {
     let double = decode_audio(&root.join("double").join("out.mp4"));
     let ps = peak(&single, 5000, 40000);
     let pd = peak(&double, 5000, 40000);
-    println!("overlap peaks: single={ps} double={pd} ratio={:.3}", pd as f64 / ps as f64);
-    assert!((pd as f64 / ps as f64 - 2.0).abs() < 0.1, "overlap must sum: {ps} vs {pd}");
+    println!(
+        "overlap peaks: single={ps} double={pd} ratio={:.3}",
+        pd as f64 / ps as f64
+    );
+    assert!(
+        (pd as f64 / ps as f64 - 2.0).abs() < 0.1,
+        "overlap must sum: {ps} vs {pd}"
+    );
 }
 
 #[test]
@@ -258,14 +272,20 @@ fn volume_and_linear_fades_shape_the_audible_track() {
     let loud = render_gain("loud", "6", "");
     let ratio = rms(&loud, 5000, 40000) / rms(&flat, 5000, 40000).max(1.0);
     println!("gain ratio (+6 dB vs 0 dB): {ratio:.3}");
-    assert!((ratio - 2.0).abs() < 0.3, "+6 dB must double amplitude: {ratio}");
+    assert!(
+        (ratio - 2.0).abs() < 0.3,
+        "+6 dB must double amplitude: {ratio}"
+    );
     // A one-second linear fade-in starts near silence and reaches unity.
     let faded = render_gain("fade", "0", " fade-in=1.0");
     let early = rms(&faded, 100, 2000);
     let late = rms(&faded, 43000, 46000);
     println!("fade rms: early={early:.1} late={late:.1}");
     assert!(early < late * 0.35, "fade-in must ramp from near silence");
-    assert!((late / rms(&flat, 43000, 46000).max(1.0) - 1.0).abs() < 0.2, "fade reaches unity");
+    assert!(
+        (late / rms(&flat, 43000, 46000).max(1.0) - 1.0).abs() < 0.2,
+        "fade reaches unity"
+    );
 }
 
 // --- T008: determinism and silence ------------------------------------------
@@ -285,7 +305,11 @@ fn mix_is_byte_identical_across_reruns_and_workers() {
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["render", "proj", "-o", "b.mp4"], &root);
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run_env(&["render", "proj", "-o", "w.mp4"], &root, &[("FRAMESMITH_WORKERS", "8")]);
+    let (code, out) = run_env(
+        &["render", "proj", "-o", "w.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "8")],
+    );
     assert_eq!(code, 0, "{out}");
     let audios: Vec<Vec<i16>> = ["a.mp4", "b.mp4", "w.mp4"]
         .iter()
@@ -293,7 +317,10 @@ fn mix_is_byte_identical_across_reruns_and_workers() {
         .collect();
     assert_eq!(audios[0], audios[1], "reruns mix byte-identically");
     assert_eq!(audios[0], audios[2], "worker counts mix byte-identically");
-    println!("mix-determinism: {} samples identical across reruns and workers", audios[0].len());
+    println!(
+        "mix-determinism: {} samples identical across reruns and workers",
+        audios[0].len()
+    );
 }
 
 #[test]
@@ -336,7 +363,10 @@ fn undecodable_sound_refuses_before_first_frame_naming_the_file() {
     let (code, out) = run(&["render", "corrupt"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("bad.wav"), "refusal names the file: {out}");
-    assert!(out.contains("audio stage"), "refusal names the audio stage: {out}");
+    assert!(
+        out.contains("audio stage"),
+        "refusal names the audio stage: {out}"
+    );
     assert!(!folder.join("out.mp4").exists(), "no MP4 on refusal");
     assert!(!folder.join("out.mp4.framesmith-part").exists());
     // Missing files fail even earlier, at validation.

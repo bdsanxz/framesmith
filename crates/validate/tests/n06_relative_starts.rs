@@ -7,7 +7,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -394,7 +394,10 @@ fn several_timing_problems_report_together() {
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid);
     assert_eq!(v.diagnostics.len(), 3, "{:?}", v.diagnostics);
-    assert_eq!(codes(&dir), vec!["E_BAD_TIMING", "E_BAD_TIMING", "E_BAD_TIMING"]);
+    assert_eq!(
+        codes(&dir),
+        vec!["E_BAD_TIMING", "E_BAD_TIMING", "E_BAD_TIMING"]
+    );
 }
 
 // --- absolute projects unchanged ---------------------------------------------

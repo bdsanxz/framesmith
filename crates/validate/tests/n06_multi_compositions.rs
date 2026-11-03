@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -189,10 +189,7 @@ fn non_boolean_root_mark_fails() {
     assert_eq!(v.status, Status::Invalid);
     // A malformed mark is not a mark: the project reports the bad
     // shape plus the resulting ambiguity together.
-    assert_eq!(
-        codes(&dir),
-        vec!["E_AMBIGUOUS_ROOT", "E_AMBIGUOUS_ROOT"]
-    );
+    assert_eq!(codes(&dir), vec!["E_AMBIGUOUS_ROOT", "E_AMBIGUOUS_ROOT"]);
 }
 
 #[test]

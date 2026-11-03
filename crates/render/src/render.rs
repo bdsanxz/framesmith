@@ -30,8 +30,10 @@
 //!   decode failure stops the render, reports the FFmpeg stage, and never
 //!   presents a wrong or truncated MP4 as success.
 
+use crate::blur::Premult;
 use crate::frame::{FrameDescription, FrameItem};
 use crate::motion_plan::{plan_motions, snap_fps, ClipMotion};
+use crate::turn::Turn;
 use glyph::font::Face;
 use notation::model::{Clip, Composition, Fit};
 use std::collections::HashMap;
@@ -111,6 +113,73 @@ pub(crate) struct TreeComp {
     pub base: usize,
 }
 
+/// Pre-shaped layouts for frame-varying text (Sprint 7 motion,
+/// CAP-009 plus T006): every distinct `(string, font size,
+/// letter-spacing)` triple a typewriter reveal, count range, or
+/// animated metric shows at a drawn instant, shaped once at
+/// preparation. Lookups are read-only during drawing, so any worker
+/// count draws identical bytes, and re-renders shape the same strings
+/// again.
+#[derive(Debug, Default)]
+pub(crate) struct DynLayouts {
+    index: std::collections::HashMap<(usize, String, u64, u64), usize>,
+    blocks: Vec<layout::Block>,
+}
+
+/// Size/spacing key of a dynamic triple: exact font size bits, and the
+/// letter-spacing bits (`u64::MAX` sentinel when the clip leaves the
+/// font default in place).
+pub(crate) fn metrics_key(size: f64, spacing: Option<f64>) -> (u64, u64) {
+    (
+        size.to_bits(),
+        spacing.map(f64::to_bits).unwrap_or(u64::MAX),
+    )
+}
+
+impl DynLayouts {
+    /// The pre-shaped block for global document id `doc` showing
+    /// `value` at `size`/`spacing`, when the clip is frame-varying;
+    /// `None` for still text (drawn from the static layouts) and for
+    /// the empty string (nothing to draw).
+    pub(crate) fn get(
+        &self,
+        doc: usize,
+        value: &str,
+        size: f64,
+        spacing: Option<f64>,
+    ) -> Option<&layout::Block> {
+        if value.is_empty() {
+            return None;
+        }
+        let (sb, lb) = metrics_key(size, spacing);
+        self.index
+            .get(&(doc, value.to_string(), sb, lb))
+            .and_then(|&i| self.blocks.get(i))
+    }
+
+    fn insert(
+        &mut self,
+        doc: usize,
+        value: String,
+        size: f64,
+        spacing: Option<f64>,
+        block: layout::Block,
+    ) {
+        let (sb, lb) = metrics_key(size, spacing);
+        let at = self.blocks.len();
+        self.blocks.push(block);
+        self.index.insert((doc, value, sb, lb), at);
+    }
+
+    fn contains(&self, doc: usize, value: &str, size: f64, spacing: Option<f64>) -> bool {
+        if value.is_empty() {
+            return true;
+        }
+        let (sb, lb) = metrics_key(size, spacing);
+        self.index.contains_key(&(doc, value.to_string(), sb, lb))
+    }
+}
+
 pub struct Prepared {
     pub(crate) comp: Composition,
     pub(crate) motions: Vec<ClipMotion>,
@@ -118,6 +187,11 @@ pub struct Prepared {
     pub(crate) fonts: layout::Fonts,
     pub(crate) project_family: Option<String>,
     pub(crate) layouts: Vec<Option<layout::Block>>,
+    /// Pre-shaped blocks for frame-varying text (Sprint 7 motion):
+    /// typewriter reveals, count ranges, and animated font metrics draw
+    /// these, keyed by document id, string, font size, and letter
+    /// spacing. Empty for still-only projects.
+    pub(crate) dyn_layouts: DynLayouts,
     pub(crate) bitmap_fallback: bool,
     pub(crate) videos: Vec<ProbedVideo>,
     pub(crate) ranges: Vec<DecodedRange>,
@@ -165,7 +239,11 @@ impl Prepared {
             motions.push(t.motions.as_slice());
             bases.push(t.base);
         }
-        crate::frame::NestView { comps, motions, bases }
+        crate::frame::NestView {
+            comps,
+            motions,
+            bases,
+        }
     }
 
     /// Output frame count of the prepared composition.
@@ -195,6 +273,7 @@ impl Prepared {
             &desc,
             &mut self.raster,
             &self.layouts,
+            &self.dyn_layouts,
             self.bitmap_fallback,
             &self.videos,
             &self.ranges,
@@ -595,6 +674,147 @@ fn register_comp_fonts(
 /// frame; with no font anywhere the announced bitmap fallback draws
 /// instead of a blank. Returns the per-clip blocks plus whether this
 /// composition falls back to the bitmap face.
+/// The parley style of one text clip (shared by the static layout pass
+/// and the frame-varying text pass): explicit `font-family` wins in
+/// written try order, else the project family, else the system style
+/// faces. A list nothing resolves refuses here instead of silently
+/// falling back.
+fn text_layout_style(
+    fonts: &mut layout::Fonts,
+    project_family: &Option<String>,
+    tc: &notation::model::TextClip,
+) -> Result<layout::Style, String> {
+    text_layout_style_with(fonts, project_family, tc, tc.size, tc.letter_spacing)
+}
+
+/// Style of one text clip with overridden font metrics (Sprint 7
+/// motion, T006): animated `font-size`/`letter-spacing` re-shape the
+/// text at its evaluated metrics. `line_height` and wrapping stay
+/// authored (layout reaction to animated sizes belongs to T011, so
+/// they do not follow here).
+fn text_layout_style_with(
+    fonts: &mut layout::Fonts,
+    project_family: &Option<String>,
+    tc: &notation::model::TextClip,
+    size: f64,
+    letter_spacing: Option<f64>,
+) -> Result<layout::Style, String> {
+    // The style family: the project family when declared, else the
+    // system variant file for the clip style (`Arial Bold`...), else
+    // the generic fallback inside layout. Names the same basenames
+    // as the old per-style candidate files.
+    let bold = matches!(
+        tc.style,
+        notation::model::FontStyle::Bold | notation::model::FontStyle::BoldItalic
+    );
+    let italic = matches!(
+        tc.style,
+        notation::model::FontStyle::Italic | notation::model::FontStyle::BoldItalic
+    );
+    // Explicit `font-family` wins in written try order (project
+    // families, then machine families); a list nothing resolves
+    // refuses here instead of silently falling back.
+    let families = match &tc.font_family {
+        Some(names) => {
+            if !fonts.resolves_any(names) {
+                return Err(format!(
+                    "render refused: text {:?} names unknown font-family {:?}; no MP4 was written",
+                    tc.value,
+                    names.join(", ")
+                ));
+            }
+            names.clone()
+        }
+        None => match project_family {
+            Some(family) => vec![family.clone()],
+            None => fonts
+                .resolve_system_style(bold, italic)
+                .into_iter()
+                .collect(),
+        },
+    };
+    Ok(layout::Style {
+        families,
+        size: size as f32,
+        weight: if bold { 700.0 } else { 400.0 },
+        italic,
+        align: match tc.align {
+            notation::model::Align::Left => layout::Align::Left,
+            notation::model::Align::Center => layout::Align::Center,
+            notation::model::Align::Right => layout::Align::Right,
+        },
+        colour: [tc.color.r, tc.color.g, tc.color.b, 255],
+        line_height: tc.line_height.map(|v| v as f32),
+        letter_spacing: letter_spacing.map(|v| v as f32),
+    })
+}
+
+/// Shape one string with one text clip's style (Sprint 7 motion,
+/// CAP-009): the static pass shapes the authored value, the
+/// frame-varying pass shapes each distinct reveal/count string. `None`
+/// means the bitmap fallback (no family anywhere); anything else
+/// unshapable refuses before the first frame.
+fn shape_text_string(
+    fonts: &mut layout::Fonts,
+    project_family: &Option<String>,
+    tc: &notation::model::TextClip,
+    text: &str,
+    ffmpeg_bin: &Path,
+) -> Result<Option<layout::Block>, String> {
+    let style = text_layout_style(fonts, project_family, tc)?;
+    let wrap = match tc.wrap {
+        notation::model::Wrap::Off => None,
+        notation::model::Wrap::Width(w) => Some(w as f32),
+    };
+    match layout::layout(fonts, text, &style, wrap, Some(ffmpeg_bin)) {
+        Ok(block) => Ok(Some(block)),
+        Err(layout::TextError::NoFamily) if project_family.is_none() => Ok(None),
+        Err(e) => Err(format!(
+            "render refused: text {text:?} cannot be laid out ({e}); no MP4 was written"
+        )),
+    }
+}
+
+/// True when a composition animates any text clip's font metrics
+/// (Sprint 7 motion, T006): a `font-size` or `letter-spacing` tween,
+/// key, or set on a text clip needs per-frame pre-shaped layouts at
+/// the frame's evaluated metrics.
+fn text_metrics_animated(comp: &Composition) -> bool {
+    let animates = |target: usize, property: &str| {
+        matches!(comp.clips.get(target), Some(Clip::Text(_)))
+            && (property == "font-size" || property == "letter-spacing")
+    };
+    comp.tweens.iter().any(|d| animates(d.target, &d.property))
+        || comp.keys.iter().any(|d| animates(d.target, &d.property))
+        || comp.sets.iter().any(|d| animates(d.target, &d.property))
+}
+
+/// Shape one string with overridden font metrics (Sprint 7 motion,
+/// T006): animated `font-size`/`letter-spacing` re-shape at their
+/// evaluated values. Otherwise identical to [`shape_text_string`].
+fn shape_text_string_with(
+    fonts: &mut layout::Fonts,
+    project_family: &Option<String>,
+    tc: &notation::model::TextClip,
+    text: &str,
+    size: f64,
+    letter_spacing: Option<f64>,
+    ffmpeg_bin: &Path,
+) -> Result<Option<layout::Block>, String> {
+    let style = text_layout_style_with(fonts, project_family, tc, size, letter_spacing)?;
+    let wrap = match tc.wrap {
+        notation::model::Wrap::Off => None,
+        notation::model::Wrap::Width(w) => Some(w as f32),
+    };
+    match layout::layout(fonts, text, &style, wrap, Some(ffmpeg_bin)) {
+        Ok(block) => Ok(Some(block)),
+        Err(layout::TextError::NoFamily) if project_family.is_none() => Ok(None),
+        Err(e) => Err(format!(
+            "render refused: text {text:?} cannot be laid out ({e}); no MP4 was written"
+        )),
+    }
+}
+
 fn shape_comp_layouts(
     comp: &Composition,
     fonts: &mut layout::Fonts,
@@ -608,69 +828,11 @@ fn shape_comp_layouts(
             layouts.push(None);
             continue;
         };
-        // The style family: the project family when declared, else the
-        // system variant file for the clip style (`Arial Bold`...), else
-        // the generic fallback inside layout. Names the same basenames
-        // as the old per-style candidate files.
-        let bold = matches!(
-            tc.style,
-            notation::model::FontStyle::Bold | notation::model::FontStyle::BoldItalic
-        );
-        let italic = matches!(
-            tc.style,
-            notation::model::FontStyle::Italic | notation::model::FontStyle::BoldItalic
-        );
-        // Explicit `font-family` wins in written try order (project
-        // families, then machine families); a list nothing resolves
-        // refuses here instead of silently falling back.
-        let families = match &tc.font_family {
-            Some(names) => {
-                if !fonts.resolves_any(names) {
-                    return Err(format!(
-                        "render refused: text {:?} names unknown font-family {:?}; no MP4 was written",
-                        tc.value,
-                        names.join(", ")
-                    ));
-                }
-                names.clone()
-            }
-            None => match project_family {
-                Some(family) => vec![family.clone()],
-                None => fonts
-                    .resolve_system_style(bold, italic)
-                    .into_iter()
-                    .collect(),
-            },
-        };
-        let style = layout::Style {
-            families,
-            size: tc.size as f32,
-            weight: if bold { 700.0 } else { 400.0 },
-            italic,
-            align: match tc.align {
-                notation::model::Align::Left => layout::Align::Left,
-                notation::model::Align::Center => layout::Align::Center,
-                notation::model::Align::Right => layout::Align::Right,
-            },
-            colour: [tc.color.r, tc.color.g, tc.color.b, 255],
-            line_height: tc.line_height.map(|v| v as f32),
-            letter_spacing: tc.letter_spacing.map(|v| v as f32),
-        };
-        let wrap = match tc.wrap {
-            notation::model::Wrap::Off => None,
-            notation::model::Wrap::Width(w) => Some(w as f32),
-        };
-        match layout::layout(fonts, &tc.value, &style, wrap, Some(ffmpeg_bin)) {
-            Ok(block) => layouts.push(Some(block)),
-            Err(layout::TextError::NoFamily) if project_family.is_none() => {
+        match shape_text_string(fonts, project_family, tc, &tc.value, ffmpeg_bin)? {
+            Some(block) => layouts.push(Some(block)),
+            None => {
                 bitmap_fallback = true;
                 layouts.push(None);
-            }
-            Err(e) => {
-                return Err(format!(
-                    "render refused: text {:?} cannot be laid out ({e}); no MP4 was written",
-                    tc.value
-                ));
             }
         }
     }
@@ -922,6 +1084,9 @@ pub fn prepare_frames_ranged(
     // base, so nested items address the unified tables.
     let mut tree: Vec<TreeComp> = Vec::new();
     let mut base = order[0].clips.len();
+    // Nested font sets are retained for the frame-varying text pass
+    // below; the root set lives in `fonts` until `Prepared` takes it.
+    let mut nested_font_store: Vec<(layout::Fonts, Option<String>)> = Vec::new();
     for nested in order.iter().skip(1) {
         let mut nested_fonts = layout::Fonts::new();
         let mut nested_family: Option<String> = None;
@@ -929,6 +1094,7 @@ pub fn prepare_frames_ranged(
         let nested_motions = plan_motions(nested, snap_fps(&nested.fps));
         let (nested_layouts, nested_fallback) =
             shape_comp_layouts(nested, &mut nested_fonts, &nested_family, ffmpeg_bin)?;
+        nested_font_store.push((nested_fonts, nested_family));
         let video_base = videos.len();
         let (mut nested_videos, nested_ranges) = prepare_comp_videos(
             nested,
@@ -966,6 +1132,97 @@ pub fn prepare_frames_ranged(
         );
     }
 
+    // Sprint 7 text effects (CAP-009): pre-shape every distinct string
+    // a typewriter reveal or count range shows at a drawn instant.
+    // The enumeration replays the exact instants drawing replays
+    // (range start plus frame intervals, through each nest `rate`),
+    // so every drawn instant hits a pre-shaped block. Shaping runs
+    // once here, read-only afterwards, so worker counts and
+    // re-renders draw identical bytes. Still-only projects skip the
+    // enumeration entirely.
+    let mut dyn_layouts = DynLayouts::default();
+    let any_dynamic = order.iter().any(|c| {
+        c.clips.iter().any(|clip| match clip {
+            Clip::Text(tc) => crate::textfx::is_dynamic(tc),
+            _ => false,
+        }) || text_metrics_animated(c)
+    });
+    if any_dynamic {
+        let mut comp_fonts: Vec<(&mut layout::Fonts, &Option<String>)> =
+            Vec::with_capacity(order.len());
+        comp_fonts.push((&mut fonts, &project_family));
+        for (f, fam) in nested_font_store.iter_mut() {
+            comp_fonts.push((f, fam));
+        }
+        let mut comp_motions: Vec<&[ClipMotion]> = Vec::with_capacity(order.len());
+        comp_motions.push(&motions);
+        for t in &tree {
+            comp_motions.push(&t.motions);
+        }
+        let mut bases: Vec<usize> = Vec::with_capacity(order.len());
+        bases.push(0);
+        for t in &tree {
+            bases.push(t.base);
+        }
+        let view = crate::frame::NestView {
+            comps: order.clone(),
+            motions: comp_motions,
+            bases: bases.clone(),
+        };
+        // Distinct dynamic strings (plus animated metric triples) in
+        // first-seen (frame) order, so shaping order — and every byte
+        // it yields — is deterministic.
+        let mut pending: Vec<(usize, String, f64, Option<f64>)> = Vec::new();
+        for k in 0..frames as u64 {
+            let now = range_start + crate::motion_plan::frame_time(&comp.fps, k);
+            let desc = crate::frame::describe_nested_at(&view, 0, k, now);
+            for item in &desc.items {
+                if let crate::frame::FrameItem::Text(tc) = item {
+                    if tc.value.is_empty() {
+                        continue;
+                    }
+                    if dyn_layouts.contains(tc.doc, &tc.value, tc.size, tc.letter_spacing) {
+                        continue;
+                    }
+                    if pending.iter().any(|(d, s, z, l)| {
+                        *d == tc.doc && *s == tc.value && *z == tc.size && *l == tc.letter_spacing
+                    }) {
+                        continue;
+                    }
+                    pending.push((tc.doc, tc.value.clone(), tc.size, tc.letter_spacing));
+                }
+            }
+        }
+        for (doc, text, size, spacing) in pending {
+            // Owning composition and local clip of one global document id.
+            let mut owner = 0usize;
+            for (ci, b) in view.bases.iter().enumerate() {
+                if doc >= *b && doc - *b < order[ci].clips.len() {
+                    owner = ci;
+                    break;
+                }
+            }
+            let local = doc - view.bases[owner];
+            let Clip::Text(tc) = &order[owner].clips[local] else {
+                continue;
+            };
+            // Static layouts already hold authored-metric triples, so
+            // only frame-varying strings and metric overrides shape here.
+            if !crate::textfx::is_dynamic(tc) && size == tc.size && spacing == tc.letter_spacing {
+                continue;
+            }
+            let (fonts_for, family_for) = &mut comp_fonts[owner];
+            match shape_text_string_with(
+                fonts_for, family_for, tc, &text, size, spacing, ffmpeg_bin,
+            )? {
+                Some(block) => dyn_layouts.insert(doc, text, size, spacing, block),
+                // The bitmap fallback draws from the string itself, so
+                // nothing is pre-shaped for it.
+                None => {}
+            }
+        }
+    }
+
     Ok(Prepared {
         comp: comp.clone(),
         motions,
@@ -973,6 +1230,7 @@ pub fn prepare_frames_ranged(
         fonts,
         project_family,
         layouts,
+        dyn_layouts,
         bitmap_fallback,
         videos,
         ranges,
@@ -1439,8 +1697,8 @@ fn place_comp_clips(
                 )?;
                 // Slice the use window out of the child mix, quantized
                 // exactly like the staged mix so the slice is stable.
-                let s0 = ((n.trim_start * MIX_RATE as f64).round().max(0.0) as usize)
-                    .min(child_total);
+                let s0 =
+                    ((n.trim_start * MIX_RATE as f64).round().max(0.0) as usize).min(child_total);
                 let s1 = (s0 + (parent_len * n.rate * MIX_RATE as f64).round().max(0.0) as usize)
                     .min(child_total);
                 if s1 <= s0 {
@@ -1675,6 +1933,7 @@ pub(crate) struct DrawView<'a> {
     ranges: &'a [DecodedRange],
     images: &'a [DecodedImage],
     layouts: &'a [Option<layout::Block>],
+    dyn_layouts: &'a DynLayouts,
     bitmap_fallback: bool,
     /// The render tree (Sprint 6 T007): the root plus every nested
     /// composition, so one frame description resolves every `nest`.
@@ -1692,6 +1951,7 @@ impl Prepared {
             ranges: &self.ranges,
             images: &self.images,
             layouts: &self.layouts,
+            dyn_layouts: &self.dyn_layouts,
             bitmap_fallback: self.bitmap_fallback,
             nest: self.nest_view(),
             time_offset: self.range_start,
@@ -1721,6 +1981,7 @@ pub(crate) fn draw_one_frame_view(
             view.ranges,
             view.images,
             view.layouts,
+            view.dyn_layouts,
             view.bitmap_fallback,
             raster,
             &desc,
@@ -1731,6 +1992,7 @@ pub(crate) fn draw_one_frame_view(
                 &desc,
                 raster,
                 view.layouts,
+                view.dyn_layouts,
                 view.bitmap_fallback,
                 view.videos,
                 view.ranges,
@@ -2283,23 +2545,14 @@ fn encode_args(
         // The staged mix already spans the full composition at 48 kHz
         // stereo; pad and trim only guard the exact container length.
         if let Some(m) = mix_input {
-            fc.push_str(&format!(
-                "[{m}:a]apad,atrim=duration={:.6}[mix];",
-                duration
-            ));
+            fc.push_str(&format!("[{m}:a]apad,atrim=duration={:.6}[mix];", duration));
         }
         let n_inputs = audio.len() + if mix_input.is_some() { 1 } else { 0 };
         if n_inputs == 1 {
             if mix_input.is_some() {
-                fc.push_str(&format!(
-                    "[mix]apad,atrim=duration={:.6}[outa]",
-                    duration
-                ));
+                fc.push_str(&format!("[mix]apad,atrim=duration={:.6}[outa]", duration));
             } else {
-                fc.push_str(&format!(
-                    "[s0]apad,atrim=duration={:.6}[outa]",
-                    duration
-                ));
+                fc.push_str(&format!("[s0]apad,atrim=duration={:.6}[outa]", duration));
             }
         } else {
             for i in 0..audio.len() {
@@ -3278,10 +3531,737 @@ pub(crate) fn fill_canvas(frame: &mut [u8], r: u8, g: u8, b: u8) {
 /// decoded window for `videos[i]`; `raster` caches parsed faces.
 /// `images` holds each decoded still (T005).
 #[allow(clippy::too_many_arguments)]
+/// True when a blur sigma draws blurred (Sprint 7 motion, CAP-006):
+/// positive and finite. Anything else draws sharp.
+pub(crate) fn blur_on(sigma: f64) -> bool {
+    sigma > 0.0 && sigma.is_finite()
+}
+
+/// Blur spread margin in canvas pixels: the kernel reaches
+/// `ceil(3σ)`, plus one texel of guard.
+pub(crate) fn blur_margin(sigma: f64) -> f64 {
+    if !blur_on(sigma) {
+        0.0
+    } else {
+        (3.0 * sigma).ceil() + 1.0
+    }
+}
+
+/// Composite one straight-RGBA texel over a layer texel at byte offset
+/// `o` (source-over in layer space, for `draw_box_layer`).
+fn layer_blend(layer: &mut [u8], o: usize, r: u8, g: u8, b: u8, a: f64) {
+    if !(a > 0.0) || o + 3 >= layer.len() {
+        return;
+    }
+    let a = a.clamp(0.0, 1.0);
+    let da = layer[o + 3] as f64 / 255.0;
+    let na = a + da * (1.0 - a);
+    if na <= 0.0 {
+        layer[o + 3] = 0;
+        return;
+    }
+    layer[o] = ((r as f64 * a + layer[o] as f64 * da * (1.0 - a)) / na + 0.5) as u8;
+    layer[o + 1] = ((g as f64 * a + layer[o + 1] as f64 * da * (1.0 - a)) / na + 0.5) as u8;
+    layer[o + 2] = ((b as f64 * a + layer[o + 2] as f64 * da * (1.0 - a)) / na + 0.5) as u8;
+    layer[o + 3] = (na * 255.0 + 0.5) as u8;
+}
+
+/// Draw one box into a transparent straight-RGBA layer (Sprint 7
+/// motion, T005/T006): the same unrotated geometry `draw_box` draws,
+/// but as layer texels the blur/turn composite consumes. Rotation and
+/// projection run in the composite, never here.
+pub(crate) fn draw_box_layer(layer: &mut [u8], cw: u32, chh: u32, b: &crate::frame::ResolvedBox) {
+    if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
+        return;
+    }
+    if b.scale <= 0.0 || !b.scale.is_finite() {
+        return;
+    }
+    let alpha = b.opacity.clamp(0.0, 1.0);
+    let s = b.scale;
+    let (x0, y0) = (b.x, b.y);
+    let sw = b.width * s;
+    let sh = b.height * s;
+    let (x1, y1) = (b.x + sw, b.y + sh);
+    let r = (b.radius * s).max(0.0).min(sw / 2.0).min(sh / 2.0);
+    let bw = (b.border_width * s).max(0.0);
+    let r_in = (r - bw).max(0.0);
+    let (ix0, iy0, ix1, iy1) = (x0 + bw, y0 + bw, x1 - bw, y1 - bw);
+    // Per-pixel ring-then-fill over the layer (associative with the
+    // frame-blit order, so the unblurred layer composites identically).
+    let paint = |layer: &mut [u8], i: i64, j: i64, outer: f64, inner: f64| {
+        if outer <= 0.0 || i < 0 || j < 0 || i >= cw as i64 || j >= chh as i64 {
+            return;
+        }
+        let o = (j as u32 * cw + i as u32) as usize * 4;
+        if bw > 0.0 {
+            let ring = (outer - inner).max(0.0);
+            if ring > 0.0 {
+                layer_blend(
+                    layer,
+                    o,
+                    b.border_color.r,
+                    b.border_color.g,
+                    b.border_color.b,
+                    ring * alpha,
+                );
+            }
+            if inner > 0.0 {
+                layer_blend(layer, o, b.fill.r, b.fill.g, b.fill.b, inner * alpha);
+            }
+        } else {
+            layer_blend(layer, o, b.fill.r, b.fill.g, b.fill.b, outer * alpha);
+        }
+    };
+    let i0 = (x0.floor() as i64).max(0);
+    let i1 = (x1.ceil() as i64).min(cw as i64);
+    let j0 = (y0.floor() as i64).max(0);
+    let j1 = (y1.ceil() as i64).min(chh as i64);
+    let sharp = r <= 0.0
+        && x0.is_finite()
+        && y0.is_finite()
+        && x1.is_finite()
+        && y1.is_finite()
+        && x0.fract() == 0.0
+        && y0.fract() == 0.0
+        && x1.fract() == 0.0
+        && y1.fract() == 0.0;
+    for j in j0..j1 {
+        for i in i0..i1 {
+            let outer = if sharp {
+                1.0
+            } else {
+                rr_coverage(i, j, x0, y0, x1, y1, r)
+            };
+            let inner = if bw > 0.0 {
+                rr_coverage(i, j, ix0, iy0, ix1, iy1, r_in)
+            } else {
+                0.0
+            };
+            paint(layer, i, j, outer, inner);
+        }
+    }
+}
+
+/// Draw one image into a transparent straight-RGBA layer (Sprint 7
+/// motion, T005/T006): the same unrotated target-rect sampling
+/// `draw_image` draws, but as layer texels. Returns the placed picture
+/// rect `(dx, dy, dw, dh)` and the target rect `(tx0, ty0, tx1, ty1)`
+/// the composite needs, or `None` when nothing draws (exactly the
+/// `draw_image` early-outs).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn draw_image_layer(
+    layer: &mut [u8],
+    cw: u32,
+    chh: u32,
+    im: &crate::frame::ResolvedImage,
+    decoded: &DecodedImage,
+) -> Option<(f64, f64, f64, f64, f64, f64, f64, f64)> {
+    use notation::model::{PlaceH, PlaceV};
+    let sw = decoded.width as f64;
+    let sh = decoded.height as f64;
+    if sw <= 0.0 || sh <= 0.0 {
+        return None;
+    }
+    if im.scale <= 0.0 || !im.scale.is_finite() {
+        return None;
+    }
+    if im.opacity <= 0.0 {
+        return None;
+    }
+    let alpha = im.opacity.clamp(0.0, 1.0);
+    let tw = im.width.unwrap_or(cw as f64) * im.scale;
+    let th = im.height.unwrap_or(chh as f64) * im.scale;
+    if tw <= 0.0 || th <= 0.0 {
+        return None;
+    }
+    let (dw, dh) = image_fit_size(tw, th, sw, sh, im.fit);
+    if dw <= 0.0 || dh <= 0.0 {
+        return None;
+    }
+    let ox = match im.placement.x {
+        PlaceH::Left => 0.0,
+        PlaceH::Center => (tw - dw) / 2.0,
+        PlaceH::Right => tw - dw,
+    };
+    let oy = match im.placement.y {
+        PlaceV::Top => 0.0,
+        PlaceV::Center => (th - dh) / 2.0,
+        PlaceV::Bottom => th - dh,
+    };
+    let (dx, dy) = (im.x + ox, im.y + oy);
+    let (tx0, ty0, tx1, ty1) = (im.x, im.y, im.x + tw, im.y + th);
+    let swm1 = decoded.width - 1;
+    let shm1 = decoded.height - 1;
+    let sample = |su: f64, sv: f64| -> [f64; 4] {
+        let su = su.clamp(0.0, sw - 1.0);
+        let sv = sv.clamp(0.0, sh - 1.0);
+        let x0 = su.floor() as u32;
+        let x1 = (x0 + 1).min(swm1);
+        let fx = su - su.floor();
+        let y0 = sv.floor() as u32;
+        let y1 = (y0 + 1).min(shm1);
+        let fy = sv - sv.floor();
+        let texel = |xx: u32, yy: u32| -> [f64; 4] {
+            let s = ((yy * decoded.width + xx) as usize) * 4;
+            [
+                decoded.rgba[s] as f64,
+                decoded.rgba[s + 1] as f64,
+                decoded.rgba[s + 2] as f64,
+                decoded.rgba[s + 3] as f64 / 255.0,
+            ]
+        };
+        let p00 = texel(x0, y0);
+        let p10 = texel(x1, y0);
+        let p01 = texel(x0, y1);
+        let p11 = texel(x1, y1);
+        let mut rgba = [0.0f64; 4];
+        for c in 0..4 {
+            let top = p00[c] * (1.0 - fx) + p10[c] * fx;
+            let bot = p01[c] * (1.0 - fx) + p11[c] * fx;
+            rgba[c] = top * (1.0 - fy) + bot * fy;
+        }
+        rgba
+    };
+    let j0 = (dy - 0.5).ceil().max(0.0).max((ty0 - 0.5).ceil().max(0.0)) as i64;
+    let j1 = (dy + dh - 0.5)
+        .floor()
+        .min(chh as f64 - 1.0)
+        .min((ty1 - 0.5).floor())
+        .max(-1.0) as i64;
+    let i0 = (dx - 0.5).ceil().max(0.0).max((tx0 - 0.5).ceil().max(0.0)) as i64;
+    let i1 = (dx + dw - 0.5)
+        .floor()
+        .min(cw as f64 - 1.0)
+        .min((tx1 - 0.5).floor())
+        .max(-1.0) as i64;
+    if j1 < j0 || i1 < i0 {
+        return None;
+    }
+    for j in j0..=j1 {
+        if j < 0 || j >= chh as i64 {
+            continue;
+        }
+        for i in i0..=i1 {
+            if i < 0 || i >= cw as i64 {
+                continue;
+            }
+            let su = (((i as f64 + 0.5 - dx) * sw / dw) - 0.5).clamp(0.0, sw - 1.0);
+            let sv = (((j as f64 + 0.5 - dy) * sh / dh) - 0.5).clamp(0.0, sh - 1.0);
+            let rgba = sample(su, sv);
+            let o = (j as u32 * cw + i as u32) as usize * 4;
+            if o + 3 >= layer.len() {
+                continue;
+            }
+            layer[o] = rgba[0].round().clamp(0.0, 255.0) as u8;
+            layer[o + 1] = rgba[1].round().clamp(0.0, 255.0) as u8;
+            layer[o + 2] = rgba[2].round().clamp(0.0, 255.0) as u8;
+            layer[o + 3] = ((rgba[3] * alpha).clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
+        }
+    }
+    Some((dx, dy, dw, dh, tx0, ty0, tx1, ty1))
+}
+
+/// Dest rect of a video blit (mirrors `blit_fit`'s geometry): `None`
+/// when the rect is degenerate (draws nothing, exactly like `blit_fit`).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn blit_dest(
+    cw: u32,
+    chh: u32,
+    sw: u32,
+    sh: u32,
+    fit: Fit,
+    scale: f64,
+    ox: f64,
+    oy: f64,
+) -> Option<(f64, f64, f64, f64)> {
+    if scale <= 0.0 || !scale.is_finite() {
+        return None;
+    }
+    let (fx0, fy0, fw, fh) = fit_rect(cw, chh, sw, sh, fit);
+    let (ccx, ccy) = (fx0 + fw / 2.0, fy0 + fh / 2.0);
+    let (dw, dh) = (fw * scale, fh * scale);
+    if dw < 1.0 || dh < 1.0 {
+        return None;
+    }
+    Some((ccx - dw / 2.0 + ox, ccy - dh / 2.0 + oy, dw, dh))
+}
+
+/// Composite one premultiplied layer straight over the canvas
+/// (Sprint 7 motion, T005/T006): no resampling, so blurred-but-still
+/// elements land exactly. Only the grown element box is visited.
+pub(crate) fn composite_premult_direct(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    pm: &crate::blur::Premult,
+    bbox: (f64, f64, f64, f64),
+) {
+    let i0 = (bbox.0.floor() as i64).max(0);
+    let i1 = (bbox.2.ceil() as i64).min(cw as i64);
+    let j0 = (bbox.1.floor() as i64).max(0);
+    let j1 = (bbox.3.ceil() as i64).min(chh as i64);
+    for j in j0..j1 {
+        for i in i0..i1 {
+            let s = ((j as usize) * pm.w + i as usize) * 4;
+            if s + 3 >= pm.px.len() {
+                continue;
+            }
+            let a = pm.px[s + 3].clamp(0.0, 1.0);
+            if a <= 0.0 {
+                continue;
+            }
+            let o = (j as u32 * cw + i as u32) as usize * 3;
+            if o + 2 >= frame.len() {
+                continue;
+            }
+            if a >= 1.0 {
+                frame[o] = pm.px[s].round().clamp(0.0, 255.0) as u8;
+                frame[o + 1] = pm.px[s + 1].round().clamp(0.0, 255.0) as u8;
+                frame[o + 2] = pm.px[s + 2].round().clamp(0.0, 255.0) as u8;
+                continue;
+            }
+            let inv = 1.0 - a as f64;
+            frame[o] = (pm.px[s] as f64 + frame[o] as f64 * inv + 0.5) as u8;
+            frame[o + 1] = (pm.px[s + 1] as f64 + frame[o + 1] as f64 * inv + 0.5) as u8;
+            frame[o + 2] = (pm.px[s + 2] as f64 + frame[o + 2] as f64 * inv + 0.5) as u8;
+        }
+    }
+}
+
+/// Screen bounds of a card turned through 2D rotation (about `anchor`)
+/// after the 3D turn (Sprint 7 motion, CAP-005): the inverse walk
+/// visits exactly this box, grown by one texel of guard.
+fn warp_bounds(
+    card: (f64, f64, f64, f64),
+    anchor: (f64, f64),
+    rotation_deg: f64,
+    turn: Option<crate::turn::Turn>,
+) -> (f64, f64, f64, f64) {
+    let (sin, cos) = rotation_deg.to_radians().sin_cos();
+    let corners = [
+        (card.0, card.1),
+        (card.2, card.1),
+        (card.2, card.3),
+        (card.0, card.3),
+    ];
+    let mut bounds = (
+        f64::INFINITY,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::NEG_INFINITY,
+    );
+    for (ux, uy) in corners {
+        let (mut px, mut py) = match turn {
+            Some(t) => t.forward(ux, uy),
+            None => (ux, uy),
+        };
+        if rotation_deg != 0.0 && rotation_deg.is_finite() {
+            let dx = px - anchor.0;
+            let dy = py - anchor.1;
+            px = anchor.0 + dx * cos - dy * sin;
+            py = anchor.1 + dx * sin + dy * cos;
+        }
+        bounds.0 = bounds.0.min(px);
+        bounds.1 = bounds.1.min(py);
+        bounds.2 = bounds.2.max(px);
+        bounds.3 = bounds.3.max(py);
+    }
+    (
+        bounds.0 - 1.0,
+        bounds.1 - 1.0,
+        bounds.2 + 1.0,
+        bounds.3 + 1.0,
+    )
+}
+
+/// Composite one premultiplied layer through 2D rotation (about
+/// `anchor`, degrees clockwise) and an optional 3D turn (Sprint 7
+/// motion, CAP-005/006): every visited screen pixel pulls its source
+/// texel through the inverse chain, so turned, rotated, and blurred
+/// elements sample exactly one layer texel each. `bounds` is the
+/// [`warp_bounds`] box of the card.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn composite_premult_warp(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    pm: &crate::blur::Premult,
+    anchor: (f64, f64),
+    rotation_deg: f64,
+    turn: Option<crate::turn::Turn>,
+    bounds: (f64, f64, f64, f64),
+) {
+    let (sin, cos) = rotation_deg.to_radians().sin_cos();
+    let rotated = rotation_deg != 0.0 && rotation_deg.is_finite();
+    let i0 = (bounds.0.floor() as i64).max(0);
+    let i1 = (bounds.2.ceil() as i64).min(cw as i64);
+    let j0 = (bounds.1.floor() as i64).max(0);
+    let j1 = (bounds.3.ceil() as i64).min(chh as i64);
+    for j in j0..=j1 {
+        if j < 0 || j >= chh as i64 {
+            continue;
+        }
+        for i in i0..=i1 {
+            if i < 0 || i >= cw as i64 {
+                continue;
+            }
+            let qx = i as f64 + 0.5;
+            let qy = j as f64 + 0.5;
+            // Into the unrotated card frame through the inverse 2D
+            // rotation about the anchor.
+            let (mut rx, mut ry) = if rotated {
+                let dx = qx - anchor.0;
+                let dy = qy - anchor.1;
+                (
+                    anchor.0 + dx * cos + dy * sin,
+                    anchor.1 - dx * sin + dy * cos,
+                )
+            } else {
+                (qx, qy)
+            };
+            // Into layer space through the inverse 3D turn.
+            if let Some(t) = turn {
+                let Some((ux, uy)) = t.inverse(rx, ry) else {
+                    continue;
+                };
+                rx = ux;
+                ry = uy;
+            }
+            let rgba = pm.sample(rx - 0.5, ry - 0.5);
+            let a = rgba[3].clamp(0.0, 1.0);
+            if a <= 0.0 {
+                continue;
+            }
+            let o = (j as u32 * cw + i as u32) as usize * 3;
+            if o + 2 >= frame.len() {
+                continue;
+            }
+            if a >= 1.0 {
+                frame[o] = rgba[0].round().clamp(0.0, 255.0) as u8;
+                frame[o + 1] = rgba[1].round().clamp(0.0, 255.0) as u8;
+                frame[o + 2] = rgba[2].round().clamp(0.0, 255.0) as u8;
+                continue;
+            }
+            let inv = 1.0 - a;
+            frame[o] = (rgba[0] + frame[o] as f64 * inv + 0.5) as u8;
+            frame[o + 1] = (rgba[1] + frame[o + 1] as f64 * inv + 0.5) as u8;
+            frame[o + 2] = (rgba[2] + frame[o + 2] as f64 * inv + 0.5) as u8;
+        }
+    }
+}
+
+/// 3D turn of one resolved item about its card (Sprint 7 motion,
+/// CAP-005): the evaluated angles with the clip's static
+/// perspective/origin, or `None` for the identity (the old fast path
+/// then draws byte-identically).
+pub(crate) fn item_turn(
+    rx: f64,
+    ry: f64,
+    turn: &notation::model::Turn3D,
+    card: (f64, f64, f64, f64),
+) -> Option<Turn> {
+    let (fx, fy) = turn.origin_fractions();
+    Turn::new(
+        rx,
+        ry,
+        turn.perspective,
+        card.0 + fx * (card.2 - card.0),
+        card.1 + fy * (card.3 - card.1),
+    )
+}
+
+/// Identity probe for the 3D turn (origin-independent): `None` means no
+/// turn can apply, whatever the card; `Some` means the card decides.
+pub(crate) fn turn_probe(rx: f64, ry: f64, perspective: Option<f64>) -> Option<Turn> {
+    Turn::new(rx, ry, perspective, 0.0, 0.0)
+}
+
+/// Grow a card box by `margin` pixels on every side.
+fn grown(card: (f64, f64, f64, f64), margin: f64) -> (f64, f64, f64, f64) {
+    (
+        card.0 - margin,
+        card.1 - margin,
+        card.2 + margin,
+        card.3 + margin,
+    )
+}
+
+/// Draw one box through blur and 3D turn (Sprint 7 motion, T005/T006):
+/// layer, premultiply, blur, then composite directly (still) or through
+/// the rotation/turn warp. Only runs when blur or a turn applies.
+pub(crate) fn draw_box_advanced(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    b: &crate::frame::ResolvedBox,
+) {
+    if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
+        return;
+    }
+    if b.scale <= 0.0 || !b.scale.is_finite() {
+        return;
+    }
+    let mut layer = vec![0u8; cw as usize * chh as usize * 4];
+    draw_box_layer(&mut layer, cw, chh, b);
+    let mut pm = Premult::from_layer(&layer, cw as usize, chh as usize);
+    if blur_on(b.blur) {
+        pm.blur(b.blur);
+    }
+    let s = b.scale;
+    let card = (b.x, b.y, b.x + b.width * s, b.y + b.height * s);
+    let anchor = ((card.0 + card.2) / 2.0, (card.1 + card.3) / 2.0);
+    let turn = item_turn(b.rotate_x, b.rotate_y, &b.turn, card);
+    let rotated = b.rotation != 0.0 && b.rotation.is_finite();
+    match (turn, rotated) {
+        (None, false) => {
+            composite_premult_direct(frame, cw, chh, &pm, grown(card, blur_margin(b.blur)))
+        }
+        _ => composite_premult_warp(
+            frame,
+            cw,
+            chh,
+            &pm,
+            anchor,
+            b.rotation,
+            turn,
+            warp_bounds(card, anchor, b.rotation, turn),
+        ),
+    }
+}
+
+/// Draw one image through blur and 3D turn (Sprint 7 motion, T005/T006):
+/// layer, premultiply, blur, then composite directly (still) or through
+/// the rotation/turn warp. Only runs when blur or a turn applies. The
+/// 2D rotation anchors at the placed picture center, exactly like
+/// `draw_image`; the turn origin is a fraction of the target rect.
+pub(crate) fn draw_image_advanced(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    im: &crate::frame::ResolvedImage,
+    decoded: &DecodedImage,
+) {
+    let mut layer = vec![0u8; cw as usize * chh as usize * 4];
+    let Some((dx, dy, dw, dh, tx0, ty0, tx1, ty1)) =
+        draw_image_layer(&mut layer, cw, chh, im, decoded)
+    else {
+        return;
+    };
+    let mut pm = Premult::from_layer(&layer, cw as usize, chh as usize);
+    if blur_on(im.blur) {
+        pm.blur(im.blur);
+    }
+    let card = (tx0, ty0, tx1, ty1);
+    let anchor = (dx + dw / 2.0, dy + dh / 2.0);
+    let turn = item_turn(im.rotate_x, im.rotate_y, &im.turn, card);
+    let rotated = im.rotation != 0.0 && im.rotation.is_finite();
+    match (turn, rotated) {
+        (None, false) => {
+            composite_premult_direct(frame, cw, chh, &pm, grown(card, blur_margin(im.blur)))
+        }
+        _ => composite_premult_warp(
+            frame,
+            cw,
+            chh,
+            &pm,
+            anchor,
+            im.rotation,
+            turn,
+            warp_bounds(card, anchor, im.rotation, turn),
+        ),
+    }
+}
+
+/// Draw one video through blur and 3D turn (Sprint 7 motion, T005/T006):
+/// the shared blitter paints the unrotated dest rect onto a black
+/// scratch (premultiplied by construction), a binary dest mask carries
+/// the element alpha, then blur and composite run directly (still) or
+/// through the rotation/turn warp. Only runs when blur or a turn
+/// applies. The 2D rotation anchors at the dest center, exactly like
+/// `blit_fit`.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn draw_video_advanced(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    v: &crate::frame::ResolvedVideo,
+    pic: &[u8],
+    sw: u32,
+    sh: u32,
+    turn: Option<Turn>,
+) {
+    if v.opacity <= 0.0 {
+        return;
+    }
+    let Some((dx, dy, dw, dh)) = blit_dest(cw, chh, sw, sh, v.fit, v.scale, v.x, v.y) else {
+        return;
+    };
+    let alpha = v.opacity.clamp(0.0, 1.0);
+    let mut scratch = vec![0u8; cw as usize * chh as usize * 3];
+    blit_fit(
+        &mut scratch,
+        cw,
+        chh,
+        pic,
+        sw,
+        sh,
+        v.fit,
+        v.x,
+        v.y,
+        v.scale,
+        0.0,
+        v.opacity,
+    );
+    let margin = blur_margin(v.blur);
+    let (w, h) = (cw as usize, chh as usize);
+    let mut pm = Premult {
+        w,
+        h,
+        px: vec![0.0f32; w * h * 4],
+    };
+    let i0 = ((dx - margin).floor() as i64).max(0);
+    let i1 = ((dx + dw + margin).ceil() as i64).min(cw as i64);
+    let j0 = ((dy - margin).floor() as i64).max(0);
+    let j1 = ((dy + dh + margin).ceil() as i64).min(chh as i64);
+    for j in j0..j1 {
+        for i in i0..i1 {
+            let cx = i as f64 + 0.5;
+            let cy = j as f64 + 0.5;
+            if cx < dx || cx > dx + dw || cy < dy || cy > dy + dh {
+                continue;
+            }
+            let s3 = ((j as u32 * cw + i as u32) as usize) * 3;
+            let s4 = ((j as usize) * w + i as usize) * 4;
+            if s3 + 2 >= scratch.len() || s4 + 3 >= pm.px.len() {
+                continue;
+            }
+            pm.px[s4] = scratch[s3] as f32;
+            pm.px[s4 + 1] = scratch[s3 + 1] as f32;
+            pm.px[s4 + 2] = scratch[s3 + 2] as f32;
+            pm.px[s4 + 3] = alpha as f32;
+        }
+    }
+    if blur_on(v.blur) {
+        pm.blur(v.blur);
+    }
+    let card = (dx, dy, dx + dw, dy + dh);
+    let anchor = ((card.0 + card.2) / 2.0, (card.1 + card.3) / 2.0);
+    let rotated = v.rotation != 0.0 && v.rotation.is_finite();
+    match (turn, rotated) {
+        (None, false) => composite_premult_direct(frame, cw, chh, &pm, grown(card, margin)),
+        _ => composite_premult_warp(
+            frame,
+            cw,
+            chh,
+            &pm,
+            anchor,
+            v.rotation,
+            turn,
+            warp_bounds(card, anchor, v.rotation, turn),
+        ),
+    }
+}
+
+/// Draw one shaped text through blur and 3D turn (Sprint 7 motion,
+/// T005/T006): layer, premultiply, blur, then composite directly
+/// (still) or through the rotation/turn warp. Only runs when blur or a
+/// turn applies. The 2D rotation anchors at `(x, y)`, exactly like the
+/// layer path of `draw_text_block`; the turn origin is a fraction of
+/// the laid-out card.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn draw_text_advanced(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    raster: &mut RasterCache,
+    block: &layout::Block,
+    tc: &crate::frame::ResolvedText,
+    turn: Option<Turn>,
+    card: (f64, f64, f64, f64),
+) -> Result<(), String> {
+    if tc.scale <= 0.0 || !tc.scale.is_finite() || tc.opacity <= 0.0 {
+        return Ok(());
+    }
+    let mut layer = vec![0u8; cw as usize * chh as usize * 4];
+    draw_block_layer(
+        &mut layer,
+        cw,
+        chh,
+        raster,
+        block,
+        tc.x,
+        tc.y,
+        tc.scale,
+        tc.opacity.clamp(0.0, 1.0),
+    )?;
+    let mut pm = Premult::from_layer(&layer, cw as usize, chh as usize);
+    if blur_on(tc.blur) {
+        pm.blur(tc.blur);
+    }
+    let anchor = (tc.x, tc.y);
+    let rotated = tc.rotation != 0.0 && tc.rotation.is_finite();
+    match (turn, rotated) {
+        (None, false) => {
+            composite_premult_direct(frame, cw, chh, &pm, grown(card, blur_margin(tc.blur)))
+        }
+        _ => composite_premult_warp(
+            frame,
+            cw,
+            chh,
+            &pm,
+            anchor,
+            tc.rotation,
+            turn,
+            warp_bounds(card, anchor, tc.rotation, turn),
+        ),
+    }
+    Ok(())
+}
+
+/// Composite one pre-drawn bitmap-fallback layer through blur and 3D
+/// turn (Sprint 7 motion, T005/T006): premultiply, blur, then
+/// composite directly (still) or through the warp. Shared by the CPU
+/// and GPU picture paths; the caller draws the layer and measures the
+/// ink-box card. The 2D rotation anchors at `(x, y)`, exactly like
+/// `draw_bitmap_text_item`.
+pub(crate) fn draw_bitmap_advanced(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    layer: &[u8],
+    tc: &crate::frame::ResolvedText,
+    turn: Option<Turn>,
+    card: (f64, f64, f64, f64),
+) {
+    let mut pm = Premult::from_layer(layer, cw as usize, chh as usize);
+    if blur_on(tc.blur) {
+        pm.blur(tc.blur);
+    }
+    let anchor = (tc.x, tc.y);
+    let rotated = tc.rotation != 0.0 && tc.rotation.is_finite();
+    match (turn, rotated) {
+        (None, false) => {
+            composite_premult_direct(frame, cw, chh, &pm, grown(card, blur_margin(tc.blur)))
+        }
+        _ => composite_premult_warp(
+            frame,
+            cw,
+            chh,
+            &pm,
+            anchor,
+            tc.rotation,
+            turn,
+            warp_bounds(card, anchor, tc.rotation, turn),
+        ),
+    }
+}
+
 pub(crate) fn draw_description(
     desc: &FrameDescription,
     raster: &mut RasterCache,
     layouts: &[Option<layout::Block>],
+    dyn_layouts: &DynLayouts,
     bitmap_fallback: bool,
     videos: &[ProbedVideo],
     ranges: &[DecodedRange],
@@ -3328,35 +4308,109 @@ pub(crate) fn draw_description(
                 })?;
                 let fs = range.width as usize * range.height as usize * 3;
                 let pic = &range.frames[j * fs..(j + 1) * fs];
-                blit_fit(
-                    frame,
-                    cw,
-                    chh,
-                    pic,
-                    range.width,
-                    range.height,
-                    v.fit,
-                    v.x,
-                    v.y,
-                    v.scale,
-                    v.rotation,
-                    v.opacity,
-                );
-            }
-            FrameItem::Text(tc) => match layouts.get(tc.doc).and_then(|laid| laid.as_ref()) {
-                Some(block) => draw_text_block(frame, cw, chh, raster, block, tc)?,
-                None if bitmap_fallback => {
-                    draw_bitmap_text_item(frame, cw, chh, tc);
-                }
-                None => {
-                    return Err(
-                        "render failed: text layout is missing and no bitmap fallback applies"
-                            .to_string(),
+                // Sprint 7 motion (T005/T006): blurred or turned video
+                // draws through the layer path; everything else blits
+                // exactly as before.
+                let card = blit_dest(cw, chh, range.width, range.height, v.fit, v.scale, v.x, v.y)
+                    .map(|(dx, dy, dw, dh)| (dx, dy, dx + dw, dy + dh));
+                let turn = card.and_then(|c| item_turn(v.rotate_x, v.rotate_y, &v.turn, c));
+                if blur_on(v.blur) || turn.is_some() {
+                    draw_video_advanced(frame, cw, chh, v, pic, range.width, range.height, turn);
+                } else {
+                    blit_fit(
+                        frame,
+                        cw,
+                        chh,
+                        pic,
+                        range.width,
+                        range.height,
+                        v.fit,
+                        v.x,
+                        v.y,
+                        v.scale,
+                        v.rotation,
+                        v.opacity,
                     );
                 }
-            },
+            }
+            FrameItem::Text(tc) => {
+                if tc.value.is_empty() {
+                    // A typewriter reveal at progress 0 shows no pieces:
+                    // nothing to draw at this instant.
+                    continue;
+                }
+                // Frame-varying text (typewriter, count, animated
+                // metrics) draws its pre-shaped string; still text
+                // draws its static layout.
+                let block = dyn_layouts
+                    .get(tc.doc, &tc.value, tc.size, tc.letter_spacing)
+                    .or_else(|| layouts.get(tc.doc).and_then(|laid| laid.as_ref()));
+                match block {
+                    Some(block) => {
+                        // Sprint 7 motion (T005/T006): blurred or turned
+                        // text draws through the layer path; everything
+                        // else draws exactly as before.
+                        let card = (
+                            tc.x,
+                            tc.y,
+                            tc.x + block.width as f64 * tc.scale,
+                            tc.y + block.height as f64 * tc.scale,
+                        );
+                        let turn = item_turn(tc.rotate_x, tc.rotate_y, &tc.turn, card);
+                        if blur_on(tc.blur) || turn.is_some() {
+                            draw_text_advanced(frame, cw, chh, raster, block, tc, turn, card)?;
+                        } else {
+                            draw_text_block(frame, cw, chh, raster, block, tc)?;
+                        }
+                    }
+                    None if bitmap_fallback => {
+                        // The bitmap fallback has no laid-out card: the
+                        // probe runs origin-free, and only an active
+                        // blur or turn pays for the ink-box card.
+                        let probe = turn_probe(tc.rotate_x, tc.rotate_y, tc.turn.perspective);
+                        if !(blur_on(tc.blur) || probe.is_some()) {
+                            draw_bitmap_text_item(frame, cw, chh, tc);
+                        } else if tc.scale <= 0.0 || !tc.scale.is_finite() || tc.opacity <= 0.0 {
+                            // Nothing draws, exactly like the legacy path.
+                        } else {
+                            let mut layer = vec![0u8; cw as usize * chh as usize * 4];
+                            draw_bitmap_text_layer(
+                                &mut layer,
+                                cw,
+                                chh,
+                                tc,
+                                tc.scale,
+                                tc.opacity.clamp(0.0, 1.0),
+                            );
+                            match layer_ink_bbox(&layer, cw, chh) {
+                                None => {}
+                                Some((x0, y0, x1, y1)) => {
+                                    let card =
+                                        (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
+                                    let turn = item_turn(tc.rotate_x, tc.rotate_y, &tc.turn, card);
+                                    draw_bitmap_advanced(frame, cw, chh, &layer, tc, turn, card);
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        return Err(
+                            "render failed: text layout is missing and no bitmap fallback applies"
+                                .to_string(),
+                        );
+                    }
+                }
+            }
             FrameItem::Box(b) => {
-                draw_box(frame, cw, chh, b);
+                // Sprint 7 motion (T005/T006): blurred or turned boxes
+                // draw through the layer path; everything else draws
+                // exactly as before.
+                let probe = turn_probe(b.rotate_x, b.rotate_y, b.turn.perspective);
+                if blur_on(b.blur) || probe.is_some() {
+                    draw_box_advanced(frame, cw, chh, b);
+                } else {
+                    draw_box(frame, cw, chh, b);
+                }
             }
             FrameItem::Image(im) => {
                 let decoded = images
@@ -3368,7 +4422,15 @@ pub(crate) fn draw_description(
                             im.path
                         )
                     })?;
-                draw_image(frame, cw, chh, im, decoded);
+                // Sprint 7 motion (T005/T006): blurred or turned images
+                // draw through the layer path; everything else draws
+                // exactly as before.
+                let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
+                if blur_on(im.blur) || probe.is_some() {
+                    draw_image_advanced(frame, cw, chh, im, decoded);
+                } else {
+                    draw_image(frame, cw, chh, im, decoded);
+                }
             }
         }
     }
@@ -4310,7 +5372,7 @@ pub(crate) fn draw_bitmap_text_item(
 }
 
 /// Bitmap text into an RGBA `layer`, carrying `global_alpha`.
-fn draw_bitmap_text_layer(
+pub(crate) fn draw_bitmap_text_layer(
     layer: &mut [u8],
     cw: u32,
     chh: u32,
@@ -4434,7 +5496,7 @@ fn composite_layer(
 /// alpha, or `None` when the layer is fully transparent. One linear scan
 /// of the alpha channel — far cheaper than compositing the whole canvas
 /// for a small ink area.
-fn layer_ink_bbox(layer: &[u8], cw: u32, chh: u32) -> Option<(i64, i64, i64, i64)> {
+pub(crate) fn layer_ink_bbox(layer: &[u8], cw: u32, chh: u32) -> Option<(i64, i64, i64, i64)> {
     if cw == 0 || chh == 0 {
         return None;
     }
@@ -4741,6 +5803,10 @@ mod tests {
             opacity: 1.0,
             scale: 1.0,
             rotation: 0.0,
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            blur: 0.0,
+            turn: notation::model::Turn3D::flat(),
         }
     }
 
@@ -4916,6 +5982,10 @@ mod tests {
             scale: 1.0,
             rotation: 0.0,
             opacity: 1.0,
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            blur: 0.0,
+            turn: notation::model::Turn3D::flat(),
         }
     }
 
@@ -5007,6 +6077,10 @@ mod tests {
             opacity: 1.0,
             scale: 1.0,
             rotation: 0.0,
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            blur: 0.0,
+            turn: notation::model::Turn3D::flat(),
         }
     }
 
@@ -5190,6 +6264,10 @@ mod tests {
             scale,
             rotation,
             opacity,
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            blur: 0.0,
+            turn: notation::model::Turn3D::flat(),
         }
     }
 
@@ -5245,6 +6323,98 @@ mod tests {
             peak(&half) > 20 && peak(&half) < peak(&full),
             "faded ink blends"
         );
+    }
+
+    #[test]
+    fn blurred_bitmap_text_draws_and_rerenders_identically() {
+        // T006: blurred bitmap text draws non-empty through the
+        // advanced path and re-renders byte-identically (no system
+        // fonts needed: the fallback face shapes the ink).
+        let mut tc = test_text("HI", 1.0, 0.0, 1.0);
+        tc.blur = 1.5;
+        let mut layer = vec![0u8; 64 * 32 * 4];
+        draw_bitmap_text_layer(&mut layer, 64, 32, &tc, tc.scale, 1.0);
+        let (x0, y0, x1, y1) = layer_ink_bbox(&layer, 64, 32).expect("fallback ink draws");
+        let card = (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
+        let mut frame = vec![0u8; 64 * 32 * 3];
+        draw_bitmap_advanced(&mut frame, 64, 32, &layer, &tc, None, card);
+        let (_, _, _, n) = ink_extent(&frame, 64);
+        assert!(n > 10, "blurred ink draws, got {n}");
+        let mut again = vec![0u8; 64 * 32 * 3];
+        draw_bitmap_advanced(&mut again, 64, 32, &layer, &tc, None, card);
+        assert_eq!(frame, again, "blurred re-render is byte-identical");
+        let mut sharp = vec![0u8; 64 * 32 * 3];
+        draw_bitmap_text_item(&mut sharp, 64, 32, &test_text("HI", 1.0, 0.0, 1.0));
+        assert_ne!(frame, sharp, "blur changes the ink");
+    }
+
+    #[test]
+    fn dyn_layout_triples_key_size_and_spacing() {
+        // T006: dynamic layouts key the full (doc, string, size,
+        // spacing) triple, so animated metrics never alias the static
+        // block or each other.
+        let mut dyn_ = DynLayouts::default();
+        let block = || layout::Block {
+            width: 1.0,
+            height: 2.0,
+            runs: Vec::new(),
+            pictures: Vec::new(),
+            lines: Vec::new(),
+        };
+        assert!(dyn_.get(0, "Hi", 16.0, None).is_none());
+        dyn_.insert(0, "Hi".to_string(), 16.0, None, block());
+        dyn_.insert(0, "Hi".to_string(), 32.0, None, block());
+        dyn_.insert(0, "Hi".to_string(), 16.0, Some(2.0), block());
+        assert!(dyn_.get(0, "Hi", 16.0, None).is_some());
+        assert!(dyn_.get(0, "Hi", 32.0, None).is_some());
+        assert!(dyn_.get(0, "Hi", 16.0, Some(2.0)).is_some());
+        assert!(dyn_.get(0, "Hi", 24.0, None).is_none(), "other sizes miss");
+        assert!(
+            dyn_.get(0, "Hi", 16.0, Some(1.0)).is_none(),
+            "other spacing misses"
+        );
+        assert!(
+            dyn_.get(0, "Bye", 16.0, None).is_none(),
+            "other strings miss"
+        );
+        assert!(dyn_.contains(0, "Hi", 32.0, None));
+        assert!(!dyn_.contains(0, "Hi", 33.0, None));
+    }
+
+    #[test]
+    fn turned_blurred_box_matches_gpu_within_tolerance() {
+        // T005/T006: a turned, blurred box draws on both picture paths
+        // within a few levels (the GPU quantizes motion values; blur
+        // and the turn ride exact).
+        use notation::model::Clip;
+        let mut clip = red_box();
+        if let Clip::Box(bc) = &mut clip {
+            bc.x = 4.1;
+            bc.turn.rotation_x = 30.0;
+            bc.filter_blur = 1.0;
+        }
+        let prep = box_prep(vec![clip]);
+        let cpu = draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[0], 1).unwrap();
+        let gpu = draw_batch_parallel_with_workers(&prep, Backend::Gpu, &[0], 1).unwrap();
+        let (a, b) = (&cpu[0].1, &gpu[0].1);
+        assert_eq!(a.len(), b.len());
+        let max = a
+            .iter()
+            .zip(b.iter())
+            .map(|(x, y)| (*x as i16 - *y as i16).abs())
+            .max()
+            .unwrap_or(0);
+        assert!(max <= 8, "cpu/gpu drift too far: {max}");
+        // Identical motion inputs draw identical bytes on both paths.
+        let mut clip = red_box();
+        if let Clip::Box(bc) = &mut clip {
+            bc.turn.rotation_y = -20.0;
+            bc.turn.perspective = Some(300.0);
+        }
+        let prep = box_prep(vec![clip]);
+        let cpu = draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[3], 1).unwrap();
+        let gpu = draw_batch_parallel_with_workers(&prep, Backend::Gpu, &[3], 1).unwrap();
+        assert_eq!(cpu[0].1, gpu[0].1, "exact inputs draw identical bytes");
     }
 
     #[test]
@@ -5416,6 +6586,8 @@ mod tests {
                     order: red_order,
                     line: 1,
                     column: 1,
+                    turn: notation::model::Turn3D::flat(),
+                    filter_blur: 0.0,
                 },
                 BoxClip {
                     id: None,
@@ -5437,6 +6609,8 @@ mod tests {
                     order: blue_order,
                     line: 1,
                     column: 1,
+                    turn: notation::model::Turn3D::flat(),
+                    filter_blur: 0.0,
                 },
             ];
             if !order_first {
@@ -5456,6 +6630,10 @@ mod tests {
                 fonts: Vec::new(),
                 tweens: Vec::new(),
                 sets: Vec::new(),
+                keys: Vec::new(),
+                marks: Vec::new(),
+                inputs: Vec::new(),
+                replicates: Vec::new(),
             }
         }
         fn draw(comp: &Composition) -> Vec<u8> {
@@ -5463,7 +6641,18 @@ mod tests {
             let desc: FrameDescription = describe(comp, &motions, 0);
             let mut raster = std::collections::HashMap::new();
             let mut frame = vec![0u8; 32 * 32 * 3];
-            draw_description(&desc, &mut raster, &[], false, &[], &[], &[], &mut frame).unwrap();
+            draw_description(
+                &desc,
+                &mut raster,
+                &[],
+                &DynLayouts::default(),
+                false,
+                &[],
+                &[],
+                &[],
+                &mut frame,
+            )
+            .unwrap();
             frame
         }
         // Distinct written orders: document swap changes nothing; the
@@ -5560,6 +6749,10 @@ mod tests {
             fonts: Vec::new(),
             tweens: Vec::new(),
             sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let standard = RenderOptions::default().encoder();
@@ -5679,6 +6872,10 @@ mod tests {
             fonts: Vec::new(),
             tweens: Vec::new(),
             sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let draft = RenderOptions {
@@ -5797,6 +6994,10 @@ mod tests {
             fonts: Vec::new(),
             tweens: Vec::new(),
             sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         };
         let motions = plan_motions(&comp, 30);
         let frames = comp.fps.frame_count(comp.duration) as usize;
@@ -5808,6 +7009,7 @@ mod tests {
             fonts: layout::Fonts::new(),
             project_family: None,
             layouts,
+            dyn_layouts: DynLayouts::default(),
             bitmap_fallback: true,
             videos: Vec::new(),
             ranges: Vec::new(),
@@ -5842,7 +7044,260 @@ mod tests {
             order: 1,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })
+    }
+
+    // --- Sprint 7 motion (T005/T006): 3D turns and visual blur ---
+
+    fn sharp_box(x: f64, y: f64, w: f64, h: f64) -> ResolvedBox {
+        ResolvedBox {
+            doc: 0,
+            order: 0,
+            x,
+            y,
+            width: w,
+            height: h,
+            fill: Rgb { r: 255, g: 0, b: 0 },
+            radius: 0.0,
+            border_width: 0.0,
+            border_color: Rgb { r: 0, g: 0, b: 0 },
+            opacity: 1.0,
+            scale: 1.0,
+            rotation: 0.0,
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            blur: 0.0,
+            turn: notation::model::Turn3D::flat(),
+        }
+    }
+
+    fn turned_box(x: f64, y: f64, w: f64, h: f64, rx: f64, ry: f64) -> ResolvedBox {
+        ResolvedBox {
+            rotate_x: rx,
+            rotate_y: ry,
+            ..sharp_box(x, y, w, h)
+        }
+    }
+
+    fn red_height_at(frame: &[u8], cw: u32, chh: u32, col: u32) -> u32 {
+        (0..chh)
+            .filter(|&j| pixel(frame, cw, col, j) != (0, 0, 0))
+            .count() as u32
+    }
+
+    #[test]
+    fn advanced_identity_matches_legacy_box_bytes() {
+        // T005/T006: with no blur and an identity turn the layer path
+        // reproduces the legacy blit byte-identically (sharp integer
+        // box: every coverage is exactly 0 or 1).
+        let b = sharp_box(4.0, 4.0, 20.0, 12.0);
+        let mut legacy = vec![0u8; 64 * 48 * 3];
+        draw_box(&mut legacy, 64, 48, &b);
+        let mut advanced = vec![0u8; 64 * 48 * 3];
+        draw_box_advanced(&mut advanced, 64, 48, &b);
+        assert_eq!(advanced, legacy, "identity layer path matches the blit");
+        // A rounded, bordered, translucent box matches within one
+        // step per channel (the layer stores one rounded alpha byte).
+        let mut soft = sharp_box(4.5, 5.5, 20.0, 12.0);
+        soft.radius = 3.0;
+        soft.opacity = 0.5;
+        soft.border_width = 2.0;
+        soft.border_color = Rgb { r: 0, g: 0, b: 255 };
+        let mut legacy = vec![0u8; 64 * 48 * 3];
+        draw_box(&mut legacy, 64, 48, &soft);
+        let mut advanced = vec![0u8; 64 * 48 * 3];
+        draw_box_advanced(&mut advanced, 64, 48, &soft);
+        assert_eq!(legacy.len(), advanced.len());
+        for (i, (a, l)) in advanced.iter().zip(legacy.iter()).enumerate() {
+            assert!(
+                (*a as i16 - *l as i16).abs() <= 1,
+                "byte {i} drifts more than one step: {a} vs {l}"
+            );
+        }
+    }
+
+    #[test]
+    fn flat_turn_foreshortens_through_the_origin() {
+        // T005: rx=60 flat halves the height about the center line
+        // (rows 20..39 for a 40-tall box at y=10); rx=90 edge-on
+        // draws nothing.
+        let b = turned_box(10.0, 10.0, 40.0, 40.0, 60.0, 0.0);
+        let mut frame = vec![0u8; 64 * 64 * 3];
+        draw_box_advanced(&mut frame, 64, 64, &b);
+        for j in 20..40 {
+            assert_eq!(pixel(&frame, 64, 30, j), (255, 0, 0), "row {j} fills");
+        }
+        assert_eq!(pixel(&frame, 64, 30, 19), (0, 0, 0), "above stays empty");
+        assert_eq!(pixel(&frame, 64, 30, 40), (0, 0, 0), "below stays empty");
+        assert_eq!(pixel(&frame, 64, 10, 30), (255, 0, 0), "full width keeps");
+        assert_eq!(pixel(&frame, 64, 49, 30), (255, 0, 0), "full width keeps");
+        let edge = turned_box(10.0, 10.0, 40.0, 40.0, 90.0, 0.0);
+        let mut frame = vec![0u8; 64 * 64 * 3];
+        draw_box_advanced(&mut frame, 64, 64, &edge);
+        assert!(frame.iter().all(|&v| v == 0), "edge-on cards draw nothing");
+    }
+
+    #[test]
+    fn origin_top_collapses_to_the_top_line() {
+        // T005: the same rx=60 turn about the top edge pins the top
+        // (rows 10..29) instead of the center (rows 20..39).
+        use notation::model::{Placement, Turn3D};
+        let mut top = turned_box(10.0, 10.0, 40.0, 40.0, 60.0, 0.0);
+        top.turn = Turn3D {
+            origin: Placement {
+                x: notation::model::PlaceH::Left,
+                y: notation::model::PlaceV::Top,
+            },
+            ..Turn3D::flat()
+        };
+        let mut frame = vec![0u8; 64 * 64 * 3];
+        draw_box_advanced(&mut frame, 64, 64, &top);
+        assert_eq!(pixel(&frame, 64, 30, 10), (255, 0, 0), "top pins");
+        assert_eq!(
+            pixel(&frame, 64, 30, 29),
+            (255, 0, 0),
+            "bottom halves to 29"
+        );
+        assert_eq!(
+            pixel(&frame, 64, 30, 30),
+            (0, 0, 0),
+            "past the half stays empty"
+        );
+        assert_eq!(
+            pixel(&frame, 64, 30, 35),
+            (0, 0, 0),
+            "center rows stay empty"
+        );
+    }
+
+    #[test]
+    fn perspective_turn_makes_a_trapezoid() {
+        // T005: ry=45 flat foreshortens symmetrically (equal edge
+        // heights); with p=200 the near (left) edge stands taller.
+        let flat = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
+        let mut frame = vec![0u8; 160 * 120 * 3];
+        draw_box_advanced(&mut frame, 160, 120, &flat);
+        // Flat edges: find the first/last red columns, compare heights.
+        let cols: Vec<u32> = (0..160)
+            .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
+            .collect();
+        let (left, right) = (*cols.first().unwrap(), *cols.last().unwrap());
+        let (lh, rh) = (
+            red_height_at(&frame, 160, 120, left),
+            red_height_at(&frame, 160, 120, right),
+        );
+        assert!(
+            (lh as i32 - rh as i32).abs() <= 1,
+            "flat edges match: {lh} vs {rh}"
+        );
+        // Perspective: the same card with p=200.
+        let mut persp = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
+        persp.turn.perspective = Some(200.0);
+        let mut frame = vec![0u8; 160 * 120 * 3];
+        draw_box_advanced(&mut frame, 160, 120, &persp);
+        let cols: Vec<u32> = (0..160)
+            .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
+            .collect();
+        let (left, right) = (*cols.first().unwrap(), *cols.last().unwrap());
+        let (lh, rh) = (
+            red_height_at(&frame, 160, 120, left),
+            red_height_at(&frame, 160, 120, right),
+        );
+        assert!(
+            lh > rh + 5,
+            "near edge {lh} stands taller than far edge {rh}"
+        );
+        // Both renders are deterministic.
+        let mut again = vec![0u8; 160 * 120 * 3];
+        draw_box_advanced(&mut again, 160, 120, &persp);
+        assert_eq!(frame, again, "turned re-render is byte-identical");
+    }
+
+    #[test]
+    fn pixel_box_blur_matches_the_gaussian() {
+        // T006: a 1x1 red box blurred with σ=1 follows the hand
+        // Gaussian independently: every drawn byte equals the rounded
+        // separable kernel weight times 255 (tail bytes round to zero,
+        // so the byte mass is the rounded mass, not 255).
+        let mut b = sharp_box(10.0, 10.0, 1.0, 1.0);
+        b.blur = 1.0;
+        let mut frame = vec![0u8; 32 * 32 * 3];
+        draw_box_advanced(&mut frame, 32, 32, &b);
+        // Hand kernel, computed here from the Gaussian alone.
+        let raw = [-3.0f64, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0].map(|x| (-x * x / 2.0).exp());
+        let total: f64 = raw.iter().sum();
+        let k: Vec<f64> = raw.iter().map(|v| v / total).collect();
+        let expect = |di: i64, dj: i64| -> u8 {
+            if di.abs() > 3 || dj.abs() > 3 {
+                return 0;
+            }
+            (255.0 * k[(di + 3) as usize] * k[(dj + 3) as usize]).round() as u8
+        };
+        let (r, g, bl) = pixel(&frame, 32, 10, 10);
+        assert_eq!((g, bl), (0, 0), "stays red");
+        assert_eq!(r, expect(0, 0), "peak matches k0²·255");
+        assert_eq!(expect(0, 0), 41, "hand peak is 41");
+        for dj in -3..=3 {
+            for di in -3..=3 {
+                let (pr, pg, pb) = pixel(&frame, 32, (10 + di) as u32, (10 + dj) as u32);
+                assert_eq!((pg, pb), (0, 0), "stays red at ({di},{dj})");
+                assert_eq!(
+                    pr,
+                    expect(di, dj),
+                    "tap ({di},{dj}) matches the hand kernel"
+                );
+            }
+        }
+        assert_eq!(pixel(&frame, 32, 0, 0), (0, 0, 0), "far corners stay empty");
+        let mass: u64 = frame.iter().step_by(3).map(|&v| v as u64).sum();
+        let hand: u64 = (-3..=3)
+            .flat_map(|dj| (-3..=3).map(move |di| expect(di, dj) as u64))
+            .sum();
+        assert_eq!(mass, hand, "byte mass matches the rounded kernel");
+        // Deterministic re-render.
+        let mut again = vec![0u8; 32 * 32 * 3];
+        draw_box_advanced(&mut again, 32, 32, &b);
+        assert_eq!(frame, again, "blurred re-render is byte-identical");
+    }
+
+    #[test]
+    fn static_filter_blur_softens_box_edges() {
+        // T006: filter="blur(2.5)" (static own blur) softens the edge
+        // while the interior stays solid, and differs from the sharp
+        // draw.
+        let mut b = sharp_box(10.0, 10.0, 20.0, 20.0);
+        b.blur = 2.5;
+        let mut blurred = vec![0u8; 64 * 64 * 3];
+        draw_box_advanced(&mut blurred, 64, 64, &b);
+        assert_eq!(
+            pixel(&blurred, 64, 20, 20),
+            (255, 0, 0),
+            "interior stays solid"
+        );
+        let (er, _, _) = pixel(&blurred, 64, 10, 10);
+        assert!(er > 0 && er < 255, "the corner softens, got {er}");
+        let (or_, _, _) = pixel(&blurred, 64, 8, 8);
+        assert!(or_ > 0, "softness spreads outside, got {or_}");
+        b.blur = 0.0;
+        let mut sharp = vec![0u8; 64 * 64 * 3];
+        draw_box(&mut sharp, 64, 64, &b);
+        assert_ne!(blurred, sharp, "blur changes the picture");
+    }
+
+    #[test]
+    fn image_layer_identity_matches_legacy_blit() {
+        // T006: with no blur and an identity turn the image layer path
+        // reproduces the legacy blit byte-identically (opaque solid).
+        let decoded = solid_image(4, 4, 0, 255, 0, 255);
+        let im = test_image(Fit::Fill, Placement::center());
+        let mut legacy = vec![0u8; 32 * 32 * 3];
+        draw_image(&mut legacy, 32, 32, &im, &decoded);
+        let mut frame = vec![0u8; 32 * 32 * 3];
+        draw_image_advanced(&mut frame, 32, 32, &im, &decoded);
+        assert_eq!(frame, legacy, "identity image layer matches the blit");
+        assert_eq!(pixel(&frame, 32, 0, 0), (0, 255, 0));
     }
 
     #[test]
@@ -5901,6 +7356,8 @@ mod tests {
             loop_clip: false,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })]);
         for w in [1, 2, 4] {
             let err = draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[0, 1, 2], w)
@@ -6109,6 +7566,8 @@ mod tests {
             loop_clip: false,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         };
         assert_eq!(
             effective_source_window(&clip(1.0, Some(9.0)), Some(4.0)),
@@ -6361,18 +7820,30 @@ mod tests {
 
     #[test]
     fn range_defaults_to_the_whole_composition() {
-        assert_eq!(resolve_range("main", 4.0, &range_fps(), None, None), Ok(None));
+        assert_eq!(
+            resolve_range("main", 4.0, &range_fps(), None, None),
+            Ok(None)
+        );
         assert_eq!(
             resolve_range("main", 4.0, &range_fps(), Some(0.0), None),
-            Ok(Some(RenderRange { start: 0.0, end: 4.0 }))
+            Ok(Some(RenderRange {
+                start: 0.0,
+                end: 4.0
+            }))
         );
         assert_eq!(
             resolve_range("main", 4.0, &range_fps(), None, Some(2.5)),
-            Ok(Some(RenderRange { start: 0.0, end: 2.5 }))
+            Ok(Some(RenderRange {
+                start: 0.0,
+                end: 2.5
+            }))
         );
         assert_eq!(
             resolve_range("main", 4.0, &range_fps(), Some(1.0), Some(3.0)),
-            Ok(Some(RenderRange { start: 1.0, end: 3.0 }))
+            Ok(Some(RenderRange {
+                start: 1.0,
+                end: 3.0
+            }))
         );
     }
 
@@ -6382,7 +7853,10 @@ mod tests {
         let e = resolve_range("main", 4.0, &range_fps(), Some(2.0), Some(2.0)).unwrap_err();
         assert!(e.contains("empty"), "{e}");
         assert!(e.contains("4.000s"), "{e}");
-        assert!(e.contains("accepted window is 0 <= start < end <= 4.000s"), "{e}");
+        assert!(
+            e.contains("accepted window is 0 <= start < end <= 4.000s"),
+            "{e}"
+        );
         assert!(e.contains("no MP4 was written"), "{e}");
         // Backward: start runs past end.
         let e = resolve_range("main", 4.0, &range_fps(), Some(3.0), Some(1.0)).unwrap_err();
@@ -6390,8 +7864,7 @@ mod tests {
         assert!(e.contains("\"main\""), "{e}");
         // Out of range: past the end, before zero, or starting at the end.
         for (s, e2) in [(0.0, 9.0), (-1.0, 2.0), (4.0, 5.0), (1.0, 4.0001)] {
-            let e =
-                resolve_range("main", 4.0, &range_fps(), Some(s), Some(e2)).unwrap_err();
+            let e = resolve_range("main", 4.0, &range_fps(), Some(s), Some(e2)).unwrap_err();
             assert!(e.contains("outside the composition"), "{e}");
             assert!(e.contains("no MP4 was written"), "{e}");
         }
@@ -6399,12 +7872,8 @@ mod tests {
         assert!(resolve_range("main", 4.0, &range_fps(), Some(1.0), Some(4.0)).is_ok());
         // Non-finite bounds never render.
         for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            assert!(
-                resolve_range("main", 4.0, &range_fps(), Some(bad), Some(2.0)).is_err()
-            );
-            assert!(
-                resolve_range("main", 4.0, &range_fps(), Some(0.0), Some(bad)).is_err()
-            );
+            assert!(resolve_range("main", 4.0, &range_fps(), Some(bad), Some(2.0)).is_err());
+            assert!(resolve_range("main", 4.0, &range_fps(), Some(0.0), Some(bad)).is_err());
         }
     }
 
@@ -6412,10 +7881,8 @@ mod tests {
     fn range_crop_slices_the_full_mix_samples() {
         // 4 s of stereo silence with a marker second: the [1,3) crop is
         // exactly the full mix sliced to those sample frames.
-        let dir = std::env::temp_dir().join(format!(
-            "framesmith-range-crop-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("framesmith-range-crop-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let mix = dir.join("mix.pcm");
         let mut bytes = vec![0u8; 4 * 48000 * 2 * 2];

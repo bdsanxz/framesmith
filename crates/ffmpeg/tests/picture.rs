@@ -70,7 +70,10 @@ fn png_decodes_to_sized_rgb_with_ink() {
     let pic = decode_image(&ffmpeg_bin, &ffprobe_bin, &png).expect("png must decode");
     assert_eq!((pic.width, pic.height), (64, 48));
     assert_eq!(pic.bytes.len(), 64 * 48 * 3);
-    assert!(pic.bytes.iter().any(|b| *b > 0), "test pattern must carry ink");
+    assert!(
+        pic.bytes.iter().any(|b| *b > 0),
+        "test pattern must carry ink"
+    );
 }
 
 /// A missing file refuses naming the path, never a blank picture.
@@ -99,7 +102,10 @@ fn memory_png_decodes_to_sized_rgba() {
     let pic = decode_memory(&ffmpeg_bin, &bytes, "U+0041 test").expect("memory png must decode");
     assert_eq!((pic.width, pic.height), (32, 24));
     assert_eq!(pic.bytes.len(), 32 * 24 * 4);
-    assert!(pic.bytes.iter().any(|b| *b > 0), "test pattern must carry ink");
+    assert!(
+        pic.bytes.iter().any(|b| *b > 0),
+        "test pattern must carry ink"
+    );
 }
 
 /// Non-PNG bytes refuse before any subprocess runs, naming the label.

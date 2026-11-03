@@ -64,7 +64,10 @@ fn probe_duration(path: &Path) -> f64 {
         .output()
         .expect("run host ffprobe");
     assert!(out.status.success());
-    String::from_utf8_lossy(&out.stdout).trim().parse().expect("duration parses")
+    String::from_utf8_lossy(&out.stdout)
+        .trim()
+        .parse()
+        .expect("duration parses")
 }
 
 fn gen_clip(dir: &Path, seconds: f64) {
@@ -125,14 +128,20 @@ fn omitted_duration_renders_inferred_length() {
         assert_eq!(code, 0, "{tag}: {out}");
         assert!(out.contains("\"status\":\"valid\""), "{tag}: {out}");
         assert!(out.contains("\"inferred\":true"), "{tag}: {out}");
-        assert!(out.contains(&format!("\"duration\":{inferred}")), "{tag}: {out}");
+        assert!(
+            out.contains(&format!("\"duration\":{inferred}")),
+            "{tag}: {out}"
+        );
         assert!(
             out.contains(&format!("\"effective_duration\":{inferred}")),
             "{tag}: {out}"
         );
         let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
         assert_eq!(code, 0, "{tag}: {out}");
-        assert!(out.contains("(inferred)"), "{tag}: render announces the inference:\n{out}");
+        assert!(
+            out.contains("(inferred)"),
+            "{tag}: render announces the inference:\n{out}"
+        );
         let rendered = probe_duration(&folder.join("out.mp4"));
         assert!(
             (rendered - inferred).abs() < 0.15,
@@ -164,7 +173,10 @@ fn explicit_duration_renders_unchanged() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
     let rendered = probe_duration(&folder.join("out.mp4"));
-    assert!((rendered - 1.0).abs() < 0.15, "explicit length renders, got {rendered}");
+    assert!(
+        (rendered - 1.0).abs() < 0.15,
+        "explicit length renders, got {rendered}"
+    );
 }
 
 /// An omitted `duration` with no knowable source end (an unprobable
@@ -199,10 +211,16 @@ fn unknown_end_without_duration_fails_asking_for_duration() {
         let (code, out) = run(&["check", "--json", "."], &folder);
         assert_eq!(code, 1, "{tag}: {out}");
         assert!(out.contains("\"code\":\"E_BAD_FOOTAGE\""), "{tag}: {out}");
-        assert!(!folder.join("out.mp4").exists(), "{tag}: check writes no MP4");
+        assert!(
+            !folder.join("out.mp4").exists(),
+            "{tag}: check writes no MP4"
+        );
         let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
         assert_eq!(code, 1, "{tag}: {out}");
-        assert!(!folder.join("out.mp4").exists(), "{tag}: no MP4 survives the refusal");
+        assert!(
+            !folder.join("out.mp4").exists(),
+            "{tag}: no MP4 survives the refusal"
+        );
         assert!(
             !folder.join("out.mp4.framesmith-part").exists(),
             "{tag}: no partial survives"
@@ -219,7 +237,10 @@ fn inferred_render_reruns_byte_identically() {
     write(
         &folder,
         "composition.kdl",
-        &comp(1.0, "video path=\"clip.mp4\" start=0 trim-start=1 trim-end=3 rate=2"),
+        &comp(
+            1.0,
+            "video path=\"clip.mp4\" start=0 trim-start=1 trim-end=3 rate=2",
+        ),
     );
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
@@ -232,5 +253,8 @@ fn inferred_render_reruns_byte_identically() {
     let second = std::fs::read(folder.join("out.mp4")).unwrap();
     assert_eq!(first, second, "inferred render re-renders byte-identically");
     let rendered = probe_duration(&folder.join("out.mp4"));
-    assert!((rendered - 1.0).abs() < 0.15, "window 2s at rate 2 infers 1s, got {rendered}");
+    assert!(
+        (rendered - 1.0).abs() < 0.15,
+        "window 2s at rate 2 infers 1s, got {rendered}"
+    );
 }

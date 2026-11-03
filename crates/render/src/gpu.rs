@@ -18,7 +18,9 @@
 //! [`compare_frames`]. CPU reruns stay byte-identical; only the
 //! CPU-to-GPU comparison uses tolerance.
 
-use crate::frame::{FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedText};
+use crate::frame::{
+    FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedText, ResolvedVideo,
+};
 use crate::render::Prepared;
 use std::fmt::Write;
 
@@ -97,7 +99,7 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
             FrameItem::Text(r) => {
                 let _ = write!(
                     out,
-                    "text#{} order={} x={} y={} size={} color={} lh={} ls={} scale={} rot={} op={};",
+                    "text#{} order={} x={} y={} size={} color={} lh={} ls={} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?};",
                     r.doc,
                     r.order,
                     num(r.x),
@@ -109,12 +111,17 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.scale),
                     num(r.rotation),
                     num(r.opacity),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
                 );
             }
             FrameItem::Video(r) => {
                 let _ = write!(
                     out,
-                    "video#{} order={} src_t={} fit={:?} x={} y={} scale={} rot={} op={};",
+                    "video#{} order={} src_t={} fit={:?} x={} y={} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?};",
                     r.doc,
                     r.order,
                     num(r.src_t),
@@ -124,12 +131,17 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.scale),
                     num(r.rotation),
                     num(r.opacity),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
                 );
             }
             FrameItem::Box(r) => {
                 let _ = write!(
                     out,
-                    "box#{} order={} x={} y={} {}x{} fill={} radius={} border={}:{} opacity={} scale={} rot={};",
+                    "box#{} order={} x={} y={} {}x{} fill={} radius={} border={}:{} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?};",
                     r.doc,
                     r.order,
                     num(r.x),
@@ -142,13 +154,18 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     hex((r.border_color.r, r.border_color.g, r.border_color.b)),
                     num(r.opacity),
                     num(r.scale),
-                    num(r.rotation)
+                    num(r.rotation),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
                 );
             }
             FrameItem::Image(r) => {
                 let _ = write!(
                     out,
-                    "image#{} order={} {:?} x={} y={} w={} h={} fit={:?} place={:?}/{:?} scale={} rot={} op={};",
+                    "image#{} order={} {:?} x={} y={} w={} h={} fit={:?} place={:?}/{:?} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?};",
                     r.doc,
                     r.order,
                     r.path,
@@ -162,6 +179,11 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.scale),
                     num(r.rotation),
                     num(r.opacity),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
                 );
             }
         }
@@ -204,6 +226,7 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         ranges,
         images,
         layouts,
+        dyn_layouts,
         bitmap_fallback,
         raster,
         ..
@@ -213,6 +236,7 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         ranges,
         images,
         layouts,
+        dyn_layouts,
         *bitmap_fallback,
         raster,
         desc,
@@ -228,13 +252,16 @@ pub(crate) fn render_description_split(
     ranges: &[crate::render::DecodedRange],
     images: &[crate::render::DecodedImage],
     layouts: &[Option<layout::Block>],
+    dyn_layouts: &crate::render::DynLayouts,
     bitmap_fallback: bool,
     raster: &mut crate::render::RasterCache,
     desc: &FrameDescription,
 ) -> Result<Vec<u8>, String> {
     use crate::render::{
-        blit_fit, draw_bitmap_text_item, draw_box, draw_image, draw_text_block, fill_canvas,
-        pick_picture_or_hold, wrap_loop_time,
+        blit_dest, blit_fit, blur_on, draw_bitmap_advanced, draw_bitmap_text_item,
+        draw_bitmap_text_layer, draw_box, draw_box_advanced, draw_image, draw_image_advanced,
+        draw_text_advanced, draw_text_block, draw_video_advanced, fill_canvas, item_turn,
+        layer_ink_bbox, pick_picture_or_hold, turn_probe, wrap_loop_time,
     };
     let (cw, chh) = (desc.width, desc.height);
     let mut frame = vec![0u8; cw as usize * chh as usize * 3];
@@ -280,22 +307,46 @@ pub(crate) fn render_description_split(
                         range.frames[j * fs..(j + 1) * fs].to_vec(),
                     )
                 };
-                blit_fit(
-                    &mut frame,
-                    cw,
-                    chh,
-                    &pic,
-                    sw,
-                    sh,
-                    v.fit,
-                    quantize(v.x),
-                    quantize(v.y),
-                    quantize(v.scale),
-                    quantize(v.rotation),
-                    quantize(v.opacity),
-                );
+                // Sprint 7 motion (T005/T006), same branch as the CPU
+                // blitter: blurred or turned video draws through the
+                // layer path. Motion values quantize exactly as the
+                // blit does; blur and the turn ride through exact.
+                let qv = ResolvedVideo {
+                    x: quantize(v.x),
+                    y: quantize(v.y),
+                    scale: quantize(v.scale),
+                    rotation: quantize(v.rotation),
+                    opacity: quantize(v.opacity),
+                    ..v.clone()
+                };
+                let card = blit_dest(cw, chh, sw, sh, v.fit, qv.scale, qv.x, qv.y)
+                    .map(|(dx, dy, dw, dh)| (dx, dy, dx + dw, dy + dh));
+                let turn = card.and_then(|c| item_turn(qv.rotate_x, qv.rotate_y, &qv.turn, c));
+                if blur_on(qv.blur) || turn.is_some() {
+                    draw_video_advanced(&mut frame, cw, chh, &qv, &pic, sw, sh, turn);
+                } else {
+                    blit_fit(
+                        &mut frame,
+                        cw,
+                        chh,
+                        &pic,
+                        sw,
+                        sh,
+                        v.fit,
+                        qv.x,
+                        qv.y,
+                        qv.scale,
+                        qv.rotation,
+                        qv.opacity,
+                    );
+                }
             }
             FrameItem::Text(tc) => {
+                if tc.value.is_empty() {
+                    // A typewriter reveal at progress 0 shows no pieces:
+                    // nothing to draw at this instant.
+                    continue;
+                }
                 let q = ResolvedText {
                     scale: quantize(tc.scale),
                     rotation: quantize(tc.rotation),
@@ -304,14 +355,54 @@ pub(crate) fn render_description_split(
                     y: quantize(tc.y),
                     ..tc.clone()
                 };
-                let block: Option<layout::Block> = layouts.get(q.doc).and_then(|laid| laid.clone());
+                // Frame-varying text (typewriter, count, animated
+                // metrics) draws its pre-shaped string; still text
+                // draws its static layout. The shaped block is looked
+                // up at the exact evaluated metrics (unquantized: the
+                // block was shaped at those bits).
+                let block: Option<layout::Block> = dyn_layouts
+                    .get(q.doc, &q.value, q.size, q.letter_spacing)
+                    .cloned()
+                    .or_else(|| layouts.get(q.doc).and_then(|laid| laid.clone()));
                 match block {
                     Some(block) => {
-                        draw_text_block(&mut frame, cw, chh, raster, &block, &q)
-                            .map_err(|e| format!("gpu render failed: {e}"))?;
+                        let card = (
+                            q.x,
+                            q.y,
+                            q.x + block.width as f64 * q.scale,
+                            q.y + block.height as f64 * q.scale,
+                        );
+                        let turn = item_turn(q.rotate_x, q.rotate_y, &q.turn, card);
+                        if blur_on(q.blur) || turn.is_some() {
+                            draw_text_advanced(&mut frame, cw, chh, raster, &block, &q, turn, card)
+                                .map_err(|e| format!("gpu render failed: {e}"))?;
+                        } else {
+                            draw_text_block(&mut frame, cw, chh, raster, &block, &q)
+                                .map_err(|e| format!("gpu render failed: {e}"))?;
+                        }
                     }
                     None if bitmap_fallback => {
-                        draw_bitmap_text_item(&mut frame, cw, chh, &q);
+                        let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
+                        if !(blur_on(q.blur) || probe.is_some()) {
+                            draw_bitmap_text_item(&mut frame, cw, chh, &q);
+                        } else if q.scale <= 0.0 || !q.scale.is_finite() || q.opacity <= 0.0 {
+                            // Nothing draws, exactly like the CPU path.
+                        } else {
+                            let mut layer = vec![0u8; cw as usize * chh as usize * 4];
+                            draw_bitmap_text_layer(
+                                &mut layer,
+                                cw,
+                                chh,
+                                &q,
+                                q.scale,
+                                q.opacity.clamp(0.0, 1.0),
+                            );
+                            if let Some((x0, y0, x1, y1)) = layer_ink_bbox(&layer, cw, chh) {
+                                let card = (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
+                                let turn = item_turn(q.rotate_x, q.rotate_y, &q.turn, card);
+                                draw_bitmap_advanced(&mut frame, cw, chh, &layer, &q, turn, card);
+                            }
+                        }
                     }
                     None => {
                         return Err("gpu render failed: text layout is missing and no bitmap fallback applies".to_string());
@@ -331,7 +422,14 @@ pub(crate) fn render_description_split(
                     rotation: quantize(b.rotation),
                     ..b.clone()
                 };
-                draw_box(&mut frame, cw, chh, &q);
+                // Sprint 7 motion (T005/T006), same branch as the CPU
+                // blitter; blur and the turn ride through exact.
+                let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
+                if blur_on(q.blur) || probe.is_some() {
+                    draw_box_advanced(&mut frame, cw, chh, &q);
+                } else {
+                    draw_box(&mut frame, cw, chh, &q);
+                }
             }
             FrameItem::Image(im) => {
                 let decoded = images
@@ -352,7 +450,14 @@ pub(crate) fn render_description_split(
                     opacity: quantize(im.opacity),
                     ..im.clone()
                 };
-                draw_image(&mut frame, cw, chh, &q, &decoded);
+                // Sprint 7 motion (T005/T006), same branch as the CPU
+                // blitter; blur and the turn ride through exact.
+                let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
+                if blur_on(q.blur) || probe.is_some() {
+                    draw_image_advanced(&mut frame, cw, chh, &q, &decoded);
+                } else {
+                    draw_image(&mut frame, cw, chh, &q, &decoded);
+                }
             }
         }
     }
@@ -501,8 +606,15 @@ mod tests {
                     line_height: Some(30.0),
                     letter_spacing: Some(1.5),
                     font_family: None,
+                    split: None,
+                    typewriter: false,
+                    count_from: None,
+                    count_to: None,
+                    decimals: 0,
                     line: 3,
                     column: 1,
+                    turn: notation::model::Turn3D::flat(),
+                    filter_blur: 0.0,
                 }),
                 notation::model::Clip::Box(BoxClip {
                     id: None,
@@ -524,11 +636,17 @@ mod tests {
                     order: 1,
                     line: 2,
                     column: 1,
+                    turn: notation::model::Turn3D::flat(),
+                    filter_blur: 0.0,
                 }),
             ],
             fonts: Vec::new(),
             tweens: Vec::new(),
             sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         }
     }
 
@@ -564,7 +682,7 @@ mod tests {
     fn motion_values_fingerprint_with_the_description() {
         // T009–T012: the animated values ride the GPU picture so the
         // twin-renderer check compares motion, not just stills.
-        use notation::model::{EaseDecl, SetDecl, TweenDecl, TweenKind};
+        use notation::model::{EaseDecl, SetDecl, StaggerOrigin, TweenDecl, TweenKind};
         let mut comp = composition();
         comp.tweens.push(TweenDecl {
             target: 1,
@@ -572,11 +690,23 @@ mod tests {
             kind: TweenKind::To,
             from: None,
             to: Some(105.0),
+            path: None,
+            path_to: None,
+            orient: false,
+            expr: None,
             start: 0.0,
             duration: 1.0,
             ease: EaseDecl::Linear,
+            stagger: 0.0,
+            stagger_from: StaggerOrigin::Start,
+            stagger_grid: None,
+            repeat: 1,
+            yoyo: false,
+            repeat_delay: 0.0,
             line: 1,
             column: 1,
+            from_color: None,
+            to_color: None,
         });
         comp.sets.push(SetDecl {
             target: 1,
@@ -619,6 +749,10 @@ mod tests {
             fonts: Vec::new(),
             tweens: Vec::new(),
             sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            replicates: Vec::new(),
         }
     }
 
@@ -643,6 +777,8 @@ mod tests {
             order,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })
     }
 
@@ -684,6 +820,8 @@ mod tests {
                 order: 2,
                 line: 2,
                 column: 1,
+                turn: notation::model::Turn3D::flat(),
+                filter_blur: 0.0,
             }),
         ]);
         let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
@@ -722,6 +860,8 @@ mod tests {
                 order: 2,
                 line: 1,
                 column: 1,
+                turn: notation::model::Turn3D::flat(),
+                filter_blur: 0.0,
             }),
             red_box(20.0, 20.0, 1),
         ]);
@@ -770,8 +910,15 @@ mod tests {
             line_height: Some(20.0),
             letter_spacing: Some(3.0),
             font_family: None,
+            split: None,
+            typewriter: false,
+            count_from: None,
+            count_to: None,
+            decimals: 0,
             line: 1,
             column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
         })]);
         let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
         assert_agree(&mut prep, "spaced-text", 0);
@@ -782,7 +929,7 @@ mod tests {
     fn motion_frames_agree_within_tolerance() {
         // T014: a to-tween on x plus a set hold on opacity; the mid
         // frame must show motion on both sides, still inside tolerance.
-        use notation::model::{EaseDecl, SetDecl, TweenDecl, TweenKind};
+        use notation::model::{EaseDecl, SetDecl, StaggerOrigin, TweenDecl, TweenKind};
         let mut comp = still_comp(vec![red_box(4.0, 4.0, 1)]);
         comp.tweens.push(TweenDecl {
             target: 0,
@@ -790,11 +937,23 @@ mod tests {
             kind: TweenKind::To,
             from: None,
             to: Some(44.0),
+            path: None,
+            path_to: None,
+            orient: false,
+            expr: None,
             start: 0.0,
             duration: 1.0,
             ease: EaseDecl::Linear,
+            stagger: 0.0,
+            stagger_from: StaggerOrigin::Start,
+            stagger_grid: None,
+            repeat: 1,
+            yoyo: false,
+            repeat_delay: 0.0,
             line: 1,
             column: 1,
+            from_color: None,
+            to_color: None,
         });
         comp.sets.push(SetDecl {
             target: 0,

@@ -99,7 +99,16 @@ fn ffprobe(entries: &str, mp4: &Path) -> String {
 /// Fully decode every video and audio frame through software decoders.
 fn decode_all(mp4: &Path) {
     let out = Command::new("ffmpeg")
-        .args(["-y", "-v", "error", "-i", &mp4.display().to_string(), "-f", "null", "-"])
+        .args([
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-f",
+            "null",
+            "-",
+        ])
         .output()
         .expect("decode mp4");
     assert!(out.status.success(), "full software decode failed");
@@ -154,7 +163,10 @@ fn footage_reference_renders_standard_mp4_with_footage_content() {
     assert_eq!(code, 0, "{out}");
     let mp4 = root.join("out.mp4");
     assert!(mp4.is_file());
-    let streams = ffprobe("stream=codec_name,width,height,pix_fmt,sample_rate,channels", &mp4);
+    let streams = ffprobe(
+        "stream=codec_name,width,height,pix_fmt,sample_rate,channels",
+        &mp4,
+    );
     for want in [
         "codec_name=h264",
         "width=1280",
@@ -171,7 +183,10 @@ fn footage_reference_renders_standard_mp4_with_footage_content() {
         .lines()
         .find_map(|l| l.strip_prefix("duration=")?.parse().ok())
         .expect("duration parses");
-    assert!((secs - 6.0).abs() < 0.05, "composition renders 6 s, got {secs}");
+    assert!(
+        (secs - 6.0).abs() < 0.05,
+        "composition renders 6 s, got {secs}"
+    );
     decode_all(&mp4);
 
     // Frame 60 (t=2 s) sits inside the GIF window [1,3): the centered
@@ -183,7 +198,10 @@ fn footage_reference_renders_standard_mp4_with_footage_content() {
         (d[i], d[i + 1], d[i + 2])
     };
     let (r, g, b) = at(&gif_frame, 640, 360);
-    assert!(b > 150 && r < 150 && g < 150, "GIF sticker shows blue at t=2 s, got ({r},{g},{b})");
+    assert!(
+        b > 150 && r < 150 && g < 150,
+        "GIF sticker shows blue at t=2 s, got ({r},{g},{b})"
+    );
 
     // Frame 150 (t=5 s) is past the GIF window: the looped portrait
     // pillarbox is back over the slowed background, so the middle
@@ -211,7 +229,12 @@ fn footage_reference_rerenders_byte_identically_at_any_worker_count() {
         &[("FRAMESMITH_WORKERS", "1")],
     );
     assert_eq!(code, 0, "{out}");
-    std::fs::remove_dir_all(root.join("proj").join("logs").join("framesmith-footage-cache")).ok();
+    std::fs::remove_dir_all(
+        root.join("proj")
+            .join("logs")
+            .join("framesmith-footage-cache"),
+    )
+    .ok();
     let (code, out) = run_env(
         &["render", "proj", "-o", "w8.mp4"],
         &root,

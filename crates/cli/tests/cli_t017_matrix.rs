@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -76,9 +76,22 @@ fn solid_source(path: &Path, cols: &[(u8, u8, u8)], w: u32, h: u32, fps: u32) {
     let raw_path = path.with_extension("raw");
     std::fs::write(&raw_path, &raw).unwrap();
     ffmpeg(&[
-        "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"),
-        "-r", &fps.to_string(), "-i", &raw_path.display().to_string(),
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", &fps.to_string(),
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-s",
+        &format!("{w}x{h}"),
+        "-r",
+        &fps.to_string(),
+        "-i",
+        &raw_path.display().to_string(),
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-r",
+        &fps.to_string(),
         &path.display().to_string(),
     ]);
 }
@@ -91,8 +104,16 @@ fn solid_png(path: &Path, col: (u8, u8, u8), w: u32, h: u32) {
     let raw_path = path.with_extension("raw");
     std::fs::write(&raw_path, &raw).unwrap();
     ffmpeg(&[
-        "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"),
-        "-i", &raw_path.display().to_string(), "-frames:v", "1",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-s",
+        &format!("{w}x{h}"),
+        "-i",
+        &raw_path.display().to_string(),
+        "-frames:v",
+        "1",
         &path.display().to_string(),
     ]);
 }
@@ -105,16 +126,28 @@ fn solid_jpg(path: &Path, col: (u8, u8, u8), w: u32, h: u32) {
     let raw_path = path.with_extension("raw");
     std::fs::write(&raw_path, &raw).unwrap();
     ffmpeg(&[
-        "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"),
-        "-i", &raw_path.display().to_string(), "-frames:v", "1",
-        "-q:v", "2", &path.display().to_string(),
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-s",
+        &format!("{w}x{h}"),
+        "-i",
+        &raw_path.display().to_string(),
+        "-frames:v",
+        "1",
+        "-q:v",
+        "2",
+        &path.display().to_string(),
     ]);
 }
 
 fn prepared(folder: &Path) -> render::render::Prepared {
     let verdict = validate_folder(folder);
     assert_eq!(verdict.status, Status::Valid, "{:?}", verdict.diagnostics);
-    let comp = verdict.composition.expect("valid verdict carries a composition");
+    let comp = verdict
+        .composition
+        .expect("valid verdict carries a composition");
     render::render::prepare(&comp, folder, Path::new("ffmpeg")).expect("prepare succeeds")
 }
 
@@ -309,7 +342,11 @@ fn check_fixture(root: &Path, tag: &str, fx: &Fixture, duration: u32) {
     solid_jpg(&folder.join("photo.jpg"), (255, 255, 0), 48, 64);
     let reds = vec![(255, 0, 0); 30 * duration as usize];
     solid_source(&folder.join("clip.mp4"), &reds, 64, 48, 30);
-    write(&folder, "composition.kdl", &(head(duration) + &fx.body + "}\n"));
+    write(
+        &folder,
+        "composition.kdl",
+        &(head(duration) + &fx.body + "}\n"),
+    );
     let mut prep = prepared(&folder);
     for &k in &fx.frames {
         let cpu = prep.cpu_frame(k).expect("cpu frame draws");
@@ -320,7 +357,8 @@ fn check_fixture(root: &Path, tag: &str, fx: &Fixture, duration: u32) {
         assert!(
             cmp.pass(),
             "element `{}` property `{}` fails on frame {k}: {line}",
-            fx.element, fx.property
+            fx.element,
+            fx.property
         );
     }
 }
@@ -329,7 +367,11 @@ fn check_fixture(root: &Path, tag: &str, fx: &Fixture, duration: u32) {
 fn still_matrix_passes_on_both_renderers() {
     let root = tmp("still");
     let matrix = still_matrix();
-    assert_eq!(matrix.len(), 11, "still matrix covers every still element+property");
+    assert_eq!(
+        matrix.len(),
+        11,
+        "still matrix covers every still element+property"
+    );
     for (i, fx) in matrix.iter().enumerate() {
         check_fixture(&root, &format!("f{i}"), fx, 1);
     }
@@ -340,7 +382,11 @@ fn still_matrix_passes_on_both_renderers() {
 fn motion_matrix_passes_on_both_renderers() {
     let root = tmp("motion");
     let matrix = motion_matrix();
-    assert_eq!(matrix.len(), 25, "motion matrix covers every property x form + set + easings");
+    assert_eq!(
+        matrix.len(),
+        25,
+        "motion matrix covers every property x form + set + easings"
+    );
     for (i, fx) in matrix.iter().enumerate() {
         check_fixture(&root, &format!("f{i}"), fx, 2);
     }
@@ -366,7 +412,10 @@ fn broken_cpu_fixture_names_element_and_location() {
     println!("t017-proof: cpu break names element=box code=E_BAD_BOX file=composition.kdl");
     let (code, out) = run(&["render", "bad", "-o", "out.mp4"], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(!folder.join("out.mp4").exists(), "refused render writes no MP4");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "refused render writes no MP4"
+    );
     println!("t017-proof: cpu break refuses render exit 1 with no partial MP4");
 }
 
@@ -415,8 +464,14 @@ fn later_sprint_use_is_marked_not_rendered() {
     assert!(out.contains("E_UNSUPPORTED"), "{out}");
     println!("t017-proof: later-sprint tween refused exit 2 with enabling sprint");
     let (code, _) = run(&["render", "later", "-o", "out.mp4"], &root);
-    assert_eq!(code, 2, "later-sprint render refuses before the first frame");
-    assert!(!folder.join("out.mp4").exists(), "no partial MP4 for later-sprint use");
+    assert_eq!(
+        code, 2,
+        "later-sprint render refuses before the first frame"
+    );
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no partial MP4 for later-sprint use"
+    );
 }
 
 #[test]
@@ -446,12 +501,23 @@ fn combined_composition_proves_end_to_end() {
         println!("t017-proof: combined {line}");
         assert!(cmp.pass(), "{line}");
     }
-    let (c1, o1) = run_env(&["render", "show", "-o", "w1.mp4"], &root, &[("FRAMESMITH_WORKERS", "1")]);
+    let (c1, o1) = run_env(
+        &["render", "show", "-o", "w1.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "1")],
+    );
     assert_eq!(c1, 0, "{o1}");
-    let (c9, o9) = run_env(&["render", "show", "-o", "w9.mp4"], &root, &[("FRAMESMITH_WORKERS", "9")]);
+    let (c9, o9) = run_env(
+        &["render", "show", "-o", "w9.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "9")],
+    );
     assert_eq!(c9, 0, "{o9}");
     let a = std::fs::read(root.join("w1.mp4")).unwrap();
     let b = std::fs::read(root.join("w9.mp4")).unwrap();
     assert_eq!(a, b, "worker counts change no byte of the playable MP4");
-    println!("t017-proof: combined renders exit 0, workers 1 vs 9 byte-identical ({} bytes)", a.len());
+    println!(
+        "t017-proof: combined renders exit 0, workers 1 vs 9 byte-identical ({} bytes)",
+        a.len()
+    );
 }

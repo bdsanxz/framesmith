@@ -63,12 +63,15 @@ impl Fonts {
     /// The registered face parley shaped `blob`/`index` with, if it is
     /// one of this collection's faces.
     pub(crate) fn face_for_blob(&self, blob: u64, index: u32) -> Option<FaceInfo> {
-        self.faces.iter().find(|face| (face.blob, face.index) == (blob, index)).map(|face| FaceInfo {
-            family: face.family.clone(),
-            bytes: face.bytes.clone(),
-            index: face.index,
-            colour: has_sbix(&face.bytes, face.index),
-        })
+        self.faces
+            .iter()
+            .find(|face| (face.blob, face.index) == (blob, index))
+            .map(|face| FaceInfo {
+                family: face.family.clone(),
+                bytes: face.bytes.clone(),
+                index: face.index,
+                colour: has_sbix(&face.bytes, face.index),
+            })
     }
 }
 
@@ -124,7 +127,10 @@ impl Fonts {
     pub fn new() -> Fonts {
         let mut fonts = Fonts {
             context: parley::FontContext {
-                collection: Collection::new(CollectionOptions { shared: false, system_fonts: false }),
+                collection: Collection::new(CollectionOptions {
+                    shared: false,
+                    system_fonts: false,
+                }),
                 source_cache: Default::default(),
             },
             layouts: parley::LayoutContext::new(),
@@ -154,17 +160,38 @@ impl Fonts {
         let shared = "/System/Library/Fonts";
         let dejavu = "/usr/share/fonts/truetype/dejavu";
         let names: &[(&str, &str)] = match (bold, italic) {
-            (false, false) => &[("Arial.ttf", supplemental), ("Verdana.ttf", supplemental), ("Helvetica.ttc", shared), ("DejaVuSans.ttf", dejavu)],
-            (true, false) => &[("Arial Bold.ttf", supplemental), ("Verdana Bold.ttf", supplemental), ("DejaVuSans-Bold.ttf", dejavu)],
-            (false, true) => &[("Arial Italic.ttf", supplemental), ("Verdana Italic.ttf", supplemental), ("DejaVuSans-Oblique.ttf", dejavu)],
-            (true, true) => &[("Arial Bold Italic.ttf", supplemental), ("Verdana Bold Italic.ttf", supplemental), ("DejaVuSans-BoldOblique.ttf", dejavu)],
+            (false, false) => &[
+                ("Arial.ttf", supplemental),
+                ("Verdana.ttf", supplemental),
+                ("Helvetica.ttc", shared),
+                ("DejaVuSans.ttf", dejavu),
+            ],
+            (true, false) => &[
+                ("Arial Bold.ttf", supplemental),
+                ("Verdana Bold.ttf", supplemental),
+                ("DejaVuSans-Bold.ttf", dejavu),
+            ],
+            (false, true) => &[
+                ("Arial Italic.ttf", supplemental),
+                ("Verdana Italic.ttf", supplemental),
+                ("DejaVuSans-Oblique.ttf", dejavu),
+            ],
+            (true, true) => &[
+                ("Arial Bold Italic.ttf", supplemental),
+                ("Verdana Bold Italic.ttf", supplemental),
+                ("DejaVuSans-BoldOblique.ttf", dejavu),
+            ],
         };
         for (name, dir) in names {
             let path = PathBuf::from(format!("{dir}/{name}"));
             let Ok(bytes) = std::fs::read(&path) else {
                 continue;
             };
-            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or(name).to_string();
+            let stem = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or(name)
+                .to_string();
             let plain;
             let bytes: &[u8] = if bytes.starts_with(b"ttcf") {
                 let Some(first) = one_face(&bytes, 0) else {
@@ -206,7 +233,8 @@ impl Fonts {
         let Ok(bytes) = std::fs::read(&path) else {
             return;
         };
-        let Some(family) = glyph::tables::family_name(&bytes, 0).filter(|name| !name.is_empty()) else {
+        let Some(family) = glyph::tables::family_name(&bytes, 0).filter(|name| !name.is_empty())
+        else {
             return;
         };
         let before = self.faces.len();
@@ -245,24 +273,37 @@ impl Fonts {
         }
         let plain;
         let bytes: &[u8] = if bytes.starts_with(b"ttcf") {
-            plain = one_face(&bytes, 0).ok_or_else(|| FontError::Damaged("a collection face cannot be read".into()))?;
+            plain = one_face(&bytes, 0)
+                .ok_or_else(|| FontError::Damaged("a collection face cannot be read".into()))?;
             &plain
         } else {
             &bytes
         };
         let name = match family {
             Some(name) => name.to_string(),
-            None => glyph::tables::family_name(bytes, 0).ok_or_else(|| FontError::Damaged("a face with no family name".into()))?,
+            None => glyph::tables::family_name(bytes, 0)
+                .ok_or_else(|| FontError::Damaged("a face with no family name".into()))?,
         };
         let bytes = Arc::new(bytes.to_vec());
         let blob = Blob::new(bytes.clone());
         let blob_id = blob.id();
-        let info_override = family.map(|_| FontInfoOverride { family_name: Some(&name), ..Default::default() });
+        let info_override = family.map(|_| FontInfoOverride {
+            family_name: Some(&name),
+            ..Default::default()
+        });
         let registered = self.context.collection.register_fonts(blob, info_override);
         if registered.is_empty() {
-            return Err(FontError::Damaged("the shaper takes no face from it".into()));
+            return Err(FontError::Damaged(
+                "the shaper takes no face from it".into(),
+            ));
         }
-        self.faces.push(Face { family: name, blob: blob_id, bytes, index: 0, machine: None });
+        self.faces.push(Face {
+            family: name,
+            blob: blob_id,
+            bytes,
+            index: 0,
+            machine: None,
+        });
         Ok(())
     }
 
@@ -298,7 +339,10 @@ impl Fonts {
             }
             None => vec![name.to_string()],
         };
-        let hit = candidates.into_iter().filter_map(|wanted| self.machine.family(&wanted).map(str::to_string)).next();
+        let hit = candidates
+            .into_iter()
+            .filter_map(|wanted| self.machine.family(&wanted).map(str::to_string))
+            .next();
         hit.and_then(|found| self.machine_family(&found))
     }
 
@@ -339,8 +383,15 @@ impl Fonts {
         let family = match self.fall_backs.get(&character) {
             Some(found) => found.clone(),
             None => {
-                let order: Vec<String> = self.machine.fall_back_order().into_iter().map(str::to_string).collect();
-                let found = order.into_iter().find(|family| self.machine.family_maps(family, character));
+                let order: Vec<String> = self
+                    .machine
+                    .fall_back_order()
+                    .into_iter()
+                    .map(str::to_string)
+                    .collect();
+                let found = order
+                    .into_iter()
+                    .find(|family| self.machine.family_maps(family, character));
                 self.fall_backs.insert(character, found.clone());
                 found
             }
@@ -371,7 +422,10 @@ impl Fonts {
             let blob_id = blob.id();
             let infos = self.context.collection.register_fonts(
                 blob,
-                Some(FontInfoOverride { family_name: Some(&engine_name), ..Default::default() }),
+                Some(FontInfoOverride {
+                    family_name: Some(&engine_name),
+                    ..Default::default()
+                }),
             );
             if infos.is_empty() {
                 continue;
@@ -386,7 +440,8 @@ impl Fonts {
             });
             registered = Some(engine_name.clone());
         }
-        self.machine_families.insert(family.to_string(), registered.clone());
+        self.machine_families
+            .insert(family.to_string(), registered.clone());
         registered
     }
 
@@ -397,8 +452,18 @@ impl Fonts {
         for face in &self.faces {
             if let Some((path, index)) = face.machine.clone() {
                 if seen.insert((path.clone(), index)) {
-                    let family = self.machine.faces.iter().find(|f| f.path == path && f.index == index).map(|f| f.family.clone()).unwrap_or_default();
-                    out.push(MachineFace { path, index, family });
+                    let family = self
+                        .machine
+                        .faces
+                        .iter()
+                        .find(|f| f.path == path && f.index == index)
+                        .map(|f| f.family.clone())
+                        .unwrap_or_default();
+                    out.push(MachineFace {
+                        path,
+                        index,
+                        family,
+                    });
                 }
             }
         }
@@ -418,7 +483,12 @@ impl Fonts {
     /// The decoded emoji picture of `ch` at `size_px`: the registered
     /// face holding its `sbix` graphic, decoded by `ffmpeg_bin` (the
     /// frx7 replacement) and cached for the life of the collection.
-    pub(crate) fn emoji_picture(&mut self, ffmpeg_bin: &std::path::Path, ch: char, size_px: f32) -> Result<Arc<EmojiPic>, String> {
+    pub(crate) fn emoji_picture(
+        &mut self,
+        ffmpeg_bin: &std::path::Path,
+        ch: char,
+        size_px: f32,
+    ) -> Result<Arc<EmojiPic>, String> {
         let mut found: Option<(String, u32, Vec<u8>, i16, i16, u16, u16)> = None;
         for face in &self.faces {
             if !has_sbix(&face.bytes, face.index) {
@@ -436,7 +506,15 @@ impl Fonts {
             let Some(upm) = glyph::tables::units_per_em(&face.bytes, face.index) else {
                 continue;
             };
-            found = Some((face.family.clone(), gid as u32, graphic.data, graphic.origin_x, graphic.origin_y, upm, graphic.ppem));
+            found = Some((
+                face.family.clone(),
+                gid as u32,
+                graphic.data,
+                graphic.origin_x,
+                graphic.origin_y,
+                upm,
+                graphic.ppem,
+            ));
             break;
         }
         let Some((family, gid, png, ox, oy, upm, ppem)) = found else {
@@ -449,7 +527,14 @@ impl Fonts {
         let label = format!("U+{:04X} emoji picture", ch as u32);
         let decoded = ffmpeg::picture::decode_memory(ffmpeg_bin, &png, &label)?;
         let pic = scale_rgba(&decoded, ppem, size_px);
-        let made = Arc::new(EmojiPic { width: pic.0, height: pic.1, rgba: Arc::new(pic.2), origin_x: ox, origin_y: oy, units_per_em: upm });
+        let made = Arc::new(EmojiPic {
+            width: pic.0,
+            height: pic.1,
+            rgba: Arc::new(pic.2),
+            origin_x: ox,
+            origin_y: oy,
+            units_per_em: upm,
+        });
         self.emoji.insert(key, made.clone());
         Ok(made)
     }
@@ -470,7 +555,10 @@ pub(crate) struct FontsRef<'a> {
 
 impl Fonts {
     pub(crate) fn parts(&mut self) -> FontsRef<'_> {
-        FontsRef { context: &mut self.context, layouts: &mut self.layouts }
+        FontsRef {
+            context: &mut self.context,
+            layouts: &mut self.layouts,
+        }
     }
 }
 
@@ -478,7 +566,11 @@ impl Fonts {
 /// size over the strike's `ppem`, rounded half up, with a std bilinear
 /// filter (no linked resizer). Empty for a degenerate target, which
 /// draws nothing.
-fn scale_rgba(decoded: &ffmpeg::picture::RgbaPicture, ppem: u16, size_px: f32) -> (u32, u32, Vec<u8>) {
+fn scale_rgba(
+    decoded: &ffmpeg::picture::RgbaPicture,
+    ppem: u16,
+    size_px: f32,
+) -> (u32, u32, Vec<u8>) {
     if ppem == 0 {
         return (0, 0, Vec::new());
     }
@@ -494,8 +586,10 @@ fn scale_rgba(decoded: &ffmpeg::picture::RgbaPicture, ppem: u16, size_px: f32) -
     let mut out = vec![0u8; tw as usize * th as usize * 4];
     for y in 0..th {
         for x in 0..tw {
-            let sx = ((x as f64 + 0.5) * decoded.width as f64 / tw as f64 - 0.5).clamp(0.0, decoded.width as f64 - 1.0);
-            let sy = ((y as f64 + 0.5) * decoded.height as f64 / th as f64 - 0.5).clamp(0.0, decoded.height as f64 - 1.0);
+            let sx = ((x as f64 + 0.5) * decoded.width as f64 / tw as f64 - 0.5)
+                .clamp(0.0, decoded.width as f64 - 1.0);
+            let sy = ((y as f64 + 0.5) * decoded.height as f64 / th as f64 - 0.5)
+                .clamp(0.0, decoded.height as f64 - 1.0);
             let x0 = sx.floor() as u32;
             let y0 = sy.floor() as u32;
             let x1 = (x0 + 1).min(decoded.width - 1);
@@ -504,7 +598,12 @@ fn scale_rgba(decoded: &ffmpeg::picture::RgbaPicture, ppem: u16, size_px: f32) -
             let fy = sy - y0 as f64;
             let at = |xx: u32, yy: u32| -> [f64; 4] {
                 let o = (yy * decoded.width + xx) as usize * 4;
-                [decoded.bytes[o] as f64, decoded.bytes[o + 1] as f64, decoded.bytes[o + 2] as f64, decoded.bytes[o + 3] as f64]
+                [
+                    decoded.bytes[o] as f64,
+                    decoded.bytes[o + 1] as f64,
+                    decoded.bytes[o + 2] as f64,
+                    decoded.bytes[o + 3] as f64,
+                ]
             };
             let a = at(x0, y0);
             let b = at(x1, y0);
@@ -515,7 +614,10 @@ fn scale_rgba(decoded: &ffmpeg::picture::RgbaPicture, ppem: u16, size_px: f32) -
             let o = (y * tw + x) as usize * 4;
             let mut px = [0f64; 4];
             for k in 0..4 {
-                px[k] = a[k] * (1.0 - fx) * (1.0 - fy) + b[k] * fx * (1.0 - fy) + c[k] * (1.0 - fx) * fy + d[k] * fx * fy;
+                px[k] = a[k] * (1.0 - fx) * (1.0 - fy)
+                    + b[k] * fx * (1.0 - fy)
+                    + c[k] * (1.0 - fx) * fy
+                    + d[k] * fx * fy;
             }
             let alpha = px[3].round().clamp(0.0, 255.0);
             for k in 0..3 {

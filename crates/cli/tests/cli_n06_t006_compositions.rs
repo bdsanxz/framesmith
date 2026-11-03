@@ -101,7 +101,10 @@ fn check_json_lists_compositions_and_root() {
     write(&root.join("p"), "composition.kdl", &two_comp_project());
     let (code, json) = run(&["check", "--json", "p"], &root);
     assert_eq!(code, 0, "{json}");
-    assert!(json.contains("\"compositions\":[\"main\",\"cutdown\"]"), "{json}");
+    assert!(
+        json.contains("\"compositions\":[\"main\",\"cutdown\"]"),
+        "{json}"
+    );
     assert!(json.contains("\"root\":\"cutdown\""), "{json}");
 }
 
@@ -116,26 +119,41 @@ fn default_render_produces_the_root_output() {
     let frames = decode_video(&mp4, 64, 64);
     assert_eq!(frames.len(), 4 * 64 * 64 * 3);
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(b > 180 && r < 100 && g < 100, "root frame is blue: r={r} g={g} b={b}");
+    assert!(
+        b > 180 && r < 100 && g < 100,
+        "root frame is blue: r={r} g={g} b={b}"
+    );
 }
 
 #[test]
 fn composition_flag_renders_the_named_output() {
     let root = tmp("named");
     write(&root.join("p"), "composition.kdl", &two_comp_project());
-    let (code, out) = run(&["render", "p", "-o", "p/main.mp4", "--composition", "main"], &root);
+    let (code, out) = run(
+        &["render", "p", "-o", "p/main.mp4", "--composition", "main"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let main_mp4 = root.join("p").join("main.mp4");
     assert!(main_mp4.is_file());
     let frames = decode_video(&main_mp4, 64, 64);
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(r > 180 && g < 100 && b < 100, "named frame is red: r={r} g={g} b={b}");
+    assert!(
+        r > 180 && g < 100 && b < 100,
+        "named frame is red: r={r} g={g} b={b}"
+    );
 
-    let (code, out) = run(&["render", "p", "-o", "p/cut.mp4", "--composition", "cutdown"], &root);
+    let (code, out) = run(
+        &["render", "p", "-o", "p/cut.mp4", "--composition", "cutdown"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("p").join("cut.mp4"), 64, 64);
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(b > 180 && r < 100 && g < 100, "root frame is blue: r={r} g={g} b={b}");
+    assert!(
+        b > 180 && r < 100 && g < 100,
+        "root frame is blue: r={r} g={g} b={b}"
+    );
 }
 
 #[test]
@@ -150,18 +168,27 @@ fn composition_flag_also_accepts_the_composition_id() {
              }}\n"
         ),
     );
-    let (code, out) = run(&["render", "p", "-o", "p/cut.mp4", "--composition", "cut"], &root);
+    let (code, out) = run(
+        &["render", "p", "-o", "p/cut.mp4", "--composition", "cut"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let frames = decode_video(&root.join("p").join("cut.mp4"), 64, 64);
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(b > 180 && r < 100 && g < 100, "id-selected frame is blue: r={r} g={g} b={b}");
+    assert!(
+        b > 180 && r < 100 && g < 100,
+        "id-selected frame is blue: r={r} g={g} b={b}"
+    );
 }
 
 #[test]
 fn unknown_composition_refuses_without_output() {
     let root = tmp("unknown");
     write(&root.join("p"), "composition.kdl", &two_comp_project());
-    let (code, out) = run(&["render", "p", "-o", "p/ghost.mp4", "--composition", "ghost"], &root);
+    let (code, out) = run(
+        &["render", "p", "-o", "p/ghost.mp4", "--composition", "ghost"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("unknown composition"), "{out}");
     assert!(out.contains("\"ghost\""), "{out}");
@@ -240,5 +267,8 @@ fn single_composition_renders_unchanged_and_byte_identical() {
     assert_eq!(first, second);
     let frames = decode_video(&root.join("p").join("out.mp4"), 64, 64);
     let (r, g, b) = center(&frames, 0, 64, 64);
-    assert!(r > 180 && g < 100 && b < 100, "single-comp frame is red: r={r} g={g} b={b}");
+    assert!(
+        r > 180 && g < 100 && b < 100,
+        "single-comp frame is red: r={r} g={g} b={b}"
+    );
 }

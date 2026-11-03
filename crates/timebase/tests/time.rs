@@ -10,7 +10,18 @@ fn reads_decimals_exactly() {
     assert_eq!(t("6.01"), Time::new(601, 100));
     assert_eq!(t("-2"), Time::from_secs(-2));
     assert_eq!(t("0.1") + t("0.2"), t("0.3"));
-    for bad in ["", ".", "1.", "1e3", "abc", "1.0000000001", "+1", "1 s", "--1", "0x10"] {
+    for bad in [
+        "",
+        ".",
+        "1.",
+        "1e3",
+        "abc",
+        "1.0000000001",
+        "+1",
+        "1 s",
+        "--1",
+        "0x10",
+    ] {
         assert_eq!(Time::parse(bad), None, "{bad}");
     }
     assert_eq!(Time::parse(".5"), Some(Time::new(1, 2)));
@@ -96,7 +107,9 @@ fn reads_frame_rates() {
     assert_eq!(parse_fps("1"), Ok(1));
     assert_eq!(parse_fps("240"), Ok(240));
     assert_eq!(parse_fps("30000/1001"), Err(FpsError::Ratio));
-    for bad in ["0", "241", "-30", "29.97", "fast", "", "30fps", "1/x", "0030"] {
+    for bad in [
+        "0", "241", "-30", "29.97", "fast", "", "30fps", "1/x", "0030",
+    ] {
         assert_eq!(parse_fps(bad), Err(FpsError::Invalid), "{bad}");
     }
 }

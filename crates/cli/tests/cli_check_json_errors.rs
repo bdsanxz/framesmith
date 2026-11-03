@@ -173,7 +173,10 @@ fn errors_catalog_lists_every_reported_code() {
         "E_NO_FFMPEG",
         "E_DOWNLOAD_FAILED",
     ] {
-        assert!(out.contains(expected), "catalog is missing {expected}:\n{out}");
+        assert!(
+            out.contains(expected),
+            "catalog is missing {expected}:\n{out}"
+        );
     }
     // Each entry carries meaning, example and fix.
     assert!(out.contains("meaning:"), "{out}");
@@ -210,7 +213,10 @@ fn failed_render_repeats_check_diagnostics() {
     let check_codes = error_codes(&check_out);
     assert!(!check_codes.is_empty());
     let render_codes = error_codes(&render_out);
-    assert_eq!(check_codes, render_codes, "check vs render:\n{check_out}\n{render_out}");
+    assert_eq!(
+        check_codes, render_codes,
+        "check vs render:\n{check_out}\n{render_out}"
+    );
 }
 
 #[test]

@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -77,8 +77,8 @@ fn write_wav(dir: &Path, name: &str, secs: f64) {
     out.extend_from_slice(b"data");
     out.extend_from_slice(&data_len.to_le_bytes());
     for i in 0..frames * 2 {
-        let s = ((i as f64 * 440.0 * 2.0 * std::f64::consts::PI / rate as f64).sin()
-            * 10000.0) as i16;
+        let s =
+            ((i as f64 * 440.0 * 2.0 * std::f64::consts::PI / rate as f64).sin() * 10000.0) as i16;
         out.extend_from_slice(&s.to_le_bytes());
     }
     std::fs::write(dir.join(name), out).unwrap();
@@ -118,7 +118,11 @@ fn omitted_still_duration_runs_until_composition_end() {
     let kinds: Vec<&str> = v.inferred.iter().map(|f| f.kind).collect();
     assert_eq!(kinds, vec!["text"], "{:?}", v.inferred);
     assert_eq!(v.inferred[0].duration, 4.0);
-    assert!(v.inferred[0].detail.contains("composition end 4.000s"), "{:?}", v.inferred);
+    assert!(
+        v.inferred[0].detail.contains("composition end 4.000s"),
+        "{:?}",
+        v.inferred
+    );
 }
 
 #[test]
@@ -211,7 +215,9 @@ fn written_audio_duration_stays_unmarked() {
     write_wav(&dir, "s.wav", 4.0);
     write_comp(
         &dir,
-        &format!("{OPEN4}\n             audio path=\"s.wav\" start=0 duration=2\n             }}\n"),
+        &format!(
+            "{OPEN4}\n             audio path=\"s.wav\" start=0 duration=2\n             }}\n"
+        ),
     );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
@@ -299,7 +305,9 @@ fn written_length_below_one_sixtieth_fails_naming_value_and_bound() {
     let dir = tmp("tiny-written");
     write_comp(
         &dir,
-        &format!("{OPEN4}\n             text value=\"Hi\" start=0 duration=0.01\n             }}\n"),
+        &format!(
+            "{OPEN4}\n             text value=\"Hi\" start=0 duration=0.01\n             }}\n"
+        ),
     );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
@@ -320,7 +328,11 @@ fn tiny_composition_fails_naming_value_and_bound() {
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     let all = messages(&dir).join("\n");
     assert!(all.contains("1/60"), "{all}");
-    assert!(codes(&dir).contains(&"E_BAD_DURATION".to_string()), "{:?}", codes(&dir));
+    assert!(
+        codes(&dir).contains(&"E_BAD_DURATION".to_string()),
+        "{:?}",
+        codes(&dir)
+    );
 }
 
 #[test]
@@ -347,7 +359,9 @@ fn looping_video_without_duration_is_refused_until_written() {
     let dir = tmp("loop-open");
     write_comp(
         &dir,
-        &format!("{OPEN4}\n             video path=\"clip.mp4\" start=0 loop=true\n             }}\n"),
+        &format!(
+            "{OPEN4}\n             video path=\"clip.mp4\" start=0 loop=true\n             }}\n"
+        ),
     );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
@@ -404,5 +418,9 @@ fn video_inference_math_is_unchanged() {
     assert_eq!(v.footage.len(), 1);
     assert!(v.footage[0].inferred);
     assert_eq!(v.footage[0].duration, 1.0);
-    assert!(v.inferred.is_empty(), "video keeps its own echo: {:?}", v.inferred);
+    assert!(
+        v.inferred.is_empty(),
+        "video keeps its own echo: {:?}",
+        v.inferred
+    );
 }

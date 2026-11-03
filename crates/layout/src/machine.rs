@@ -144,7 +144,9 @@ fn faces_of_file(path: &Path) -> Option<Vec<MachineFace>> {
         if !colour && !records.iter().any(|(tag, _, _)| tag == b"glyf") {
             continue;
         }
-        let Some((_, name_off, name_len)) = records.iter().find(|(tag, _, _)| tag == b"name").copied() else {
+        let Some((_, name_off, name_len)) =
+            records.iter().find(|(tag, _, _)| tag == b"name").copied()
+        else {
             continue;
         };
         let Some(name) = read_at(&mut file, name_off, name_len) else {
@@ -186,16 +188,25 @@ impl Machine {
                 .filter(|path| {
                     path.is_file()
                         && path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
-                            e.eq_ignore_ascii_case("ttf") || e.eq_ignore_ascii_case("ttc") || e.eq_ignore_ascii_case("otf")
+                            e.eq_ignore_ascii_case("ttf")
+                                || e.eq_ignore_ascii_case("ttc")
+                                || e.eq_ignore_ascii_case("otf")
                         })
                 })
                 .collect();
-            files.sort_by(|a, b| a.as_os_str().as_encoded_bytes().cmp(b.as_os_str().as_encoded_bytes()));
+            files.sort_by(|a, b| {
+                a.as_os_str()
+                    .as_encoded_bytes()
+                    .cmp(b.as_os_str().as_encoded_bytes())
+            });
             for path in files {
                 faces.extend(faces_of_file(&path).unwrap_or_default());
             }
         }
-        Machine { faces, cmaps: HashMap::new() }
+        Machine {
+            faces,
+            cmaps: HashMap::new(),
+        }
     }
 
     /// The generic candidates for `name`: the macOS family, then the
@@ -205,7 +216,10 @@ impl Machine {
     }
 
     pub(crate) fn generic_linux(name: &str) -> Option<&'static str> {
-        GENERIC_LINUX.into_iter().find(|(generic, _)| *generic == name).map(|(_, family)| family)
+        GENERIC_LINUX
+            .into_iter()
+            .find(|(generic, _)| *generic == name)
+            .map(|(_, family)| family)
     }
 
     /// The family of the machine that `name` names: matched without
@@ -219,14 +233,19 @@ impl Machine {
 
     /// The places, in `faces`, of the faces of `family`, in reading order.
     pub(crate) fn faces_of(&self, family: &str) -> Vec<usize> {
-        (0..self.faces.len()).filter(|&at| self.faces[at].family == family).collect()
+        (0..self.faces.len())
+            .filter(|&at| self.faces[at].family == family)
+            .collect()
     }
 
     /// The families of the fallback, in order: the three tried first
     /// where the machine has them, then every other family at the place
     /// of its first face.
     pub(crate) fn fall_back_order(&self) -> Vec<&str> {
-        let mut order: Vec<&str> = FIRST_IN_FALL_BACK.iter().filter_map(|name| self.family(name)).collect();
+        let mut order: Vec<&str> = FIRST_IN_FALL_BACK
+            .iter()
+            .filter_map(|name| self.family(name))
+            .collect();
         for face in &self.faces {
             if !order.contains(&face.family.as_str()) {
                 order.push(face.family.as_str());
@@ -237,12 +256,18 @@ impl Machine {
 
     /// Whether a face of `family` maps `character` past glyph 0.
     pub(crate) fn family_maps(&mut self, family: &str, character: char) -> bool {
-        self.faces_of(family).into_iter().any(|at| self.face_maps(at, character))
+        self.faces_of(family)
+            .into_iter()
+            .any(|at| self.face_maps(at, character))
     }
 
     /// Whether the face at `at` maps `character` past glyph 0.
     fn face_maps(&mut self, at: usize, character: char) -> bool {
-        match self.cmaps.entry(at).or_insert_with(|| self.faces[at].cmap.clone()) {
+        match self
+            .cmaps
+            .entry(at)
+            .or_insert_with(|| self.faces[at].cmap.clone())
+        {
             Some(cmap) => maps_char_in_table(cmap, character),
             None => false,
         }

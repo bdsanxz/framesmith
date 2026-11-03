@@ -66,7 +66,10 @@ fn probe_duration(path: &Path) -> f64 {
         .output()
         .expect("run host ffprobe");
     assert!(out.status.success());
-    String::from_utf8_lossy(&out.stdout).trim().parse().expect("duration parses")
+    String::from_utf8_lossy(&out.stdout)
+        .trim()
+        .parse()
+        .expect("duration parses")
 }
 
 /// One raw RGB frame `n` of `mp4` as bytes.
@@ -133,8 +136,14 @@ fn write(folder: &Path, name: &str, content: &str) {
 #[test]
 fn boundary_clip_shows_on_final_frame() {
     for (tag, clip) in [
-        ("full", "box x=0 y=0 width=64 height=48 fill=\"#ff0000\" start=0 duration=2"),
-        ("half", "box x=0 y=0 width=64 height=48 fill=\"#ff0000\" start=1 duration=1"),
+        (
+            "full",
+            "box x=0 y=0 width=64 height=48 fill=\"#ff0000\" start=0 duration=2",
+        ),
+        (
+            "half",
+            "box x=0 y=0 width=64 height=48 fill=\"#ff0000\" start=1 duration=1",
+        ),
     ] {
         let folder = tmp(&format!("final-{tag}"));
         write(
@@ -170,7 +179,10 @@ fn omitted_still_renders_until_composition_end() {
     let (code, out) = run(&["check", "."], &folder);
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("inferred box"), "{out}");
-    assert!(out.contains("clip duration 2.000s (inferred until composition end 2.000s)"), "{out}");
+    assert!(
+        out.contains("clip duration 2.000s (inferred until composition end 2.000s)"),
+        "{out}"
+    );
     let (code, out) = run(&["check", "--json", "."], &folder);
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("\"kind\":\"box\""), "{out}");
@@ -179,7 +191,10 @@ fn omitted_still_renders_until_composition_end() {
     assert_eq!(code, 0, "{out}");
     let frame = raw_frame(&folder.join("out.mp4"), 59, 64, 48);
     let (r, g, b) = center_pixel(&frame, 64, 48);
-    assert!(r > 200 && g < 100 && b < 100, "still holds to the end, got ({r},{g},{b})");
+    assert!(
+        r > 200 && g < 100 && b < 100,
+        "still holds to the end, got ({r},{g},{b})"
+    );
 }
 
 /// An omitted audio duration renders the source length at the
@@ -199,7 +214,9 @@ fn omitted_audio_renders_source_length_at_rate() {
         let (code, out) = run(&["check", "."], &folder);
         assert_eq!(code, 0, "{tag}: {out}");
         assert!(
-            out.contains(&format!("clip duration {expect:.3}s (inferred from source window")),
+            out.contains(&format!(
+                "clip duration {expect:.3}s (inferred from source window"
+            )),
             "{tag}: {out}"
         );
         assert!(out.contains(&format!("rate {rate}x")), "{tag}: {out}");
@@ -229,7 +246,10 @@ fn omitted_composition_ends_at_latest_finite_clip_end() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
     let rendered = probe_duration(&folder.join("out.mp4"));
-    assert!((rendered - 2.5).abs() < 0.2, "composition ends at 2.5, got {rendered}");
+    assert!(
+        (rendered - 2.5).abs() < 0.2,
+        "composition ends at 2.5, got {rendered}"
+    );
 }
 
 /// A written or resolved length below 1/60s fails naming the value
@@ -249,8 +269,14 @@ fn tiny_length_fails_naming_value_and_bound() {
     assert!(out.contains("1/60"), "{out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "{out}");
-    assert!(!folder.join("out.mp4").exists(), "no MP4 survives the refusal");
-    assert!(!folder.join("out.mp4.framesmith-part").exists(), "no partial survives");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no MP4 survives the refusal"
+    );
+    assert!(
+        !folder.join("out.mp4.framesmith-part").exists(),
+        "no partial survives"
+    );
 }
 
 /// Unbounded clips — a looping video and an open nest without
@@ -281,7 +307,10 @@ fn unbounded_clips_fail_until_duration_is_written() {
     assert!(out.contains("unbounded"), "nest: {out}");
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "nest render: {out}");
-    assert!(!folder.join("out.mp4").exists(), "no MP4 survives the refusal");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no MP4 survives the refusal"
+    );
 }
 
 /// Sprint 5 video inference renders exactly as before: a written
@@ -306,7 +335,10 @@ fn video_inference_regression_renders_byte_identically() {
         "vid-written",
         "video path=\"clip.mp4\" start=0 duration=2 trim-start=1 trim-end=3",
     );
-    let inferred = mk("vid-inferred", "video path=\"clip.mp4\" start=0 trim-start=1 trim-end=3");
+    let inferred = mk(
+        "vid-inferred",
+        "video path=\"clip.mp4\" start=0 trim-start=1 trim-end=3",
+    );
     let (code, out) = run(&["check", "."], &inferred);
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("clip duration 2.000s (inferred)"), "{out}");

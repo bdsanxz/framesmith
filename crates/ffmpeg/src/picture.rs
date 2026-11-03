@@ -102,7 +102,19 @@ pub fn decode_memory(ffmpeg_bin: &Path, bytes: &[u8], label: &str) -> Result<Rgb
         format!("picture {label:?} is not a PNG with a readable header; no picture was decoded")
     })?;
     let mut child = std::process::Command::new(ffmpeg_bin)
-        .args(["-v", "error", "-i", "-", "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgba", "-"])
+        .args([
+            "-v",
+            "error",
+            "-i",
+            "-",
+            "-frames:v",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgba",
+            "-",
+        ])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -118,17 +130,23 @@ pub fn decode_memory(ffmpeg_bin: &Path, bytes: &[u8], label: &str) -> Result<Rgb
         .unwrap_or(Err(std::io::Error::other("no stdin")));
     if let Err(e) = write_out {
         let _ = child.wait();
-        return Err(format!("picture {label:?} could not be fed to ffmpeg (ffmpeg stage): {e}"));
+        return Err(format!(
+            "picture {label:?} could not be fed to ffmpeg (ffmpeg stage): {e}"
+        ));
     }
-    let out = child.wait_with_output().map_err(|e| {
-        format!("picture {label:?} could not be decoded (ffmpeg stage): {e}")
-    })?;
+    let out = child
+        .wait_with_output()
+        .map_err(|e| format!("picture {label:?} could not be decoded (ffmpeg stage): {e}"))?;
     if !out.status.success() {
         let tail = String::from_utf8_lossy(&out.stderr);
         let tail: String = tail.lines().rev().take(3).collect::<Vec<_>>().join(" | ");
         return Err(format!(
             "picture {label:?} is undecodable (ffmpeg stage{})",
-            if tail.is_empty() { String::new() } else { format!(": {tail}") }
+            if tail.is_empty() {
+                String::new()
+            } else {
+                format!(": {tail}")
+            }
         ));
     }
     let expect = width as usize * height as usize * 4;
@@ -188,7 +206,11 @@ pub fn decode_image(ffmpeg_bin: &Path, ffprobe_bin: &Path, path: &Path) -> Resul
         return Err(format!(
             "picture {:?} is undecodable (ffmpeg stage{})",
             path.display(),
-            if tail.is_empty() { String::new() } else { format!(": {tail}") }
+            if tail.is_empty() {
+                String::new()
+            } else {
+                format!(": {tail}")
+            }
         ));
     }
     let expect = width as usize * height as usize * 3;

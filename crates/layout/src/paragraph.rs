@@ -12,7 +12,10 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::Arc;
 
-use parley::{BaseDirection, FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem, StyleProperty};
+use parley::{
+    BaseDirection, FontFamily, FontFamilyName, FontStyle, FontWeight, PositionedLayoutItem,
+    StyleProperty,
+};
 
 use crate::fonts::{EmojiPic, Fonts, FontsRef};
 
@@ -117,10 +120,19 @@ pub enum TextError {
 impl fmt::Display for TextError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TextError::NoFamily => write!(f, "no family of the text is a font of the composition or of the machine"),
-            TextError::MissingCharacter(ch) => write!(f, "the character {ch:?} is in none of the fonts named"),
+            TextError::NoFamily => write!(
+                f,
+                "no family of the text is a font of the composition or of the machine"
+            ),
+            TextError::MissingCharacter(ch) => {
+                write!(f, "the character {ch:?} is in none of the fonts named")
+            }
             TextError::EmojiRefused { character, reason } => {
-                write!(f, "the emoji picture of the character U+{:04X} is refused: {reason}", *character as u32)
+                write!(
+                    f,
+                    "the emoji picture of the character U+{:04X} is refused: {reason}",
+                    *character as u32
+                )
             }
         }
     }
@@ -160,10 +172,21 @@ pub fn layout(
             None => unmapped.push(ch),
         }
     }
-    let names: Vec<FontFamilyName> = families.iter().map(|name| FontFamilyName::named(name)).collect();
+    let names: Vec<FontFamilyName> = families
+        .iter()
+        .map(|name| FontFamilyName::named(name))
+        .collect();
     let stack = FontFamily::List(names.into());
-    let weight = if style.weight >= 650.0 { FontWeight::BOLD } else { FontWeight::NORMAL };
-    let italic = if style.italic { FontStyle::Italic } else { FontStyle::Normal };
+    let weight = if style.weight >= 650.0 {
+        FontWeight::BOLD
+    } else {
+        FontWeight::NORMAL
+    };
+    let italic = if style.italic {
+        FontStyle::Italic
+    } else {
+        FontStyle::Normal
+    };
     let FontsRef { context, layouts } = fonts.parts();
     let mut builder = layouts.ranged_builder(context, text, 1.0, true);
     builder.set_base_direction(BaseDirection::Ltr);
@@ -184,7 +207,10 @@ pub fn layout(
             };
             let run = glyph_run.run();
             for cluster in run.clusters() {
-                let ch = text.get(cluster.text_range()).and_then(|s| s.chars().next()).unwrap_or('\u{fffd}');
+                let ch = text
+                    .get(cluster.text_range())
+                    .and_then(|s| s.chars().next())
+                    .unwrap_or('\u{fffd}');
                 if ch.is_control() || ch.is_whitespace() {
                     continue;
                 }
@@ -253,11 +279,20 @@ pub fn layout(
                 continue;
             };
             if !families.contains(&face.family) {
-                let ch = text.get(run.text_range()).and_then(|s| s.chars().next()).unwrap_or('\u{fffd}');
+                let ch = text
+                    .get(run.text_range())
+                    .and_then(|s| s.chars().next())
+                    .unwrap_or('\u{fffd}');
                 return Err(TextError::MissingCharacter(ch));
             }
             let placed: Vec<_> = glyph_run.positioned_glyphs().collect();
-            let chars = glyph_chars(text, &run, glyph_run.style_index(), &mut taken, placed.len());
+            let chars = glyph_chars(
+                text,
+                &run,
+                glyph_run.style_index(),
+                &mut taken,
+                placed.len(),
+            );
             for (glyph, ch) in placed.iter().zip(chars) {
                 let gx = glyph.x + offset + advance_index as f32 * letter_spacing;
                 advance_index += 1;
@@ -266,7 +301,13 @@ pub fn layout(
                 }
                 // Emoji of a color face draws as its picture, never outlines.
                 if face.colour && !ch.is_whitespace() {
-                    let pic = emoji_of(fonts, ffmpeg_bin, ch, run.font_size()).map_err(|reason| TextError::EmojiRefused { character: ch, reason })?;
+                    let pic =
+                        emoji_of(fonts, ffmpeg_bin, ch, run.font_size()).map_err(|reason| {
+                            TextError::EmojiRefused {
+                                character: ch,
+                                reason,
+                            }
+                        })?;
                     let scale = f64::from(run.font_size()) / f64::from(pic.units_per_em);
                     let px = f64::from(gx) + f64::from(pic.origin_x) * scale;
                     let bottom = f64::from(glyph.y) - f64::from(pic.origin_y) * scale;
@@ -291,7 +332,12 @@ pub fn layout(
                             && last.embolden == embolden
                             && last.colour == glyph_run.style().brush =>
                     {
-                        last.glyphs.push(Glyph { id, x: gx, y: glyph.y, ch });
+                        last.glyphs.push(Glyph {
+                            id,
+                            x: gx,
+                            y: glyph.y,
+                            ch,
+                        });
                     }
                     _ => runs.push(Run {
                         font: face.bytes.clone(),
@@ -300,13 +346,22 @@ pub fn layout(
                         skew_degrees: skew,
                         embolden,
                         colour: glyph_run.style().brush,
-                        glyphs: vec![Glyph { id, x: gx, y: glyph.y, ch }],
+                        glyphs: vec![Glyph {
+                            id,
+                            x: gx,
+                            y: glyph.y,
+                            ch,
+                        }],
                     }),
                 }
                 glyph_total += 1;
             }
         }
-        lines.push(Line { left: offset, width: line_width, baseline: baseline.unwrap_or(height) });
+        lines.push(Line {
+            left: offset,
+            width: line_width,
+            baseline: baseline.unwrap_or(height),
+        });
         glyph_marks.push(glyph_total);
         picture_marks.push(pictures.len());
         height += line.metrics().line_height;
@@ -340,7 +395,13 @@ pub fn layout(
             height += lines.last().map(|l| l.baseline).unwrap_or(old_last) - old_last;
         }
     }
-    Ok(Block { width: block_width, height, runs, pictures, lines })
+    Ok(Block {
+        width: block_width,
+        height,
+        runs,
+        pictures,
+        lines,
+    })
 }
 
 /// Shift flattened glyphs `[start, end)` vertically: runs merge across
@@ -376,12 +437,19 @@ fn glyph_chars(
     let slot = taken.entry((run.text_range().start, style)).or_insert(0);
     let mut out: Vec<Vec<char>> = Vec::new();
     let mut count = 0;
-    for cluster in run.clusters().filter(|cluster| cluster.style_index() == style).skip(*slot) {
+    for cluster in run
+        .clusters()
+        .filter(|cluster| cluster.style_index() == style)
+        .skip(*slot)
+    {
         if count >= wanted {
             break;
         }
         *slot += 1;
-        let ch = text.get(cluster.text_range()).and_then(|s| s.chars().next()).unwrap_or('\u{fffd}');
+        let ch = text
+            .get(cluster.text_range())
+            .and_then(|s| s.chars().next())
+            .unwrap_or('\u{fffd}');
         let n = cluster.glyphs().count().max(1);
         count += n;
         out.push(vec![ch; n]);

@@ -64,8 +64,7 @@ fn scaffold(root: &Path, name: &str) -> PathBuf {
 }
 
 fn log_text(folder: &Path) -> String {
-    std::fs::read_to_string(folder.join("logs").join("framesmith.log"))
-        .expect("run log must exist")
+    std::fs::read_to_string(folder.join("logs").join("framesmith.log")).expect("run log must exist")
 }
 
 fn assert_four_fields(log: &str) {
@@ -139,7 +138,10 @@ fn unsupported_check_and_render_refusal_still_log() {
     assert_eq!(code, 2, "{out}");
     let log = log_text(&folder);
     assert_four_fields(&log);
-    assert!(log.contains("render refused before the first frame"), "{log}");
+    assert!(
+        log.contains("render refused before the first frame"),
+        "{log}"
+    );
     assert!(!folder.join("out.mp4").exists());
 }
 
@@ -193,7 +195,10 @@ fn each_run_logs_under_its_own_run_id() {
         let end = line[pos..].find(' ').map(|i| pos + i).unwrap_or(line.len());
         runs.insert(line[pos..end].to_string());
     }
-    assert!(runs.len() >= 2, "check and render need distinct run ids: {log}");
+    assert!(
+        runs.len() >= 2,
+        "check and render need distinct run ids: {log}"
+    );
     assert!(log.contains("component=check"), "{log}");
     assert!(log.contains("component=bootstrap"), "{log}");
     assert!(log.contains("component=render"), "{log}");

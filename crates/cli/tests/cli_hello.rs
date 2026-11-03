@@ -154,9 +154,7 @@ fn hello_checks_and_renders_to_a_standard_mp4() {
     assert_eq!(raw.len(), 640 * 360 * 3);
     let marked = raw
         .chunks_exact(3)
-        .filter(|p| {
-            (p[0] as i32 - 0x1a) + (p[1] as i32 - 0x1a) + (p[2] as i32 - 0x2e) > 100
-        })
+        .filter(|p| (p[0] as i32 - 0x1a) + (p[1] as i32 - 0x1a) + (p[2] as i32 - 0x2e) > 100)
         .count();
     assert!(marked > 100, "text must be drawn over the background");
 }

@@ -85,8 +85,22 @@ fn gen_video_with_sound(dir: &Path, name: &str, tone: &Path, seconds: f64) {
 fn decode_audio(mp4: &Path) -> Vec<i16> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:a", "-f", "s16le",
-            "-acodec", "pcm_s16le", "-ar", "48000", "-ac", "2", "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:a",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-",
         ])
         .output()
         .expect("decode mp4 audio");
@@ -98,8 +112,20 @@ fn decode_audio(mp4: &Path) -> Vec<i16> {
 fn decode_video(mp4: &Path, w: u32, h: u32) -> Vec<u8> {
     let out = Command::new("ffmpeg")
         .args([
-            "-y", "-v", "error", "-i", &mp4.display().to_string(), "-map", "0:v", "-f", "rawvideo",
-            "-pix_fmt", "rgb24", "-s", &format!("{w}x{h}"), "-",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            &mp4.display().to_string(),
+            "-map",
+            "0:v",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-s",
+            &format!("{w}x{h}"),
+            "-",
         ])
         .output()
         .expect("decode mp4 video");
@@ -166,8 +192,14 @@ fn video_sound_mixes_at_unity_by_default_and_aligns_with_picture() {
     assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
     let onset = onset_frame(&pcm, 500).expect("video sound must be audible");
     println!("video onset: frame {onset}, written 24000");
-    assert!(onset.abs_diff(24000) <= 48, "video sound {onset} misses picture start 24000");
-    assert!(pcm[..2 * 23000].iter().all(|&x| x == 0), "silence before the picture starts");
+    assert!(
+        onset.abs_diff(24000) <= 48,
+        "video sound {onset} misses picture start 24000"
+    );
+    assert!(
+        pcm[..2 * 23000].iter().all(|&x| x == 0),
+        "silence before the picture starts"
+    );
 }
 
 // --- T010: volume and fades ----------------------------------------------------
@@ -177,7 +209,12 @@ fn video_volume_and_fades_shape_the_mix() {
     let root = tmp("shape");
     std::fs::create_dir_all(root.join("src")).unwrap();
     gen_tone(&root.join("src").join("tone.wav"), 440, 2.0);
-    gen_video_with_sound(&root.join("src"), "vsound.mp4", &root.join("src").join("tone.wav"), 2.0);
+    gen_video_with_sound(
+        &root.join("src"),
+        "vsound.mp4",
+        &root.join("src").join("tone.wav"),
+        2.0,
+    );
     let render = |tag: &str, keys: &str| -> Vec<i16> {
         let dir = root.join(tag);
         std::fs::create_dir_all(&dir).unwrap();
@@ -195,19 +232,31 @@ fn video_volume_and_fades_shape_the_mix() {
     let ri = rms(&implicit, 26000, 68000);
     let re = rms(&explicit, 26000, 68000);
     println!("unity rms: implicit={ri:.1} explicit={re:.1}");
-    assert!((ri / re.max(1.0) - 1.0).abs() < 0.05, "unity default must equal volume=0");
+    assert!(
+        (ri / re.max(1.0) - 1.0).abs() < 0.05,
+        "unity default must equal volume=0"
+    );
     // -6 dB halves the amplitude of 0 dB.
     let quiet = render("quiet", " volume=-6");
     let rq = rms(&quiet, 26000, 68000);
     println!("volume rms: 0dB={re:.1} -6dB={rq:.1}");
-    assert!((rq / re.max(1.0) - 0.501).abs() < 0.1, "-6 dB must halve amplitude");
+    assert!(
+        (rq / re.max(1.0) - 0.501).abs() < 0.1,
+        "-6 dB must halve amplitude"
+    );
     // A fade-in over the clip ramps from near silence to full gain.
     let faded = render("faded", " fade-in=0.5");
     let early = rms(&faded, 24100, 26000);
     let late = rms(&faded, 60000, 68000);
     println!("video fade rms: early={early:.1} late={late:.1}");
-    assert!(early < late * 0.35, "video fade-in must ramp from near silence");
-    assert!((late / re.max(1.0) - 1.0).abs() < 0.25, "video fade-in reaches full gain");
+    assert!(
+        early < late * 0.35,
+        "video fade-in must ramp from near silence"
+    );
+    assert!(
+        (late / re.max(1.0) - 1.0).abs() < 0.25,
+        "video fade-in reaches full gain"
+    );
     // A fade-out over the clip falls back toward silence.
     let faded_out = render("fadedout", " fade-out=0.5");
     let tail = rms(&faded_out, 68000, 71500);
@@ -224,7 +273,12 @@ fn video_sound_mixes_with_audio_tracks_and_sums() {
     std::fs::create_dir_all(root.join("src")).unwrap();
     gen_tone(&root.join("src").join("v440.wav"), 440, 2.0);
     gen_tone(&root.join("src").join("a660.wav"), 660, 2.0);
-    gen_video_with_sound(&root.join("src"), "vsound.mp4", &root.join("src").join("v440.wav"), 2.0);
+    gen_video_with_sound(
+        &root.join("src"),
+        "vsound.mp4",
+        &root.join("src").join("v440.wav"),
+        2.0,
+    );
     let render = |tag: &str, body: &str| -> Vec<i16> {
         let dir = root.join(tag);
         std::fs::create_dir_all(&dir).unwrap();
@@ -255,10 +309,17 @@ fn video_sound_mixes_with_audio_tracks_and_sums() {
         "    video path=\"vsound.mp4\" start=0.5 duration=1.0\n    audio path=\"a660.wav\" start=0.5 duration=1.0",
     );
     // Uncorrelated tones add in energy: |both|^2 ~= |video|^2 + |track|^2.
-    let (rv, ra, rb) = (rms(&only_video, 26000, 68000), rms(&only_track, 26000, 68000), rms(&both, 26000, 68000));
+    let (rv, ra, rb) = (
+        rms(&only_video, 26000, 68000),
+        rms(&only_track, 26000, 68000),
+        rms(&both, 26000, 68000),
+    );
     println!("sum rms: video={rv:.1} track={ra:.1} both={rb:.1}");
     let expect = (rv * rv + ra * ra).sqrt();
-    assert!((rb / expect - 1.0).abs() < 0.2, "sounds must sum: {rb} vs {expect}");
+    assert!(
+        (rb / expect - 1.0).abs() < 0.2,
+        "sounds must sum: {rb} vs {expect}"
+    );
 }
 
 // --- T010: silent video ---------------------------------------------------------
@@ -291,11 +352,19 @@ fn soundless_video_renders_normally_with_silent_track() {
         &folder.join("out.mp4"),
         &["stream=codec_name", "stream=sample_rate", "stream=channels"],
     );
-    for want in ["codec_name=h264", "codec_name=aac", "sample_rate=48000", "channels=2"] {
+    for want in [
+        "codec_name=h264",
+        "codec_name=aac",
+        "sample_rate=48000",
+        "channels=2",
+    ] {
         assert!(probe.contains(want), "{probe}");
     }
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert!(pcm.iter().all(|&x| x == 0), "no sound stream means a silent track");
+    assert!(
+        pcm.iter().all(|&x| x == 0),
+        "no sound stream means a silent track"
+    );
 }
 
 // --- T010: undecodable stream ----------------------------------------------------
@@ -324,7 +393,9 @@ fn undecodable_video_sound_refuses_before_the_first_frame() {
     let mut bad = raw.clone();
     let mut seed: u64 = 0x12345678;
     let mut next = || {
-        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        seed = seed
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         (seed >> 33) as u8
     };
     for b in bad.iter_mut().skip(raw.len() / 3).take(raw.len() / 3) {
@@ -358,8 +429,14 @@ fn undecodable_video_sound_refuses_before_the_first_frame() {
     assert_eq!(code, 0, "shape is valid; the failure is at decode: {out}");
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(out.contains("broken_av.mp4"), "refusal names the file: {out}");
-    assert!(out.contains("audio"), "refusal names the undecodable audio stream: {out}");
+    assert!(
+        out.contains("broken_av.mp4"),
+        "refusal names the file: {out}"
+    );
+    assert!(
+        out.contains("audio"),
+        "refusal names the undecodable audio stream: {out}"
+    );
     assert!(!folder.join("out.mp4").exists(), "no MP4 on refusal");
     assert!(!folder.join("out.mp4.framesmith-part").exists());
 }
@@ -382,9 +459,20 @@ fn container_and_picture_guarantees_hold_with_mixed_sound() {
     assert_eq!(code, 0, "{out}");
     let probe = ffprobe(
         &folder.join("out.mp4"),
-        &["stream=codec_name", "stream=pix_fmt", "stream=sample_rate", "stream=channels"],
+        &[
+            "stream=codec_name",
+            "stream=pix_fmt",
+            "stream=sample_rate",
+            "stream=channels",
+        ],
     );
-    for want in ["codec_name=h264", "pix_fmt=yuv420p", "codec_name=aac", "sample_rate=48000", "channels=2"] {
+    for want in [
+        "codec_name=h264",
+        "pix_fmt=yuv420p",
+        "codec_name=aac",
+        "sample_rate=48000",
+        "channels=2",
+    ] {
         assert!(probe.contains(want), "{probe}");
     }
     // Picture does not depend on the mix: the same composition with the

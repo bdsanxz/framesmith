@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -98,7 +98,11 @@ fn duplicate_clip_ids_fail_naming_both_lines() {
     assert_eq!(v.diagnostics.len(), 1, "{:?}", v.diagnostics);
     let d = &v.diagnostics[0];
     assert_eq!(d.code, "E_DUP_ID");
-    assert!(d.message.contains('2') && d.message.contains('3'), "{}", d.message);
+    assert!(
+        d.message.contains('2') && d.message.contains('3'),
+        "{}",
+        d.message
+    );
     assert!(!d.fix.is_empty());
     assert!(d.file.ends_with("composition.kdl"));
 }
@@ -211,14 +215,22 @@ fn several_id_problems_report_together() {
     assert_eq!(v.status, Status::Invalid);
     let mut got = codes(&dir);
     got.sort();
-    assert_eq!(got, vec!["E_BAD_ID", "E_DUP_ID", "E_UNKNOWN_REF"], "{:?}", v.diagnostics);
+    assert_eq!(
+        got,
+        vec!["E_BAD_ID", "E_DUP_ID", "E_UNKNOWN_REF"],
+        "{:?}",
+        v.diagnostics
+    );
 }
 
 #[test]
 fn nest_problems_report() {
     // Unknown nest target.
     let dir = tmp("ids-nest-unknown");
-    write_comp(&dir, &format!("{OPEN}nest nest=\"ghost\" start=0 duration=1\n}}\n"));
+    write_comp(
+        &dir,
+        &format!("{OPEN}nest nest=\"ghost\" start=0 duration=1\n}}\n"),
+    );
     assert_eq!(codes(&dir), vec!["E_UNKNOWN_REF"]);
 
     // Nest naming a clip id instead of a composition.
@@ -235,7 +247,11 @@ fn nest_problems_report() {
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid);
     assert_eq!(codes(&dir), vec!["E_UNKNOWN_REF"]);
-    assert!(v.diagnostics[0].message.contains("clip id"), "{}", v.diagnostics[0].message);
+    assert!(
+        v.diagnostics[0].message.contains("clip id"),
+        "{}",
+        v.diagnostics[0].message
+    );
 
     // Nest without a target.
     let dir = tmp("ids-nest-missing");
@@ -386,7 +402,10 @@ fn unknown_track_fails_naming_accepted_set() {
 #[test]
 fn non_string_label_fails_singly() {
     let dir = tmp("tracks-label-bad");
-    write_comp(&dir, &format!("{OPEN}text value=\"A\" start=0 duration=1 label=5\n}}\n"));
+    write_comp(
+        &dir,
+        &format!("{OPEN}text value=\"A\" start=0 duration=1 label=5\n}}\n"),
+    );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid);
     assert_eq!(v.diagnostics.len(), 1, "{:?}", v.diagnostics);
@@ -409,7 +428,12 @@ fn one_bad_value_yields_one_diagnostic_alongside_others() {
     assert_eq!(v.status, Status::Invalid);
     let mut got = codes(&dir);
     got.sort();
-    assert_eq!(got, vec!["E_BAD_TRACK", "E_UNKNOWN_REF"], "{:?}", v.diagnostics);
+    assert_eq!(
+        got,
+        vec!["E_BAD_TRACK", "E_UNKNOWN_REF"],
+        "{:?}",
+        v.diagnostics
+    );
 }
 
 // --- T005: canvas presets ------------------------------------------------
@@ -465,7 +489,10 @@ fn explicit_dims_override_the_preset() {
     assert_eq!((comp.width, comp.height), (640, 1080));
 
     let dir = tmp("canvas-override2");
-    write_comp(&dir, &canvas_comp("canvas=\"1080p\"", "width=320 height=240"));
+    write_comp(
+        &dir,
+        &canvas_comp("canvas=\"1080p\"", "width=320 height=240"),
+    );
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Valid, "{:?}", v.diagnostics);
     let comp = v.composition.expect("valid composition");

@@ -76,7 +76,10 @@ fn probe_duration(path: &Path) -> f64 {
         .output()
         .expect("run host ffprobe");
     assert!(out.status.success());
-    String::from_utf8_lossy(&out.stdout).trim().parse().expect("duration parses")
+    String::from_utf8_lossy(&out.stdout)
+        .trim()
+        .parse()
+        .expect("duration parses")
 }
 
 fn write(folder: &Path, name: &str, content: &str) {
@@ -179,7 +182,10 @@ fn past_end_trim_end_clamps_and_reports() {
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("\"clamped\":true"), "{out}");
     assert!(out.contains(&format!("\"effective_end\":{src}")), "{out}");
-    assert!(out.contains(&format!("\"effective_duration\":{src}")), "{out}");
+    assert!(
+        out.contains(&format!("\"effective_duration\":{src}")),
+        "{out}"
+    );
 }
 
 /// Several footage problems in one composition are all reported
@@ -198,5 +204,9 @@ fn footage_problems_report_together_with_stable_exits() {
     assert_eq!(out.matches("E_BAD_FOOTAGE").count(), 3, "{out}");
     let (code, out) = run(&["check", "--json", "."], &folder);
     assert_eq!(code, 1, "{out}");
-    assert_eq!(out.matches("\"code\":\"E_BAD_FOOTAGE\"").count(), 3, "{out}");
+    assert_eq!(
+        out.matches("\"code\":\"E_BAD_FOOTAGE\"").count(),
+        3,
+        "{out}"
+    );
 }

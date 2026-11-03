@@ -88,7 +88,8 @@ fn assert_near_blue(px: (u8, u8, u8), what: &str) {
 }
 
 const BOX_A: &str = "box id=\"a\" start=0 duration=1 x=0 y=0 width=64 height=64 fill=\"#ff0000\"\n";
-const BOX_B: &str = "box duration=1 start-after=\"a\" x=0 y=0 width=64 height=64 fill=\"#0000ff\"\n";
+const BOX_B: &str =
+    "box duration=1 start-after=\"a\" x=0 y=0 width=64 height=64 fill=\"#0000ff\"\n";
 
 fn comp_2s(body: &str) -> String {
     format!(
@@ -100,7 +101,11 @@ fn comp_2s(body: &str) -> String {
 fn exact_follower_renders_on_resolved_window() {
     let root = tmp("exact");
     std::fs::create_dir_all(root.join("p")).unwrap();
-    write(&root.join("p"), "composition.kdl", &comp_2s(&format!("{BOX_A}{BOX_B}")));
+    write(
+        &root.join("p"),
+        "composition.kdl",
+        &comp_2s(&format!("{BOX_A}{BOX_B}")),
+    );
     let (code, out) = run(&["check", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["render", "p"], &root);
@@ -121,7 +126,11 @@ fn exact_follower_renders_on_resolved_window() {
 fn relative_render_is_byte_identical_on_rerun() {
     let root = tmp("rerun");
     std::fs::create_dir_all(root.join("p")).unwrap();
-    write(&root.join("p"), "composition.kdl", &comp_2s(&format!("{BOX_A}{BOX_B}")));
+    write(
+        &root.join("p"),
+        "composition.kdl",
+        &comp_2s(&format!("{BOX_A}{BOX_B}")),
+    );
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let first = std::fs::read(root.join("p").join("out.mp4")).unwrap();
@@ -180,7 +189,10 @@ fn offset_chain_renders_at_resolved_time() {
     // B covers [1.5, 2.0): frame 3 (t=1.5) is blue, frame 4 (t=2.0) green.
     assert_near_blue(center(&frames, 3, 64, 64), "frame t=1.5");
     let g = center(&frames, 4, 64, 64);
-    assert!(g.1 > 180 && g.0 < 100 && g.2 < 100, "frame t=2.0 green, found {g:?}");
+    assert!(
+        g.1 > 180 && g.0 < 100 && g.2 < 100,
+        "frame t=2.0 green, found {g:?}"
+    );
 }
 
 #[test]

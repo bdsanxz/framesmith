@@ -15,7 +15,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use render::gpu::{TOL_MAX_PER_CHANNEL_ABS, TOL_MEAN_ABS, TOL_MIN_FRACTION_WITHIN};
-use validate::validate::{Status, validate_folder};
+use validate::validate::{validate_folder, Status};
 
 static N: AtomicU64 = AtomicU64::new(0);
 
@@ -79,7 +79,11 @@ fn ffprobe_csv(select: &str, entries: &str, mp4: &Path) -> String {
         ])
         .output()
         .expect("run host ffprobe");
-    assert!(out.status.success(), "host ffprobe failed for {}", mp4.display());
+    assert!(
+        out.status.success(),
+        "host ffprobe failed for {}",
+        mp4.display()
+    );
     String::from_utf8_lossy(&out.stdout).trim().to_owned()
 }
 
@@ -190,7 +194,9 @@ fn solid_jpg(path: &Path, col: (u8, u8, u8), w: u32, h: u32) {
 fn prepared(folder: &Path) -> render::render::Prepared {
     let verdict = validate_folder(folder);
     assert_eq!(verdict.status, Status::Valid, "{:?}", verdict.diagnostics);
-    let comp = verdict.composition.expect("valid verdict carries a composition");
+    let comp = verdict
+        .composition
+        .expect("valid verdict carries a composition");
     render::render::prepare(&comp, folder, Path::new("ffmpeg")).expect("prepare succeeds")
 }
 
@@ -349,8 +355,7 @@ fn single_frames_equal_full_render_at_any_worker_count() {
             let a = render::gpu::render_frame(&mut g1, k).expect("gpu frame");
             let b = render::gpu::render_frame(&mut g2, k).expect("gpu frame");
             assert_eq!(a, b, "gpu frame {k} differs across preparations");
-            let cmp =
-                render::gpu::compare_frames(&solo[k as usize], &a).expect("pictures compare");
+            let cmp = render::gpu::compare_frames(&solo[k as usize], &a).expect("pictures compare");
             assert!(cmp.pass(), "{}", cmp.report("motion-fixtures", k));
         }
     }
@@ -362,16 +367,31 @@ fn worker_counts_render_byte_identical_mp4s() {
     // counts encodes byte-identical MP4s.
     let root = tmp("wmp4");
     let _folder = motion_folder(&root);
-    let (code, out) = run_env(&["render", "motion", "-o", "w1.mp4"], &root, &[("FRAMESMITH_WORKERS", "1")]);
+    let (code, out) = run_env(
+        &["render", "motion", "-o", "w1.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "1")],
+    );
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run_env(&["render", "motion", "-o", "w9.mp4"], &root, &[("FRAMESMITH_WORKERS", "9")]);
+    let (code, out) = run_env(
+        &["render", "motion", "-o", "w9.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "9")],
+    );
     assert_eq!(code, 0, "{out}");
     let a = std::fs::read(root.join("w1.mp4")).unwrap();
     let b = std::fs::read(root.join("w9.mp4")).unwrap();
     assert_eq!(a, b, "worker counts must not change the MP4 bytes");
-    println!("parity-report: FRAMESMITH_WORKERS=1 vs 9 byte-identical ({} bytes)", a.len());
+    println!(
+        "parity-report: FRAMESMITH_WORKERS=1 vs 9 byte-identical ({} bytes)",
+        a.len()
+    );
     // An invalid worker count falls back to one worker, still identical.
-    let (code, out) = run_env(&["render", "motion", "-o", "wbad.mp4"], &root, &[("FRAMESMITH_WORKERS", "nope")]);
+    let (code, out) = run_env(
+        &["render", "motion", "-o", "wbad.mp4"],
+        &root,
+        &[("FRAMESMITH_WORKERS", "nope")],
+    );
     assert_eq!(code, 0, "{out}");
     let c = std::fs::read(root.join("wbad.mp4")).unwrap();
     assert_eq!(a, c, "invalid worker count must still render identically");
@@ -391,8 +411,14 @@ fn animated_folder_renders_playable_mp4() {
     let mp4 = root.join("out.mp4");
     assert!(mp4.exists(), "MP4 must exist after render");
     // Container guarantees: H.264 yuv420p video + AAC stereo 48 kHz.
-    assert_eq!(ffprobe_csv("v:0", "codec_name,pix_fmt", &mp4), "h264,yuv420p");
-    assert_eq!(ffprobe_csv("a:0", "codec_name,sample_rate,channels", &mp4), "aac,48000,2");
+    assert_eq!(
+        ffprobe_csv("v:0", "codec_name,pix_fmt", &mp4),
+        "h264,yuv420p"
+    );
+    assert_eq!(
+        ffprobe_csv("a:0", "codec_name,sample_rate,channels", &mp4),
+        "aac,48000,2"
+    );
     println!("parity-report: container h264,yuv420p + aac,48000,2 verified by ffprobe");
     // The authored motion shows on decoded frames: the red box starts
     // left and ends right of its start column.
@@ -408,9 +434,15 @@ fn animated_folder_renders_playable_mp4() {
     // Byte-identical CPU rerun.
     let (code, out) = run(&["render", "motion", "-o", "out2.mp4"], &root);
     assert_eq!(code, 0, "{out}");
-    let (a, b) = (std::fs::read(&mp4).unwrap(), std::fs::read(root.join("out2.mp4")).unwrap());
+    let (a, b) = (
+        std::fs::read(&mp4).unwrap(),
+        std::fs::read(root.join("out2.mp4")).unwrap(),
+    );
     assert_eq!(a, b, "CPU reruns stay byte-identical");
-    println!("parity-report: animated render byte-identical rerun ({} bytes)", a.len());
+    println!(
+        "parity-report: animated render byte-identical rerun ({} bytes)",
+        a.len()
+    );
     // Only the explicit MP4 output and the run-log entry are written
     // into the project folder (plus a second explicit -o target here).
     let mut names: Vec<String> = Vec::new();
@@ -418,8 +450,14 @@ fn animated_folder_renders_playable_mp4() {
         names.push(entry);
     }
     names.sort();
-    assert!(!names.iter().any(|n| n.ends_with(".framesmith-part")), "no partial MP4 survives: {names:?}");
-    assert!(names.contains(&"logs/framesmith.log".to_string()), "run log is kept: {names:?}");
+    assert!(
+        !names.iter().any(|n| n.ends_with(".framesmith-part")),
+        "no partial MP4 survives: {names:?}"
+    );
+    assert!(
+        names.contains(&"logs/framesmith.log".to_string()),
+        "run log is kept: {names:?}"
+    );
     assert!(names.contains(&"composition.kdl".to_string()), "{names:?}");
     println!("parity-report: project files after render: {names:?}");
 }
@@ -434,7 +472,12 @@ fn walk(folder: &Path) -> Vec<String> {
             if p.is_dir() {
                 stack.push(p);
             } else {
-                out.push(p.strip_prefix(folder).unwrap().to_string_lossy().replace('\\', "/"));
+                out.push(
+                    p.strip_prefix(folder)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace('\\', "/"),
+                );
             }
         }
     }
@@ -459,8 +502,15 @@ fn animated_refusals_write_no_mp4() {
     assert_eq!(check_code, 1, "{check_out}");
     let (code, out) = run(&["render", "bad-box", "-o", "bad.mp4"], &root);
     assert_eq!(code, 1, "{out}");
-    assert!(!root.join("bad.mp4").exists(), "invalid render writes no MP4");
-    assert!(out.contains(&check_out.lines().next().unwrap_or("").to_string()) || out.contains("E_BAD_BOX"), "{out}");
+    assert!(
+        !root.join("bad.mp4").exists(),
+        "invalid render writes no MP4"
+    );
+    assert!(
+        out.contains(&check_out.lines().next().unwrap_or("").to_string())
+            || out.contains("E_BAD_BOX"),
+        "{out}"
+    );
     // Later-sprint property: axis-separated scale refuses with exit 2.
     let later = root.join("later");
     std::fs::create_dir_all(&later).unwrap();
@@ -472,7 +522,10 @@ fn animated_refusals_write_no_mp4() {
     assert_eq!(run(&["check", "later"], &root).0, 2);
     let (code, out) = run(&["render", "later", "-o", "later.mp4"], &root);
     assert_eq!(code, 2, "{out}");
-    assert!(!root.join("later.mp4").exists(), "unsupported render writes no MP4");
+    assert!(
+        !root.join("later.mp4").exists(),
+        "unsupported render writes no MP4"
+    );
     // Corrupt image: validation magic passes as PNG but decode fails.
     let corrupt = root.join("corrupt");
     std::fs::create_dir_all(&corrupt).unwrap();
@@ -487,8 +540,13 @@ fn animated_refusals_write_no_mp4() {
     let (code, out) = run(&["render", "corrupt", "-o", "corrupt.mp4"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("bad.png"), "{out}");
-    assert!(!root.join("corrupt.mp4").exists(), "corrupt render writes no MP4");
-    println!("parity-report: refusals exit 1/2/1 with no MP4 written (invalid, unsupported, corrupt)");
+    assert!(
+        !root.join("corrupt.mp4").exists(),
+        "corrupt render writes no MP4"
+    );
+    println!(
+        "parity-report: refusals exit 1/2/1 with no MP4 written (invalid, unsupported, corrupt)"
+    );
 }
 
 #[test]
@@ -505,4 +563,3 @@ fn check_and_render_need_no_gpu_hardware() {
     assert!(folder.join("out.mp4").exists());
     println!("parity-report: check+render succeed with no GPU hardware involved");
 }
-

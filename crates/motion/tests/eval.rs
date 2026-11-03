@@ -24,6 +24,7 @@ fn to(list: &[(Prop, f64)], at: &str, duration: &str, ease: Ease) -> Tween {
         at: secs(at),
         duration: secs(duration),
         ease,
+        reversed: false,
     }
 }
 
@@ -36,10 +37,17 @@ fn from(list: &[(Prop, f64)], at: &str, duration: &str, ease: Ease) -> Tween {
         at: secs(at),
         duration: secs(duration),
         ease,
+        reversed: false,
     }
 }
 
-fn from_to(start: &[(Prop, f64)], end: &[(Prop, f64)], at: &str, duration: &str, ease: Ease) -> Tween {
+fn from_to(
+    start: &[(Prop, f64)],
+    end: &[(Prop, f64)],
+    at: &str,
+    duration: &str,
+    ease: Ease,
+) -> Tween {
     Tween {
         target: "#a".into(),
         kind: Kind::FromTo,
@@ -48,6 +56,7 @@ fn from_to(start: &[(Prop, f64)], end: &[(Prop, f64)], at: &str, duration: &str,
         at: secs(at),
         duration: secs(duration),
         ease,
+        reversed: false,
     }
 }
 
@@ -60,6 +69,7 @@ fn set(list: &[(Prop, f64)], at: &str) -> Tween {
         at: secs(at),
         duration: Time::ZERO,
         ease: Ease::Linear,
+        reversed: false,
     }
 }
 
@@ -98,7 +108,16 @@ fn from_tween_holds_its_start_before_it_begins() {
 
 #[test]
 fn from_to_tween_holds_both_ends() {
-    let tl = timeline(&[from_to(&[(Prop::X, 100.0)], &[(Prop::X, 200.0)], "1", "2", Ease::Linear)], 30);
+    let tl = timeline(
+        &[from_to(
+            &[(Prop::X, 100.0)],
+            &[(Prop::X, 200.0)],
+            "1",
+            "2",
+            Ease::Linear,
+        )],
+        30,
+    );
     assert_eq!(at(&tl, Prop::X, "0.5"), 100.0);
     assert_eq!(at(&tl, Prop::X, "2"), 150.0);
     assert_eq!(at(&tl, Prop::X, "4"), 200.0);
@@ -107,7 +126,12 @@ fn from_to_tween_holds_both_ends() {
 #[test]
 fn set_applies_from_its_frame_on() {
     let tl = timeline(&[set(&[(Prop::X, 120.0)], "2")], 30);
-    let frame = |i: i64| tl.elements[0].tracks[0].as_ref().unwrap().value(Time::of_frame(i, 30));
+    let frame = |i: i64| {
+        tl.elements[0].tracks[0]
+            .as_ref()
+            .unwrap()
+            .value(Time::of_frame(i, 30))
+    };
     assert_eq!(frame(59), 0.0);
     assert_eq!(frame(60), 120.0);
     assert_eq!(frame(61), 120.0);
@@ -118,7 +142,13 @@ fn an_earlier_tween_holds_until_the_next_one_starts() {
     let tl = timeline(
         &[
             to(&[(Prop::X, 100.0)], "0", "1", Ease::Linear),
-            from_to(&[(Prop::X, 400.0)], &[(Prop::X, 500.0)], "3", "1", Ease::Linear),
+            from_to(
+                &[(Prop::X, 400.0)],
+                &[(Prop::X, 500.0)],
+                "3",
+                "1",
+                Ease::Linear,
+            ),
         ],
         30,
     );
@@ -146,7 +176,10 @@ fn a_to_tween_starts_from_the_value_in_effect() {
 #[test]
 fn a_from_tween_ends_at_the_value_in_effect() {
     let tl = timeline(
-        &[set(&[(Prop::X, 40.0)], "0"), from(&[(Prop::X, 100.0)], "1", "1", Ease::Linear)],
+        &[
+            set(&[(Prop::X, 40.0)], "0"),
+            from(&[(Prop::X, 100.0)], "1", "1", Ease::Linear),
+        ],
         30,
     );
     assert_eq!(at(&tl, Prop::X, "0.5"), 40.0);
@@ -156,7 +189,10 @@ fn a_from_tween_ends_at_the_value_in_effect() {
 
 #[test]
 fn tweens_with_the_same_start_keep_document_order() {
-    let tl = timeline(&[set(&[(Prop::X, 1.0)], "1"), set(&[(Prop::X, 2.0)], "1")], 30);
+    let tl = timeline(
+        &[set(&[(Prop::X, 1.0)], "1"), set(&[(Prop::X, 2.0)], "1")],
+        30,
+    );
     assert_eq!(at(&tl, Prop::X, "1"), 2.0);
 }
 
@@ -166,7 +202,12 @@ fn eased_tweens_are_exact_at_both_ends() {
         let tl = timeline(&[to(&[(Prop::X, 300.0)], "1", "1", ease)], 30);
         assert_eq!(at(&tl, Prop::X, "1"), 0.0, "{}", ease.name());
         assert_eq!(at(&tl, Prop::X, "2"), 300.0, "{}", ease.name());
-        assert_eq!(at(&tl, Prop::X, "1.5"), 300.0 * ease.apply(0.5), "{}", ease.name());
+        assert_eq!(
+            at(&tl, Prop::X, "1.5"),
+            300.0 * ease.apply(0.5),
+            "{}",
+            ease.name()
+        );
     }
 }
 
@@ -174,13 +215,28 @@ fn eased_tweens_are_exact_at_both_ends() {
 fn the_value_does_not_depend_on_evaluation_order() {
     let tl = timeline(
         &[
-            from(&[(Prop::X, -50.0), (Prop::Opacity, 0.0)], "0.5", "1", Ease::InOutCubic),
-            to(&[(Prop::X, 80.0), (Prop::Rotation, 90.0)], "2", "1", Ease::OutQuart),
+            from(
+                &[(Prop::X, -50.0), (Prop::Opacity, 0.0)],
+                "0.5",
+                "1",
+                Ease::InOutCubic,
+            ),
+            to(
+                &[(Prop::X, 80.0), (Prop::Rotation, 90.0)],
+                "2",
+                "1",
+                Ease::OutQuart,
+            ),
         ],
         30,
     );
-    let forward: Vec<Values> = (0..120).map(|i| tl.elements[0].values(Time::of_frame(i, 30))).collect();
-    let mut backward: Vec<Values> = (0..120).rev().map(|i| tl.elements[0].values(Time::of_frame(i, 30))).collect();
+    let forward: Vec<Values> = (0..120)
+        .map(|i| tl.elements[0].values(Time::of_frame(i, 30)))
+        .collect();
+    let mut backward: Vec<Values> = (0..120)
+        .rev()
+        .map(|i| tl.elements[0].values(Time::of_frame(i, 30)))
+        .collect();
     backward.reverse();
     assert_eq!(forward, backward);
     let bits = |values: &Values| values.map(|v| v.map(f64::to_bits));
@@ -202,7 +258,10 @@ fn times_near_a_frame_are_taken_as_that_frame() {
 fn several_elements_get_the_same_motion() {
     let tweens = [to(&[(Prop::X, 30.0)], "0", "1", Ease::Linear)];
     let tl = Timeline::build(&tweens, &[vec![4, 7, 9]], 30);
-    assert_eq!(tl.elements.iter().map(|e| e.element).collect::<Vec<_>>(), vec![4, 7, 9]);
+    assert_eq!(
+        tl.elements.iter().map(|e| e.element).collect::<Vec<_>>(),
+        vec![4, 7, 9]
+    );
     for element in &tl.elements {
         assert_eq!(element.values(Time::parse("0.5").unwrap())[0], Some(15.0));
     }

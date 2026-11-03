@@ -11,15 +11,26 @@ struct Segment {
     from: f64,
     to: f64,
     ease: Ease,
+    /// Whether the segment plays backward (a `yoyo` repeat's alternate
+    /// pass): the easing runs at the mirrored progress, so the pass
+    /// traces the forward values exactly in reverse. Forward segments
+    /// evaluate exactly as before.
+    reversed: bool,
 }
 
 impl Segment {
     fn value(&self, t: Time) -> f64 {
         if t >= self.end {
-            return self.to;
+            // A reversed pass ends where the forward motion begins.
+            return if self.reversed { self.from } else { self.to };
         }
         let progress = (t - self.at).ratio(self.end - self.at);
-        self.from + (self.to - self.from) * self.ease.apply(progress)
+        let shaped = if self.reversed {
+            self.ease.apply(1.0 - progress)
+        } else {
+            self.ease.apply(progress)
+        };
+        self.from + (self.to - self.from) * shaped
     }
 }
 
@@ -37,7 +48,10 @@ pub struct Track {
 
 impl Track {
     fn build(prop: Prop, own: f64, tweens: &[&Tween], fps: u32) -> Track {
-        let mut ordered: Vec<(Time, &Tween)> = tweens.iter().map(|tween| (tween.at.snapped(fps), *tween)).collect();
+        let mut ordered: Vec<(Time, &Tween)> = tweens
+            .iter()
+            .map(|tween| (tween.at.snapped(fps), *tween))
+            .collect();
         ordered.sort_by_key(|(at, _)| *at);
         let mut segments: Vec<Segment> = Vec::with_capacity(ordered.len());
         for (at, tween) in &ordered {
@@ -50,7 +64,10 @@ impl Track {
             let (from, to) = match tween.kind {
                 Kind::To => (in_effect, given_to.unwrap_or(in_effect)),
                 Kind::From => (given_from.unwrap_or(in_effect), in_effect),
-                Kind::FromTo => (given_from.unwrap_or(in_effect), given_to.unwrap_or(in_effect)),
+                Kind::FromTo => (
+                    given_from.unwrap_or(in_effect),
+                    given_to.unwrap_or(in_effect),
+                ),
                 Kind::Set => {
                     let value = given_to.unwrap_or(in_effect);
                     (value, value)
@@ -62,6 +79,7 @@ impl Track {
                 from,
                 to,
                 ease: tween.ease,
+                reversed: tween.reversed,
             });
         }
         let holds_before = ordered
@@ -117,7 +135,12 @@ impl ElementMotion {
 impl ElementMotion {
     /// The tracks of one element at `fps`, from its tweens in the order written and its own value of each property (the
     /// value it holds before and without a tween), indexed by `Prop::index`.
-    pub fn build(element: usize, tweens: &[Tween], own: [f64; PROP_COUNT], fps: u32) -> ElementMotion {
+    pub fn build(
+        element: usize,
+        tweens: &[Tween],
+        own: [f64; PROP_COUNT],
+        fps: u32,
+    ) -> ElementMotion {
         let tracks = PROPS.map(|prop| {
             let touching: Vec<&Tween> = tweens.iter().filter(|tween| tween.touches(prop)).collect();
             (!touching.is_empty()).then(|| Track::build(prop, own[prop.index()], &touching, fps))
@@ -153,8 +176,13 @@ impl Timeline {
             .map(|element| {
                 let tweens = &per_element[&element];
                 let tracks = PROPS.map(|prop| {
-                    let touching: Vec<&Tween> = tweens.iter().copied().filter(|tween| tween.touches(prop)).collect();
-                    (!touching.is_empty()).then(|| Track::build(prop, prop.own_value(), &touching, fps))
+                    let touching: Vec<&Tween> = tweens
+                        .iter()
+                        .copied()
+                        .filter(|tween| tween.touches(prop))
+                        .collect();
+                    (!touching.is_empty())
+                        .then(|| Track::build(prop, prop.own_value(), &touching, fps))
                 });
                 ElementMotion { element, tracks }
             })

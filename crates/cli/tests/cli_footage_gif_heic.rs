@@ -89,7 +89,10 @@ fn probe_duration(path: &Path) -> f64 {
         .output()
         .expect("run host ffprobe");
     assert!(out.status.success());
-    String::from_utf8_lossy(&out.stdout).trim().parse().expect("duration parses")
+    String::from_utf8_lossy(&out.stdout)
+        .trim()
+        .parse()
+        .expect("duration parses")
 }
 
 /// Convert one HEIC still with the macOS converter (footage scope is
@@ -226,7 +229,11 @@ fn ref_rgb(png: &Path, w: u32, h: u32) -> Vec<u8> {
 /// Mean absolute byte difference between two frames.
 fn frame_mad(a: &[u8], b: &[u8]) -> f64 {
     assert_eq!(a.len(), b.len());
-    let sum: u64 = a.iter().zip(b.iter()).map(|(&x, &y)| x.abs_diff(y) as u64).sum();
+    let sum: u64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(&x, &y)| x.abs_diff(y) as u64)
+        .sum();
     sum as f64 / a.len() as f64
 }
 
@@ -255,7 +262,10 @@ fn animated_gif_maps_native_timings() {
         let got = output_frame(&folder.join("out.mp4"), frame, 64, 48);
         let want = ref_rgb(&folder.join(format!("g{color}.png")), 64, 48);
         let mad = frame_mad(&got, &want);
-        assert!(mad < 15.0, "frame {frame} shows color {color}, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "frame {frame} shows color {color}, mad={mad:.2}"
+        );
     }
 }
 
@@ -293,7 +303,10 @@ fn irregular_gif_selects_covering_frame() {
         let got = output_frame(&folder.join("out.mp4"), frame, 64, 48);
         let want = ref_rgb(&folder.join(format!("refs_{ref_idx}.png")), 64, 48);
         let mad = frame_mad(&got, &want);
-        assert!(mad < 15.0, "frame {frame} covers source frame {ref_idx}, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "frame {frame} covers source frame {ref_idx}, mad={mad:.2}"
+        );
     }
 }
 
@@ -324,7 +337,10 @@ fn gif_trim_rate_and_loop_apply() {
         let got = output_frame(&folder.join("out.mp4"), frame, 64, 48);
         let want = ref_rgb(&folder.join(format!("g{color}.png")), 64, 48);
         let mad = frame_mad(&got, &want);
-        assert!(mad < 15.0, "frame {frame} shows color {color}, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "frame {frame} shows color {color}, mad={mad:.2}"
+        );
     }
 }
 
@@ -335,7 +351,10 @@ fn finite_gif_without_duration_infers_single_play() {
     let folder = tmp("finite");
     gen_finite(&folder);
     let src = probe_duration(&folder.join("finite.gif"));
-    assert!((src - 1.0).abs() < 0.05, "fixture plays once over ~1s, got {src}");
+    assert!(
+        (src - 1.0).abs() < 0.05,
+        "fixture plays once over ~1s, got {src}"
+    );
     write(
         &folder,
         "composition.kdl",
@@ -350,7 +369,10 @@ fn finite_gif_without_duration_infers_single_play() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
     let mp4 = probe_duration(&folder.join("out.mp4"));
-    assert!((mp4 - 1.0).abs() < 0.15, "renders the inferred length, got {mp4}");
+    assert!(
+        (mp4 - 1.0).abs() < 0.15,
+        "renders the inferred length, got {mp4}"
+    );
     gen_solid(&folder, "red.png", "red");
     gen_solid(&folder, "blue.png", "blue");
     let early = output_frame(&folder.join("out.mp4"), 7, 64, 48);
@@ -420,7 +442,10 @@ fn heic_renders_in_image_and_as_held_video() {
     for frame in [0, 15, 29] {
         let got = output_frame(&folder.join("vid.mp4"), frame, 64, 48);
         let mad = frame_mad(&got, &want);
-        assert!(mad < 15.0, "video holds the HEIC frame {frame}, mad={mad:.2}");
+        assert!(
+            mad < 15.0,
+            "video holds the HEIC frame {frame}, mad={mad:.2}"
+        );
     }
 }
 
@@ -447,6 +472,12 @@ fn infinite_gif_without_duration_fails_asking_for_duration() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("duration"), "{out}");
-    assert!(!folder.join("out.mp4").exists(), "no MP4 survives the refusal");
-    assert!(!folder.join("out.mp4.framesmith-part").exists(), "no partial survives");
+    assert!(
+        !folder.join("out.mp4").exists(),
+        "no MP4 survives the refusal"
+    );
+    assert!(
+        !folder.join("out.mp4.framesmith-part").exists(),
+        "no partial survives"
+    );
 }

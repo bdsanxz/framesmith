@@ -280,7 +280,10 @@ fn invalid_fixtures_rejected_with_located_diagnostics() {
         // JSON form reports the same problem set for agents.
         let (exit, out) = run(&["check", "--json", &name], &root);
         assert_eq!(exit, 1, "{dir}: {out}");
-        assert!(out.contains(&format!("\"code\":\"{code}\"")), "{dir}: {out}");
+        assert!(
+            out.contains(&format!("\"code\":\"{code}\"")),
+            "{dir}: {out}"
+        );
         assert!(out.contains("\"line\":"), "{dir}: {out}");
         assert!(out.contains("\"column\":"), "{dir}: {out}");
         // Render refuses and writes no MP4.

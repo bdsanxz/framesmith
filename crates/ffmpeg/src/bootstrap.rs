@@ -247,11 +247,7 @@ fn ensure_explicit(
 /// Automatic path: resolve the newest registry release for the running
 /// OS/arch, verify the publisher-reported archive digest, verify the
 /// extracted binary, install, and announce.
-fn ensure_latest(
-    _host: &FfmpegFinding,
-    host_reason: &str,
-    cfg: &BootstrapConfig,
-) -> Bootstrap {
+fn ensure_latest(_host: &FfmpegFinding, host_reason: &str, cfg: &BootstrapConfig) -> Bootstrap {
     let fail = |cause: String| Bootstrap::Refused {
         code: "E_DOWNLOAD_FAILED",
         message: download_failed_message(
@@ -620,11 +616,7 @@ mod tests {
             std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
         let zip = root.join("ffmpeg-test.zip");
-        std::fs::write(
-            &zip,
-            zip_store_single("ffmpeg", FAKE_FFMPEG.as_bytes()),
-        )
-        .unwrap();
+        std::fs::write(&zip, zip_store_single("ffmpeg", FAKE_FFMPEG.as_bytes())).unwrap();
         let bytes = std::fs::read(&script).unwrap();
         let source = PinSource {
             version: format!("9.0-t-{tag}"),
@@ -679,7 +671,10 @@ mod tests {
         match ensure_ffmpeg(&unsuitable_host(), &cfg) {
             Bootstrap::Refused { code, message } => {
                 assert_eq!(code, "E_NO_FFMPEG");
-                assert!(message.contains("ffmpeg_auto_download = false"), "{message}");
+                assert!(
+                    message.contains("ffmpeg_auto_download = false"),
+                    "{message}"
+                );
                 assert!(message.contains("framesmith.toml"), "{message}");
                 assert!(message.contains(&fx.source.url), "{message}");
                 assert!(message.contains("No MP4 was written"), "{message}");
@@ -736,9 +731,18 @@ mod tests {
             } => {
                 assert!(downloaded);
                 assert_eq!(announcements.len(), 1);
-                assert!(announcements[0].contains("downloaded pinned FFmpeg"), "{announcements:?}");
-                assert!(announcements[0].contains("SHA256 verified"), "{announcements:?}");
-                assert_eq!(ffmpeg_path, ffmpeg::cached_binary(&fx.cache, &fx.source.version));
+                assert!(
+                    announcements[0].contains("downloaded pinned FFmpeg"),
+                    "{announcements:?}"
+                );
+                assert!(
+                    announcements[0].contains("SHA256 verified"),
+                    "{announcements:?}"
+                );
+                assert_eq!(
+                    ffmpeg_path,
+                    ffmpeg::cached_binary(&fx.cache, &fx.source.version)
+                );
                 // The installed binary passes the same bar as host detection.
                 let version = ffmpeg::verify_binary(&ffmpeg_path).unwrap();
                 assert!(version.starts_with("9.0-test"), "{version}");
@@ -807,7 +811,10 @@ mod tests {
                 ..
             } => {
                 assert!(!downloaded);
-                assert!(announcements[0].contains("reusing cached"), "{announcements:?}");
+                assert!(
+                    announcements[0].contains("reusing cached"),
+                    "{announcements:?}"
+                );
             }
             Bootstrap::Refused { message, .. } => panic!("expected cache reuse: {message}"),
         }

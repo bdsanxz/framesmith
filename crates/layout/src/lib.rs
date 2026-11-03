@@ -24,4 +24,4 @@ mod machine;
 mod paragraph;
 
 pub use fonts::{FontError, Fonts, MachineFace};
-pub use paragraph::{Align, Block, Glyph, Line, Picture, Run, Style, TextError, layout};
+pub use paragraph::{layout, Align, Block, Glyph, Line, Picture, Run, Style, TextError};

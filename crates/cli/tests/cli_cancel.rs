@@ -93,7 +93,10 @@ fn ctrl_c_during_frames_exits_130_with_no_files_and_no_child() {
     let pid = child.id();
     // Let the render reach the frames stage, then send one Ctrl-C.
     std::thread::sleep(std::time::Duration::from_secs(3));
-    assert!(child.try_wait().expect("poll child").is_none(), "slow render must still run before SIGINT");
+    assert!(
+        child.try_wait().expect("poll child").is_none(),
+        "slow render must still run before SIGINT"
+    );
     sigint(pid);
     let out = child.wait_with_output().expect("wait child");
     let code = out.status.code().unwrap_or(-1);
@@ -101,16 +104,34 @@ fn ctrl_c_during_frames_exits_130_with_no_files_and_no_child() {
     text.push_str(&String::from_utf8_lossy(&out.stderr));
     println!("cancel output: {text}");
     assert_eq!(code, 130, "Ctrl-C exits 130: {text}");
-    assert!(text.to_lowercase().contains("cancel"), "names the cancellation: {text}");
+    assert!(
+        text.to_lowercase().contains("cancel"),
+        "names the cancellation: {text}"
+    );
     assert!(!folder.join("slowA.mp4").exists(), "no MP4 at the target");
-    assert!(!folder.join("slowA.mp4.framesmith-part").exists(), "no staged part file");
-    assert!(!folder.join("slowA.mp4.framesmith-mix.pcm").exists(), "no staged mix file");
-    assert!(staged_files(&folder, "slowA").is_empty(), "no work files linger");
-    assert!(!stray_ffmpeg("slowA.mp4.framesmith-part"), "no stray FFmpeg child survives");
+    assert!(
+        !folder.join("slowA.mp4.framesmith-part").exists(),
+        "no staged part file"
+    );
+    assert!(
+        !folder.join("slowA.mp4.framesmith-mix.pcm").exists(),
+        "no staged mix file"
+    );
+    assert!(
+        staged_files(&folder, "slowA").is_empty(),
+        "no work files linger"
+    );
+    assert!(
+        !stray_ffmpeg("slowA.mp4.framesmith-part"),
+        "no stray FFmpeg child survives"
+    );
     // A cancelled run is not resumable: re-running starts over and
     // this time completes.
     let _ = std::fs::remove_dir_all(folder.join("logs"));
-    assert!(!stray_ffmpeg("pgrep-unrelated-marker-xyz"), "sanity: no stale marker");
+    assert!(
+        !stray_ffmpeg("pgrep-unrelated-marker-xyz"),
+        "sanity: no stale marker"
+    );
 }
 
 // --- T005: JSON cancel report -----------------------------------------------------
@@ -121,7 +142,15 @@ fn ctrl_c_reports_machine_readable_cancel_with_exit_130() {
     slow_folder(&root);
     let folder = root.join("proj");
     let mut child = Command::new(bin())
-        .args(["render", "proj", "-o", "proj/slowJ.mp4", "--backend", "cpu", "--json"])
+        .args([
+            "render",
+            "proj",
+            "-o",
+            "proj/slowJ.mp4",
+            "--backend",
+            "cpu",
+            "--json",
+        ])
         .current_dir(&root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -129,18 +158,33 @@ fn ctrl_c_reports_machine_readable_cancel_with_exit_130() {
         .expect("spawn framesmith render");
     let pid = child.id();
     std::thread::sleep(std::time::Duration::from_secs(3));
-    assert!(child.try_wait().expect("poll child").is_none(), "slow render must still run before SIGINT");
+    assert!(
+        child.try_wait().expect("poll child").is_none(),
+        "slow render must still run before SIGINT"
+    );
     sigint(pid);
     let out = child.wait_with_output().expect("wait child");
     let code = out.status.code().unwrap_or(-1);
     let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
     println!("cancel stdout: {stdout}");
     assert_eq!(code, 130, "Ctrl-C exits 130");
-    assert!(stdout.contains("\"status\":\"cancelled\""), "JSON names the cancellation: {stdout}");
-    assert!(stdout.contains("\"exit\":130"), "JSON carries exit 130: {stdout}");
+    assert!(
+        stdout.contains("\"status\":\"cancelled\""),
+        "JSON names the cancellation: {stdout}"
+    );
+    assert!(
+        stdout.contains("\"exit\":130"),
+        "JSON carries exit 130: {stdout}"
+    );
     assert!(!folder.join("slowJ.mp4").exists(), "no MP4 at the target");
-    assert!(!folder.join("slowJ.mp4.framesmith-part").exists(), "no staged part file");
-    assert!(!stray_ffmpeg("slowJ.mp4.framesmith-part"), "no stray FFmpeg child survives");
+    assert!(
+        !folder.join("slowJ.mp4.framesmith-part").exists(),
+        "no staged part file"
+    );
+    assert!(
+        !stray_ffmpeg("slowJ.mp4.framesmith-part"),
+        "no stray FFmpeg child survives"
+    );
 }
 
 // --- T005: unremovable leftovers ----------------------------------------------------
@@ -162,7 +206,10 @@ fn unremovable_leftovers_are_named_with_exit_130() {
         .expect("spawn framesmith render");
     let pid = child.id();
     std::thread::sleep(std::time::Duration::from_secs(3));
-    assert!(child.try_wait().expect("poll child").is_none(), "slow render must still run before SIGINT");
+    assert!(
+        child.try_wait().expect("poll child").is_none(),
+        "slow render must still run before SIGINT"
+    );
     sigint(pid);
     let out = child.wait_with_output().expect("wait child");
     let code = out.status.code().unwrap_or(-1);
@@ -170,8 +217,14 @@ fn unremovable_leftovers_are_named_with_exit_130() {
     text.push_str(&String::from_utf8_lossy(&out.stderr));
     println!("leftover output: {text}");
     assert_eq!(code, 130, "leftover cleanup still exits 130: {text}");
-    assert!(text.contains("slowL.mp4.framesmith-part"), "names the leftover path: {text}");
+    assert!(
+        text.contains("slowL.mp4.framesmith-part"),
+        "names the leftover path: {text}"
+    );
     assert!(!folder.join("slowL.mp4").exists(), "no MP4 at the target");
-    assert!(!stray_ffmpeg("slowL.mp4.framesmith-part"), "no stray FFmpeg child survives");
+    assert!(
+        !stray_ffmpeg("slowL.mp4.framesmith-part"),
+        "no stray FFmpeg child survives"
+    );
     let _ = std::fs::remove_dir_all(folder.join("slowL.mp4.framesmith-part"));
 }

@@ -99,7 +99,10 @@ fn parse_listing_args(cmd: &str, args: &[String]) -> (PathBuf, Option<String>, b
         (None, p) => p,
     };
     if cmd == "compositions" && name.is_some() {
-        listing_usage_error(cmd, "expected exactly one <folder> (compositions takes no name)");
+        listing_usage_error(
+            cmd,
+            "expected exactly one <folder> (compositions takes no name)",
+        );
     }
     (folder, name, json)
 }
@@ -142,7 +145,9 @@ fn main() {
                     }
                     other => {
                         if name.is_some() {
-                            eprintln!("framesmith init: expected one <name>, found extra {other:?}.");
+                            eprintln!(
+                                "framesmith init: expected one <name>, found extra {other:?}."
+                            );
                             std::process::exit(2);
                         }
                         name = Some(other.to_string());
@@ -182,7 +187,9 @@ fn main() {
                 } else if arg.starts_with('-') {
                     check_usage_error(&format!("unknown flag {arg:?}"));
                 } else if folder.is_some() {
-                    check_usage_error(&format!("expected exactly one <folder>, found extra {arg:?}"));
+                    check_usage_error(&format!(
+                        "expected exactly one <folder>, found extra {arg:?}"
+                    ));
                 } else {
                     folder = Some(arg.clone());
                 }
@@ -231,7 +238,9 @@ fn main() {
                     "--backend" => {
                         i += 1;
                         if i >= args.len() {
-                            eprintln!("framesmith render: --backend needs a value (cpu, gpu, or auto).");
+                            eprintln!(
+                                "framesmith render: --backend needs a value (cpu, gpu, or auto)."
+                            );
                             std::process::exit(2);
                         }
                         if req.backend.is_some() {
