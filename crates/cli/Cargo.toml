@@ -16,3 +16,4 @@ glyph = { path = "../glyph" }
 ffmpeg = { path = "../ffmpeg" }
 log = { path = "../log" }
 render = { path = "../render" }
+serde_json = "1"

@@ -6,9 +6,12 @@
 //! * `framesmith check [--json] <folder>` — validate without rendering.
 //! * `framesmith errors [--json] [CODE]` — explain error codes.
 //! * `framesmith render <folder> [-o <out.mp4>] [--composition <name>] [--start S] [--end E]
-//!   [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]`
+//!   [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]
+//!   [--variables JSON] [--strict-variables] [--theme NAME]`
 //!   — validate, bootstrap FFmpeg (pinned self-download or refusal),
 //!   refuse or encode with staged progress.
+//! * `framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]`
+//!   — one MP4 per rows-file row plus a per-row summary.
 //!
 //! Drawing, sound and the full per-run log arrive with later tasks.
 
@@ -25,13 +28,14 @@ fn usage() -> ! {
     eprintln!(
         "usage:\n\
          \x20 framesmith init <name> [--dir <parent>]\n\
-         \x20 framesmith check [--json] [--backend cpu|gpu|auto] <folder>\n\
+         \x20 framesmith check [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] <folder>\n\
          \x20 framesmith errors [--json] [CODE]\n\
          \x20 framesmith compositions [--json] <folder>\n\
          \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
-         \x20 framesmith render <folder> [-o <output.mp4>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]"
+         \x20 framesmith render <folder> [-o <output.mp4>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--variables JSON] [--strict-variables] [--theme NAME] [--json]\n\
+         \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row"
     );
     std::process::exit(2);
 }
@@ -110,7 +114,9 @@ fn parse_listing_args(cmd: &str, args: &[String]) -> (PathBuf, Option<String>, b
 
 fn check_usage_error(msg: &str) -> ! {
     eprintln!("framesmith check: {msg}.");
-    eprintln!("usage: framesmith check [--json] <folder>");
+    eprintln!(
+        "usage: framesmith check [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] <folder>"
+    );
     std::process::exit(2);
 }
 
@@ -173,6 +179,9 @@ fn main() {
         "check" => {
             let mut json = false;
             let mut backend: Option<String> = None;
+            let mut variables: Option<String> = None;
+            let mut strict_variables = false;
+            let mut theme: Option<String> = None;
             let mut folder: Option<String> = None;
             let mut i = 1;
             while i < args.len() {
@@ -191,6 +200,31 @@ fn main() {
                         check_usage_error("duplicate --backend flag");
                     }
                     backend = Some(args[i].clone());
+                } else if *arg == "--variables" {
+                    i += 1;
+                    if i >= args.len() {
+                        check_usage_error(
+                            "--variables needs a value (a JSON object of string keys to scalar values)",
+                        );
+                    }
+                    if variables.is_some() {
+                        check_usage_error("duplicate --variables flag");
+                    }
+                    variables = Some(args[i].clone());
+                } else if *arg == "--strict-variables" {
+                    if strict_variables {
+                        check_usage_error("duplicate --strict-variables flag");
+                    }
+                    strict_variables = true;
+                } else if *arg == "--theme" {
+                    i += 1;
+                    if i >= args.len() {
+                        check_usage_error("--theme needs a value (a declared theme name)");
+                    }
+                    if theme.is_some() {
+                        check_usage_error("duplicate --theme flag");
+                    }
+                    theme = Some(args[i].clone());
                 } else if arg.starts_with('-') {
                     check_usage_error(&format!("unknown flag {arg:?}"));
                 } else if folder.is_some() {
@@ -204,7 +238,14 @@ fn main() {
             }
             match folder {
                 // A bare `--json` with no folder is unparseable, not silent.
-                Some(f) => commands::cmd_check(Path::new(&f), json, backend.as_deref()),
+                Some(f) => commands::cmd_check_full_strict_themed(
+                    Path::new(&f),
+                    json,
+                    backend.as_deref(),
+                    variables.as_deref(),
+                    strict_variables,
+                    theme.as_deref(),
+                ),
                 None => check_usage_error("expected exactly one <folder>"),
             }
         }
@@ -334,6 +375,84 @@ fn main() {
                         }
                         req.end = Some(args[i].clone());
                     }
+                    "--variables" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --variables needs a value (a JSON object of string keys to scalar values).");
+                            std::process::exit(2);
+                        }
+                        if req.variables.is_some() {
+                            eprintln!("framesmith render: duplicate --variables flag.");
+                            std::process::exit(2);
+                        }
+                        req.variables = Some(args[i].clone());
+                    }
+                    "--strict-variables" => {
+                        if req.strict_variables {
+                            eprintln!("framesmith render: duplicate --strict-variables flag.");
+                            std::process::exit(2);
+                        }
+                        req.strict_variables = true;
+                    }
+                    "--theme" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith render: --theme needs a value (a declared theme name)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if req.theme.is_some() {
+                            eprintln!("framesmith render: duplicate --theme flag.");
+                            std::process::exit(2);
+                        }
+                        req.theme = Some(args[i].clone());
+                    }
+                    "--batch" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith render: --batch needs a value (a JSON rows file)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if req.batch.is_some() {
+                            eprintln!("framesmith render: duplicate --batch flag.");
+                            std::process::exit(2);
+                        }
+                        req.batch = Some(args[i].clone());
+                    }
+                    "--name-template" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --name-template needs a value (for example \"clip-{{title}}-{{index}}\").");
+                            std::process::exit(2);
+                        }
+                        if req.name_template.is_some() {
+                            eprintln!("framesmith render: duplicate --name-template flag.");
+                            std::process::exit(2);
+                        }
+                        req.name_template = Some(args[i].clone());
+                    }
+                    "--jobs" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --jobs needs a value (a worker count from 1 to 64).");
+                            std::process::exit(2);
+                        }
+                        if req.jobs.is_some() {
+                            eprintln!("framesmith render: duplicate --jobs flag.");
+                            std::process::exit(2);
+                        }
+                        req.jobs = Some(args[i].clone());
+                    }
+                    "--fail-fast" => {
+                        if req.fail_fast {
+                            eprintln!("framesmith render: duplicate --fail-fast flag.");
+                            std::process::exit(2);
+                        }
+                        req.fail_fast = true;
+                    }
                     other if other.starts_with('-') => {
                         eprintln!("framesmith render: unknown flag {other:?}.");
                         std::process::exit(2);
@@ -349,6 +468,12 @@ fn main() {
                     }
                 }
                 i += 1;
+            }
+            if req.batch.is_none()
+                && (req.name_template.is_some() || req.jobs.is_some() || req.fail_fast)
+            {
+                eprintln!("framesmith render: --name-template, --jobs, and --fail-fast need --batch (a JSON rows file).");
+                std::process::exit(2);
             }
             match folder {
                 Some(f) => commands::cmd_render_full(Path::new(&f), output.as_deref(), &req),
@@ -441,13 +566,14 @@ fn main() {
                 "framesmith — turn a small KDL composition folder into a playable MP4.\n\n\
                  commands:\n\
                  \x20 init <name> [--dir <parent>]  create a minimal valid project\n\
-                 \x20 check [--json] [--backend cpu|gpu|auto] <folder>  validate without rendering (exit 0 valid, 1 invalid, 2 unsupported)\n\
+                 \x20 check [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] <folder>  validate without rendering (exit 0 valid, 1 invalid, 2 unsupported)\n\
                  \x20 errors [--json] [CODE]        explain every error code\n\
                  \x20 compositions [--json] <folder>  list every composition name plus the root\n\
                  \x20 timeline [--json] [--composition <name>] <folder> [<name>]  list every clip with id, track, label, hidden state, and window\n\
                  \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
                  \x20 waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]  report per-bucket mix peaks plus the master peak\n\
-                 \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]  validate, bootstrap FFmpeg, refuse or encode"
+                 \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--variables JSON] [--strict-variables] [--theme NAME] [--json]  validate, bootstrap FFmpeg, refuse or encode\n\
+                 \x20 render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row plus a per-row summary"
             );
             0
         }

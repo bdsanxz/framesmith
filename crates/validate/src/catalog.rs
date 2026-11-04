@@ -189,6 +189,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Set `track` to `video`, `audio`, `caption`, or `graphics`, or remove the key for the kind default; tracks never change rendered output.",
     },
     CatalogEntry {
+        code: "E_BAD_VARIABLE",
+        meaning: "A `variable` declaration names an unknown type, a default outside its type, an `enum` without at least two `options` (or a default outside them), `options` on a non-`enum` type, or carries children; a `var(--id)` binding names an unknown or valueless variable, uses bad `var()` syntax, sits in a structural reference (`id`, `track`, `start-after` targets) or the composition timing foundation (`name`, `width`, `height`, `duration`, `fps`), or substitutes a value outside the attribute's shape; a `--variables` override value sits outside its variable's type; a `theme` block misnames itself, repeats a theme or token name, or holds non-`token` children; a composition selects two themes or an unknown theme; a `--theme` flag names no declared theme; a `var(--x)` resolves through nothing (no override, no theme token, no default, no fallback); or, under `--strict-variables`, an override key names no declared variable, a declaration is never bound by `var(--id)`, or a default-less variable received no caller value.",
+        example: "variable id=\"accent\" type=\"color\" default=\"red\"   // not a `#rgb`/`#rrggbb` color",
+        fix: "Set `type` to one of `string`, `number`, `color`, `boolean`, `enum`, `font`, or `image`; match the `default` to the type's shape (`#rgb`/`#rrggbb` colors, decimals, `true`/`false`, an entry of `options`, a quoted font family list, a readable project-relative image path); give every `enum` at least two `options`. Write bindings as `var(--id)` or `var(--id, fallback)` in text, media, and ordinary attributes (including motion values), never in `id`, `track`, `start-after`, or composition timing keys. Pass `--variables '{\"id\":value}'` with one scalar (string, number, or boolean) per key matching the variable's type; unknown keys only warn. Group shared looks in `theme name=\"...\" { token id=\"...\" value=\"...\" }`, select one per render with the composition `theme` attribute or `--theme`; a composition selects at most one theme and the name must match a declared block. Under `--strict-variables`, supply the value, remove the key, bind the variable, or drop the flag for warning-only mode.",
+    },
+    CatalogEntry {
         code: "E_BAD_VERSION",
         meaning: "The notation `version` is missing or is an integer below 1.",
         example: "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=0 { }",
@@ -349,6 +355,7 @@ mod tests {
         "E_BAD_TEXT",
         "E_BAD_TIMING",
         "E_BAD_TRACK",
+        "E_BAD_VARIABLE",
         "E_BAD_VERSION",
         "E_DOWNLOAD_FAILED",
         "E_DUP_ID",

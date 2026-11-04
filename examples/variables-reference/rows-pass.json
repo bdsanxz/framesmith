@@ -1,0 +1,5 @@
+[
+  {"variables": {"title": "Alpha"}},
+  {"variables": {"title": "Beta", "accent": "#0000ff"}},
+  {"variables": {"title": "Gamma", "align": "left", "tagline": "On sale"}}
+]

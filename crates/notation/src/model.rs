@@ -2327,6 +2327,91 @@ pub struct InputDecl {
     pub column: usize,
 }
 
+/// One declared render variable (Sprint 9 variables, CAP-001): a
+/// `variable` element names one per-render constant with a type and
+/// an optional default. Bindings (`var(--id)`, T002), caller
+/// overrides (T003), strict reporting (T004), themes (T005), and
+/// batch rows (T006) compose on top of this vocabulary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VariableType {
+    String,
+    Number,
+    Color,
+    Boolean,
+    Enum,
+    Font,
+    Image,
+}
+
+impl VariableType {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "string" => Some(VariableType::String),
+            "number" => Some(VariableType::Number),
+            "color" => Some(VariableType::Color),
+            "boolean" => Some(VariableType::Boolean),
+            "enum" => Some(VariableType::Enum),
+            "font" => Some(VariableType::Font),
+            "image" => Some(VariableType::Image),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            VariableType::String => "string",
+            VariableType::Number => "number",
+            VariableType::Color => "color",
+            VariableType::Boolean => "boolean",
+            VariableType::Enum => "enum",
+            VariableType::Font => "font",
+            VariableType::Image => "image",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 7] = [
+        "string", "number", "color", "boolean", "enum", "font", "image",
+    ];
+}
+
+/// One validated variable default (Sprint 9 variables, CAP-001):
+/// the declared `default` coerced to the declaration's type.
+/// `None` on the declaration means default-less (a later slice
+/// requires a caller value for it under strict validation).
+#[derive(Debug, Clone, PartialEq)]
+pub enum VariableDefault {
+    Str(String),
+    Num(f64),
+    Color(Rgb),
+    Bool(bool),
+    Enum(String),
+    /// Font family list in try order, like `font-family`: missing
+    /// families are skipped per entry at bind time, and a list
+    /// nothing resolves fails closed there.
+    Font(Vec<String>),
+    /// Project-relative media path, checked present at declaration.
+    Image(String),
+}
+
+/// One `variable` declaration (Sprint 9 variables, CAP-001).
+#[derive(Debug, Clone)]
+pub struct VariableDecl {
+    /// Declared id, unique across the project.
+    pub id: String,
+    pub var_type: VariableType,
+    /// Typed default; none means the declaration carries no default
+    /// (strict validation in a later slice requires a caller value).
+    pub default: Option<VariableDefault>,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Declared `options` for `enum` (at least two entries); none for
+    /// every other type.
+    pub options: Option<Vec<String>>,
+    pub line: usize,
+    pub column: usize,
+}
+
 /// One `replicate` expansion (Sprint 7 motion, CAP-010): `count`
 /// clones of one template clip, in document order starting at clip
 /// `first`. Clone `k` exposes piece index `i = k` to expressions
@@ -2373,6 +2458,10 @@ pub struct Composition {
     /// CAP-010). Every `expr` in this composition resolves bare names
     /// against these; anything else is refused as unknown.
     pub inputs: Vec<InputDecl>,
+    /// Declared render variables, in written order (Sprint 9
+    /// variables, CAP-001). Empty for variable-free compositions,
+    /// which validate and render exactly as before.
+    pub variables: Vec<VariableDecl>,
     /// `replicate` expansions, in document order (Sprint 7 motion,
     /// CAP-010). Empty for replicate-free compositions.
     pub replicates: Vec<ReplicateGroup>,

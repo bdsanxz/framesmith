@@ -10,3 +10,4 @@ notation = { path = "../notation" }
 glyph = { path = "../glyph" }
 motion = { path = "../motion" }
 usvg = "0.46"
+serde_json = "1"

@@ -1,0 +1,26 @@
+theme name="brand" {
+    token id="accent" value="#ff3366"
+    token id="headline" value="Brand premiere"
+}
+theme name="bold" {
+    token id="accent" value="#00ff00"
+    token id="headline" value="Bold premiere"
+}
+composition name="main" width=320 height=240 duration=2 background="#101010" version=1 theme="brand" {
+    font path="fonts/Body.ttf"
+    variable id="title" type="string" default="Hello"
+    variable id="count" type="number" default=1.5
+    variable id="accent" type="color" default="#123456"
+    variable id="show" type="boolean" default=false
+    variable id="align" type="enum" options="left, center, right" default="center"
+    variable id="brand" type="font" default="Arial"
+    variable id="hero" type="image" default="hero.png"
+    variable id="spare" type="string" default="unused"
+    variable id="tagline" type="string"
+    text value="Now showing: var(--title)" start=0 duration=2 x="var(--count)" size=24 align="var(--align)" color="var(--accent)" font-family="var(--brand)"
+    text value="var(--headline)" start=0 duration=2 y=120 color="var(--accent)"
+    text value="var(--tagline, Fresh daily)" start=0 duration=2 y=180 hidden="var(--show)"
+    image path="var(--hero)" x=200 y=40 width=96 height=72 start=0 duration=2
+    box x=8 y=8 width=40 height=24 fill="var(--accent)" start=0 duration=2
+    tween target=0 property="x" kind="to" start=0 duration=1 to="var(--count)" ease="linear"
+}

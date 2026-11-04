@@ -15,11 +15,12 @@ use notation::model::{
     KeyDecl, KeyStop, MarkDecl, MaskRef, NestClip, Normalize, Overflow, PathClip, Placement,
     ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid, StaggerOrigin, StartAfter,
     StrokePosition, SvgClip, TextClip, TextDirection, TextSpan, TrackKind, Turn3D, TweenDecl,
-    TweenKind, VideoClip, WaveformDraw, WaveformRangeError, CONFIG_FILE, MIN_DURATION_SECS,
-    REPEAT_MAX, REPEAT_MIN,
+    TweenKind, VariableDecl, VariableDefault, VariableType, VideoClip, WaveformDraw,
+    WaveformRangeError, CONFIG_FILE, MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
 use std::borrow::Cow;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 /// One located, coded problem (or, for unsupported use, one
@@ -85,6 +86,13 @@ pub struct Verdict {
     /// marked `root=true`). `None` when the project is invalid.
     pub root_name: Option<String>,
     pub diagnostics: Vec<Diagnostic>,
+    /// One entry per `--variables`/host-map key naming no declared
+    /// variable, plus one per declared-but-never-bound variable
+    /// (Sprint 9 variables, CAP-003/CAP-004): warned visibly in
+    /// default mode without blocking the render. Never blocks on its
+    /// own; under `--strict-variables` both report as `E_BAD_VARIABLE`
+    /// diagnostics instead and this list stays empty.
+    pub variable_warnings: Vec<VariableWarning>,
     /// One entry per staggered `tween`/`key` whose pieces run past
     /// the target clip window (Sprint 7 motion, CAP-002): the cut is
     /// reviewable here with the numbers, never a diagnostic, so
@@ -872,6 +880,11 @@ struct Ctx<'a> {
     stagger_clamps: Vec<StaggerClamp>,
     ids: Vec<IdEntry>,
     refs: Vec<RefEntry>,
+    /// Every substituted `var()` use site (Sprint 9 variables, CAP-002):
+    /// the attribute location plus the variable ids it drew on. The
+    /// end-of-validation amendment pass uses these to name the variable
+    /// behind any coercion failure at the same location.
+    bindings: Vec<BindingSite>,
     crossfade_clamps: Vec<CrossfadeClamp>,
     effect_tails: Vec<EffectTail>,
     silences: Vec<SilenceReport>,
@@ -880,6 +893,21 @@ struct Ctx<'a> {
     /// order (Sprint 6 T006). Id and reference entries stamp this so
     /// cross-composition `start-after` targets can refuse.
     current_comp: usize,
+    /// Per-render caller values for this verdict (Sprint 9 variables,
+    /// CAP-003): every declared default they name is swapped for the
+    /// coerced override in memory only. The project on disk is never
+    /// written.
+    overrides: VariableOverrides,
+    /// Default-mode variable warnings collected for the verdict
+    /// (Sprint 9 variables, CAP-003/CAP-004): unknown override keys and
+    /// declared-but-never-bound variables. Warned visibly without
+    /// blocking; empty under `--strict-variables` (both refuse there).
+    override_warnings: Vec<VariableWarning>,
+    /// Strict variable validation (Sprint 9 variables, CAP-004): when
+    /// true, unknown override keys and declared-but-never-bound
+    /// variables refuse as `E_BAD_VARIABLE` instead of warning, and
+    /// every default-less variable without a supplied value refuses.
+    strict: bool,
 }
 
 impl<'a> Ctx<'a> {
@@ -1447,7 +1475,167 @@ fn validate_config(folder: &Path, ctx_file: &str) -> (bool, Vec<Diagnostic>) {
 }
 
 /// Parse and validate one project folder. Never writes anything.
+/// One per-render caller value (Sprint 9 variables, CAP-003): the
+/// JSON scalar behind one `--variables` key or host-map entry.
+/// Objects, arrays, and null are never variable values; the parser
+/// below refuses them naming the flag and the expected shape.
+#[derive(Debug, Clone, PartialEq)]
+pub enum OverrideValue {
+    Str(String),
+    Num(f64),
+    Bool(bool),
+}
+
+/// Per-render caller values keyed by variable id (Sprint 9 variables,
+/// CAP-003): the host entry passes this map directly, the CLI builds
+/// it with [`parse_variable_overrides`]. Sorted so resolution and
+/// unknown-key warnings stay deterministic across runs.
+pub type VariableOverrides = BTreeMap<String, OverrideValue>;
+
+/// One unknown override key (Sprint 9 variables, CAP-003): warned
+/// visibly in default mode without blocking the render.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VariableWarning {
+    /// The override key naming no declared variable.
+    pub key: String,
+    pub message: String,
+    pub fix: String,
+}
+
+impl std::fmt::Display for VariableWarning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "warning: {} (fix: {})", self.message, self.fix)
+    }
+}
+
+/// Render one caller value for diagnostics (Sprint 9 variables,
+/// CAP-003): the value the caller supplied, so refusals can name it.
+fn override_text(value: &OverrideValue) -> String {
+    match value {
+        OverrideValue::Str(s) => format!("{s:?}"),
+        OverrideValue::Num(x) => x.to_string(),
+        OverrideValue::Bool(b) => b.to_string(),
+    }
+}
+
+/// Shorten a `--variables` payload for diagnostics (Sprint 9 variables,
+/// CAP-003): the head plus an ellipsis marker, so a huge payload never
+/// floods the refusal.
+fn short_payload(raw: &str) -> String {
+    const MAX: usize = 160;
+    if raw.len() <= MAX {
+        format!("{raw:?}")
+    } else {
+        format!("{:?}...", &raw[..MAX])
+    }
+}
+
+/// Parse one `--variables` payload (Sprint 9 variables, CAP-003): a
+/// JSON object of string keys to scalar values (string, number, or
+/// boolean), for example `--variables '{"title":"Sale"}'`. Every
+/// failure names the flag and the expected shape: unparseable JSON, a
+/// non-object payload, or an object, array, or null value.
+pub fn parse_variable_overrides(raw: &str) -> Result<VariableOverrides, String> {
+    const SHAPE: &str = "a JSON object of string keys to scalar values (for example `--variables '{\"title\":\"Sale\"}'`)";
+    let value: serde_json::Value = serde_json::from_str(raw).map_err(|e| {
+        format!(
+            "--variables {} is not valid JSON ({e}); expected {SHAPE}",
+            short_payload(raw)
+        )
+    })?;
+    let obj = match value {
+        serde_json::Value::Object(map) => map,
+        _ => {
+            return Err(format!(
+                "--variables {} is not a JSON object; expected {SHAPE}",
+                short_payload(raw)
+            ));
+        }
+    };
+    let mut out = VariableOverrides::new();
+    for (key, val) in obj {
+        let parsed = match val {
+            serde_json::Value::String(s) => OverrideValue::Str(s),
+            serde_json::Value::Number(n) => match n.as_f64() {
+                Some(x) if x.is_finite() => OverrideValue::Num(x),
+                _ => {
+                    return Err(format!(
+                        "--variables key {key:?} holds a non-finite number; expected a scalar value (a string, finite number, or boolean)"
+                    ));
+                }
+            },
+            serde_json::Value::Bool(b) => OverrideValue::Bool(b),
+            serde_json::Value::Array(_) => {
+                return Err(format!(
+                    "--variables key {key:?} holds an array; expected a scalar value (a string, number, or boolean) — arrays are not variable values"
+                ));
+            }
+            serde_json::Value::Object(_) => {
+                return Err(format!(
+                    "--variables key {key:?} holds an object; expected a scalar value (a string, number, or boolean) — objects are not variable values"
+                ));
+            }
+            serde_json::Value::Null => {
+                return Err(format!(
+                    "--variables key {key:?} holds null; expected a scalar value (a string, number, or boolean) — null is not a variable value"
+                ));
+            }
+        };
+        out.insert(key, parsed);
+    }
+    Ok(out)
+}
+
 pub fn validate_folder(folder: &Path) -> Verdict {
+    validate_folder_with_variables(folder, &VariableOverrides::new())
+}
+
+/// Validate one project folder in default variable mode (Sprint 9
+/// variables, CAP-003): unknown override keys and declared-but-never-
+/// bound variables warn visibly without blocking; every default-less
+/// variable used without a fallback still refuses through the binding
+/// pass. `check` and `render` without `--strict-variables` run here.
+pub fn validate_folder_with_variables(folder: &Path, overrides: &VariableOverrides) -> Verdict {
+    validate_folder_with_variables_strict(folder, overrides, false)
+}
+
+/// Validate one project folder with per-render caller values and an
+/// explicit strict switch (Sprint 9 variables, CAP-004): the host
+/// entry for overrides plus strict mode. Supplied values replace
+/// matching defaults for this verdict only; nothing on disk changes,
+/// and the returned compositions carry the resolved values. Default
+/// mode (`strict` false) warns on unknown override keys and on
+/// declared-but-never-bound variables without blocking; strict mode
+/// (`--strict-variables`) promotes both to `E_BAD_VARIABLE` errors and
+/// additionally requires every default-less variable to receive a
+/// caller value. Unknown override values outside their variable's
+/// type refuse before frame one in both modes, naming the variable
+/// and the expected shape.
+pub fn validate_folder_with_variables_strict(
+    folder: &Path,
+    overrides: &VariableOverrides,
+    strict: bool,
+) -> Verdict {
+    validate_folder_with_variables_strict_themed(folder, overrides, strict, None)
+}
+
+/// Validate one project folder with per-render caller values, an
+/// explicit strict switch, and a selected theme (Sprint 9 variables,
+/// CAP-005): the host entry for overrides plus strict mode plus theme
+/// selection. `theme` is the CLI `--theme` name (or the host's theme
+/// choice); `None` selects no theme from the caller side, so each
+/// composition falls back to its own `theme` attribute. The CLI theme
+/// beats the composition attribute; an unknown name on either side
+/// refuses before frame one naming the available themes. Theme tokens
+/// resolve through the fixed precedence (caller override, then theme
+/// token, then variable default, then binding fallback) with element
+/// attributes written literally always winning outright.
+pub fn validate_folder_with_variables_strict_themed(
+    folder: &Path,
+    overrides: &VariableOverrides,
+    strict: bool,
+    theme: Option<&str>,
+) -> Verdict {
     let file = format!("{}/{COMPOSITION_FILE}", folder.display());
     let config_file = format!("{}/{CONFIG_FILE}", folder.display());
 
@@ -1465,6 +1653,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 format!("project folder {} does not exist", folder.display()),
                 "point check at an existing folder or create one with `framesmith init`",
             )],
+            variable_warnings: Vec::new(),
             ffmpeg_auto_download: true,
             footage: Vec::new(),
             inferred: Vec::new(),
@@ -1501,6 +1690,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 compositions: Vec::new(),
                 root_name: None,
                 diagnostics: diags,
+                variable_warnings: Vec::new(),
                 ffmpeg_auto_download,
                 footage: Vec::new(),
                 inferred: Vec::new(),
@@ -1513,7 +1703,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         }
     };
 
-    let roots = match parse_document(&text) {
+    let mut roots = match parse_document(&text) {
         Ok(r) => r,
         Err(e) => {
             let mut diags = config_diags;
@@ -1531,6 +1721,7 @@ pub fn validate_folder(folder: &Path) -> Verdict {
                 compositions: Vec::new(),
                 root_name: None,
                 diagnostics: diags,
+                variable_warnings: Vec::new(),
                 ffmpeg_auto_download,
                 footage: Vec::new(),
                 inferred: Vec::new(),
@@ -1557,7 +1748,11 @@ pub fn validate_folder(folder: &Path) -> Verdict {
         waveform_clamps: Vec::new(),
         ids: Vec::new(),
         refs: Vec::new(),
+        bindings: Vec::new(),
         current_comp: 0,
+        overrides: overrides.clone(),
+        override_warnings: Vec::new(),
+        strict,
     };
 
     // Several uniquely named `composition` blocks validate together
@@ -1581,24 +1776,32 @@ pub fn validate_folder(folder: &Path) -> Verdict {
             "declare `composition name=... width=... ... { ... }`",
         );
         // Any other top-level node is still located for the author.
+        // `theme` blocks are legal here (Sprint 9 variables, CAP-005)
+        // but cannot save a project with no composition to render.
         for n in &roots {
+            if n.name == "theme" {
+                continue;
+            }
             ctx.push(
                 n.name_line,
                 n.name_column,
                 "E_UNKNOWN_ELEMENT",
                 format!("unexpected top-level node {:?}", n.name),
-                "only a single `composition` root is allowed",
+                "only `composition` and `theme` blocks are allowed at the top level",
             );
         }
         return finish(ctx, None, Vec::new(), None, ffmpeg_auto_download);
     }
-    for n in roots.iter().filter(|n| n.name != "composition") {
+    for n in roots
+        .iter()
+        .filter(|n| n.name != "composition" && n.name != "theme")
+    {
         ctx.push(
             n.name_line,
             n.name_column,
             "E_UNKNOWN_ELEMENT",
             format!("unexpected top-level node {:?}", n.name),
-            "keep only `composition` blocks at the top level",
+            "keep only `composition` and `theme` blocks at the top level",
         );
     }
 
@@ -1667,10 +1870,143 @@ pub fn validate_folder(folder: &Path) -> Verdict {
     // project-wide so duplicates and unknown references report
     // together (T001). Single-composition projects flow through the
     // same path, so their diagnostics keep their exact order.
+    // Sprint 9 variables, CAP-005: named `theme` blocks validate once
+    // project-wide (every composition shares the token collections),
+    // then declarations validate and bindings substitute per
+    // composition first (forward references resolve whatever the
+    // document order), then headers and clips validate against the
+    // substituted tree. Two loops keep the mutable substitution pass
+    // apart from the shared validation borrows.
+    let themes = collect_themes(&mut ctx, &roots);
+    let mut all_variables: Vec<Vec<VariableDecl>> = Vec::new();
+    for (ci, &ri) in comp_positions.iter().enumerate() {
+        ctx.current_comp = ci;
+        all_variables.push(collect_variables_and_substitute(
+            &mut ctx,
+            &mut roots[ri],
+            &themes,
+            theme,
+        ));
+    }
+    // Sprint 9 variables, CAP-003: every override key naming no declared
+    // variable in any composition warns visibly without blocking (default
+    // mode). Sorted by key so repeated runs warn in the same order.
+    // Sprint 9 variables, CAP-004: under `--strict-variables` the same
+    // keys refuse as `E_BAD_VARIABLE` instead of warning.
+    {
+        let mut declared: BTreeSet<String> = BTreeSet::new();
+        for vars in &all_variables {
+            for d in vars {
+                declared.insert(d.id.clone());
+            }
+        }
+        let keys: Vec<String> = ctx.overrides.keys().cloned().collect();
+        for key in &keys {
+            if !declared.contains(key) {
+                if ctx.strict {
+                    ctx.push(
+                        1,
+                        1,
+                        "E_BAD_VARIABLE",
+                        format!(
+                            "`--strict-variables` refuses unknown override key `--{key}`; no `variable` in the project declares `--{key}`, so the value matches nothing"
+                        ),
+                        format!(
+                            "remove the key `--{key}` from `--variables`, declare `variable id=\"{key}\" type=\"...\"` in the composition, or drop `--strict-variables` for warning-only mode"
+                        ),
+                    );
+                } else {
+                    ctx.override_warnings.push(VariableWarning {
+                        key: key.clone(),
+                        message: format!(
+                            "`--variables` names unknown variable `--{key}`; no `variable` in the project declares `--{key}`, so the value was ignored"
+                        ),
+                        fix: format!(
+                            "remove the key from `--variables`, or declare `variable id=\"{key}\" type=\"...\"` in the composition"
+                        ),
+                    });
+                }
+            }
+        }
+    }
+    // Sprint 9 variables, CAP-004: declared-but-never-bound variables
+    // warn visibly without blocking in default mode and refuse as
+    // `E_BAD_VARIABLE` under `--strict-variables`; strict mode
+    // additionally requires every default-less variable to receive a
+    // caller value. A variable counts as bound when any `var(--id)`
+    // call names it in any composition (successful substitutions and
+    // parseable-but-failed bindings alike); a caller value counts when
+    // the override map carries the key, so a mistyped value (already
+    // refused at the declaration) is never double-reported as missing.
+    // Declarations report in document order so repeated runs agree.
+    {
+        use std::collections::BTreeSet as IdSet;
+        let mut bound: IdSet<String> = IdSet::new();
+        for site in &ctx.bindings {
+            for id in &site.vars {
+                bound.insert(id.clone());
+            }
+        }
+        for vars in &all_variables {
+            for d in vars {
+                let used = bound.contains(&d.id);
+                // The override pass above swaps a good caller value into
+                // the in-memory default, so a missing default here with
+                // no override key means no value from any source.
+                let supplied = ctx.overrides.contains_key(&d.id);
+                let has_value = d.default.is_some();
+                if !used {
+                    if ctx.strict {
+                        ctx.push(
+                            d.line,
+                            d.column,
+                            "E_BAD_VARIABLE",
+                            format!(
+                                "`--strict-variables` refuses unused variable `--{}`; it is declared but never bound by `var(--{})`, so the declaration has no effect",
+                                d.id, d.id
+                            ),
+                            format!(
+                                "bind the variable with `var(--{0})` in text, media, or an ordinary attribute, remove the `variable` declaration, or drop `--strict-variables` for warning-only mode",
+                                d.id
+                            ),
+                        );
+                    } else {
+                        ctx.override_warnings.push(VariableWarning {
+                            key: d.id.clone(),
+                            message: format!(
+                                "variable `--{0}` is declared but never bound by `var(--{0})`; the declaration has no effect",
+                                d.id
+                            ),
+                            fix: format!(
+                                "bind it with `var(--{0})` in text, media, or an ordinary attribute, or remove the `variable` declaration",
+                                d.id
+                            ),
+                        });
+                    }
+                }
+                if ctx.strict && !has_value && !supplied {
+                    ctx.push(
+                        d.line,
+                        d.column,
+                        "E_BAD_VARIABLE",
+                        format!(
+                            "`--strict-variables` refuses default-less variable `--{}` with no value; the declaration carries no `default` and no `--variables` value was supplied",
+                            d.id
+                        ),
+                        format!(
+                            "supply the value in `--variables` (for example `--variables '{{\"{}\": ...}}'` matching the variable's type), add `default=<value>` to the declaration, or drop `--strict-variables` for warning-only mode",
+                            d.id
+                        ),
+                    );
+                }
+            }
+        }
+    }
     let mut partials: Vec<PartialComposition> = Vec::new();
     for (ci, &ri) in comp_positions.iter().enumerate() {
         ctx.current_comp = ci;
-        partials.push(validate_composition_parts(&mut ctx, &roots[ri]));
+        let variables = all_variables[ci].clone();
+        partials.push(validate_composition_parts(&mut ctx, &roots[ri], variables));
     }
     check_cross_composition_refs(&mut ctx, &partials);
     // --- project-wide ids and references (T001) ------------------------
@@ -1694,6 +2030,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
     // finished windows and overlong crossfade windows report their
     // clamp, before frame one.
     check_sound_windows(&mut ctx, &compositions);
+    // Sprint 9 variables, CAP-002: name the variable behind every
+    // substituted binding whose resolved value still failed to coerce,
+    // so the refusal names the attribute and the variable together.
+    amend_binding_diagnostics(&mut ctx);
     let (selected, all, root_name) = if !ctx.invalid {
         let selected = compositions[root_pos].clone();
         let name = compositions[root_pos].name.clone();
@@ -1729,6 +2069,7 @@ struct PartialComposition<'n> {
     key_nodes: Vec<&'n RawNode>,
     marks: Vec<MarkDecl>,
     inputs: Vec<InputDecl>,
+    variables: Vec<VariableDecl>,
     replicates: Vec<ReplicateGroup>,
 }
 
@@ -2692,7 +3033,11 @@ fn styled_node<'a>(
     }))
 }
 
-fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> PartialComposition<'n> {
+fn validate_composition_parts<'n>(
+    mut ctx: &mut Ctx,
+    root: &'n RawNode,
+    variables: Vec<VariableDecl>,
+) -> PartialComposition<'n> {
     // --- root properties -------------------------------------------------
     let name = match find(root, "name").and_then(as_str) {
         Some(s) => s.to_string(),
@@ -2707,7 +3052,10 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
             String::new()
         }
     };
-    // Unknown root keys are invalid, never ignored (T003).
+    // Unknown root keys are invalid, never ignored (T003). `theme`
+    // selects one named `theme` block (Sprint 9 variables, CAP-005);
+    // its value stays literal through substitution and resolves in
+    // the pre-pass, so it never reaches the readers here.
     const ROOT_KEYS: &[&str] = &[
         "name",
         "id",
@@ -2721,6 +3069,7 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
         "version",
         "autoplay",
         "normalize",
+        "theme",
     ];
     for (k, v) in &root.props {
         if !ROOT_KEYS.contains(&k.as_str()) {
@@ -3057,6 +3406,12 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
     // resolves bare names against these once motion validates in
     // `finish_composition`.
     let mut inputs: Vec<InputDecl> = Vec::new();
+    // Declared render variables (Sprint 9 variables, CAP-001/002):
+    // validated in the pre-pass by `collect_variables_and_substitute`
+    // (so forward references resolve) and passed in here. Unused
+    // declarations stay valid here; unused reporting runs project-wide
+    // after substitution (a warning in default mode, an error under
+    // `--strict-variables`).
     // `replicate` expansions (Sprint 7 motion, CAP-010): template
     // clips expand to indexed clones inline below, so `target`
     // indexes resolve against the final clip count like any clip.
@@ -3159,6 +3514,10 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
                     inputs.push(d);
                 }
             }
+            // `variable` declarations validated in the pre-pass
+            // (`collect_variables_and_substitute`); skipping them here
+            // keeps every declaration validated exactly once.
+            "variable" => {}
             "replicate" => {
                 validate_replicate(
                     &mut ctx,
@@ -3186,7 +3545,7 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
                     child.name_column,
                     "E_UNKNOWN_ELEMENT",
                     format!("unknown element `{other}`"),
-                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `audio`, `style`, `tween`, `key`, `set`, `mark`, `input`, or `replicate`, or remove the element",
+                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `audio`, `style`, `tween`, `key`, `set`, `mark`, `input`, `variable`, or `replicate`, or remove the element",
                 );
             }
         }
@@ -3211,6 +3570,7 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
         key_nodes,
         marks,
         inputs,
+        variables,
         replicates,
         autoplay: autoplay.unwrap_or(false),
         normalize,
@@ -3242,6 +3602,7 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         key_nodes,
         marks,
         inputs,
+        variables,
         replicates,
         autoplay,
         normalize,
@@ -3517,6 +3878,7 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         keys,
         marks,
         inputs,
+        variables,
         replicates,
         autoplay,
         normalize,
@@ -3556,6 +3918,7 @@ fn finish(
             root_name
         },
         diagnostics: ctx.diags,
+        variable_warnings: ctx.override_warnings,
         ffmpeg_auto_download,
         footage: ctx.footage,
         inferred: ctx.inferred,
@@ -12373,6 +12736,1766 @@ fn validate_font(ctx: &mut Ctx, node: &RawNode) -> Option<FontDecl> {
         line: node.name_line,
         column: node.name_column,
     })
+}
+
+/// One named theme (Sprint 9 variables, CAP-005): a top-level `theme`
+/// block collecting `token` children into a token-id to raw-value map.
+/// Tokens are untyped text (colors, fonts, radius, spacing, durations,
+/// easings); binding sites coerce the resolved text exactly like a
+/// literal, so theme durations and easings animate identically to
+/// literal values. Theme names share the variable-id shape so a
+/// composition `theme` attribute and the CLI `--theme` flag name them
+/// unambiguously.
+struct Theme {
+    name: String,
+    line: usize,
+    column: usize,
+    tokens: BTreeMap<String, String>,
+}
+
+/// Validate one `token` element inside a `theme` block (Sprint 9
+/// variables, CAP-005): a required `id` (variable-id shape, so it
+/// reads inside `var(--id)`) and a required `value` kept as raw text.
+/// Quoted strings substitute verbatim; bare numbers and booleans
+/// substitute in their written form. A missing `id` or `value` is
+/// refused naming the token; a duplicate token id keeps the first
+/// value and refuses at the repeat.
+fn validate_token(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    theme_name: &str,
+    seen: &mut BTreeMap<String, (usize, usize)>,
+) -> Option<(String, String)> {
+    const KEYS: &[&str] = &["id", "value"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown `token` attribute {k:?} in theme {theme_name:?}; a `token` holds `id` and `value`"
+                ),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_VARIABLE",
+            format!(
+                "token carries no children in theme {theme_name:?}; a `token` is one `id` with one `value`"
+            ),
+            "remove the child elements from the token",
+        );
+        ok = false;
+    }
+    let id = match find(node, "id") {
+        Some(v) => match as_str(v) {
+            Some(s) if valid_variable_id(s) => Some(s.to_string()),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_ID",
+                    format!(
+                        "token `id` in theme {theme_name:?} must start with a letter, then hold letters, digits, `-` or `_`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `id=\"<letters-digits-dashes-underscores starting with a letter>\"` (for example `id=\"accent\"`) on the token",
+                );
+                ok = false;
+                None
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                format!(
+                    "token in theme {theme_name:?} is missing required `id`; every token names one value"
+                ),
+                "add `id=\"<name starting with a letter>\"` to the token",
+            );
+            ok = false;
+            None
+        }
+    };
+    let value = match find(node, "value") {
+        Some(v) => match &v.kind {
+            ValueKind::Str(s) => Some(s.clone()),
+            ValueKind::Int(n) => Some(n.to_string()),
+            ValueKind::Float(x) => Some(x.to_string()),
+            ValueKind::Bool(b) => Some(b.to_string()),
+            ValueKind::Ratio(n, d) => Some(format!("{n}/{d}")),
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                match &id {
+                    Some(token_id) => format!(
+                        "token `--{token_id}` in theme {theme_name:?} is missing required `value`; every token holds one value"
+                    ),
+                    None => format!(
+                        "token in theme {theme_name:?} is missing required `value`; every token holds one value"
+                    ),
+                },
+                "add `value=\"...\"` to the token (a color, font list, radius, spacing, duration, or easing)",
+            );
+            ok = false;
+            None
+        }
+    };
+    if !ok {
+        return None;
+    }
+    let (id, value) = (id.unwrap(), value.unwrap());
+    if let Some((first_line, _)) = seen.get(&id) {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_VARIABLE",
+            format!(
+                "duplicate token `--{id}` in theme {theme_name:?} (first declared at line {first_line}); token ids must be unique per theme"
+            ),
+            format!("rename the repeat `token id=\"{id}\"` or remove it; the first value wins"),
+        );
+        return None;
+    }
+    seen.insert(id.clone(), (node.name_line, node.name_column));
+    Some((id, value))
+}
+
+/// Validate one top-level `theme` block (Sprint 9 variables, CAP-005):
+/// a required `name` plus only `token` children. A bad child, a bad
+/// name, or a bad token refuses naming the theme; valid tokens still
+/// collect so one bad token never hides the theme's good values behind
+/// a second refusal.
+fn validate_theme(ctx: &mut Ctx, node: &RawNode) -> Option<Theme> {
+    const KEYS: &[&str] = &["name"];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown `theme` attribute {k:?}; a `theme` holds `name` with `token` children"
+                ),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    let name = match find(node, "name") {
+        Some(v) => match as_str(v) {
+            Some(s) if valid_variable_id(s) => Some(s.to_string()),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_ID",
+                    format!(
+                        "theme `name` must start with a letter, then hold letters, digits, `-` or `_`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `name=\"<letters-digits-dashes-underscores starting with a letter>\"` (for example `name=\"brand\"`) on the theme",
+                );
+                None
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "theme is missing required `name`; every theme names one token collection",
+                "add `name=\"<name starting with a letter>\"` to the theme",
+            );
+            None
+        }
+    };
+    let who = name.clone().unwrap_or_else(|| "theme".to_string());
+    let mut tokens = BTreeMap::new();
+    let mut seen: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+    for child in &node.children {
+        if child.name != "token" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_VARIABLE",
+                format!(
+                    "unexpected `{}` inside theme {who:?}; a `theme` holds only `token` children",
+                    child.name
+                ),
+                "remove the element, or declare the value as `token id=\"...\" value=\"...\"`",
+            );
+            continue;
+        }
+        if let Some((id, value)) = validate_token(ctx, child, &who, &mut seen) {
+            tokens.insert(id, value);
+        }
+    }
+    // A missing name drops the block (returned `None` below); valid
+    // tokens in a named-but-flawed block still resolve, so bindings
+    // behind one bad token keep working instead of cascading.
+    let name = match name {
+        Some(n) => n,
+        None => return None,
+    };
+    Some(Theme {
+        name,
+        line: node.name_line,
+        column: node.name_column,
+        tokens,
+    })
+}
+
+/// Collect every top-level `theme` block project-wide (Sprint 9
+/// variables, CAP-005), in document order. A repeated theme name
+/// refuses at the repeat and merges its valid tokens into the first
+/// block without overwriting, so every valid token still resolves.
+fn collect_themes(ctx: &mut Ctx, roots: &[RawNode]) -> Vec<Theme> {
+    let mut themes: Vec<Theme> = Vec::new();
+    for node in roots {
+        if node.name != "theme" {
+            continue;
+        }
+        let Some(found) = validate_theme(ctx, node) else {
+            continue;
+        };
+        if let Some(first) = themes.iter_mut().find(|t| t.name == found.name) {
+            ctx.push(
+                found.line,
+                found.column,
+                "E_BAD_VARIABLE",
+                format!(
+                    "duplicate theme {:?} (first declared at line {}); theme names must be unique",
+                    found.name, first.line
+                ),
+                format!(
+                    "rename the repeat `theme name={:?}` or remove it; the first block's tokens win",
+                    found.name
+                ),
+            );
+            for (id, value) in found.tokens {
+                first.tokens.entry(id).or_insert(value);
+            }
+        } else {
+            themes.push(found);
+        }
+    }
+    themes
+}
+
+/// Available theme names for refusal messages (Sprint 9 variables,
+/// CAP-005): quoted names in document order, or `none` when no
+/// `theme` block is declared.
+fn theme_available_list(themes: &[Theme]) -> String {
+    if themes.is_empty() {
+        "none".to_string()
+    } else {
+        themes
+            .iter()
+            .map(|t| format!("{:?}", t.name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+/// Resolve one composition's effective theme tokens (Sprint 9
+/// variables, CAP-005): the caller theme (CLI `--theme`) beats the
+/// composition `theme` attribute. An unknown name on either side
+/// refuses naming the available themes; the attribute naming two
+/// themes refuses naming the at-most-one rule. Returns the winning
+/// token map (empty when no theme is selected or no selection
+/// survived), so bindings resolve through the fixed precedence
+/// (caller override, then theme token, then variable default, then
+/// binding fallback) with literally written element attributes always
+/// winning outright.
+fn composition_theme_tokens(
+    ctx: &mut Ctx,
+    root: &RawNode,
+    themes: &[Theme],
+    cli_theme: Option<&str>,
+) -> BTreeMap<String, String> {
+    let comp_label = match find(root, "name").and_then(as_str) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => "(unnamed composition)".to_string(),
+    };
+    // Every `theme` attribute on the root, split on commas and
+    // whitespace so `theme="a b"` reads as two selections.
+    let mut attr_names: Vec<(String, usize, usize)> = Vec::new();
+    let mut attr_loc: Option<(usize, usize)> = None;
+    let mut attr_bad = false;
+    for (k, v) in &root.props {
+        if k != "theme" {
+            continue;
+        }
+        attr_loc = Some((v.line, v.column));
+        match as_str(v) {
+            Some(raw) => {
+                for part in raw
+                    .split(|c: char| c == ',' || c.is_whitespace())
+                    .filter(|p| !p.is_empty())
+                {
+                    attr_names.push((part.to_string(), v.line, v.column));
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "composition {comp_label:?} `theme` must be a quoted theme name; found {}",
+                        raw_text(v)
+                    ),
+                    "set `theme=\"<name>\"` to one declared `theme` block, or remove the key to render without a theme",
+                );
+                attr_bad = true;
+            }
+        }
+    }
+    let mut distinct: Vec<String> = attr_names.iter().map(|(n, _, _)| n.clone()).collect();
+    distinct.sort();
+    distinct.dedup();
+    let mut attr_selected: Option<String> = None;
+    if distinct.len() > 1 {
+        let (line, column) = attr_loc.unwrap_or((root.name_line, root.name_column));
+        let picked: Vec<String> = distinct.iter().map(|n| format!("{n:?}")).collect();
+        ctx.push(
+            line,
+            column,
+            "E_BAD_VARIABLE",
+            format!(
+                "composition {comp_label:?} selects {} themes ({}); a composition selects at most one theme",
+                distinct.len(),
+                picked.join(", ")
+            ),
+            "set `theme=\"<one name>\"` to a single declared `theme` block, or remove the key to render without a theme",
+        );
+        attr_bad = true;
+    } else if distinct.len() == 1 {
+        let wanted = distinct.into_iter().next().unwrap();
+        if themes.iter().any(|t| t.name == wanted) {
+            attr_selected = Some(wanted);
+        } else {
+            let (line, column) = attr_loc.unwrap_or((root.name_line, root.name_column));
+            ctx.push(
+                line,
+                column,
+                "E_BAD_VARIABLE",
+                format!(
+                    "unknown theme {wanted:?} selected by composition {comp_label:?}; available themes: {}",
+                    theme_available_list(themes)
+                ),
+                format!(
+                    "set `theme=` to one of the available themes, or declare `theme name={wanted:?} {{ ... }}` with its `token` children"
+                ),
+            );
+            attr_bad = true;
+        }
+    } else if attr_loc.is_some() && !attr_bad {
+        let (line, column) = attr_loc.unwrap();
+        ctx.push(
+            line,
+            column,
+            "E_BAD_VARIABLE",
+            format!(
+                "composition {comp_label:?} `theme` names no theme; available themes: {}",
+                theme_available_list(themes)
+            ),
+            "set `theme=\"<name>\"` to one declared `theme` block, or remove the key to render without a theme",
+        );
+        attr_bad = true;
+    }
+    // The caller theme beats the composition attribute; an unknown
+    // caller theme refuses the same way, located where flags report.
+    let mut cli_selected: Option<String> = None;
+    if let Some(wanted) = cli_theme {
+        if themes.iter().any(|t| t.name == wanted) {
+            cli_selected = Some(wanted.to_string());
+        } else {
+            ctx.push(
+                1,
+                1,
+                "E_BAD_VARIABLE",
+                format!(
+                    "unknown `--theme` {wanted:?}; available themes: {}",
+                    theme_available_list(themes)
+                ),
+                format!(
+                    "pass `--theme <name>` with one of the available themes, or declare `theme name={wanted:?} {{ ... }}` with its `token` children"
+                ),
+            );
+        }
+    }
+    let effective = cli_selected.or(if attr_bad { None } else { attr_selected });
+    match effective {
+        Some(name) => themes
+            .iter()
+            .find(|t| t.name == name)
+            .map(|t| t.tokens.clone())
+            .unwrap_or_default(),
+        None => BTreeMap::new(),
+    }
+}
+
+/// Variable `id` syntax (Sprint 9 variables, CAP-001): starts with an
+/// ASCII letter, then ASCII letters, digits, dashes, or underscores.
+/// Stricter than clip ids (which allow a leading digit) so a variable
+/// name always reads as a name inside `var(--id)`.
+fn valid_variable_id(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Split one quoted comma-separated list (Sprint 9 variables,
+/// CAP-001): entries trim whitespace and empties drop, exactly like
+/// `font-family` lists.
+fn split_list(s: &str) -> Vec<String> {
+    s.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+/// Validate a `variable` element (Sprint 9 variables, CAP-001): a
+/// required `id` (letter-led, unique across the project), a required
+/// `type` (one of the seven declared types), an optional `label`,
+/// an optional `default` type-checked against the declaration, and
+/// for `enum` a required `options` list of at least two entries the
+/// default is drawn from. An unused declaration stays valid here
+/// (unused reporting runs project-wide after substitution: a warning
+/// in default mode, an error under `--strict-variables`); every bad
+/// declaration is refused before frame one naming the declaration
+/// and the fix.
+fn validate_variable(ctx: &mut Ctx, node: &RawNode) -> Option<VariableDecl> {
+    const KEYS: &[&str] = &["id", "type", "default", "label", "options"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown `variable` attribute {k:?}; a `variable` holds `id`, `type`, `default`, `label`, and (`enum` only) `options`"
+                ),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_VARIABLE",
+            "variable carries no children; a `variable` is one `id` with one `type`, one `default`, and (`enum` only) one `options` list",
+            "remove the child elements from the variable",
+        );
+        ok = false;
+    }
+    let id = match find(node, "id") {
+        Some(v) => match as_str(v) {
+            Some(s) if valid_variable_id(s) => Some(s.to_string()),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_ID",
+                    format!(
+                        "variable `id` must start with a letter, then hold letters, digits, `-` or `_`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `id=\"<letters-digits-dashes-underscores starting with a letter>\"` (for example `id=\"title\"`) on the variable",
+                );
+                ok = false;
+                None
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "variable is missing required `id`; every declaration names one variable",
+                "add `id=\"<name starting with a letter>\"` to the variable",
+            );
+            ok = false;
+            None
+        }
+    };
+    // The declaration name used inside diagnostics below: the id when
+    // declared, else the bare element.
+    let who = id.clone().unwrap_or_else(|| "variable".to_string());
+    let var_type = match find(node, "type") {
+        Some(v) => match as_str(v).and_then(VariableType::parse) {
+            Some(t) => Some(t),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "variable {who:?} has unknown type {}; accepted types are: {}",
+                        raw_text(v),
+                        VariableType::ACCEPTED.join(", ")
+                    ),
+                    "set `type=` to one of `string`, `number`, `color`, `boolean`, `enum`, `font`, or `image`",
+                );
+                ok = false;
+                None
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                format!("variable {who:?} is missing required `type`; every declaration names one of the seven types"),
+                "add `type=\"string\"` (or `number`, `color`, `boolean`, `enum`, `font`, `image`) to the variable",
+            );
+            ok = false;
+            None
+        }
+    };
+    let label = match find(node, "label") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) => Some(s.to_string()),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_LABEL",
+                    format!(
+                        "variable {who:?} `label` must be a quoted editor note; found {}",
+                        raw_text(v)
+                    ),
+                    "set `label=\"...\"` to a quoted editor note, or remove the key; labels never change rendered output",
+                );
+                ok = false;
+                None
+            }
+        },
+    };
+    // `options` belongs to `enum` only: any other type carrying it is
+    // refused, and an `enum` without it (or with fewer than two
+    // entries) is refused naming the rule.
+    let options = match var_type {
+        Some(VariableType::Enum) => match find(node, "options").and_then(as_str) {
+            Some(s) => {
+                let entries = split_list(s);
+                if entries.len() < 2 {
+                    let v = find(node, "options").unwrap();
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_VARIABLE",
+                        format!(
+                            "variable {who:?} `enum` needs at least two `options`; found {} ({})",
+                            entries.len(),
+                            raw_text(v)
+                        ),
+                        "declare `options=\"<first>, <second>\"` with at least two comma-separated entries",
+                    );
+                    ok = false;
+                    None
+                } else {
+                    Some(entries)
+                }
+            }
+            None => {
+                let present = find(node, "options");
+                match present {
+                    Some(v) => {
+                        ctx.push(
+                            v.line,
+                            v.column,
+                            "E_BAD_VARIABLE",
+                            format!(
+                                "variable {who:?} `options` must be a quoted comma-separated list; found {}",
+                                raw_text(v)
+                            ),
+                            "declare `options=\"<first>, <second>\"` with at least two comma-separated entries",
+                        );
+                        ok = false;
+                        None
+                    }
+                    None => {
+                        ctx.push(
+                            node.name_line,
+                            node.name_column,
+                            "E_MISSING_FIELD",
+                            format!(
+                                "variable {who:?} of type `enum` is missing required `options`; every `enum` lists at least two entries"
+                            ),
+                            "add `options=\"<first>, <second>\"` with at least two comma-separated entries to the variable",
+                        );
+                        ok = false;
+                        None
+                    }
+                }
+            }
+        },
+        _ => match find(node, "options") {
+            Some(v) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "variable {who:?} carries `options`, but only `enum` declarations hold `options`"
+                    ),
+                    "remove `options`, or set `type=\"enum\"` with at least two entries",
+                );
+                ok = false;
+                None
+            }
+            None => None,
+        },
+    };
+    // The declared `default`, type-checked against the declaration.
+    // Absent means default-less (strict validation requires a caller
+    // value for it); present must fit the type.
+    let default = match (find(node, "default"), var_type) {
+        (None, _) => None,
+        (Some(_), None) => {
+            // The type already failed above; the default stays silent
+            // so one bad value yields one diagnostic, never a cascade.
+            ok = false;
+            None
+        }
+        (Some(v), Some(t)) => match variable_default(ctx, v, &who, t, options.as_deref()) {
+            Some(d) => Some(d),
+            None => {
+                ok = false;
+                None
+            }
+        },
+    };
+    if !ok {
+        return None;
+    }
+    let (id, var_type) = (id.unwrap(), var_type.unwrap());
+    ctx.ids.push(IdEntry {
+        value: id.clone(),
+        line: node.name_line,
+        column: node.name_column,
+        is_composition: false,
+        is_mark: false,
+        comp: ctx.current_comp,
+    });
+    Some(VariableDecl {
+        id,
+        var_type,
+        default,
+        label,
+        options,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Type-check one variable `default` (Sprint 9 variables, CAP-001):
+/// the raw value coerced to the declaration's type. A mismatch is
+/// refused naming the declaration and the expected shape; an `enum`
+/// default must match one `options` entry exactly and
+/// case-sensitively. An `image` path must exist and read (missing
+/// reads as missing, denied reads as unreadable); a `font` list
+/// follows the same syntax check as `font-family` entries (resolution
+/// happens at bind time, where missing families skip per entry and
+/// an all-unknown list fails closed).
+fn variable_default(
+    ctx: &mut Ctx,
+    v: &RawValue,
+    who: &str,
+    var_type: VariableType,
+    options: Option<&[String]>,
+) -> Option<VariableDefault> {
+    match var_type {
+        VariableType::String => {
+            // Kept verbatim: quoted text as written, other scalars in
+            // their written text form (a number-looking value never
+            // auto-converts a `string` variable).
+            let s = match &v.kind {
+                ValueKind::Str(text) => text.clone(),
+                _ => raw_text(v),
+            };
+            Some(VariableDefault::Str(s))
+        }
+        VariableType::Number => match as_f64(v) {
+            Some(x) if x.is_finite() => Some(VariableDefault::Num(x)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "variable {who:?} default {} is not a number; a `number` default holds decimals like `default=1.5`",
+                        raw_text(v)
+                    ),
+                    "set `default=<number>` (for example `default=1.5`) on the variable, or remove the key for a default-less declaration",
+                );
+                None
+            }
+        },
+        VariableType::Color => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(VariableDefault::Color(c)),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "variable {who:?} default {} is not a `#rgb` or `#rrggbb` color",
+                        raw_text(v)
+                    ),
+                    "set `default=\"#rrggbb\"` (for example `default=\"#ff3366\"`) on the variable, or remove the key for a default-less declaration",
+                );
+                None
+            }
+        },
+        VariableType::Boolean => {
+            let b = match &v.kind {
+                ValueKind::Bool(flag) => Some(*flag),
+                ValueKind::Str(s) if s == "true" => Some(true),
+                ValueKind::Str(s) if s == "false" => Some(false),
+                _ => None,
+            };
+            match b {
+                Some(flag) => Some(VariableDefault::Bool(flag)),
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_VARIABLE",
+                        format!(
+                            "variable {who:?} default {} is not a boolean; accepted spellings are `true` and `false`",
+                            raw_text(v)
+                        ),
+                        "set `default=true` or `default=false` (bare or quoted) on the variable, or remove the key for a default-less declaration",
+                    );
+                    None
+                }
+            }
+        }
+        VariableType::Enum => {
+            let s = match &v.kind {
+                ValueKind::Str(text) => text.clone(),
+                _ => raw_text(v),
+            };
+            match options {
+                // `options` already failed above; stay silent here so
+                // one bad declaration yields one diagnostic.
+                None => None,
+                Some(entries) if entries.iter().any(|e| e == &s) => Some(VariableDefault::Enum(s)),
+                Some(entries) => {
+                    let list = entries
+                        .iter()
+                        .map(|e| format!("{e:?}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_VARIABLE",
+                        format!(
+                            "variable {who:?} default {s:?} is not one of its `options`: {list}",
+                        ),
+                        "set `default=` to one of the declared `options`, or add the value to `options`",
+                    );
+                    None
+                }
+            }
+        }
+        VariableType::Font => match as_str(v) {
+            Some(s) => {
+                let names = split_list(s);
+                if names.is_empty() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_VARIABLE",
+                        format!("variable {who:?} default font list names no family"),
+                        "set `default=\"Family Name\"` or `default=\"First, Fallback\"`, or remove the key for a default-less declaration",
+                    );
+                    None
+                } else {
+                    Some(VariableDefault::Font(names))
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "variable {who:?} default must be a quoted font family list; found {}",
+                        raw_text(v)
+                    ),
+                    "set `default=\"Family Name\"` or `default=\"First, Fallback\"`, or remove the key for a default-less declaration",
+                );
+                None
+            }
+        },
+        VariableType::Image => match as_str(v) {
+            Some(s) => {
+                let abs = ctx.folder.join(s);
+                if !abs.is_file() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_MISSING_FILE",
+                        format!(
+                            "variable {who:?} default image path {s:?} does not exist or is not readable"
+                        ),
+                        "provide the file at the referenced path relative to the project folder, or fix the `default`",
+                    );
+                    None
+                } else {
+                    let readable = std::fs::File::open(&abs)
+                        .and_then(|mut f| {
+                            use std::io::Read;
+                            f.read(&mut [0u8; 1]).map(|_| ())
+                        })
+                        .is_ok();
+                    if !readable {
+                        ctx.push(
+                            v.line,
+                            v.column,
+                            "E_UNREADABLE",
+                            format!("variable {who:?} default image path {s:?} cannot be read"),
+                            "make the file readable, or fix the `default`",
+                        );
+                        None
+                    } else {
+                        Some(VariableDefault::Image(s.to_string()))
+                    }
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VARIABLE",
+                    format!(
+                        "variable {who:?} default must be a quoted project-relative image path; found {}",
+                        raw_text(v)
+                    ),
+                    "set `default=\"media/photo.png\"` to a quoted path relative to the project folder, or remove the key for a default-less declaration",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One substituted `var()` use site (Sprint 9 variables, CAP-002): the
+/// attribute location plus the variable ids the value drew on. Recorded
+/// for every successfully parsed binding (even one whose own resolution
+/// failed), so the end-of-validation amendment can name the variable
+/// behind any coercion failure at the same location.
+#[derive(Debug, Clone)]
+struct BindingSite {
+    line: usize,
+    column: usize,
+    node: String,
+    key: String,
+    vars: Vec<String>,
+    /// File diagnostics (`E_MISSING_FILE` and friends) sit on the
+    /// enclosing node, not the value: a site with `needs_text` only
+    /// amends a diagnostic at its location when the message also
+    /// quotes the resolved text. `None` for value-location sites,
+    /// which match by location alone.
+    needs_text: Option<String>,
+}
+
+/// The declared default of one variable as bindable text (Sprint 9
+/// variables, CAP-002): the literal the binding substitutes before the
+/// attribute coerces it. Strings substitute verbatim (a number-looking
+/// value never auto-converts); every other type renders its canonical
+/// spelling.
+fn variable_binding_text(default: &VariableDefault) -> String {
+    match default {
+        VariableDefault::Str(s) => s.clone(),
+        VariableDefault::Num(x) => x.to_string(),
+        VariableDefault::Color(c) => format!("#{}", c.to_hex()),
+        VariableDefault::Bool(b) => b.to_string(),
+        VariableDefault::Enum(s) => s.clone(),
+        VariableDefault::Font(names) => names.join(", "),
+        VariableDefault::Image(path) => path.clone(),
+    }
+}
+
+/// One parsed `var(--id)` or `var(--id, fallback)` call: byte span in
+/// the attribute value plus the referenced id and optional fallback.
+struct VarCall {
+    id: String,
+    fallback: Option<String>,
+    start: usize,
+    end: usize,
+}
+
+/// Advance one Unicode scalar value from byte offset `j`.
+fn adv_char(raw: &str, j: usize) -> usize {
+    j + raw[j..].chars().next().map(|c| c.len_utf8()).unwrap_or(1)
+}
+
+/// Skip ASCII whitespace from byte offset `j`.
+fn skip_ws(raw: &str, mut j: usize) -> usize {
+    while j < raw.len() {
+        let b = raw.as_bytes()[j];
+        if b == b' ' || b == b'\t' || b == b'\n' || b == b'\r' {
+            j += 1;
+        } else {
+            break;
+        }
+    }
+    j
+}
+
+/// Parse the single `var()` call opening at byte offset `abs` (the
+/// `v` of `var(`). Returns the call plus the offset past its closing
+/// paren, or a short syntax detail for the diagnostic.
+fn parse_one_var_call(raw: &str, abs: usize) -> Result<(VarCall, usize), String> {
+    let mut j = skip_ws(raw, abs + 4);
+    if !raw[j..].starts_with("--") {
+        return Err("expected `--<id>` after `var(`".to_string());
+    }
+    j += 2;
+    let start = j;
+    while j < raw.len() {
+        let b = raw.as_bytes()[j];
+        if b.is_ascii_alphanumeric() || b == b'-' || b == b'_' {
+            j += 1;
+        } else {
+            break;
+        }
+    }
+    let name = &raw[start..j];
+    if !valid_variable_id(name) {
+        return Err(format!(
+            "expected a variable name like `--title` after `var(`, found `--{name}`"
+        ));
+    }
+    j = skip_ws(raw, j);
+    if j >= raw.len() {
+        return Err(format!("unclosed `var(--{name})`; expected `)`"));
+    }
+    if raw.as_bytes()[j] == b')' {
+        return Ok((
+            VarCall {
+                id: name.to_string(),
+                fallback: None,
+                start: abs,
+                end: j + 1,
+            },
+            j + 1,
+        ));
+    }
+    if raw.as_bytes()[j] != b',' {
+        return Err(format!("expected `,` or `)` after `var(--{name}`"));
+    }
+    j = skip_ws(raw, j + 1);
+    // The fallback runs to the matching close paren so nested calls
+    // (`var(--a, var(--b))`) resolve; the depth count keeps parens
+    // inside the fallback (which resolve recursively) balanced.
+    let fb_start = j;
+    let mut depth = 0usize;
+    while j < raw.len() {
+        match raw.as_bytes()[j] {
+            b'(' => {
+                depth += 1;
+                j += 1;
+            }
+            b')' => {
+                if depth == 0 {
+                    break;
+                }
+                depth -= 1;
+                j += 1;
+            }
+            _ => {
+                j = adv_char(raw, j);
+            }
+        }
+    }
+    if j >= raw.len() {
+        return Err(format!("unclosed `var(--{name}, ...)`; expected `)`"));
+    }
+    let fallback = raw[fb_start..j].trim().to_string();
+    if fallback.is_empty() {
+        return Err(format!(
+            "`var(--{name},)` needs a fallback value after the comma"
+        ));
+    }
+    Ok((
+        VarCall {
+            id: name.to_string(),
+            fallback: Some(fallback),
+            start: abs,
+            end: j + 1,
+        },
+        j + 1,
+    ))
+}
+
+/// Parse every `var()` call in an attribute value, in order. A `var(`
+/// glued to a longer identifier (letters, digits, `_`, `-`, `.`
+/// before it) is literal text, never a call; any other `var(` that
+/// fails to parse is bad syntax.
+fn parse_var_calls(raw: &str) -> Result<Vec<VarCall>, String> {
+    let mut calls = Vec::new();
+    let mut i = 0;
+    while i < raw.len() {
+        let rel = match raw[i..].find("var(") {
+            Some(p) => p,
+            None => break,
+        };
+        let abs = i + rel;
+        if abs > 0 {
+            let prev = raw.as_bytes()[abs - 1];
+            if prev.is_ascii_alphanumeric() || prev == b'_' || prev == b'-' || prev == b'.' {
+                i = abs + 4;
+                continue;
+            }
+        }
+        match parse_one_var_call(raw, abs) {
+            Ok((call, next)) => {
+                calls.push(call);
+                i = next;
+            }
+            Err(detail) => return Err(detail),
+        }
+    }
+    Ok(calls)
+}
+
+/// Why one fallback failed to resolve (Sprint 9 variables, CAP-002):
+/// carried outward so the diagnostic names the outer attribute.
+enum FallbackError {
+    /// A nested call names an undeclared variable with no fallback.
+    Unknown(String),
+    /// A nested call names a default-less variable with no fallback.
+    NoValue(String),
+    /// A nested fallback is malformed or nested too deep.
+    Syntax(String),
+}
+
+/// Resolve nested `var()` calls inside one fallback (Sprint 9
+/// variables, CAP-002/CAP-005): plain text passes through, calls
+/// resolve like any binding through the fixed precedence (caller
+/// override already swapped into the default, then theme token, then
+/// variable default, then the nested fallback). Depth-capped so
+/// fallbacks cannot nest forever. Silent: the caller diagnoses the
+/// failure against the outer attribute.
+fn resolve_var_text(
+    vars: &[VariableDecl],
+    theme: &BTreeMap<String, String>,
+    overridden: &BTreeSet<String>,
+    raw: &str,
+    depth: usize,
+) -> Result<Option<String>, FallbackError> {
+    if depth > 8 {
+        return Err(FallbackError::Syntax("nested too deep".to_string()));
+    }
+    let calls = match parse_var_calls(raw) {
+        Ok(c) => c,
+        Err(detail) => return Err(FallbackError::Syntax(detail)),
+    };
+    if calls.is_empty() {
+        return Ok(Some(raw.to_string()));
+    }
+    let mut out = String::new();
+    let mut last = 0;
+    for call in &calls {
+        out.push_str(&raw[last..call.start]);
+        // Fixed precedence inside nested fallbacks too: a caller
+        // override wins outright, then the theme token, then the
+        // variable default, then the nested fallback.
+        let hit: Option<String> = match vars.iter().find(|d| d.id == call.id) {
+            Some(d) => match &d.default {
+                Some(def) if overridden.contains(&d.id) => Some(variable_binding_text(def)),
+                _ => theme
+                    .get(&call.id)
+                    .cloned()
+                    .or_else(|| d.default.as_ref().map(variable_binding_text)),
+            },
+            None => theme.get(&call.id).cloned(),
+        };
+        match hit {
+            Some(text) => out.push_str(&text),
+            None => match &call.fallback {
+                Some(fb) => match resolve_var_text(vars, theme, overridden, fb, depth + 1) {
+                    Ok(rep) => {
+                        if let Some(rep) = rep {
+                            out.push_str(&rep);
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    Err(e) => return Err(e),
+                },
+                None => {
+                    return Err(if vars.iter().any(|d| d.id == call.id) {
+                        FallbackError::NoValue(call.id.clone())
+                    } else {
+                        FallbackError::Unknown(call.id.clone())
+                    });
+                }
+            },
+        }
+        last = call.end;
+    }
+    out.push_str(&raw[last..]);
+    Ok(Some(out))
+}
+
+/// Resolve one parsed call through the fixed precedence (Sprint 9
+/// variables, CAP-002/CAP-005): the caller override (already swapped
+/// into the default by the override pass), then the theme token, then
+/// the variable default, then the fallback (itself resolved for nested
+/// calls). A call resolving through nothing refuses here (REC-004)
+/// naming the attribute, the token, and where to define it.
+fn resolve_one_var_call(
+    ctx: &mut Ctx,
+    vars: &[VariableDecl],
+    theme: &BTreeMap<String, String>,
+    overridden: &BTreeSet<String>,
+    element: &str,
+    key: &str,
+    line: usize,
+    column: usize,
+    call: &VarCall,
+    depth: usize,
+) -> Option<String> {
+    // Diagnose a failed fallback against this attribute: the message
+    // names the attribute plus the variable or syntax behind it.
+    let bad_fallback = |ctx: &mut Ctx, err: FallbackError| {
+        let (message, fix) = match err {
+            FallbackError::Unknown(id) => (
+                format!(
+                    "`{element}` `{key}` fallback for `--{}` binds unknown variable `--{id}`; no `variable` in this composition declares `--{id}` and no theme selected for this render provides token `--{id}`",
+                    call.id
+                ),
+                format!(
+                    "declare `variable id=\"{id}\"` in the composition, add `token id=\"{id}\" value=\"...\"` to the selected theme, or use plain text in the fallback"
+                ),
+            ),
+            FallbackError::NoValue(id) => (
+                format!(
+                    "`{element}` `{key}` fallback for `--{}` uses variable `--{id}` with no value; the declaration carries no `default` and no theme selected for this render provides token `--{id}`",
+                    call.id
+                ),
+                format!("add `default=<value>` to `variable id=\"{id}\"`, add `token id=\"{id}\" value=\"...\"` to the selected theme, or use plain text in the fallback"),
+            ),
+            FallbackError::Syntax(detail) => (
+                format!(
+                    "`{element}` `{key}` fallback for `--{}` holds bad `var()` syntax ({detail}); expected `var(--id)` or `var(--id, fallback)`",
+                    call.id
+                ),
+                format!(
+                    "write `var(--{}, <fallback>)` with plain text or nested `var()` fallbacks in `{key}`",
+                    call.id
+                ),
+            ),
+        };
+        ctx.push(line, column, "E_BAD_VARIABLE", message, fix);
+    };
+    // Fixed precedence: a caller override (already swapped into the
+    // default, tracked in `overridden`) wins outright, then the theme
+    // token, then the variable default, then the binding fallback.
+    let hit: Option<String> = match vars.iter().find(|d| d.id == call.id) {
+        Some(d) => match &d.default {
+            Some(def) if overridden.contains(&d.id) => Some(variable_binding_text(def)),
+            _ => theme
+                .get(&call.id)
+                .cloned()
+                .or_else(|| d.default.as_ref().map(variable_binding_text)),
+        },
+        None => theme.get(&call.id).cloned(),
+    };
+    match hit {
+        Some(text) => Some(text),
+        None => {
+            let declared = vars.iter().any(|d| d.id == call.id);
+            match &call.fallback {
+                Some(fb) => match resolve_var_text(vars, theme, overridden, fb, depth + 1) {
+                    Ok(rep) => rep,
+                    Err(e) => {
+                        bad_fallback(ctx, e);
+                        None
+                    }
+                },
+                None => {
+                    if declared {
+                        ctx.push(
+                            line,
+                            column,
+                            "E_BAD_VARIABLE",
+                            format!(
+                                "`{element}` `{key}` uses variable `--{}` with no value; the declaration carries no `default`, no `--variables` value was supplied, no theme selected for this render provides token `--{}`, and the binding carries no fallback",
+                                call.id, call.id
+                            ),
+                            format!(
+                                "add `default=<value>` to `variable id=\"{0}\"`, add `token id=\"{0}\" value=\"...\"` to the selected theme, pass `--variables '{{\"{0}\": ...}}'` for this render, or write `var(--{0}, <fallback>)` in `{key}`",
+                                call.id
+                            ),
+                        );
+                    } else {
+                        ctx.push(
+                            line,
+                            column,
+                            "E_BAD_VARIABLE",
+                            format!(
+                                "`{element}` `{key}` binds unknown variable `--{}`; no `variable` in this composition declares `--{}`, no theme selected for this render provides token `--{}`, and the binding carries no fallback",
+                                call.id, call.id, call.id
+                            ),
+                            format!(
+                                "declare `variable id=\"{0}\" type=\"...\"` in the composition, add `token id=\"{0}\" value=\"...\"` to the selected theme, pass `--variables '{{\"{0}\": ...}}'` for this render, or write `var(--{0}, <fallback>)` in `{key}`",
+                                call.id
+                            ),
+                        );
+                    }
+                    None
+                }
+            }
+        }
+    }
+}
+
+/// Resolve every `var()` call in one attribute value (Sprint 9
+/// variables, CAP-002/CAP-005). Returns the substituted text, the
+/// referenced variable ids, and whether the whole value is one bare
+/// call. Refusals name the attribute (and the variable, when there is
+/// one).
+fn resolve_binding_value(
+    ctx: &mut Ctx,
+    vars: &[VariableDecl],
+    theme: &BTreeMap<String, String>,
+    overridden: &BTreeSet<String>,
+    element: &str,
+    key: &str,
+    raw: &str,
+    line: usize,
+    column: usize,
+) -> Option<(String, Vec<String>, bool)> {
+    let calls = match parse_var_calls(raw) {
+        Ok(c) => c,
+        Err(detail) => {
+            ctx.push(
+                line,
+                column,
+                "E_BAD_VARIABLE",
+                format!(
+                    "`{element}` `{key}` holds bad `var()` syntax ({detail}); expected `var(--id)` or `var(--id, fallback)`"
+                ),
+                format!(
+                    "write `var(--<name starting with a letter>)` in `{key}` or remove the binding"
+                ),
+            );
+            return None;
+        }
+    };
+    if calls.is_empty() {
+        return None;
+    }
+    let mut out = String::new();
+    let mut last = 0;
+    let mut ids = Vec::new();
+    for call in &calls {
+        out.push_str(&raw[last..call.start]);
+        match resolve_one_var_call(
+            ctx, vars, theme, overridden, element, key, line, column, call, 0,
+        ) {
+            Some(rep) => out.push_str(&rep),
+            None => return None,
+        }
+        if !ids.contains(&call.id) {
+            ids.push(call.id.clone());
+        }
+        last = call.end;
+    }
+    out.push_str(&raw[last..]);
+    let whole = calls.len() == 1
+        && raw[..calls[0].start].trim().is_empty()
+        && raw[calls[0].end..].trim().is_empty();
+    Some((out, ids, whole))
+}
+
+/// True when `var()` is refused in this attribute (Sprint 9 variables,
+/// CAP-002): structural references (`id`, `track`, `start-after`
+/// targets on any element) and the composition timing foundation
+/// (`name`, `width`, `height`, `duration`, `fps`) stay literal so
+/// references and timing never vary per render.
+fn var_binding_structural(element: &str, key: &str, is_composition: bool) -> bool {
+    let _ = element;
+    if key == "id" || key == "track" || key == "start-after" || key == "start_after" {
+        return true;
+    }
+    is_composition && matches!(key, "name" | "width" | "height" | "duration" | "fps")
+}
+
+/// Attribute keys whose readers take only bare integers (Sprint 9
+/// variables, CAP-002): a whole-value binding resolving to whole
+/// digits converts kind so it reads exactly like the literal.
+const VAR_INT_KEYS: &[&str] = &["order", "decimals", "target", "version", "repeat"];
+
+/// Attribute keys whose readers take only bare booleans (Sprint 9
+/// variables, CAP-002): a whole-value binding resolving to exactly
+/// `true`/`false` converts kind so it reads exactly like the literal.
+const VAR_BOOL_KEYS: &[&str] = &[
+    "hidden",
+    "typewriter",
+    "loop",
+    "yoyo",
+    "italic",
+    "orient",
+    "autoplay",
+    "waveform",
+    "detect-silence",
+    "detect_silence",
+];
+
+/// Substitute every `var(--id)` binding in the composition tree
+/// (Sprint 9 variables, CAP-002/CAP-005): allowed attributes resolve
+/// through the fixed precedence (caller override already swapped into
+/// the default, then theme token, then variable default, then inline
+/// fallback) and rewrite in place, so every existing reader coerces
+/// the resolved text exactly like a literal. Structural references and
+/// timing keys refuse naming the location and reset to a benign
+/// placeholder, so one bad value yields exactly the one binding
+/// diagnostic. `variable` and `theme` subtrees stay literal (defaults
+/// and token values are the resolution source, never bindings), and
+/// the composition `root` mark and `theme` selection stay literal
+/// (render-root and theme selection are not per-render values).
+fn substitute_var_bindings(
+    ctx: &mut Ctx,
+    node: &mut RawNode,
+    is_composition: bool,
+    vars: &[VariableDecl],
+    theme: &BTreeMap<String, String>,
+    overridden: &BTreeSet<String>,
+    comp_name: &str,
+) {
+    if node.name == "variable" || node.name == "theme" {
+        return;
+    }
+    let element = node.name.clone();
+    for (key, value) in node.props.iter_mut() {
+        if is_composition && (key == "root" || key == "theme") {
+            continue;
+        }
+        let raw = match &value.kind {
+            ValueKind::Str(s) => s.clone(),
+            _ => continue,
+        };
+        if !raw.contains("var(") {
+            continue;
+        }
+        let (line, column) = (value.line, value.column);
+        if var_binding_structural(&element, key, is_composition) {
+            let loc = if is_composition {
+                format!("composition `{key}`")
+            } else {
+                format!("`{element}` `{key}`")
+            };
+            let id_part = match parse_var_calls(&raw) {
+                Ok(calls) if !calls.is_empty() => format!("`var(--{})`", calls[0].id),
+                _ => "`var()`".to_string(),
+            };
+            ctx.push(
+                line,
+                column,
+                "E_BAD_VARIABLE",
+                format!(
+                    "{loc} must not contain {id_part}; structural references and the composition timing foundation stay literal so references and timing never vary per render"
+                ),
+                format!("remove the `var()` from {loc} and write the literal value"),
+            );
+            // Reset to a benign placeholder so the refusal above stays
+            // the single diagnostic for this value: a unique id for
+            // `id` keys, the graphics lane for `track`, the composition
+            // itself for `start-after` targets, and plain valid numbers
+            // for timing keys. The verdict is already invalid, so the
+            // placeholder never renders.
+            let placeholder: Option<ValueKind> = if key == "id" {
+                Some(ValueKind::Str(format!("__var_refused_{line}_{column}")))
+            } else if key == "track" {
+                Some(ValueKind::Str("graphics".to_string()))
+            } else if (key == "start-after" || key == "start_after")
+                && !comp_name.is_empty()
+                && !comp_name.contains("var(")
+            {
+                Some(ValueKind::Str(comp_name.to_string()))
+            } else if is_composition && (key == "width" || key == "height") {
+                Some(ValueKind::Str("64".to_string()))
+            } else if is_composition && key == "duration" {
+                Some(ValueKind::Str("1".to_string()))
+            } else if is_composition && key == "fps" {
+                Some(ValueKind::Int(30))
+            } else {
+                None
+            };
+            if let Some(kind) = placeholder {
+                value.kind = kind;
+            }
+            continue;
+        }
+        match resolve_binding_value(
+            ctx, vars, theme, overridden, &element, key, &raw, line, column,
+        ) {
+            Some((out, ids, whole)) => {
+                let converted = if whole && VAR_BOOL_KEYS.contains(&key.as_str()) {
+                    match out.as_str() {
+                        "true" => Some(ValueKind::Bool(true)),
+                        "false" => Some(ValueKind::Bool(false)),
+                        _ => None,
+                    }
+                } else if whole && VAR_INT_KEYS.contains(&key.as_str()) {
+                    out.parse::<i64>().ok().map(ValueKind::Int)
+                } else {
+                    None
+                };
+                value.kind = converted.unwrap_or(ValueKind::Str(out.clone()));
+                ctx.bindings.push(BindingSite {
+                    line,
+                    column,
+                    node: element.clone(),
+                    key: key.clone(),
+                    vars: ids.clone(),
+                    needs_text: None,
+                });
+                // Media checks diagnose at the node: a second site lets
+                // the amendment name the variable there too, but only
+                // when the message quotes this resolved text.
+                if (key == "path" || key == "src") && out.len() >= 2 {
+                    ctx.bindings.push(BindingSite {
+                        line: node.name_line,
+                        column: node.name_column,
+                        node: element.clone(),
+                        key: key.clone(),
+                        vars: ids,
+                        needs_text: Some(out),
+                    });
+                }
+            }
+            None => {
+                // The binding already diagnosed itself above; record the
+                // parsed ids (when parseable) so a same-location shape
+                // diagnostic still names the variable.
+                if let Ok(calls) = parse_var_calls(&raw) {
+                    if !calls.is_empty() {
+                        ctx.bindings.push(BindingSite {
+                            line,
+                            column,
+                            node: element.clone(),
+                            key: key.clone(),
+                            vars: calls.into_iter().map(|c| c.id).collect(),
+                            needs_text: None,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    for child in node.children.iter_mut() {
+        substitute_var_bindings(ctx, child, false, vars, theme, overridden, comp_name);
+    }
+}
+
+/// Coerce one caller override to its declaration's type (Sprint 9
+/// variables, CAP-003): the JSON scalar becomes the typed default the
+/// binding pass substitutes, mirroring `variable_default` but against
+/// the override value instead of KDL. A value outside the type refuses
+/// at the declaration, naming the variable and the expected shape; an
+/// `image` path must exist and read, like a declared default.
+fn coerce_override(
+    ctx: &mut Ctx,
+    decl: &VariableDecl,
+    value: &OverrideValue,
+) -> Option<VariableDefault> {
+    let who = decl.id.as_str();
+    let expected = match decl.var_type {
+        VariableType::String => "",
+        VariableType::Number => "a finite decimal number like `1.5`",
+        VariableType::Color => "a `#rgb` or `#rrggbb` color like `\"#ff3366\"`",
+        VariableType::Boolean => "`true` or `false`",
+        VariableType::Enum => "",
+        VariableType::Font => "a quoted font family list like `\"Family Name\"`",
+        VariableType::Image => "a quoted project-relative image path like `\"media/photo.png\"`",
+    };
+    let bad = |ctx: &mut Ctx, expected: String| {
+        ctx.push(
+            decl.line,
+            decl.column,
+            "E_BAD_VARIABLE",
+            format!(
+                "`--variables` value for variable `--{who}` of type `{}` holds {}; expected {expected}",
+                decl.var_type.name(),
+                override_text(value),
+            ),
+            format!(
+                "pass {expected} for `--{who}` in `--variables`, or remove the key to keep the declared default"
+            ),
+        );
+    };
+    match decl.var_type {
+        VariableType::String => Some(match value {
+            OverrideValue::Str(s) => VariableDefault::Str(s.clone()),
+            OverrideValue::Num(x) => VariableDefault::Str(x.to_string()),
+            OverrideValue::Bool(b) => VariableDefault::Str(b.to_string()),
+        }),
+        VariableType::Number => match value {
+            OverrideValue::Num(x) if x.is_finite() => Some(VariableDefault::Num(*x)),
+            OverrideValue::Str(s) => match s.parse::<f64>() {
+                Ok(x) if x.is_finite() => Some(VariableDefault::Num(x)),
+                _ => {
+                    bad(ctx, expected.to_string());
+                    None
+                }
+            },
+            _ => {
+                bad(ctx, expected.to_string());
+                None
+            }
+        },
+        VariableType::Color => match value {
+            OverrideValue::Str(s) => match parse_color(s) {
+                Some(c) => Some(VariableDefault::Color(c)),
+                None => {
+                    bad(ctx, expected.to_string());
+                    None
+                }
+            },
+            _ => {
+                bad(ctx, expected.to_string());
+                None
+            }
+        },
+        VariableType::Boolean => {
+            let flag = match value {
+                OverrideValue::Bool(b) => Some(*b),
+                OverrideValue::Str(s) if s == "true" => Some(true),
+                OverrideValue::Str(s) if s == "false" => Some(false),
+                _ => None,
+            };
+            match flag {
+                Some(b) => Some(VariableDefault::Bool(b)),
+                None => {
+                    bad(ctx, expected.to_string());
+                    None
+                }
+            }
+        }
+        VariableType::Enum => match value {
+            OverrideValue::Str(s) => {
+                let options = decl.options.as_deref().unwrap_or(&[]);
+                if options.iter().any(|e| e == s) {
+                    Some(VariableDefault::Enum(s.clone()))
+                } else {
+                    let list = options
+                        .iter()
+                        .map(|e| format!("{e:?}"))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    bad(ctx, format!("one of its `options`: {list}"));
+                    None
+                }
+            }
+            _ => {
+                bad(
+                    ctx,
+                    match decl.options.as_deref() {
+                        Some(options) => {
+                            let list = options
+                                .iter()
+                                .map(|e| format!("{e:?}"))
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            format!("one of its `options`: {list}")
+                        }
+                        None => "one of its `options`".to_string(),
+                    },
+                );
+                None
+            }
+        },
+        VariableType::Font => match value {
+            OverrideValue::Str(s) => {
+                let names = split_list(s);
+                if names.is_empty() {
+                    bad(ctx, expected.to_string());
+                    None
+                } else {
+                    Some(VariableDefault::Font(names))
+                }
+            }
+            _ => {
+                bad(ctx, expected.to_string());
+                None
+            }
+        },
+        VariableType::Image => match value {
+            OverrideValue::Str(s) => {
+                let abs = ctx.folder.join(s);
+                if !abs.is_file() {
+                    ctx.push(
+                        decl.line,
+                        decl.column,
+                        "E_MISSING_FILE",
+                        format!(
+                            "`--variables` value for variable `--{who}` image path {s:?} does not exist or is not readable"
+                        ),
+                        format!(
+                            "provide the file at the referenced path relative to the project folder, or remove the key to keep the declared default"
+                        ),
+                    );
+                    None
+                } else {
+                    let readable = std::fs::File::open(&abs)
+                        .and_then(|mut f| {
+                            use std::io::Read;
+                            f.read(&mut [0u8; 1]).map(|_| ())
+                        })
+                        .is_ok();
+                    if !readable {
+                        ctx.push(
+                            decl.line,
+                            decl.column,
+                            "E_UNREADABLE",
+                            format!(
+                                "`--variables` value for variable `--{who}` image path {s:?} cannot be read"
+                            ),
+                            "make the file readable, or remove the key to keep the declared default".to_string(),
+                        );
+                        None
+                    } else {
+                        Some(VariableDefault::Image(s.clone()))
+                    }
+                }
+            }
+            _ => {
+                bad(ctx, expected.to_string());
+                None
+            }
+        },
+    }
+}
+
+/// Validate the `variable` declarations of one composition, then
+/// substitute every `var()` binding across it (Sprint 9 variables,
+/// CAP-002/CAP-005). Declarations validate before any clip so
+/// bindings resolve whatever the document order; the caller theme
+/// (or the composition `theme` attribute) selects the token map, and
+/// substitution rewrites bound attributes in place so existing readers
+/// coerce resolved text like literals.
+fn collect_variables_and_substitute(
+    ctx: &mut Ctx,
+    root: &mut RawNode,
+    themes: &[Theme],
+    cli_theme: Option<&str>,
+) -> Vec<VariableDecl> {
+    let mut variables = Vec::new();
+    for child in root.children.iter() {
+        if child.name == "variable" {
+            if let Some(d) = validate_variable(ctx, child) {
+                variables.push(d);
+            }
+        }
+    }
+    // Sprint 9 variables, CAP-003: caller overrides replace matching
+    // defaults for this render only. Only the in-memory default swaps —
+    // id, type, and options stay declared — so the binding pass below
+    // substitutes the override exactly like a default. A value outside
+    // the type already refused above at the declaration; the project on
+    // disk is never written.
+    for decl in variables.iter_mut() {
+        let value = ctx.overrides.get(&decl.id).cloned();
+        if let Some(value) = value {
+            if let Some(coerced) = coerce_override(ctx, decl, &value) {
+                decl.default = Some(coerced);
+            }
+        }
+    }
+    // The composition's theme selection resolves before any binding
+    // (Sprint 9 variables, CAP-005): the caller theme beats the
+    // composition `theme` attribute, and either side naming an unknown
+    // theme (or the attribute naming two) refuses naming the rule.
+    let theme_tokens = composition_theme_tokens(ctx, root, themes, cli_theme);
+    // Caller-supplied ids resolve first everywhere (Sprint 9 variables,
+    // CAP-005): the override pass above swapped them into the
+    // in-memory defaults, and this set tells the binding pass to keep
+    // them ahead of theme tokens.
+    let overridden: BTreeSet<String> = ctx.overrides.keys().cloned().collect();
+    // The composition name answers `start-after` references, so a
+    // refused `start-after` binding falls back to it as a benign
+    // placeholder. A name carrying its own `var()` stays raw (it
+    // refuses separately below), never a placeholder.
+    let comp_name = match root.props.iter().find(|(k, _)| k == "name") {
+        Some((_, v)) => match &v.kind {
+            ValueKind::Str(s) => s.clone(),
+            _ => String::new(),
+        },
+        None => String::new(),
+    };
+    substitute_var_bindings(
+        ctx,
+        root,
+        true,
+        &variables,
+        &theme_tokens,
+        &overridden,
+        &comp_name,
+    );
+    variables
+}
+
+/// Name the variable behind every coerced binding (Sprint 9 variables,
+/// CAP-002): any diagnostic sitting exactly on a substituted `var()`
+/// value gains the attribute and variable names, so a substitution
+/// that does not coerce to the expected shape fails naming both.
+fn amend_binding_diagnostics(ctx: &mut Ctx) {
+    for site in &ctx.bindings {
+        for diag in ctx.diags.iter_mut() {
+            if diag.file != ctx.file || diag.line != site.line || diag.column != site.column {
+                continue;
+            }
+            // Node-location file sites only amend diagnostics quoting
+            // the resolved text, so an unrelated error sharing the
+            // node never borrows the variable's name.
+            if let Some(text) = &site.needs_text {
+                if !diag.message.contains(text) {
+                    continue;
+                }
+            }
+            for id in &site.vars {
+                if !diag.message.contains(&format!("--{id}")) {
+                    diag.message.push_str(&format!(
+                        " (binding: `{}` `{}` uses variable `--{id}`)",
+                        site.node, site.key
+                    ));
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

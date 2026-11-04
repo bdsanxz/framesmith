@@ -364,6 +364,7 @@ mod tests {
             keys: Vec::new(),
             marks: Vec::new(),
             inputs: Vec::new(),
+            variables: Vec::new(),
             replicates: Vec::new(),
             autoplay: false,
             normalize: Default::default(),

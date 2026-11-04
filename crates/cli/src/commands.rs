@@ -23,7 +23,9 @@ use notation::model::Composition;
 use std::path::{Path, PathBuf};
 use validate::catalog::{self, json_escape};
 use validate::validate as validate_mod;
-use validate_mod::{validate_folder, Status, Verdict};
+use validate_mod::{
+    validate_folder, validate_folder_with_variables_strict_themed, Status, Verdict,
+};
 
 /// Project-name rule (reported verbatim in refusal messages): 1–64
 /// characters, ASCII letters/digits/`-`/`_`, starting with a letter
@@ -438,6 +440,12 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict, master: Option<u32>)
     for d in &verdict.diagnostics {
         let _ = writeln!(out, "{d}");
     }
+    // Sprint 9 variables (CAP-003): unknown `--variables` keys warn
+    // visibly in default mode without blocking; every warning names the
+    // key and the fix, like a diagnostic but with a zero exit code.
+    for w in &verdict.variable_warnings {
+        let _ = writeln!(out, "{w}");
+    }
     for f in &verdict.footage {
         out.push_str(&format_footage_human(f));
     }
@@ -569,6 +577,22 @@ pub fn format_verdict_json(
     // Sprint 5 T001/T009: the same effective windows as the human echo,
     // plus the resolved clip length and its inferred marking, so
     // inference and clamping are reviewable machine-readably.
+    // Sprint 9 variables (CAP-003): unknown `--variables` keys ride
+    // along machine-readably with the same key, message, and fix the
+    // human warning carries; empty for override-free runs.
+    out.push_str("],\"variable_warnings\":[");
+    for (i, w) in verdict.variable_warnings.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"key\":\"{}\",\"message\":\"{}\",\"fix\":\"{}\"}}",
+            json_escape(&w.key),
+            json_escape(&w.message),
+            json_escape(&w.fix)
+        );
+    }
     out.push_str("],\"videos\":[");
     let num = |v: Option<f64>| match v {
         Some(x) => format!("{x}"),
@@ -849,6 +873,55 @@ fn note_log(folder: &Path, level: &str, component: &str, run: &str, msg: &str, j
 /// invalid under every backend. An unknown backend value is a validation
 /// error (exit 1).
 pub fn cmd_check(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
+    cmd_check_full(folder, json, backend, None)
+}
+
+/// `check` with per-render caller values and no strict gate (Sprint 9
+/// variables, CAP-003): preserved for existing callers; strict runs go
+/// through [`cmd_check_full_strict`].
+pub fn cmd_check_full(
+    folder: &Path,
+    json: bool,
+    backend: Option<&str>,
+    variables: Option<&str>,
+) -> i32 {
+    cmd_check_full_strict(folder, json, backend, variables, false)
+}
+
+/// `check` with per-render caller values and an explicit strict switch
+/// (Sprint 9 variables, CAP-003/CAP-004): the host entry for overrides
+/// plus strict mode. `variables` is the raw `--variables` JSON payload;
+/// `None` validates every binding at its declared default. A misshapen
+/// payload fails naming the flag and the expected shape (exit 1);
+/// otherwise the overridden composition validates exactly like an
+/// unoverridden one, with unknown keys and unused declarations warned
+/// visibly in default mode and refused under `strict`
+/// (`--strict-variables`), which additionally requires every
+/// default-less variable to receive a caller value.
+pub fn cmd_check_full_strict(
+    folder: &Path,
+    json: bool,
+    backend: Option<&str>,
+    variables: Option<&str>,
+    strict: bool,
+) -> i32 {
+    cmd_check_full_strict_themed(folder, json, backend, variables, strict, None)
+}
+
+/// `check` with per-render caller values, strict mode, and a theme
+/// selection (Sprint 9 variables, CAP-005): `theme` is the raw
+/// `--theme` name; `None` selects no caller theme, so each composition
+/// falls back to its own `theme` attribute. The caller theme beats the
+/// composition attribute; an unknown name on either side refuses before
+/// frame one naming the available themes.
+pub fn cmd_check_full_strict_themed(
+    folder: &Path,
+    json: bool,
+    backend: Option<&str>,
+    variables: Option<&str>,
+    strict: bool,
+    theme: Option<&str>,
+) -> i32 {
     if let Some(raw) = backend {
         if render::render::Backend::parse(raw).is_none() {
             let msg =
@@ -857,8 +930,19 @@ pub fn cmd_check(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
             return 1;
         }
     }
+    let overrides = match variables {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => match validate_mod::parse_variable_overrides(raw) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("framesmith check: {e}");
+                return 1;
+            }
+        },
+    };
     let run = log::run_id();
-    let mut verdict = validate_folder(folder);
+    let mut verdict =
+        validate_folder_with_variables_strict_themed(folder, &overrides, strict, theme);
     // Sprint 10 sound (CAP-009): silent normalization fails closed in
     // `check` too, before any peak is previewed.
     apply_normalize_silence_gate(folder, &mut verdict);
@@ -1607,6 +1691,37 @@ pub struct RenderRequest {
     /// Sub-range end in composition seconds (Sprint 6 T008): the raw
     /// `--end` flag text. None renders to the composition end.
     pub end: Option<String>,
+    /// Per-render variable values (Sprint 9 variables, CAP-003): the
+    /// raw `--variables` JSON payload, for example
+    /// `'{"title":"Sale"}'`. None renders every binding at its
+    /// declared default.
+    pub variables: Option<String>,
+    /// Strict variable validation (Sprint 9 variables, CAP-004): the
+    /// `--strict-variables` flag. Unknown override keys and
+    /// declared-but-never-bound variables refuse instead of warning,
+    /// and every default-less variable must receive a caller value.
+    pub strict_variables: bool,
+    /// Theme selection (Sprint 9 variables, CAP-005): the raw
+    /// `--theme` name. None selects no caller theme, so each
+    /// composition falls back to its own `theme` attribute; the caller
+    /// theme beats the composition attribute.
+    pub theme: Option<String>,
+    /// Batch manifest (Sprint 9 variables, CAP-006): the raw
+    /// `--batch` rows-file path. None renders one variant; some
+    /// renders one MP4 per rows-file row (see [`cmd_render_batch`]).
+    pub batch: Option<String>,
+    /// Batch output naming (Sprint 9 variables, CAP-006): the raw
+    /// `--name-template` text, for example `"clip-{title}-{index}"`.
+    /// None (with `--batch`) names rows `clip-{index}`.
+    pub name_template: Option<String>,
+    /// Batch job control (Sprint 9 variables, CAP-006): the raw
+    /// `--jobs` flag text. None (with `--batch`) renders rows one at
+    /// a time, in order.
+    pub jobs: Option<String>,
+    /// Stop the batch after the first failing row (Sprint 9 variables,
+    /// CAP-006): the `--fail-fast` flag. Without it every row is
+    /// attempted and the summary reports each row's pass or fail.
+    pub fail_fast: bool,
 }
 
 /// Flag choices resolved before the first frame (T001/T002): the
@@ -1617,6 +1732,15 @@ struct ResolvedRender {
     preset: render::render::Preset,
     crf: Option<u8>,
     video_bitrate: Option<String>,
+    /// Parsed per-render variable values (Sprint 9 variables, CAP-003):
+    /// empty when no `--variables` flag was passed.
+    variables: validate_mod::VariableOverrides,
+    /// Strict variable validation (Sprint 9 variables, CAP-004): true
+    /// when `--strict-variables` was passed.
+    strict_variables: bool,
+    /// Theme selection (Sprint 9 variables, CAP-005): the raw
+    /// `--theme` name, or none when the flag was absent.
+    theme: Option<String>,
 }
 
 /// Validate one `--video-bitrate` value: a positive number with an
@@ -1669,11 +1793,23 @@ fn resolve_render_request(req: &RenderRequest) -> Result<ResolvedRender, String>
         None => None,
         Some(raw) => Some(parse_video_bitrate(raw)?),
     };
+    // Sprint 9 variables (CAP-003): the `--variables` payload parses to
+    // the per-render map here, before the first frame. A misshapen
+    // payload refuses naming the flag and the expected shape, with no
+    // MP4 written.
+    let variables = match &req.variables {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => validate_mod::parse_variable_overrides(raw)
+            .map_err(|e| format!("render refused: {e} (validation stage); no MP4 was written"))?,
+    };
     Ok(ResolvedRender {
         backend,
         preset,
         crf,
         video_bitrate,
+        variables,
+        strict_variables: req.strict_variables,
+        theme: req.theme.clone(),
     })
 }
 
@@ -2073,6 +2209,12 @@ fn select_composition(verdict: &Verdict, name: Option<&str>) -> Result<Compositi
 /// T002, T003, T006, T008). Every run appends its notable events to the
 /// run log. Refusals are logged too: no verdict ever skips the log.
 pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest) -> i32 {
+    // Sprint 9 variables (CAP-006): a rows manifest renders one MP4
+    // per row through the batch driver below; every other flag rides
+    // along into each row render.
+    if req.batch.is_some() {
+        return cmd_render_batch(folder, output, req);
+    }
     use std::time::Instant;
     let json = req.json;
     let run = log::run_id();
@@ -2130,7 +2272,18 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
 
     stage_line(json, "stage validate: running");
     let validate_start = Instant::now();
-    let verdict = validate_folder(folder);
+    // Sprint 9 variables (CAP-003/CAP-004/CAP-005): caller overrides
+    // resolve in memory for this render only; the project on disk is
+    // never written. Under `--strict-variables` unknown keys, unused
+    // declarations, and valueless default-less variables refuse here.
+    // The caller theme (`--theme`) beats each composition `theme`
+    // attribute; unknown names on either side refuse here.
+    let verdict = validate_folder_with_variables_strict_themed(
+        folder,
+        &resolved.variables,
+        resolved.strict_variables,
+        resolved.theme.as_deref(),
+    );
     let validate_ms = validate_start.elapsed().as_millis() as u64;
     if !json {
         for d in &verdict.diagnostics {
@@ -2299,6 +2452,15 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             println!("{msg}");
         }
         return 1;
+    }
+    // Sprint 9 variables (CAP-003/CAP-004): unknown `--variables` keys
+    // and unused declarations warn visibly without blocking, in both
+    // human and `--json` runs (the JSON report carries the same
+    // warnings machine-readably).
+    for w in &verdict.variable_warnings {
+        let note = format!("stage validate: note: {w}");
+        stage_line(json, &note);
+        note_log(folder, "info", "render", &run, &note, json);
     }
     // Sprint 5 T002/T003/T009: the render summary carries the effective
     // footage windows the render consumes (INT-003), including the
@@ -3079,6 +3241,671 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         );
     }
     0
+}
+
+/// Batch row limit (Sprint 9 variables, CAP-006): a rows file above
+/// this many rows is refused naming the limit instead of starting,
+/// so a runaway manifest never schedules unbounded renders.
+pub const MAX_BATCH_ROWS: usize = 10_000;
+
+/// Default batch name template (Sprint 9 variables, CAP-006): row
+/// indexes count from 0, matching the `timeline` row numbering.
+pub const DEFAULT_BATCH_TEMPLATE: &str = "clip-{index}";
+
+/// One parsed batch row (Sprint 9 variables, CAP-006): the per-row
+/// variable values, an optional explicit output name (winning over
+/// `--name-template` for that row), and an optional per-row theme
+/// (winning over the global `--theme` for that row).
+#[derive(Debug, Clone, Default)]
+pub struct BatchRow {
+    pub variables: validate_mod::VariableOverrides,
+    pub name: Option<String>,
+    pub theme: Option<String>,
+}
+
+/// Parse one batch rows file (Sprint 9 variables, CAP-006): a JSON
+/// array of row objects, each holding an optional `variables` object
+/// of string keys to scalar values plus optional `name` and `theme`
+/// strings. Every failure names the file and the row problem, before
+/// any render starts.
+pub fn parse_batch_rows(path: &Path) -> Result<Vec<BatchRow>, String> {
+    let raw = std::fs::read_to_string(path).map_err(|e| {
+        format!(
+            "render refused: cannot read batch rows file {}: {e} (validation stage); no MP4 was written",
+            path.display()
+        )
+    })?;
+    let value: serde_json::Value = serde_json::from_str(&raw).map_err(|e| {
+        format!(
+            "render refused: batch rows file {} is not valid JSON ({e}); expected a JSON array of row objects like [{{\"variables\": {{\"title\": \"Sale\"}}}}] (validation stage); no MP4 was written",
+            path.display()
+        )
+    })?;
+    let items = match value {
+        serde_json::Value::Array(items) => items,
+        other => {
+            return Err(format!(
+                "render refused: batch rows file {} holds {}; expected a JSON array of row objects like [{{\"variables\": {{\"title\": \"Sale\"}}}}] (validation stage); no MP4 was written",
+                path.display(),
+                json_kind(&other),
+            ));
+        }
+    };
+    let mut rows = Vec::with_capacity(items.len());
+    for (index, item) in items.into_iter().enumerate() {
+        rows.push(parse_batch_row(path, index, item)?);
+    }
+    Ok(rows)
+}
+
+/// JSON value kind for batch row-shape refusals (Sprint 9 variables,
+/// CAP-006): the short word refusals name instead of echoing content.
+fn json_kind(value: &serde_json::Value) -> &'static str {
+    match value {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "a boolean",
+        serde_json::Value::Number(_) => "a number",
+        serde_json::Value::String(_) => "a string",
+        serde_json::Value::Array(_) => "an array",
+        serde_json::Value::Object(_) => "an object",
+    }
+}
+
+/// Parse one batch row value (Sprint 9 variables, CAP-006): an object
+/// with optional `variables` (an object of string keys to scalar
+/// values, like `--variables`), `name` (a string output name), and
+/// `theme` (a string theme name). Anything else names the file, the
+/// row index, and the expected shape.
+fn parse_batch_row(path: &Path, index: usize, item: serde_json::Value) -> Result<BatchRow, String> {
+    let refused = |detail: String| {
+        format!(
+            "render refused: batch rows file {} row {index} is a bad row shape: {detail}; expected each row to be an object like {{\"variables\": {{\"title\": \"Sale\"}}, \"name\": \"clip-a\", \"theme\": \"brand\"}} with `variables` an object of string keys to scalar values (validation stage); no MP4 was written",
+            path.display(),
+        )
+    };
+    let obj = match item {
+        serde_json::Value::Object(map) => map,
+        other => {
+            return Err(refused(format!(
+                "the row is {} instead of an object",
+                json_kind(&other)
+            )));
+        }
+    };
+    let mut row = BatchRow::default();
+    for (key, val) in obj {
+        match key.as_str() {
+            "variables" => {
+                let vars = match val {
+                    serde_json::Value::Object(map) => map,
+                    other => {
+                        return Err(refused(format!(
+                            "key \"variables\" holds {} instead of an object",
+                            json_kind(&other)
+                        )));
+                    }
+                };
+                for (name, scalar) in vars {
+                    let parsed = match scalar {
+                        serde_json::Value::String(s) => validate_mod::OverrideValue::Str(s),
+                        serde_json::Value::Number(n) => match n.as_f64() {
+                            Some(x) if x.is_finite() => validate_mod::OverrideValue::Num(x),
+                            _ => {
+                                return Err(refused(format!(
+                                    "variable {name:?} holds a non-finite number; expected a scalar value (a string, finite number, or boolean)"
+                                )));
+                            }
+                        },
+                        serde_json::Value::Bool(b) => validate_mod::OverrideValue::Bool(b),
+                        other => {
+                            return Err(refused(format!(
+                                "variable {name:?} holds {}; expected a scalar value (a string, number, or boolean)",
+                                json_kind(&other)
+                            )));
+                        }
+                    };
+                    row.variables.insert(name, parsed);
+                }
+            }
+            "name" => match val {
+                serde_json::Value::String(s) => row.name = Some(s),
+                other => {
+                    return Err(refused(format!(
+                        "key \"name\" holds {} instead of a string output name",
+                        json_kind(&other)
+                    )));
+                }
+            },
+            "theme" => match val {
+                serde_json::Value::String(s) => row.theme = Some(s),
+                other => {
+                    return Err(refused(format!(
+                        "key \"theme\" holds {} instead of a string theme name",
+                        json_kind(&other)
+                    )));
+                }
+            },
+            other => {
+                return Err(refused(format!(
+                    "unknown key {other:?}; expected only \"variables\", \"name\", and \"theme\""
+                )));
+            }
+        }
+    }
+    Ok(row)
+}
+
+/// Collect the `{placeholder}` names of one name template in order
+/// (Sprint 9 variables, CAP-006): an unclosed `{` refuses naming the
+/// template, before any render starts.
+fn batch_template_placeholders(template: &str) -> Result<Vec<String>, String> {
+    let mut out = Vec::new();
+    let mut rest = template;
+    while let Some(open) = rest.find('{') {
+        let after = &rest[open + 1..];
+        let Some(close) = after.find('}') else {
+            return Err(format!(
+                "render refused: --name-template {template:?} has an unclosed '{{'; close every placeholder like {{index}} or {{title}} (validation stage); no MP4 was written"
+            ));
+        };
+        out.push(after[..close].to_string());
+        rest = &after[close + 1..];
+    }
+    Ok(out)
+}
+
+/// Render one caller value for a batch output name (Sprint 9
+/// variables, CAP-006): strings substitute verbatim, numbers and
+/// booleans use their JSON scalar text.
+fn batch_scalar_text(value: &validate_mod::OverrideValue) -> String {
+    match value {
+        validate_mod::OverrideValue::Str(s) => s.clone(),
+        validate_mod::OverrideValue::Num(x) => x.to_string(),
+        validate_mod::OverrideValue::Bool(b) => b.to_string(),
+    }
+}
+
+/// Resolve one row's output file stem (Sprint 9 variables, CAP-006):
+/// `{index}` fills from the row position (counting from 0) and every
+/// other `{placeholder}` fills from that row's `variables` map, with
+/// an empty substitution when the row carries no such key. A
+/// placeholder that is neither `index`, a declared variable id, nor a
+/// key of any row's `variables` map refuses naming the placeholder,
+/// before any render starts.
+fn resolve_batch_name(
+    template: &str,
+    index: usize,
+    vars: &validate_mod::VariableOverrides,
+    declared: &std::collections::BTreeSet<String>,
+    row_keys: &std::collections::BTreeSet<String>,
+) -> Result<String, String> {
+    for ph in batch_template_placeholders(template)? {
+        if ph == "index" || declared.contains(&ph) || row_keys.contains(&ph) {
+            continue;
+        }
+        return Err(format!(
+            "render refused: --name-template {template:?} names unknown placeholder {{{ph}}}; expected {{index}} or a variable id bound in the rows (for example {{title}}) (validation stage); no MP4 was written"
+        ));
+    }
+    let mut out = String::with_capacity(template.len() + 8);
+    let mut rest = template;
+    while let Some(open) = rest.find('{') {
+        out.push_str(&rest[..open]);
+        let after = &rest[open + 1..];
+        // Checked above: every `{` closes, so this always succeeds.
+        let close = after.find('}').unwrap_or(after.len());
+        let key = &after[..close];
+        if key == "index" {
+            out.push_str(&index.to_string());
+        } else if let Some(value) = vars.get(key) {
+            out.push_str(&batch_scalar_text(value));
+        }
+        rest = &after[close.min(after.len())..];
+        rest = rest.strip_prefix('}').unwrap_or(rest);
+    }
+    out.push_str(rest);
+    Ok(out)
+}
+
+/// Resolve one batch output path (Sprint 9 variables, CAP-006): the
+/// templated stem gains `.mp4` unless it already carries that suffix,
+/// and relative names resolve against the project folder so row MP4s
+/// sit beside the default `out.mp4`.
+fn batch_output_path(folder: &Path, stem: &str) -> PathBuf {
+    let file = if stem.ends_with(".mp4") {
+        stem.to_string()
+    } else {
+        format!("{stem}.mp4")
+    };
+    let path = PathBuf::from(&file);
+    if path.is_absolute() {
+        path
+    } else {
+        folder.join(path)
+    }
+}
+
+/// Serialize one row's variables for the per-row render request
+/// (Sprint 9 variables, CAP-006): rows parse from JSON values, so
+/// they serialize back losslessly through the same scalar shapes
+/// `--variables` accepts.
+fn batch_overrides_json(vars: &validate_mod::VariableOverrides) -> String {
+    let mut map = serde_json::Map::with_capacity(vars.len());
+    for (key, value) in vars {
+        let json = match value {
+            validate_mod::OverrideValue::Str(s) => serde_json::Value::String(s.clone()),
+            validate_mod::OverrideValue::Num(x) => serde_json::Number::from_f64(*x)
+                .map(serde_json::Value::Number)
+                .unwrap_or(serde_json::Value::Null),
+            validate_mod::OverrideValue::Bool(b) => serde_json::Value::Bool(*b),
+        };
+        map.insert(key.clone(), json);
+    }
+    serde_json::Value::Object(map).to_string()
+}
+
+/// One batch row outcome (Sprint 9 variables, CAP-006): pass or fail
+/// with the row's output path and the reason (empty on success).
+struct BatchOutcome {
+    index: usize,
+    ok: bool,
+    output: String,
+    message: String,
+}
+
+/// Render one batch row (Sprint 9 variables, CAP-006): pre-validate
+/// the row's variables (plus its theme pick) so a bad row refuses
+/// before frame one with the diagnostic named, otherwise render to
+/// the row's templated output through the normal single-render path
+/// (which stages, encodes, and reports exactly like `render -o`).
+fn run_batch_row(
+    folder: &Path,
+    req: &RenderRequest,
+    row: &BatchRow,
+    output: &Path,
+    index: usize,
+) -> BatchOutcome {
+    let theme = row.theme.as_deref().or(req.theme.as_deref());
+    let verdict = validate_folder_with_variables_strict_themed(
+        folder,
+        &row.variables,
+        req.strict_variables,
+        theme,
+    );
+    if verdict.status != validate_mod::Status::Valid {
+        let detail = verdict
+            .diagnostics
+            .first()
+            .map(|d| format!("{d}"))
+            .unwrap_or_else(|| "the row is invalid".to_string());
+        return BatchOutcome {
+            index,
+            ok: false,
+            output: output.display().to_string(),
+            message: format!("row {index} invalid: {detail}"),
+        };
+    }
+    let mut row_req = req.clone();
+    row_req.variables = Some(batch_overrides_json(&row.variables));
+    row_req.theme = theme.map(str::to_string);
+    row_req.batch = None;
+    row_req.name_template = None;
+    row_req.jobs = None;
+    row_req.fail_fast = false;
+    let code = cmd_render_full(folder, Some(output), &row_req);
+    if code == 0 {
+        BatchOutcome {
+            index,
+            ok: true,
+            output: output.display().to_string(),
+            message: String::new(),
+        }
+    } else {
+        BatchOutcome {
+            index,
+            ok: false,
+            output: output.display().to_string(),
+            message: format!(
+                "row {index} render failed with exit {code}; see the row output above"
+            ),
+        }
+    }
+}
+
+/// Machine-readable batch summary (Sprint 9 variables, CAP-006): the
+/// same per-row pass/fail with output paths the human lines carry.
+fn format_batch_json(
+    folder: &Path,
+    rows_file: &str,
+    template: &str,
+    jobs: usize,
+    fail_fast: bool,
+    outcomes: &[BatchOutcome],
+) -> String {
+    use std::fmt::Write;
+    let passed = outcomes.iter().filter(|o| o.ok).count();
+    let failed = outcomes
+        .iter()
+        .filter(|o| !o.ok && !o.message.starts_with("skipped"))
+        .count();
+    let skipped = outcomes.len() - passed - failed;
+    let (status, exit) = if failed == 0 {
+        ("ok", 0)
+    } else {
+        ("failed", 1)
+    };
+    let mut out = String::new();
+    let fail_flag = if fail_fast { "true" } else { "false" };
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"render\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"batch\":{{\"rows_file\":\"{}\",\"template\":\"{}\",\"jobs\":{jobs},\"fail_fast\":{fail_flag},\"passed\":{passed},\"failed\":{failed},\"skipped\":{skipped}}},\"rows\":[",
+        json_escape(&folder.display().to_string()),
+        json_escape(rows_file),
+        json_escape(template),
+    );
+    for (i, o) in outcomes.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let row_status = if o.ok {
+            "ok"
+        } else if o.message.starts_with("skipped") {
+            "skipped"
+        } else {
+            "failed"
+        };
+        let _ = write!(
+            out,
+            "{{\"index\":{},\"status\":\"{row_status}\",\"output\":\"{}\",\"message\":\"{}\"}}",
+            o.index,
+            json_escape(&o.output),
+            json_escape(&o.message),
+        );
+    }
+    out.push_str("]}");
+    out
+}
+
+/// `render --batch` (Sprint 9 variables, CAP-006): render every rows
+/// file row with its `variables` map to its templated output name,
+/// then report per-row pass or fail with output paths. Concurrency is
+/// bounded by `--jobs` (default 1, sequential); `--fail-fast` stops
+/// scheduling after the first failing row while earlier rows' MP4s
+/// stay in place. The batch exit is non-zero when any row fails and
+/// zero when all pass (an empty rows file reports zero rows and
+/// exits 0). Manifest, template, and duplicate-name problems refuse
+/// before any render starts; a failing row never removes another
+/// row's MP4.
+pub fn cmd_render_batch(folder: &Path, output: Option<&Path>, req: &RenderRequest) -> i32 {
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    let json = req.json;
+    let run = log::run_id();
+    let batch_file = req.batch.as_deref().unwrap_or("rows.json");
+    let batch_path = PathBuf::from(batch_file);
+    if output.is_some() {
+        eprintln!(
+            "framesmith render: --output cannot be combined with --batch; output names come from --name-template."
+        );
+        return 2;
+    }
+    if req.variables.is_some() {
+        eprintln!(
+            "framesmith render: --variables cannot be combined with --batch; each row carries its own variables map."
+        );
+        return 2;
+    }
+    let jobs: usize = match &req.jobs {
+        None => 1,
+        Some(raw) => match raw.trim().parse::<usize>() {
+            Ok(n) if (1..=64).contains(&n) => n,
+            _ => {
+                let msg = format!(
+                    "render refused: --jobs {raw:?} is not an integer from 1 to 64 (validation stage); no MP4 was written"
+                );
+                stage_line(json, &msg);
+                note_log(folder, "warn", "render", &run, &msg, json);
+                return 1;
+            }
+        },
+    };
+    let fail_fast = req.fail_fast;
+    let template = req
+        .name_template
+        .as_deref()
+        .unwrap_or(DEFAULT_BATCH_TEMPLATE);
+    note_log(
+        folder,
+        "info",
+        "render",
+        &run,
+        &format!(
+            "batch start folder={} rows_file={batch_file:?} template={template:?} jobs={jobs} fail_fast={fail_fast}",
+            folder.display()
+        ),
+        json,
+    );
+
+    let rows = match parse_batch_rows(&batch_path) {
+        Ok(rows) => rows,
+        Err(e) => {
+            stage_line(json, &e);
+            note_log(folder, "warn", "render", &run, &e, json);
+            return 1;
+        }
+    };
+    if rows.len() > MAX_BATCH_ROWS {
+        let msg = format!(
+            "render refused: batch rows file {} holds {} rows, above the limit of {} rows; split the file into smaller batches and re-run (validation stage); no MP4 was written",
+            batch_path.display(),
+            rows.len(),
+            MAX_BATCH_ROWS
+        );
+        stage_line(json, &msg);
+        note_log(folder, "warn", "render", &run, &msg, json);
+        return 1;
+    }
+    // Declared variable ids (best effort: an invalid project yields
+    // none, and per-row validation still names the real problems).
+    let declared: std::collections::BTreeSet<String> = validate_folder(folder)
+        .compositions
+        .iter()
+        .flat_map(|c| c.variables.iter().map(|v| v.id.clone()))
+        .collect();
+    let row_keys: std::collections::BTreeSet<String> = rows
+        .iter()
+        .flat_map(|r| r.variables.keys().cloned())
+        .collect();
+    // Resolve every output name before any render: an unknown
+    // placeholder, an empty name, or two rows sharing one name refuses
+    // here with both rows named.
+    let mut outputs: Vec<PathBuf> = Vec::with_capacity(rows.len());
+    for (index, row) in rows.iter().enumerate() {
+        let stem = match &row.name {
+            Some(explicit) => explicit.clone(),
+            None => match resolve_batch_name(template, index, &row.variables, &declared, &row_keys)
+            {
+                Ok(stem) => stem,
+                Err(e) => {
+                    stage_line(json, &e);
+                    note_log(folder, "warn", "render", &run, &e, json);
+                    return 1;
+                }
+            },
+        };
+        if stem.is_empty() {
+            let msg = format!(
+                "render refused: batch rows file {} row {index} resolves to an empty output name under --name-template {template:?}; give the row a \"name\" or a placeholder value (validation stage); no MP4 was written",
+                batch_path.display()
+            );
+            stage_line(json, &msg);
+            note_log(folder, "warn", "render", &run, &msg, json);
+            return 1;
+        }
+        outputs.push(batch_output_path(folder, &stem));
+    }
+    {
+        let mut seen: std::collections::BTreeMap<PathBuf, usize> =
+            std::collections::BTreeMap::new();
+        for (index, out) in outputs.iter().enumerate() {
+            if let Some(first) = seen.insert(out.clone(), index) {
+                let msg = format!(
+                    "render refused: batch rows {first} and {index} resolve to the same output name {}; make --name-template unique per row (for example include {{index}}) or give the rows distinct \"name\" values (validation stage); no MP4 was written",
+                    out.display()
+                );
+                stage_line(json, &msg);
+                note_log(folder, "warn", "render", &run, &msg, json);
+                return 1;
+            }
+        }
+    }
+
+    if rows.is_empty() {
+        let line = "batch summary: 0 row(s): 0 passed, 0 failed, 0 skipped.".to_string();
+        stage_line(json, &line);
+        note_log(folder, "info", "render", &run, &line, json);
+        if json {
+            println!(
+                "{}",
+                format_batch_json(folder, batch_file, template, jobs, fail_fast, &[])
+            );
+        }
+        return 0;
+    }
+
+    // Execute rows: sequential in order by default, bounded parallel
+    // workers under `--jobs`. Outcomes stay in row order whatever the
+    // schedule; `--fail-fast` stops scheduling new rows after the
+    // first failure while rows already running finish.
+    let mut outcomes: Vec<Option<BatchOutcome>> = Vec::with_capacity(rows.len());
+    outcomes.resize_with(rows.len(), || None);
+    if jobs == 1 {
+        let mut stop_at: Option<usize> = None;
+        for (index, (row, out)) in rows.iter().zip(outputs.iter()).enumerate() {
+            if stop_at.is_some() {
+                outcomes[index] = Some(BatchOutcome {
+                    index,
+                    ok: false,
+                    output: out.display().to_string(),
+                    message: format!(
+                        "skipped: fail-fast stopped the batch at row {}",
+                        stop_at.unwrap_or(0)
+                    ),
+                });
+                continue;
+            }
+            let outcome = run_batch_row(folder, req, row, out, index);
+            if !outcome.ok {
+                note_log(
+                    folder,
+                    "warn",
+                    "render",
+                    &run,
+                    &format!("batch row {index} failed: {}", outcome.message),
+                    json,
+                );
+                if fail_fast {
+                    stop_at = Some(index);
+                }
+            }
+            outcomes[index] = Some(outcome);
+        }
+    } else {
+        let next = AtomicUsize::new(0);
+        let failed_flag = AtomicBool::new(false);
+        let failed_at = AtomicUsize::new(usize::MAX);
+        let slots: Vec<std::sync::Mutex<Option<BatchOutcome>>> = (0..rows.len())
+            .map(|_| std::sync::Mutex::new(None))
+            .collect();
+        std::thread::scope(|s| {
+            for _ in 0..jobs.min(rows.len()) {
+                s.spawn(|| loop {
+                    if fail_fast && failed_flag.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    let index = next.fetch_add(1, Ordering::SeqCst);
+                    if index >= rows.len() {
+                        break;
+                    }
+                    let outcome = run_batch_row(folder, req, &rows[index], &outputs[index], index);
+                    if !outcome.ok {
+                        failed_flag.store(true, Ordering::SeqCst);
+                        failed_at.fetch_min(index, Ordering::SeqCst);
+                    }
+                    *slots[index].lock().unwrap() = Some(outcome);
+                });
+            }
+        });
+        let stopped = failed_flag.load(Ordering::SeqCst) && fail_fast;
+        let stop_row = failed_at.load(Ordering::SeqCst);
+        for (index, slot) in slots.into_iter().enumerate() {
+            let taken = slot.into_inner().unwrap();
+            outcomes[index] = match taken {
+                Some(o) => {
+                    if !o.ok {
+                        note_log(
+                            folder,
+                            "warn",
+                            "render",
+                            &run,
+                            &format!("batch row {index} failed: {}", o.message),
+                            json,
+                        );
+                    }
+                    Some(o)
+                }
+                None => {
+                    debug_assert!(stopped);
+                    Some(BatchOutcome {
+                        index,
+                        ok: false,
+                        output: outputs[index].display().to_string(),
+                        message: format!("skipped: fail-fast stopped the batch at row {stop_row}"),
+                    })
+                }
+            };
+        }
+        let _ = stopped;
+    }
+    let outcomes: Vec<BatchOutcome> = outcomes.into_iter().map(|o| o.unwrap()).collect();
+
+    for o in &outcomes {
+        if o.ok {
+            stage_line(json, &format!("batch: row {}: ok {}", o.index, o.output));
+        } else if o.message.starts_with("skipped") {
+            stage_line(
+                json,
+                &format!("batch: row {}: {} {}", o.index, o.message, o.output),
+            );
+        } else {
+            stage_line(
+                json,
+                &format!("batch: row {}: failed {}: {}", o.index, o.output, o.message),
+            );
+        }
+    }
+    let passed = outcomes.iter().filter(|o| o.ok).count();
+    let failed = outcomes
+        .iter()
+        .filter(|o| !o.ok && !o.message.starts_with("skipped"))
+        .count();
+    let skipped = outcomes.len() - passed - failed;
+    let line = format!(
+        "batch summary: {} row(s): {passed} passed, {failed} failed, {skipped} skipped.",
+        outcomes.len()
+    );
+    stage_line(json, &line);
+    note_log(folder, "info", "render", &run, &line, json);
+    if json {
+        println!(
+            "{}",
+            format_batch_json(folder, batch_file, template, jobs, fail_fast, &outcomes)
+        );
+    }
+    if failed == 0 {
+        0
+    } else {
+        1
+    }
 }
 
 /// Canonical stage order for the timing summary and the `--json`
@@ -4976,5 +5803,283 @@ mod tests {
             json: true,
         };
         assert_eq!(cmd_waveform(&folder, &req), 1);
+    }
+
+    // Sprint 9 T006: batch manifest parsing, name templates, and the
+    // batch driver's pre-render refusals (no FFmpeg needed here; real
+    // row renders are covered by the CLI e2e batch tests).
+    const BATCH_VALID: &str = "composition name=\"t\" width=64 height=64 duration=1 fps=30 background=\"#000\" version=1 {\nvariable id=\"title\" type=\"string\" default=\"News\"\ntext value=\"var(--title)\" start=0 duration=1\n}\n";
+
+    fn batch_req(batch: &str) -> RenderRequest {
+        RenderRequest {
+            batch: Some(batch.to_string()),
+            name_template: Some("clip-{title}-{index}".to_string()),
+            ..RenderRequest::default()
+        }
+    }
+
+    #[test]
+    fn batch_parses_rows_with_variables_name_and_theme() {
+        let root = tmp_dir("batch-parse");
+        let path = root.join("rows.json");
+        write(
+            &root,
+            "rows.json",
+            r#"[{"variables": {"title": "Sale", "n": 9.5, "b": true}, "name": "a", "theme": "brand"}, {"variables": {}}]"#,
+        );
+        let rows = parse_batch_rows(&path).expect("rows parse");
+        assert_eq!(rows.len(), 2);
+        assert_eq!(
+            rows[0].variables.get("title"),
+            Some(&validate_mod::OverrideValue::Str("Sale".to_string()))
+        );
+        assert_eq!(
+            rows[0].variables.get("n"),
+            Some(&validate_mod::OverrideValue::Num(9.5))
+        );
+        assert_eq!(
+            rows[0].variables.get("b"),
+            Some(&validate_mod::OverrideValue::Bool(true))
+        );
+        assert_eq!(rows[0].name.as_deref(), Some("a"));
+        assert_eq!(rows[0].theme.as_deref(), Some("brand"));
+        assert!(rows[1].variables.is_empty());
+        assert!(rows[1].name.is_none());
+    }
+
+    #[test]
+    fn batch_refuses_unreadable_rows_file_naming_the_file() {
+        let root = tmp_dir("batch-missing");
+        let missing = root.join("nope.json");
+        let err = parse_batch_rows(&missing).unwrap_err();
+        assert!(err.contains("cannot read batch rows file"), "{err}");
+        assert!(err.contains("nope.json"), "{err}");
+    }
+
+    #[test]
+    fn batch_refuses_non_array_and_bad_row_shapes() {
+        let root = tmp_dir("batch-shapes");
+        for (tag, body, want) in [
+            ("obj", r#"{"variables": {}}"#, "holds an object"),
+            ("row-str", r#"["nope"]"#, "row 0 is a bad row shape"),
+            (
+                "vars-str",
+                r#"[{"variables": "x"}]"#,
+                "key \"variables\" holds a string",
+            ),
+            (
+                "arr-value",
+                r#"[{"variables": {"title": [1]}}]"#,
+                "variable \"title\" holds an array",
+            ),
+            (
+                "null-value",
+                r#"[{"variables": {"title": null}}]"#,
+                "variable \"title\" holds null",
+            ),
+            (
+                "unknown-key",
+                r#"[{"variables": {}, "zzz": 1}]"#,
+                "unknown key \"zzz\"",
+            ),
+            (
+                "name-num",
+                r#"[{"name": 3}]"#,
+                "key \"name\" holds a number",
+            ),
+        ] {
+            let path = root.join(format!("{tag}.json"));
+            std::fs::write(&path, body).unwrap();
+            let err = parse_batch_rows(&path).unwrap_err();
+            assert!(err.contains(want), "{tag}: {err}");
+            assert!(err.contains(&format!("{tag}.json")), "{tag}: {err}");
+        }
+        let bad = root.join("bad.json");
+        std::fs::write(&bad, "[1,").unwrap();
+        let err = parse_batch_rows(&bad).unwrap_err();
+        assert!(err.contains("is not valid JSON"), "{err}");
+    }
+
+    #[test]
+    fn batch_template_fills_index_and_variables() {
+        let mut vars = validate_mod::VariableOverrides::new();
+        vars.insert(
+            "title".to_string(),
+            validate_mod::OverrideValue::Str("Sale".to_string()),
+        );
+        vars.insert("n".to_string(), validate_mod::OverrideValue::Num(9.0));
+        let declared: std::collections::BTreeSet<String> =
+            ["title".to_string()].into_iter().collect();
+        let keys: std::collections::BTreeSet<String> =
+            ["title".to_string(), "n".to_string()].into_iter().collect();
+        assert_eq!(
+            resolve_batch_name("clip-{title}-{index}", 2, &vars, &declared, &keys).unwrap(),
+            "clip-Sale-2"
+        );
+        assert_eq!(
+            resolve_batch_name("n{n}", 0, &vars, &declared, &keys).unwrap(),
+            "n9"
+        );
+        // A declared id missing from this row substitutes empty.
+        assert_eq!(
+            resolve_batch_name(
+                "{title}x",
+                0,
+                &validate_mod::VariableOverrides::new(),
+                &declared,
+                &keys
+            )
+            .unwrap(),
+            "x"
+        );
+    }
+
+    #[test]
+    fn batch_template_refuses_unknown_placeholder_naming_it() {
+        let vars = validate_mod::VariableOverrides::new();
+        let empty: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        let err = resolve_batch_name("clip-{bogus}-{index}", 0, &vars, &empty, &empty).unwrap_err();
+        assert!(err.contains("unknown placeholder {bogus}"), "{err}");
+        assert!(err.contains("--name-template"), "{err}");
+        let err = resolve_batch_name("clip-{title", 0, &vars, &empty, &empty).unwrap_err();
+        assert!(err.contains("unclosed"), "{err}");
+    }
+
+    #[test]
+    fn batch_output_path_appends_mp4_and_joins_folder() {
+        let folder = PathBuf::from("proj");
+        assert_eq!(
+            batch_output_path(&folder, "clip-a"),
+            PathBuf::from("proj/clip-a.mp4")
+        );
+        assert_eq!(
+            batch_output_path(&folder, "clip-a.mp4"),
+            PathBuf::from("proj/clip-a.mp4")
+        );
+    }
+
+    #[test]
+    fn batch_overrides_json_round_trips_through_parse() {
+        let mut vars = validate_mod::VariableOverrides::new();
+        vars.insert(
+            "title".to_string(),
+            validate_mod::OverrideValue::Str("S\"ale".to_string()),
+        );
+        vars.insert("n".to_string(), validate_mod::OverrideValue::Num(2.5));
+        vars.insert("b".to_string(), validate_mod::OverrideValue::Bool(false));
+        let raw = batch_overrides_json(&vars);
+        let back = validate_mod::parse_variable_overrides(&raw).expect("round trip");
+        assert_eq!(back, vars);
+    }
+
+    fn batch_folder(tag: &str, rows_body: &str) -> (PathBuf, RenderRequest) {
+        let root = tmp_dir(tag);
+        let folder = root.join("proj");
+        std::fs::create_dir_all(&folder).unwrap();
+        write(&folder, validate_mod::COMPOSITION_FILE, BATCH_VALID);
+        write(&root, "rows.json", rows_body);
+        let req = batch_req(&root.join("rows.json").display().to_string());
+        (folder, req)
+    }
+
+    #[test]
+    fn batch_driver_refuses_duplicate_names_naming_both_rows() {
+        let (folder, req) = batch_folder(
+            "batch-dup",
+            r#"[{"variables": {"title": "A"}}, {"variables": {"title": "B"}}]"#,
+        );
+        let mut dup_req = req;
+        dup_req.name_template = Some("same".to_string());
+        assert_eq!(cmd_render_batch(&folder, None, &dup_req), 1);
+        // No render started: no MP4 beside the project.
+        assert!(!folder.join("same.mp4").exists());
+        assert!(!folder.join("out.mp4").exists());
+    }
+
+    #[test]
+    fn batch_driver_refuses_unknown_placeholder_before_any_render() {
+        let (folder, mut req) = batch_folder(
+            "batch-ph",
+            r#"[{"variables": {"title": "A"}}, {"variables": {"title": "B"}}]"#,
+        );
+        req.name_template = Some("clip-{bogus}-{index}".to_string());
+        assert_eq!(cmd_render_batch(&folder, None, &req), 1);
+        assert!(!folder.join("clip-A-0.mp4").exists());
+    }
+
+    #[test]
+    fn batch_driver_refuses_rows_above_the_limit_naming_it() {
+        let root = tmp_dir("batch-limit");
+        let folder = root.join("proj");
+        std::fs::create_dir_all(&folder).unwrap();
+        write(&folder, validate_mod::COMPOSITION_FILE, BATCH_VALID);
+        let mut body = String::from("[");
+        for i in 0..=MAX_BATCH_ROWS {
+            if i > 0 {
+                body.push(',');
+            }
+            body.push_str(r#"{"variables": {}}"#);
+        }
+        body.push(']');
+        write(&root, "rows.json", &body);
+        let req = batch_req(&root.join("rows.json").display().to_string());
+        assert_eq!(cmd_render_batch(&folder, None, &req), 1);
+        assert!(!folder.join("out.mp4").exists());
+    }
+
+    #[test]
+    fn batch_driver_reports_zero_rows_and_exits_zero() {
+        let (folder, req) = batch_folder("batch-empty", r#"[]"#);
+        assert_eq!(cmd_render_batch(&folder, None, &req), 0);
+    }
+
+    #[test]
+    fn batch_driver_refuses_bad_jobs_values() {
+        let (folder, mut req) = batch_folder("batch-jobs", r#"[]"#);
+        for bad in ["0", "99", "many", "-2"] {
+            req.jobs = Some(bad.to_string());
+            assert_eq!(cmd_render_batch(&folder, None, &req), 1, "{bad}");
+        }
+    }
+
+    #[test]
+    fn batch_json_summary_marks_failed_and_skipped() {
+        let outcomes = vec![
+            BatchOutcome {
+                index: 0,
+                ok: true,
+                output: "proj/clip-0.mp4".to_string(),
+                message: String::new(),
+            },
+            BatchOutcome {
+                index: 1,
+                ok: false,
+                output: "proj/clip-1.mp4".to_string(),
+                message: "row 1 invalid: boom".to_string(),
+            },
+            BatchOutcome {
+                index: 2,
+                ok: false,
+                output: "proj/clip-2.mp4".to_string(),
+                message: "skipped: fail-fast stopped the batch at row 1".to_string(),
+            },
+        ];
+        let text = format_batch_json(
+            Path::new("proj"),
+            "rows.json",
+            "clip-{index}",
+            1,
+            true,
+            &outcomes,
+        );
+        assert!(text.contains(r#""status":"failed""#), "{text}");
+        assert!(
+            text.contains(r#""passed":1,"failed":1,"skipped":1"#),
+            "{text}"
+        );
+        assert!(text.contains(r#""index":2,"status":"skipped""#), "{text}");
+        // Machine-readable JSON again parses.
+        let parsed: serde_json::Value = serde_json::from_str(&text).expect("valid JSON");
+        assert_eq!(parsed["rows"].as_array().unwrap().len(), 3);
     }
 }
