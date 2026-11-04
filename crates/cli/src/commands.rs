@@ -1712,7 +1712,11 @@ pub fn cmd_grade_bake(folder: &Path, output: &Path, composition: Option<&str>) -
             // available names.
             let msg = msg
                 .replacen("render refused:", "grade-bake refused:", 1)
-                .replacen("(validation stage); no MP4 was written", "(nothing was written)", 1);
+                .replacen(
+                    "(validation stage); no MP4 was written",
+                    "(nothing was written)",
+                    1,
+                );
             println!("{msg}");
             return 1;
         }
@@ -1851,12 +1855,8 @@ pub fn cmd_grade_bake(folder: &Path, output: &Path, composition: Option<&str>) -
             }
         }
     }
-    let tmp = output.with_extension(format!(
-        "tmp-cube-{}",
-        std::process::id()
-    ));
-    let write_out = std::fs::write(&tmp, &bytes)
-        .and_then(|()| std::fs::rename(&tmp, output));
+    let tmp = output.with_extension(format!("tmp-cube-{}", std::process::id()));
+    let write_out = std::fs::write(&tmp, &bytes).and_then(|()| std::fs::rename(&tmp, output));
     if let Err(e) = write_out {
         // The temp file holds any partial bytes; the target itself is
         // untouched (rename is atomic), so only the temp goes.
@@ -1983,16 +1983,66 @@ pub struct RenderRequest {
     /// CAP-006): the `--fail-fast` flag. Without it every row is
     /// attempted and the summary reports each row's pass or fail.
     pub fail_fast: bool,
+    /// Output destination (Sprint 12 outputs, T001): the raw `--format`
+    /// flag text (`mp4`, `hevc`, `webm`, `prores`, `gif`, `pngseq`,
+    /// `hls`). None renders the historical H.264 MP4 exactly as before.
+    pub format: Option<String>,
+    /// ProRes profile (Sprint 12 outputs, T001): the raw
+    /// `--prores-profile` flag text (`proxy`, `lt`, `standard`, `hq`,
+    /// `4444`). None means `standard`; only `--format prores` honors it.
+    pub prores_profile: Option<String>,
+    /// Output resolution (Sprint 12 outputs, T002): the raw
+    /// `--resolution` flag text (`source`, `1080p`, `720p`, `480p`,
+    /// `square-1080`). None means `source` (the canvas renders as
+    /// authored, byte-identical).
+    pub resolution: Option<String>,
+    /// Supersample multiple (Sprint 12 outputs, T002): the raw
+    /// `--supersample` flag text (a whole number from 1 to 4). None
+    /// means 1 (the identity path with no scaling work).
+    pub supersample: Option<String>,
+    /// Encoder choice (Sprint 12 outputs, T003): the raw `--encoder`
+    /// flag text (`auto`, `software`, `videotoolbox`). None means
+    /// `software` (the historical CPU path, byte-identical).
+    pub encoder: Option<String>,
+    /// Keyframe interval (Sprint 12 outputs, T003): the raw
+    /// `--keyint` flag text (a positive whole number of frames).
+    /// None emits no `-g`, keeping default bytes identical.
+    pub keyint: Option<String>,
+    /// Peak bitrate cap (Sprint 12 outputs, T003): the raw
+    /// `--maxrate` flag text (for example `8M`). None emits no
+    /// `-maxrate`/`-bufsize`, keeping default bytes identical.
+    pub maxrate: Option<String>,
+    /// HDR mode (Sprint 12 outputs, T004): the raw `--hdr` flag text
+    /// (`off`, `pq`, `hlg`, `auto`). None means `auto` (HDR in leads
+    /// to HDR out, SDR in to SDR out, decided from source probes).
+    pub hdr: Option<String>,
 }
 
-/// Flag choices resolved before the first frame (T001/T002): the
-/// requested backend, the active preset (`standard` when none is named),
-/// and at most one encoder override.
+/// Flag choices resolved before the first frame (T001/T002, Sprint 12
+/// T001): the requested backend, the active preset (`standard` when none
+/// is named), at most one encoder override, and the output destination
+/// (`mp4` plus the `standard` ProRes profile when none is named).
 struct ResolvedRender {
     backend: render::render::Backend,
     preset: render::render::Preset,
     crf: Option<u8>,
     video_bitrate: Option<String>,
+    format: render::outputs::OutputFormat,
+    prores_profile: render::outputs::ProresProfile,
+    resolution: render::scale::Resolution,
+    supersample: u8,
+    /// Encoder choice (Sprint 12 outputs, T003): `software` when no
+    /// `--encoder` flag was passed.
+    encoder: render::outputs::EncoderChoice,
+    /// Keyframe interval (Sprint 12 outputs, T003): None when no
+    /// `--keyint` flag was passed.
+    keyint: Option<u32>,
+    /// Peak bitrate cap (Sprint 12 outputs, T003): None when no
+    /// `--maxrate` flag was passed.
+    maxrate: Option<String>,
+    /// HDR mode (Sprint 12 outputs, T004): `auto` when no `--hdr`
+    /// flag was passed.
+    hdr: render::outputs::HdrMode,
     /// Parsed per-render variable values (Sprint 9 variables, CAP-003):
     /// empty when no `--variables` flag was passed.
     variables: validate_mod::VariableOverrides,
@@ -2018,6 +2068,147 @@ fn parse_video_bitrate(raw: &str) -> Result<String, String> {
             "render refused: --video-bitrate {raw:?} is not numeric (for example `800k` or `2M`) (validation stage); no MP4 was written"
         )),
     }
+}
+
+/// Resolve the `--format` / `--prores-profile` / `--resolution` /
+/// `--supersample` / `--encoder` / `--keyint` / `--maxrate` /
+/// `--hdr` destination flags (Sprint 12 outputs, T001/T002/T003/T004):
+/// defaults are `mp4` plus the `standard` ProRes profile, the `source`
+/// resolution, 1x supersampling (the identity path), the `software`
+/// encoder, no rate-control pacing, and the `auto` HDR mode. Every
+/// problem is reported at once, each naming the flag and the accepted
+/// values; nothing is written on refusal. Shared by the single render
+/// and the batch driver (row names need the format's extension before
+/// any row starts).
+fn resolve_destination(
+    req: &RenderRequest,
+) -> Result<
+    (
+        render::outputs::OutputFormat,
+        render::outputs::ProresProfile,
+        render::scale::Resolution,
+        u8,
+        render::outputs::EncoderChoice,
+        Option<u32>,
+        Option<String>,
+        render::outputs::HdrMode,
+    ),
+    String,
+> {
+    let format = match req.format.as_deref() {
+        None => Some(render::outputs::OutputFormat::Mp4),
+        Some(raw) => render::outputs::OutputFormat::parse(raw),
+    };
+    let prores_profile = match req.prores_profile.as_deref() {
+        None => Some(render::outputs::ProresProfile::Standard),
+        Some(raw) => render::outputs::ProresProfile::parse(raw),
+    };
+    let resolution = match req.resolution.as_deref() {
+        None => Some(render::scale::Resolution::Source),
+        Some(raw) => render::scale::Resolution::parse(raw),
+    };
+    let supersample = match req.supersample.as_deref() {
+        None => Some(1u8),
+        Some(raw) => render::scale::parse_supersample(raw),
+    };
+    let encoder = match req.encoder.as_deref() {
+        None => Some(render::outputs::EncoderChoice::Software),
+        Some(raw) => render::outputs::EncoderChoice::parse(raw),
+    };
+    let keyint = match req.keyint.as_deref() {
+        None => Some(None),
+        Some(raw) => render::outputs::parse_keyint(raw).map(Some),
+    };
+    let maxrate = match req.maxrate.as_deref() {
+        None => Some(None),
+        Some(raw) => render::outputs::parse_maxrate(raw).map(Some),
+    };
+    let hdr = match req.hdr.as_deref() {
+        None => Some(render::outputs::HdrMode::Auto),
+        Some(raw) => render::outputs::HdrMode::parse(raw),
+    };
+    let mut dest_problems: Vec<String> = Vec::new();
+    if format.is_none() {
+        dest_problems.push(format!(
+            "unknown --format {:?}: expected {}",
+            req.format.as_deref().unwrap_or(""),
+            render::outputs::OutputFormat::accepted()
+        ));
+    }
+    if prores_profile.is_none() {
+        dest_problems.push(format!(
+            "unknown --prores-profile {:?}: expected {}",
+            req.prores_profile.as_deref().unwrap_or(""),
+            render::outputs::ProresProfile::accepted()
+        ));
+    }
+    if resolution.is_none() {
+        dest_problems.push(format!(
+            "unknown --resolution {:?}: expected {}; pass one of those values to `--resolution`",
+            req.resolution.as_deref().unwrap_or(""),
+            render::scale::Resolution::accepted()
+        ));
+    }
+    if supersample.is_none() {
+        dest_problems.push(format!(
+            "invalid --supersample {:?}: expected {}; pass `--supersample 1` (or 2, 3, 4)",
+            req.supersample.as_deref().unwrap_or(""),
+            render::scale::supersample_accepted()
+        ));
+    }
+    if encoder.is_none() {
+        dest_problems.push(format!(
+            "unknown --encoder {:?}: expected {}",
+            req.encoder.as_deref().unwrap_or(""),
+            render::outputs::EncoderChoice::accepted()
+        ));
+    }
+    if keyint.is_none() {
+        dest_problems.push(format!(
+            "invalid --keyint {:?}: expected {}; pass `--keyint 60` (or another whole number of 1 or more)",
+            req.keyint.as_deref().unwrap_or(""),
+            render::outputs::keyint_accepted()
+        ));
+    }
+    if maxrate.is_none() {
+        dest_problems.push(format!(
+            "invalid --maxrate {:?}: expected {}; pass `--maxrate 8M`",
+            req.maxrate.as_deref().unwrap_or(""),
+            render::outputs::maxrate_accepted()
+        ));
+    }
+    if hdr.is_none() {
+        dest_problems.push(format!(
+            "unknown --hdr {:?}: expected {}",
+            req.hdr.as_deref().unwrap_or(""),
+            render::outputs::HdrMode::accepted()
+        ));
+    }
+    if let (Some(f), Some(_)) = (format, prores_profile) {
+        if req.prores_profile.is_some() && f != render::outputs::OutputFormat::Prores {
+            dest_problems.push(format!(
+                "--prores-profile {:?} needs --format prores (got --format {:?}); pass --format prores or drop --prores-profile",
+                req.prores_profile.as_deref().unwrap_or(""),
+                f.name()
+            ));
+        }
+    }
+    if !dest_problems.is_empty() {
+        return Err(format!(
+            "render refused: {} (validation stage); no output was written",
+            dest_problems.join("; ")
+        ));
+    }
+    Ok((
+        format.unwrap_or(render::outputs::OutputFormat::Mp4),
+        prores_profile.unwrap_or(render::outputs::ProresProfile::Standard),
+        resolution.unwrap_or(render::scale::Resolution::Source),
+        supersample.unwrap_or(1),
+        encoder.unwrap_or(render::outputs::EncoderChoice::Software),
+        keyint.unwrap_or(None),
+        maxrate.unwrap_or(None),
+        hdr.unwrap_or(render::outputs::HdrMode::Auto),
+    ))
 }
 
 fn resolve_render_request(req: &RenderRequest) -> Result<ResolvedRender, String> {
@@ -2063,15 +2254,348 @@ fn resolve_render_request(req: &RenderRequest) -> Result<ResolvedRender, String>
         Some(raw) => validate_mod::parse_variable_overrides(raw)
             .map_err(|e| format!("render refused: {e} (validation stage); no MP4 was written"))?,
     };
+    // Sprint 12 outputs (T001/T002/T003/T004): the destination
+    // flags validate together before the first frame and report every
+    // problem at once. Each problem names the flag and the accepted
+    // values; nothing is written on refusal.
+    let (format, prores_profile, resolution, supersample, encoder, keyint, maxrate, hdr) =
+        resolve_destination(req)?;
     Ok(ResolvedRender {
         backend,
         preset,
         crf,
         video_bitrate,
+        format,
+        prores_profile,
+        resolution,
+        supersample,
+        encoder,
+        keyint,
+        maxrate,
+        hdr,
         variables,
         strict_variables: req.strict_variables,
         theme: req.theme.clone(),
     })
+}
+
+/// Short display names of probed HDR sources (Sprint 12 outputs,
+/// T004): file names in document order, so refusal and report lines
+/// name the cause without leaking absolute work paths.
+fn hdr_source_names(
+    sources: &[(PathBuf, render::outputs::HdrTransfer)],
+    want: Option<render::outputs::HdrTransfer>,
+) -> String {
+    sources
+        .iter()
+        .filter(|(_, t)| want.is_none_or(|w| *t == w))
+        .map(|(p, t)| {
+            let name = p
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| p.display().to_string());
+            format!("{name:?} ({})", t.probe_token())
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Resolve the `--hdr` mode against the probed sources (Sprint 12
+/// outputs, T004): `auto` renders HEVC Main10 BT.2020 when a source
+/// carries PQ/HLG and SDR otherwise; explicit `pq`/`hlg` demand that
+/// transfer; HDR sources rendering to SDR-only destinations tone-map
+/// under `auto`. Returns the effective transfer, whether the SDR
+/// pictures are a tone map, and the report note naming the decision —
+/// or a refusal naming the cause with a concrete fix, before frame
+/// one with nothing written.
+fn resolve_hdr_decision(
+    mode: render::outputs::HdrMode,
+    format: render::outputs::OutputFormat,
+    prep: &render::render::Prepared,
+    hdr_flag_passed: bool,
+) -> Result<
+    (
+        render::outputs::HdrTransfer,
+        bool,
+        Option<String>,
+    ),
+    String,
+> {
+    use render::outputs::{HdrMode, HdrTransfer};
+    let sources = prep.hdr_sources();
+    let detected = prep.composition_transfer();
+    // An explicit demand names its transfer and the probe token, so
+    // the fix is concrete even for makers who never saw the probe.
+    let demand_refusal = |want: HdrTransfer| {
+        let cause = if sources.is_empty() {
+            "the composition's video sources are all SDR (no source carries PQ or HLG)".to_string()
+        } else {
+            format!(
+                "the composition's HDR source(s) carry {} only ({})",
+                if want == HdrTransfer::Pq {
+                    "HLG"
+                } else {
+                    "PQ"
+                },
+                hdr_source_names(&sources, None)
+            )
+        };
+        format!(
+            "render refused: --hdr {} demands a {} ({}) source, but {cause}; add a {} source or re-run with --hdr auto (HDR in leads to HDR out, SDR in to SDR out) or --hdr off for SDR (validation stage); no output was written",
+            want.name(),
+            if want == HdrTransfer::Pq {
+                "PQ"
+            } else {
+                "HLG"
+            },
+            want.probe_token(),
+            want.name(),
+        )
+    };
+    let format_refusal = || {
+        format!(
+            "render refused: --hdr {} needs a format that carries HEVC Main10 BT.2020 (mp4, hevc, or hls), but --format {} cannot carry HDR; re-run with --format hevc for HEVC Main10 BT.2020 (or --hdr off for SDR) (validation stage); no output was written",
+            mode.name(),
+            format.name(),
+        )
+    };
+    match mode {
+        HdrMode::Off => {
+            if sources.is_empty() {
+                Ok((HdrTransfer::Sdr, false, None))
+            } else {
+                Ok((
+                    HdrTransfer::Sdr,
+                    false,
+                    Some(format!(
+                        "stage output: note: --hdr off forced SDR; {} HDR source(s) ({}) render as SDR.",
+                        sources.len(),
+                        hdr_source_names(&sources, None)
+                    )),
+                ))
+            }
+        }
+        HdrMode::Pq | HdrMode::Hlg => {
+            let want = if mode == HdrMode::Pq {
+                HdrTransfer::Pq
+            } else {
+                HdrTransfer::Hlg
+            };
+            if !sources.iter().any(|(_, t)| *t == want) {
+                return Err(demand_refusal(want));
+            }
+            if !render::outputs::format_carries_hdr(format) {
+                return Err(format_refusal());
+            }
+            Ok((
+                want,
+                false,
+                Some(format!(
+                    "stage output: note: --hdr {} matched {} in {}; rendering HEVC Main10 BT.2020 ({}).",
+                    mode.name(),
+                    if want == HdrTransfer::Pq { "PQ" } else { "HLG" },
+                    hdr_source_names(&sources, Some(want)),
+                    want.name(),
+                )),
+            ))
+        }
+        HdrMode::Auto => {
+            if detected == HdrTransfer::Sdr {
+                // A bare `auto` resolving to SDR stays silent, so the
+                // pinned lines read exactly as before; an explicit
+                // `--hdr auto` still reports the decision it drove.
+                let note = hdr_flag_passed.then(|| {
+                    "stage output: note: --hdr auto found SDR-only sources; rendering SDR."
+                        .to_string()
+                });
+                Ok((HdrTransfer::Sdr, false, note))
+            } else if render::outputs::format_carries_hdr(format) {
+                Ok((
+                    detected,
+                    false,
+                    Some(format!(
+                        "stage output: note: --hdr auto detected {} ({}) in {}; rendering HEVC Main10 BT.2020 ({}).",
+                        if detected == HdrTransfer::Pq {
+                            "PQ"
+                        } else {
+                            "HLG"
+                        },
+                        detected.probe_token(),
+                        hdr_source_names(&sources, Some(detected)),
+                        detected.name(),
+                    )),
+                ))
+            } else if render::outputs::format_tone_maps_hdr(format) {
+                // The drawn SDR pictures are the tone map: the decoder
+                // and the CPU blitter already composite HDR video into
+                // the SDR canvas, so the GIF/PNG animation is SDR by
+                // nature and the report names the mapping.
+                Ok((
+                    HdrTransfer::Sdr,
+                    true,
+                    Some(format!(
+                        "stage output: note: --hdr auto detected {} ({}) in {}, but --format {} is SDR-only; rendering a tone-mapped SDR {} animation.",
+                        if detected == HdrTransfer::Pq {
+                            "PQ"
+                        } else {
+                            "HLG"
+                        },
+                        detected.probe_token(),
+                        hdr_source_names(&sources, Some(detected)),
+                        format.name(),
+                        format.name(),
+                    )),
+                ))
+            } else {
+                Err(format!(
+                    "render refused: --hdr auto detected {} ({}) in {}, but --format {} cannot carry HDR; re-run with --format hevc for HEVC Main10 BT.2020 (or --hdr off for SDR) (validation stage); no output was written",
+                    if detected == HdrTransfer::Pq {
+                        "PQ"
+                    } else {
+                        "HLG"
+                    },
+                    detected.probe_token(),
+                    hdr_source_names(&sources, Some(detected)),
+                    format.name(),
+                ))
+            }
+        }
+    }
+}
+
+/// Digest of the composition inputs for one render (Sprint 12
+/// outputs, CAP-005): a canonical encoding of every validated
+/// composition in the project (sorted by name, so `nest` targets ride
+/// along) plus the bytes of every media file they reference (video,
+/// image, audio, and SVG stills, keyed by project-relative path). The
+/// same inputs re-render the same digest; any input change re-stamps.
+/// Unreadable files are skipped here — preparation and the audio plan
+/// refuse those with their paths named before any output exists.
+/// One composition reduced to its render-effective inputs (Sprint 12
+/// outputs, CAP-005): the provenance digest hashes this, never the
+/// raw validated form. Every normalization below is proven
+/// render-neutral by an existing byte-identity contract, so forms that
+/// render byte-identically stamp one digest:
+/// - the `canvas` preset name (explicit dimensions win; the effective
+///   size already rides `width`/`height`),
+/// - `duration_inferred` (the model guarantees identical rendering for
+///   written and inferred lengths),
+/// - `label` on every clip (an editor note with no render effect),
+/// - clip `id` when the composition holds no transitions (transitions
+///   address clips by id; without them ids resolve nothing),
+/// - clip `track` when the composition holds no lane grades (the lane
+///   lookup is the only render read of a track),
+/// - hidden clips, dropped with their media (a hidden clip renders as
+///   if absent),
+/// - lone constant-at-base numeric tweens (constant motion draws the
+///   static layout).
+/// Anything else — geometry, media, motion, grades, variables — stays
+/// declared, so a real input change always re-stamps.
+fn effective_comp_for_digest(comp: &Composition) -> Composition {
+    let mut effective = comp.clone();
+    effective.canvas = None;
+    // Motion no-ops fold while document indices still address the
+    // validated clips (hidden clips drop below, shifting nothing yet).
+    let noop: Vec<(usize, String)> = effective
+        .tweens
+        .iter()
+        .filter(|t| render::motion_plan::tween_is_constant_noop(t, &effective))
+        .map(|t| (t.target, t.property.clone()))
+        .collect();
+    effective
+        .tweens
+        .retain(|t| !noop.contains(&(t.target, t.property.clone())));
+    effective.clips.retain(|c| !c.hidden());
+    let strip_ids = effective.transitions.is_empty();
+    let strip_tracks = effective.lane_grades.is_empty();
+    for clip in &mut effective.clips {
+        normalize_clip_for_digest(clip, strip_ids, strip_tracks);
+    }
+    effective
+}
+
+/// One clip reduced to its render-effective inputs (Sprint 12 outputs,
+/// CAP-005): see [`effective_comp_for_digest`] for the contract each
+/// arm serves.
+fn normalize_clip_for_digest(
+    clip: &mut notation::model::Clip,
+    strip_ids: bool,
+    strip_tracks: bool,
+) {
+    use notation::model::{Clip, TrackKind};
+    // (element name for the undeclared-track default, the clip)
+    let normalize = |element: &str,
+                         id: &mut Option<String>,
+                         track: &mut TrackKind,
+                         label: &mut Option<String>| {
+        *label = None;
+        if strip_ids {
+            *id = None;
+        }
+        if strip_tracks {
+            *track = TrackKind::default_for_clip(element);
+        }
+    };
+    match clip {
+        Clip::Text(c) => {
+            normalize("text", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Video(c) => {
+            normalize("video", &mut c.id, &mut c.track, &mut c.label);
+            c.duration_inferred = false;
+        }
+        Clip::Box(c) => {
+            normalize("box", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Flex(c) => {
+            normalize("flex", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Image(c) => {
+            normalize("image", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Path(c) => {
+            normalize("path", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Svg(c) => {
+            normalize("svg", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Audio(c) => {
+            normalize("audio", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Nest(c) => {
+            // The nest target name stays: it resolves the nested
+            // composition, so it is a real input.
+            normalize("nest", &mut c.id, &mut c.track, &mut c.label);
+        }
+    }
+}
+
+fn composition_inputs_digest(all: &[Composition], folder: &Path) -> String {
+    let mut ordered: Vec<Composition> = all.iter().map(effective_comp_for_digest).collect();
+    ordered.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut canonical = String::new();
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
+    for comp in &ordered {
+        canonical.push_str(&format!("{comp:?}\n"));
+        for clip in &comp.clips {
+            let rel: Option<&str> = match clip {
+                notation::model::Clip::Video(c) => Some(&c.path),
+                notation::model::Clip::Image(c) => Some(&c.path),
+                notation::model::Clip::Audio(c) => Some(&c.path),
+                notation::model::Clip::Svg(c) => Some(&c.path),
+                _ => None,
+            };
+            if let Some(rel) = rel {
+                if seen.insert(rel.to_string()) {
+                    if let Ok(bytes) = std::fs::read(folder.join(rel)) {
+                        files.push((rel.to_string(), bytes));
+                    }
+                }
+            }
+        }
+    }
+    render::outputs::provenance_digest(&canonical, &files)
 }
 
 /// One progress line: stdout for human renders, stderr for `--json`
@@ -2311,6 +2835,14 @@ struct RenderJson<'a> {
     exit: i32,
     backend: &'a str,
     preset: &'a str,
+    /// Output destination (Sprint 12 outputs, T001): the `--format`
+    /// value (`mp4` for historical renders).
+    format: &'a str,
+    /// Output scaling (Sprint 12 outputs, T002): the `--resolution`
+    /// value (`source` for canvas-size renders) and the
+    /// `--supersample` multiple (1 on the identity path).
+    resolution: &'a str,
+    supersample: u8,
     enc: &'a render::render::ResolvedEncoder,
     output: &'a str,
     message: &'a str,
@@ -2346,8 +2878,11 @@ fn format_render_json(ctx: &RenderJson) -> String {
     let mut out = String::new();
     let _ = write!(
         out,
-        "{{\"tool\":\"framesmith\",\"command\":\"render\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"backend\":\"{backend}\",\"preset\":\"{preset}\",\"crf\":{},\"x264_preset\":",
+        "{{\"tool\":\"framesmith\",\"command\":\"render\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"backend\":\"{backend}\",\"preset\":\"{preset}\",\"format\":\"{}\",\"resolution\":\"{}\",\"supersample\":{},\"crf\":{},\"x264_preset\":",
         json_escape(&ctx.folder.display().to_string()),
+        json_escape(ctx.format),
+        json_escape(ctx.resolution),
+        ctx.supersample,
         ctx.enc.crf,
     );
     match ctx.enc.x264_preset {
@@ -2363,6 +2898,36 @@ fn format_render_json(ctx: &RenderJson) -> String {
         }
         None => out.push_str("null"),
     }
+    // Sprint 12 outputs (T003): the requested encoder, the effective
+    // hardware use, and the rate-control pacing of the render.
+    let _ = write!(
+        out,
+        ",\"encoder\":\"{}\",\"hardware\":{}",
+        ctx.enc.encoder_choice.name(),
+        ctx.enc.hardware
+    );
+    let _ = write!(out, ",\"keyint\":");
+    match ctx.enc.keyint {
+        Some(g) => {
+            let _ = write!(out, "{g}");
+        }
+        None => out.push_str("null"),
+    }
+    let _ = write!(out, ",\"maxrate\":");
+    match &ctx.enc.maxrate {
+        Some(m) => {
+            let _ = write!(out, "\"{}\"", json_escape(m));
+        }
+        None => out.push_str("null"),
+    }
+    // Sprint 12 outputs (T004): the requested HDR mode and the
+    // effective transfer the probe drove (`sdr` on the default path).
+    let _ = write!(
+        out,
+        ",\"hdr\":\"{}\",\"transfer\":\"{}\"",
+        ctx.enc.hdr.name(),
+        ctx.enc.hdr_transfer.name()
+    );
     let _ = write!(
         out,
         ",\"cache\":{{\"hits\":{cache_hits},\"misses\":{cache_misses}}}"
@@ -2464,6 +3029,139 @@ fn select_composition(verdict: &Verdict, name: Option<&str>) -> Result<Compositi
     }
 }
 
+/// Staged mix path for one destination (Sprint 12 outputs, T001):
+/// files stage beside the target as before; sequences stage beside
+/// their temp directory (not inside it: `render_staged` clears the
+/// temp directory before encoding, which would delete the mix). The
+/// final destination stays untouched until the finalize step moves
+/// verified results into place.
+fn mix_path_for_dest(dest: &render::outputs::ResolvedOutput) -> PathBuf {
+    match dest {
+        render::outputs::ResolvedOutput::File { path } => render::render::mix_staging_path(path),
+        render::outputs::ResolvedOutput::PngSeq { dir }
+        | render::outputs::ResolvedOutput::Hls { dir, .. } => {
+            let mut mix = render::outputs::staging_dir(dir).into_os_string();
+            mix.push(".mix.pcm");
+            PathBuf::from(mix)
+        }
+    }
+}
+
+/// Nearest existing ancestor of `path` (Sprint 12 outputs, T001): the
+/// path itself when it exists, else the closest parent that does, else
+/// the working directory. Sequence preflight probes writability here
+/// without creating the final destination early.
+fn nearest_existing_ancestor(path: &Path) -> PathBuf {
+    let mut cur: &Path = path;
+    loop {
+        if cur.exists() {
+            return cur.to_path_buf();
+        }
+        match cur.parent() {
+            Some(p) if !p.as_os_str().is_empty() => cur = p,
+            _ => return PathBuf::from("."),
+        }
+    }
+}
+
+/// Output preflight for one destination (Sprint 12 outputs, T001):
+/// files keep the historical create-plus-probe discipline verbatim;
+/// sequences probe the nearest existing ancestor without creating the
+/// final directory, refusing before frame one naming the path with no
+/// partial output left behind.
+fn preflight_dest(dest: &render::outputs::ResolvedOutput) -> Result<(), String> {
+    match dest {
+        render::outputs::ResolvedOutput::File { path } => {
+            let probe_dir: PathBuf = match path.parent() {
+                Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+                _ => PathBuf::from("."),
+            };
+            if let Err(e) = std::fs::create_dir_all(&probe_dir) {
+                return Err(format!(
+                    "render refused: cannot create output directory {}: {e} (output stage). No MP4 was written.",
+                    probe_dir.display()
+                ));
+            }
+            let probe = probe_dir.join(".framesmith-write-probe");
+            match std::fs::write(&probe, b"framesmith writability probe") {
+                Ok(()) => {
+                    let _ = std::fs::remove_file(&probe);
+                    Ok(())
+                }
+                Err(e) => Err(format!(
+                    "render refused: output directory {} is not writable: {e} (output stage). No MP4 was written.",
+                    probe_dir.display()
+                )),
+            }
+        }
+        render::outputs::ResolvedOutput::PngSeq { dir }
+        | render::outputs::ResolvedOutput::Hls { dir, .. } => {
+            let anchor = nearest_existing_ancestor(dir);
+            let probe = anchor.join(".framesmith-write-probe");
+            match std::fs::write(&probe, b"framesmith writability probe") {
+                Ok(()) => {
+                    let _ = std::fs::remove_file(&probe);
+                    Ok(())
+                }
+                Err(e) => Err(format!(
+                    "render refused: output directory {} is not writable: {e} (output stage). No output was written.",
+                    dir.display()
+                )),
+            }
+        }
+    }
+}
+
+/// Report an output-stage refusal (Sprint 12 outputs, T001): the staged
+/// line, the run log, and the machine-readable document share the same
+/// message; nothing was written.
+#[allow(clippy::too_many_arguments)]
+fn output_stage_refusal(
+    folder: &Path,
+    json: bool,
+    run: &str,
+    backend: &str,
+    preset: &str,
+    enc: &render::render::ResolvedEncoder,
+    format: &str,
+    resolution: &str,
+    supersample: u8,
+    stages: &[render::render::StageTiming],
+    total_start: std::time::Instant,
+    msg: &str,
+) -> i32 {
+    stage_line(json, &format!("stage output: failed: {msg}"));
+    note_log(folder, "error", "render", run, msg, json);
+    if json {
+        println!(
+            "{}",
+            format_render_json(&RenderJson {
+                folder,
+                status: "failed",
+                exit: 1,
+                backend,
+                preset,
+                format,
+                resolution,
+                supersample,
+                enc,
+                output: "",
+                message: msg,
+                cache_hits: 0,
+                cache_misses: 0,
+                peaks: None,
+                normalize: None,
+                diagnostics: &[],
+                stages,
+                total_ms: total_start.elapsed().as_millis() as u64
+            })
+        );
+    } else {
+        println!("{msg}");
+    }
+    1
+}
+
 /// `render`: revalidate, select the backend, report FFmpeg state, build
 /// the 48 kHz mix, draw frames (possibly in parallel), encode atomically,
 /// and report staged progress with measured per-stage timings (T001,
@@ -2504,6 +3202,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: "unknown",
                         preset: "unknown",
+                        format: "unknown",
+                    resolution: "unknown",
+                    supersample: 0,
                         enc: &enc,
                         output: "",
                         message: &e,
@@ -2525,11 +3226,28 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         preset: resolved.preset,
         crf_override: resolved.crf,
         video_bitrate: resolved.video_bitrate.clone(),
+        format: resolved.format,
+        prores_profile: resolved.prores_profile,
+        resolution: resolved.resolution,
+        supersample: resolved.supersample,
+        encoder_choice: resolved.encoder,
+        hardware: false,
+        keyint: resolved.keyint,
+        maxrate: resolved.maxrate.clone(),
+        hdr: resolved.hdr,
+        hdr_transfer: render::outputs::HdrTransfer::Sdr,
+        hdr_tone_mapped: false,
+        provenance: None,
     };
     // `auto` resolves through the capability probe (T001): the GPU
     // renderer when one is available, else the CPU renderer. The chosen
     // backend is named in the output and the run log.
     opts.backend = render::render::resolve_backend(resolved.backend);
+    // Sprint 12 outputs (T001): the destination resolves from
+    // `--format` and `-o` before anything renders. Files keep the
+    // historical `-o`-as-given semantics; sequences resolve to a
+    // directory (PNG) or a playlist-plus-segments directory (HLS).
+    let dest = render::outputs::resolve_output(resolved.format, folder, output);
 
     stage_line(json, "stage validate: running");
     let validate_start = Instant::now();
@@ -2593,6 +3311,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &opts.encoder(),
                         output: "",
                         message: &msg,
@@ -2644,6 +3365,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 2,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &opts.encoder(),
                         output: "",
                         message: &msg,
@@ -2697,6 +3421,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                     exit: 1,
                     backend: "gpu",
                     preset: opts.preset.name(),
+                    format: opts.format.name(),
+                    resolution: opts.resolution.name(),
+                    supersample: opts.supersample,
                     enc: &opts.encoder(),
                     output: "",
                     message: &msg,
@@ -2771,6 +3498,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &enc,
                         output: "",
                         message: &msg,
@@ -2812,6 +3542,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &enc,
                         output: "",
                         message: &msg,
@@ -2829,10 +3562,21 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         }
     };
     if let Some(r) = range {
-        let note = format!(
-            "stage validate: note: rendering sub-range {:.3}s..{:.3}s of composition {:?} as its own MP4.",
-            r.start, r.end, comp.name
-        );
+        // Sprint 12 outputs (T001): the historical MP4 note stays
+        // byte-identical; other destinations name their own output.
+        let note = match resolved.format {
+            render::outputs::OutputFormat::Mp4 => format!(
+                "stage validate: note: rendering sub-range {:.3}s..{:.3}s of composition {:?} as its own MP4.",
+                r.start, r.end, comp.name
+            ),
+            f => format!(
+                "stage validate: note: rendering sub-range {:.3}s..{:.3}s of composition {:?} as its own {} output.",
+                r.start,
+                r.end,
+                comp.name,
+                f.name()
+            ),
+        };
         stage_line(json, &note);
         note_log(folder, "info", "render", &run, &note, json);
     }
@@ -2844,7 +3588,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             opts.backend.name(),
             opts.preset.name(),
             &opts.encoder(),
-            &folder.join("out.mp4"),
+            &dest,
+            opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
             "validate",
             &mut stages,
             total_start,
@@ -2895,6 +3642,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &opts.encoder(),
                         output: "",
                         message: &message,
@@ -2912,87 +3662,126 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         }
     };
 
-    let default_out: PathBuf = folder.join("out.mp4");
-    let out = output.map(Path::to_path_buf).unwrap_or(default_out);
-    // T004 output preflight (output stage, before the first frame): the
-    // target directory must exist and accept the staged write beside the
-    // target, or the render refuses with the path named and writes
-    // nothing — never a partial MP4.
-    let probe_dir: PathBuf = match out.parent() {
-        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
-        _ => PathBuf::from("."),
-    };
-    if let Err(e) = std::fs::create_dir_all(&probe_dir) {
-        let msg = format!(
-            "render refused: cannot create output directory {}: {e} (output stage). No MP4 was written.",
-            probe_dir.display()
+    // Sprint 12 outputs (T001): the host FFmpeg must provide the
+    // destination's video encoder beyond the Sprint 1 pair, or the
+    // render refuses before frame one naming the format, the missing
+    // encoder, and the fix.
+    if let Err(msg) = render::outputs::check_format_encoders(&ffmpeg_bin, resolved.format) {
+        return output_stage_refusal(
+            folder,
+            json,
+            &run,
+            opts.backend.name(),
+            opts.preset.name(),
+            &opts.encoder(),
+            opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
+            &stages,
+            total_start,
+            &msg,
         );
-        stage_line(json, &format!("stage output: failed: {msg}"));
-        note_log(folder, "error", "render", &run, &msg, json);
-        if json {
-            println!(
-                "{}",
-                format_render_json(&RenderJson {
-                    folder,
-                    status: "failed",
-                    exit: 1,
-                    backend: opts.backend.name(),
-                    preset: opts.preset.name(),
-                    enc: &opts.encoder(),
-                    output: "",
-                    message: &msg,
-                    cache_hits: 0,
-                    cache_misses: 0,
-                    peaks: None,
-                    normalize: None,
-                    diagnostics: &[],
-                    stages: &stages,
-                    total_ms: total_start.elapsed().as_millis() as u64
-                })
-            );
-        } else {
-            println!("{msg}");
-        }
-        return 1;
     }
-    let probe = probe_dir.join(".framesmith-write-probe");
-    match std::fs::write(&probe, b"framesmith writability probe") {
-        Ok(()) => {
-            let _ = std::fs::remove_file(&probe);
-        }
-        Err(e) => {
-            let msg = format!(
-                "render refused: output directory {} is not writable: {e} (output stage). No MP4 was written.",
-                probe_dir.display()
-            );
-            stage_line(json, &format!("stage output: failed: {msg}"));
-            note_log(folder, "error", "render", &run, &msg, json);
-            if json {
-                println!(
-                    "{}",
-                    format_render_json(&RenderJson {
-                        folder,
-                        status: "failed",
-                        exit: 1,
-                        backend: opts.backend.name(),
-                        preset: opts.preset.name(),
-                        enc: &opts.encoder(),
-                        output: "",
-                        message: &msg,
-                        cache_hits: 0,
-                        cache_misses: 0,
-                        peaks: None,
-                        normalize: None,
-                        diagnostics: &[],
-                        stages: &stages,
-                        total_ms: total_start.elapsed().as_millis() as u64
-                    })
+    // Sprint 12 outputs (T003): resolve the `--encoder` choice against
+    // the host FFmpeg before the first frame. `auto` takes the
+    // destination's hardware encoder when present and software
+    // otherwise without failing; explicit `videotoolbox` refuses
+    // naming the cause and the software fallback, and nothing is
+    // written on refusal.
+    match resolved.encoder {
+        render::outputs::EncoderChoice::Software => {}
+        render::outputs::EncoderChoice::Auto => {
+            if render::outputs::hardware_available(&ffmpeg_bin, resolved.format) {
+                opts.hardware = true;
+                let codec = render::outputs::hardware_encoder_for(resolved.format)
+                    .unwrap_or("h264_videotoolbox");
+                let note = format!(
+                    "stage output: note: --encoder auto selected hardware encoding ({codec}); software encodes stay byte-identical with --encoder software."
                 );
+                stage_line(json, &note);
+                note_log(folder, "info", "render", &run, &note, json);
             } else {
-                println!("{msg}");
+                let note = "stage output: note: --encoder auto selected software encoding (no hardware encoder on this machine).";
+                stage_line(json, note);
+                note_log(folder, "info", "render", &run, note, json);
             }
-            return 1;
         }
+        render::outputs::EncoderChoice::Videotoolbox => {
+            match render::outputs::hardware_encoder_for(resolved.format) {
+                None => {
+                    let msg = format!(
+                        "render refused: --encoder videotoolbox has no hardware encoder for --format {} (this stack hardware-encodes H.264/H.265 destinations only); re-run with --encoder software (validation stage); no output was written",
+                        resolved.format.name()
+                    );
+                    return output_stage_refusal(
+                        folder,
+                        json,
+                        &run,
+                        opts.backend.name(),
+                        opts.preset.name(),
+                        &opts.encoder(),
+                        opts.format.name(),
+                        opts.resolution.name(),
+                        opts.supersample,
+                        &stages,
+                        total_start,
+                        &msg,
+                    );
+                }
+                Some(codec)
+                    if !render::outputs::hardware_available(&ffmpeg_bin, resolved.format) =>
+                {
+                    let msg = format!(
+                        "render refused: --encoder videotoolbox needs the {codec} encoder, but the FFmpeg at {} does not provide it; re-run with --encoder software (or --encoder auto for automatic fallback) (validation stage); no output was written",
+                        ffmpeg_bin.display()
+                    );
+                    return output_stage_refusal(
+                        folder,
+                        json,
+                        &run,
+                        opts.backend.name(),
+                        opts.preset.name(),
+                        &opts.encoder(),
+                        opts.format.name(),
+                        opts.resolution.name(),
+                        opts.supersample,
+                        &stages,
+                        total_start,
+                        &msg,
+                    );
+                }
+                Some(codec) => {
+                    opts.hardware = true;
+                    let note = format!(
+                        "stage output: note: encoding with {codec} (hardware); decodability is verified, not byte-identity."
+                    );
+                    stage_line(json, &note);
+                    note_log(folder, "info", "render", &run, &note, json);
+                }
+            }
+        }
+    }
+    // T004 output preflight (output stage, before the first frame),
+    // extended to every destination (Sprint 12 outputs, T001): files
+    // keep the historical create-plus-probe discipline; sequences
+    // probe writability without creating the final directory. Any
+    // failure refuses with the path named and writes nothing — never a
+    // partial file, playlist, or frame.
+    if let Err(msg) = preflight_dest(&dest) {
+        return output_stage_refusal(
+            folder,
+            json,
+            &run,
+            opts.backend.name(),
+            opts.preset.name(),
+            &opts.encoder(),
+            opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
+            &stages,
+            total_start,
+            &msg,
+        );
     }
 
     let (workers, workers_note) = worker_note();
@@ -3001,23 +3790,62 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         note_log(folder, "warn", "render", &run, note, json);
     }
 
+    // Sprint 12 outputs (T002): the scale plan derives from the
+    // selected composition's canvas and the `--resolution` /
+    // `--supersample` flags. `source` at 1x is the identity path (the
+    // composition renders untouched, byte-identical); anything else
+    // scales the composition to the internal size once, so every
+    // downstream step — motion, shaping, describe, drawing — runs at
+    // the higher resolution unchanged.
+    let scale = opts.scale_plan(comp.width, comp.height);
+    let scaled_comp = render::scale::scale_composition(&comp, scale);
+    let scaled_all: Vec<Composition> = verdict
+        .compositions
+        .iter()
+        .map(|c| render::scale::scale_composition(c, scale))
+        .collect();
+    if !scale.identity {
+        let note = format!(
+            "stage validate: note: resolution {} supersample {}x: rendering {}x{} internally, delivering {}x{}.",
+            resolved.resolution.name(),
+            resolved.supersample,
+            scale.internal_w,
+            scale.internal_h,
+            scale.out_w,
+            scale.out_h
+        );
+        stage_line(json, &note);
+        note_log(folder, "info", "render", &run, &note, json);
+    }
+
     // Frames stage, first half: prepare every picture input before the
     // first frame (fonts, video probes and decodes, images).
     let frames_start = Instant::now();
+    // Sprint 12 outputs (T003): the encoder and rate-control tail
+    // rides the frames-stage line only when paced or off-default, so
+    // default lines stay exactly as before.
+    let frames_extra = opts
+        .announce_extra()
+        .map(|x| format!(", {x}"))
+        .unwrap_or_default();
     stage_line(
         json,
         &format!(
-            "stage frames: running (backend={}, {}, workers={workers})",
+            "stage frames: running (backend={}, {}{}, workers={workers})",
             opts.backend.name(),
-            opts.announce()
+            opts.announce(),
+            frames_extra
         ),
     );
     // Sprint 6 T008: a sub-range prepares exactly its own window (its
     // frame `k` is the range start plus `k` frame intervals); a full
     // render prepares the whole composition exactly as before.
-    let prep = match render::render::prepare_frames_ranged(
-        &comp,
-        &verdict.compositions,
+    // Sprint 12 outputs (T002): preparation consumes the scaled
+    // composition (the identity path scales nothing, so the bytes
+    // match the unscaled render exactly).
+    let mut prep = match render::render::prepare_frames_ranged(
+        &scaled_comp,
+        &scaled_all,
         folder,
         &ffmpeg_bin,
         range,
@@ -3034,7 +3862,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                     opts.backend.name(),
                     opts.preset.name(),
                     &opts.encoder(),
-                    &out,
+                    &dest,
+                    opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
                     "frames",
                     &mut stages,
                     total_start,
@@ -3059,6 +3890,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &opts.encoder(),
                         output: "",
                         message: &e,
@@ -3088,7 +3922,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             opts.backend.name(),
             opts.preset.name(),
             &opts.encoder(),
-            &out,
+            &dest,
+            opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
             "frames",
             &mut stages,
             total_start,
@@ -3096,13 +3933,68 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             "",
         );
     }
+    // Sprint 12 outputs (T002): expression-driven geometry evaluates
+    // per frame, so its pixel-valued results ride the internal
+    // multiplier from here (1.0 on the identity path: a no-op).
+    prep.scale_expr_results(scale.expr_scale());
+    // Sprint 12 outputs (T004): the HDR decision resolves from the
+    // requested mode plus the probed source transfers, before the
+    // first frame and before any output exists. A refusal here names
+    // the cause with a concrete fix and writes nothing — the staged
+    // mix and the encode target are both created later.
+    match resolve_hdr_decision(resolved.hdr, resolved.format, &prep, req.hdr.is_some()) {
+        Ok((transfer, tone_mapped, note)) => {
+            opts.hdr_transfer = transfer;
+            opts.hdr_tone_mapped = tone_mapped;
+            // HDR always encodes software (HEVC Main10): the hardware
+            // encoders tune SDR, so an `auto` hardware pick steps
+            // aside with a note instead of failing the render.
+            if transfer != render::outputs::HdrTransfer::Sdr && opts.hardware {
+                opts.hardware = false;
+                let hw_note = "stage output: note: HDR renders on software (HEVC Main10 BT.2020); the hardware encoder steps aside for this render.";
+                stage_line(json, hw_note);
+                note_log(folder, "info", "render", &run, hw_note, json);
+            }
+            if let Some(note) = note {
+                stage_line(json, &note);
+                note_log(folder, "info", "render", &run, &note, json);
+            }
+        }
+        Err(msg) => {
+            return output_stage_refusal(
+                folder,
+                json,
+                &run,
+                opts.backend.name(),
+                opts.preset.name(),
+                &opts.encoder(),
+                opts.format.name(),
+                opts.resolution.name(),
+                opts.supersample,
+                &stages,
+                total_start,
+                &msg,
+            );
+        }
+    }
+    // Sprint 12 outputs (T005): every render stamps the tool name, the
+    // version, and the digest of the composition inputs. File
+    // containers embed the stamp as metadata (already in the encode
+    // argv via `opts.encoder()`); the PNG sidecar, the HLS playlist
+    // comment, and the GIF warning land after the encode succeeds, so
+    // provenance never blocks pixels.
+    let digest = composition_inputs_digest(&verdict.compositions, folder);
+    opts.provenance = Some(render::outputs::Provenance {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        digest,
+    });
     let prepared_note = format!("prepared {} frame(s)", prep.frames());
     // Audio stage: smoke-decode video sound and build the Framesmith
     // 48 kHz stereo mix of the `audio` tracks (T008).
     let audio_start = Instant::now();
     stage_line(json, "stage audio: running");
-    let mix_path = render::render::mix_staging_path(&out);
-    let plan = match render::render::build_audio_plan(&comp, folder, &ffmpeg_bin, &prep, &mix_path)
+    let mix_path = mix_path_for_dest(&dest);
+    let plan = match render::render::build_audio_plan(&scaled_comp, folder, &ffmpeg_bin, &prep, &mix_path)
     {
         Ok(plan) => plan,
         Err(e) => {
@@ -3116,7 +4008,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                     opts.backend.name(),
                     opts.preset.name(),
                     &opts.encoder(),
-                    &out,
+                    &dest,
+                    opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
                     "audio",
                     &mut stages,
                     total_start,
@@ -3154,6 +4049,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &opts.encoder(),
                         output: "",
                         message: &e,
@@ -3183,7 +4081,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             opts.backend.name(),
             opts.preset.name(),
             &opts.encoder(),
-            &out,
+            &dest,
+            opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
             "audio",
             &mut stages,
             total_start,
@@ -3227,6 +4128,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         exit: 1,
                         backend: opts.backend.name(),
                         preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
                         enc: &opts.encoder(),
                         output: "",
                         message: &e,
@@ -3296,6 +4200,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                             exit: 1,
                             backend: opts.backend.name(),
                             preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
                             enc: &opts.encoder(),
                             output: "",
                             message: &msg,
@@ -3318,7 +4225,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         None => None,
     };
     let peak_summary = match &peak_mix {
-        Some(mix) => summarize_peaks(mix, &comp, &verdict.silences, start_offset),
+        Some(mix) => summarize_peaks(mix, &scaled_comp, &verdict.silences, start_offset),
         None => PeakSummary {
             master: 0,
             sections: Vec::new(),
@@ -3356,7 +4263,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // Frames stage, second half, plus encode: draw in parallel in bounded
     // batches, re-emit in frame order, and rename the MP4 into place.
     let (done_msg, draw_ms, encode_ms) =
-        match render::render::render_staged(&prep, &plan, &opts, &ffmpeg_bin, &out) {
+        match render::render::render_staged(&prep, &plan, &opts, &ffmpeg_bin, &dest, &scale) {
             Ok(outcome) => outcome,
             Err(e) => {
                 if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
@@ -3374,7 +4281,10 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         opts.backend.name(),
                         opts.preset.name(),
                         &opts.encoder(),
-                        &out,
+                        &dest,
+                        opts.format.name(),
+            opts.resolution.name(),
+            opts.supersample,
                         stage,
                         &mut stages,
                         total_start,
@@ -3399,6 +4309,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                             exit: 1,
                             backend: opts.backend.name(),
                             preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
                             enc: &opts.encoder(),
                             output: "",
                             message: &e,
@@ -3426,6 +4339,91 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         Some(r) => format!("{done_msg} [range {:.3}s..{:.3}s]", r.start, r.end),
         None => done_msg,
     };
+    // Sprint 12 outputs (T005): the stamp lands after the encode
+    // succeeds. PNG sequences gain a sibling sidecar JSON file with
+    // the same fields (the frames directory itself keeps exactly the
+    // numbered frames), HLS gains a playlist comment, and GIF — which
+    // carries neither metadata nor sidecar — warns naming the format.
+    // None of this touches pixels: a landing failure warns and still
+    // exits 0.
+    if let Some(prov) = &opts.provenance {
+        match &dest {
+            render::outputs::ResolvedOutput::PngSeq { dir } => {
+                let sidecar = render::outputs::provenance_sidecar_for_seq(dir);
+                if let Err(e) = std::fs::write(&sidecar, prov.sidecar_json()) {
+                    let note = format!(
+                        "stage output: note: provenance: sidecar {} could not be written: {e}; pictures are unchanged.",
+                        sidecar.display()
+                    );
+                    stage_line(json, &note);
+                    note_log(folder, "warn", "render", &run, &note, json);
+                }
+            }
+            render::outputs::ResolvedOutput::Hls { .. } => {
+                let playlist = dest.display_path();
+                let patched = std::fs::read_to_string(playlist).map(|body| {
+                    let comment = render::outputs::provenance_playlist_comment(&prov.stamp());
+                    match body.lines().next() {
+                        // The stamp rides right under the header, still a
+                        // `#` comment, so segment verification and players
+                        // pass over it.
+                        Some(first) if first.trim() == "#EXTM3U" => {
+                            let mut out =
+                                String::with_capacity(body.len() + comment.len() + 1);
+                            out.push_str(first);
+                            out.push('\n');
+                            out.push_str(&comment);
+                            out.push('\n');
+                            for line in body.lines().skip(1) {
+                                out.push_str(line);
+                                out.push('\n');
+                            }
+                            out
+                        }
+                        _ => {
+                            let mut out =
+                                String::with_capacity(body.len() + comment.len() + 2);
+                            out.push_str(body.trim_end());
+                            out.push('\n');
+                            out.push_str(&comment);
+                            out.push('\n');
+                            out
+                        }
+                    }
+                });
+                match patched {
+                    Ok(body) => {
+                        if let Err(e) = std::fs::write(playlist, body) {
+                            let note = format!(
+                                "stage output: note: provenance: playlist comment {} could not be written: {e}; pictures are unchanged.",
+                                playlist.display()
+                            );
+                            stage_line(json, &note);
+                            note_log(folder, "warn", "render", &run, &note, json);
+                        }
+                    }
+                    Err(e) => {
+                        let note = format!(
+                            "stage output: note: provenance: playlist {} could not be stamped: {e}; pictures are unchanged.",
+                            playlist.display()
+                        );
+                        stage_line(json, &note);
+                        note_log(folder, "warn", "render", &run, &note, json);
+                    }
+                }
+            }
+            _ => {
+                if !render::outputs::format_embeds_provenance(opts.format) {
+                    let note = format!(
+                        "stage output: note: provenance: --format {} carries no container metadata or sidecar, so this output is unstamped (pictures unchanged).",
+                        opts.format.name()
+                    );
+                    stage_line(json, &note);
+                    note_log(folder, "warn", "render", &run, &note, json);
+                }
+            }
+        }
+    }
     let frames_ms = frames_start.elapsed().as_millis() as u64;
     push_stage(
         &mut stages,
@@ -3488,8 +4486,11 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                 exit: 0,
                 backend: opts.backend.name(),
                 preset: opts.preset.name(),
+                format: opts.format.name(),
+                resolution: opts.resolution.name(),
+                supersample: opts.supersample,
                 enc: &opts.encoder(),
-                output: &out.display().to_string(),
+                output: &dest.display_path().display().to_string(),
                 message: &done_msg,
                 cache_hits,
                 cache_misses,
@@ -3732,13 +4733,23 @@ fn resolve_batch_name(
 /// templated stem gains `.mp4` unless it already carries that suffix,
 /// and relative names resolve against the project folder so row MP4s
 /// sit beside the default `out.mp4`.
-fn batch_output_path(folder: &Path, stem: &str) -> PathBuf {
-    let file = if stem.ends_with(".mp4") {
-        stem.to_string()
+/// Batch row output path for one destination (Sprint 12 outputs,
+/// T001): file destinations append the format extension exactly like
+/// the historical `.mp4` rule; sequence destinations resolve the stem
+/// to a directory (the PNG directory, or the HLS directory holding
+/// `index.m3u8`).
+fn batch_output_path(folder: &Path, stem: &str, format: render::outputs::OutputFormat) -> PathBuf {
+    let path = if format.is_sequence() {
+        PathBuf::from(stem)
     } else {
-        format!("{stem}.mp4")
+        let ext = format.default_extension();
+        let file = if stem.ends_with(&format!(".{ext}")) {
+            stem.to_string()
+        } else {
+            format!("{stem}.{ext}")
+        };
+        PathBuf::from(&file)
     };
-    let path = PathBuf::from(&file);
     if path.is_absolute() {
         path
     } else {
@@ -3915,6 +4926,17 @@ pub fn cmd_render_batch(folder: &Path, output: Option<&Path>, req: &RenderReques
         );
         return 2;
     }
+    // Sprint 12 outputs (T001): row output names carry the destination
+    // extension, so the format resolves before any row starts; a bad
+    // combination refuses here with no row rendered.
+    let (batch_format, _, _, _, _, _, _, _) = match resolve_destination(req) {
+        Ok(v) => v,
+        Err(msg) => {
+            stage_line(json, &msg);
+            note_log(folder, "warn", "render", &run, &msg, json);
+            return 1;
+        }
+    };
     let jobs: usize = match &req.jobs {
         None => 1,
         Some(raw) => match raw.trim().parse::<usize>() {
@@ -4002,7 +5024,7 @@ pub fn cmd_render_batch(folder: &Path, output: Option<&Path>, req: &RenderReques
             note_log(folder, "warn", "render", &run, &msg, json);
             return 1;
         }
-        outputs.push(batch_output_path(folder, &stem));
+        outputs.push(batch_output_path(folder, &stem, batch_format));
     }
     {
         let mut seen: std::collections::BTreeMap<PathBuf, usize> =
@@ -4202,15 +5224,41 @@ fn cmd_cancelled(
     backend: &str,
     preset: &str,
     enc: &render::render::ResolvedEncoder,
-    out: &Path,
+    dest: &render::outputs::ResolvedOutput,
+    format: &str,
+    resolution: &str,
+    supersample: u8,
     stage: &'static str,
     stages: &mut Vec<render::render::StageTiming>,
     total_start: std::time::Instant,
     stage_ms: u64,
     detail: &str,
 ) -> i32 {
-    let mix = render::render::mix_staging_path(out);
-    let leftovers = render::cancel::remove_staged(out, &[mix]);
+    // Sprint 12 outputs (T001): files remove the staged temp file plus
+    // the mix as before; sequences remove the staging directory plus
+    // the staged mix, so no partial directory survives.
+    let mix = mix_path_for_dest(dest);
+    let leftovers: Vec<PathBuf> = match dest {
+        render::outputs::ResolvedOutput::File { path } => {
+            render::cancel::remove_staged(path, &[mix])
+        }
+        render::outputs::ResolvedOutput::PngSeq { dir }
+        | render::outputs::ResolvedOutput::Hls { dir, .. } => {
+            let stage_dir = render::outputs::staging_dir(dir);
+            let mut leftovers = Vec::new();
+            match std::fs::remove_dir_all(&stage_dir) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(_) => leftovers.push(stage_dir),
+            }
+            match std::fs::remove_file(&mix) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(_) => leftovers.push(mix),
+            }
+            leftovers
+        }
+    };
     let mut msg = if detail.is_empty() {
         format!("render cancelled: Ctrl-C during the {stage} stage; workers stopped, FFmpeg child terminated, staged and partial files removed.")
     } else {
@@ -4244,8 +5292,11 @@ fn cmd_cancelled(
                 exit: 130,
                 backend,
                 preset,
+                format,
+                resolution,
+                supersample,
                 enc,
-                output: &out.display().to_string(),
+                output: &dest.display_path().display().to_string(),
                 message: &msg,
                 diagnostics: &[],
                 stages,
@@ -5289,8 +6340,9 @@ mod tests {
             let v = validate_folder(&folder);
             assert_eq!(v.status, Status::Invalid, "{key}: {:?}", v.diagnostics);
             assert!(
-                v.diagnostics.iter().any(|d| d.code == "E_BAD_FILL"
-                    && d.message.contains("child elements")),
+                v.diagnostics
+                    .iter()
+                    .any(|d| d.code == "E_BAD_FILL" && d.message.contains("child elements")),
                 "{key}: {:?}",
                 v.diagnostics
             );
@@ -6209,15 +7261,282 @@ mod tests {
 
     #[test]
     fn batch_output_path_appends_mp4_and_joins_folder() {
+        use render::outputs::OutputFormat;
         let folder = PathBuf::from("proj");
         assert_eq!(
-            batch_output_path(&folder, "clip-a"),
+            batch_output_path(&folder, "clip-a", OutputFormat::Mp4),
             PathBuf::from("proj/clip-a.mp4")
         );
         assert_eq!(
-            batch_output_path(&folder, "clip-a.mp4"),
+            batch_output_path(&folder, "clip-a.mp4", OutputFormat::Mp4),
             PathBuf::from("proj/clip-a.mp4")
         );
+    }
+
+    #[test]
+    fn batch_output_path_follows_the_destination_format() {
+        use render::outputs::OutputFormat;
+        let folder = PathBuf::from("proj");
+        assert_eq!(
+            batch_output_path(&folder, "clip-a", OutputFormat::Webm),
+            PathBuf::from("proj/clip-a.webm")
+        );
+        assert_eq!(
+            batch_output_path(&folder, "clip-a", OutputFormat::Prores),
+            PathBuf::from("proj/clip-a.mov")
+        );
+        assert_eq!(
+            batch_output_path(&folder, "clip-a", OutputFormat::Hevc),
+            PathBuf::from("proj/clip-a.mp4")
+        );
+        assert_eq!(
+            batch_output_path(&folder, "clip-a", OutputFormat::Gif),
+            PathBuf::from("proj/clip-a.gif")
+        );
+        // Sequence destinations resolve the stem to a directory.
+        assert_eq!(
+            batch_output_path(&folder, "stills", OutputFormat::PngSeq),
+            PathBuf::from("proj/stills")
+        );
+        assert_eq!(
+            batch_output_path(&folder, "stream", OutputFormat::Hls),
+            PathBuf::from("proj/stream")
+        );
+    }
+
+    #[test]
+    fn destination_flags_resolve_together_before_frame_one() {
+        use render::outputs::{OutputFormat, ProresProfile};
+        use render::scale::Resolution;
+        let ok = RenderRequest {
+            format: Some("prores".to_string()),
+            prores_profile: Some("hq".to_string()),
+            ..RenderRequest::default()
+        };
+        assert_eq!(
+            resolve_destination(&ok).unwrap(),
+            (
+                OutputFormat::Prores,
+                ProresProfile::Hq,
+                Resolution::Source,
+                1,
+                render::outputs::EncoderChoice::Software,
+                None,
+                None,
+                render::outputs::HdrMode::Auto,
+            )
+        );
+        let plain = RenderRequest::default();
+        assert_eq!(
+            resolve_destination(&plain).unwrap(),
+            (
+                OutputFormat::Mp4,
+                ProresProfile::Standard,
+                Resolution::Source,
+                1,
+                render::outputs::EncoderChoice::Software,
+                None,
+                None,
+                render::outputs::HdrMode::Auto,
+            )
+        );
+        let scaled = RenderRequest {
+            resolution: Some("720p".to_string()),
+            supersample: Some("3".to_string()),
+            ..RenderRequest::default()
+        };
+        assert_eq!(
+            resolve_destination(&scaled).unwrap(),
+            (
+                OutputFormat::Mp4,
+                ProresProfile::Standard,
+                Resolution::P720,
+                3,
+                render::outputs::EncoderChoice::Software,
+                None,
+                None,
+                render::outputs::HdrMode::Auto,
+            )
+        );
+        let bad_format = RenderRequest {
+            format: Some("avi".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&bad_format).unwrap_err();
+        assert!(err.contains("--format"), "{err}");
+        assert!(
+            err.contains("mp4, hevc, webm, prores, gif, pngseq, or hls"),
+            "{err}"
+        );
+        let bad_combo = RenderRequest {
+            format: Some("webm".to_string()),
+            prores_profile: Some("hq".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&bad_combo).unwrap_err();
+        assert!(err.contains("--prores-profile"), "{err}");
+        assert!(err.contains("--format prores"), "{err}");
+        let bad_profile = RenderRequest {
+            format: Some("prores".to_string()),
+            prores_profile: Some("ultra".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&bad_profile).unwrap_err();
+        assert!(err.contains("--prores-profile"), "{err}");
+        assert!(err.contains("proxy, lt, standard, hq, or 4444"), "{err}");
+        // Every problem reports at once.
+        let both_bad = RenderRequest {
+            format: Some("avi".to_string()),
+            prores_profile: Some("ultra".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&both_bad).unwrap_err();
+        assert!(err.contains("--format"), "{err}");
+        assert!(err.contains("--prores-profile"), "{err}");
+    }
+
+    #[test]
+    fn scale_flags_refuse_unknown_preset_and_range_with_fixes() {
+        // An unknown preset names the flag and the accepted values.
+        let bad_preset = RenderRequest {
+            resolution: Some("4k".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&bad_preset).unwrap_err();
+        assert!(err.contains("--resolution"), "{err}");
+        assert!(
+            err.contains("source, 1080p, 720p, 480p, or square-1080"),
+            "{err}"
+        );
+        assert!(err.contains("no output was written"), "{err}");
+        // A supersample outside 1-4 names the flag and the range.
+        for bad in ["0", "5", "2.5", "abc", ""] {
+            let req = RenderRequest {
+                supersample: Some(bad.to_string()),
+                ..RenderRequest::default()
+            };
+            let err = resolve_destination(&req).unwrap_err();
+            assert!(err.contains("--supersample"), "{err}");
+            assert!(err.contains("from 1 to 4"), "{err}");
+            assert!(err.contains("no output was written"), "{err}");
+        }
+        // Every scale problem reports at once, alongside format ones.
+        let all_bad = RenderRequest {
+            format: Some("avi".to_string()),
+            resolution: Some("4k".to_string()),
+            supersample: Some("9".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&all_bad).unwrap_err();
+        assert!(err.contains("--format"), "{err}");
+        assert!(err.contains("--resolution"), "{err}");
+        assert!(err.contains("--supersample"), "{err}");
+    }
+
+    #[test]
+    fn encoder_flags_resolve_with_shapes_and_fixes() {
+        use render::outputs::EncoderChoice;
+        // Named encoder, interval, and cap resolve together.
+        let paced = RenderRequest {
+            encoder: Some("auto".to_string()),
+            keyint: Some("60".to_string()),
+            maxrate: Some("8M".to_string()),
+            ..RenderRequest::default()
+        };
+        let (_, _, _, _, encoder, keyint, maxrate, hdr) =
+            resolve_destination(&paced).unwrap();
+        assert_eq!(hdr, render::outputs::HdrMode::Auto);
+        assert_eq!(encoder, EncoderChoice::Auto);
+        assert_eq!(keyint, Some(60));
+        assert_eq!(maxrate.as_deref(), Some("8M"));
+        for raw in ["software", "videotoolbox"] {
+            let req = RenderRequest {
+                encoder: Some(raw.to_string()),
+                ..RenderRequest::default()
+            };
+            let (_, _, _, _, encoder, _, _, _) = resolve_destination(&req).unwrap();
+            assert_eq!(encoder.name(), raw);
+        }
+        // An unknown encoder names the flag and the accepted values.
+        let bad_encoder = RenderRequest {
+            encoder: Some("gpu".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&bad_encoder).unwrap_err();
+        assert!(err.contains("--encoder"), "{err}");
+        assert!(err.contains("auto, software, or videotoolbox"), "{err}");
+        assert!(err.contains("no output was written"), "{err}");
+        // A non-positive keyint names the flag and the accepted shape.
+        for bad in ["0", "-4", "1.5", "many", ""] {
+            let req = RenderRequest {
+                keyint: Some(bad.to_string()),
+                ..RenderRequest::default()
+            };
+            let err = resolve_destination(&req).unwrap_err();
+            assert!(err.contains("--keyint"), "{bad}: {err}");
+            assert!(err.contains("positive whole number"), "{bad}: {err}");
+            assert!(err.contains("no output was written"), "{bad}: {err}");
+        }
+        // A malformed maxrate names the flag and the accepted shape.
+        for bad in ["fast", "-5M", "0", ""] {
+            let req = RenderRequest {
+                maxrate: Some(bad.to_string()),
+                ..RenderRequest::default()
+            };
+            let err = resolve_destination(&req).unwrap_err();
+            assert!(err.contains("--maxrate"), "{bad}: {err}");
+            assert!(err.contains("8M"), "{bad}: {err}");
+            assert!(err.contains("no output was written"), "{bad}: {err}");
+        }
+        // Every encoder problem reports at once, alongside format ones.
+        let all_bad = RenderRequest {
+            format: Some("avi".to_string()),
+            encoder: Some("cuda".to_string()),
+            keyint: Some("0".to_string()),
+            maxrate: Some("fast".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&all_bad).unwrap_err();
+        assert!(err.contains("--format"), "{err}");
+        assert!(err.contains("--encoder"), "{err}");
+        assert!(err.contains("--keyint"), "{err}");
+        assert!(err.contains("--maxrate"), "{err}");
+    }
+
+    #[test]
+    fn hdr_flags_resolve_with_shapes_and_fixes() {
+        use render::outputs::HdrMode;
+        // Each named mode resolves.
+        for raw in ["off", "pq", "hlg", "auto"] {
+            let req = RenderRequest {
+                hdr: Some(raw.to_string()),
+                ..RenderRequest::default()
+            };
+            let (_, _, _, _, _, _, _, hdr) = resolve_destination(&req).unwrap();
+            assert_eq!(hdr.name(), raw);
+        }
+        // Absent means `auto`, so default renders decide from probes.
+        let (_, _, _, _, _, _, _, hdr) =
+            resolve_destination(&RenderRequest::default()).unwrap();
+        assert_eq!(hdr, HdrMode::Auto);
+        // An unknown mode names the flag and the accepted values.
+        let bad_hdr = RenderRequest {
+            hdr: Some("dolby".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&bad_hdr).unwrap_err();
+        assert!(err.contains("--hdr"), "{err}");
+        assert!(err.contains("off, pq, hlg, or auto"), "{err}");
+        assert!(err.contains("no output was written"), "{err}");
+        // Every destination problem reports at once, alongside HDR ones.
+        let all_bad = RenderRequest {
+            format: Some("avi".to_string()),
+            hdr: Some("dolby".to_string()),
+            ..RenderRequest::default()
+        };
+        let err = resolve_destination(&all_bad).unwrap_err();
+        assert!(err.contains("--format"), "{err}");
+        assert!(err.contains("--hdr"), "{err}");
     }
 
     #[test]

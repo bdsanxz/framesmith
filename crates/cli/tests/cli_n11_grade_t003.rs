@@ -107,7 +107,10 @@ fn lut_import_shifts_pixels_at_full_amount() {
     // 200,100,50 with red and blue swapped: blue dominates red.
     let (r, g, b) = center(&raw);
     assert!(b > 150 && r < 110, "swapped pixel, got {r},{g},{b}");
-    assert!((g - 100).abs() <= 12, "green carries through, got {r},{g},{b}");
+    assert!(
+        (g - 100).abs() <= 12,
+        "green carries through, got {r},{g},{b}"
+    );
 }
 
 #[test]
@@ -180,11 +183,15 @@ fn lut_bake_reimport_renders_pixel_identical() {
         &root,
     );
     assert_eq!(code, 0, "{out}");
-    let tuned = decode_first_frame(&{
-        let (code, out) = run(&["render", "proj"], &root);
-        assert_eq!(code, 0, "{out}");
-        proj.join("out.mp4")
-    }, 64, 64);
+    let tuned = decode_first_frame(
+        &{
+            let (code, out) = run(&["render", "proj"], &root);
+            assert_eq!(code, 0, "{out}");
+            proj.join("out.mp4")
+        },
+        64,
+        64,
+    );
     let proj2 = root.join("proj2");
     std::fs::create_dir_all(&proj2).unwrap();
     std::fs::write(
@@ -202,7 +209,10 @@ fn lut_bake_reimport_renders_pixel_identical() {
     for i in 0..tuned.len() {
         worst = worst.max((tuned[i] as i32 - reused[i] as i32).abs());
     }
-    assert!(worst <= 8, "baked LUT drifts {worst} LSB off the tuned chain");
+    assert!(
+        worst <= 8,
+        "baked LUT drifts {worst} LSB off the tuned chain"
+    );
 }
 
 #[test]

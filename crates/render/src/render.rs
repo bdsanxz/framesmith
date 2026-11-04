@@ -52,6 +52,10 @@ pub(crate) struct ProbedVideo {
     /// Probed codec name, kept for refusal and trace wording.
     #[allow(dead_code)]
     pub(crate) codec: String,
+    /// Source transfer (Sprint 12 outputs, CAP-004): PQ when the
+    /// container names SMPTE 2084, HLG for ARIB STD-B67, SDR
+    /// otherwise. The HDR decision consumes this per source.
+    pub(crate) transfer: crate::outputs::HdrTransfer,
     pub(crate) width: u32,
     pub(crate) height: u32,
     /// Source duration in seconds when the container reports one.
@@ -258,6 +262,39 @@ impl Prepared {
         }
     }
 
+    /// HDR sources in this preparation (Sprint 12 outputs, CAP-004):
+    /// every probed video's path with its transfer, in document
+    /// order (root first, then nested). SDR-only preparations return
+    /// an empty list. The HDR decision consumes this: the composition
+    /// carries HDR when any rendered source does.
+    pub fn hdr_sources(&self) -> Vec<(std::path::PathBuf, crate::outputs::HdrTransfer)> {
+        self.videos
+            .iter()
+            .filter(|v| v.transfer != crate::outputs::HdrTransfer::Sdr)
+            .map(|v| (v.path.clone(), v.transfer))
+            .collect()
+    }
+
+    /// Effective transfer of this preparation (Sprint 12 outputs,
+    /// CAP-004): PQ when any source carries PQ, else HLG when any
+    /// source carries HLG, else SDR. PQ wins a mixed composition so
+    /// the decision stays deterministic.
+    pub fn composition_transfer(&self) -> crate::outputs::HdrTransfer {
+        let mut seen_hlg = false;
+        for v in &self.videos {
+            match v.transfer {
+                crate::outputs::HdrTransfer::Pq => return crate::outputs::HdrTransfer::Pq,
+                crate::outputs::HdrTransfer::Hlg => seen_hlg = true,
+                crate::outputs::HdrTransfer::Sdr => {}
+            }
+        }
+        if seen_hlg {
+            crate::outputs::HdrTransfer::Hlg
+        } else {
+            crate::outputs::HdrTransfer::Sdr
+        }
+    }
+
     /// Output frame count of the prepared composition.
     pub fn frames(&self) -> usize {
         self.frames
@@ -266,6 +303,26 @@ impl Prepared {
     /// Canvas dimensions `(width, height)` of the prepared composition.
     pub fn canvas(&self) -> (u32, u32) {
         (self.comp.width, self.comp.height)
+    }
+
+    /// Ride expression-driven geometry on the internal multiplier
+    /// (Sprint 12 outputs, T002): expression strings cannot scale
+    /// statically, so pixel-valued results scale at draw time. 1.0 on
+    /// the identity path, where expression-free and expression-driven
+    /// motion agree exactly. Covers the root and every nested
+    /// composition.
+    pub fn scale_expr_results(&mut self, k: f64) {
+        if k == 1.0 {
+            return;
+        }
+        for m in &mut self.motions {
+            m.set_expr_scale(k);
+        }
+        for t in &mut self.tree {
+            for m in &mut t.motions {
+                m.set_expr_scale(k);
+            }
+        }
     }
 
     /// Draw one output frame alone (T015): the same description and the
@@ -436,7 +493,8 @@ pub struct EncoderSettings {
     pub x264_preset: Option<&'static str>,
 }
 
-/// Per-render choices from the CLI flags (Sprint 3 T001/T002).
+/// Per-render choices from the CLI flags (Sprint 3 T001/T002, plus
+/// the Sprint 12 output destination).
 #[derive(Debug, Clone)]
 pub struct RenderOptions {
     /// Effective drawing backend (already resolved through the probe).
@@ -447,6 +505,49 @@ pub struct RenderOptions {
     pub crf_override: Option<u8>,
     /// `--video-bitrate` override of the bitrate axis, if given.
     pub video_bitrate: Option<String>,
+    /// `--format` destination (Sprint 12 outputs, T001): `mp4` when no
+    /// format is named, rendering exactly as before.
+    pub format: crate::outputs::OutputFormat,
+    /// `--prores-profile` choice for ProRes MOVs (Sprint 12 outputs,
+    /// T001): `standard` when no profile is named.
+    pub prores_profile: crate::outputs::ProresProfile,
+    /// `--resolution` preset (Sprint 12 outputs, T002): `source`
+    /// when no resolution is named, keeping the canvas size.
+    pub resolution: crate::scale::Resolution,
+    /// `--supersample` multiple (Sprint 12 outputs, T002): 1 when
+    /// none is named, the identity path with no scaling work.
+    pub supersample: u8,
+    /// `--encoder` choice (Sprint 12 outputs, T003): `software` when
+    /// no encoder is named, so default renders encode exactly as
+    /// before on every machine.
+    pub encoder_choice: crate::outputs::EncoderChoice,
+    /// Effective hardware use (Sprint 12 outputs, T003): true only
+    /// when the caller resolved `auto`/`videotoolbox` against a host
+    /// FFmpeg that provides the destination's hardware encoder.
+    pub hardware: bool,
+    /// `--keyint` GOP length (Sprint 12 outputs, T003): None emits no
+    /// `-g`, keeping default bytes identical.
+    pub keyint: Option<u32>,
+    /// `--maxrate` peak cap (Sprint 12 outputs, T003): None emits no
+    /// `-maxrate`/`-bufsize`, keeping default bytes identical.
+    pub maxrate: Option<String>,
+    /// Requested `--hdr` mode (Sprint 12 outputs, T004): `auto` when
+    /// no HDR flag is passed, so default renders decide from probes.
+    pub hdr: crate::outputs::HdrMode,
+    /// Effective transfer of this render (Sprint 12 outputs, T004):
+    /// resolved from the mode plus the probed sources after
+    /// preparation (`Sdr` until the caller resolves it). `Sdr`
+    /// emits the historical argv exactly.
+    pub hdr_transfer: crate::outputs::HdrTransfer,
+    /// True when an HDR source renders to an SDR-only destination
+    /// under `auto` (Sprint 12 outputs, T004): the drawn SDR pictures
+    /// are the tone map, and the report notes the mapping.
+    pub hdr_tone_mapped: bool,
+    /// Provenance stamped on the delivered output (Sprint 12 outputs,
+    /// T005): None keeps the historical argv exactly (library callers
+    /// and unit fixtures); the CLI always sets it, so every CLI render
+    /// carries the tool name, the version, and the inputs digest.
+    pub provenance: Option<crate::outputs::Provenance>,
 }
 
 impl Default for RenderOptions {
@@ -456,6 +557,18 @@ impl Default for RenderOptions {
             preset: Preset::Standard,
             crf_override: None,
             video_bitrate: None,
+            format: crate::outputs::OutputFormat::Mp4,
+            prores_profile: crate::outputs::ProresProfile::Standard,
+            resolution: crate::scale::Resolution::Source,
+            supersample: 1,
+            encoder_choice: crate::outputs::EncoderChoice::Software,
+            hardware: false,
+            keyint: None,
+            maxrate: None,
+            hdr: crate::outputs::HdrMode::Auto,
+            hdr_transfer: crate::outputs::HdrTransfer::Sdr,
+            hdr_tone_mapped: false,
+            provenance: None,
         }
     }
 }
@@ -471,7 +584,22 @@ impl RenderOptions {
             x264_preset: base.x264_preset,
             video_bitrate: self.video_bitrate.clone(),
             from_preset: self.preset,
+            encoder_choice: self.encoder_choice,
+            hardware: self.hardware,
+            keyint: self.keyint,
+            maxrate: self.maxrate.clone(),
+            hdr: self.hdr,
+            hdr_transfer: self.hdr_transfer,
+            provenance: self.provenance.clone(),
         }
+    }
+
+    /// Scaling work of one render (Sprint 12 outputs, T002): the
+    /// output size, the internal size, and the multipliers from the
+    /// active `--resolution` / `--supersample` flags and the canvas.
+    /// `source` at 1x is the identity plan (no scaling work).
+    pub fn scale_plan(&self, canvas_w: u32, canvas_h: u32) -> crate::scale::ScalePlan {
+        crate::scale::ScalePlan::from_flags(self.resolution, self.supersample, canvas_w, canvas_h)
     }
 
     /// Human announcement of the active preset and effective settings,
@@ -490,6 +618,50 @@ impl RenderOptions {
         }
         parts.join(", ")
     }
+
+    /// Encoder, rate-control, and HDR note for the frames-stage line
+    /// and the success line (Sprint 12 outputs, T003/T004): `None` on
+    /// the default path (no `--encoder`/`--keyint`/`--maxrate` flags,
+    /// software encoding, and the `auto` HDR mode resolving to SDR),
+    /// so the pinned lines stay byte-identical. Otherwise the
+    /// requested choice, the effective hardware codec, the
+    /// interval/cap that paced the stream, and the HDR decision the
+    /// probe drove.
+    pub fn announce_extra(&self) -> Option<String> {
+        let mut parts: Vec<String> = Vec::new();
+        if self.encoder_choice != crate::outputs::EncoderChoice::Software {
+            parts.push(format!("encoder={}", self.encoder_choice.name()));
+        }
+        if self.hardware {
+            let codec = crate::outputs::hardware_encoder_for(self.format).unwrap_or("software");
+            parts.push(format!("hw={codec}"));
+        }
+        if let Some(g) = self.keyint {
+            parts.push(format!("keyint={g}"));
+        }
+        if let Some(m) = &self.maxrate {
+            parts.push(format!("maxrate={m}"));
+        }
+        // HDR rides only when the invocation or the probe says so:
+        // a bare `auto` resolving to SDR stays silent.
+        if self.hdr != crate::outputs::HdrMode::Auto {
+            parts.push(format!("hdr={}", self.hdr.name()));
+        }
+        if self.hdr_transfer != crate::outputs::HdrTransfer::Sdr {
+            parts.push(format!(
+                "transfer={} (HEVC Main10 BT.2020)",
+                self.hdr_transfer.name()
+            ));
+        }
+        if self.hdr_tone_mapped {
+            parts.push("tone-mapped HDR to SDR".to_string());
+        }
+        if parts.is_empty() {
+            None
+        } else {
+            Some(parts.join(", "))
+        }
+    }
 }
 
 /// Encoder numbers resolved for one render (preset plus overrides).
@@ -499,6 +671,22 @@ pub struct ResolvedEncoder {
     pub x264_preset: Option<&'static str>,
     pub video_bitrate: Option<String>,
     pub from_preset: Preset,
+    /// Requested `--encoder` choice (Sprint 12 outputs, T003).
+    pub encoder_choice: crate::outputs::EncoderChoice,
+    /// Effective hardware use (Sprint 12 outputs, T003): the caller
+    /// resolved this against the host FFmpeg before the first frame.
+    pub hardware: bool,
+    /// `--keyint` GOP length, if named (Sprint 12 outputs, T003).
+    pub keyint: Option<u32>,
+    /// `--maxrate` peak cap, if named (Sprint 12 outputs, T003).
+    pub maxrate: Option<String>,
+    /// Requested `--hdr` mode (Sprint 12 outputs, T004).
+    pub hdr: crate::outputs::HdrMode,
+    /// Effective transfer of this render (Sprint 12 outputs, T004).
+    pub hdr_transfer: crate::outputs::HdrTransfer,
+    /// Provenance stamp for this render (Sprint 12 outputs, T005):
+    /// None emits no metadata, keeping the historical argv exactly.
+    pub provenance: Option<crate::outputs::Provenance>,
 }
 
 /// One staged progress entry (Sprint 3 T006): the stage name, its
@@ -776,7 +964,14 @@ fn shape_text_string(
     ffmpeg_bin: &Path,
 ) -> Result<Option<layout::Block>, String> {
     if !tc.spans.is_empty() {
-        return shape_text_spans(fonts, project_family, tc, tc.size, tc.letter_spacing, ffmpeg_bin);
+        return shape_text_spans(
+            fonts,
+            project_family,
+            tc,
+            tc.size,
+            tc.letter_spacing,
+            ffmpeg_bin,
+        );
     }
     let style = text_layout_style(fonts, project_family, tc)?;
     let wrap = match tc.wrap {
@@ -924,12 +1119,10 @@ fn shape_text_spans(
             size: run.size.unwrap_or(size) as f32,
             weight: run.weight.unwrap_or(if bold { 700.0 } else { 400.0 }) as f32,
             italic: run.italic.unwrap_or(italic),
-            colour: run.color.map(|c| [c.r, c.g, c.b, 255]).unwrap_or([
-                tc.color.r,
-                tc.color.g,
-                tc.color.b,
-                255,
-            ]),
+            colour: run
+                .color
+                .map(|c| [c.r, c.g, c.b, 255])
+                .unwrap_or([tc.color.r, tc.color.g, tc.color.b, 255]),
             letter_spacing: run.letter_spacing.unwrap_or(0.0).max(0.0) as f32,
             line_height: run.line_height.map(|v| v as f32),
         });
@@ -2653,6 +2846,7 @@ pub fn build_mix_preview(
                     clip_idx: base + idx,
                     path: abs,
                     codec: String::new(),
+                    transfer: crate::outputs::HdrTransfer::Sdr,
                     width: 0,
                     height: 0,
                     duration,
@@ -2826,8 +3020,7 @@ fn draw_sharp_frame_view(
     now: timebase::Time,
 ) -> Result<Vec<u8>, String> {
     let desc = crate::frame::describe_nested_at(&view.nest, 0, frame, now);
-    let active =
-        crate::transitions::active_transitions(view.nest.comps[0], desc.time);
+    let active = crate::transitions::active_transitions(view.nest.comps[0], desc.time);
     if active.is_empty() {
         return draw_plain_frame_view(view, raster, backend, &desc);
     }
@@ -3026,10 +3219,7 @@ pub(crate) fn draw_planned_transition(
         }
     };
     let base = draw(&planned.base)?;
-    let (w, h) = (
-        planned.base.width as usize,
-        planned.base.height as usize,
-    );
+    let (w, h) = (planned.base.width as usize, planned.base.height as usize);
     // Owned pair buffers first (the draw above borrows the raster
     // mutably, so layers can only borrow the finished buffers).
     let mut bufs: Vec<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> = Vec::new();
@@ -3045,16 +3235,16 @@ pub(crate) fn draw_planned_transition(
         .layers
         .iter()
         .zip(bufs.iter())
-        .map(|(layer, (a_black, a_white, b_black, b_white))| {
-            crate::transitions::TransitionLayer {
+        .map(
+            |(layer, (a_black, a_white, b_black, b_white))| crate::transitions::TransitionLayer {
                 kind: layer.kind,
                 progress: layer.progress,
                 a_black,
                 a_white,
                 b_black,
                 b_white,
-            }
-        })
+            },
+        )
         .collect();
     Ok(crate::transitions::composite_transition_frame(
         &base, w, h, &layers,
@@ -3168,6 +3358,16 @@ fn remove_work_files(out: &Path, plan: &AudioPlan) {
     let _ = crate::cancel::remove_staged(out, &extra);
 }
 
+/// Remove staged sequence work (the temp directory plus the staged
+/// audio mix, when present) after a failed sequence render, so no
+/// partial directory survives at the target.
+fn remove_staged_dir(stage_dir: &Path, plan: &AudioPlan) {
+    let _ = std::fs::remove_dir_all(stage_dir);
+    if let Some(mix) = &plan.mix_pcm {
+        let _ = std::fs::remove_file(mix);
+    }
+}
+
 /// Staged files that must go on cancellation: the encode temp file and
 /// the staged mix, when present.
 fn staged_extras(plan: &AudioPlan) -> Vec<PathBuf> {
@@ -3203,10 +3403,286 @@ fn cancel_report(stage: &str, leftovers: &[PathBuf]) -> String {
     )
 }
 
-/// Draw every frame and encode the MP4 (frames + encode stages, Sprint 3
-/// T003/T006/T008): frames are drawn in parallel in bounded batches and
-/// re-emitted in frame order, the staged mix (when present) joins the
-/// encoder inputs, and the finished MP4 is renamed into place.
+/// Encode-failure wording for one destination (Sprint 12 outputs,
+/// T001): the historical `mp4` suffix stays byte-identical, every other
+/// format names the same failure with `output` instead of `MP4`.
+fn no_output_suffix(format: crate::outputs::OutputFormat) -> &'static str {
+    match format {
+        crate::outputs::OutputFormat::Mp4 => "; no MP4 was written",
+        _ => "; no output was written",
+    }
+}
+
+/// Attach the destination-aware failure suffix, replacing the
+/// historical MP4 suffix when a drawn-frame error already carries it
+/// (so non-MP4 renders never claim an MP4).
+fn fail_suffix(mut e: String, format: crate::outputs::OutputFormat) -> String {
+    if format != crate::outputs::OutputFormat::Mp4 {
+        if let Some(base) = e.strip_suffix("; no MP4 was written") {
+            e = base.to_string();
+        }
+    }
+    e + no_output_suffix(format)
+}
+
+/// Cancellation report for one destination (Sprint 12 outputs, T001):
+/// the historical MP4 wording for `mp4`, the output wording otherwise.
+fn cancel_report_for(
+    stage: &str,
+    leftovers: &[PathBuf],
+    format: crate::outputs::OutputFormat,
+) -> String {
+    if leftovers.is_empty() {
+        return match format {
+            crate::outputs::OutputFormat::Mp4 => crate::cancel::error(stage),
+            _ => format!(
+                "{} render {stage} interrupted by Ctrl-C (SIGINT); no output was written",
+                crate::cancel::PREFIX
+            ),
+        };
+    }
+    let names: Vec<String> = leftovers.iter().map(|p| p.display().to_string()).collect();
+    match format {
+        crate::outputs::OutputFormat::Mp4 => cancel_report(stage, leftovers),
+        _ => format!(
+            "{} render {stage} interrupted by Ctrl-C (SIGINT); cleanup incomplete, leftover path(s): {}; no output was written",
+            crate::cancel::PREFIX,
+            names.join(", ")
+        ),
+    }
+}
+
+/// Cancel the in-progress sequence encode: stop the FFmpeg child and
+/// remove the staging directory plus the staged mix, so no partial
+/// sequence survives.
+fn cancel_encode_seq(
+    child: &mut std::process::Child,
+    staged: &crate::outputs::StagedTarget,
+    plan: &AudioPlan,
+    stage: &str,
+    format: crate::outputs::OutputFormat,
+) -> String {
+    let _ = child.kill();
+    let _ = child.wait();
+    let (stage_dir, extra) = match staged {
+        crate::outputs::StagedTarget::File { .. } => {
+            unreachable!("sequence cancel on a file target")
+        }
+        crate::outputs::StagedTarget::PngSeq { stage_dir, .. }
+        | crate::outputs::StagedTarget::Hls { stage_dir, .. } => {
+            (stage_dir.clone(), staged_extras(plan))
+        }
+    };
+    let _ = std::fs::remove_dir_all(&stage_dir);
+    let mut leftovers = Vec::new();
+    for t in extra {
+        match std::fs::remove_file(&t) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(_) => leftovers.push(t),
+        }
+    }
+    if std::fs::remove_dir_all(&stage_dir).is_ok() {
+        // Already removed above; a reappearing directory is a leftover.
+    }
+    cancel_report_for(stage, &leftovers, format)
+}
+
+/// Remove sequence staging plus the staged mix after a failed encode,
+/// so no partial directory survives at the target.
+fn fail_sequence(staged: &crate::outputs::StagedTarget, plan: &AudioPlan) {
+    match staged {
+        crate::outputs::StagedTarget::File { .. } => {
+            unreachable!("sequence cleanup on a file target")
+        }
+        crate::outputs::StagedTarget::PngSeq { stage_dir, .. }
+        | crate::outputs::StagedTarget::Hls { stage_dir, .. } => {
+            remove_staged_dir(stage_dir, plan);
+        }
+    }
+}
+
+/// Move one staged file into the final destination directory,
+/// creating it when needed (Sprint 12 outputs, T001).
+fn move_staged_file(stage_dir: &Path, dir: &Path, name: &str) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| {
+        format!(
+            "render failed: cannot create output directory {}: {e} (output stage)",
+            dir.display()
+        )
+    })?;
+    std::fs::rename(stage_dir.join(name), dir.join(name)).map_err(|e| {
+        format!("render failed: cannot move the encoded output into place: {e} (output stage)")
+    })?;
+    Ok(())
+}
+
+/// Verify staged PNG frames and move them into place (Sprint 12
+/// outputs, T001): the frame count must equal the composition frame
+/// count exactly, or the render fails with no partial directory left
+/// behind.
+fn finalize_png_seq(
+    stage_dir: &Path,
+    dir: &Path,
+    frames: usize,
+    plan: &AudioPlan,
+    format: crate::outputs::OutputFormat,
+) -> Result<(), String> {
+    let mut names: Vec<String> = Vec::new();
+    let entries = std::fs::read_dir(stage_dir).map_err(|e| {
+        fail_sequence(
+            &crate::outputs::StagedTarget::PngSeq {
+                stage_dir: stage_dir.to_path_buf(),
+                dir: dir.to_path_buf(),
+                frames,
+            },
+            plan,
+        );
+        format!("render failed: cannot list the staged PNG frames: {e} (encode stage)")
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|e| {
+            format!("render failed: cannot list the staged PNG frames: {e} (encode stage)")
+        })?;
+        names.push(entry.file_name().to_string_lossy().into_owned());
+    }
+    names.sort();
+    let expected: Vec<String> = (0..frames).map(|i| format!("frame-{i:04}.png")).collect();
+    if names != expected {
+        fail_sequence(
+            &crate::outputs::StagedTarget::PngSeq {
+                stage_dir: stage_dir.to_path_buf(),
+                dir: dir.to_path_buf(),
+                frames,
+            },
+            plan,
+        );
+        return Err(fail_suffix(
+            format!(
+                "render failed: the PNG sequence holds {} frame(s), expected {} (encode stage)",
+                names.len(),
+                frames
+            ),
+            format,
+        ));
+    }
+    for name in &names {
+        if let Err(e) = move_staged_file(stage_dir, dir, name) {
+            fail_sequence(
+                &crate::outputs::StagedTarget::PngSeq {
+                    stage_dir: stage_dir.to_path_buf(),
+                    dir: dir.to_path_buf(),
+                    frames,
+                },
+                plan,
+            );
+            return Err(e);
+        }
+    }
+    let _ = std::fs::remove_dir_all(stage_dir);
+    if let Some(mix) = &plan.mix_pcm {
+        let _ = std::fs::remove_file(mix);
+    }
+    Ok(())
+}
+
+/// Verify the staged HLS playlist plus segments and move them into
+/// place (Sprint 12 outputs, T001): every segment the playlist names
+/// must exist, or the render fails leaving no playlist behind.
+fn finalize_hls(
+    stage_dir: &Path,
+    dir: &Path,
+    playlist_name: &str,
+    plan: &AudioPlan,
+    format: crate::outputs::OutputFormat,
+) -> Result<usize, String> {
+    let staged_playlist = stage_dir.join(playlist_name);
+    let body = std::fs::read_to_string(&staged_playlist).map_err(|e| {
+        fail_sequence(
+            &crate::outputs::StagedTarget::Hls {
+                stage_dir: stage_dir.to_path_buf(),
+                dir: dir.to_path_buf(),
+                playlist_name: playlist_name.to_string(),
+            },
+            plan,
+        );
+        format!("render failed: the HLS playlist was not written: {e} (encode stage)")
+    })?;
+    let mut segments: Vec<String> = Vec::new();
+    for line in body.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        segments.push(line.to_string());
+    }
+    if segments.is_empty() {
+        fail_sequence(
+            &crate::outputs::StagedTarget::Hls {
+                stage_dir: stage_dir.to_path_buf(),
+                dir: dir.to_path_buf(),
+                playlist_name: playlist_name.to_string(),
+            },
+            plan,
+        );
+        return Err(fail_suffix(
+            "render failed: the HLS playlist names no segments (encode stage)".to_string(),
+            format,
+        ));
+    }
+    for seg in &segments {
+        if !stage_dir.join(seg).is_file() {
+            fail_sequence(
+                &crate::outputs::StagedTarget::Hls {
+                    stage_dir: stage_dir.to_path_buf(),
+                    dir: dir.to_path_buf(),
+                    playlist_name: playlist_name.to_string(),
+                },
+                plan,
+            );
+            return Err(fail_suffix(
+                format!("render failed: the HLS playlist names {seg:?}, which was not written (encode stage)"),
+                format,
+            ));
+        }
+    }
+    for seg in &segments {
+        if let Err(e) = move_staged_file(stage_dir, dir, seg) {
+            fail_sequence(
+                &crate::outputs::StagedTarget::Hls {
+                    stage_dir: stage_dir.to_path_buf(),
+                    dir: dir.to_path_buf(),
+                    playlist_name: playlist_name.to_string(),
+                },
+                plan,
+            );
+            return Err(e);
+        }
+    }
+    if let Err(e) = move_staged_file(stage_dir, dir, playlist_name) {
+        fail_sequence(
+            &crate::outputs::StagedTarget::Hls {
+                stage_dir: stage_dir.to_path_buf(),
+                dir: dir.to_path_buf(),
+                playlist_name: playlist_name.to_string(),
+            },
+            plan,
+        );
+        return Err(e);
+    }
+    let _ = std::fs::remove_dir_all(stage_dir);
+    if let Some(mix) = &plan.mix_pcm {
+        let _ = std::fs::remove_file(mix);
+    }
+    Ok(segments.len())
+}
+
+/// Draw every frame and encode the destination (frames + encode
+/// stages, Sprint 3 T003/T006/T008, Sprint 12 T001): frames are drawn
+/// in parallel in bounded batches and re-emitted in frame order, the
+/// staged mix (when present) joins the encoder inputs of destinations
+/// that carry audio, and the finished file (or PNG frames, or HLS
+/// playlist plus segments) moves into place only on success.
 /// Returns the human success line plus the measured frames and encode
 /// durations in milliseconds.
 pub fn render_staged(
@@ -3214,38 +3690,86 @@ pub fn render_staged(
     plan: &AudioPlan,
     opts: &RenderOptions,
     ffmpeg_bin: &Path,
-    out: &Path,
+    dest: &crate::outputs::ResolvedOutput,
+    scale: &crate::scale::ScalePlan,
 ) -> Result<(String, u64, u64), String> {
     use std::io::Write;
     use std::time::Instant;
     let comp = prep.composition();
     let frames = prep.frames;
+    let format = opts.format;
 
-    // Encode to a temp file first; rename only on success.
-    let tmp = tmp_output(out);
-    if let Some(parent) = tmp.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent).map_err(|e| {
-                remove_work_files(out, plan);
+    // Stage the encode target first: a temp file for single files, a
+    // temp directory for sequences. Only the finalize step moves
+    // staged results into place, so a failed render never leaves a
+    // partial file, playlist, or frame behind.
+    let staged = crate::outputs::StagedTarget::stage(dest, frames);
+    let final_file: Option<PathBuf> = match &staged {
+        crate::outputs::StagedTarget::File { final_path, .. } => Some(final_path.clone()),
+        _ => None,
+    };
+    match &staged {
+        crate::outputs::StagedTarget::File { tmp, .. } => {
+            if let Some(parent) = tmp.parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent).map_err(|e| {
+                        if let Some(out) = &final_file {
+                            remove_work_files(out, plan);
+                        }
+                        format!(
+                            "render refused: cannot create output directory {}: {e}.",
+                            parent.display()
+                        )
+                    })?;
+                }
+            }
+        }
+        crate::outputs::StagedTarget::PngSeq { stage_dir, .. }
+        | crate::outputs::StagedTarget::Hls { stage_dir, .. } => {
+            let _ = std::fs::remove_dir_all(stage_dir);
+            std::fs::create_dir_all(stage_dir).map_err(|e| {
+                fail_sequence(&staged, plan);
                 format!(
                     "render refused: cannot create output directory {}: {e}.",
-                    parent.display()
+                    stage_dir.display()
                 )
             })?;
         }
     }
+    let cleanup_file = |plan: &AudioPlan| {
+        if let Some(out) = &final_file {
+            remove_work_files(out, plan);
+        }
+    };
     if crate::cancel::is_cancelled() {
-        let leftovers = crate::cancel::remove_staged(out, &staged_extras(plan));
-        return Err(cancel_report("frames/encode", &leftovers));
+        match &staged {
+            crate::outputs::StagedTarget::File { .. } => {
+                let leftovers = crate::cancel::remove_staged(
+                    final_file.as_deref().unwrap(),
+                    &staged_extras(plan),
+                );
+                return Err(cancel_report_for("frames/encode", &leftovers, format));
+            }
+            seq => {
+                fail_sequence(seq, plan);
+                return Err(cancel_report_for("frames/encode", &[], format));
+            }
+        }
     }
     let enc = opts.encoder();
-    let args = encode_args(
+    // Every destination pipes the same `rgb24` frames at the output
+    // size: alpha composites at draw time, so pictures match the MP4
+    // on every format (Sprint 12 outputs, T001/T002).
+    let args = crate::outputs::encode_args_for(
+        format,
+        opts.prores_profile,
         comp,
         &plan.video_segs,
         plan.mix_pcm.as_deref(),
-        &tmp,
+        &staged,
         &enc,
         prep.out_duration,
+        (scale.out_w, scale.out_h),
     );
     let frames_start = Instant::now();
     let mut child = Command::new(ffmpeg_bin)
@@ -3256,15 +3780,32 @@ pub fn render_staged(
         .spawn()
         .map_err(|e| {
             if crate::cancel::is_cancelled() {
-                let leftovers = crate::cancel::remove_staged(out, &staged_extras(plan));
-                return cancel_report("frames/encode", &leftovers);
+                return match &staged {
+                    crate::outputs::StagedTarget::File { .. } => {
+                        let leftovers = crate::cancel::remove_staged(
+                            final_file.as_deref().unwrap(),
+                            &staged_extras(plan),
+                        );
+                        cancel_report_for("frames/encode", &leftovers, format)
+                    }
+                    seq => {
+                        fail_sequence(seq, plan);
+                        cancel_report_for("frames/encode", &[], format)
+                    }
+                };
             }
-            remove_work_files(out, plan);
+            match &staged {
+                crate::outputs::StagedTarget::File { .. } => cleanup_file(plan),
+                seq => fail_sequence(seq, plan),
+            }
             format!("render failed: could not launch ffmpeg (encode stage): {e}")
         })?;
     let stdin = child.stdin.take();
     let mut stdin = stdin.ok_or_else(|| {
-        remove_work_files(out, plan);
+        match &staged {
+            crate::outputs::StagedTarget::File { .. } => cleanup_file(plan),
+            seq => fail_sequence(seq, plan),
+        }
         "render failed: no ffmpeg stdin (encode stage)".to_string()
     })?;
 
@@ -3288,19 +3829,44 @@ pub fn render_staged(
         // cancellation.
         if crate::cancel::is_cancelled() {
             drop(stdin);
-            return Err(cancel_encode(&mut child, out, plan, "frames"));
+            match &staged {
+                crate::outputs::StagedTarget::File { .. } => {
+                    return Err(cancel_encode(
+                        &mut child,
+                        final_file.as_deref().unwrap(),
+                        plan,
+                        "frames",
+                    ));
+                }
+                seq => return Err(cancel_encode_seq(&mut child, seq, plan, "frames", format)),
+            }
         }
         let slots = match draw_batch_parallel(prep, opts.backend, batch) {
             Ok(slots) => slots,
             Err(e) => {
                 if crate::cancel::is_cancelled() {
                     drop(stdin);
-                    return Err(cancel_encode(&mut child, out, plan, "frames"));
+                    match &staged {
+                        crate::outputs::StagedTarget::File { .. } => {
+                            return Err(cancel_encode(
+                                &mut child,
+                                final_file.as_deref().unwrap(),
+                                plan,
+                                "frames",
+                            ));
+                        }
+                        seq => {
+                            return Err(cancel_encode_seq(&mut child, seq, plan, "frames", format));
+                        }
+                    }
                 }
                 drop(stdin);
                 let _ = child.wait();
-                remove_work_files(out, plan);
-                return Err(format!("{e}; no MP4 was written"));
+                match &staged {
+                    crate::outputs::StagedTarget::File { .. } => cleanup_file(plan),
+                    seq => fail_sequence(seq, plan),
+                }
+                return Err(fail_suffix(e, format));
             }
         };
         // On-canvas sound shapes (Sprint 10 sound, CAP-010): the
@@ -3320,6 +3886,21 @@ pub fn render_staged(
                     &plan.waveforms,
                 );
             }
+            // Scaled renders (Sprint 12 outputs, T002) draw at the
+            // internal size, then downscale to the output size before
+            // piping: the encoder always sees output-size frames. The
+            // identity path skips this entirely (no scaling work).
+            let bytes = if scale.needs_downscale() {
+                crate::scale::downscale_rgb24(
+                    &bytes,
+                    scale.internal_w,
+                    scale.internal_h,
+                    scale.out_w,
+                    scale.out_h,
+                )
+            } else {
+                bytes
+            };
             if !write_failed {
                 if let Err(e) = stdin.write_all(&bytes) {
                     write_failed = true;
@@ -3329,7 +3910,17 @@ pub fn render_staged(
         }
         if crate::cancel::is_cancelled() {
             drop(stdin);
-            return Err(cancel_encode(&mut child, out, plan, "frames"));
+            match &staged {
+                crate::outputs::StagedTarget::File { .. } => {
+                    return Err(cancel_encode(
+                        &mut child,
+                        final_file.as_deref().unwrap(),
+                        plan,
+                        "frames",
+                    ));
+                }
+                seq => return Err(cancel_encode_seq(&mut child, seq, plan, "frames", format)),
+            }
         }
         start = end;
     }
@@ -3338,70 +3929,178 @@ pub fn render_staged(
     let encode_start = Instant::now();
     let output = child.wait_with_output().map_err(|e| {
         if crate::cancel::is_cancelled() {
-            let leftovers = crate::cancel::remove_staged(out, &staged_extras(plan));
-            return cancel_report("encode", &leftovers);
+            return match &staged {
+                crate::outputs::StagedTarget::File { .. } => {
+                    let leftovers = crate::cancel::remove_staged(
+                        final_file.as_deref().unwrap(),
+                        &staged_extras(plan),
+                    );
+                    cancel_report_for("encode", &leftovers, format)
+                }
+                seq => {
+                    fail_sequence(seq, plan);
+                    cancel_report_for("encode", &[], format)
+                }
+            };
         }
-        remove_work_files(out, plan);
+        match &staged {
+            crate::outputs::StagedTarget::File { .. } => cleanup_file(plan),
+            seq => fail_sequence(seq, plan),
+        }
         format!("render failed: could not read ffmpeg status (encode stage): {e}")
     })?;
     // A SIGINT that kills the encoder looks like an encode failure;
     // the flag tells the two apart so cancellation exits 130.
     if crate::cancel::is_cancelled() {
-        let _ = std::fs::remove_file(&tmp);
-        let leftovers = crate::cancel::remove_staged(out, &staged_extras(plan));
-        return Err(cancel_report("encode", &leftovers));
+        return match &staged {
+            crate::outputs::StagedTarget::File { .. } => {
+                let leftovers = crate::cancel::remove_staged(
+                    final_file.as_deref().unwrap(),
+                    &staged_extras(plan),
+                );
+                Err(cancel_report_for("encode", &leftovers, format))
+            }
+            seq => {
+                fail_sequence(seq, plan);
+                Err(cancel_report_for("encode", &[], format))
+            }
+        };
     }
     if !output.status.success() {
-        remove_work_files(out, plan);
+        match &staged {
+            crate::outputs::StagedTarget::File { .. } => cleanup_file(plan),
+            seq => fail_sequence(seq, plan),
+        }
         let tail = stderr_tail(&output.stderr, 5);
-        return Err(format!(
-            "render failed: ffmpeg encode stage exited with status {}{}; no MP4 was written",
-            output.status,
-            if tail.is_empty() {
-                String::new()
-            } else {
-                format!(": {tail}")
-            }
+        return Err(fail_suffix(
+            format!(
+                "render failed: ffmpeg encode stage exited with status {}{}",
+                output.status,
+                if tail.is_empty() {
+                    String::new()
+                } else {
+                    format!(": {tail}")
+                }
+            ),
+            format,
         ));
     }
     // The encoder must have produced output; an empty file is a failure.
-    let produced = std::fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0);
+    let produced: u64 = match &staged {
+        crate::outputs::StagedTarget::File { tmp, .. } => {
+            std::fs::metadata(tmp).map(|m| m.len()).unwrap_or(0)
+        }
+        crate::outputs::StagedTarget::PngSeq { stage_dir, .. } => std::fs::read_dir(stage_dir)
+            .map(|entries| entries.count() as u64)
+            .unwrap_or(0),
+        crate::outputs::StagedTarget::Hls { stage_dir, .. } => std::fs::read_dir(stage_dir)
+            .map(|entries| entries.count() as u64)
+            .unwrap_or(0),
+    };
     if produced == 0 {
-        remove_work_files(out, plan);
-        return Err(
-            "render failed: ffmpeg encode stage wrote no data; no MP4 was written".to_string(),
-        );
+        match &staged {
+            crate::outputs::StagedTarget::File { .. } => cleanup_file(plan),
+            seq => fail_sequence(seq, plan),
+        }
+        return Err(fail_suffix(
+            "render failed: ffmpeg encode stage wrote no data".to_string(),
+            format,
+        ));
     }
-    std::fs::rename(&tmp, out).map_err(|e| {
-        remove_work_files(out, plan);
-        format!("render failed: cannot move the encoded MP4 into place: {e} (output stage)")
-    })?;
-    // The staged mix is a work file: only the MP4 plus the run log
-    // record remain after a render.
-    if let Some(mix) = &plan.mix_pcm {
-        let _ = std::fs::remove_file(mix);
-    }
+    // Move the staged result into place only on success: the finished
+    // file is renamed, PNG frames and HLS segments move file by file
+    // after their counts and references verify.
+    let detail: Option<String> = match &staged {
+        crate::outputs::StagedTarget::File { tmp, .. } => {
+            let out = final_file.as_deref().unwrap();
+            if let Err(e) = std::fs::rename(tmp, out) {
+                cleanup_file(plan);
+                return Err(
+                    match format {
+                        crate::outputs::OutputFormat::Mp4 => format!(
+                            "render failed: cannot move the encoded MP4 into place: {e} (output stage)"
+                        ),
+                        _ => format!(
+                            "render failed: cannot move the encoded output into place: {e} (output stage)"
+                        ),
+                    },
+                );
+            }
+            // The staged mix is a work file: only the destination plus
+            // the run log record remain after a render.
+            if let Some(mix) = &plan.mix_pcm {
+                let _ = std::fs::remove_file(mix);
+            }
+            // ProRes names its profile in the success line so the
+            // delivered file is reviewable against the request.
+            match format {
+                crate::outputs::OutputFormat::Prores => {
+                    Some(format!("profile={}", opts.prores_profile.name()))
+                }
+                _ => None,
+            }
+        }
+        crate::outputs::StagedTarget::PngSeq { stage_dir, dir, .. } => {
+            finalize_png_seq(stage_dir, dir, frames, plan, format)?;
+            Some(format!("{frames} frames"))
+        }
+        crate::outputs::StagedTarget::Hls {
+            stage_dir,
+            dir,
+            playlist_name,
+            ..
+        } => {
+            let n = finalize_hls(stage_dir, dir, playlist_name, plan, format)?;
+            Some(format!("{n} segment{}", if n == 1 { "" } else { "s" }))
+        }
+    };
     let encode_ms = encode_start.elapsed().as_millis() as u64;
     let text_drawn = prep.layouts.iter().any(|laid| laid.is_some()) || prep.bitmap_fallback;
-    Ok((
-        format!(
-            "rendered {} ({}x{}, {}s){} [backend={}, {}].",
-            out.display(),
-            comp.width,
-            comp.height,
+    let shown = dest.display_path().display().to_string();
+    let origin = origin_note(
+        prep.project_family.is_some(),
+        &prep.fonts,
+        prep.bitmap_fallback,
+        text_drawn,
+    );
+    // The success line names the OUTPUT size (what the probe sees):
+    // the canvas size on the identity path (the pinned line exactly),
+    // the preset size on a scaled render.
+    // Encoder and rate-control tail (Sprint 12 outputs, T003): empty
+    // on the default path, so the pinned lines stay exact; otherwise
+    // the choice and pacing that wrote the stream.
+    let extra = opts
+        .announce_extra()
+        .map(|x| format!(", {x}"))
+        .unwrap_or_default();
+    let done_msg = match format {
+        // Pinned: the historical success line exactly.
+        crate::outputs::OutputFormat::Mp4 => format!(
+            "rendered {} ({}x{}, {}s){} [backend={}, {}{}].",
+            shown,
+            scale.out_w,
+            scale.out_h,
             prep.out_duration,
-            origin_note(
-                prep.project_family.is_some(),
-                &prep.fonts,
-                prep.bitmap_fallback,
-                text_drawn
-            ),
+            origin,
             opts.backend.name(),
-            opts.announce()
+            opts.announce(),
+            extra
         ),
-        frames_ms,
-        encode_ms,
-    ))
+        _ => format!(
+            "rendered {} ({}x{}, {}s){} [{}format={}, backend={}, {}{}].",
+            shown,
+            scale.out_w,
+            scale.out_h,
+            prep.out_duration,
+            origin,
+            detail.map(|d| format!("{d}, ")).unwrap_or_default(),
+            format.name(),
+            opts.backend.name(),
+            opts.announce(),
+            extra
+        ),
+    };
+    Ok((done_msg, frames_ms, encode_ms))
 }
 
 /// Render one validated composition to `out` using `ffmpeg_bin`.
@@ -3449,7 +4148,13 @@ pub fn render_with_options(
             return Err(e);
         }
     };
-    render_staged(&prep, &plan, opts, ffmpeg_bin, out)
+    // Non-CLI callers render the historical MP4 file exactly (the
+    // identity scale plan: no scaling work, output is the canvas).
+    let dest = crate::outputs::ResolvedOutput::File {
+        path: out.to_path_buf(),
+    };
+    let scale = crate::scale::ScalePlan::identity(comp.width, comp.height);
+    render_staged(&prep, &plan, opts, ffmpeg_bin, &dest, &scale)
 }
 
 /// Success-line suffix naming the text origins, never silent: the
@@ -3517,13 +4222,6 @@ fn rel_name(folder: &Path, path: &Path) -> String {
         .unwrap_or_else(|_| path.display().to_string())
 }
 
-/// Temporary encode target next to the final MP4.
-fn tmp_output(out: &Path) -> PathBuf {
-    let mut name = out.as_os_str().to_owned();
-    name.push(".framesmith-part");
-    PathBuf::from(name)
-}
-
 /// Last `n` non-empty stderr lines, joined for the stage report.
 fn stderr_tail(stderr: &[u8], n: usize) -> String {
     let text = String::from_utf8_lossy(stderr);
@@ -3536,40 +4234,45 @@ fn stderr_tail(stderr: &[u8], n: usize) -> String {
     lines[start..].join(" | ").chars().take(600).collect()
 }
 
-/// Build the ffmpeg encode arguments. Raw RGB24 frames arrive on stdin
-/// as input 0; each audible video source adds an input with trim/delay
-/// filters, and the staged Framesmith mix (when present) arrives as raw
-/// s16le 48 kHz stereo. The `standard` preset with no overrides emits no
-/// explicit encoder flags, so its bytes match the Sprint 2 output
-/// exactly; every other preset or override sets only its own axis.
-/// Build the ffmpeg encode arguments. `duration` is the output media
-/// length in seconds: the composition duration for a full render, the
-/// range length for a sub-range render (Sprint 6 T008). The staged mix
-/// (when present) is already cropped to that length; the `atrim` and
-/// `-t` guards only pin the exact container length.
-fn encode_args(
-    comp: &Composition,
-    audio: &[AudioSeg],
-    mix: Option<&Path>,
-    tmp: &Path,
-    enc: &ResolvedEncoder,
-    duration: f64,
-) -> Vec<String> {
-    let mut args: Vec<String> = vec![
+/// Raw frame input arguments: piped `rawvideo` frames arrive on stdin
+/// as input 0 at the output frame size and composition rate (Sprint 12
+/// outputs, T001/T002). The output size is the canvas size on the
+/// identity path and the preset size on a scaled render (vectors
+/// re-rasterize at the internal size, then downscale to this size
+/// before piping). Every destination pipes `rgb24`: alpha composites
+/// at draw time, so pictures match the MP4 on every format.
+pub(crate) fn encode_input_args(comp: &Composition, pix_fmt: &str, frame: (u32, u32)) -> Vec<String> {
+    vec![
         "-y".into(),
         "-v".into(),
         "error".into(),
         "-f".into(),
         "rawvideo".into(),
         "-pix_fmt".into(),
-        "rgb24".into(),
+        pix_fmt.into(),
         "-s".into(),
-        format!("{}x{}", comp.width, comp.height),
+        format!("{}x{}", frame.0, frame.1),
         "-r".into(),
         comp.fps.to_string(),
         "-i".into(),
         "-".into(),
-    ];
+    ]
+}
+
+/// Audio inputs plus the mix filtergraph (shared by every destination
+/// that carries audio): each audible video source adds an input with
+/// trim/delay filters, and the staged Framesmith mix (when present)
+/// arrives as raw s16le 48 kHz stereo. `duration` is the output media
+/// length in seconds: the composition duration for a full render, the
+/// range length for a sub-range render (Sprint 6 T008). The staged mix
+/// (when present) is already cropped to that length; the `atrim` and
+/// `-t` guards only pin the exact container length.
+pub(crate) fn push_audio_args(
+    args: &mut Vec<String>,
+    audio: &[AudioSeg],
+    mix: Option<&Path>,
+    duration: f64,
+) {
     for seg in audio {
         args.push("-i".into());
         args.push(seg.path.display().to_string());
@@ -3649,12 +4352,41 @@ fn encode_args(
     if audio.is_empty() && mix_input.is_none() {
         args.extend(["-map".into(), "0:v".into(), "-map".into(), "1:a".into()]);
     }
-    // Preset and overrides: each flag sets only its own axis.
-    let standard_quiet = enc.from_preset == Preset::Standard
+}
+
+/// True when the active preset emits no explicit encoder flags: the
+/// `standard` preset with no overrides, so default bytes match the
+/// Sprint 2 output exactly. Every other preset or override sets only
+/// its own axis.
+pub(crate) fn standard_quiet(enc: &ResolvedEncoder) -> bool {
+    enc.from_preset == Preset::Standard
         && enc.video_bitrate.is_none()
         && Some(enc.crf) == Some(Preset::Standard.encoder().crf)
-        && enc.x264_preset.is_none();
-    if !standard_quiet {
+        && enc.x264_preset.is_none()
+}
+
+/// Build the ffmpeg encode arguments for the standard MP4 (Sprint 12
+/// outputs, T001: `--format mp4`, the default). The `standard` preset
+/// with no overrides emits no explicit encoder flags, so its bytes
+/// match the Sprint 2 output exactly; every other preset or override
+/// sets only its own axis.
+pub(crate) fn encode_args(
+    comp: &Composition,
+    audio: &[AudioSeg],
+    mix: Option<&Path>,
+    tmp: &Path,
+    enc: &ResolvedEncoder,
+    duration: f64,
+    frame: (u32, u32),
+) -> Vec<String> {
+    let mut args = encode_input_args(comp, "rgb24", frame);
+    push_audio_args(&mut args, audio, mix, duration);
+    // The hardware path drops the x264 quality axes (`-crf`,
+    // `-preset`): VideoToolbox tunes quality through bitrate flags
+    // instead, and unknown encoder options fail the render.
+    let hw = enc.hardware;
+    // Preset and overrides: each flag sets only its own axis.
+    if !hw && !standard_quiet(enc) {
         args.push("-crf".into());
         args.push(enc.crf.to_string());
         if let Some(p) = enc.x264_preset {
@@ -3666,9 +4398,22 @@ fn encode_args(
         args.push("-b:v".into());
         args.push(b.clone());
     }
+    // Rate control (Sprint 12 outputs, CAP-003): absent flags emit
+    // nothing, keeping default bytes identical.
+    if let Some(g) = enc.keyint {
+        args.push("-g".into());
+        args.push(g.to_string());
+    }
+    if let Some(m) = &enc.maxrate {
+        args.push("-maxrate".into());
+        args.push(m.clone());
+        args.push("-bufsize".into());
+        args.push(crate::outputs::maxrate_bufsize(m));
+    }
+    let video_codec = if hw { "h264_videotoolbox" } else { "libx264" };
     args.extend([
         "-c:v".into(),
-        "libx264".into(),
+        video_codec.into(),
         "-pix_fmt".into(),
         "yuv420p".into(),
         "-c:a".into(),
@@ -3677,6 +4422,14 @@ fn encode_args(
         "2".into(),
         "-ar".into(),
         "48000".into(),
+    ]);
+    // Provenance (Sprint 12 outputs, CAP-005): the stamp rides a
+    // container tag, never the pictures. None keeps the pinned argv
+    // exactly (library callers and unit fixtures).
+    if let Some(prov) = &enc.provenance {
+        args.extend(crate::outputs::provenance_metadata_args(&prov.stamp()));
+    }
+    args.extend([
         "-t".into(),
         format!("{duration}"),
         "-movflags".into(),
@@ -3747,10 +4500,14 @@ fn probe_video(ffmpeg_bin: &Path, abs: &Path, rel: &str) -> Result<ProbedVideo, 
     // without rotation metadata renders exactly as stored.
     let rotation = parse_container_rotation(&text);
     let (width, height) = oriented_dimensions(width, height, rotation);
+    // Sprint 12 outputs (CAP-004): the source transfer rides the
+    // probe, so `auto` and explicit `--hdr` modes decide from facts.
+    let transfer = crate::outputs::detect_transfer(&text);
     Ok(ProbedVideo {
         clip_idx: 0,
         path: abs.to_path_buf(),
         codec,
+        transfer,
         width,
         height,
         duration,
@@ -4432,7 +5189,10 @@ pub(crate) fn resolve_vfx_maps<'a>(
         Some(stage) => Some(one(images, folder, "luma-matte", &stage.src)?),
         None => None,
     };
-    Ok(crate::vfx::VfxMaps { displacement, luma_matte })
+    Ok(crate::vfx::VfxMaps {
+        displacement,
+        luma_matte,
+    })
 }
 
 pub(crate) fn fill_image_decoded<'a>(
@@ -4552,8 +5312,7 @@ pub(crate) fn draw_box(
                     blend_over(frame, cw, chh, i, j, rr, gg, bb, a);
                 };
                 paint_box_pixel(
-                    &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner,
-                    alpha,
+                    &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner, alpha,
                 );
             }
         }
@@ -4602,8 +5361,7 @@ pub(crate) fn draw_box(
                 blend_over(frame, cw, chh, i, j, rr, gg, bb, a);
             };
             paint_box_pixel(
-                &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner,
-                alpha,
+                &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner, alpha,
             );
         }
     }
@@ -4982,15 +5740,17 @@ impl LutFrameCache {
         }
         if !self.tables.contains_key(src) {
             let bytes = std::fs::read(&abs).map_err(|e| {
-                format!("render refused: lut source {src:?} cannot be read: {e}; no MP4 was written")
-            })?;
-            let text = String::from_utf8(bytes).map_err(|_| {
                 format!(
-                    "render refused: lut source {src:?} is not UTF-8 text; no MP4 was written"
+                    "render refused: lut source {src:?} cannot be read: {e}; no MP4 was written"
                 )
             })?;
+            let text = String::from_utf8(bytes).map_err(|_| {
+                format!("render refused: lut source {src:?} is not UTF-8 text; no MP4 was written")
+            })?;
             let table = notation::model::parse_cube(&text).map_err(|problem| {
-                format!("render refused: lut source {src:?} is unusable: {problem}; no MP4 was written")
+                format!(
+                    "render refused: lut source {src:?} is unusable: {problem}; no MP4 was written"
+                )
             })?;
             self.tables.insert(src.to_string(), table);
         }
@@ -5176,8 +5936,7 @@ pub(crate) fn draw_box_layer(
                 layer_blend(layer, o, rr, gg, bb, a);
             };
             paint_box_pixel(
-                &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner,
-                alpha,
+                &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner, alpha,
             );
         }
     }
@@ -5873,13 +6632,7 @@ pub(crate) fn draw_description(
     // grades fill flat and bit-exact; spatial grades (vignette, grain)
     // paint per pixel.
     let comp_grade = luts.grade(folder, &desc.composition_grade)?;
-    fill_graded_background(
-        frame,
-        desc.width,
-        desc.height,
-        desc.background,
-        &comp_grade,
-    );
+    fill_graded_background(frame, desc.width, desc.height, desc.background, &comp_grade);
     let cw = desc.width;
     let chh = desc.height;
     for item in &desc.items {
@@ -5924,7 +6677,12 @@ pub(crate) fn draw_description(
                 let card = blit_dest(cw, chh, range.width, range.height, v.fit, v.scale, v.x, v.y)
                     .map(|(dx, dy, dw, dh)| (dx, dy, dx + dw, dy + dh));
                 let turn = card.and_then(|c| item_turn(v.rotate_x, v.rotate_y, &v.turn, c));
-                if blur_on(v.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                if blur_on(v.blur)
+                    || turn.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
                     draw_video_advanced(
                         frame,
                         cw,
@@ -5986,9 +6744,15 @@ pub(crate) fn draw_description(
                             tc.y + block.height as f64 * tc.scale,
                         );
                         let turn = item_turn(tc.rotate_x, tc.rotate_y, &tc.turn, card);
-                        if blur_on(tc.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                        if blur_on(tc.blur)
+                            || turn.is_some()
+                            || !grade.is_empty()
+                            || !effects.is_empty()
+                            || !vfx.is_empty()
+                        {
                             draw_text_advanced(
-                                frame, cw, chh, raster, block, tc, turn, card, &grade, effects, vfx, &maps,
+                                frame, cw, chh, raster, block, tc, turn, card, &grade, effects,
+                                vfx, &maps,
                             )?;
                         } else {
                             draw_text_block(frame, cw, chh, raster, block, tc)?;
@@ -5999,7 +6763,12 @@ pub(crate) fn draw_description(
                         // probe runs origin-free, and only an active
                         // blur or turn pays for the ink-box card.
                         let probe = turn_probe(tc.rotate_x, tc.rotate_y, tc.turn.perspective);
-                        if !(blur_on(tc.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty()) {
+                        if !(blur_on(tc.blur)
+                            || probe.is_some()
+                            || !grade.is_empty()
+                            || !effects.is_empty()
+                            || !vfx.is_empty())
+                        {
                             draw_bitmap_text_item(frame, cw, chh, tc);
                         } else if tc.scale <= 0.0 || !tc.scale.is_finite() || tc.opacity <= 0.0 {
                             // Nothing draws, exactly like the legacy path.
@@ -6020,7 +6789,8 @@ pub(crate) fn draw_description(
                                         (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
                                     let turn = item_turn(tc.rotate_x, tc.rotate_y, &tc.turn, card);
                                     draw_bitmap_advanced(
-                                        frame, cw, chh, &layer, tc, turn, card, &grade, effects, vfx, &maps,
+                                        frame, cw, chh, &layer, tc, turn, card, &grade, effects,
+                                        vfx, &maps,
                                     );
                                 }
                             }
@@ -6051,9 +6821,18 @@ pub(crate) fn draw_description(
                 // with their vanish check.
                 let probe = turn_probe(b.rotate_x, b.rotate_y, b.turn.perspective);
                 if b.paint_stack_active() {
-                    crate::paint::draw_box_paint(frame, cw, chh, b, images, folder, &grade, effects, vfx, &maps)?;
-                } else if blur_on(b.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
-                    draw_box_advanced(frame, cw, chh, b, images, folder, &grade, effects, vfx, &maps)?;
+                    crate::paint::draw_box_paint(
+                        frame, cw, chh, b, images, folder, &grade, effects, vfx, &maps,
+                    )?;
+                } else if blur_on(b.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_box_advanced(
+                        frame, cw, chh, b, images, folder, &grade, effects, vfx, &maps,
+                    )?;
                 } else {
                     draw_box(frame, cw, chh, b, images, folder)?;
                 }
@@ -6068,7 +6847,9 @@ pub(crate) fn draw_description(
                 let effects = desc.effects_for(q.doc);
                 let vfx = desc.vfx_for(q.doc);
                 let maps = resolve_vfx_maps(images, folder, vfx)?;
-                crate::path_paint::draw_path(frame, cw, chh, q, paths, &grade, effects, vfx, &maps)?;
+                crate::path_paint::draw_path(
+                    frame, cw, chh, q, paths, &grade, effects, vfx, &maps,
+                )?;
             }
             FrameItem::Image(im) => {
                 // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
@@ -6090,7 +6871,12 @@ pub(crate) fn draw_description(
                 // exactly as before. A graded image takes the layer
                 // path so the look grades its own pixels.
                 let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
-                if blur_on(im.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                if blur_on(im.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
                     draw_image_advanced(frame, cw, chh, im, decoded, &grade, effects, vfx, &maps);
                 } else {
                     draw_image(frame, cw, chh, im, decoded);
@@ -8020,11 +8806,35 @@ mod tests {
         let (x0, y0, x1, y1) = layer_ink_bbox(&layer, 64, 32).expect("fallback ink draws");
         let card = (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
         let mut frame = vec![0u8; 64 * 32 * 3];
-        draw_bitmap_advanced(&mut frame, 64, 32, &layer, &tc, None, card, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty());
+        draw_bitmap_advanced(
+            &mut frame,
+            64,
+            32,
+            &layer,
+            &tc,
+            None,
+            card,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        );
         let (_, _, _, n) = ink_extent(&frame, 64);
         assert!(n > 10, "blurred ink draws, got {n}");
         let mut again = vec![0u8; 64 * 32 * 3];
-        draw_bitmap_advanced(&mut again, 64, 32, &layer, &tc, None, card, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty());
+        draw_bitmap_advanced(
+            &mut again,
+            64,
+            32,
+            &layer,
+            &tc,
+            None,
+            card,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        );
         assert_eq!(frame, again, "blurred re-render is byte-identical");
         let mut sharp = vec![0u8; 64 * 32 * 3];
         draw_bitmap_text_item(&mut sharp, 64, 32, &test_text("HI", 1.0, 0.0, 1.0));
@@ -8077,7 +8887,11 @@ mod tests {
             x: 0.0,
             y: 0.0,
             size: 24.0,
-            color: notation::model::Rgb { r: 255, g: 255, b: 255 },
+            color: notation::model::Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             align: notation::model::Align::Left,
             wrap: notation::model::Wrap::Off,
             style: notation::model::FontStyle::Regular,
@@ -8157,8 +8971,14 @@ mod tests {
         let err = shape_text_string(&mut fonts, &None, &tc, "", Path::new("ffmpeg"))
             .expect_err("unknown run family must refuse");
         assert!(err.contains("span 1"), "refusal names the span: {err}");
-        assert!(err.contains("font-family"), "refusal names the property: {err}");
-        assert!(err.contains("no MP4 was written"), "refusal leaves no output: {err}");
+        assert!(
+            err.contains("font-family"),
+            "refusal names the property: {err}"
+        );
+        assert!(
+            err.contains("no MP4 was written"),
+            "refusal leaves no output: {err}"
+        );
     }
 
     #[test]
@@ -8779,15 +9599,11 @@ mod tests {
         // Saturation at -1 grays a colored box.
         let sat = draw32(&grade_comp(
             (0, 0, 0),
-            vec![grade_box(
-                (200, 100, 50),
-                TrackKind::Graphics,
-                {
-                    let mut g = empty_grade();
-                    g.saturation = Some(-1.0);
-                    g
-                },
-            )],
+            vec![grade_box((200, 100, 50), TrackKind::Graphics, {
+                let mut g = empty_grade();
+                g.saturation = Some(-1.0);
+                g
+            })],
             empty_grade(),
             Vec::new(),
         ));
@@ -8807,15 +9623,11 @@ mod tests {
         // -1 EV (override), not the sum and not the composition value.
         let comp = grade_comp(
             (0, 0, 0),
-            vec![grade_box(
-                (128, 128, 128),
-                TrackKind::Video,
-                {
-                    let mut g = empty_grade();
-                    g.exposure = Some(-1.0);
-                    g
-                },
-            )],
+            vec![grade_box((128, 128, 128), TrackKind::Video, {
+                let mut g = empty_grade();
+                g.exposure = Some(-1.0);
+                g
+            })],
             {
                 let mut g = empty_grade();
                 g.exposure = Some(1.0);
@@ -8855,15 +9667,11 @@ mod tests {
         // a clip exposure-only tweak still renders gray.
         let comp = grade_comp(
             (0, 0, 0),
-            vec![grade_box(
-                (200, 100, 50),
-                TrackKind::Graphics,
-                {
-                    let mut g = empty_grade();
-                    g.exposure = Some(0.5);
-                    g
-                },
-            )],
+            vec![grade_box((200, 100, 50), TrackKind::Graphics, {
+                let mut g = empty_grade();
+                g.exposure = Some(0.5);
+                g
+            })],
             {
                 let mut g = empty_grade();
                 g.saturation = Some(-1.0);
@@ -9009,7 +9817,10 @@ mod tests {
             Vec::new(),
         ));
         let (r, gg, b) = px(&frame, 8, 16);
-        assert!(r > 230 && gg > 130 && b > 130, "red lifts pink: {r},{gg},{b}");
+        assert!(
+            r > 230 && gg > 130 && b > 130,
+            "red lifts pink: {r},{gg},{b}"
+        );
         let (r, gg, b) = px(&frame, 24, 16);
         assert!((59..=61).contains(&r), "green red holds: {r}");
         assert!((199..=201).contains(&gg), "green holds: {gg}");
@@ -9035,7 +9846,12 @@ mod tests {
         // A position-independent composition grade still fills flat.
         let mut flat_grade = empty_grade();
         flat_grade.temperature = Some(1.0);
-        let frame = draw32(&grade_comp((128, 128, 128), Vec::new(), flat_grade, Vec::new()));
+        let frame = draw32(&grade_comp(
+            (128, 128, 128),
+            Vec::new(),
+            flat_grade,
+            Vec::new(),
+        ));
         assert_eq!(px(&frame, 0, 0), px(&frame, 16, 16));
     }
 
@@ -9081,10 +9897,7 @@ mod tests {
 
     // --- Sprint 11 VFX chain (T005): stage pixels, purity, mattes ---
 
-    fn vfx_box(
-        fill: (u8, u8, u8),
-        vfx: notation::model::VfxChain,
-    ) -> notation::model::BoxClip {
+    fn vfx_box(fill: (u8, u8, u8), vfx: notation::model::VfxChain) -> notation::model::BoxClip {
         let mut b = grade_box(fill, notation::model::TrackKind::Graphics, empty_grade());
         b.vfx = vfx;
         b
@@ -9092,7 +9905,10 @@ mod tests {
 
     fn vfx_noise(amount: f64, seed: i64) -> notation::model::VfxChain {
         notation::model::VfxChain {
-            noise: Some(notation::model::VfxNoise { amount, seed: Some(seed) }),
+            noise: Some(notation::model::VfxNoise {
+                amount,
+                seed: Some(seed),
+            }),
             ..notation::model::VfxChain::empty()
         }
     }
@@ -9110,7 +9926,11 @@ mod tests {
         };
         let plain = draw32(&grade_comp(
             (0, 0, 0),
-            vec![grade_box((200, 100, 50), TrackKind::Graphics, empty_grade())],
+            vec![grade_box(
+                (200, 100, 50),
+                TrackKind::Graphics,
+                empty_grade(),
+            )],
             empty_grade(),
             Vec::new(),
         ));
@@ -9137,7 +9957,11 @@ mod tests {
             vec![vfx_box(
                 (200, 100, 50),
                 VfxChain {
-                    warp: Some(VfxWarp { amount: 1.0, grid: Some(4), strength: Some(6.0) }),
+                    warp: Some(VfxWarp {
+                        amount: 1.0,
+                        grid: Some(4),
+                        strength: Some(6.0),
+                    }),
                     ..VfxChain::empty()
                 },
             )],
@@ -9146,7 +9970,11 @@ mod tests {
         ));
         let plain = draw32(&grade_comp(
             (0, 0, 0),
-            vec![grade_box((200, 100, 50), TrackKind::Graphics, empty_grade())],
+            vec![grade_box(
+                (200, 100, 50),
+                TrackKind::Graphics,
+                empty_grade(),
+            )],
             empty_grade(),
             Vec::new(),
         ));
@@ -9159,8 +9987,15 @@ mod tests {
         // written without it, through the full describe-and-draw path.
         use notation::model::{TrackKind, VfxChain, VfxNoise, VfxWarp};
         let full = VfxChain {
-            noise: Some(VfxNoise { amount: 1.0, seed: Some(7) }),
-            warp: Some(VfxWarp { amount: 1.0, grid: Some(4), strength: Some(3.0) }),
+            noise: Some(VfxNoise {
+                amount: 1.0,
+                seed: Some(7),
+            }),
+            warp: Some(VfxWarp {
+                amount: 1.0,
+                grid: Some(4),
+                strength: Some(3.0),
+            }),
             ..VfxChain::empty()
         };
         let draw = |vfx: VfxChain| {
@@ -9171,22 +10006,39 @@ mod tests {
                 Vec::new(),
             ))
         };
-        let without_noise = VfxChain { noise: None, ..full.clone() };
+        let without_noise = VfxChain {
+            noise: None,
+            ..full.clone()
+        };
         let zeroed_noise = VfxChain {
-            noise: Some(VfxNoise { amount: 0.0, seed: Some(7) }),
+            noise: Some(VfxNoise {
+                amount: 0.0,
+                seed: Some(7),
+            }),
             ..full.clone()
         };
         assert_eq!(draw(zeroed_noise), draw(without_noise));
-        let without_warp = VfxChain { warp: None, ..full.clone() };
+        let without_warp = VfxChain {
+            warp: None,
+            ..full.clone()
+        };
         let zeroed_warp = VfxChain {
-            warp: Some(VfxWarp { amount: 1.0, grid: Some(4), strength: Some(0.0) }),
+            warp: Some(VfxWarp {
+                amount: 1.0,
+                grid: Some(4),
+                strength: Some(0.0),
+            }),
             ..full.clone()
         };
         assert_eq!(draw(zeroed_warp), draw(without_warp));
         // The empty chain matches no chain at all.
         let plain = draw32(&grade_comp(
             (0, 0, 0),
-            vec![grade_box((200, 100, 50), TrackKind::Graphics, empty_grade())],
+            vec![grade_box(
+                (200, 100, 50),
+                TrackKind::Graphics,
+                empty_grade(),
+            )],
             empty_grade(),
             Vec::new(),
         ));
@@ -9287,7 +10139,9 @@ mod tests {
         // The box spans x 8..24; the matte is white left of x=16.
         let (r, g, b) = px(&frame, 10, 16);
         assert!(
-            (r as i16 - 200).abs() <= 2 && (g as i16 - 100).abs() <= 2 && (b as i16 - 50).abs() <= 2,
+            (r as i16 - 200).abs() <= 2
+                && (g as i16 - 100).abs() <= 2
+                && (b as i16 - 50).abs() <= 2,
             "white matte keeps the box color, got {r},{g},{b}"
         );
         let (r, g, b) = px(&frame, 21, 16);
@@ -9323,7 +10177,10 @@ mod tests {
         use notation::model::{VfxChain, VfxLumaMatte};
         let dir = vfx_tmp("resolve");
         let chain = VfxChain {
-            luma_matte: Some(VfxLumaMatte { amount: 1.0, src: "gone.png".to_string() }),
+            luma_matte: Some(VfxLumaMatte {
+                amount: 1.0,
+                src: "gone.png".to_string(),
+            }),
             ..VfxChain::empty()
         };
         // No file on disk: the vanish refusal names the path.
@@ -9337,7 +10194,10 @@ mod tests {
         assert!(err.contains("gone.png"), "{err}");
         // An inert stage resolves to none without touching disk.
         let inert = VfxChain {
-            luma_matte: Some(VfxLumaMatte { amount: 0.0, src: "never.png".to_string() }),
+            luma_matte: Some(VfxLumaMatte {
+                amount: 0.0,
+                src: "never.png".to_string(),
+            }),
             ..VfxChain::empty()
         };
         let maps = resolve_vfx_maps(&[], &dir, &inert).expect("inert stage resolves");
@@ -9405,7 +10265,9 @@ mod tests {
         // rounds within a couple of LSB).
         let (r, g, b) = px(&frame, 16, 16);
         assert!(
-            (r as i16 - 50).abs() <= 2 && (g as i16 - 100).abs() <= 2 && (b as i16 - 200).abs() <= 2,
+            (r as i16 - 50).abs() <= 2
+                && (g as i16 - 100).abs() <= 2
+                && (b as i16 - 200).abs() <= 2,
             "swapped box pixel, got {r},{g},{b}"
         );
         let _ = std::fs::remove_dir_all(&dir);
@@ -9860,7 +10722,7 @@ mod tests {
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let standard = RenderOptions::default().encoder();
-        let no_audio = encode_args(&comp, &[], None, &tmp, &standard, comp.duration);
+        let no_audio = encode_args(&comp, &[], None, &tmp, &standard, comp.duration, (comp.width, comp.height));
         let joined = no_audio.join(" ");
         for flag in [
             "libx264", "yuv420p", "aac", "48000", "rawvideo", "-f", "mp4",
@@ -9884,7 +10746,9 @@ mod tests {
             trim_len: 1.0,
             delay_ms: 500,
         };
-        let with_audio = encode_args(&comp, &[seg], None, &tmp, &standard, comp.duration).join(" ");
+        let with_audio =
+            encode_args(&comp, &[seg], None, &tmp, &standard, comp.duration, (comp.width, comp.height))
+                .join(" ");
         assert!(with_audio.contains("adelay=500"), "{with_audio}");
         assert!(with_audio.contains("atrim"), "{with_audio}");
         assert!(!with_audio.contains("volume"), "{with_audio}");
@@ -9995,7 +10859,9 @@ mod tests {
             ..RenderOptions::default()
         }
         .encoder();
-        let joined = encode_args(&comp, &[], None, &tmp, &draft, comp.duration).join(" ");
+        let joined =
+            encode_args(&comp, &[], None, &tmp, &draft, comp.duration, (comp.width, comp.height))
+                .join(" ");
         assert!(joined.contains("-crf 30"), "{joined}");
         assert!(joined.contains("-preset veryfast"), "{joined}");
         let high = RenderOptions {
@@ -10003,12 +10869,23 @@ mod tests {
             ..RenderOptions::default()
         }
         .encoder();
-        let joined = encode_args(&comp, &[], None, &tmp, &high, comp.duration).join(" ");
+        let joined =
+            encode_args(&comp, &[], None, &tmp, &high, comp.duration, (comp.width, comp.height))
+                .join(" ");
         assert!(joined.contains("-crf 18"), "{joined}");
         assert!(joined.contains("-preset slow"), "{joined}");
         // A staged mix joins the encoder as a raw 48 kHz stereo input.
         let mix = PathBuf::from("/tmp/x.framesmith-mix.pcm");
-        let joined = encode_args(&comp, &[], Some(&mix), &tmp, &high, comp.duration).join(" ");
+        let joined = encode_args(
+            &comp,
+            &[],
+            Some(&mix),
+            &tmp,
+            &high,
+            comp.duration,
+            (comp.width, comp.height),
+        )
+        .join(" ");
         assert!(joined.contains("s16le"), "{joined}");
         assert!(joined.contains("48000"), "{joined}");
         assert!(joined.contains("[mix]"), "{joined}");
@@ -10239,7 +11116,19 @@ mod tests {
         let mut legacy = vec![0u8; 64 * 48 * 3];
         draw_box(&mut legacy, 64, 48, &b, &[], Path::new(".")).unwrap();
         let mut advanced = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut advanced, 64, 48, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut advanced,
+            64,
+            48,
+            &b,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(advanced, legacy, "identity layer path matches the blit");
         // A rounded, bordered, translucent box matches within one
         // step per channel (the layer stores one rounded alpha byte).
@@ -10251,7 +11140,19 @@ mod tests {
         let mut legacy = vec![0u8; 64 * 48 * 3];
         draw_box(&mut legacy, 64, 48, &soft, &[], Path::new(".")).unwrap();
         let mut advanced = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut advanced, 64, 48, &soft, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut advanced,
+            64,
+            48,
+            &soft,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(legacy.len(), advanced.len());
         for (i, (a, l)) in advanced.iter().zip(legacy.iter()).enumerate() {
             assert!(
@@ -10268,7 +11169,19 @@ mod tests {
         // draws nothing.
         let b = turned_box(10.0, 10.0, 40.0, 40.0, 60.0, 0.0);
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut frame,
+            64,
+            64,
+            &b,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         for j in 20..40 {
             assert_eq!(pixel(&frame, 64, 30, j), (255, 0, 0), "row {j} fills");
         }
@@ -10278,7 +11191,19 @@ mod tests {
         assert_eq!(pixel(&frame, 64, 49, 30), (255, 0, 0), "full width keeps");
         let edge = turned_box(10.0, 10.0, 40.0, 40.0, 90.0, 0.0);
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &edge, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut frame,
+            64,
+            64,
+            &edge,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert!(frame.iter().all(|&v| v == 0), "edge-on cards draw nothing");
     }
 
@@ -10296,7 +11221,19 @@ mod tests {
             ..Turn3D::flat()
         };
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &top, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut frame,
+            64,
+            64,
+            &top,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(pixel(&frame, 64, 30, 10), (255, 0, 0), "top pins");
         assert_eq!(
             pixel(&frame, 64, 30, 29),
@@ -10321,7 +11258,19 @@ mod tests {
         // heights); with p=200 the near (left) edge stands taller.
         let flat = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
         let mut frame = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut frame, 160, 120, &flat, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut frame,
+            160,
+            120,
+            &flat,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         // Flat edges: find the first/last red columns, compare heights.
         let cols: Vec<u32> = (0..160)
             .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
@@ -10339,7 +11288,19 @@ mod tests {
         let mut persp = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
         persp.turn.perspective = Some(200.0);
         let mut frame = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut frame, 160, 120, &persp, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut frame,
+            160,
+            120,
+            &persp,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         let cols: Vec<u32> = (0..160)
             .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
             .collect();
@@ -10354,7 +11315,19 @@ mod tests {
         );
         // Both renders are deterministic.
         let mut again = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut again, 160, 120, &persp, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut again,
+            160,
+            120,
+            &persp,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(frame, again, "turned re-render is byte-identical");
     }
 
@@ -10367,7 +11340,19 @@ mod tests {
         let mut b = sharp_box(10.0, 10.0, 1.0, 1.0);
         b.blur = 1.0;
         let mut frame = vec![0u8; 32 * 32 * 3];
-        draw_box_advanced(&mut frame, 32, 32, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut frame,
+            32,
+            32,
+            &b,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         // Hand kernel, computed here from the Gaussian alone.
         let raw = [-3.0f64, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0].map(|x| (-x * x / 2.0).exp());
         let total: f64 = raw.iter().sum();
@@ -10401,7 +11386,19 @@ mod tests {
         assert_eq!(mass, hand, "byte mass matches the rounded kernel");
         // Deterministic re-render.
         let mut again = vec![0u8; 32 * 32 * 3];
-        draw_box_advanced(&mut again, 32, 32, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut again,
+            32,
+            32,
+            &b,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(frame, again, "blurred re-render is byte-identical");
     }
 
@@ -10413,7 +11410,19 @@ mod tests {
         let mut b = sharp_box(10.0, 10.0, 20.0, 20.0);
         b.blur = 2.5;
         let mut blurred = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut blurred, 64, 64, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut blurred,
+            64,
+            64,
+            &b,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(
             pixel(&blurred, 64, 20, 20),
             (255, 0, 0),
@@ -11512,7 +12521,11 @@ mod tests {
             y,
             width: w,
             height: h,
-            fill: Rgb { r: 255, g: 255, b: 255 },
+            fill: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             fill_paint: paint,
             radius: 0.0,
             border_width: 0.0,
@@ -11558,16 +12571,31 @@ mod tests {
         use notation::model::FillPaint;
         // Half-pixel x offset so pixel centers land on exact stops:
         // lx is an integer, t hits 0.5 at lx 24.
-        let b = paint_box(FillPaint::Linear { angle: 90.0, stops: stops_rgb() }, 7.5, 8.0, 48.0, 32.0);
+        let b = paint_box(
+            FillPaint::Linear {
+                angle: 90.0,
+                stops: stops_rgb(),
+            },
+            7.5,
+            8.0,
+            48.0,
+            32.0,
+        );
         let mut frame = vec![0u8; 64 * 48 * 3];
         draw_box(&mut frame, 64, 48, &b, &[], Path::new(".")).unwrap();
         // Exact stop at the gradient middle.
         assert_eq!(pixel(&frame, 64, 31, 24), (0, 255, 0));
         // Ramp ends approach the end stops.
         let (r, g, bl) = pixel(&frame, 64, 8, 24);
-        assert!(r > 230 && g < 24 && bl == 0, "left should approach red, got ({r}, {g}, {bl})");
+        assert!(
+            r > 230 && g < 24 && bl == 0,
+            "left should approach red, got ({r}, {g}, {bl})"
+        );
         let (r, g, bl) = pixel(&frame, 64, 54, 24);
-        assert!(bl > 230 && g < 24 && r == 0, "right should approach blue, got ({r}, {g}, {bl})");
+        assert!(
+            bl > 230 && g < 24 && r == 0,
+            "right should approach blue, got ({r}, {g}, {bl})"
+        );
         // Outside the box the canvas shows through.
         assert_eq!(pixel(&frame, 64, 6, 24), (0, 0, 0));
         assert_eq!(pixel(&frame, 64, 0, 0), (0, 0, 0));
@@ -11620,7 +12648,11 @@ mod tests {
                 stops: vec![
                     notation::model::GradientStop {
                         offset: 0.0,
-                        color: Rgb { r: 255, g: 255, b: 255 },
+                        color: Rgb {
+                            r: 255,
+                            g: 255,
+                            b: 255,
+                        },
                         line: 1,
                         column: 1,
                     },
@@ -11640,9 +12672,15 @@ mod tests {
         let mut frame = vec![0u8; 40 * 40 * 3];
         draw_box(&mut frame, 40, 40, &b, &[], Path::new(".")).unwrap();
         let (r, g, bl) = pixel(&frame, 40, 20, 20);
-        assert!(r > 240 && g > 240 && bl > 240, "center should approach white, got ({r}, {g}, {bl})");
+        assert!(
+            r > 240 && g > 240 && bl > 240,
+            "center should approach white, got ({r}, {g}, {bl})"
+        );
         let (r, g, bl) = pixel(&frame, 40, 39, 39);
-        assert!(r < 16 && g < 16 && bl < 16, "corner should approach black, got ({r}, {g}, {bl})");
+        assert!(
+            r < 16 && g < 16 && bl < 16,
+            "corner should approach black, got ({r}, {g}, {bl})"
+        );
         // Concentric: equal distances paint equal colors.
         assert_eq!(pixel(&frame, 40, 25, 20), pixel(&frame, 40, 20, 25));
     }
@@ -11687,9 +12725,22 @@ mod tests {
     #[test]
     fn border_ring_stays_solid_over_a_gradient() {
         use notation::model::FillPaint;
-        let mut b = paint_box(FillPaint::Linear { angle: 90.0, stops: stops_rgb() }, 0.0, 0.0, 10.0, 10.0);
+        let mut b = paint_box(
+            FillPaint::Linear {
+                angle: 90.0,
+                stops: stops_rgb(),
+            },
+            0.0,
+            0.0,
+            10.0,
+            10.0,
+        );
         b.border_width = 2.0;
-        b.border_color = Rgb { r: 255, g: 255, b: 255 };
+        b.border_color = Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        };
         let mut frame = vec![0u8; 10 * 10 * 3];
         draw_box(&mut frame, 10, 10, &b, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&frame, 10, 0, 5), (255, 255, 255));
@@ -11697,7 +12748,10 @@ mod tests {
         assert_ne!(pixel(&frame, 10, 5, 5), (255, 255, 255));
         // Three-stop ramp at lx 5.5: green-to-blue segment, mostly green.
         let (r, g, bl) = pixel(&frame, 10, 5, 5);
-        assert!(r == 0 && g > 200 && bl < 64, "inner should be greenish, got ({r}, {g}, {bl})");
+        assert!(
+            r == 0 && g > 200 && bl < 64,
+            "inner should be greenish, got ({r}, {g}, {bl})"
+        );
     }
 
     fn fill_image_at(dir: &Path, name: &str, w: u32, h: u32, rgba: Vec<u8>) -> DecodedImage {
@@ -11721,10 +12775,17 @@ mod tests {
 
     #[test]
     fn image_fill_cover_paints_the_whole_box() {
-        let dir = std::env::temp_dir().join(format!("framesmith-fill-cover-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("framesmith-fill-cover-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let decoded = fill_image_at(&dir, "red.png", 4, 4, vec![255, 0, 0, 255].repeat(16));
-        let b = paint_box(image_paint("red.png", Fit::Cover, "center"), 0.0, 0.0, 8.0, 8.0);
+        let b = paint_box(
+            image_paint("red.png", Fit::Cover, "center"),
+            0.0,
+            0.0,
+            8.0,
+            8.0,
+        );
         let mut frame = vec![0u8; 8 * 8 * 3];
         draw_box(&mut frame, 8, 8, &b, &[decoded], dir.as_path()).unwrap();
         assert!(frame.chunks_exact(3).all(|p| p == [255, 0, 0]));
@@ -11733,11 +12794,18 @@ mod tests {
 
     #[test]
     fn image_fill_contain_letterboxes_with_object_position() {
-        let dir = std::env::temp_dir().join(format!("framesmith-fill-contain-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("framesmith-fill-contain-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         // Centered: the 4-wide picture sits in the middle of the 8-wide box.
         let decoded = fill_image_at(&dir, "red.png", 4, 4, vec![255, 0, 0, 255].repeat(16));
-        let b = paint_box(image_paint("red.png", Fit::Contain, "center"), 0.0, 0.0, 8.0, 4.0);
+        let b = paint_box(
+            image_paint("red.png", Fit::Contain, "center"),
+            0.0,
+            0.0,
+            8.0,
+            4.0,
+        );
         let mut frame = vec![0u8; 8 * 8 * 3];
         draw_box(&mut frame, 8, 8, &b, &[decoded], dir.as_path()).unwrap();
         assert_eq!(pixel(&frame, 8, 4, 2), (255, 0, 0));
@@ -11746,7 +12814,13 @@ mod tests {
         assert_eq!(pixel(&frame, 8, 7, 2), (0, 0, 0));
         // Top-left: the picture hugs the origin.
         let decoded = fill_image_at(&dir, "red.png", 4, 4, vec![255, 0, 0, 255].repeat(16));
-        let b = paint_box(image_paint("red.png", Fit::Contain, "top-left"), 0.0, 0.0, 8.0, 4.0);
+        let b = paint_box(
+            image_paint("red.png", Fit::Contain, "top-left"),
+            0.0,
+            0.0,
+            8.0,
+            4.0,
+        );
         let mut frame = vec![0u8; 8 * 8 * 3];
         draw_box(&mut frame, 8, 8, &b, &[decoded], dir.as_path()).unwrap();
         assert_eq!(pixel(&frame, 8, 0, 2), (255, 0, 0));
@@ -11756,17 +12830,18 @@ mod tests {
 
     #[test]
     fn image_fill_stretch_maps_source_corners_to_box_corners() {
-        let dir = std::env::temp_dir().join(format!("framesmith-fill-stretch-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("framesmith-fill-stretch-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         // Two texels: red left, blue right.
-        let decoded = fill_image_at(
-            &dir,
-            "rb.png",
-            2,
-            1,
-            vec![255, 0, 0, 255, 0, 0, 255, 255],
+        let decoded = fill_image_at(&dir, "rb.png", 2, 1, vec![255, 0, 0, 255, 0, 0, 255, 255]);
+        let b = paint_box(
+            image_paint("rb.png", Fit::Fill, "center"),
+            0.0,
+            0.0,
+            4.0,
+            2.0,
         );
-        let b = paint_box(image_paint("rb.png", Fit::Fill, "center"), 0.0, 0.0, 4.0, 2.0);
         let mut frame = vec![0u8; 4 * 2 * 3];
         draw_box(&mut frame, 4, 2, &b, &[decoded], dir.as_path()).unwrap();
         assert_eq!(pixel(&frame, 4, 0, 0), (255, 0, 0));
@@ -11780,7 +12855,13 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("framesmith-fill-gone-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         // No file is written: the source is already gone at draw time.
-        let b = paint_box(image_paint("gone.png", Fit::Cover, "center"), 0.0, 0.0, 8.0, 8.0);
+        let b = paint_box(
+            image_paint("gone.png", Fit::Cover, "center"),
+            0.0,
+            0.0,
+            8.0,
+            8.0,
+        );
         let mut frame = vec![0u8; 8 * 8 * 3];
         let err = draw_box(&mut frame, 8, 8, &b, &[], dir.as_path()).unwrap_err();
         assert!(err.contains("gone.png"), "must name the path: {err}");
@@ -11791,11 +12872,32 @@ mod tests {
     #[test]
     fn advanced_layer_path_matches_direct_gradient_bytes() {
         use notation::model::FillPaint;
-        let b = paint_box(FillPaint::Linear { angle: 90.0, stops: stops_rgb() }, 4.0, 4.0, 20.0, 12.0);
+        let b = paint_box(
+            FillPaint::Linear {
+                angle: 90.0,
+                stops: stops_rgb(),
+            },
+            4.0,
+            4.0,
+            20.0,
+            12.0,
+        );
         let mut direct = vec![0u8; 64 * 48 * 3];
         draw_box(&mut direct, 64, 48, &b, &[], Path::new(".")).unwrap();
         let mut layered = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut layered, 64, 48, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_box_advanced(
+            &mut layered,
+            64,
+            48,
+            &b,
+            &[],
+            Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(direct, layered);
     }
 

@@ -127,6 +127,58 @@ pub fn own_values(clip: &Clip, canvas: (f64, f64)) -> [f64; PROP_COUNT] {
     own
 }
 
+/// True when one numeric tween directive provably never changes the
+/// render (Sprint 12 outputs, T005 provenance): a non-expression,
+/// non-path, non-color tween whose constant value equals the target
+/// clip's static base, and which is the composition's only motion
+/// directive on that (clip, property). Anything else driving the same
+/// channel could interact (a later set pulls the value away, so the
+/// constant would hold it back), which is why only a lone constant
+/// folds. Sole constant sets and keys stay declared: no contract shows
+/// them byte-identical to their absence, so they keep stamping. Such
+/// directives normalize away in the provenance digest, so constant
+/// motion stamps like the static layout it draws.
+pub fn tween_is_constant_noop(decl: &TweenDecl, comp: &Composition) -> bool {
+    if decl.expr.is_some() || decl.path.is_some() {
+        return false;
+    }
+    if decl.from_color.is_some() || decl.to_color.is_some() {
+        return false;
+    }
+    let Some(prop) = prop_of(&decl.property) else {
+        return false;
+    };
+    let mut hits = 0;
+    for t in &comp.tweens {
+        if t.target == decl.target && t.property == decl.property {
+            hits += 1;
+        }
+    }
+    for s in &comp.sets {
+        if s.target == decl.target && s.property == decl.property {
+            hits += 1;
+        }
+    }
+    for k in &comp.keys {
+        if k.target == decl.target && k.property == decl.property {
+            hits += 1;
+        }
+    }
+    if hits != 1 {
+        return false;
+    }
+    let Some(clip) = comp.clips.get(decl.target) else {
+        return false;
+    };
+    let base =
+        own_values(clip, (f64::from(comp.width), f64::from(comp.height)))[prop.index()];
+    match decl.kind {
+        TweenKind::FromTo => decl.from == Some(base) && decl.to == Some(base),
+        TweenKind::To => decl.to == Some(base),
+        TweenKind::From => decl.from == Some(base),
+    }
+}
+
 /// The exact decimal reading of written seconds as a [`Time`]: the
 /// shortest round-trip decimal of `v` is read exactly (so `1.1` means
 /// `11/10`, aligned with exact frame times), with a nanosecond-scale
@@ -934,6 +986,12 @@ pub struct ClipMotion {
     paths: Vec<PathWindow>,
     own: [f64; PROP_COUNT],
     exprs: Vec<ExprWindow>,
+    /// Multiplier for expression results naming canvas pixels
+    /// (Sprint 12 outputs, T002): expression strings cannot scale
+    /// statically, so pixel-valued results ride this at draw time.
+    /// 1.0 on unscaled renders, so expression-free and
+    /// expression-driven motion agree exactly there.
+    expr_scale: f64,
     /// The `i` expressions read for this clip: its replicate clone
     /// offset, or 0 for ordinary clips.
     piece: f64,
@@ -958,9 +1016,36 @@ impl ClipMotion {
             paths: Vec::new(),
             own,
             exprs: Vec::new(),
+            expr_scale: 1.0,
             piece: 0.0,
             inputs: Vec::new(),
         }
+    }
+
+    /// Ride expression results naming canvas pixels on `k` (Sprint 12
+    /// outputs, T002): the internal-to-canvas multiplier of a scaled
+    /// render, 1.0 on the identity path. Non-pixel results (angles,
+    /// opacities, colors) never scale.
+    pub fn set_expr_scale(&mut self, k: f64) {
+        self.expr_scale = k;
+    }
+
+    /// True for the engine properties naming canvas pixels (Sprint 12
+    /// outputs, T002): the `Prop` mirror of the canonical pixel
+    /// property names (see `scale::is_pixel_property`).
+    fn prop_is_pixel(prop: Prop) -> bool {
+        matches!(
+            prop,
+            Prop::X
+                | Prop::Y
+                | Prop::Width
+                | Prop::Height
+                | Prop::Radius
+                | Prop::BorderWidth
+                | Prop::Blur
+                | Prop::FontSize
+                | Prop::LetterSpacing
+        )
     }
 
     /// Motion with expression windows attached (Sprint 7 motion,
@@ -1059,7 +1144,21 @@ impl ClipMotion {
             for window in &self.exprs {
                 if window.prop == prop && window.start <= t && t < window.end {
                     let v = window.expr.eval(instant, self.piece, &self.inputs);
-                    expressed = Some(if v.is_finite() { v } else { base });
+                    // Expression strings cannot scale statically, so
+                    // finite pixel-valued results ride the render
+                    // multiplier here (Sprint 12 outputs, T002); the
+                    // non-finite fallback is the tweened value, which
+                    // already scaled statically, so it passes through.
+                    let v = if v.is_finite() {
+                        if Self::prop_is_pixel(prop) {
+                            v * self.expr_scale
+                        } else {
+                            v
+                        }
+                    } else {
+                        base
+                    };
+                    expressed = Some(v);
                 }
             }
         }

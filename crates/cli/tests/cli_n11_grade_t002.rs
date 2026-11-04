@@ -100,10 +100,7 @@ fn detail_grade_checks_and_renders_the_look() {
 
 #[test]
 fn detail_check_refuses_malformed_curve() {
-    let bad = GOOD.replace(
-        "curve red=\"0,0 0.5,0.6 1,1\"",
-        "curve red=\"0,0 0.5\"",
-    );
+    let bad = GOOD.replace("curve red=\"0,0 0.5,0.6 1,1\"", "curve red=\"0,0 0.5\"");
     let (root, _proj) = stage(&bad);
     let (code, out) = run(&["check", "proj"], &root);
     assert_eq!(code, 1, "{out}");

@@ -63,7 +63,12 @@ impl PathCache {
             .into_iter()
             .filter(|s| s.points.len() > 1)
             .collect::<Vec<_>>();
-        let mut bbox = (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+        let mut bbox = (
+            f64::INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NEG_INFINITY,
+        );
         for s in &subpaths {
             for p in &s.points {
                 bbox.0 = bbox.0.min(p[0]);
@@ -117,12 +122,7 @@ fn raster_rule(p: &ResolvedPath) -> sk::FillRule {
 /// about the raw bbox top-left by `scale`, then translated by the
 /// element offset. Rotation rides the warp path (like boxes), never
 /// the points, so the unrotated layer stays sharp.
-fn place_points(
-    cached: &CachedPath,
-    scale: f64,
-    x: f64,
-    y: f64,
-) -> Vec<Vec<[f64; 2]>> {
+fn place_points(cached: &CachedPath, scale: f64, x: f64, y: f64) -> Vec<Vec<[f64; 2]>> {
     let (bx0, by0, _, _) = cached.bbox;
     cached
         .subpaths
@@ -252,12 +252,7 @@ pub(crate) fn draw_path_layer(
             }
         };
         let mut paint = sk::Paint::default();
-        paint.set_color_rgba8(
-            p.border_color.r,
-            p.border_color.g,
-            p.border_color.b,
-            alpha,
-        );
+        paint.set_color_rgba8(p.border_color.r, p.border_color.g, p.border_color.b, alpha);
         paint.anti_alias = true;
         let stroke = sk::Stroke {
             width: width as f32,
@@ -484,7 +479,14 @@ pub(crate) fn draw_path(
             region.2 + margin,
             region.3 + margin,
         );
-        crate::paint::apply_backdrop(frame, cw, chh, region, p.backdrop_blur, p.backdrop_brightness);
+        crate::paint::apply_backdrop(
+            frame,
+            cw,
+            chh,
+            region,
+            p.backdrop_blur,
+            p.backdrop_brightness,
+        );
     }
     // The shadow paints below the element: its own layer, blurred by
     // its own sigma, composited source-over (masks scale it once,
@@ -505,11 +507,17 @@ pub(crate) fn draw_path(
             crate::effects::apply_effects_to_premult(&mut pm, effects);
             crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
             let margin = blur_margin(sigma) + 1.0;
-            let grown = shadow_rect.map(|r| (r.0 - margin, r.1 - margin, r.2 + margin, r.3 + margin));
+            let grown =
+                shadow_rect.map(|r| (r.0 - margin, r.1 - margin, r.2 + margin, r.3 + margin));
             // The shadow warps about the body anchor, so a rotated or
             // turned element carries its shadow along.
             let union = match shadow_rect {
-                Some(r) => (card.0.min(r.0), card.1.min(r.1), card.2.max(r.2), card.3.max(r.3)),
+                Some(r) => (
+                    card.0.min(r.0),
+                    card.1.min(r.1),
+                    card.2.max(r.2),
+                    card.3.max(r.3),
+                ),
                 None => card,
             };
             match (turn, rotated) {
@@ -557,7 +565,12 @@ pub(crate) fn draw_path(
         match (turn, rotated) {
             (None, false) => {
                 let margin = blur_margin(p.blur) + 1.0;
-                let grown = (card.0 - margin, card.1 - margin, card.2 + margin, card.3 + margin);
+                let grown = (
+                    card.0 - margin,
+                    card.1 - margin,
+                    card.2 + margin,
+                    card.3 + margin,
+                );
                 composite_direct_blend(frame, cw, chh, &pm, grown, p.blend_mode, &masks);
             }
             _ => composite_warp_blend(
@@ -579,10 +592,8 @@ pub(crate) fn draw_path(
 
 /// Is `bytes` an SVG picture: UTF-8 text holding an SVG tree.
 fn sniff_svg(bytes: &[u8]) -> Result<resvg::usvg::Tree, String> {
-    let text = std::str::from_utf8(bytes)
-        .map_err(|e| format!("it is not UTF-8 text ({e})"))?;
-    resvg::usvg::Tree::from_str(text, &resvg::usvg::Options::default())
-        .map_err(|e| e.to_string())
+    let text = std::str::from_utf8(bytes).map_err(|e| format!("it is not UTF-8 text ({e})"))?;
+    resvg::usvg::Tree::from_str(text, &resvg::usvg::Options::default()).map_err(|e| e.to_string())
 }
 
 /// Fitted picture size for an SVG target rect: `fill` stretches,
@@ -727,7 +738,18 @@ mod tests {
         for c in frame.chunks_exact_mut(3) {
             c.copy_from_slice(&bg);
         }
-        draw_path(&mut frame, cw, chh, p, cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_path(
+            &mut frame,
+            cw,
+            chh,
+            p,
+            cache,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         frame
     }
 
@@ -742,9 +764,31 @@ mod tests {
         // Two full draws recompute numbers only: no second parse.
         let p = test_path(d);
         let mut f1 = vec![0u8; 64 * 64 * 3];
-        draw_path(&mut f1, 64, 64, &p, &cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_path(
+            &mut f1,
+            64,
+            64,
+            &p,
+            &cache,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         let mut f2 = vec![0u8; 64 * 64 * 3];
-        draw_path(&mut f2, 64, 64, &p, &cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
+        draw_path(
+            &mut f2,
+            64,
+            64,
+            &p,
+            &cache,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .unwrap();
         assert_eq!(f1, f2, "re-renders are byte-identical");
         assert_eq!(cache.parses(), 1);
         // A different string parses once more.
@@ -759,8 +803,16 @@ mod tests {
         let d = "M10,10 L50,10 L50,50 L10,50 Z M20,20 L40,20 L40,40 L20,40 Z";
         let mut p = test_path(d);
         let filled = draw(64, 64, [0, 0, 0], &p, &cache);
-        assert_eq!(px(&filled, 64, 30, 30), [255, 0, 0], "nonzero fills the hole");
-        assert_eq!(px(&filled, 64, 15, 15), [255, 0, 0], "nonzero fills the ring");
+        assert_eq!(
+            px(&filled, 64, 30, 30),
+            [255, 0, 0],
+            "nonzero fills the hole"
+        );
+        assert_eq!(
+            px(&filled, 64, 15, 15),
+            [255, 0, 0],
+            "nonzero fills the ring"
+        );
         p.fill_rule = FillRule::EvenOdd;
         let cut = draw(64, 64, [0, 0, 0], &p, &cache);
         assert_eq!(px(&cut, 64, 30, 30), [0, 0, 0], "evenodd cuts the hole");
@@ -783,7 +835,11 @@ mod tests {
             p.border_color = red();
             p.stroke_position = pos;
             let frame = draw(64, 64, [0, 0, 0], &p, &cache);
-            assert_eq!(px(&frame, 64, 30, 30), [0, 0, 255], "{pos:?} keeps the center fill");
+            assert_eq!(
+                px(&frame, 64, 30, 30),
+                [0, 0, 255],
+                "{pos:?} keeps the center fill"
+            );
         }
         // Inside rings the inner edge; outside rings the outer edge.
         let mut p = test_path(d);
@@ -792,12 +848,28 @@ mod tests {
         p.border_color = red();
         p.stroke_position = StrokePosition::Inside;
         let frame = draw(64, 64, [0, 0, 0], &p, &cache);
-        assert_eq!(px(&frame, 64, 30, 12), [255, 0, 0], "inside strokes the edge");
-        assert_eq!(px(&frame, 64, 30, 8), [0, 0, 0], "inside never leaves the shape");
+        assert_eq!(
+            px(&frame, 64, 30, 12),
+            [255, 0, 0],
+            "inside strokes the edge"
+        );
+        assert_eq!(
+            px(&frame, 64, 30, 8),
+            [0, 0, 0],
+            "inside never leaves the shape"
+        );
         p.stroke_position = StrokePosition::Outside;
         let frame = draw(64, 64, [0, 0, 0], &p, &cache);
-        assert_eq!(px(&frame, 64, 30, 8), [255, 0, 0], "outside strokes past the edge");
-        assert_eq!(px(&frame, 64, 30, 12), [0, 0, 255], "outside keeps the edge fill");
+        assert_eq!(
+            px(&frame, 64, 30, 8),
+            [255, 0, 0],
+            "outside strokes past the edge"
+        );
+        assert_eq!(
+            px(&frame, 64, 30, 12),
+            [0, 0, 255],
+            "outside keeps the edge fill"
+        );
         // Center straddles the edge.
         p.stroke_position = StrokePosition::Center;
         let frame = draw(64, 64, [0, 0, 0], &p, &cache);
@@ -815,7 +887,11 @@ mod tests {
         p.stroke_position = StrokePosition::Outside;
         p.overflow = Overflow::Hidden;
         let frame = draw(64, 64, [0, 0, 0], &p, &cache);
-        assert_eq!(px(&frame, 64, 30, 8), [0, 0, 0], "hidden clips the outset stroke");
+        assert_eq!(
+            px(&frame, 64, 30, 8),
+            [0, 0, 0],
+            "hidden clips the outset stroke"
+        );
         assert_eq!(px(&frame, 64, 30, 12), [0, 0, 255], "hidden keeps the fill");
     }
 
@@ -832,7 +908,11 @@ mod tests {
         });
         let frame = draw(64, 64, [0, 0, 0], &p, &cache);
         assert_eq!(px(&frame, 64, 15, 15), [255, 0, 0], "the body paints above");
-        assert_eq!(px(&frame, 64, 45, 15), [0, 255, 0], "the shadow paints offset");
+        assert_eq!(
+            px(&frame, 64, 45, 15),
+            [0, 255, 0],
+            "the shadow paints offset"
+        );
         assert_eq!(px(&frame, 64, 30, 15), [0, 0, 0], "between stays clear");
     }
 
@@ -843,7 +923,11 @@ mod tests {
         let mut p = test_path("M0,0 L64,0 L64,64 L0,64 Z");
         p.blend_mode = BlendMode::Multiply;
         let frame = draw(64, 64, [0, 0, 255], &p, &cache);
-        assert_eq!(px(&frame, 64, 32, 32), [0, 0, 0], "multiply blends with beneath");
+        assert_eq!(
+            px(&frame, 64, 32, 32),
+            [0, 0, 0],
+            "multiply blends with beneath"
+        );
         // A left-half mask clears the right half exactly once.
         let mut p = test_path("M0,0 L64,0 L64,64 L0,64 Z");
         p.mask = Some(MaskShape {
@@ -863,7 +947,18 @@ mod tests {
         let cache = PathCache::new();
         let p = test_path("M10,10 X20,20");
         let mut frame = vec![0u8; 64 * 64 * 3];
-        let err = draw_path(&mut frame, 64, 64, &p, &cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).expect_err("bad d must refuse");
+        let err = draw_path(
+            &mut frame,
+            64,
+            64,
+            &p,
+            &cache,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        )
+        .expect_err("bad d must refuse");
         assert!(err.contains("command 2"), "{err}");
     }
 
@@ -885,9 +980,15 @@ mod tests {
     #[test]
     fn svg_below_64px_rasterizes_at_its_declared_size() {
         let dir = svg_dir("small", "logo.svg", LOGO_48X32);
-        let decoded =
-            decode_svg_image(&dir, "logo.svg", 48.0, 32.0, Fit::Contain, Placement::center())
-                .unwrap();
+        let decoded = decode_svg_image(
+            &dir,
+            "logo.svg",
+            48.0,
+            32.0,
+            Fit::Contain,
+            Placement::center(),
+        )
+        .unwrap();
         assert_eq!((decoded.width, decoded.height), (48, 32));
         // The rect fills the whole canvas: corners and center are red.
         for (x, y) in [(0, 0), (47, 0), (0, 31), (47, 31), (24, 16)] {
@@ -902,9 +1003,15 @@ mod tests {
         // A square tree in a wide target: contain letterboxes, fill
         // stretches, cover bleeds — the same contract as the blitter.
         let dir = svg_dir("fit", "sq.svg", b"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"32\"><rect width=\"32\" height=\"32\" fill=\"#00ff00\"/></svg>");
-        let contained =
-            decode_svg_image(&dir, "sq.svg", 64.0, 32.0, Fit::Contain, Placement::center())
-                .unwrap();
+        let contained = decode_svg_image(
+            &dir,
+            "sq.svg",
+            64.0,
+            32.0,
+            Fit::Contain,
+            Placement::center(),
+        )
+        .unwrap();
         assert_eq!((contained.width, contained.height), (64, 32));
         // Letterbox bars stay transparent; the centered square is green.
         let edge = |x: usize, y: usize| contained.rgba[(y * 64 + x) * 4 + 3];
@@ -912,8 +1019,8 @@ mod tests {
         assert_eq!(edge(61, 16), 0, "right bar stays transparent");
         let o = (16 * 64 + 32) * 4;
         assert_eq!(&contained.rgba[o..o + 4], [0, 255, 0, 255]);
-        let filled = decode_svg_image(&dir, "sq.svg", 64.0, 32.0, Fit::Fill, Placement::center())
-            .unwrap();
+        let filled =
+            decode_svg_image(&dir, "sq.svg", 64.0, 32.0, Fit::Fill, Placement::center()).unwrap();
         let o = (16 * 64 + 2) * 4;
         assert_eq!(filled.rgba[o + 3], 255, "fill stretches edge to edge");
         let _ = std::fs::remove_dir_all(&dir);
@@ -923,8 +1030,15 @@ mod tests {
     fn unreadable_svg_refuses_naming_the_file() {
         let dir = svg_dir("missing", "empty.svg", b"");
         let _ = std::fs::remove_file(dir.join("empty.svg"));
-        let err = decode_svg_image(&dir, "empty.svg", 48.0, 32.0, Fit::Contain, Placement::center())
-            .expect_err("missing file must refuse");
+        let err = decode_svg_image(
+            &dir,
+            "empty.svg",
+            48.0,
+            32.0,
+            Fit::Contain,
+            Placement::center(),
+        )
+        .expect_err("missing file must refuse");
         assert!(err.contains("empty.svg"), "{err}");
         assert!(err.contains("no MP4 was written"), "{err}");
         let _ = std::fs::remove_dir_all(&dir);
@@ -933,8 +1047,15 @@ mod tests {
     #[test]
     fn corrupt_svg_refuses_naming_the_file() {
         let dir = svg_dir("corrupt", "bad.svg", b"definitely not svg {{{");
-        let err = decode_svg_image(&dir, "bad.svg", 48.0, 32.0, Fit::Contain, Placement::center())
-            .expect_err("corrupt file must refuse");
+        let err = decode_svg_image(
+            &dir,
+            "bad.svg",
+            48.0,
+            32.0,
+            Fit::Contain,
+            Placement::center(),
+        )
+        .expect_err("corrupt file must refuse");
         assert!(err.contains("bad.svg"), "{err}");
         assert!(err.contains("cannot be decoded"), "{err}");
         let _ = std::fs::remove_dir_all(&dir);
@@ -1018,7 +1139,10 @@ mod tests {
                 per_size[i].push(t.elapsed().as_nanos());
             }
         }
-        let totals: Vec<f64> = per_size.iter().map(|xs| median(xs.clone()) as f64).collect();
+        let totals: Vec<f64> = per_size
+            .iter()
+            .map(|xs| median(xs.clone()) as f64)
+            .collect();
         let slope_small = (totals[1] - totals[0]) / 12.0;
         let slope_big = (totals[2] - totals[1]) / 24.0;
         let ratio = slope_big / slope_small.max(1.0);

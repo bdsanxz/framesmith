@@ -1,0 +1,10 @@
+composition name="main" root=true width=160 height=120 duration=2 fps=15 background="#112233" version=1 {
+  video path="clip.mov" start=0 duration=2 fit="fill"
+  text value="Hi" start=0 duration=2 x=10 y=20 size=24 color="#ffffff"
+  audio path="tone.wav" start=0 duration=2
+}
+composition name="hdr" width=160 height=120 duration=2 fps=15 background="#000000" version=1 {
+  video path="hdr-pq.mp4" start=0 duration=2 fit="fill"
+  text value="HDR" start=0 duration=2 x=10 y=20 size=24 color="#ffffff"
+  audio path="tone.wav" start=0 duration=2
+}

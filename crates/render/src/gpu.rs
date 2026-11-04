@@ -435,13 +435,13 @@ pub(crate) fn render_description_split(
     folder: &std::path::Path,
     desc: &FrameDescription,
 ) -> Result<Vec<u8>, String> {
+    use crate::render::fill_graded_background;
     use crate::render::{
         blit_dest, blit_fit, blur_on, draw_bitmap_advanced, draw_bitmap_text_item,
         draw_bitmap_text_layer, draw_box, draw_box_advanced, draw_image, draw_image_advanced,
-        draw_text_advanced, draw_text_block, draw_video_advanced, item_turn,
-        layer_ink_bbox, pick_picture_or_hold, turn_probe, wrap_loop_time,
+        draw_text_advanced, draw_text_block, draw_video_advanced, item_turn, layer_ink_bbox,
+        pick_picture_or_hold, turn_probe, wrap_loop_time,
     };
-    use crate::render::fill_graded_background;
     let (cw, chh) = (desc.width, desc.height);
     let mut frame = vec![0u8; cw as usize * chh as usize * 3];
     // LUT grids resolve once per frame from disk (Sprint 11 grade,
@@ -516,8 +516,15 @@ pub(crate) fn render_description_split(
                 let card = blit_dest(cw, chh, sw, sh, v.fit, qv.scale, qv.x, qv.y)
                     .map(|(dx, dy, dw, dh)| (dx, dy, dx + dw, dy + dh));
                 let turn = card.and_then(|c| item_turn(qv.rotate_x, qv.rotate_y, &qv.turn, c));
-                if blur_on(qv.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
-                    draw_video_advanced(&mut frame, cw, chh, &qv, &pic, sw, sh, turn, &grade, effects, vfx, &maps);
+                if blur_on(qv.blur)
+                    || turn.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_video_advanced(
+                        &mut frame, cw, chh, &qv, &pic, sw, sh, turn, &grade, effects, vfx, &maps,
+                    );
                 } else {
                     blit_fit(
                         &mut frame,
@@ -574,9 +581,15 @@ pub(crate) fn render_description_split(
                             q.y + block.height as f64 * q.scale,
                         );
                         let turn = item_turn(q.rotate_x, q.rotate_y, &q.turn, card);
-                        if blur_on(q.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                        if blur_on(q.blur)
+                            || turn.is_some()
+                            || !grade.is_empty()
+                            || !effects.is_empty()
+                            || !vfx.is_empty()
+                        {
                             draw_text_advanced(
-                                &mut frame, cw, chh, raster, &block, &q, turn, card, &grade, effects, vfx, &maps,
+                                &mut frame, cw, chh, raster, &block, &q, turn, card, &grade,
+                                effects, vfx, &maps,
                             )
                             .map_err(|e| format!("gpu render failed: {e}"))?;
                         } else {
@@ -586,7 +599,12 @@ pub(crate) fn render_description_split(
                     }
                     None if bitmap_fallback => {
                         let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
-                        if !(blur_on(q.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty()) {
+                        if !(blur_on(q.blur)
+                            || probe.is_some()
+                            || !grade.is_empty()
+                            || !effects.is_empty()
+                            || !vfx.is_empty())
+                        {
                             draw_bitmap_text_item(&mut frame, cw, chh, &q);
                         } else if q.scale <= 0.0 || !q.scale.is_finite() || q.opacity <= 0.0 {
                             // Nothing draws, exactly like the CPU path.
@@ -604,7 +622,8 @@ pub(crate) fn render_description_split(
                                 let card = (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
                                 let turn = item_turn(q.rotate_x, q.rotate_y, &q.turn, card);
                                 draw_bitmap_advanced(
-                                    &mut frame, cw, chh, &layer, &q, turn, card, &grade, effects, vfx, &maps,
+                                    &mut frame, cw, chh, &layer, &q, turn, card, &grade, effects,
+                                    vfx, &maps,
                                 );
                             }
                         }
@@ -642,11 +661,20 @@ pub(crate) fn render_description_split(
                 // path.
                 let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
                 if q.paint_stack_active() {
-                    crate::paint::draw_box_paint(&mut frame, cw, chh, &q, images, folder, &grade, effects, vfx, &maps)
-                        .map_err(|e| format!("gpu render failed: {e}"))?;
-                } else if blur_on(q.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
-                    draw_box_advanced(&mut frame, cw, chh, &q, images, folder, &grade, effects, vfx, &maps)
-                        .map_err(|e| format!("gpu render failed: {e}"))?;
+                    crate::paint::draw_box_paint(
+                        &mut frame, cw, chh, &q, images, folder, &grade, effects, vfx, &maps,
+                    )
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
+                } else if blur_on(q.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_box_advanced(
+                        &mut frame, cw, chh, &q, images, folder, &grade, effects, vfx, &maps,
+                    )
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
                 } else {
                     draw_box(&mut frame, cw, chh, &q, images, folder)
                         .map_err(|e| format!("gpu render failed: {e}"))?;
@@ -669,8 +697,10 @@ pub(crate) fn render_description_split(
                 };
                 // Sprint 8 look (T005): the single path painter serves
                 // both traversals, so CPU and GPU agree pixel for pixel.
-                crate::path_paint::draw_path(&mut frame, cw, chh, &r, paths, &grade, effects, vfx, &maps)
-                    .map_err(|e| format!("gpu render failed: {e}"))?;
+                crate::path_paint::draw_path(
+                    &mut frame, cw, chh, &r, paths, &grade, effects, vfx, &maps,
+                )
+                .map_err(|e| format!("gpu render failed: {e}"))?;
             }
             FrameItem::Image(im) => {
                 // Inward-out look for this image (Sprint 11 grade T001, effects T004).
@@ -701,8 +731,15 @@ pub(crate) fn render_description_split(
                 // blitter; blur and the turn ride through exact. A graded
                 // image takes the layer path, exactly like the CPU side.
                 let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
-                if blur_on(q.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
-                    draw_image_advanced(&mut frame, cw, chh, &q, &decoded, &grade, effects, vfx, &maps);
+                if blur_on(q.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_image_advanced(
+                        &mut frame, cw, chh, &q, &decoded, &grade, effects, vfx, &maps,
+                    );
                 } else {
                     draw_image(&mut frame, cw, chh, &q, &decoded);
                 }
@@ -854,8 +891,8 @@ mod tests {
                     line_height: Some(30.0),
                     letter_spacing: Some(1.5),
                     font_family: None,
-            direction: notation::model::TextDirection::Ltr,
-            spans: Vec::new(),
+                    direction: notation::model::TextDirection::Ltr,
+                    spans: Vec::new(),
                     split: None,
                     typewriter: false,
                     count_from: None,
@@ -1143,10 +1180,7 @@ mod tests {
         };
         let motions = plan_motions(&comp, 30);
         let desc = describe(&comp, &motions, 0);
-        assert!(
-            !desc.grade_for(0).is_empty(),
-            "the clip grade must resolve"
-        );
+        assert!(!desc.grade_for(0).is_empty(), "the clip grade must resolve");
         let fp = fingerprint(&desc);
         assert!(fp.contains("filmic"), "{fp}");
         assert!(fp.contains("cg="), "{fp}");
@@ -1313,11 +1347,7 @@ mod tests {
             })
         }
         let comp = still_comp(vec![
-            path(
-                "M8,8 L56,8 L56,56 L8,56 Z",
-                FillRule::NonZero,
-                1,
-            ),
+            path("M8,8 L56,8 L56,56 L8,56 Z", FillRule::NonZero, 1),
             path(
                 "M10,10 L54,10 L54,54 L10,54 Z M22,22 L42,22 L42,42 L22,42 Z",
                 FillRule::EvenOdd,
@@ -1608,7 +1638,11 @@ mod tests {
                 y: 4.0,
                 width: 24.0,
                 height: 16.0,
-                fill: Rgb { r: 255, g: 255, b: 255 },
+                fill: Rgb {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
                 fill_paint: FillPaint::Linear {
                     angle: 90.0,
                     stops: vec![
@@ -1661,7 +1695,11 @@ mod tests {
                 y: 4.0,
                 width: 24.0,
                 height: 16.0,
-                fill: Rgb { r: 255, g: 255, b: 255 },
+                fill: Rgb {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
                 fill_paint: FillPaint::Image {
                     src: "bg.png".to_string(),
                     fit: notation::model::Fit::Cover,
@@ -1766,7 +1804,11 @@ mod tests {
             y: 4.0,
             width: 24.0,
             height: 16.0,
-            fill: Rgb { r: 255, g: 255, b: 255 },
+            fill: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             fill_paint: FillPaint::Image {
                 src: "gone.png".to_string(),
                 fit: notation::model::Fit::Cover,

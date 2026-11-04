@@ -159,15 +159,13 @@ impl ResolvedBox {
 /// here resolves to no mask rather than guessing.
 pub fn resolve_mask_shape(comp: &Composition, target: &str) -> Option<notation::model::MaskShape> {
     comp.clips.iter().find_map(|c| match c {
-        Clip::Box(b) if b.id.as_deref() == Some(target) => {
-            Some(notation::model::MaskShape {
-                x: b.x,
-                y: b.y,
-                width: b.width,
-                height: b.height,
-                radius: b.radius,
-            })
-        }
+        Clip::Box(b) if b.id.as_deref() == Some(target) => Some(notation::model::MaskShape {
+            x: b.x,
+            y: b.y,
+            width: b.width,
+            height: b.height,
+            radius: b.radius,
+        }),
         _ => None,
     })
 }
@@ -516,14 +514,8 @@ pub fn describe_nested_at_filtered(
     keep_top: Option<&dyn Fn(usize) -> bool>,
 ) -> FrameDescription {
     let comp = view.comps[root];
-    let (mut items, grades) = collect_items(
-        view,
-        root,
-        now,
-        0,
-        &ResolvedGrade::identity(),
-        keep_top,
-    );
+    let (mut items, grades) =
+        collect_items(view, root, now, 0, &ResolvedGrade::identity(), keep_top);
     // Written order decides; document order breaks ties, and no other
     // stacking (element kind or timing) overrides it. `sort_by` is
     // stable, so equal orders keep document order.
@@ -621,101 +613,116 @@ fn collect_items(
         match clip {
             Clip::Text(tc) => {
                 items.push(FrameItem::Text(ResolvedText {
-                doc,
-                order: tc.order,
-                // Sprint 7 text effects (CAP-009): a typewriter reveal
-                // or count range shows its own string at this instant;
-                // still and merely-split clips show the authored value.
-                value: crate::textfx::display_value(tc, t),
-                // Split, typewriter, and count never combine with spans
-                // (refused at validation), so an empty value with spans
-                // is always a still span text with ink to draw.
-                has_spans: !tc.spans.is_empty(),
-                x: eval.x,
-                y: eval.y,
-                size: eval.font_size,
-                color: tc.color,
-                style: tc.style,
-                line_height: tc.line_height,
-                letter_spacing: match (tc.letter_spacing, touches(Prop::LetterSpacing)) {
-                    (Some(_), _) | (None, true) => Some(eval.letter_spacing),
-                    (None, false) => None,
-                },
-                scale: eval.scale,
-                rotation: eval.rotation,
-                opacity: eval.opacity,
-                rotate_x: eval.rotate_x,
-                rotate_y: eval.rotate_y,
-                blur: eval.blur,
-                turn: tc.turn,
-            }));
-            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+                    doc,
+                    order: tc.order,
+                    // Sprint 7 text effects (CAP-009): a typewriter reveal
+                    // or count range shows its own string at this instant;
+                    // still and merely-split clips show the authored value.
+                    value: crate::textfx::display_value(tc, t),
+                    // Split, typewriter, and count never combine with spans
+                    // (refused at validation), so an empty value with spans
+                    // is always a still span text with ink to draw.
+                    has_spans: !tc.spans.is_empty(),
+                    x: eval.x,
+                    y: eval.y,
+                    size: eval.font_size,
+                    color: tc.color,
+                    style: tc.style,
+                    line_height: tc.line_height,
+                    letter_spacing: match (tc.letter_spacing, touches(Prop::LetterSpacing)) {
+                        (Some(_), _) | (None, true) => Some(eval.letter_spacing),
+                        (None, false) => None,
+                    },
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: tc.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
             }
             Clip::Video(v) => {
                 items.push(FrameItem::Video(ResolvedVideo {
-                doc,
-                order: v.order,
-                // Sprint 5 T002: the clip consumes its source window at
-                // the declared rate — composition seconds past the clip
-                // start advance `rate` source seconds from `trim_start`.
-                src_t: v.trim_start + (t - v.start).max(0.0) * v.rate,
-                fit: v.fit,
-                x: eval.x,
-                y: eval.y,
-                scale: eval.scale,
-                rotation: eval.rotation,
-                opacity: eval.opacity,
-                rotate_x: eval.rotate_x,
-                rotate_y: eval.rotate_y,
-                blur: eval.blur,
-                turn: v.turn,
-            }));
-            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+                    doc,
+                    order: v.order,
+                    // Sprint 5 T002: the clip consumes its source window at
+                    // the declared rate — composition seconds past the clip
+                    // start advance `rate` source seconds from `trim_start`.
+                    src_t: v.trim_start + (t - v.start).max(0.0) * v.rate,
+                    fit: v.fit,
+                    x: eval.x,
+                    y: eval.y,
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: v.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
             }
             Clip::Box(b) => {
                 items.push(FrameItem::Box(ResolvedBox {
-                doc,
-                order: b.order,
-                x: eval.x,
-                y: eval.y,
-                width: eval.width,
-                height: eval.height,
-                fill: Rgb {
-                    r: channel_byte(eval.fill[0]),
-                    g: channel_byte(eval.fill[1]),
-                    b: channel_byte(eval.fill[2]),
-                },
-                fill_paint: b.fill_paint.clone(),
-                radius: eval.radius,
-                border_width: eval.border_width,
-                border_color: Rgb {
-                    r: channel_byte(eval.border[0]),
-                    g: channel_byte(eval.border[1]),
-                    b: channel_byte(eval.border[2]),
-                },
-                stroke_position: b.stroke_position,
-                box_shadow: b.box_shadow,
-                blend_mode: b.blend_mode,
-                backdrop_blur: b.backdrop_blur,
-                backdrop_brightness: b.backdrop_brightness,
-                overflow: b.overflow,
-                mask: b
-                    .mask
-                    .as_ref()
-                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
-                clip_path: b
-                    .clip_path
-                    .as_ref()
-                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
-                opacity: eval.opacity,
-                scale: eval.scale,
-                rotation: eval.rotation,
-                rotate_x: eval.rotate_x,
-                rotate_y: eval.rotate_y,
-                blur: eval.blur,
-                turn: b.turn,
-            }));
-            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+                    doc,
+                    order: b.order,
+                    x: eval.x,
+                    y: eval.y,
+                    width: eval.width,
+                    height: eval.height,
+                    fill: Rgb {
+                        r: channel_byte(eval.fill[0]),
+                        g: channel_byte(eval.fill[1]),
+                        b: channel_byte(eval.fill[2]),
+                    },
+                    fill_paint: b.fill_paint.clone(),
+                    radius: eval.radius,
+                    border_width: eval.border_width,
+                    border_color: Rgb {
+                        r: channel_byte(eval.border[0]),
+                        g: channel_byte(eval.border[1]),
+                        b: channel_byte(eval.border[2]),
+                    },
+                    stroke_position: b.stroke_position,
+                    box_shadow: b.box_shadow,
+                    blend_mode: b.blend_mode,
+                    backdrop_blur: b.backdrop_blur,
+                    backdrop_brightness: b.backdrop_brightness,
+                    overflow: b.overflow,
+                    mask: b
+                        .mask
+                        .as_ref()
+                        .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                    clip_path: b
+                        .clip_path
+                        .as_ref()
+                        .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                    opacity: eval.opacity,
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: b.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
             }
             // A `flex` container (Sprint 8 layout, T001) emits one box
             // item per laid-out child: the shared layout function
@@ -849,46 +856,51 @@ fn collect_items(
             // motion of its own in T005.
             Clip::Path(p) => {
                 items.push(FrameItem::Path(ResolvedPath {
-                doc,
-                order: p.order,
-                x: eval.x,
-                y: eval.y,
-                d: p.d.clone(),
-                fill: Rgb {
-                    r: channel_byte(eval.fill[0]),
-                    g: channel_byte(eval.fill[1]),
-                    b: channel_byte(eval.fill[2]),
-                },
-                fill_rule: p.fill_rule,
-                border_width: eval.border_width,
-                border_color: Rgb {
-                    r: channel_byte(eval.border[0]),
-                    g: channel_byte(eval.border[1]),
-                    b: channel_byte(eval.border[2]),
-                },
-                stroke_position: p.stroke_position,
-                box_shadow: p.box_shadow,
-                blend_mode: p.blend_mode,
-                backdrop_blur: p.backdrop_blur,
-                backdrop_brightness: p.backdrop_brightness,
-                overflow: p.overflow,
-                mask: p
-                    .mask
-                    .as_ref()
-                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
-                clip_path: p
-                    .clip_path
-                    .as_ref()
-                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
-                opacity: eval.opacity,
-                scale: eval.scale,
-                rotation: eval.rotation,
-                rotate_x: eval.rotate_x,
-                rotate_y: eval.rotate_y,
-                blur: eval.blur,
-                turn: p.turn,
-            }));
-            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+                    doc,
+                    order: p.order,
+                    x: eval.x,
+                    y: eval.y,
+                    d: p.d.clone(),
+                    fill: Rgb {
+                        r: channel_byte(eval.fill[0]),
+                        g: channel_byte(eval.fill[1]),
+                        b: channel_byte(eval.fill[2]),
+                    },
+                    fill_rule: p.fill_rule,
+                    border_width: eval.border_width,
+                    border_color: Rgb {
+                        r: channel_byte(eval.border[0]),
+                        g: channel_byte(eval.border[1]),
+                        b: channel_byte(eval.border[2]),
+                    },
+                    stroke_position: p.stroke_position,
+                    box_shadow: p.box_shadow,
+                    blend_mode: p.blend_mode,
+                    backdrop_blur: p.backdrop_blur,
+                    backdrop_brightness: p.backdrop_brightness,
+                    overflow: p.overflow,
+                    mask: p
+                        .mask
+                        .as_ref()
+                        .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                    clip_path: p
+                        .clip_path
+                        .as_ref()
+                        .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                    opacity: eval.opacity,
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: p.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
             }
             Clip::Image(im) => {
                 // SVG sources (Sprint 8 look, T005) decode pre-composed
@@ -920,15 +932,20 @@ fn collect_items(
                     height: img_height,
                     fit: svg_fit(im),
                     placement: svg_placement(im),
-                scale: eval.scale,
-                rotation: eval.rotation,
-                opacity: eval.opacity,
-                rotate_x: eval.rotate_x,
-                rotate_y: eval.rotate_y,
-                blur: eval.blur,
-                turn: im.turn,
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: im.turn,
                 }));
-                grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
             }
             // An `svg` clip resolves to an image item: validation
             // guarantees `width`/`height`, and preparation decodes the
@@ -936,30 +953,35 @@ fn collect_items(
             // blitter draws it with `fill` placement.
             Clip::Svg(sv) => {
                 items.push(FrameItem::Image(ResolvedImage {
-                doc,
-                order: sv.order,
-                path: sv.path.clone(),
-                x: eval.x,
-                y: eval.y,
-                width: Some(match touches(Prop::Width) {
-                    true => eval.width,
-                    false => sv.width,
-                }),
-                height: Some(match touches(Prop::Height) {
-                    true => eval.height,
-                    false => sv.height,
-                }),
-                fit: Fit::Fill,
-                placement: Placement::center(),
-                scale: eval.scale,
-                rotation: eval.rotation,
-                opacity: eval.opacity,
-                rotate_x: eval.rotate_x,
-                rotate_y: eval.rotate_y,
-                blur: eval.blur,
-                turn: sv.turn,
-            }));
-            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+                    doc,
+                    order: sv.order,
+                    path: sv.path.clone(),
+                    x: eval.x,
+                    y: eval.y,
+                    width: Some(match touches(Prop::Width) {
+                        true => eval.width,
+                        false => sv.width,
+                    }),
+                    height: Some(match touches(Prop::Height) {
+                        true => eval.height,
+                        false => sv.height,
+                    }),
+                    fit: Fit::Fill,
+                    placement: Placement::center(),
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: sv.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
             }
         }
     }
@@ -2405,7 +2427,14 @@ mod tests {
         // pieces win, the lane's saturation and the composition's
         // contrast inherit.
         let mut comp = comp_with(vec![boxed_on_track(TrackKind::Video, 0.0, 2.0, 0)]);
-        comp.grade = grade(Some(GradePreset::Filmic), Some(1.0), Some(0.2), None, None, None);
+        comp.grade = grade(
+            Some(GradePreset::Filmic),
+            Some(1.0),
+            Some(0.2),
+            None,
+            None,
+            None,
+        );
         comp.lane_grades = vec![notation::model::LaneGrade {
             track: TrackKind::Video,
             grade: grade(None, Some(-0.5), None, Some(0.5), None, None),
@@ -2522,7 +2551,10 @@ mod tests {
         child.name = "kid".to_string();
         if let Clip::Box(b) = &mut child.clips[0] {
             b.vfx = VfxChain {
-                noise: Some(VfxNoise { amount: 0.5, seed: Some(7) }),
+                noise: Some(VfxNoise {
+                    amount: 0.5,
+                    seed: Some(7),
+                }),
                 ..VfxChain::empty()
             };
         }
@@ -2542,8 +2574,15 @@ mod tests {
             grade: notation::model::Grade::default(),
             effects: Vec::new(),
             vfx: VfxChain {
-                noise: Some(VfxNoise { amount: 1.0, seed: Some(9) }),
-                warp: Some(VfxWarp { amount: 1.0, grid: Some(8), strength: None }),
+                noise: Some(VfxNoise {
+                    amount: 1.0,
+                    seed: Some(9),
+                }),
+                warp: Some(VfxWarp {
+                    amount: 1.0,
+                    grid: Some(8),
+                    strength: None,
+                }),
                 ..VfxChain::empty()
             },
             line: 1,
@@ -2588,6 +2627,9 @@ mod tests {
         assert_eq!(resolved.preset, notation::model::GradePreset::Noir);
         assert_eq!(resolved.saturation, -0.5);
         assert_eq!(resolved.exposure, 0.0);
-        assert_eq!(desc.grade_for(99), notation::model::ResolvedGrade::identity());
+        assert_eq!(
+            desc.grade_for(99),
+            notation::model::ResolvedGrade::identity()
+        );
     }
 }

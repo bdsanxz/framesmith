@@ -7,7 +7,9 @@
 //! * `framesmith errors [--json] [CODE]` — explain error codes.
 //! * `framesmith render <folder> [-o <out.mp4>] [--composition <name>] [--start S] [--end E]
 //!   [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]
-//!   [--variables JSON] [--strict-variables] [--theme NAME]`
+//!   [--variables JSON] [--strict-variables] [--theme NAME]
+//!   [--format ..] [--prores-profile ..] [--resolution ..] [--supersample N]
+//!   [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto]`
 //!   — validate, bootstrap FFmpeg (pinned self-download or refusal),
 //!   refuse or encode with staged progress.
 //! * `framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]`
@@ -34,7 +36,7 @@ fn usage() -> ! {
          \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
-         \x20 framesmith render <folder> [-o <output.mp4>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--variables JSON] [--strict-variables] [--theme NAME] [--json]\n\
+         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080] [--supersample 1|2|3|4] [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--json]\n\
          \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row\n\
          \x20 framesmith grade-bake [--composition <name>] -o <out.cube> <folder>"
     );
@@ -340,6 +342,102 @@ fn main() {
                         }
                         req.video_bitrate = Some(args[i].clone());
                     }
+                    "--format" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --format needs a value (mp4, hevc, webm, prores, gif, pngseq, or hls).");
+                            std::process::exit(2);
+                        }
+                        if req.format.is_some() {
+                            eprintln!("framesmith render: duplicate --format flag.");
+                            std::process::exit(2);
+                        }
+                        req.format = Some(args[i].clone());
+                    }
+                    "--prores-profile" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --prores-profile needs a value (proxy, lt, standard, hq, or 4444).");
+                            std::process::exit(2);
+                        }
+                        if req.prores_profile.is_some() {
+                            eprintln!("framesmith render: duplicate --prores-profile flag.");
+                            std::process::exit(2);
+                        }
+                        req.prores_profile = Some(args[i].clone());
+                    }
+                    "--resolution" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --resolution needs a value (source, 1080p, 720p, 480p, or square-1080).");
+                            std::process::exit(2);
+                        }
+                        if req.resolution.is_some() {
+                            eprintln!("framesmith render: duplicate --resolution flag.");
+                            std::process::exit(2);
+                        }
+                        req.resolution = Some(args[i].clone());
+                    }
+                    "--supersample" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --supersample needs a value (a whole number from 1 to 4).");
+                            std::process::exit(2);
+                        }
+                        if req.supersample.is_some() {
+                            eprintln!("framesmith render: duplicate --supersample flag.");
+                            std::process::exit(2);
+                        }
+                        req.supersample = Some(args[i].clone());
+                    }
+                    "--encoder" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --encoder needs a value (auto, software, or videotoolbox).");
+                            std::process::exit(2);
+                        }
+                        if req.encoder.is_some() {
+                            eprintln!("framesmith render: duplicate --encoder flag.");
+                            std::process::exit(2);
+                        }
+                        req.encoder = Some(args[i].clone());
+                    }
+                    "--keyint" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --keyint needs a value (a positive whole number of frames, for example 60).");
+                            std::process::exit(2);
+                        }
+                        if req.keyint.is_some() {
+                            eprintln!("framesmith render: duplicate --keyint flag.");
+                            std::process::exit(2);
+                        }
+                        req.keyint = Some(args[i].clone());
+                    }
+                    "--maxrate" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --maxrate needs a value (a peak bitrate, for example 8M).");
+                            std::process::exit(2);
+                        }
+                        if req.maxrate.is_some() {
+                            eprintln!("framesmith render: duplicate --maxrate flag.");
+                            std::process::exit(2);
+                        }
+                        req.maxrate = Some(args[i].clone());
+                    }
+                    "--hdr" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith render: --hdr needs a value (off, pq, hlg, or auto).");
+                            std::process::exit(2);
+                        }
+                        if req.hdr.is_some() {
+                            eprintln!("framesmith render: duplicate --hdr flag.");
+                            std::process::exit(2);
+                        }
+                        req.hdr = Some(args[i].clone());
+                    }
                     "--json" => {
                         if req.json {
                             eprintln!("framesmith render: duplicate --json flag.");
@@ -512,7 +610,9 @@ fn main() {
                     "--composition" => {
                         i += 1;
                         if i >= args.len() {
-                            grade_bake_usage_error("--composition needs a value (a composition name)");
+                            grade_bake_usage_error(
+                                "--composition needs a value (a composition name)",
+                            );
                         }
                         if composition.is_some() {
                             grade_bake_usage_error("duplicate --composition flag");
@@ -625,7 +725,7 @@ fn main() {
                  \x20 timeline [--json] [--composition <name>] <folder> [<name>]  list every clip with id, track, label, hidden state, and window\n\
                  \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
                  \x20 waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]  report per-bucket mix peaks plus the master peak\n\
-                 \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--variables JSON] [--strict-variables] [--theme NAME] [--json]  validate, bootstrap FFmpeg, refuse or encode\n\
+                 \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format ..] [--resolution ..] [--supersample N] [--variables JSON] [--strict-variables] [--theme NAME] [--json]  validate, bootstrap FFmpeg, refuse or encode\n\
                  \x20 render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row plus a per-row summary\n\
                  \x20 grade-bake [--composition <name>] -o <out.cube> <folder>  bake the composition grade to an equivalent `.cube`"
             );

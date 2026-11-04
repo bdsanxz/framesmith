@@ -50,8 +50,12 @@ pub fn active_transitions(comp: &Composition, now: Time) -> Vec<ActiveTransition
     let mut out = Vec::new();
     for t in &comp.transitions {
         let (Some(to_idx), Some(from_idx)) = (
-            comp.clips.iter().position(|c| c.id() == Some(t.to.as_str())),
-            comp.clips.iter().position(|c| c.id() == Some(t.from.as_str())),
+            comp.clips
+                .iter()
+                .position(|c| c.id() == Some(t.to.as_str())),
+            comp.clips
+                .iter()
+                .position(|c| c.id() == Some(t.from.as_str())),
         ) else {
             continue;
         };
@@ -700,9 +704,10 @@ mod tests {
         // Near the front radius the weight is strictly partial, so a
         // feathered ring of true purple separates the two sides.
         let mid = blend_kind(&a, &b, TransitionKind::Iris, 0.5);
-        let partial = mid.px.iter().any(|px| {
-            px[0] > 0.01 && px[0] < 0.99 && (px[0] - (1.0 - px[2])).abs() < 1e-9
-        });
+        let partial = mid
+            .px
+            .iter()
+            .any(|px| px[0] > 0.01 && px[0] < 0.99 && (px[0] - (1.0 - px[2])).abs() < 1e-9);
         assert!(partial, "iris must feather between red and blue");
     }
 
@@ -991,9 +996,7 @@ mod tests {
     }
 
     fn draw_frame_cpu(comp: &Composition, frame: u64) -> Vec<u8> {
-        use crate::render::{
-            draw_planned_transition, plan_transition_frame, Backend,
-        };
+        use crate::render::{draw_planned_transition, plan_transition_frame, Backend};
         let motions = plan_motions(comp, 1);
         let nest = NestView::single(comp, &motions);
         let at = frame_time(&comp.fps, frame);

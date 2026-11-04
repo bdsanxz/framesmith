@@ -136,9 +136,7 @@ fn fade_bridge_blends_midway_and_hands_off_at_the_seams() {
     // Mid-bridge (t=1.5): half-mixed purple, not a cut to either side.
     let mid = output_frame(&mp4, 45, 64, 64);
     assert!(
-        (100..=170).contains(&mid[o])
-            && mid[o + 1] <= 64
-            && (100..=170).contains(&mid[o + 2]),
+        (100..=170).contains(&mid[o]) && mid[o + 1] <= 64 && (100..=170).contains(&mid[o + 2]),
         "mid-bridge frame must half-mix red and blue, got {},{},{}",
         mid[o],
         mid[o + 1],
@@ -162,7 +160,10 @@ fn transitioned_timeline_decodes_to_the_same_frame_count() {
     let (_root, proj) = check_and_render(FADE);
     let bridged = decode_all(&proj.join("out.mp4"));
     assert_eq!(bridged.len(), 60 * 64 * 64 * 3);
-    let plain = FADE.replace("\n transition from=\"a\" to=\"b\" duration=1 kind=\"fade\"", "");
+    let plain = FADE.replace(
+        "\n transition from=\"a\" to=\"b\" duration=1 kind=\"fade\"",
+        "",
+    );
     let (_root, proj) = check_and_render(&plain);
     let unbridged = decode_all(&proj.join("out.mp4"));
     assert_eq!(unbridged.len(), bridged.len());

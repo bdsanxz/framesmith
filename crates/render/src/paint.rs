@@ -14,8 +14,8 @@
 use crate::blur::Premult;
 use crate::frame::ResolvedBox;
 use crate::render::{
-    blur_margin, blur_on, draw_box_layer, fill_image_decoded, item_turn, layer_blend,
-    rr_coverage, warp_bounds,
+    blur_margin, blur_on, draw_box_layer, fill_image_decoded, item_turn, layer_blend, rr_coverage,
+    warp_bounds,
 };
 use crate::turn::Turn;
 use notation::model::{BlendMode, MaskShape, Overflow, ResolvedGrade, StrokePosition};
@@ -223,7 +223,10 @@ pub fn paint_shadow_layer(
     let (sw, shw) = (b.width * s, b.height * s);
     let spread = sh.spread.max(0.0);
     let (x0, y0) = (b.x + sh.offset_x - spread, b.y + sh.offset_y - spread);
-    let (x1, y1) = (b.x + sh.offset_x + sw + spread, b.y + sh.offset_y + shw + spread);
+    let (x1, y1) = (
+        b.x + sh.offset_x + sw + spread,
+        b.y + sh.offset_y + shw + spread,
+    );
     let r = (b.radius * s).max(0.0) + spread;
     let alpha = b.opacity.clamp(0.0, 1.0);
     if alpha <= 0.0 {
@@ -243,14 +246,7 @@ pub fn paint_shadow_layer(
             if o + 3 >= layer.len() {
                 continue;
             }
-            layer_blend(
-                layer,
-                o,
-                sh.color.r,
-                sh.color.g,
-                sh.color.b,
-                cov * alpha,
-            );
+            layer_blend(layer, o, sh.color.r, sh.color.g, sh.color.b, cov * alpha);
         }
     }
     Some((x0, y0, x1, y1))
@@ -440,10 +436,7 @@ pub(crate) fn draw_box_paint(
     // backdrop filter reads the flattened layers beneath before the
     // element paints, even when the element itself adds nothing).
     let transparent = b.opacity <= 0.0;
-    if transparent
-        && !blur_on(b.backdrop_blur)
-        && b.backdrop_brightness == 1.0
-    {
+    if transparent && !blur_on(b.backdrop_blur) && b.backdrop_brightness == 1.0 {
         return Ok(());
     }
     // The image fill resolves once per box, with the same vanish
@@ -524,11 +517,17 @@ pub(crate) fn draw_box_paint(
             crate::effects::apply_effects_to_premult(&mut pm, effects);
             crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
             let margin = blur_margin(sigma) + 1.0;
-            let grown = shadow_rect.map(|r| (r.0 - margin, r.1 - margin, r.2 + margin, r.3 + margin));
+            let grown =
+                shadow_rect.map(|r| (r.0 - margin, r.1 - margin, r.2 + margin, r.3 + margin));
             // The shadow warps about the body anchor, so a rotated or
             // turned element carries its shadow along.
             let union = match shadow_rect {
-                Some(r) => (card.0.min(r.0), card.1.min(r.1), card.2.max(r.2), card.3.max(r.3)),
+                Some(r) => (
+                    card.0.min(r.0),
+                    card.1.min(r.1),
+                    card.2.max(r.2),
+                    card.3.max(r.3),
+                ),
                 None => card,
             };
             match (turn, rotated) {
@@ -576,7 +575,12 @@ pub(crate) fn draw_box_paint(
         match (turn, rotated) {
             (None, false) => {
                 let margin = blur_margin(b.blur) + 1.0;
-                let grown = (card.0 - margin, card.1 - margin, card.2 + margin, card.3 + margin);
+                let grown = (
+                    card.0 - margin,
+                    card.1 - margin,
+                    card.2 + margin,
+                    card.3 + margin,
+                );
                 composite_direct_blend(frame, cw, chh, &pm, grown, b.blend_mode, &masks);
             }
             _ => composite_warp_blend(
@@ -654,22 +658,29 @@ mod tests {
     fn stroke_geometry_matches_inside_history() {
         // Inside reproduces the historical border: outer is the box,
         // fill insets by the full width.
-        let (outer, fill, inset) = stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 4.0, StrokePosition::Inside);
+        let (outer, fill, inset) =
+            stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 4.0, StrokePosition::Inside);
         assert_eq!(outer, (10.0, 20.0, 110.0, 60.0, 5.0));
         assert_eq!(fill, (14.0, 24.0, 106.0, 56.0, 1.0));
         assert_eq!(inset, 4.0);
         // Center straddles: half out, half in.
-        let (outer, fill, inset) = stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 4.0, StrokePosition::Center);
+        let (outer, fill, inset) =
+            stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 4.0, StrokePosition::Center);
         assert_eq!(outer, (8.0, 18.0, 112.0, 62.0, 7.0));
         assert_eq!(fill, (12.0, 22.0, 108.0, 58.0, 3.0));
         assert_eq!(inset, 2.0);
         // Outside rings the edge: fill is the box.
-        let (outer, fill, inset) = stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 4.0, StrokePosition::Outside);
+        let (outer, fill, inset) =
+            stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 4.0, StrokePosition::Outside);
         assert_eq!(outer, (6.0, 16.0, 114.0, 64.0, 9.0));
         assert_eq!(fill, (10.0, 20.0, 110.0, 60.0, 5.0));
         assert_eq!(inset, 0.0);
         // Zero width paints the box in every position.
-        for pos in [StrokePosition::Inside, StrokePosition::Center, StrokePosition::Outside] {
+        for pos in [
+            StrokePosition::Inside,
+            StrokePosition::Center,
+            StrokePosition::Outside,
+        ] {
             let (outer, fill, inset) = stroke_geometry(10.0, 20.0, 110.0, 60.0, 5.0, 0.0, pos);
             assert_eq!(outer, (10.0, 20.0, 110.0, 60.0, 5.0));
             assert_eq!(fill, (10.0, 20.0, 110.0, 60.0, 5.0));
@@ -681,7 +692,14 @@ mod tests {
     fn backdrop_brightness_zero_blacks_the_region() {
         let (cw, chh) = (8, 8);
         let mut frame = vec![100u8; cw * chh * 3];
-        apply_backdrop(&mut frame, cw as u32, chh as u32, (2.0, 2.0, 6.0, 6.0), 0.0, 0.0);
+        apply_backdrop(
+            &mut frame,
+            cw as u32,
+            chh as u32,
+            (2.0, 2.0, 6.0, 6.0),
+            0.0,
+            0.0,
+        );
         // Inside the region: black.
         assert_eq!(frame[(3 * cw + 3) * 3], 0);
         assert_eq!(frame[(4 * cw + 4) * 3 + 1], 0);
@@ -694,15 +712,31 @@ mod tests {
     fn backdrop_flat_region_blur_is_identity() {
         let (cw, chh) = (16, 16);
         let mut frame = vec![77u8; cw * chh * 3];
-        apply_backdrop(&mut frame, cw as u32, chh as u32, (0.0, 0.0, 16.0, 16.0), 2.0, 1.0);
+        apply_backdrop(
+            &mut frame,
+            cw as u32,
+            chh as u32,
+            (0.0, 0.0, 16.0, 16.0),
+            2.0,
+            1.0,
+        );
         for v in frame {
-            assert!((v as i16 - 77).abs() <= 1, "flat blur drifts at most 1 LSB, got {v}");
+            assert!(
+                (v as i16 - 77).abs() <= 1,
+                "flat blur drifts at most 1 LSB, got {v}"
+            );
         }
     }
 
     #[test]
     fn mask_factor_covers_once() {
-        let shape = MaskShape { x: 0.0, y: 0.0, width: 16.0, height: 16.0, radius: 0.0 };
+        let shape = MaskShape {
+            x: 0.0,
+            y: 0.0,
+            width: 16.0,
+            height: 16.0,
+            radius: 0.0,
+        };
         // Deep inside: full coverage.
         assert_eq!(mask_factor(&[shape], 8, 8), 1.0);
         // Far outside: zero.
@@ -872,7 +906,14 @@ mod tests {
                 frame[o + 2] = v;
             }
         }
-        apply_backdrop(&mut frame, cw as u32, chh as u32, (0.0, 0.0, 16.0, 4.0), 2.0, 1.0);
+        apply_backdrop(
+            &mut frame,
+            cw as u32,
+            chh as u32,
+            (0.0, 0.0, 16.0, 4.0),
+            2.0,
+            1.0,
+        );
         // Deep on each side the flats survive; the edge texels mix.
         assert_eq!(pixel(&frame, cw, 0, 2)[0], 0);
         assert_eq!(pixel(&frame, cw, 15, 2)[0], 255);
@@ -903,7 +944,13 @@ mod tests {
         // with the background, the right shows the background exactly.
         let mut b = paint_box(4.0, 4.0, 8.0, 8.0, rgb(255, 0, 0), 0.0, rgb(0, 0, 0));
         b.opacity = 0.5;
-        b.mask = Some(MaskShape { x: 0.0, y: 0.0, width: 8.0, height: 16.0, radius: 0.0 });
+        b.mask = Some(MaskShape {
+            x: 0.0,
+            y: 0.0,
+            width: 8.0,
+            height: 16.0,
+            radius: 0.0,
+        });
         let f = paint_frame(&b, 16, 16, [0, 0, 255]);
         // Left (masked in): half-opaque red over blue. The byte
         // alpha (128/255) lands red at 128.5 -> 128 and blue at
