@@ -35,7 +35,7 @@ use crate::frame::{FrameDescription, FrameItem};
 use crate::motion_plan::{plan_motions, snap_fps, ClipMotion};
 use crate::turn::Turn;
 use glyph::font::Face;
-use notation::model::{AudioClip, Clip, Composition, Fit, VideoClip};
+use notation::model::{AudioClip, Clip, Composition, FillPaint, Fit, GradientStop, VideoClip};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -197,6 +197,11 @@ pub struct Prepared {
     pub(crate) ranges: Vec<DecodedRange>,
     pub(crate) images: Vec<DecodedImage>,
     pub(crate) raster: RasterCache,
+    /// Shared path-data parse cache (Sprint 8 look, T005): every frame
+    /// reuses the cached contours and recomputes only numbers. Shared
+    /// across workers through the draw view; interior locking keeps
+    /// any worker count byte-identical.
+    pub(crate) paths: crate::path_paint::PathCache,
     /// Nested compositions reachable from the root (Sprint 6 T007),
     /// in breadth-first document order. Empty for nest-free projects;
     /// `layouts`, `videos`, `ranges`, and `images` above already
@@ -217,6 +222,10 @@ pub struct Prepared {
     /// duration for a full render, `end - start` for a sub-range. The
     /// encoder and the success line use this, never the composition.
     pub(crate) out_duration: f64,
+    /// Project folder the composition validated against (Sprint 8 look,
+    /// T003): image fills stat their source here on every frame, so a
+    /// file deleted mid-render refuses with its path named.
+    pub(crate) folder: PathBuf,
 }
 
 impl Prepared {
@@ -278,6 +287,8 @@ impl Prepared {
             &self.videos,
             &self.ranges,
             &self.images,
+            &self.paths,
+            self.folder.as_path(),
             &mut out,
         )?;
         Ok(out)
@@ -761,6 +772,9 @@ fn shape_text_string(
     text: &str,
     ffmpeg_bin: &Path,
 ) -> Result<Option<layout::Block>, String> {
+    if !tc.spans.is_empty() {
+        return shape_text_spans(fonts, project_family, tc, tc.size, tc.letter_spacing, ffmpeg_bin);
+    }
     let style = text_layout_style(fonts, project_family, tc)?;
     let wrap = match tc.wrap {
         notation::model::Wrap::Off => None,
@@ -771,6 +785,176 @@ fn shape_text_string(
         Err(layout::TextError::NoFamily) if project_family.is_none() => Ok(None),
         Err(e) => Err(format!(
             "render refused: text {text:?} cannot be laid out ({e}); no MP4 was written"
+        )),
+    }
+}
+
+/// One flattened styled run of a text clip with `span` children
+/// (Sprint 8 look, T002): the run text with its inherited style —
+/// each `None` inherits the parent span, else the clip. The clip
+/// `value` (when written) flattens first in the plain clip style.
+struct FlatRun {
+    text: String,
+    families: Option<Vec<String>>,
+    size: Option<f64>,
+    weight: Option<f64>,
+    italic: Option<bool>,
+    color: Option<notation::model::Rgb>,
+    letter_spacing: Option<f64>,
+    line_height: Option<f64>,
+}
+
+/// Flatten one span subtree (Sprint 8 look, T002): the span's own
+/// `value` paints first in its style, then nested spans in order,
+/// each inheriting the unset attributes of its parent.
+fn flatten_span(span: &notation::model::TextSpan, parent: &FlatRun, out: &mut Vec<FlatRun>) {
+    let cur = FlatRun {
+        text: String::new(),
+        families: span.font_family.clone().or_else(|| parent.families.clone()),
+        size: span.font_size.or(parent.size),
+        weight: span.font_weight.or(parent.weight),
+        italic: span.italic.or(parent.italic),
+        color: span.color.or(parent.color),
+        letter_spacing: span.letter_spacing.or(parent.letter_spacing),
+        line_height: span.line_height.or(parent.line_height),
+    };
+    if !span.value.is_empty() {
+        out.push(FlatRun {
+            text: span.value.clone(),
+            families: cur.families.clone(),
+            size: cur.size,
+            weight: cur.weight,
+            italic: cur.italic,
+            color: cur.color,
+            letter_spacing: cur.letter_spacing,
+            line_height: cur.line_height,
+        });
+    }
+    for child in &span.children {
+        flatten_span(child, &cur, out);
+    }
+}
+
+/// Shape one text clip carrying `span` runs (Sprint 8 look, T002):
+/// the clip `value` (when written) plus every span flatten into one
+/// shaped paragraph, each run painted with its own resolved family
+/// try-order, size, weight, style, color, and spacing under the
+/// clip's base direction. `size`/`letter_spacing` override the clip
+/// defaults (Sprint 7 motion, T006); runs with explicit metrics keep
+/// theirs. `None` means the bitmap fallback (no family anywhere);
+/// anything else unshapable refuses before the first frame naming the
+/// span.
+#[allow(clippy::too_many_arguments)]
+fn shape_text_spans(
+    fonts: &mut layout::Fonts,
+    project_family: &Option<String>,
+    tc: &notation::model::TextClip,
+    size: f64,
+    letter_spacing: Option<f64>,
+    ffmpeg_bin: &Path,
+) -> Result<Option<layout::Block>, String> {
+    let bold = matches!(
+        tc.style,
+        notation::model::FontStyle::Bold | notation::model::FontStyle::BoldItalic
+    );
+    let italic = matches!(
+        tc.style,
+        notation::model::FontStyle::Italic | notation::model::FontStyle::BoldItalic
+    );
+    // The default families every run without an explicit list paints
+    // in: the project family when declared, else the system variant
+    // faces for the clip style. Resolved once so the system file
+    // registers a single time no matter how many runs inherit it.
+    let base_families: Vec<String> = match project_family {
+        Some(family) => vec![family.clone()],
+        None => fonts
+            .resolve_system_style(bold, italic)
+            .into_iter()
+            .collect(),
+    };
+    let base = FlatRun {
+        text: String::new(),
+        families: tc.font_family.clone(),
+        size: Some(size),
+        weight: Some(if bold { 700.0 } else { 400.0 }),
+        italic: Some(italic),
+        color: Some(tc.color),
+        letter_spacing,
+        line_height: tc.line_height,
+    };
+    let mut flat: Vec<FlatRun> = Vec::new();
+    if !tc.value.is_empty() {
+        flat.push(FlatRun {
+            text: tc.value.clone(),
+            families: base.families.clone(),
+            size: base.size,
+            weight: base.weight,
+            italic: base.italic,
+            color: base.color,
+            letter_spacing: base.letter_spacing,
+            line_height: base.line_height,
+        });
+    }
+    for span in &tc.spans {
+        flatten_span(span, &base, &mut flat);
+    }
+    // Resolve each run against its effective family list: an explicit
+    // list (on the span chain or the clip) nothing serves refuses
+    // naming the span instead of silently falling back; inherited
+    // project/system families ride the layout fallback like plain text.
+    let mut runs: Vec<layout::RunStyle> = Vec::with_capacity(flat.len());
+    for (i, run) in flat.iter().enumerate() {
+        let (families, explicit) = match &run.families {
+            Some(names) => (names.clone(), true),
+            None => (base_families.clone(), false),
+        };
+        if explicit && !fonts.resolves_any(&families) {
+            return Err(format!(
+                "render refused: text span {} names unknown font-family {:?}; no MP4 was written",
+                i + 1,
+                families.join(", ")
+            ));
+        }
+        runs.push(layout::RunStyle {
+            text: run.text.clone(),
+            families,
+            size: run.size.unwrap_or(size) as f32,
+            weight: run.weight.unwrap_or(if bold { 700.0 } else { 400.0 }) as f32,
+            italic: run.italic.unwrap_or(italic),
+            colour: run.color.map(|c| [c.r, c.g, c.b, 255]).unwrap_or([
+                tc.color.r,
+                tc.color.g,
+                tc.color.b,
+                255,
+            ]),
+            letter_spacing: run.letter_spacing.unwrap_or(0.0).max(0.0) as f32,
+            line_height: run.line_height.map(|v| v as f32),
+        });
+    }
+    let align = match tc.align {
+        notation::model::Align::Left => layout::Align::Left,
+        notation::model::Align::Center => layout::Align::Center,
+        notation::model::Align::Right => layout::Align::Right,
+    };
+    let direction = match tc.direction {
+        notation::model::TextDirection::Ltr => layout::Direction::Ltr,
+        notation::model::TextDirection::Rtl => layout::Direction::Rtl,
+        notation::model::TextDirection::Auto => layout::Direction::Auto,
+    };
+    let wrap = match tc.wrap {
+        notation::model::Wrap::Off => None,
+        notation::model::Wrap::Width(w) => Some(w as f32),
+    };
+    let any_explicit = flat.iter().any(|r| r.families.is_some());
+    match layout::layout_runs(fonts, &runs, align, direction, wrap, Some(ffmpeg_bin)) {
+        Ok(block) => Ok(Some(block)),
+        Err(layout::TextError::NoFamily) | Err(layout::TextError::NoFamilyRun { .. })
+            if project_family.is_none() && !any_explicit =>
+        {
+            Ok(None)
+        }
+        Err(e) => Err(format!(
+            "render refused: text with spans cannot be laid out ({e}); no MP4 was written"
         )),
     }
 }
@@ -801,6 +985,9 @@ fn shape_text_string_with(
     letter_spacing: Option<f64>,
     ffmpeg_bin: &Path,
 ) -> Result<Option<layout::Block>, String> {
+    if !tc.spans.is_empty() {
+        return shape_text_spans(fonts, project_family, tc, size, letter_spacing, ffmpeg_bin);
+    }
     let style = text_layout_style_with(fonts, project_family, tc, size, letter_spacing)?;
     let wrap = match tc.wrap {
         notation::model::Wrap::Off => None,
@@ -935,11 +1122,13 @@ fn prepare_comp_videos(
     Ok((videos, ranges))
 }
 
-/// Decode one composition's images (Sprint 6 T007): a PNG or JPEG still
-/// decoded to straight RGBA through FFmpeg. A file validation
-/// accepted but FFmpeg cannot decode refuses before the first frame,
-/// naming the file — never a partial MP4. Images accumulate into the
-/// shared list, deduplicated by absolute path across the tree.
+/// Decode one composition's images (Sprint 6 T007, plus Sprint 8 look
+/// T005): a PNG or JPEG still decoded to straight RGBA through
+/// FFmpeg, an SVG picture rasterized at its declared size through
+/// `resvg`. A file validation accepted but the decoder cannot read
+/// refuses before the first frame, naming the file — never a partial
+/// MP4. Images accumulate into the shared list, deduplicated by
+/// absolute path across the tree.
 fn prepare_comp_images(
     comp: &Composition,
     folder: &Path,
@@ -947,14 +1136,62 @@ fn prepare_comp_images(
     images: &mut Vec<DecodedImage>,
 ) -> Result<(), String> {
     for clip in &comp.clips {
-        if let Clip::Image(im) = clip {
-            if images
-                .iter()
-                .any(|d: &DecodedImage| d.path == folder.join(&im.path))
-            {
-                continue;
+        match clip {
+            Clip::Image(im) => {
+                if images
+                    .iter()
+                    .any(|d: &DecodedImage| d.path == folder.join(&im.path))
+                {
+                    continue;
+                }
+                if im.path.to_lowercase().ends_with(".svg") {
+                    images.push(crate::path_paint::decode_svg_image(
+                        folder,
+                        &im.path,
+                        im.width.unwrap_or(f64::from(comp.width)),
+                        im.height.unwrap_or(f64::from(comp.height)),
+                        im.fit,
+                        im.placement,
+                    )?);
+                } else {
+                    images.push(decode_image(ffmpeg_bin, folder, &im.path)?);
+                }
             }
-            images.push(decode_image(ffmpeg_bin, folder, &im.path)?);
+            // An `svg` clip decodes its standalone file pre-composed
+            // at the declared `width`/`height` (Sprint 8 look, T005),
+            // so the shared blitter draws it with `fill` placement.
+            Clip::Svg(sv) => {
+                if images
+                    .iter()
+                    .any(|d: &DecodedImage| d.path == folder.join(&sv.path))
+                {
+                    continue;
+                }
+                images.push(crate::path_paint::decode_svg_image(
+                    folder,
+                    &sv.path,
+                    sv.width,
+                    sv.height,
+                    sv.fit,
+                    sv.placement,
+                )?);
+            }
+            // Sprint 8 look (T003): box image fills decode with the
+            // clip stills, so an unreadable fill refuses before frame
+            // one even when `check` was skipped; the per-frame vanish
+            // check still guards sources deleted after this decode.
+            Clip::Box(b) => {
+                if let FillPaint::Image { src, .. } = &b.fill_paint {
+                    if images
+                        .iter()
+                        .any(|d: &DecodedImage| d.path == folder.join(src))
+                    {
+                        continue;
+                    }
+                    images.push(decode_image(ffmpeg_bin, folder, src)?);
+                }
+            }
+            _ => {}
         }
     }
     Ok(())
@@ -1236,10 +1473,12 @@ pub fn prepare_frames_ranged(
         ranges,
         images,
         raster,
+        paths: crate::path_paint::PathCache::new(),
         tree,
         cache_stats: footage_cache.stats(),
         range_start,
         out_duration,
+        folder: folder.to_path_buf(),
     })
 }
 
@@ -2487,6 +2726,7 @@ pub(crate) struct DrawView<'a> {
     videos: &'a [ProbedVideo],
     ranges: &'a [DecodedRange],
     images: &'a [DecodedImage],
+    paths: &'a crate::path_paint::PathCache,
     layouts: &'a [Option<layout::Block>],
     dyn_layouts: &'a DynLayouts,
     bitmap_fallback: bool,
@@ -2496,6 +2736,9 @@ pub(crate) struct DrawView<'a> {
     /// Composition time of output frame 0 (Sprint 6 T008): zero for a
     /// full render, the `--start` instant for a sub-range.
     time_offset: timebase::Time,
+    /// Project folder (Sprint 8 look, T003): image fills stat their
+    /// source here on every frame.
+    folder: &'a Path,
 }
 
 impl Prepared {
@@ -2505,11 +2748,13 @@ impl Prepared {
             videos: &self.videos,
             ranges: &self.ranges,
             images: &self.images,
+            paths: &self.paths,
             layouts: &self.layouts,
             dyn_layouts: &self.dyn_layouts,
             bitmap_fallback: self.bitmap_fallback,
             nest: self.nest_view(),
             time_offset: self.range_start,
+            folder: self.folder.as_path(),
         }
     }
 }
@@ -2539,6 +2784,8 @@ pub(crate) fn draw_one_frame_view(
             view.dyn_layouts,
             view.bitmap_fallback,
             raster,
+            view.paths,
+            view.folder,
             &desc,
         ),
         Backend::Cpu | Backend::Auto => {
@@ -2552,6 +2799,8 @@ pub(crate) fn draw_one_frame_view(
                 view.videos,
                 view.ranges,
                 view.images,
+                view.paths,
+                view.folder,
                 &mut out,
             )?;
             Ok(out)
@@ -3565,7 +3814,7 @@ fn rr_contains(px: f64, py: f64, x0: f64, y0: f64, x1: f64, y1: f64, r: f64) -> 
 
 /// Coverage of the rounded rect over one canvas pixel, by 4x4
 /// supersampling (T004): edges and corners feather over one pixel.
-fn rr_coverage(i: i64, j: i64, x0: f64, y0: f64, x1: f64, y1: f64, r: f64) -> f64 {
+pub(crate) fn rr_coverage(i: i64, j: i64, x0: f64, y0: f64, x1: f64, y1: f64, r: f64) -> f64 {
     rr_coverage_mapped(i, j, &|px, py| (px, py), x0, y0, x1, y1, r)
 }
 
@@ -3632,20 +3881,311 @@ fn blend_over(
     frame[o + 2] = (b as f64 * alpha + frame[o + 2] as f64 * inv + 0.5) as u8;
 }
 
-/// Draw one box (T004/T010): a filled rounded rect with an inner border
-/// ring, both under the element opacity. A fully transparent box draws
-/// nothing; a fully opaque box hides what is beneath it. The border
-/// ring lives inside the box edge; the fill covers the inner rect.
-/// Uniform `scale` grows the box (size, radius, border) about its
-/// top-left; `rotation` (degrees, positive turns clockwise on screen)
-/// turns it about its scaled center. A non-positive scale draws nothing.
-pub(crate) fn draw_box(frame: &mut [u8], cw: u32, chh: u32, b: &crate::frame::ResolvedBox) {
-    if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
+/// Sample one gradient stop list at `t` (Sprint 8 look, T003): the
+/// sRGB channel-by-channel lerp of the surrounding stops, clamped to
+/// the end stops outside. The scan walks stops in order, so ten stops
+/// cost about twice five — no per-stop cost leak beyond the linear
+/// walk. Empty lists paint black; validation refuses them before
+/// frame one.
+pub(crate) fn sample_gradient(stops: &[GradientStop], t: f64) -> (u8, u8, u8) {
+    let Some(first) = stops.first() else {
+        return (0, 0, 0);
+    };
+    let t = t.clamp(0.0, 1.0);
+    if t <= first.offset {
+        return (first.color.r, first.color.g, first.color.b);
+    }
+    let mut prev = first;
+    for stop in &stops[1..] {
+        if t <= stop.offset {
+            let span = stop.offset - prev.offset;
+            let f = if span <= 0.0 {
+                0.0
+            } else {
+                (t - prev.offset) / span
+            };
+            let mix = |a: u8, b: u8| (a as f64 + (b as f64 - a as f64) * f).round() as u8;
+            return (
+                mix(prev.color.r, stop.color.r),
+                mix(prev.color.g, stop.color.g),
+                mix(prev.color.b, stop.color.b),
+            );
+        }
+        prev = stop;
+    }
+    (prev.color.r, prev.color.g, prev.color.b)
+}
+
+/// Linear-gradient position of a box-local point (Sprint 8 look,
+/// T003): the `angle` in CSS degrees (0 points up, 90 points right)
+/// projected onto the gradient axis, 0 at the start edge and 1 at the
+/// end edge, clamped to the box. 90 degrees runs left-to-right.
+pub(crate) fn linear_fill_t(angle_deg: f64, lx: f64, ly: f64, w: f64, h: f64) -> f64 {
+    let rad = angle_deg.to_radians();
+    // CSS direction: 0 deg points up, 90 deg points right; canvas y
+    // runs down, so the y axis flips.
+    let (dx, dy) = (rad.sin(), -rad.cos());
+    // Axis through the box center, spanning the projected corners.
+    let len = (w * dx.abs() + h * dy.abs()).max(f64::MIN_POSITIVE);
+    let proj = (lx - w / 2.0) * dx + (ly - h / 2.0) * dy;
+    (proj / len + 0.5).clamp(0.0, 1.0)
+}
+
+/// Bilinear sample of a decoded image at source texel coords (Sprint
+/// 8 look, T003): the same texel lerp `draw_image` uses, as straight
+/// RGBA with alpha 0 to 1.
+fn sample_fill_image(decoded: &DecodedImage, su: f64, sv: f64) -> [f64; 4] {
+    let sw = decoded.width.max(1) as f64;
+    let sh = decoded.height.max(1) as f64;
+    let su = su.clamp(0.0, sw - 1.0);
+    let sv = sv.clamp(0.0, sh - 1.0);
+    let x0 = su.floor() as u32;
+    let x1 = (x0 + 1).min(decoded.width.max(1) - 1);
+    let fx = su - su.floor();
+    let y0 = sv.floor() as u32;
+    let y1 = (y0 + 1).min(decoded.height.max(1) - 1);
+    let fy = sv - sv.floor();
+    let texel = |xx: u32, yy: u32| -> [f64; 4] {
+        let s = ((yy * decoded.width + xx) as usize) * 4;
+        [
+            decoded.rgba[s] as f64,
+            decoded.rgba[s + 1] as f64,
+            decoded.rgba[s + 2] as f64,
+            decoded.rgba[s + 3] as f64 / 255.0,
+        ]
+    };
+    let p00 = texel(x0, y0);
+    let p10 = texel(x1, y0);
+    let p01 = texel(x0, y1);
+    let p11 = texel(x1, y1);
+    let mut rgba = [0.0f64; 4];
+    for c in 0..4 {
+        let top = p00[c] * (1.0 - fx) + p10[c] * fx;
+        let bot = p01[c] * (1.0 - fx) + p11[c] * fx;
+        rgba[c] = top * (1.0 - fy) + bot * fy;
+    }
+    rgba
+}
+
+/// Image texel for one box-local point of an image fill (Sprint 8
+/// look, T003): the fitted picture sampled at the point, clipped to
+/// the fill region (the full box, or the inner rect when a border
+/// ring covers the edge). `None` means the point shows no picture —
+/// the border ring or canvas below shows through. `sw`/`sh` are the
+/// scaled box size, `bw` the scaled border width.
+fn box_image_at(
+    decoded: &DecodedImage,
+    fit: Fit,
+    placement: notation::model::Placement,
+    lx: f64,
+    ly: f64,
+    sw: f64,
+    sh: f64,
+    fill_inset: f64,
+) -> Option<(u8, u8, u8, f64)> {
+    use notation::model::{PlaceH, PlaceV};
+    let srcw = decoded.width.max(1) as f64;
+    let srch = decoded.height.max(1) as f64;
+    let (tx, ty, tw, th) = if fill_inset > 0.0 {
+        (
+            fill_inset,
+            fill_inset,
+            sw - 2.0 * fill_inset,
+            sh - 2.0 * fill_inset,
+        )
+    } else {
+        (0.0, 0.0, sw, sh)
+    };
+    if tw <= 0.0 || th <= 0.0 {
+        return None;
+    }
+    let (dw, dh) = image_fit_size(tw, th, srcw, srch, fit);
+    if dw <= 0.0 || dh <= 0.0 {
+        return None;
+    }
+    let ox = match placement.x {
+        PlaceH::Left => 0.0,
+        PlaceH::Center => (tw - dw) / 2.0,
+        PlaceH::Right => tw - dw,
+    };
+    let oy = match placement.y {
+        PlaceV::Top => 0.0,
+        PlaceV::Center => (th - dh) / 2.0,
+        PlaceV::Bottom => th - dh,
+    };
+    let px = lx - (tx + ox);
+    let py = ly - (ty + oy);
+    if px < 0.0 || py < 0.0 || px > dw || py > dh {
+        return None;
+    }
+    let rgba = sample_fill_image(decoded, px * srcw / dw - 0.5, py * srch / dh - 0.5);
+    Some((
+        rgba[0].round() as u8,
+        rgba[1].round() as u8,
+        rgba[2].round() as u8,
+        rgba[3].clamp(0.0, 1.0),
+    ))
+}
+
+/// Paint one box pixel through the generic `blend` sink (Sprint 8
+/// look, T003/T004): the border ring keeps the border color, the fill
+/// area takes the solid color, the gradient sample, or the image
+/// texel, each under `coverage * alpha`. `(lx, ly)` is the box-local
+/// point in scaled pixels, `(sw, sh)` the scaled box size, `bw` the
+/// scaled border width, `fill_inset` the fill shrink the image fill
+/// fits into (the positioned stroke width inside the box),
+/// `outer`/`inner` the ring and fill coverages.
+#[allow(clippy::too_many_arguments)]
+fn paint_box_pixel(
+    blend: &mut dyn FnMut(u8, u8, u8, f64),
+    b: &crate::frame::ResolvedBox,
+    decoded: Option<&DecodedImage>,
+    lx: f64,
+    ly: f64,
+    sw: f64,
+    sh: f64,
+    bw: f64,
+    fill_inset: f64,
+    outer: f64,
+    inner: f64,
+    alpha: f64,
+) {
+    if outer <= 0.0 {
         return;
+    }
+    // The solid fast path paints exactly as before (T004): border ring
+    // over fill, both under the element opacity.
+    if b.fill_paint.is_solid() {
+        if bw > 0.0 {
+            let ring = (outer - inner).max(0.0);
+            if ring > 0.0 {
+                blend(
+                    b.border_color.r,
+                    b.border_color.g,
+                    b.border_color.b,
+                    ring * alpha,
+                );
+            }
+            if inner > 0.0 {
+                blend(b.fill.r, b.fill.g, b.fill.b, inner * alpha);
+            }
+        } else {
+            blend(b.fill.r, b.fill.g, b.fill.b, outer * alpha);
+        }
+        return;
+    }
+    // Gradient and image fills paint the fill area only; the border
+    // ring keeps the solid border color above them.
+    let fill_ring = |blend: &mut dyn FnMut(u8, u8, u8, f64)| {
+        if bw > 0.0 {
+            let ring = (outer - inner).max(0.0);
+            if ring > 0.0 {
+                blend(
+                    b.border_color.r,
+                    b.border_color.g,
+                    b.border_color.b,
+                    ring * alpha,
+                );
+            }
+        }
+    };
+    match &b.fill_paint {
+        FillPaint::Solid => unreachable!("solid paints above"),
+        FillPaint::Linear { angle, stops } => {
+            fill_ring(blend);
+            let area = if bw > 0.0 { inner } else { outer };
+            if area > 0.0 {
+                let (r, g, bl) = sample_gradient(stops, linear_fill_t(*angle, lx, ly, sw, sh));
+                blend(r, g, bl, area * alpha);
+            }
+        }
+        FillPaint::Radial {
+            cx,
+            cy,
+            radius,
+            stops,
+        } => {
+            fill_ring(blend);
+            let area = if bw > 0.0 { inner } else { outer };
+            if area > 0.0 {
+                let (ccx, ccy) = (cx.unwrap_or(sw / 2.0), cy.unwrap_or(sh / 2.0));
+                let r = radius.unwrap_or(sw.hypot(sh) / 2.0).max(f64::MIN_POSITIVE);
+                let t = ((lx - ccx).hypot(ly - ccy) / r).clamp(0.0, 1.0);
+                let (fr, fg, fb) = sample_gradient(stops, t);
+                blend(fr, fg, fb, area * alpha);
+            }
+        }
+        FillPaint::Image { fit, placement, .. } => {
+            fill_ring(blend);
+            let area = if bw > 0.0 { inner } else { outer };
+            if area > 0.0 {
+                if let Some(decoded) = decoded {
+                    if let Some((r, g, bl, a)) =
+                        box_image_at(decoded, *fit, *placement, lx, ly, sw, sh, fill_inset)
+                    {
+                        blend(r, g, bl, (a * area * alpha).clamp(0.0, 1.0));
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Look up the decoded picture for one image fill (Sprint 8 look,
+/// T003): the file is statted on every call, so a source that
+/// vanishes mid-render refuses here with its path named and no
+/// partial MP4, instead of painting stale decoded pixels.
+pub(crate) fn fill_image_decoded<'a>(
+    images: &'a [DecodedImage],
+    folder: &Path,
+    src: &str,
+) -> Result<&'a DecodedImage, String> {
+    if !folder.join(src).is_file() {
+        return Err(format!(
+            "render refused: image-fill source {src:?} vanished before its frame could draw; no MP4 was written"
+        ));
+    }
+    images.iter().find(|d| d.path.ends_with(src)).ok_or_else(|| {
+        format!("render refused: image-fill source {src:?} was not decoded (decode stage); no MP4 was written")
+    })
+}
+
+/// Draw one box (T004/T010, plus Sprint 8 gradient and image fills,
+/// plus the Sprint 8 stroke positions): a filled rounded rect with a
+/// positioned stroke ring, both under the element opacity. A fully
+/// transparent box draws nothing; a fully opaque box hides what is
+/// beneath it. The stroke paints above the fill at its position
+/// (`inside` rings the inner edge like the historical border,
+/// `center` straddles the edge, `outside` rings the outer edge);
+/// overflow `hidden`/`clip` cuts body paint at the box edge. A
+/// `linear-gradient` or `radial-gradient` fill paints its sRGB ramp
+/// clipped to the fill area; an `image-fill` paints its fitted picture
+/// there. Uniform `scale` grows the box (size, radius, border) about
+/// its top-left; `rotation` (degrees, positive turns clockwise on
+/// screen) turns it about its scaled center. A non-positive scale
+/// draws nothing. An image fill whose source vanished refuses with
+/// its path named.
+pub(crate) fn draw_box(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    b: &crate::frame::ResolvedBox,
+    images: &[DecodedImage],
+    folder: &Path,
+) -> Result<(), String> {
+    if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
+        return Ok(());
     }
     if b.scale <= 0.0 || !b.scale.is_finite() {
-        return;
+        return Ok(());
     }
+    // Resolve the image fill once per box: the vanish check stats the
+    // file, so a source deleted mid-render refuses here with its path
+    // named and no partial MP4, instead of painting stale pixels.
+    let decoded = match &b.fill_paint {
+        FillPaint::Image { src, .. } => Some(fill_image_decoded(images, folder, src)?),
+        _ => None,
+    };
     let alpha = b.opacity.clamp(0.0, 1.0);
     let s = b.scale;
     let sw = b.width * s;
@@ -3654,64 +4194,27 @@ pub(crate) fn draw_box(frame: &mut [u8], cw: u32, chh: u32, b: &crate::frame::Re
     let (x1, y1) = (b.x + sw, b.y + sh);
     let r = (b.radius * s).max(0.0).min(sw / 2.0).min(sh / 2.0);
     let bw = (b.border_width * s).max(0.0);
-    let r_in = (r - bw).max(0.0);
-    let (ix0, iy0, ix1, iy1) = (x0 + bw, y0 + bw, x1 - bw, y1 - bw);
-    let paint = |frame: &mut [u8], i: i64, j: i64, outer: f64, inner: f64| {
-        if outer <= 0.0 {
-            return;
-        }
-        if bw > 0.0 {
-            let ring = (outer - inner).max(0.0);
-            if ring > 0.0 {
-                blend_over(
-                    frame,
-                    cw,
-                    chh,
-                    i,
-                    j,
-                    b.border_color.r,
-                    b.border_color.g,
-                    b.border_color.b,
-                    ring * alpha,
-                );
-            }
-            if inner > 0.0 {
-                blend_over(
-                    frame,
-                    cw,
-                    chh,
-                    i,
-                    j,
-                    b.fill.r,
-                    b.fill.g,
-                    b.fill.b,
-                    inner * alpha,
-                );
-            }
-        } else {
-            blend_over(
-                frame,
-                cw,
-                chh,
-                i,
-                j,
-                b.fill.r,
-                b.fill.g,
-                b.fill.b,
-                outer * alpha,
-            );
-        }
-    };
+    // Stroke position (Sprint 8 look, T004): the outer paint rect and
+    // the fill rect move with the stroke; `inside` reproduces the
+    // historical border exactly.
+    let ((ox0, oy0, ox1, oy1, ro), (fx0, fy0, fx1, fy1, rf), fill_inset) =
+        crate::paint::stroke_geometry(x0, y0, x1, y1, r, bw, b.stroke_position);
+    // Overflow `hidden`/`clip` cuts fill and stroke at the box edge;
+    // `visible` paints the whole stroke. An inside stroke never leaves
+    // the box, so clipping is a no-op for it.
+    let clips = crate::paint::overflow_clips(b.overflow);
     if b.rotation == 0.0 || !b.rotation.is_finite() {
-        let i0 = (x0.floor() as i64).max(0);
-        let i1 = (x1.ceil() as i64).min(cw as i64);
-        let j0 = (y0.floor() as i64).max(0);
-        let j1 = (y1.ceil() as i64).min(chh as i64);
+        let i0 = (ox0.floor() as i64).max(0);
+        let i1 = (ox1.ceil() as i64).min(cw as i64);
+        let j0 = (oy0.floor() as i64).max(0);
+        let j1 = (oy1.ceil() as i64).min(chh as i64);
         // Sharp integer rect (T004 speed): with square corners on integer
         // edges every visited pixel's 16 sub-samples fall strictly inside,
         // so coverage is exactly 1.0 without supersampling. Finite edges
-        // only; anything else takes the slow path.
-        let sharp = r <= 0.0
+        // only; anything else takes the slow path. Positioned strokes
+        // take the coverage path so the outset rounds identically.
+        let sharp = b.stroke_position == notation::model::StrokePosition::Inside
+            && r <= 0.0
             && x0.is_finite()
             && y0.is_finite()
             && x1.is_finite()
@@ -3722,28 +4225,50 @@ pub(crate) fn draw_box(frame: &mut [u8], cw: u32, chh: u32, b: &crate::frame::Re
             && y1.fract() == 0.0;
         for j in j0..j1 {
             for i in i0..i1 {
-                let outer = if sharp {
+                let mut outer = if sharp {
                     1.0
                 } else {
-                    rr_coverage(i, j, x0, y0, x1, y1, r)
+                    rr_coverage(i, j, ox0, oy0, ox1, oy1, ro)
                 };
-                let inner = if bw > 0.0 {
-                    rr_coverage(i, j, ix0, iy0, ix1, iy1, r_in)
+                let mut inner = if bw > 0.0 {
+                    rr_coverage(i, j, fx0, fy0, fx1, fy1, rf)
                 } else {
                     0.0
                 };
-                paint(frame, i, j, outer, inner);
+                if clips {
+                    let box_cov = if sharp {
+                        1.0
+                    } else {
+                        rr_coverage(i, j, x0, y0, x1, y1, r)
+                    };
+                    outer = outer.min(box_cov);
+                    inner = inner.min(box_cov);
+                }
+                if outer <= 0.0 {
+                    continue;
+                }
+                let (lx, ly) = (i as f64 + 0.5 - x0, j as f64 + 0.5 - y0);
+                let mut blend = |rr: u8, gg: u8, bb: u8, a: f64| {
+                    blend_over(frame, cw, chh, i, j, rr, gg, bb, a);
+                };
+                paint_box_pixel(
+                    &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner,
+                    alpha,
+                );
             }
         }
-        return;
+        return Ok(());
     }
     // Rotated path: every sub-sample is inverse-rotated into the
-    // unrotated box frame before the rounded-rect test.
+    // unrotated box frame before the rounded-rect test; the fill
+    // samples at the inverse-rotated pixel center in the same frame.
+    // The walk spans the stroke outset, which rotates about the same
+    // center (the outset is symmetric, so the center never moves).
     let theta = b.rotation.to_radians();
     let (sin, cos) = theta.sin_cos();
-    let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
-    let hw = sw / 2.0;
-    let hh = sh / 2.0;
+    let (cx, cy) = ((ox0 + ox1) / 2.0, (oy0 + oy1) / 2.0);
+    let hw = (ox1 - ox0) / 2.0;
+    let hh = (oy1 - oy0) / 2.0;
     let ex = hw * cos.abs() + hh * sin.abs();
     let ey = hw * sin.abs() + hh * cos.abs();
     let i0 = ((cx - ex).floor() as i64).max(0);
@@ -3757,15 +4282,32 @@ pub(crate) fn draw_box(frame: &mut [u8], cw: u32, chh: u32, b: &crate::frame::Re
     };
     for j in j0..j1 {
         for i in i0..i1 {
-            let outer = rr_coverage_mapped(i, j, &map, x0, y0, x1, y1, r);
-            let inner = if bw > 0.0 {
-                rr_coverage_mapped(i, j, &map, ix0, iy0, ix1, iy1, r_in)
+            let mut outer = rr_coverage_mapped(i, j, &map, ox0, oy0, ox1, oy1, ro);
+            let mut inner = if bw > 0.0 {
+                rr_coverage_mapped(i, j, &map, fx0, fy0, fx1, fy1, rf)
             } else {
                 0.0
             };
-            paint(frame, i, j, outer, inner);
+            if clips {
+                let box_cov = rr_coverage_mapped(i, j, &map, x0, y0, x1, y1, r);
+                outer = outer.min(box_cov);
+                inner = inner.min(box_cov);
+            }
+            if outer <= 0.0 {
+                continue;
+            }
+            let (mx, my) = map(i as f64 + 0.5, j as f64 + 0.5);
+            let (lx, ly) = (mx - x0, my - y0);
+            let mut blend = |rr: u8, gg: u8, bb: u8, a: f64| {
+                blend_over(frame, cw, chh, i, j, rr, gg, bb, a);
+            };
+            paint_box_pixel(
+                &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner,
+                alpha,
+            );
         }
     }
+    Ok(())
 }
 
 /// Fitted picture size for an image target rect (T005): `fill`
@@ -4120,7 +4662,7 @@ pub(crate) fn blur_margin(sigma: f64) -> f64 {
 
 /// Composite one straight-RGBA texel over a layer texel at byte offset
 /// `o` (source-over in layer space, for `draw_box_layer`).
-fn layer_blend(layer: &mut [u8], o: usize, r: u8, g: u8, b: u8, a: f64) {
+pub(crate) fn layer_blend(layer: &mut [u8], o: usize, r: u8, g: u8, b: u8, a: f64) {
     if !(a > 0.0) || o + 3 >= layer.len() {
         return;
     }
@@ -4138,10 +4680,18 @@ fn layer_blend(layer: &mut [u8], o: usize, r: u8, g: u8, b: u8, a: f64) {
 }
 
 /// Draw one box into a transparent straight-RGBA layer (Sprint 7
-/// motion, T005/T006): the same unrotated geometry `draw_box` draws,
-/// but as layer texels the blur/turn composite consumes. Rotation and
-/// projection run in the composite, never here.
-pub(crate) fn draw_box_layer(layer: &mut [u8], cw: u32, chh: u32, b: &crate::frame::ResolvedBox) {
+/// motion, T005/T006, plus Sprint 8 gradient and image fills): the
+/// same unrotated geometry `draw_box` draws, but as layer texels the
+/// blur/turn composite consumes. Rotation and projection run in the
+/// composite, never here. The caller resolves the image fill once
+/// (with its vanish check); the layer paints its texels, if any.
+pub(crate) fn draw_box_layer(
+    layer: &mut [u8],
+    cw: u32,
+    chh: u32,
+    b: &crate::frame::ResolvedBox,
+    decoded: Option<&DecodedImage>,
+) {
     if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
         return;
     }
@@ -4156,39 +4706,18 @@ pub(crate) fn draw_box_layer(layer: &mut [u8], cw: u32, chh: u32, b: &crate::fra
     let (x1, y1) = (b.x + sw, b.y + sh);
     let r = (b.radius * s).max(0.0).min(sw / 2.0).min(sh / 2.0);
     let bw = (b.border_width * s).max(0.0);
-    let r_in = (r - bw).max(0.0);
-    let (ix0, iy0, ix1, iy1) = (x0 + bw, y0 + bw, x1 - bw, y1 - bw);
-    // Per-pixel ring-then-fill over the layer (associative with the
-    // frame-blit order, so the unblurred layer composites identically).
-    let paint = |layer: &mut [u8], i: i64, j: i64, outer: f64, inner: f64| {
-        if outer <= 0.0 || i < 0 || j < 0 || i >= cw as i64 || j >= chh as i64 {
-            return;
-        }
-        let o = (j as u32 * cw + i as u32) as usize * 4;
-        if bw > 0.0 {
-            let ring = (outer - inner).max(0.0);
-            if ring > 0.0 {
-                layer_blend(
-                    layer,
-                    o,
-                    b.border_color.r,
-                    b.border_color.g,
-                    b.border_color.b,
-                    ring * alpha,
-                );
-            }
-            if inner > 0.0 {
-                layer_blend(layer, o, b.fill.r, b.fill.g, b.fill.b, inner * alpha);
-            }
-        } else {
-            layer_blend(layer, o, b.fill.r, b.fill.g, b.fill.b, outer * alpha);
-        }
-    };
-    let i0 = (x0.floor() as i64).max(0);
-    let i1 = (x1.ceil() as i64).min(cw as i64);
-    let j0 = (y0.floor() as i64).max(0);
-    let j1 = (y1.ceil() as i64).min(chh as i64);
-    let sharp = r <= 0.0
+    // Stroke position (Sprint 8 look, T004): `inside` reproduces the
+    // historical border exactly; positioned strokes move the outer
+    // and fill rects before the layer paints.
+    let ((ox0, oy0, ox1, oy1, ro), (fx0, fy0, fx1, fy1, rf), fill_inset) =
+        crate::paint::stroke_geometry(x0, y0, x1, y1, r, bw, b.stroke_position);
+    let clips = crate::paint::overflow_clips(b.overflow);
+    let i0 = (ox0.floor() as i64).max(0);
+    let i1 = (ox1.ceil() as i64).min(cw as i64);
+    let j0 = (oy0.floor() as i64).max(0);
+    let j1 = (oy1.ceil() as i64).min(chh as i64);
+    let sharp = b.stroke_position == notation::model::StrokePosition::Inside
+        && r <= 0.0
         && x0.is_finite()
         && y0.is_finite()
         && x1.is_finite()
@@ -4199,17 +4728,46 @@ pub(crate) fn draw_box_layer(layer: &mut [u8], cw: u32, chh: u32, b: &crate::fra
         && y1.fract() == 0.0;
     for j in j0..j1 {
         for i in i0..i1 {
-            let outer = if sharp {
+            if i < 0 || j < 0 || i >= cw as i64 || j >= chh as i64 {
+                continue;
+            }
+            let mut outer = if sharp {
                 1.0
             } else {
-                rr_coverage(i, j, x0, y0, x1, y1, r)
+                rr_coverage(i, j, ox0, oy0, ox1, oy1, ro)
             };
-            let inner = if bw > 0.0 {
-                rr_coverage(i, j, ix0, iy0, ix1, iy1, r_in)
+            if outer <= 0.0 {
+                continue;
+            }
+            let mut inner = if bw > 0.0 {
+                rr_coverage(i, j, fx0, fy0, fx1, fy1, rf)
             } else {
                 0.0
             };
-            paint(layer, i, j, outer, inner);
+            if clips {
+                let box_cov = if sharp {
+                    1.0
+                } else {
+                    rr_coverage(i, j, x0, y0, x1, y1, r)
+                };
+                outer = outer.min(box_cov);
+                inner = inner.min(box_cov);
+                if outer <= 0.0 {
+                    continue;
+                }
+            }
+            let o = (j as u32 * cw + i as u32) as usize * 4;
+            let (lx, ly) = (i as f64 + 0.5 - x0, j as f64 + 0.5 - y0);
+            // Per-pixel ring-then-fill over the layer (associative
+            // with the frame-blit order, so the unblurred layer
+            // composites identically).
+            let mut blend = |rr: u8, gg: u8, bb: u8, a: f64| {
+                layer_blend(layer, o, rr, gg, bb, a);
+            };
+            paint_box_pixel(
+                &mut blend, b, decoded, lx, ly, sw, sh, bw, fill_inset, outer, inner,
+                alpha,
+            );
         }
     }
 }
@@ -4403,7 +4961,7 @@ pub(crate) fn composite_premult_direct(
 /// Screen bounds of a card turned through 2D rotation (about `anchor`)
 /// after the 3D turn (Sprint 7 motion, CAP-005): the inverse walk
 /// visits exactly this box, grown by one texel of guard.
-fn warp_bounds(
+pub(crate) fn warp_bounds(
     card: (f64, f64, f64, f64),
     anchor: (f64, f64),
     rotation_deg: f64,
@@ -4566,15 +5124,24 @@ pub(crate) fn draw_box_advanced(
     cw: u32,
     chh: u32,
     b: &crate::frame::ResolvedBox,
-) {
+    images: &[DecodedImage],
+    folder: &Path,
+) -> Result<(), String> {
     if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
-        return;
+        return Ok(());
     }
     if b.scale <= 0.0 || !b.scale.is_finite() {
-        return;
+        return Ok(());
     }
+    // Image fills resolve once per box, with the same vanish check as
+    // the direct path: a source deleted mid-render refuses here with
+    // its path named and no partial MP4.
+    let decoded = match &b.fill_paint {
+        FillPaint::Image { src, .. } => Some(fill_image_decoded(images, folder, src)?),
+        _ => None,
+    };
     let mut layer = vec![0u8; cw as usize * chh as usize * 4];
-    draw_box_layer(&mut layer, cw, chh, b);
+    draw_box_layer(&mut layer, cw, chh, b, decoded);
     let mut pm = Premult::from_layer(&layer, cw as usize, chh as usize);
     if blur_on(b.blur) {
         pm.blur(b.blur);
@@ -4599,6 +5166,7 @@ pub(crate) fn draw_box_advanced(
             warp_bounds(card, anchor, b.rotation, turn),
         ),
     }
+    Ok(())
 }
 
 /// Draw one image through blur and 3D turn (Sprint 7 motion, T005/T006):
@@ -4837,6 +5405,8 @@ pub(crate) fn draw_description(
     videos: &[ProbedVideo],
     ranges: &[DecodedRange],
     images: &[DecodedImage],
+    paths: &crate::path_paint::PathCache,
+    folder: &Path,
     frame: &mut [u8],
 ) -> Result<(), String> {
     // Background fill.
@@ -4905,9 +5475,10 @@ pub(crate) fn draw_description(
                 }
             }
             FrameItem::Text(tc) => {
-                if tc.value.is_empty() {
+                if tc.value.is_empty() && !tc.has_spans {
                     // A typewriter reveal at progress 0 shows no pieces:
-                    // nothing to draw at this instant.
+                    // nothing to draw at this instant. A value-less span
+                    // text still paints its shaped runs (Sprint 8, T002).
                     continue;
                 }
                 // Frame-varying text (typewriter, count, animated
@@ -4973,15 +5544,28 @@ pub(crate) fn draw_description(
                 }
             }
             FrameItem::Box(b) => {
-                // Sprint 7 motion (T005/T006): blurred or turned boxes
-                // draw through the layer path; everything else draws
-                // exactly as before.
+                // Sprint 8 look (T004): any paint-stack feature draws
+                // through the paint stack (backdrop, shadow, blend,
+                // mask) in one layout-then-paint pass. Sprint 7 motion
+                // (T005/T006): blurred or turned boxes draw through the
+                // layer path; everything else draws exactly as before.
+                // Sprint 8 fills resolve through the same image list
+                // with their vanish check.
                 let probe = turn_probe(b.rotate_x, b.rotate_y, b.turn.perspective);
-                if blur_on(b.blur) || probe.is_some() {
-                    draw_box_advanced(frame, cw, chh, b);
+                if b.paint_stack_active() {
+                    crate::paint::draw_box_paint(frame, cw, chh, b, images, folder)?;
+                } else if blur_on(b.blur) || probe.is_some() {
+                    draw_box_advanced(frame, cw, chh, b, images, folder)?;
                 } else {
-                    draw_box(frame, cw, chh, b);
+                    draw_box(frame, cw, chh, b, images, folder)?;
                 }
+            }
+            // A vector path paints through the shared paint stack
+            // (Sprint 8 look, T005): fill by its fill rule, the
+            // positioned stroke above it, then shadow, blend, and
+            // mask like boxes.
+            FrameItem::Path(q) => {
+                crate::path_paint::draw_path(frame, cw, chh, q, paths)?;
             }
             FrameItem::Image(im) => {
                 let decoded = images
@@ -6368,9 +6952,18 @@ mod tests {
             width: w,
             height: h,
             fill,
+            fill_paint: FillPaint::Solid,
             radius: 0.0,
             border_width: 0.0,
             border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             opacity: 1.0,
             scale: 1.0,
             rotation: 0.0,
@@ -6442,7 +7035,7 @@ mod tests {
         // box the background shows through.
         let mut frame = vec![10u8; 32 * 32 * 3];
         let b = test_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 255, g: 0, b: 0 });
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&frame, 32, 16, 16), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 9, 9), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 0, 0), (10, 10, 10));
@@ -6455,7 +7048,7 @@ mod tests {
         let mut frame = vec![10u8; 32 * 32 * 3];
         let mut b = test_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 255, g: 0, b: 0 });
         b.opacity = 0.0;
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert!(frame.iter().all(|&v| v == 10));
     }
 
@@ -6475,7 +7068,7 @@ mod tests {
             },
         );
         b.opacity = 0.5;
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&frame, 32, 16, 16), (100, 50, 0));
     }
 
@@ -6487,7 +7080,7 @@ mod tests {
         let mut b = test_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 255, g: 0, b: 0 });
         b.border_width = 2.0;
         b.border_color = Rgb { r: 0, g: 0, b: 255 };
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         // Edge pixel: border color. Deep interior: fill color.
         assert_eq!(pixel(&frame, 32, 8, 16), (0, 0, 255));
         assert_eq!(pixel(&frame, 32, 16, 16), (255, 0, 0));
@@ -6502,7 +7095,7 @@ mod tests {
         let mut frame = vec![0u8; 32 * 32 * 3];
         let mut b = test_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 0, g: 255, b: 0 });
         b.radius = 8.0;
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&frame, 32, 8, 8), (0, 0, 0), "corner is cut");
         assert_eq!(pixel(&frame, 32, 16, 8), (0, 255, 0), "edge middle paints");
         assert_eq!(pixel(&frame, 32, 16, 16), (0, 255, 0));
@@ -6642,9 +7235,18 @@ mod tests {
             width: w,
             height: h,
             fill,
+            fill_paint: FillPaint::Solid,
             radius: 0.0,
             border_width: 0.0,
             border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             opacity: 1.0,
             scale: 1.0,
             rotation: 0.0,
@@ -6661,7 +7263,7 @@ mod tests {
         let mut frame = vec![0u8; 32 * 32 * 3];
         let mut b = motion_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 255, g: 0, b: 0 });
         b.scale = 2.0;
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&frame, 32, 8, 8), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 23, 23), (255, 0, 0));
         assert_eq!(pixel(&frame, 32, 31, 31), (255, 0, 0));
@@ -6674,7 +7276,7 @@ mod tests {
         let mut half = vec![0u8; 32 * 32 * 3];
         let mut h = motion_box(8.0, 8.0, 16.0, 16.0, Rgb { r: 255, g: 0, b: 0 });
         h.scale = 0.5;
-        draw_box(&mut half, 32, 32, &h);
+        draw_box(&mut half, 32, 32, &h, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&half, 32, 8, 8), (255, 0, 0));
         assert_eq!(pixel(&half, 32, 15, 15), (255, 0, 0));
         assert_eq!(pixel(&half, 32, 16, 16), (0, 0, 0));
@@ -6686,7 +7288,7 @@ mod tests {
         let mut frame = vec![0u8; 32 * 32 * 3];
         let mut b = motion_box(8.0, 4.0, 16.0, 8.0, Rgb { r: 0, g: 255, b: 0 });
         b.rotation = 90.0;
-        draw_box(&mut frame, 32, 32, &b);
+        draw_box(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert_eq!(
             pixel(&frame, 32, 16, 8),
             (0, 255, 0),
@@ -6821,6 +7423,7 @@ mod tests {
             doc: 0,
             order: 0,
             value: value.to_string(),
+            has_spans: false,
             x: 4.0,
             y: 4.0,
             size: 14.0,
@@ -6950,6 +7553,129 @@ mod tests {
         );
         assert!(dyn_.contains(0, "Hi", 32.0, None));
         assert!(!dyn_.contains(0, "Hi", 33.0, None));
+    }
+
+    fn span_clip(spans: Vec<notation::model::TextSpan>) -> notation::model::TextClip {
+        notation::model::TextClip {
+            value: String::new(),
+            start: 0.0,
+            duration: 2.0,
+            id: None,
+            track: notation::model::TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
+            x: 0.0,
+            y: 0.0,
+            size: 24.0,
+            color: notation::model::Rgb { r: 255, g: 255, b: 255 },
+            align: notation::model::Align::Left,
+            wrap: notation::model::Wrap::Off,
+            style: notation::model::FontStyle::Regular,
+            order: 0,
+            line_height: None,
+            letter_spacing: None,
+            font_family: None,
+            direction: notation::model::TextDirection::Ltr,
+            spans,
+            split: None,
+            typewriter: false,
+            count_from: None,
+            count_to: None,
+            decimals: 0,
+            line: 1,
+            column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
+        }
+    }
+
+    fn span(value: &str) -> notation::model::TextSpan {
+        notation::model::TextSpan {
+            value: value.to_string(),
+            font_family: None,
+            font_size: None,
+            font_weight: None,
+            italic: None,
+            color: None,
+            letter_spacing: None,
+            line_height: None,
+            children: Vec::new(),
+            line: 1,
+            column: 1,
+        }
+    }
+
+    #[test]
+    fn spans_shape_each_run_with_own_paint() {
+        // T002: two runs with distinct sizes and colors shape into one
+        // block carrying both paints, in document order.
+        let mut red = span("Hi ");
+        red.font_size = Some(24.0);
+        red.color = Some(notation::model::Rgb { r: 255, g: 0, b: 0 });
+        let mut green = span("there");
+        green.font_size = Some(48.0);
+        green.color = Some(notation::model::Rgb { r: 0, g: 255, b: 0 });
+        let tc = span_clip(vec![red, green]);
+        let mut fonts = layout::Fonts::new();
+        let block = shape_text_string(&mut fonts, &None, &tc, "", Path::new("ffmpeg"))
+            .expect("spans must shape")
+            .expect("machine fonts must serve latin");
+        let text: String = block
+            .runs
+            .iter()
+            .flat_map(|r| r.glyphs.iter().map(|g| g.ch))
+            .collect();
+        assert_eq!(text, "Hi there");
+        let sizes: Vec<f32> = block.runs.iter().map(|r| r.size).collect();
+        assert!(sizes.contains(&24.0) && sizes.contains(&48.0), "{sizes:?}");
+        let colours: Vec<[u8; 4]> = block.runs.iter().map(|r| r.colour).collect();
+        assert!(colours.contains(&[255, 0, 0, 255]));
+        assert!(colours.contains(&[0, 255, 0, 255]));
+    }
+
+    #[test]
+    fn spans_unknown_family_refuses_naming_span_before_frame_one() {
+        // T002: a run whose family list nothing resolves refuses before
+        // frame one naming the span, never falling back silently.
+        let mut bad = span("Hi");
+        bad.font_family = Some(vec!["no-such-family-xyz".to_string()]);
+        let tc = span_clip(vec![bad, span("there")]);
+        let mut fonts = layout::Fonts::new();
+        let err = shape_text_string(&mut fonts, &None, &tc, "", Path::new("ffmpeg"))
+            .expect_err("unknown run family must refuse");
+        assert!(err.contains("span 1"), "refusal names the span: {err}");
+        assert!(err.contains("font-family"), "refusal names the property: {err}");
+        assert!(err.contains("no MP4 was written"), "refusal leaves no output: {err}");
+    }
+
+    #[test]
+    fn spans_empty_shaping_refuses_naming_span() {
+        // T002: a run shaping to no glyphs (here a newline-only run)
+        // refuses naming the span.
+        let tc = span_clip(vec![span("Hi"), span("\n")]);
+        let mut fonts = layout::Fonts::new();
+        let err = shape_text_string(&mut fonts, &None, &tc, "", Path::new("ffmpeg"))
+            .expect_err("empty shaping must refuse");
+        assert!(err.contains("span 2"), "refusal names the span: {err}");
+    }
+
+    #[test]
+    fn spans_nested_runs_inherit_enclosing_style() {
+        // T002: a nested span without overrides paints in its parent's
+        // size and color.
+        let mut outer = span("");
+        outer.font_size = Some(36.0);
+        outer.color = Some(notation::model::Rgb { r: 0, g: 0, b: 255 });
+        outer.children = vec![span("inner")];
+        let tc = span_clip(vec![outer]);
+        let mut fonts = layout::Fonts::new();
+        let block = shape_text_string(&mut fonts, &None, &tc, "", Path::new("ffmpeg"))
+            .expect("nested spans must shape")
+            .expect("machine fonts must serve latin");
+        assert_eq!(block.runs.len(), 1);
+        assert_eq!(block.runs[0].size, 36.0);
+        assert_eq!(block.runs[0].colour, [0, 0, 255, 255]);
     }
 
     #[test]
@@ -7150,9 +7876,18 @@ mod tests {
                     width: 16.0,
                     height: 16.0,
                     fill: Rgb { r: 255, g: 0, b: 0 },
+                    fill_paint: FillPaint::Solid,
                     radius: 0.0,
                     border_width: 0.0,
                     border_color: Rgb { r: 0, g: 0, b: 0 },
+                    stroke_position: notation::model::StrokePosition::Inside,
+                    box_shadow: None,
+                    blend_mode: notation::model::BlendMode::Normal,
+                    backdrop_blur: 0.0,
+                    backdrop_brightness: 1.0,
+                    overflow: notation::model::Overflow::Visible,
+                    mask: None,
+                    clip_path: None,
                     opacity: 1.0,
                     order: red_order,
                     line: 1,
@@ -7173,9 +7908,18 @@ mod tests {
                     width: 16.0,
                     height: 16.0,
                     fill: Rgb { r: 0, g: 0, b: 255 },
+                    fill_paint: FillPaint::Solid,
                     radius: 0.0,
                     border_width: 0.0,
                     border_color: Rgb { r: 0, g: 0, b: 0 },
+                    stroke_position: notation::model::StrokePosition::Inside,
+                    box_shadow: None,
+                    blend_mode: notation::model::BlendMode::Normal,
+                    backdrop_blur: 0.0,
+                    backdrop_brightness: 1.0,
+                    overflow: notation::model::Overflow::Visible,
+                    mask: None,
+                    clip_path: None,
                     opacity: 1.0,
                     order: blue_order,
                     line: 1,
@@ -7224,6 +7968,8 @@ mod tests {
                 &[],
                 &[],
                 &[],
+                &crate::path_paint::PathCache::new(),
+                std::path::Path::new("."),
                 &mut frame,
             )
             .unwrap();
@@ -7598,10 +8344,12 @@ mod tests {
             ranges: Vec::new(),
             images: Vec::new(),
             raster: RasterCache::new(),
+            paths: crate::path_paint::PathCache::new(),
             tree: Vec::new(),
             cache_stats: crate::footage_cache::CacheStats::default(),
             range_start: timebase::Time::ZERO,
             out_duration: 1.0,
+            folder: std::path::PathBuf::from("."),
         }
     }
 
@@ -7620,9 +8368,18 @@ mod tests {
             width: 20.0,
             height: 20.0,
             fill: Rgb { r: 255, g: 0, b: 0 },
+            fill_paint: FillPaint::Solid,
             radius: 2.0,
             border_width: 1.0,
             border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             opacity: 1.0,
             order: 1,
             line: 1,
@@ -7643,9 +8400,18 @@ mod tests {
             width: w,
             height: h,
             fill: Rgb { r: 255, g: 0, b: 0 },
+            fill_paint: FillPaint::Solid,
             radius: 0.0,
             border_width: 0.0,
             border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             opacity: 1.0,
             scale: 1.0,
             rotation: 0.0,
@@ -7677,9 +8443,9 @@ mod tests {
         // box: every coverage is exactly 0 or 1).
         let b = sharp_box(4.0, 4.0, 20.0, 12.0);
         let mut legacy = vec![0u8; 64 * 48 * 3];
-        draw_box(&mut legacy, 64, 48, &b);
+        draw_box(&mut legacy, 64, 48, &b, &[], Path::new(".")).unwrap();
         let mut advanced = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut advanced, 64, 48, &b);
+        draw_box_advanced(&mut advanced, 64, 48, &b, &[], Path::new(".")).unwrap();
         assert_eq!(advanced, legacy, "identity layer path matches the blit");
         // A rounded, bordered, translucent box matches within one
         // step per channel (the layer stores one rounded alpha byte).
@@ -7689,9 +8455,9 @@ mod tests {
         soft.border_width = 2.0;
         soft.border_color = Rgb { r: 0, g: 0, b: 255 };
         let mut legacy = vec![0u8; 64 * 48 * 3];
-        draw_box(&mut legacy, 64, 48, &soft);
+        draw_box(&mut legacy, 64, 48, &soft, &[], Path::new(".")).unwrap();
         let mut advanced = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut advanced, 64, 48, &soft);
+        draw_box_advanced(&mut advanced, 64, 48, &soft, &[], Path::new(".")).unwrap();
         assert_eq!(legacy.len(), advanced.len());
         for (i, (a, l)) in advanced.iter().zip(legacy.iter()).enumerate() {
             assert!(
@@ -7708,7 +8474,7 @@ mod tests {
         // draws nothing.
         let b = turned_box(10.0, 10.0, 40.0, 40.0, 60.0, 0.0);
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &b);
+        draw_box_advanced(&mut frame, 64, 64, &b, &[], Path::new(".")).unwrap();
         for j in 20..40 {
             assert_eq!(pixel(&frame, 64, 30, j), (255, 0, 0), "row {j} fills");
         }
@@ -7718,7 +8484,7 @@ mod tests {
         assert_eq!(pixel(&frame, 64, 49, 30), (255, 0, 0), "full width keeps");
         let edge = turned_box(10.0, 10.0, 40.0, 40.0, 90.0, 0.0);
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &edge);
+        draw_box_advanced(&mut frame, 64, 64, &edge, &[], Path::new(".")).unwrap();
         assert!(frame.iter().all(|&v| v == 0), "edge-on cards draw nothing");
     }
 
@@ -7736,7 +8502,7 @@ mod tests {
             ..Turn3D::flat()
         };
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &top);
+        draw_box_advanced(&mut frame, 64, 64, &top, &[], Path::new(".")).unwrap();
         assert_eq!(pixel(&frame, 64, 30, 10), (255, 0, 0), "top pins");
         assert_eq!(
             pixel(&frame, 64, 30, 29),
@@ -7761,7 +8527,7 @@ mod tests {
         // heights); with p=200 the near (left) edge stands taller.
         let flat = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
         let mut frame = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut frame, 160, 120, &flat);
+        draw_box_advanced(&mut frame, 160, 120, &flat, &[], Path::new(".")).unwrap();
         // Flat edges: find the first/last red columns, compare heights.
         let cols: Vec<u32> = (0..160)
             .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
@@ -7779,7 +8545,7 @@ mod tests {
         let mut persp = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
         persp.turn.perspective = Some(200.0);
         let mut frame = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut frame, 160, 120, &persp);
+        draw_box_advanced(&mut frame, 160, 120, &persp, &[], Path::new(".")).unwrap();
         let cols: Vec<u32> = (0..160)
             .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
             .collect();
@@ -7794,7 +8560,7 @@ mod tests {
         );
         // Both renders are deterministic.
         let mut again = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut again, 160, 120, &persp);
+        draw_box_advanced(&mut again, 160, 120, &persp, &[], Path::new(".")).unwrap();
         assert_eq!(frame, again, "turned re-render is byte-identical");
     }
 
@@ -7807,7 +8573,7 @@ mod tests {
         let mut b = sharp_box(10.0, 10.0, 1.0, 1.0);
         b.blur = 1.0;
         let mut frame = vec![0u8; 32 * 32 * 3];
-        draw_box_advanced(&mut frame, 32, 32, &b);
+        draw_box_advanced(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
         // Hand kernel, computed here from the Gaussian alone.
         let raw = [-3.0f64, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0].map(|x| (-x * x / 2.0).exp());
         let total: f64 = raw.iter().sum();
@@ -7841,7 +8607,7 @@ mod tests {
         assert_eq!(mass, hand, "byte mass matches the rounded kernel");
         // Deterministic re-render.
         let mut again = vec![0u8; 32 * 32 * 3];
-        draw_box_advanced(&mut again, 32, 32, &b);
+        draw_box_advanced(&mut again, 32, 32, &b, &[], Path::new(".")).unwrap();
         assert_eq!(frame, again, "blurred re-render is byte-identical");
     }
 
@@ -7853,7 +8619,7 @@ mod tests {
         let mut b = sharp_box(10.0, 10.0, 20.0, 20.0);
         b.blur = 2.5;
         let mut blurred = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut blurred, 64, 64, &b);
+        draw_box_advanced(&mut blurred, 64, 64, &b, &[], Path::new(".")).unwrap();
         assert_eq!(
             pixel(&blurred, 64, 20, 20),
             (255, 0, 0),
@@ -7865,7 +8631,7 @@ mod tests {
         assert!(or_ > 0, "softness spreads outside, got {or_}");
         b.blur = 0.0;
         let mut sharp = vec![0u8; 64 * 64 * 3];
-        draw_box(&mut sharp, 64, 64, &b);
+        draw_box(&mut sharp, 64, 64, &b, &[], Path::new(".")).unwrap();
         assert_ne!(blurred, sharp, "blur changes the picture");
     }
 
@@ -8900,5 +9666,384 @@ mod tests {
         assert_eq!(got.len(), 2 * 48000 * 2 * 2);
         assert_eq!(&got[..], &bytes[48000 * 2 * 2..144000 * 2 * 2]);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // --- Sprint 8 look (T003): gradient and image fills ---
+
+    fn stops_rgb() -> Vec<GradientStop> {
+        use notation::model::GradientStop;
+        vec![
+            GradientStop {
+                offset: 0.0,
+                color: Rgb { r: 255, g: 0, b: 0 },
+                line: 1,
+                column: 1,
+            },
+            GradientStop {
+                offset: 0.5,
+                color: Rgb { r: 0, g: 255, b: 0 },
+                line: 2,
+                column: 1,
+            },
+            GradientStop {
+                offset: 1.0,
+                color: Rgb { r: 0, g: 0, b: 255 },
+                line: 3,
+                column: 1,
+            },
+        ]
+    }
+
+    fn paint_box(paint: notation::model::FillPaint, x: f64, y: f64, w: f64, h: f64) -> ResolvedBox {
+        ResolvedBox {
+            doc: 0,
+            order: 0,
+            x,
+            y,
+            width: w,
+            height: h,
+            fill: Rgb { r: 255, g: 255, b: 255 },
+            fill_paint: paint,
+            radius: 0.0,
+            border_width: 0.0,
+            border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
+            opacity: 1.0,
+            scale: 1.0,
+            rotation: 0.0,
+            rotate_x: 0.0,
+            rotate_y: 0.0,
+            blur: 0.0,
+            turn: notation::model::Turn3D::flat(),
+        }
+    }
+
+    #[test]
+    fn gradient_samples_interpolate_in_srgb_with_end_clamps() {
+        let stops = stops_rgb();
+        assert_eq!(sample_gradient(&stops, 0.0), (255, 0, 0));
+        assert_eq!(sample_gradient(&stops, 1.0), (0, 0, 255));
+        // sRGB channel lerp: halfway red to green rounds half up.
+        assert_eq!(sample_gradient(&stops, 0.25), (128, 128, 0));
+        assert_eq!(sample_gradient(&stops, 0.5), (0, 255, 0));
+        assert_eq!(sample_gradient(&stops, 0.75), (0, 128, 128));
+        // Outside clamps to the end stops.
+        assert_eq!(sample_gradient(&stops, -0.5), (255, 0, 0));
+        assert_eq!(sample_gradient(&stops, 2.0), (0, 0, 255));
+        // One stop paints flat at any t.
+        let one = vec![stops[1].clone()];
+        assert_eq!(sample_gradient(&one, 0.0), (0, 255, 0));
+        assert_eq!(sample_gradient(&one, 0.9), (0, 255, 0));
+    }
+
+    #[test]
+    fn linear_three_stop_ramp_clips_to_the_element_box() {
+        use notation::model::FillPaint;
+        // Half-pixel x offset so pixel centers land on exact stops:
+        // lx is an integer, t hits 0.5 at lx 24.
+        let b = paint_box(FillPaint::Linear { angle: 90.0, stops: stops_rgb() }, 7.5, 8.0, 48.0, 32.0);
+        let mut frame = vec![0u8; 64 * 48 * 3];
+        draw_box(&mut frame, 64, 48, &b, &[], Path::new(".")).unwrap();
+        // Exact stop at the gradient middle.
+        assert_eq!(pixel(&frame, 64, 31, 24), (0, 255, 0));
+        // Ramp ends approach the end stops.
+        let (r, g, bl) = pixel(&frame, 64, 8, 24);
+        assert!(r > 230 && g < 24 && bl == 0, "left should approach red, got ({r}, {g}, {bl})");
+        let (r, g, bl) = pixel(&frame, 64, 54, 24);
+        assert!(bl > 230 && g < 24 && r == 0, "right should approach blue, got ({r}, {g}, {bl})");
+        // Outside the box the canvas shows through.
+        assert_eq!(pixel(&frame, 64, 6, 24), (0, 0, 0));
+        assert_eq!(pixel(&frame, 64, 0, 0), (0, 0, 0));
+        // The ramp is constant down a column (horizontal gradient).
+        assert_eq!(pixel(&frame, 64, 31, 8), pixel(&frame, 64, 31, 39));
+    }
+
+    #[test]
+    fn linear_angle_zero_runs_bottom_to_top() {
+        use notation::model::FillPaint;
+        let b = paint_box(
+            FillPaint::Linear {
+                angle: 0.0,
+                stops: vec![
+                    notation::model::GradientStop {
+                        offset: 0.0,
+                        color: Rgb { r: 255, g: 0, b: 0 },
+                        line: 1,
+                        column: 1,
+                    },
+                    notation::model::GradientStop {
+                        offset: 1.0,
+                        color: Rgb { r: 0, g: 0, b: 255 },
+                        line: 2,
+                        column: 1,
+                    },
+                ],
+            },
+            0.0,
+            0.0,
+            10.0,
+            10.0,
+        );
+        let mut frame = vec![0u8; 10 * 10 * 3];
+        draw_box(&mut frame, 10, 10, &b, &[], Path::new(".")).unwrap();
+        let (r, _, bl) = pixel(&frame, 10, 5, 0);
+        assert!(bl > r, "top should approach blue, got ({r}, {bl})");
+        let (r, _, bl) = pixel(&frame, 10, 5, 9);
+        assert!(r > bl, "bottom should approach red, got ({r}, {bl})");
+    }
+
+    #[test]
+    fn radial_gradient_renders_concentric_rings() {
+        use notation::model::FillPaint;
+        let b = paint_box(
+            FillPaint::Radial {
+                cx: None,
+                cy: None,
+                radius: None,
+                stops: vec![
+                    notation::model::GradientStop {
+                        offset: 0.0,
+                        color: Rgb { r: 255, g: 255, b: 255 },
+                        line: 1,
+                        column: 1,
+                    },
+                    notation::model::GradientStop {
+                        offset: 1.0,
+                        color: Rgb { r: 0, g: 0, b: 0 },
+                        line: 2,
+                        column: 1,
+                    },
+                ],
+            },
+            0.0,
+            0.0,
+            40.0,
+            40.0,
+        );
+        let mut frame = vec![0u8; 40 * 40 * 3];
+        draw_box(&mut frame, 40, 40, &b, &[], Path::new(".")).unwrap();
+        let (r, g, bl) = pixel(&frame, 40, 20, 20);
+        assert!(r > 240 && g > 240 && bl > 240, "center should approach white, got ({r}, {g}, {bl})");
+        let (r, g, bl) = pixel(&frame, 40, 39, 39);
+        assert!(r < 16 && g < 16 && bl < 16, "corner should approach black, got ({r}, {g}, {bl})");
+        // Concentric: equal distances paint equal colors.
+        assert_eq!(pixel(&frame, 40, 25, 20), pixel(&frame, 40, 20, 25));
+    }
+
+    #[test]
+    fn radial_gradient_honors_declared_center_and_radius() {
+        use notation::model::FillPaint;
+        let b = paint_box(
+            FillPaint::Radial {
+                cx: Some(10.5),
+                cy: Some(10.5),
+                radius: Some(10.0),
+                stops: vec![
+                    notation::model::GradientStop {
+                        offset: 0.0,
+                        color: Rgb { r: 255, g: 0, b: 0 },
+                        line: 1,
+                        column: 1,
+                    },
+                    notation::model::GradientStop {
+                        offset: 1.0,
+                        color: Rgb { r: 0, g: 0, b: 255 },
+                        line: 2,
+                        column: 1,
+                    },
+                ],
+            },
+            0.0,
+            0.0,
+            40.0,
+            40.0,
+        );
+        let mut frame = vec![0u8; 40 * 40 * 3];
+        draw_box(&mut frame, 40, 40, &b, &[], Path::new(".")).unwrap();
+        assert_eq!(pixel(&frame, 40, 10, 10), (255, 0, 0));
+        assert_eq!(pixel(&frame, 40, 15, 10), (128, 0, 128));
+        assert_eq!(pixel(&frame, 40, 20, 10), (0, 0, 255));
+        // Past the radius the end stop holds.
+        assert_eq!(pixel(&frame, 40, 30, 10), (0, 0, 255));
+    }
+
+    #[test]
+    fn border_ring_stays_solid_over_a_gradient() {
+        use notation::model::FillPaint;
+        let mut b = paint_box(FillPaint::Linear { angle: 90.0, stops: stops_rgb() }, 0.0, 0.0, 10.0, 10.0);
+        b.border_width = 2.0;
+        b.border_color = Rgb { r: 255, g: 255, b: 255 };
+        let mut frame = vec![0u8; 10 * 10 * 3];
+        draw_box(&mut frame, 10, 10, &b, &[], Path::new(".")).unwrap();
+        assert_eq!(pixel(&frame, 10, 0, 5), (255, 255, 255));
+        // Inside the ring the gradient paints, not the border.
+        assert_ne!(pixel(&frame, 10, 5, 5), (255, 255, 255));
+        // Three-stop ramp at lx 5.5: green-to-blue segment, mostly green.
+        let (r, g, bl) = pixel(&frame, 10, 5, 5);
+        assert!(r == 0 && g > 200 && bl < 64, "inner should be greenish, got ({r}, {g}, {bl})");
+    }
+
+    fn fill_image_at(dir: &Path, name: &str, w: u32, h: u32, rgba: Vec<u8>) -> DecodedImage {
+        std::fs::write(dir.join(name), b"stat-only").unwrap();
+        DecodedImage {
+            path: dir.join(name),
+            width: w,
+            height: h,
+            rgba,
+            scaled: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn image_paint(src: &str, fit: Fit, px: &str) -> notation::model::FillPaint {
+        notation::model::FillPaint::Image {
+            src: src.to_string(),
+            fit,
+            placement: Placement::parse(px).unwrap(),
+        }
+    }
+
+    #[test]
+    fn image_fill_cover_paints_the_whole_box() {
+        let dir = std::env::temp_dir().join(format!("framesmith-fill-cover-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let decoded = fill_image_at(&dir, "red.png", 4, 4, vec![255, 0, 0, 255].repeat(16));
+        let b = paint_box(image_paint("red.png", Fit::Cover, "center"), 0.0, 0.0, 8.0, 8.0);
+        let mut frame = vec![0u8; 8 * 8 * 3];
+        draw_box(&mut frame, 8, 8, &b, &[decoded], dir.as_path()).unwrap();
+        assert!(frame.chunks_exact(3).all(|p| p == [255, 0, 0]));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn image_fill_contain_letterboxes_with_object_position() {
+        let dir = std::env::temp_dir().join(format!("framesmith-fill-contain-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        // Centered: the 4-wide picture sits in the middle of the 8-wide box.
+        let decoded = fill_image_at(&dir, "red.png", 4, 4, vec![255, 0, 0, 255].repeat(16));
+        let b = paint_box(image_paint("red.png", Fit::Contain, "center"), 0.0, 0.0, 8.0, 4.0);
+        let mut frame = vec![0u8; 8 * 8 * 3];
+        draw_box(&mut frame, 8, 8, &b, &[decoded], dir.as_path()).unwrap();
+        assert_eq!(pixel(&frame, 8, 4, 2), (255, 0, 0));
+        assert_eq!(pixel(&frame, 8, 2, 2), (255, 0, 0));
+        assert_eq!(pixel(&frame, 8, 0, 2), (0, 0, 0));
+        assert_eq!(pixel(&frame, 8, 7, 2), (0, 0, 0));
+        // Top-left: the picture hugs the origin.
+        let decoded = fill_image_at(&dir, "red.png", 4, 4, vec![255, 0, 0, 255].repeat(16));
+        let b = paint_box(image_paint("red.png", Fit::Contain, "top-left"), 0.0, 0.0, 8.0, 4.0);
+        let mut frame = vec![0u8; 8 * 8 * 3];
+        draw_box(&mut frame, 8, 8, &b, &[decoded], dir.as_path()).unwrap();
+        assert_eq!(pixel(&frame, 8, 0, 2), (255, 0, 0));
+        assert_eq!(pixel(&frame, 8, 5, 2), (0, 0, 0));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn image_fill_stretch_maps_source_corners_to_box_corners() {
+        let dir = std::env::temp_dir().join(format!("framesmith-fill-stretch-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        // Two texels: red left, blue right.
+        let decoded = fill_image_at(
+            &dir,
+            "rb.png",
+            2,
+            1,
+            vec![255, 0, 0, 255, 0, 0, 255, 255],
+        );
+        let b = paint_box(image_paint("rb.png", Fit::Fill, "center"), 0.0, 0.0, 4.0, 2.0);
+        let mut frame = vec![0u8; 4 * 2 * 3];
+        draw_box(&mut frame, 4, 2, &b, &[decoded], dir.as_path()).unwrap();
+        assert_eq!(pixel(&frame, 4, 0, 0), (255, 0, 0));
+        assert_eq!(pixel(&frame, 4, 3, 1), (0, 0, 255));
+        assert_eq!(pixel(&frame, 4, 1, 0), (191, 0, 64));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn vanished_image_fill_refuses_naming_the_path() {
+        let dir = std::env::temp_dir().join(format!("framesmith-fill-gone-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        // No file is written: the source is already gone at draw time.
+        let b = paint_box(image_paint("gone.png", Fit::Cover, "center"), 0.0, 0.0, 8.0, 8.0);
+        let mut frame = vec![0u8; 8 * 8 * 3];
+        let err = draw_box(&mut frame, 8, 8, &b, &[], dir.as_path()).unwrap_err();
+        assert!(err.contains("gone.png"), "must name the path: {err}");
+        assert!(err.contains("no MP4"), "must leave no partial MP4: {err}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn advanced_layer_path_matches_direct_gradient_bytes() {
+        use notation::model::FillPaint;
+        let b = paint_box(FillPaint::Linear { angle: 90.0, stops: stops_rgb() }, 4.0, 4.0, 20.0, 12.0);
+        let mut direct = vec![0u8; 64 * 48 * 3];
+        draw_box(&mut direct, 64, 48, &b, &[], Path::new(".")).unwrap();
+        let mut layered = vec![0u8; 64 * 48 * 3];
+        draw_box_advanced(&mut layered, 64, 48, &b, &[], Path::new(".")).unwrap();
+        assert_eq!(direct, layered);
+    }
+
+    #[test]
+    fn stop_cost_scales_linearly_without_per_stop_leak() {
+        // T003 perf: adding stops must add proportional scan work, with
+        // no superlinear leak. Per-sample call/lerp/accumulate costs are
+        // identical for every stop count, so raw 10-vs-5 ratios under-
+        // read the slope; differencing two equal stop steps (5->10 and
+        // 10->15) cancels every fixed cost, and the slope ratio must be
+        // 1 for linear scaling (0.25 for a quadratic leak). Each round
+        // times every size up and back down, so linear clock drift
+        // cancels within the round; the median round sets the verdict,
+        // so sibling-test CPU noise cannot tilt one size.
+        use notation::model::GradientStop;
+        let mk = |n: usize| {
+            (0..n)
+                .map(|i| GradientStop {
+                    offset: i as f64 / (n - 1) as f64,
+                    color: Rgb {
+                        r: (i * 25 % 256) as u8,
+                        g: (i * 57 % 256) as u8,
+                        b: (i * 91 % 256) as u8,
+                    },
+                    line: 1,
+                    column: 1,
+                })
+                .collect::<Vec<_>>()
+        };
+        let five = mk(5);
+        let ten = mk(10);
+        let fifteen = mk(15);
+        const N: usize = 200_000;
+        let ts: Vec<f64> = (0..N).map(|i| (i % 1000) as f64 / 1000.0).collect();
+        let mut acc = 0u64;
+        let mut time = |stops: &[GradientStop]| {
+            acc = 0;
+            let start = std::time::Instant::now();
+            for &t in &ts {
+                let (r, g, b) = sample_gradient(stops, t);
+                acc += r as u64 + g as u64 + b as u64;
+            }
+            std::hint::black_box(acc);
+            start.elapsed().as_secs_f64()
+        };
+        let mut ratios = Vec::new();
+        for _ in 0..5 {
+            let (a5, a10, a15) = (time(&five), time(&ten), time(&fifteen));
+            let (b15, b10, b5) = (time(&fifteen), time(&ten), time(&five));
+            let slope_lo = ((a10 - a5) + (b10 - b5)) / 2.0;
+            let slope_hi = ((a15 - a10) + (b15 - b10)) / 2.0;
+            ratios.push(slope_hi / slope_lo);
+        }
+        ratios.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let ratio = ratios[2];
+        assert!(
+            (0.7..=1.4).contains(&ratio),
+            "stop cost must scale linearly (slope ratio ~1, quadratic would read ~0.25), got median {ratio:.3} from {ratios:.3?}"
+        );
     }
 }

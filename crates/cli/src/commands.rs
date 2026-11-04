@@ -4166,9 +4166,9 @@ mod tests {
 
     #[test]
     fn rich_box_looks_wait_for_sprint_8() {
-        // T004: per-side borders, border images, and non-solid fills are
-        // refused as not-yet-supported with Sprint 8, never guessed.
-        for key in ["border-top-width", "border-image", "gradient"] {
+        // T004: per-side borders and border images are refused as
+        // not-yet-supported with Sprint 8, never guessed.
+        for key in ["border-top-width", "border-image"] {
             let folder = tmp_dir("richbox");
             write(
                 &folder,
@@ -4185,6 +4185,27 @@ mod tests {
                 v.diagnostics
             );
             assert_eq!(cmd_render(&folder, None), 2);
+            assert!(!folder.join("out.mp4").exists());
+        }
+        // T003: gradient and image fills arrived as child elements, so a
+        // fill-shaped attribute is refused as invalid with the element to
+        // write instead of not-yet-supported.
+        for key in ["gradient", "fill-image"] {
+            let folder = tmp_dir("richboxfill");
+            write(
+                &folder,
+                validate_mod::COMPOSITION_FILE,
+                &format!("composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=1 {{\n    box x=4 y=4 width=20 height=12 fill=\"#ff0000\" {key}=1 start=0 duration=1\n}}\n"),
+            );
+            let v = validate_folder(&folder);
+            assert_eq!(v.status, Status::Invalid, "{key}: {:?}", v.diagnostics);
+            assert!(
+                v.diagnostics.iter().any(|d| d.code == "E_BAD_FILL"
+                    && d.message.contains("child elements")),
+                "{key}: {:?}",
+                v.diagnostics
+            );
+            assert_eq!(cmd_render(&folder, None), 1);
             assert!(!folder.join("out.mp4").exists());
         }
     }

@@ -69,6 +69,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Set `ease=` to one of the nineteen named curves (e.g. `linear`, `in-out-sine`), `ease=\"out-back(1.7)\"` with a numeric overshoot, or a full-curve spelling: `cubic-bezier(x1,y1,x2,y2)`, `steps(n)`, `spring` or `spring(stiffness,damping)`, `bounce`, `elastic`, `wiggle` or `wiggle(n)`, or `hold`.",
     },
     CatalogEntry {
+        code: "E_BAD_FILL",
+        meaning: "A gradient or image fill on a `box` is unusable: a `linear-gradient` or `radial-gradient` carries no stops, an unordered, duplicated, or out-of-range stop, a first stop past offset 0 or a last stop short of offset 1, or a `stop` outside a gradient; an `image-fill` names a missing `src`, an unreadable file, or an `object-fit`/`object-position` outside the accepted sets.",
+        example: "box x=0 y=0 width=100 height=50 start=0 duration=1 { linear-gradient { stop offset=0 color=\"#ff0000\" stop offset=0.5 color=\"#00ff00\" } }   // last stop is not at offset 1",
+        fix: "Order `stop` children from offset 0 to offset 1 with unique in-range offsets and `#rgb`/`#rrggbb` colors; point `image-fill` at a readable PNG, JPEG, still GIF, or HEIC file with `object-fit` of `cover`, `contain`, or `fill` and an `object-position` like `center`.",
+    },
+    CatalogEntry {
         code: "E_BAD_FIT",
         meaning: "A video `fit` is not exactly one of `contain`, `cover`, or `fill`.",
         example: "video path=\"media/clip.mp4\" start=0 duration=2 fit=\"zoom\"",
@@ -79,6 +85,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "A composition `autoplay` switch is not `true` or `false`; the playback hint is never guessed.",
         example: "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=1 autoplay=\"yes\" { }   // not a boolean",
         fix: "Set `autoplay=true` to hint auto-playback, or `autoplay=false` (or remove the key) for the default still start.",
+    },
+    CatalogEntry {
+        code: "E_BAD_FLEX",
+        meaning: "A `flex` container or child carries an unusable layout value: a missing `flex-direction`, an unknown direction or alignment, a negative or non-numeric `gap`/`padding`/`margin`/`flex-grow`, a missing or non-positive size, a misplaced paint or motion key, or a non-`box` child.",
+        example: "flex display=\"flex\" flex-direction=\"diagonal\" gap=-4 { box width=50 height=50 }   // unknown direction, negative gap",
+        fix: "Set `flex-direction=\"row\"` or `\"column\"`, `align-items`/`justify-content` to `start`, `center`, or `end`, spacings to numbers >= 0, sizes to positive pixels, and lay out `box` children only; move paint keys onto the child boxes.",
     },
     CatalogEntry {
         code: "E_BAD_FONT",
@@ -112,9 +124,9 @@ pub const CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         code: "E_BAD_IMAGE",
-        meaning: "An image position, size, or placement is not a usable value, the file is corrupt or not a PNG/JPEG/still-GIF/HEIC picture, or the file is an animated GIF (animations play in a `video` clip, not `image`).",
+        meaning: "An `image` or `svg` position, size, or placement is not a usable value, the file is corrupt or not a PNG/JPEG/still-GIF/HEIC/SVG picture, or the file is an animated GIF (animations play in a `video` clip, not `image`). An `svg` `width` or `height` is missing, zero, or negative.",
         example: "image path=\"media/photo.png\" start=0 duration=2 placement=\"north\"   // unknown placement",
-        fix: "Use numbers for `x`, `y`, `width`, and `height`, a placement like `placement=\"top-left\"`, an undamaged PNG, JPEG, still GIF, or HEIC file — and a `video` clip for animated GIFs.",
+        fix: "Use numbers for `x`, `y`, `width`, and `height`, a placement like `placement=\"top-left\"`, an undamaged PNG, JPEG, still GIF, HEIC, or SVG file — and a `video` clip for animated GIFs. Give `svg` a positive `width` and `height` (for example `width=48 height=32`).",
     },
     CatalogEntry {
         code: "E_BAD_LABEL",
@@ -135,10 +147,34 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Set `order=<integer>` (for example `order=1`); clips with equal or absent orders paint in document order.",
     },
     CatalogEntry {
+        code: "E_BAD_PAINT",
+        meaning: "A `box` paint-stack value is unusable: a negative `stroke-width`, an unknown `stroke-position`, `mix-blend-mode`, or `overflow`, a malformed `box-shadow`, a negative `backdrop-blur` or a negative `backdrop-brightness`, or a `mask`/`clip-path` naming no box, a non-box clip, or a reference cycle.",
+        example: "box x=0 y=0 width=100 height=50 start=0 duration=1 stroke-width=-2 mix-blend-mode=\"darken\" mask=\"ghost\"   // negative stroke, unknown blend, dangling mask",
+        fix: "Set `stroke-width=<pixels >= 0>`, `stroke-position` to `center`, `inside`, or `outside`, `mix-blend-mode` to `normal`, `multiply`, `screen`, or `overlay`, `overflow` to `visible`, `hidden`, or `clip`, `box-shadow` to `\"<offset-x> <offset-y> <blur> <spread> <#color>\"` (or `\"none\"`), `backdrop-blur=<pixels >= 0>`, `backdrop-brightness=<factor >= 0>`, and point `mask`/`clip-path` at the `id` of a `box` clip in the same composition with no cycles.",
+    },
+    CatalogEntry {
+        code: "E_BAD_PATH",
+        meaning: "A `path` shape is unusable: `d` names no commands, carries an unsupported command, a bad number, or a truncated command, or `fill-rule` is not `nonzero` or `evenodd`.",
+        example: "path d=\"M10,10 X20,20\" start=0 duration=1   // X is not a path command",
+        fix: "Write `d` with `M`, `L`, `C`, `Q`, `A`, and `Z` commands carrying plain numbers (for example `d=\"M10,10 L90,10 L90,90 Z\"`), and set `fill-rule` to `\"nonzero\"` or `\"evenodd\"`.",
+    },
+    CatalogEntry {
         code: "E_BAD_SPACING",
         meaning: "A text `line-height` or `letter-spacing` is not a non-negative number of canvas pixels.",
         example: "text value=\"Hi\" start=0 duration=1 letter-spacing=-2   // negative spacing",
         fix: "Set `line-height=<pixels >= 0>` and `letter-spacing=<pixels >= 0>`, or remove the key for the font default.",
+    },
+    CatalogEntry {
+        code: "E_BAD_STYLE",
+        meaning: "A `style` block or `style=` reference names an unusable shared look: an unknown style name, a duplicated block name, a `style` key on a `style` block, an empty reference, or a property outside the shared-look vocabulary.",
+        example: "box style=\"ghost\" x=0 y=0 width=50 height=50 start=0 duration=1   // no style is called `ghost`",
+        fix: "Declare each look once as `style name=\"...\" ...` with properties from the valid set, and point `style=\"...\"` at declared names (space-separated for several; later names win, element attributes win over all styles).",
+    },
+    CatalogEntry {
+        code: "E_BAD_TEXT",
+        meaning: "A `text` clip carries an unusable styled run: an unknown `direction`, a `font-weight` outside 100 to 900, a non-positive `font-size`, a non-boolean `italic`, a `span` with no text and no nested spans, a non-`span` child, or a split, typewriter, or count effect combined with `span` runs.",
+        example: "text value=\"Hi\" start=0 duration=1 direction=\"sideways\" { span value=\"Hi\" font-weight=50 }   // unknown direction, weight below the range",
+        fix: "Set `direction` to `ltr`, `rtl`, or `auto`, `font-weight` from 100 to 900, `font-size` to positive pixels, `italic` to `true`/`false`, and give every `span` a `value` or nested `span` children; keep split, typewriter, and count effects off text with spans.",
     },
     CatalogEntry {
         code: "E_BAD_TIMING",
@@ -236,6 +272,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         example: "audio path=\"s.wav\" start=0 duration=1 effect=\"reverb\"   // valid shape, Sprint 10 behavior",
         fix: "Remove the element or key for the current sprint, or wait for the named sprint; `check` exits 2 and `render` refuses before the first frame.",
     },
+    CatalogEntry {
+        code: "STYLE-NAME-UNKNOWN",
+        meaning: "A style or layout property name is not part of the notation (for example a CSS `float` has no Framesmith layout equivalent); the refusal names the closest valid property.",
+        example: "flex display=\"flex\" flex-direction=\"row\" float=\"left\" { }   // `float` is not a layout property",
+        fix: "Remove the key, or use the suggested valid property (for example `flex-direction`, `gap`, `padding`, `align-items`, or `justify-content` on a `flex` container).",
+    },
 ];
 
 /// Look up one code. Returns `None` for unknown codes.
@@ -287,8 +329,10 @@ mod tests {
         "E_BAD_CONFIG",
         "E_BAD_DURATION",
         "E_BAD_EASING",
+        "E_BAD_FILL",
         "E_BAD_FIT",
         "E_BAD_FLAG",
+        "E_BAD_FLEX",
         "E_BAD_FONT",
         "E_BAD_FOOTAGE",
         "E_BAD_FPS",
@@ -298,7 +342,11 @@ mod tests {
         "E_BAD_LABEL",
         "E_BAD_MOTION",
         "E_BAD_ORDER",
+        "E_BAD_PAINT",
+        "E_BAD_PATH",
         "E_BAD_SPACING",
+        "E_BAD_STYLE",
+        "E_BAD_TEXT",
         "E_BAD_TIMING",
         "E_BAD_TRACK",
         "E_BAD_VERSION",
@@ -315,6 +363,7 @@ mod tests {
         "E_UNKNOWN_REF",
         "E_UNREADABLE",
         "E_UNSUPPORTED",
+        "STYLE-NAME-UNKNOWN",
     ];
 
     #[test]

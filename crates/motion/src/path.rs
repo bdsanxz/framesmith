@@ -277,6 +277,38 @@ fn next_pair(data: &[u8], i: usize, command: char) -> Result<(usize, [f64; 2]), 
 /// relative) into absolute commands. Implicit repeated parameter
 /// groups repeat the open command (pairs after `M` run as `L`).
 pub fn parse(data: &str) -> Result<Path, PathError> {
+    parse_impl(data).map_err(|(error, _)| error)
+}
+
+/// A path parse failure with the 1-based index of the failing
+/// command (Sprint 8 look, CAP-005/T005): the count of commands that
+/// parsed before the failure, plus one, so diagnostics name the
+/// command to fix. An empty-data failure reports index 1.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndexedError {
+    pub error: PathError,
+    pub index: usize,
+}
+
+impl fmt::Display for IndexedError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.error.kind {
+            ErrorKind::Empty => write!(f, "{}", self.error),
+            _ => match self.error.command {
+                Some(c) => write!(f, "command {} (`{c}`) {}", self.index, self.error),
+                None => write!(f, "command {} {}", self.index, self.error),
+            },
+        }
+    }
+}
+
+/// Parse path data like [`parse`], keeping the 1-based index of the
+/// failing command for diagnostics.
+pub fn parse_indexed(data: &str) -> Result<Path, IndexedError> {
+    parse_impl(data).map_err(|(error, index)| IndexedError { error, index })
+}
+
+fn parse_impl(data: &str) -> Result<Path, (PathError, usize)> {
     let bytes = data.as_bytes();
     let mut i = skip_sep(bytes, 0);
     let mut cmds: Vec<Cmd> = Vec::new();
@@ -287,10 +319,13 @@ pub fn parse(data: &str) -> Result<Path, PathError> {
     // it opened relative. Pairs after `M` run as `L`.
     let mut open: Option<(char, bool)> = None;
     if i < bytes.len() && !is_command(bytes[i]) {
-        return Err(PathError {
-            command: None,
-            kind: ErrorKind::StrayNumber,
-        });
+        return Err((
+            PathError {
+                command: None,
+                kind: ErrorKind::StrayNumber,
+            },
+            cmds.len() + 1,
+        ));
     }
     while i < bytes.len() {
         i = skip_sep(bytes, i);
@@ -301,16 +336,20 @@ pub fn parse(data: &str) -> Result<Path, PathError> {
         if is_command(raw) {
             let upper = raw.to_ascii_uppercase() as char;
             if !matches!(upper, 'M' | 'L' | 'C' | 'Q' | 'A' | 'Z') {
-                return Err(PathError {
-                    command: None,
-                    kind: ErrorKind::UnknownCommand(upper),
-                });
+                return Err((
+                    PathError {
+                        command: None,
+                        kind: ErrorKind::UnknownCommand(upper),
+                    },
+                    cmds.len() + 1,
+                ));
             }
             i += 1;
             let relative = raw.is_ascii_lowercase();
             match upper {
                 'M' => {
-                    let (j, pair) = next_pair(bytes, i, 'M')?;
+                    let (j, pair) = next_pair(bytes, i, 'M')
+                        .map_err(|e| (e, cmds.len() + 1))?;
                     i = j;
                     let to = if relative {
                         [cur[0] + pair[0], cur[1] + pair[1]]
@@ -344,17 +383,23 @@ pub fn parse(data: &str) -> Result<Path, PathError> {
             // Implicit repeat of the open command (same case).
             i = parse_group(bytes, i, cmd, relative, &mut cur, &mut cmds)?;
         } else {
-            return Err(PathError {
-                command: None,
-                kind: ErrorKind::StrayNumber,
-            });
+            return Err((
+                PathError {
+                    command: None,
+                    kind: ErrorKind::StrayNumber,
+                },
+                cmds.len() + 1,
+            ));
         }
     }
     if cmds.is_empty() {
-        return Err(PathError {
-            command: None,
-            kind: ErrorKind::Empty,
-        });
+        return Err((
+            PathError {
+                command: None,
+                kind: ErrorKind::Empty,
+            },
+            1,
+        ));
     }
     Ok(Path { cmds })
 }
@@ -368,7 +413,7 @@ fn parse_curve(
     relative: bool,
     cur: &mut [f64; 2],
     cmds: &mut Vec<Cmd>,
-) -> Result<usize, PathError> {
+) -> Result<usize, (PathError, usize)> {
     let mut i = parse_group(bytes, i, cmd, relative, cur, cmds)?;
     loop {
         let at = skip_sep(bytes, i);
@@ -389,7 +434,10 @@ fn parse_group(
     relative: bool,
     cur: &mut [f64; 2],
     cmds: &mut Vec<Cmd>,
-) -> Result<usize, PathError> {
+) -> Result<usize, (PathError, usize)> {
+    // Every failure below aborts the command at `cmds.len() + 1`:
+    // the failing command has not been pushed yet.
+    let at_fail = |e: PathError| (e, cmds.len() + 1);
     let shift = |p: [f64; 2]| -> [f64; 2] {
         if relative {
             [cur[0] + p[0], cur[1] + p[1]]
@@ -399,19 +447,19 @@ fn parse_group(
     };
     match cmd {
         'L' => {
-            let (j, pair) = next_pair(bytes, i, 'L')?;
+            let (j, pair) = next_pair(bytes, i, 'L').map_err(at_fail)?;
             let to = shift(pair);
             *cur = to;
             cmds.push(Cmd::Line { to });
             Ok(j)
         }
         'C' => {
-            let (mut j, p1) = next_pair(bytes, i, 'C')?;
+            let (mut j, p1) = next_pair(bytes, i, 'C').map_err(at_fail)?;
             let (k, p2);
-            (k, p2) = next_pair(bytes, j, 'C')?;
+            (k, p2) = next_pair(bytes, j, 'C').map_err(at_fail)?;
             j = k;
             let (k, p3);
-            (k, p3) = next_pair(bytes, j, 'C')?;
+            (k, p3) = next_pair(bytes, j, 'C').map_err(at_fail)?;
             j = k;
             let (c1, c2, to) = (shift(p1), shift(p2), shift(p3));
             *cur = to;
@@ -419,9 +467,9 @@ fn parse_group(
             Ok(j)
         }
         'Q' => {
-            let (mut j, p1) = next_pair(bytes, i, 'Q')?;
+            let (mut j, p1) = next_pair(bytes, i, 'Q').map_err(at_fail)?;
             let (k, p2);
-            (k, p2) = next_pair(bytes, j, 'Q')?;
+            (k, p2) = next_pair(bytes, j, 'Q').map_err(at_fail)?;
             j = k;
             let (c, to) = (shift(p1), shift(p2));
             *cur = to;
@@ -429,34 +477,38 @@ fn parse_group(
             Ok(j)
         }
         'A' => {
-            let (mut j, radii) = next_pair(bytes, i, 'A')?;
+            let (mut j, radii) = next_pair(bytes, i, 'A').map_err(at_fail)?;
             let (k, rot);
-            (k, rot) = next_number(bytes, j, 'A')?;
+            (k, rot) = next_number(bytes, j, 'A').map_err(at_fail)?;
             j = k;
             let at = skip_sep(bytes, j);
             if at >= bytes.len() {
-                return Err(PathError {
+                return Err(at_fail(PathError {
                     command: Some('A'),
                     kind: ErrorKind::Truncated,
-                });
+                }));
             }
             if is_command(bytes[at]) {
-                return Err(PathError {
+                return Err(at_fail(PathError {
                     command: Some('A'),
                     kind: ErrorKind::Truncated,
-                });
+                }));
             }
-            let (k, large) = scan_flag(bytes, j).ok_or(PathError {
-                command: Some('A'),
-                kind: ErrorKind::BadFlag,
-            })?;
+            let (k, large) = scan_flag(bytes, j)
+                .ok_or(PathError {
+                    command: Some('A'),
+                    kind: ErrorKind::BadFlag,
+                })
+                .map_err(at_fail)?;
             j = k;
-            let (k, sweep) = scan_flag(bytes, j).ok_or(PathError {
-                command: Some('A'),
-                kind: ErrorKind::BadFlag,
-            })?;
+            let (k, sweep) = scan_flag(bytes, j)
+                .ok_or(PathError {
+                    command: Some('A'),
+                    kind: ErrorKind::BadFlag,
+                })
+                .map_err(at_fail)?;
             j = k;
-            let (k, pair) = next_pair(bytes, j, 'A')?;
+            let (k, pair) = next_pair(bytes, j, 'A').map_err(at_fail)?;
             j = k;
             let to = shift(pair);
             let (rx, ry) = (radii[0].abs(), radii[1].abs());
@@ -471,10 +523,10 @@ fn parse_group(
             });
             Ok(j)
         }
-        _ => Err(PathError {
+        _ => Err(at_fail(PathError {
             command: Some(cmd),
             kind: ErrorKind::Truncated,
-        }),
+        })),
     }
 }
 
@@ -805,6 +857,119 @@ fn arc_cubics(
             [p2[0] - alpha * d2[0], p2[1] - alpha * d2[1]],
             p2,
         ]);
+    }
+    out
+}
+
+/// One flattened subpath (Sprint 8 look, CAP-005/T005): the pen-down
+/// run between pen lifts, as a polyline to [`FLAT_TOLERANCE`].
+/// `closed` means a `Z` sealed the run back at its start; open runs
+/// end at their last point. Multi-subpath shapes (holes, islands)
+/// stay separate here, so fill rules can treat each contour alone —
+/// unlike [`flatten`], which bridges `M` gaps for travel tables.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Subpath {
+    pub points: Vec<[f64; 2]>,
+    pub closed: bool,
+}
+
+/// Flatten a path into per-subpath polylines: every curve becomes a
+/// polyline to [`FLAT_TOLERANCE`], lines stay exact, `Z` seals its
+/// run, and each `M` opens a fresh run. Zero-length runs never
+/// appear, so every subpath holds at least two points.
+pub fn subpaths(path: &Path) -> Vec<Subpath> {
+    let mut out: Vec<Subpath> = Vec::new();
+    let mut run: Vec<[f64; 2]> = Vec::new();
+    let mut cur = [0.0, 0.0];
+    // A throwaway tag sink: subdivision needs one, contours do not.
+    let mut tags: Vec<SegTag> = Vec::new();
+    // The pen position seeds an open run exactly like `flatten`
+    // seeds its origin: a leading curve starts from the pen.
+    let ensure_pen = |run: &mut Vec<[f64; 2]>, cur: [f64; 2]| {
+        if run.is_empty() {
+            run.push(cur);
+        }
+    };
+    for cmd in &path.cmds {
+        match *cmd {
+            Cmd::Move { to } => {
+                if run.len() > 1 {
+                    out.push(Subpath {
+                        points: std::mem::take(&mut run),
+                        closed: false,
+                    });
+                } else {
+                    run.clear();
+                }
+                cur = to;
+            }
+            Cmd::Line { to } => {
+                ensure_pen(&mut run, cur);
+                if to != cur {
+                    run.push(to);
+                }
+                cur = to;
+            }
+            Cmd::Cubic { c1, c2, to } => {
+                ensure_pen(&mut run, cur);
+                flatten_cubic(&mut run, &mut tags, 0, cur, c1, c2, to, 0.0, 1.0, 0);
+                tags.clear();
+                cur = to;
+            }
+            Cmd::Quad { c, to } => {
+                ensure_pen(&mut run, cur);
+                let [c1, c2, b] = elevate_quad(cur, c, to);
+                flatten_cubic(&mut run, &mut tags, 0, cur, c1, c2, b, 0.0, 1.0, 0);
+                tags.clear();
+                cur = to;
+            }
+            Cmd::Arc {
+                rx,
+                ry,
+                rot,
+                large,
+                sweep,
+                to,
+            } => {
+                ensure_pen(&mut run, cur);
+                let from = cur;
+                let cubics = arc_cubics(from, rx, ry, rot, large, sweep, to);
+                if cubics.is_empty() {
+                    if to != cur {
+                        run.push(to);
+                    }
+                } else {
+                    let mut a = from;
+                    for [c1, c2, b] in cubics {
+                        flatten_cubic(&mut run, &mut tags, 0, a, c1, c2, b, 0.0, 1.0, 0);
+                        tags.clear();
+                        a = b;
+                    }
+                }
+                cur = to;
+            }
+            Cmd::Close { to } => {
+                ensure_pen(&mut run, cur);
+                if to != cur {
+                    run.push(to);
+                }
+                cur = to;
+                if run.len() > 1 {
+                    out.push(Subpath {
+                        points: std::mem::take(&mut run),
+                        closed: true,
+                    });
+                } else {
+                    run.clear();
+                }
+            }
+        }
+    }
+    if run.len() > 1 {
+        out.push(Subpath {
+            points: run,
+            closed: false,
+        });
     }
     out
 }

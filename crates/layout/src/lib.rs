@@ -17,11 +17,15 @@
 //! shapes one paragraph in one style and returns a [`Block`] of glyph
 //! runs (font bytes, face index, size, skew, color, positioned glyphs)
 //! plus decoded emoji pictures; the renderer draws them with the `font`
-//! crate's CPU rasterizer.
+//! crate's CPU rasterizer. [`layout_runs`] shapes one paragraph of
+//! styled `span` runs with a base direction instead.
 
 mod fonts;
 mod machine;
 mod paragraph;
 
 pub use fonts::{FontError, Fonts, MachineFace};
-pub use paragraph::{layout, Align, Block, Glyph, Line, Picture, Run, Style, TextError};
+pub use paragraph::{
+    layout, layout_runs, Align, Block, Direction, Glyph, Line, Picture, Run, RunStyle, Style,
+    TextError,
+};

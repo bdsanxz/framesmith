@@ -347,7 +347,10 @@ fn tracks_default_by_kind() {
             Clip::Video(w) => w.track,
             Clip::Audio(a) => a.track,
             Clip::Box(b) => b.track,
+            Clip::Flex(f) => f.track,
             Clip::Image(i) => i.track,
+            Clip::Path(p) => p.track,
+            Clip::Svg(s) => s.track,
             Clip::Nest(n) => n.track,
         })
         .collect();

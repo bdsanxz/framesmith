@@ -131,6 +131,8 @@ mod tests {
             line_height: None,
             letter_spacing: None,
             font_family: None,
+            direction: notation::model::TextDirection::Ltr,
+            spans: Vec::new(),
             split: None,
             typewriter: false,
             count_from: None,

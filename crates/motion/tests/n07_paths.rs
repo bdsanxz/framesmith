@@ -5,7 +5,7 @@
 //! hit their parameter midpoints at half length, and a quarter
 //! circle measures `5π`.
 
-use motion::path::{flatten, morph, parse, sample, structure, ErrorKind};
+use motion::path::{flatten, morph, parse, parse_indexed, sample, structure, subpaths, ErrorKind};
 
 fn table_of(data: &str) -> motion::path::Table {
     flatten(&parse(data).unwrap())
@@ -228,4 +228,42 @@ fn degenerate_paths_sample_without_nan() {
         (p[0] - 10.0).abs() < 1e-9 && angle.abs() < 1e-9,
         "got {p:?} {angle}"
     );
+}
+
+#[test]
+fn indexed_failures_name_the_one_based_command() {
+    // Sprint 8 look (T005): diagnostics name the failing command index.
+    let err = parse_indexed("M10,10 X20,20").unwrap_err();
+    assert_eq!(err.index, 2);
+    assert_eq!(err.error.kind, ErrorKind::UnknownCommand('X'));
+    assert!(err.to_string().contains("command 2"), "{}", err);
+    assert!(err.to_string().contains("`X`"), "{}", err);
+    let err = parse_indexed("M10,10 L20,20 L").unwrap_err();
+    assert_eq!((err.index, err.error.command), (3, Some('L')));
+    let err = parse_indexed("M10,10 L20,zz C1,1 2,2 3,3").unwrap_err();
+    assert_eq!((err.index, err.error.command), (2, Some('L')));
+    let ok = parse_indexed("M10,10 L20,20 Z").unwrap();
+    assert_eq!(motion::path::structure(&ok), vec!['M', 'L', 'Z']);
+}
+
+#[test]
+fn subpaths_keep_contours_separate() {
+    // Sprint 8 look (T005): fill rules need each contour alone.
+    let path = parse("M10,10 L50,10 L50,50 L10,50 Z M20,20 L40,20 L40,40 L20,40 Z").unwrap();
+    let subs = subpaths(&path);
+    assert_eq!(subs.len(), 2, "{subs:?}");
+    assert!(subs.iter().all(|s| s.closed));
+    assert_eq!(subs[0].points.first().unwrap(), &[10.0, 10.0]);
+    assert_eq!(subs[1].points.first().unwrap(), &[20.0, 20.0]);
+    // An open run stays open; a lone moveto draws nothing.
+    let path = parse("M0,0 L10,0 M20,20").unwrap();
+    let subs = subpaths(&path);
+    assert_eq!(subs.len(), 1);
+    assert!(!subs[0].closed);
+    // Curves and arcs flatten into the same run.
+    let path = parse("M0,0 C10,0 10,10 0,10 Q-10,10 -10,0 A5,5 0 0 1 0,0 Z").unwrap();
+    let subs = subpaths(&path);
+    assert_eq!(subs.len(), 1);
+    assert!(subs[0].closed);
+    assert!(subs[0].points.len() > 8, "{}", subs[0].points.len());
 }

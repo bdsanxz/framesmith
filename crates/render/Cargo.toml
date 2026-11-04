@@ -12,3 +12,4 @@ motion = { path = "../motion" }
 timebase = { path = "../timebase" }
 layout = { path = "../layout" }
 libc = "0.2"
+resvg = "0.46"

@@ -22,6 +22,10 @@ pub struct ResolvedText {
     pub doc: usize,
     pub order: i64,
     pub value: String,
+    /// True when the clip carries `span` runs (Sprint 8 look, T002):
+    /// a value-less span text still paints its shaped runs, so the
+    /// empty-value skip in the painters must not drop it.
+    pub has_spans: bool,
     /// Evaluated canvas position (authored plus motion offset).
     pub x: f64,
     pub y: f64,
@@ -81,9 +85,25 @@ pub struct ResolvedBox {
     pub width: f64,
     pub height: f64,
     pub fill: Rgb,
+    /// Gradient or image fill (Sprint 8 look, T003): `Solid` paints
+    /// `fill` above; any other variant paints clipped to the box
+    /// instead of it. Unaffected by `fill` motion tweens, which ride
+    /// the solid color.
+    pub fill_paint: notation::model::FillPaint,
     pub radius: f64,
     pub border_width: f64,
     pub border_color: Rgb,
+    /// Paint stack (Sprint 8 look, T004): stroke position, shadow,
+    /// blend, backdrop, overflow, and resolved mask shapes. Defaults
+    /// reproduce the historical border-only paint byte-identically.
+    pub stroke_position: notation::model::StrokePosition,
+    pub box_shadow: Option<notation::model::BoxShadow>,
+    pub blend_mode: notation::model::BlendMode,
+    pub backdrop_blur: f64,
+    pub backdrop_brightness: f64,
+    pub overflow: notation::model::Overflow,
+    pub mask: Option<notation::model::MaskShape>,
+    pub clip_path: Option<notation::model::MaskShape>,
     pub opacity: f64,
     /// Evaluated motion (T010): uniform scale about the top-left,
     /// rotation in degrees about the box center.
@@ -95,6 +115,109 @@ pub struct ResolvedBox {
     pub rotate_y: f64,
     pub blur: f64,
     pub turn: notation::model::Turn3D,
+}
+
+impl ResolvedBox {
+    /// True when any Sprint 8 paint-stack feature needs the layered
+    /// paint path (Sprint 8 look, T004): a shadow, an active backdrop,
+    /// a non-normal blend, a mask, or a non-inside stroke position.
+    /// `overflow` alone stays on the fast path: with an inside stroke
+    /// the body never leaves the box, so clipping is a no-op.
+    pub fn paint_stack_active(&self) -> bool {
+        use notation::model::{BlendMode, StrokePosition};
+        self.box_shadow.is_some()
+            || crate::render::blur_on(self.backdrop_blur)
+            || self.backdrop_brightness != 1.0
+            || self.blend_mode != BlendMode::Normal
+            || self.mask.is_some()
+            || self.clip_path.is_some()
+            || self.stroke_position != StrokePosition::Inside
+    }
+}
+
+/// Resolve a mask reference to its shape (Sprint 8 look, T004): the
+/// referenced `box` clip's authored rounded rect. Forward references
+/// resolve because every clip is validated before the first frame;
+/// dangling references and cycles refuse in validation, so a miss
+/// here resolves to no mask rather than guessing.
+pub fn resolve_mask_shape(comp: &Composition, target: &str) -> Option<notation::model::MaskShape> {
+    comp.clips.iter().find_map(|c| match c {
+        Clip::Box(b) if b.id.as_deref() == Some(target) => {
+            Some(notation::model::MaskShape {
+                x: b.x,
+                y: b.y,
+                width: b.width,
+                height: b.height,
+                radius: b.radius,
+            })
+        }
+        _ => None,
+    })
+}
+
+/// One visible vector path element at one frame time (Sprint 8 look,
+/// CAP-005/T005): SVG-subset `d` with a fill rule, the shared stroke
+/// set, and the shared paint stack. `d` carries no motion of its
+/// own; scale, offset, fill, stroke, and opacity evaluate like boxes.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedPath {
+    pub doc: usize,
+    pub order: i64,
+    /// Evaluated canvas-pixel translation of the whole shape.
+    pub x: f64,
+    pub y: f64,
+    /// Authored SVG-subset path data (parsed once per distinct string
+    /// through the shared [`crate::path_paint::PathCache`]).
+    pub d: String,
+    /// Evaluated fill color (authored, or animated when a `fill`
+    /// tween or set names the clip).
+    pub fill: Rgb,
+    /// Interior rule (`nonzero` fills by winding, `evenodd` alternates).
+    pub fill_rule: notation::model::FillRule,
+    /// Evaluated stroke width and color (authored, or animated when a
+    /// `border-width`/`border-color` tween or set names the clip).
+    pub border_width: f64,
+    pub border_color: Rgb,
+    /// Paint stack (Sprint 8 look, T004/T005): stroke position, shadow,
+    /// blend, backdrop, overflow, and resolved mask shapes. Defaults
+    /// paint the fill with an inside stroke, like boxes.
+    pub stroke_position: notation::model::StrokePosition,
+    pub box_shadow: Option<notation::model::BoxShadow>,
+    pub blend_mode: notation::model::BlendMode,
+    pub backdrop_blur: f64,
+    pub backdrop_brightness: f64,
+    pub overflow: notation::model::Overflow,
+    pub mask: Option<notation::model::MaskShape>,
+    pub clip_path: Option<notation::model::MaskShape>,
+    pub opacity: f64,
+    /// Evaluated motion: uniform scale about the shape's own
+    /// top-left, rotation in degrees about its own center.
+    pub scale: f64,
+    pub rotation: f64,
+    /// Evaluated 3D turn plus static perspective/origin (CAP-005) and
+    /// blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
+}
+
+impl ResolvedPath {
+    /// True when any paint-stack feature needs the layered paint path:
+    /// a shadow, an active backdrop, a non-normal blend, a mask, or a
+    /// non-inside stroke position. `overflow` alone stays on the fast
+    /// path: with an inside stroke the body never leaves the shape, so
+    /// clipping is a no-op.
+    pub fn paint_stack_active(&self) -> bool {
+        use notation::model::{BlendMode, StrokePosition};
+        self.box_shadow.is_some()
+            || crate::render::blur_on(self.backdrop_blur)
+            || self.backdrop_brightness != 1.0
+            || self.blend_mode != BlendMode::Normal
+            || self.mask.is_some()
+            || self.clip_path.is_some()
+            || self.stroke_position != StrokePosition::Inside
+    }
 }
 
 /// One visible image element at one frame time.
@@ -131,12 +254,39 @@ pub fn channel_byte(v: f64) -> u8 {
     v.round().clamp(0.0, 255.0) as u8
 }
 
+/// Whether a clip path names an SVG picture: the `.svg` extension,
+/// case-insensitive — the same rule validation enforces.
+fn is_svg_source(path: &str) -> bool {
+    path.to_lowercase().ends_with(".svg")
+}
+
+/// Resolved fit of an `image` clip (Sprint 8 look, T005): SVG sources
+/// decode pre-composed, so the blitter draws them with `fill`.
+fn svg_fit(im: &notation::model::ImageClip) -> Fit {
+    if is_svg_source(&im.path) {
+        Fit::Fill
+    } else {
+        im.fit
+    }
+}
+
+/// Resolved placement of an `image` clip (Sprint 8 look, T005):
+/// centered for pre-composed SVG sources, authored for raster.
+fn svg_placement(im: &notation::model::ImageClip) -> Placement {
+    if is_svg_source(&im.path) {
+        Placement::center()
+    } else {
+        im.placement
+    }
+}
+
 /// One visible element at one frame time, in paint order.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FrameItem {
     Text(ResolvedText),
     Video(ResolvedVideo),
     Box(ResolvedBox),
+    Path(ResolvedPath),
     Image(ResolvedImage),
 }
 
@@ -146,6 +296,7 @@ impl FrameItem {
             FrameItem::Text(r) => r.doc,
             FrameItem::Video(r) => r.doc,
             FrameItem::Box(r) => r.doc,
+            FrameItem::Path(r) => r.doc,
             FrameItem::Image(r) => r.doc,
         }
     }
@@ -155,6 +306,7 @@ impl FrameItem {
             FrameItem::Text(r) => r.order,
             FrameItem::Video(r) => r.order,
             FrameItem::Box(r) => r.order,
+            FrameItem::Path(r) => r.order,
             FrameItem::Image(r) => r.order,
         }
     }
@@ -167,6 +319,7 @@ impl FrameItem {
             FrameItem::Text(r) => r.order = r.order.saturating_add(by),
             FrameItem::Video(r) => r.order = r.order.saturating_add(by),
             FrameItem::Box(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Path(r) => r.order = r.order.saturating_add(by),
             FrameItem::Image(r) => r.order = r.order.saturating_add(by),
         }
     }
@@ -344,6 +497,10 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 // or count range shows its own string at this instant;
                 // still and merely-split clips show the authored value.
                 value: crate::textfx::display_value(tc, t),
+                // Split, typewriter, and count never combine with spans
+                // (refused at validation), so an empty value with spans
+                // is always a still span text with ink to draw.
+                has_spans: !tc.spans.is_empty(),
                 x: eval.x,
                 y: eval.y,
                 size: eval.font_size,
@@ -392,6 +549,7 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                     g: channel_byte(eval.fill[1]),
                     b: channel_byte(eval.fill[2]),
                 },
+                fill_paint: b.fill_paint.clone(),
                 radius: eval.radius,
                 border_width: eval.border_width,
                 border_color: Rgb {
@@ -399,6 +557,20 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                     g: channel_byte(eval.border[1]),
                     b: channel_byte(eval.border[2]),
                 },
+                stroke_position: b.stroke_position,
+                box_shadow: b.box_shadow,
+                blend_mode: b.blend_mode,
+                backdrop_blur: b.backdrop_blur,
+                backdrop_brightness: b.backdrop_brightness,
+                overflow: b.overflow,
+                mask: b
+                    .mask
+                    .as_ref()
+                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                clip_path: b
+                    .clip_path
+                    .as_ref()
+                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
                 opacity: eval.opacity,
                 scale: eval.scale,
                 rotation: eval.rotation,
@@ -407,6 +579,69 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 blur: eval.blur,
                 turn: b.turn,
             })),
+            // A `flex` container (Sprint 8 layout, T001) emits one box
+            // item per laid-out child: the shared layout function
+            // positions them, so checked offsets and painted pixels
+            // agree. Children ride still (no per-child motion in T001)
+            // with the container order shifting their paint order.
+            Clip::Flex(f) => {
+                let laid = notation::flex::layout_flex(
+                    f.direction,
+                    eval.x,
+                    eval.y,
+                    match touches(Prop::Width) {
+                        true => eval.width,
+                        false => f.width,
+                    },
+                    match touches(Prop::Height) {
+                        true => eval.height,
+                        false => f.height,
+                    },
+                    f.gap,
+                    f.padding,
+                    f.margin,
+                    f.align_items,
+                    f.justify_content,
+                    &f.children
+                        .iter()
+                        .map(|c| notation::flex::FlexItem {
+                            base_w: c.width,
+                            base_h: c.height,
+                            grow: c.flex_grow,
+                        })
+                        .collect::<Vec<_>>(),
+                );
+                for (c, r) in f.children.iter().zip(laid.iter()) {
+                    items.push(FrameItem::Box(ResolvedBox {
+                        doc,
+                        order: f.order.saturating_add(c.order),
+                        x: r.x,
+                        y: r.y,
+                        width: r.w,
+                        height: r.h,
+                        fill: c.fill,
+                        fill_paint: notation::model::FillPaint::Solid,
+                        radius: c.radius,
+                        border_width: c.border_width,
+                        border_color: c.border_color,
+                        stroke_position: c.stroke_position,
+                        box_shadow: None,
+                        blend_mode: notation::model::BlendMode::Normal,
+                        backdrop_blur: 0.0,
+                        backdrop_brightness: 1.0,
+                        overflow: notation::model::Overflow::Visible,
+                        mask: None,
+                        clip_path: None,
+                        opacity: c.opacity,
+                        scale: 1.0,
+                        rotation: 0.0,
+                        rotate_x: 0.0,
+                        rotate_y: 0.0,
+                        blur: 0.0,
+                        turn: notation::model::Turn3D::flat(),
+                    }));
+                }
+            }
             // Audio tracks draw no picture: they ride in the composition
             // for the T008 mixer and never emit a frame item.
             Clip::Audio(_) => {}
@@ -437,28 +672,80 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                     items.push(item);
                 }
             }
-            Clip::Image(im) => items.push(FrameItem::Image(ResolvedImage {
+            // A vector path resolves like a box: every paint field
+            // evaluates per frame (motion tweens win), while `d` and
+            // the fill rule ride authored — path data carries no
+            // motion of its own in T005.
+            Clip::Path(p) => items.push(FrameItem::Path(ResolvedPath {
                 doc,
-                order: im.order,
-                path: im.path.clone(),
+                order: p.order,
                 x: eval.x,
                 y: eval.y,
-                // Animated extents win when a `width`/`height` tween or
-                // set names the clip; otherwise the authored fields
-                // stand, exactly as before (`None` still fills the
-                // canvas downstream).
-                width: match (im.width, touches(Prop::Width)) {
-                    (None, false) => None,
+                d: p.d.clone(),
+                fill: Rgb {
+                    r: channel_byte(eval.fill[0]),
+                    g: channel_byte(eval.fill[1]),
+                    b: channel_byte(eval.fill[2]),
+                },
+                fill_rule: p.fill_rule,
+                border_width: eval.border_width,
+                border_color: Rgb {
+                    r: channel_byte(eval.border[0]),
+                    g: channel_byte(eval.border[1]),
+                    b: channel_byte(eval.border[2]),
+                },
+                stroke_position: p.stroke_position,
+                box_shadow: p.box_shadow,
+                blend_mode: p.blend_mode,
+                backdrop_blur: p.backdrop_blur,
+                backdrop_brightness: p.backdrop_brightness,
+                overflow: p.overflow,
+                mask: p
+                    .mask
+                    .as_ref()
+                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                clip_path: p
+                    .clip_path
+                    .as_ref()
+                    .and_then(|m| resolve_mask_shape(comp, &m.target)),
+                opacity: eval.opacity,
+                scale: eval.scale,
+                rotation: eval.rotation,
+                rotate_x: eval.rotate_x,
+                rotate_y: eval.rotate_y,
+                blur: eval.blur,
+                turn: p.turn,
+            })),
+            Clip::Image(im) => {
+                // SVG sources (Sprint 8 look, T005) decode pre-composed
+                // at a concrete size, so an omitted extent falls back
+                // to the canvas instead of `None`, and they resolve
+                // with `fill` placement. Raster sources keep their
+                // historical `None` (the blitter fills the canvas).
+                let via_svg = is_svg_source(&im.path);
+                let img_width = match (im.width, touches(Prop::Width)) {
+                    (None, false) => via_svg.then(|| f64::from(comp.width)),
                     (Some(_), false) => im.width,
                     (_, true) => Some(eval.width),
-                },
-                height: match (im.height, touches(Prop::Height)) {
-                    (None, false) => None,
+                };
+                let img_height = match (im.height, touches(Prop::Height)) {
+                    (None, false) => via_svg.then(|| f64::from(comp.height)),
                     (Some(_), false) => im.height,
                     (_, true) => Some(eval.height),
-                },
-                fit: im.fit,
-                placement: im.placement,
+                };
+                items.push(FrameItem::Image(ResolvedImage {
+                    doc,
+                    order: im.order,
+                    path: im.path.clone(),
+                    x: eval.x,
+                    y: eval.y,
+                    // Animated extents win when a `width`/`height` tween
+                    // or set names the clip; otherwise the authored
+                    // fields stand, exactly as before.
+                    width: img_width,
+                    height: img_height,
+                    fit: svg_fit(im),
+                    placement: svg_placement(im),
                 scale: eval.scale,
                 rotation: eval.rotation,
                 opacity: eval.opacity,
@@ -466,6 +753,35 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 rotate_y: eval.rotate_y,
                 blur: eval.blur,
                 turn: im.turn,
+                }));
+            }
+            // An `svg` clip resolves to an image item: validation
+            // guarantees `width`/`height`, and preparation decodes the
+            // source pre-composed at that declared size, so the shared
+            // blitter draws it with `fill` placement.
+            Clip::Svg(sv) => items.push(FrameItem::Image(ResolvedImage {
+                doc,
+                order: sv.order,
+                path: sv.path.clone(),
+                x: eval.x,
+                y: eval.y,
+                width: Some(match touches(Prop::Width) {
+                    true => eval.width,
+                    false => sv.width,
+                }),
+                height: Some(match touches(Prop::Height) {
+                    true => eval.height,
+                    false => sv.height,
+                }),
+                fit: Fit::Fill,
+                placement: Placement::center(),
+                scale: eval.scale,
+                rotation: eval.rotation,
+                opacity: eval.opacity,
+                rotate_x: eval.rotate_x,
+                rotate_y: eval.rotate_y,
+                blur: eval.blur,
+                turn: sv.turn,
             })),
         }
     }
@@ -477,7 +793,8 @@ mod tests {
     use super::*;
     use crate::motion_plan::plan_motions;
     use notation::model::{
-        Align, BoxClip, Composition, FontStyle, Fps, Rgb, TextClip, TrackKind, VideoClip, Wrap,
+        Align, BoxClip, Composition, FlexAlign, FlexChild, FlexClip, FlexDirection, FlexJustify,
+        FontStyle, Fps, Rgb, TextClip, TrackKind, VideoClip, Wrap,
     };
 
     fn comp_with(clips: Vec<Clip>) -> Composition {
@@ -530,6 +847,8 @@ mod tests {
             line_height: None,
             letter_spacing: Some(2.0),
             font_family: None,
+            direction: notation::model::TextDirection::Ltr,
+            spans: Vec::new(),
             split: None,
             typewriter: false,
             count_from: None,
@@ -587,9 +906,18 @@ mod tests {
             width: 40.0,
             height: 30.0,
             fill: Rgb { r: 255, g: 0, b: 0 },
+            fill_paint: notation::model::FillPaint::Solid,
             radius: 2.0,
             border_width: 1.0,
             border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             opacity: 1.0,
             order,
             line: 1,
@@ -597,6 +925,66 @@ mod tests {
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
         })
+    }
+
+    // --- Sprint 8 look (T004): paint stack and masks ---
+
+    fn masked_box(id: Option<&str>, mask: Option<&str>) -> Clip {
+        let mut b = boxed(0.0, 2.0, 0);
+        if let Clip::Box(inner) = &mut b {
+            inner.id = id.map(str::to_string);
+            inner.mask = mask.map(|t| notation::model::MaskRef {
+                target: t.to_string(),
+                line: 1,
+                column: 1,
+            });
+        }
+        b
+    }
+
+    #[test]
+    fn mask_forward_reference_resolves_to_shape() {
+        // The mask names a later box: resolution reads the authored
+        // rounded rect of the target, whatever the declaration order.
+        let comp = comp_with(vec![
+            masked_box(Some("top"), Some("shape")),
+            masked_box(Some("shape"), None),
+        ]);
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 15);
+        assert_eq!(desc.items.len(), 2);
+        match &desc.items[0] {
+            FrameItem::Box(r) => {
+                let m = r.mask.expect("mask resolves");
+                assert_eq!(m.x, 5.0);
+                assert_eq!(m.y, 6.0);
+                assert_eq!(m.width, 40.0);
+                assert_eq!(m.height, 30.0);
+                assert_eq!(m.radius, 2.0);
+                assert!(r.paint_stack_active());
+            }
+            other => panic!("expected a box, got {other:?}"),
+        }
+        match &desc.items[1] {
+            FrameItem::Box(r) => {
+                assert!(r.mask.is_none());
+                assert!(!r.paint_stack_active());
+            }
+            other => panic!("expected a box, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn dangling_mask_resolves_to_no_shape() {
+        // Validation refuses dangling references before frame one; the
+        // frame layer treats a miss as unmasked rather than guessing.
+        let comp = comp_with(vec![masked_box(Some("top"), Some("ghost"))]);
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 15);
+        match &desc.items[0] {
+            FrameItem::Box(r) => assert!(r.mask.is_none()),
+            other => panic!("expected a box, got {other:?}"),
+        }
     }
 
     #[test]
@@ -1157,6 +1545,59 @@ mod tests {
     }
 
     #[test]
+    fn span_only_text_resolves_with_spans_flag() {
+        // Sprint 8 look (T002/T007): a value-less text with `span` runs
+        // resolves an empty display value but still carries its runs,
+        // so the painters must not apply the empty-value skip to it.
+        // (Split, typewriter, and count never combine with spans: the
+        // validator refuses them, so empty value plus spans is always
+        // a still span text with ink to draw.)
+        let mut clip = text(0.0, 2.0, 0, 10.0);
+        let Clip::Text(tc) = &mut clip else {
+            panic!("expected text")
+        };
+        tc.value.clear();
+        tc.spans.push(notation::model::TextSpan {
+            value: "Hi".to_string(),
+            font_family: None,
+            font_size: None,
+            font_weight: None,
+            italic: None,
+            color: None,
+            letter_spacing: None,
+            line_height: None,
+            children: Vec::new(),
+            line: 1,
+            column: 1,
+        });
+        let comp = motion_comp(vec![clip], vec![], vec![]);
+        let motions = plan_motions(&comp, 30);
+        match &describe(&comp, &motions, 0).items[0] {
+            FrameItem::Text(r) => {
+                assert!(r.value.is_empty());
+                assert!(r.has_spans);
+            }
+            other => panic!("expected text, got {other:?}"),
+        }
+        // A plain value-less text without spans keeps the old shape:
+        // empty value and no runs, so the painters still skip it.
+        let mut bare = text(0.0, 2.0, 0, 10.0);
+        let Clip::Text(tc) = &mut bare else {
+            panic!("expected text")
+        };
+        tc.value.clear();
+        let comp = motion_comp(vec![bare], vec![], vec![]);
+        let motions = plan_motions(&comp, 30);
+        match &describe(&comp, &motions, 0).items[0] {
+            FrameItem::Text(r) => {
+                assert!(r.value.is_empty());
+                assert!(!r.has_spans);
+            }
+            other => panic!("expected text, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn scale_rotation_opacity_ride_in_descriptions() {
         // T010: from-to scale, to rotation, from opacity on a box.
         let comp = motion_comp(
@@ -1478,6 +1919,243 @@ mod tests {
                 "ranged frame {k} must equal full frame {}",
                 30 + k
             );
+        }
+    }
+
+    // --- Sprint 8 layout (T001): flex rows and columns ---
+
+    fn flex_child(w: f64, h: f64, grow: f64) -> FlexChild {
+        FlexChild {
+            width: w,
+            height: h,
+            flex_grow: grow,
+            fill: Rgb { r: 255, g: 0, b: 0 },
+            radius: 0.0,
+            border_width: 0.0,
+            border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            opacity: 1.0,
+            order: 0,
+            line: 1,
+            column: 1,
+        }
+    }
+
+    fn flexed(
+        direction: FlexDirection,
+        gap: f64,
+        align: FlexAlign,
+        justify: FlexJustify,
+        kids: Vec<FlexChild>,
+    ) -> Clip {
+        Clip::Flex(FlexClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
+            start: 0.0,
+            duration: 2.0,
+            x: 10.0,
+            y: 20.0,
+            width: 340.0,
+            height: 100.0,
+            direction,
+            gap,
+            padding: 0.0,
+            margin: 0.0,
+            align_items: align,
+            justify_content: justify,
+            order: 0,
+            children: kids,
+            line: 1,
+            column: 1,
+        })
+    }
+
+    fn boxes_of(desc: &FrameDescription) -> Vec<(f64, f64, f64, f64)> {
+        desc.items
+            .iter()
+            .map(|item| match item {
+                FrameItem::Box(b) => (b.x, b.y, b.width, b.height),
+                other => panic!("flex must describe box items, got {other:?}"),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn flex_row_describes_hand_math_positions() {
+        // Three 100-wide boxes with gap 10 from x 10: hand math lands
+        // at 10, 120, 230 along y 20.
+        let comp = comp_with(vec![flexed(
+            FlexDirection::Row,
+            10.0,
+            FlexAlign::Start,
+            FlexJustify::Start,
+            vec![
+                flex_child(100.0, 50.0, 0.0),
+                flex_child(100.0, 50.0, 0.0),
+                flex_child(100.0, 50.0, 0.0),
+            ],
+        )]);
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        let got = boxes_of(&desc);
+        assert_eq!(got.len(), 3);
+        for (i, want_x) in [10.0, 120.0, 230.0].iter().enumerate() {
+            assert!(
+                (got[i].0 - want_x).abs() <= 1.0,
+                "child {i} x: got {:?}, want {want_x}",
+                got[i]
+            );
+            assert!((got[i].1 - 20.0).abs() <= 1.0, "{got:?}");
+            assert!((got[i].2 - 100.0).abs() <= 1.0, "{got:?}");
+            assert!((got[i].3 - 50.0).abs() <= 1.0, "{got:?}");
+        }
+    }
+
+    #[test]
+    fn flex_column_grow_describes_grown_sizes() {
+        let mut comp = comp_with(vec![flexed(
+            FlexDirection::Column,
+            10.0,
+            FlexAlign::Start,
+            FlexJustify::Start,
+            vec![
+                flex_child(100.0, 50.0, 1.0),
+                flex_child(100.0, 50.0, 2.0),
+                flex_child(100.0, 50.0, 1.0),
+            ],
+        )]);
+        if let Clip::Flex(f) = &mut comp.clips[0] {
+            f.x = 0.0;
+            f.y = 0.0;
+            f.width = 200.0;
+            f.height = 300.0;
+            f.padding = 5.0;
+        }
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        let got = boxes_of(&desc);
+        assert_eq!(got.len(), 3);
+        // Content height 290, gaps 20, base 150: free 120 over 4
+        // shares gives heights 80, 110, 80 at y 5, 95, 215.
+        for (i, (want_y, want_h)) in [(5.0, 80.0), (95.0, 110.0), (215.0, 80.0)]
+            .iter()
+            .enumerate()
+        {
+            assert!(
+                (got[i].1 - want_y).abs() <= 1.0,
+                "child {i} y: got {:?}, want {want_y}",
+                got[i]
+            );
+            assert!((got[i].3 - want_h).abs() <= 1.0, "{got:?}");
+            assert!((got[i].0 - 5.0).abs() <= 1.0, "{got:?}");
+        }
+    }
+
+    #[test]
+    fn flex_centered_describes_centered_offsets() {
+        let mut comp = comp_with(vec![flexed(
+            FlexDirection::Row,
+            0.0,
+            FlexAlign::Center,
+            FlexJustify::Center,
+            vec![flex_child(100.0, 40.0, 0.0), flex_child(100.0, 40.0, 0.0)],
+        )]);
+        if let Clip::Flex(f) = &mut comp.clips[0] {
+            f.x = 0.0;
+            f.y = 0.0;
+            f.width = 320.0;
+        }
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        let got = boxes_of(&desc);
+        assert_eq!(got.len(), 2);
+        // Leftover 120 centers the line at x 60; cross leftover 60
+        // centers each 40-high child at y 30.
+        assert!((got[0].0 - 60.0).abs() <= 1.0, "{got:?}");
+        assert!((got[1].0 - 160.0).abs() <= 1.0, "{got:?}");
+        for r in &got {
+            assert!((r.1 - 30.0).abs() <= 1.0, "{got:?}");
+        }
+    }
+
+    #[test]
+    fn flex_empty_and_single_describe_cleanly_both_directions() {
+        for direction in [FlexDirection::Row, FlexDirection::Column] {
+            let comp = comp_with(vec![flexed(
+                direction,
+                8.0,
+                FlexAlign::Center,
+                FlexJustify::Center,
+                vec![],
+            )]);
+            let motions = plan_motions(&comp, 30);
+            assert!(describe(&comp, &motions, 0).items.is_empty());
+            let comp = comp_with(vec![flexed(
+                direction,
+                8.0,
+                FlexAlign::Center,
+                FlexJustify::Center,
+                vec![flex_child(50.0, 60.0, 0.0)],
+            )]);
+            let motions = plan_motions(&comp, 30);
+            let desc = describe(&comp, &motions, 0);
+            assert_eq!(desc.items.len(), 1);
+        }
+    }
+
+    // --- Sprint 8 look (T003): gradient and image fills ---
+
+    #[test]
+    fn gradient_fill_paint_rides_the_frame_description() {
+        let stops = vec![
+            notation::model::GradientStop {
+                offset: 0.0,
+                color: Rgb { r: 255, g: 0, b: 0 },
+                line: 1,
+                column: 1,
+            },
+            notation::model::GradientStop {
+                offset: 1.0,
+                color: Rgb { r: 0, g: 0, b: 255 },
+                line: 2,
+                column: 1,
+            },
+        ];
+        let paint = notation::model::FillPaint::Linear { angle: 90.0, stops };
+        let mut clip = boxed(0.0, 2.0, 0);
+        if let Clip::Box(b) = &mut clip {
+            b.fill_paint = paint.clone();
+        }
+        let comp = comp_with(vec![clip]);
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        assert_eq!(desc.items.len(), 1);
+        match &desc.items[0] {
+            FrameItem::Box(r) => assert_eq!(r.fill_paint, paint),
+            other => panic!("expected a box item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn image_fill_paint_rides_the_frame_description() {
+        let paint = notation::model::FillPaint::Image {
+            src: "media/bg.png".to_string(),
+            fit: notation::model::Fit::Cover,
+            placement: notation::model::Placement::center(),
+        };
+        let mut clip = boxed(0.0, 2.0, 0);
+        if let Clip::Box(b) = &mut clip {
+            b.fill_paint = paint.clone();
+        }
+        let comp = comp_with(vec![clip]);
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        match &desc.items[0] {
+            FrameItem::Box(r) => assert_eq!(r.fill_paint, paint),
+            other => panic!("expected a box item, got {other:?}"),
         }
     }
 }

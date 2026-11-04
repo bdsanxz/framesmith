@@ -9,3 +9,4 @@ license = "MIT OR Apache-2.0"
 notation = { path = "../notation" }
 glyph = { path = "../glyph" }
 motion = { path = "../motion" }
+usvg = "0.46"

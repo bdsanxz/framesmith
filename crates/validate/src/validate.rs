@@ -9,13 +9,17 @@
 //!   render refuses before the first frame and writes no MP4)
 
 use notation::model::{
-    parse_color, resolve_waveform_range, AudioClip, BoxClip, Clip, Composition, Crossfade,
-    DuckUnder, EaseDecl, Fit, FontDecl, Fps, ImageClip, InputDecl, KeyDecl, KeyStop, MarkDecl,
-    NestClip, Normalize, Placement, ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid,
-    StaggerOrigin, StartAfter, TextClip, TrackKind, Turn3D, TweenDecl, TweenKind, VideoClip,
-    WaveformDraw, WaveformRangeError, CONFIG_FILE, MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
+    parse_color, resolve_waveform_range, AudioClip, BlendMode, BoxClip, BoxShadow, Clip,
+    Composition, Crossfade, DuckUnder, EaseDecl, FillPaint, FillRule, Fit, FlexAlign, FlexChild,
+    FlexClip, FlexDirection, FlexJustify, FontDecl, Fps, GradientStop, ImageClip, InputDecl,
+    KeyDecl, KeyStop, MarkDecl, MaskRef, NestClip, Normalize, Overflow, PathClip, Placement,
+    ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid, StaggerOrigin, StartAfter,
+    StrokePosition, SvgClip, TextClip, TextDirection, TextSpan, TrackKind, Turn3D, TweenDecl,
+    TweenKind, VideoClip, WaveformDraw, WaveformRangeError, CONFIG_FILE, MIN_DURATION_SECS,
+    REPEAT_MAX, REPEAT_MIN,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
+use std::borrow::Cow;
 use std::path::Path;
 
 /// One located, coded problem (or, for unsupported use, one
@@ -1682,6 +1686,10 @@ pub fn validate_folder(folder: &Path) -> Verdict {
     // ends — past-end trims, circular chains, and over-deep chains
     // refuse here, before frame one, with the chain and the limit named.
     check_nest_graph(&mut ctx, &compositions);
+    // Sprint 8 look (T004): mask and clip-path references resolve
+    // against the finished compositions — dangling names, non-box
+    // targets, and cycles refuse here, before frame one.
+    check_mask_graph(&mut ctx, &compositions);
     // Sprint 10 sound (T003/T004): duck voices resolve against the
     // finished windows and overlong crossfade windows report their
     // clamp, before frame one.
@@ -1985,6 +1993,7 @@ fn validate_replicate(
     clips: &mut Vec<Clip>,
     pending_stills: &mut Vec<usize>,
     replicates: &mut Vec<ReplicateGroup>,
+    styles: &[StyleDecl],
 ) {
     const KEYS: &[&str] = &["count"];
     let mut ok = true;
@@ -2083,17 +2092,19 @@ fn validate_replicate(
         return;
     }
     let clip = match template.name.as_str() {
-        "text" => validate_text(ctx, template).map(Clip::Text),
-        "box" => validate_box(ctx, template).map(Clip::Box),
-        "image" => validate_image(ctx, template).map(Clip::Image),
+        "text" => validate_text(ctx, template, styles).map(Clip::Text),
+        "box" => validate_box(ctx, template, styles).map(Clip::Box),
+        "image" => validate_image(ctx, template, styles).map(Clip::Image),
+        "path" => validate_path(ctx, template, styles).map(Clip::Path),
+        "svg" => validate_svg(ctx, template, styles).map(Clip::Svg),
         "video" => validate_video(ctx, template).map(Clip::Video),
-        "audio" | "nest" | "font" => {
+        "audio" | "nest" | "font" | "flex" => {
             ctx.push(
                 template.name_line,
                 template.name_column,
                 "E_BAD_MOTION",
                 format!(
-                    "replicate template is `{}`; a `replicate` clones one picture clip (`text`, `box`, `image`, or `video`)",
+                    "replicate template is `{}`; a `replicate` clones one picture clip (`text`, `box`, `image`, `path`, `svg`, or `video`)",
                     template.name
                 ),
                 "template a picture clip inside the replicate",
@@ -2106,7 +2117,7 @@ fn validate_replicate(
                 template.name_column,
                 "E_BAD_MOTION",
                 format!(
-                    "replicate template is `{other}`; a `replicate` clones one `text`, `box`, `image`, or `video` child, never motion or another replicate"
+                    "replicate template is `{other}`; a `replicate` clones one `text`, `box`, `image`, `path`, `svg`, or `video` child, never motion or another replicate"
                 ),
                 "template one picture clip inside the replicate",
             );
@@ -2287,6 +2298,398 @@ fn check_cross_composition_refs(ctx: &mut Ctx, partials: &[PartialComposition]) 
             );
         }
     }
+}
+
+/// One named shared look (Sprint 8 look, CAP-006/T006): a `style`
+/// composition child carrying scalar properties by name. Elements
+/// name it with `style="look"` (space-separated for several).
+/// Validation bakes the resolved values into each referring element
+/// before its own validator runs, so a styled element shares one
+/// code path — and one refusal vocabulary — with direct values.
+struct StyleDecl {
+    name: String,
+    props: Vec<(String, RawValue)>,
+}
+
+/// Every scalar key a `style` block may declare (Sprint 8 look,
+/// CAP-006/T006): the union of the scalar attribute vocabularies of
+/// the styleable elements (`text`, `box`, `flex` containers and child
+/// boxes, `image`, `path`, `svg`), in both hyphenated and underscore
+/// spellings where the element accepts both. Whether a property fits
+/// a particular element stays the element validator's call — a style
+/// value routes through the exact same check as the directly written
+/// value — so this set only guards the block itself against typos.
+const STYLE_KEYS: &[&str] = &[
+    "start",
+    "duration",
+    "id",
+    "track",
+    "label",
+    "hidden",
+    "start-after",
+    "start_after",
+    "start-offset",
+    "start_offset",
+    "x",
+    "y",
+    "width",
+    "height",
+    "fill",
+    "radius",
+    "border-width",
+    "border_width",
+    "border-color",
+    "border_color",
+    "stroke-width",
+    "stroke_width",
+    "stroke-color",
+    "stroke_color",
+    "stroke-position",
+    "stroke_position",
+    "box-shadow",
+    "box_shadow",
+    "mix-blend-mode",
+    "mix_blend_mode",
+    "backdrop-blur",
+    "backdrop_blur",
+    "backdrop-brightness",
+    "backdrop_brightness",
+    "overflow",
+    "mask",
+    "clip-path",
+    "clip_path",
+    "opacity",
+    "order",
+    "rotation-x",
+    "rotation_x",
+    "rotate-x",
+    "rotate_x",
+    "rotation-y",
+    "rotation_y",
+    "rotate-y",
+    "rotate_y",
+    "perspective",
+    "origin",
+    "filter",
+    "value",
+    "size",
+    "color",
+    "position",
+    "align",
+    "wrap",
+    "font-style",
+    "font-family",
+    "font_family",
+    "direction",
+    "line-height",
+    "line_height",
+    "letter-spacing",
+    "letter_spacing",
+    "split",
+    "typewriter",
+    "count-from",
+    "count_from",
+    "count-to",
+    "count_to",
+    "decimals",
+    "display",
+    "flex-direction",
+    "flex_direction",
+    "flex-grow",
+    "flex_grow",
+    "gap",
+    "padding",
+    "margin",
+    "align-items",
+    "align_items",
+    "justify-content",
+    "justify_content",
+    "path",
+    "fit",
+    "placement",
+    "d",
+    "fill-rule",
+    "fill_rule",
+];
+
+/// Canonical (hyphenated) spellings of the shared-look vocabulary,
+/// for refusal messages that name the valid set.
+const STYLE_CANONICAL: &[&str] = &[
+    "start",
+    "duration",
+    "id",
+    "track",
+    "label",
+    "hidden",
+    "start-after",
+    "start-offset",
+    "x",
+    "y",
+    "width",
+    "height",
+    "fill",
+    "radius",
+    "border-width",
+    "border-color",
+    "stroke-width",
+    "stroke-color",
+    "stroke-position",
+    "box-shadow",
+    "mix-blend-mode",
+    "backdrop-blur",
+    "backdrop-brightness",
+    "overflow",
+    "mask",
+    "clip-path",
+    "opacity",
+    "order",
+    "rotation-x",
+    "rotation-y",
+    "perspective",
+    "origin",
+    "filter",
+    "value",
+    "size",
+    "color",
+    "position",
+    "align",
+    "wrap",
+    "font-style",
+    "font-family",
+    "direction",
+    "line-height",
+    "letter-spacing",
+    "split",
+    "typewriter",
+    "count-from",
+    "count-to",
+    "decimals",
+    "display",
+    "flex-direction",
+    "flex-grow",
+    "gap",
+    "padding",
+    "margin",
+    "align-items",
+    "justify-content",
+    "path",
+    "fit",
+    "placement",
+    "d",
+    "fill-rule",
+];
+
+/// Human list of the valid style properties, for diagnostics.
+fn style_valid_set() -> String {
+    STYLE_CANONICAL
+        .iter()
+        .map(|k| format!("`{k}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Human list of the declared style names, for diagnostics.
+fn style_available_names(styles: &[StyleDecl]) -> String {
+    if styles.is_empty() {
+        "(no styles are declared yet)".to_string()
+    } else {
+        styles
+            .iter()
+            .map(|s| format!("`{}`", s.name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+/// Validate one `style` composition child (Sprint 8 look, CAP-006):
+/// a quoted `name` with id syntax, no duplicate block name, no
+/// `style` key of its own (styles never nest), and only vocabulary
+/// keys. Every bad property reports with the valid set; the block is
+/// registered only when fully usable.
+fn validate_style_block(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    styles: &[StyleDecl],
+) -> Option<StyleDecl> {
+    let name = match find(node, "name").and_then(as_str) {
+        Some(s) if valid_id_syntax(s) => s.to_string(),
+        _ => {
+            let (line, column) = find(node, "name")
+                .map(|v| (v.line, v.column))
+                .unwrap_or((node.name_line, node.name_column));
+            ctx.push(
+                line,
+                column,
+                "E_BAD_STYLE",
+                "style block is missing required `name` (1-64 letters, digits, `-` or `_`)",
+                "add `name=\"<look-name>\"` to the style block",
+            );
+            return None;
+        }
+    };
+    if let Some(_dup) = styles.iter().find(|s| s.name == name) {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_STYLE",
+            format!(
+                "style {name:?} is declared more than once; available styles are: {}",
+                style_available_names(styles)
+            ),
+            format!("rename this block to a unique name, or remove it and use the declared `{name}`"),
+        );
+        return None;
+    }
+    let mut ok = true;
+    let mut props = Vec::new();
+    for (k, v) in &node.props {
+        if k == "name" || k == "end" {
+            continue;
+        }
+        if k == "style" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_STYLE",
+                format!(
+                    "style {name:?} carries `style=`; styles never reference other styles"
+                ),
+                "remove the `style` key from the style block, or move the properties onto the element",
+            );
+            ok = false;
+            continue;
+        }
+        if !STYLE_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_STYLE",
+                format!(
+                    "style {name:?} declares unknown property {k:?}; valid style properties are: {}",
+                    style_valid_set()
+                ),
+                "remove the property or check the spelling against the valid set",
+            );
+            ok = false;
+            continue;
+        }
+        props.push((k.clone(), v.clone()));
+    }
+    if !ok {
+        return None;
+    }
+    Some(StyleDecl { name, props })
+}
+
+/// Resolve the `style` references of one element (Sprint 8 look,
+/// CAP-006): every `style` attribute contributes its space-separated
+/// names in document order, later names winning over earlier ones on
+/// shared properties, and element-written attributes winning over
+/// every style. The merged node keeps the element's own props first
+/// (so `find` keeps hitting them) with style values appended after,
+/// at style-block locations — the element validator below then reads
+/// styled values through its exact direct-value code path. Unknown
+/// names fail with the available styles; a missing or unreadable
+/// `style` value fails where it is written.
+fn styled_node<'a>(
+    ctx: &mut Ctx,
+    node: &'a RawNode,
+    what: &str,
+    styles: &[StyleDecl],
+) -> Option<Cow<'a, RawNode>> {
+    let refs: Vec<&RawValue> = node
+        .props
+        .iter()
+        .filter(|(k, _)| *k == "style")
+        .map(|(_, v)| v)
+        .collect();
+    if refs.is_empty() {
+        return Some(Cow::Borrowed(node));
+    }
+    let mut names: Vec<(&str, usize, usize)> = Vec::new();
+    for v in refs {
+        match as_str(v) {
+            Some(s) => {
+                let parts: Vec<&str> = s.split_whitespace().collect();
+                if parts.is_empty() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_STYLE",
+                        format!(
+                            "{what} `style` names no block; available styles are: {}",
+                            style_available_names(styles)
+                        ),
+                        "point `style=` at a declared style name, or remove the key",
+                    );
+                    return None;
+                }
+                for part in parts {
+                    names.push((part, v.line, v.column));
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_STYLE",
+                    format!(
+                        "{what} `style` must be a quoted style name; found {}",
+                        raw_text(v)
+                    ),
+                    "set `style=\"<look-name>\"` on the element",
+                );
+                return None;
+            }
+        }
+    }
+    let mut merged: Vec<(String, RawValue)> = node
+        .props
+        .iter()
+        .filter(|(k, _)| *k != "style")
+        .cloned()
+        .collect();
+    // Element-written props stay first and untouchable: only appended
+    // style entries (at or past `owned_len`) may be overwritten by a
+    // later-declared style naming the same property.
+    let owned_len = merged.len();
+    for (name, line, column) in names {
+        let style = match styles.iter().find(|s| s.name == name) {
+            Some(s) => s,
+            None => {
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_STYLE",
+                    format!(
+                        "{what} style {name:?} names no declared style; available styles are: {}",
+                        style_available_names(styles)
+                    ),
+                    format!(
+                        "declare `style name={name:?} ...` in the composition, or point `style=` at one of: {}",
+                        style_available_names(styles)
+                    ),
+                );
+                return None;
+            }
+        };
+        for (k, v) in &style.props {
+            match merged.iter().position(|(ek, _)| ek == k) {
+                Some(i) if i >= owned_len => {
+                    merged[i].1 = v.clone();
+                }
+                Some(_) => {}
+                None => merged.push((k.clone(), v.clone())),
+            }
+        }
+    }
+    Some(Cow::Owned(RawNode {
+        name: node.name.clone(),
+        name_line: node.name_line,
+        name_column: node.name_column,
+        props: merged,
+        children: node.children.clone(),
+    }))
 }
 
 fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> PartialComposition<'n> {
@@ -2658,13 +3061,24 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
     // clips expand to indexed clones inline below, so `target`
     // indexes resolve against the final clip count like any clip.
     let mut replicates: Vec<ReplicateGroup> = Vec::new();
+    // Shared looks (Sprint 8 look, CAP-006/T006): style blocks
+    // validate in a pre-pass so referring elements resolve them
+    // whatever the declaration order (forward references allowed).
+    let mut styles: Vec<StyleDecl> = Vec::new();
+    for child in &root.children {
+        if child.name == "style" {
+            if let Some(s) = validate_style_block(&mut ctx, child, &styles) {
+                styles.push(s);
+            }
+        }
+    }
     for child in &root.children {
         match child.name.as_str() {
             // Stills (text, box, image) may omit `duration`: the
             // validator stores `NAN` for the omission and the index
             // joins `pending_stills` for the inference loop below.
             "text" => {
-                if let Some(c) = validate_text(&mut ctx, child) {
+                if let Some(c) = validate_text(&mut ctx, child, &styles) {
                     if c.duration.is_nan() {
                         pending_stills.push(clips.len());
                     }
@@ -2681,20 +3095,45 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
                     fonts.push(f);
                 }
             }
+            "style" => {}
             "box" => {
-                if let Some(c) = validate_box(&mut ctx, child) {
+                if let Some(c) = validate_box(&mut ctx, child, &styles) {
                     if c.duration.is_nan() {
                         pending_stills.push(clips.len());
                     }
                     clips.push(Clip::Box(c));
                 }
             }
+            "flex" => {
+                if let Some(c) = validate_flex(&mut ctx, child, &styles) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Flex(c));
+                }
+            }
             "image" => {
-                if let Some(c) = validate_image(&mut ctx, child) {
+                if let Some(c) = validate_image(&mut ctx, child, &styles) {
                     if c.duration.is_nan() {
                         pending_stills.push(clips.len());
                     }
                     clips.push(Clip::Image(c));
+                }
+            }
+            "path" => {
+                if let Some(c) = validate_path(&mut ctx, child, &styles) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Path(c));
+                }
+            }
+            "svg" => {
+                if let Some(c) = validate_svg(&mut ctx, child, &styles) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Svg(c));
                 }
             }
             "audio" => {
@@ -2727,6 +3166,7 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
                     &mut clips,
                     &mut pending_stills,
                     &mut replicates,
+                    &styles,
                 );
             }
             other if unsupported_sprint(other).is_some() => {
@@ -2746,7 +3186,7 @@ fn validate_composition_parts<'n>(mut ctx: &mut Ctx, root: &'n RawNode) -> Parti
                     child.name_column,
                     "E_UNKNOWN_ELEMENT",
                     format!("unknown element `{other}`"),
-                    "use `text`, `font`, `video`, `box`, `image`, `audio`, `tween`, `key`, `set`, `mark`, `input`, or `replicate`, or remove the element",
+                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `audio`, `style`, `tween`, `key`, `set`, `mark`, `input`, or `replicate`, or remove the element",
                 );
             }
         }
@@ -2961,7 +3401,10 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
             let kind = match &clips[i] {
                 Clip::Text(_) => "text",
                 Clip::Box(_) => "box",
+                Clip::Flex(_) => "flex",
                 Clip::Image(_) => "image",
+                Clip::Path(_) => "path",
+                Clip::Svg(_) => "svg",
                 _ => "still",
             };
             let end = comp_end.unwrap_or(d + clips[i].start());
@@ -3739,7 +4182,324 @@ fn parse_text_fx(ctx: &mut Ctx, node: &RawNode) -> Option<TextFx> {
     })
 }
 
-fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
+/// Refuse `span` children on a non-text clip (Sprint 8 look,
+/// CAP-002/REC-002): styled runs live in `text` clips only. Returns
+/// true when at least one is present; the caller drops the clip.
+fn reject_spans(ctx: &mut Ctx, node: &RawNode, what: &str) -> bool {
+    let mut found = false;
+    for child in &node.children {
+        if child.name == "span" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_TEXT",
+                format!("{what} holds a `span`; styled runs live in `text` clips only"),
+                "move the `span` into a `text` clip, or remove it",
+            );
+            found = true;
+        }
+    }
+    found
+}
+
+/// Span attributes (Sprint 8 look, CAP-002/T002): the `value` text
+/// plus every per-run style override, in both hyphen and underscore
+/// spellings. `direction` is deliberately absent: the clip's base
+/// direction orders every run, so a span direction would contradict it.
+const SPAN_KEYS: &[&str] = &[
+    "value",
+    "font-family",
+    "font_family",
+    "font-size",
+    "font_size",
+    "font-weight",
+    "font_weight",
+    "italic",
+    "color",
+    "line-height",
+    "line_height",
+    "letter-spacing",
+    "letter_spacing",
+];
+
+/// One span `font-family` list (Sprint 8 look, CAP-002/T002): the same
+/// comma try-order syntax as the clip key. An empty or unquoted list
+/// fails with `E_BAD_FONT` naming the span.
+fn span_font_family(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    label: &str,
+) -> Option<Option<Vec<String>>> {
+    match find(node, "font-family").or_else(|| find(node, "font_family")) {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some(s) => {
+                let names: Vec<String> = s
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|part| !part.is_empty())
+                    .map(str::to_string)
+                    .collect();
+                if names.is_empty() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_FONT",
+                        format!("text {label} `font-family` names no family"),
+                        format!(
+                            "set {label} `font-family=\"Family Name\"` or `font-family=\"First, Fallback\"`, or remove the key to inherit the enclosing style"
+                        ),
+                    );
+                    None
+                } else {
+                    Some(Some(names))
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FONT",
+                    format!("text {label} `font-family` must be a quoted family list"),
+                    format!(
+                        "set {label} `font-family=\"Family Name\"` or `font-family=\"First, Fallback\"`, or remove the key to inherit the enclosing style"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One span spacing value (`line-height` or `letter-spacing`):
+/// absent inherits the enclosing style, present must be a
+/// non-negative finite number. Anything else fails with
+/// `E_BAD_SPACING` naming the span.
+fn span_spacing(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+    label: &str,
+) -> Option<Option<f64>> {
+    match find(node, hyphen).or_else(|| find(node, underscore)) {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(Some(x)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SPACING",
+                    format!(
+                        "text {label} `{hyphen}` must be a non-negative number of canvas pixels"
+                    ),
+                    format!(
+                        "set {label} `{hyphen}=<pixels >= 0>` or remove the key to inherit the enclosing style"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `span` child of a `text` clip (Sprint 8 look, CAP-002/T002):
+/// the run text with its style overrides plus nested `span`
+/// children. A span with neither text nor nested spans fails naming
+/// the span; a non-`span` child of a span fails the same way. Every
+/// refusal names the span and the property with a concrete fix.
+fn validate_text_span(ctx: &mut Ctx, node: &RawNode, label: &str) -> Option<TextSpan> {
+    for (k, v) in &node.props {
+        if !SPAN_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("text {label} carries unknown key {k:?}"),
+                format!(
+                    "remove the key from text {label} or check the spelling against `value`, `font-family`, `font-size`, `font-weight`, `italic`, `color`, `line-height`, and `letter-spacing`"
+                ),
+            );
+        }
+    }
+    let value = match find(node, "value") {
+        None => String::new(),
+        Some(v) => match as_str(v) {
+            Some(s) => s.to_string(),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TEXT",
+                    format!("text {label} `value` must be quoted text"),
+                    format!("set {label} `value=\"...\"` or remove the key"),
+                );
+                return None;
+            }
+        },
+    };
+    let font_family = span_font_family(ctx, node, label)?;
+    let font_size = match find(node, "font-size").or_else(|| find(node, "font_size")) {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x > 0.0 => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TEXT",
+                    format!(
+                        "text {label} `font-size` must be a positive number of canvas pixels; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set {label} `font-size=<positive pixels>` or remove the key to inherit the enclosing size"),
+                );
+                return None;
+            }
+        },
+    };
+    let font_weight = match find(node, "font-weight").or_else(|| find(node, "font_weight")) {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (100.0..=900.0).contains(&x) => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TEXT",
+                    format!(
+                        "text {label} `font-weight` {} is outside the accepted range 100 to 900",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set {label} `font-weight=<100 to 900>` (400 is regular, 700 is bold) or remove the key to inherit the enclosing weight"
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    let italic = match find(node, "italic") {
+        None => None,
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TEXT",
+                    format!(
+                        "text {label} `italic` must be `true` or `false`; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set {label} `italic=true` for italics, `italic=false` (or remove the key) for upright"),
+                );
+                return None;
+            }
+        },
+    };
+    let color = match find(node, "color") {
+        None => None,
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    format!("text {label} `color` is not a `#rgb` or `#rrggbb` color"),
+                    format!("set {label} `color=\"#ffffff\"` or remove the key to inherit the enclosing color"),
+                );
+                return None;
+            }
+        },
+    };
+    let line_height = span_spacing(ctx, node, "line-height", "line_height", label)?;
+    let letter_spacing = span_spacing(ctx, node, "letter-spacing", "letter_spacing", label)?;
+    let mut children = Vec::with_capacity(node.children.len());
+    let mut ok = true;
+    for (i, child) in node.children.iter().enumerate() {
+        if child.name != "span" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_TEXT",
+                format!(
+                    "text {label} holds `{}`; spans hold text and nested `span` runs only",
+                    child.name
+                ),
+                format!("use `span value=\"...\"` children inside {label}, or remove the element"),
+            );
+            ok = false;
+            continue;
+        }
+        match validate_text_span(ctx, child, &format!("{label}.{}", i + 1)) {
+            Some(span) => children.push(span),
+            None => ok = false,
+        }
+    }
+    if !ok {
+        return None;
+    }
+    if value.is_empty() && children.is_empty() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_TEXT",
+            format!("text {label} carries no text; a span paints its `value`, its nested `span` children, or both"),
+            format!("add `value=\"...\"` to {label} or nest `span` children inside it"),
+        );
+        return None;
+    }
+    Some(TextSpan {
+        value,
+        font_family,
+        font_size,
+        font_weight,
+        italic,
+        color,
+        letter_spacing,
+        line_height,
+        children,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Every `span` child of a `text` clip (Sprint 8 look, CAP-002/T002):
+/// `span` runs in document order. A non-`span` child fails with
+/// `E_BAD_TEXT` naming the styled runs; each span validates
+/// independently so every span problem reports at once.
+fn parse_text_spans(ctx: &mut Ctx, node: &RawNode) -> Option<Vec<TextSpan>> {
+    let mut spans = Vec::with_capacity(node.children.len());
+    let mut ok = true;
+    for (i, child) in node.children.iter().enumerate() {
+        if child.name != "span" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_TEXT",
+                format!(
+                    "text clip holds `{}`; styled runs are `span` children",
+                    child.name
+                ),
+                "write `span value=\"...\"` children inside the `text` clip, or remove the element",
+            );
+            ok = false;
+            continue;
+        }
+        match validate_text_span(ctx, child, &format!("span {}", i + 1)) {
+            Some(span) => spans.push(span),
+            None => ok = false,
+        }
+    }
+    if ok { Some(spans) } else { None }
+}
+
+fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<TextClip> {
+    let merged = styled_node(ctx, node, "text clip", styles)?;
+    let node = merged.as_ref();
     const KEYS: &[&str] = &[
         "value",
         "start",
@@ -3762,6 +4522,7 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         "font-style",
         "font-family",
         "font_family",
+        "direction",
         "order",
         "line-height",
         "line_height",
@@ -3812,17 +4573,38 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         (Some(s), Some(None)) => (s, f64::NAN),
         _ => return None,
     };
-    let value = match find(node, "value").and_then(as_str) {
-        Some(s) => s.to_string(),
+    // Styled runs (Sprint 8 look, CAP-002/T002): `span` children
+    // paint in order after the clip `value` (which stays a base-style
+    // run when both are written). A clip with spans may omit `value`;
+    // a clip without spans keeps the required `value`, exactly as
+    // before this task.
+    let spans = parse_text_spans(ctx, node)?;
+    let value = match find(node, "value") {
+        Some(v) => match as_str(v) {
+            Some(s) => s.to_string(),
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_MISSING_FIELD",
+                    "text clip is missing required `value`",
+                    "add `value=\"...\"` to the text clip",
+                );
+                return None;
+            }
+        },
         None => {
-            ctx.push(
-                node.name_line,
-                node.name_column,
-                "E_MISSING_FIELD",
-                "text clip is missing required `value`",
-                "add `value=\"...\"` to the text clip",
-            );
-            return None;
+            if spans.is_empty() {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_MISSING_FIELD",
+                    "text clip is missing required `value`",
+                    "add `value=\"...\"` to the text clip",
+                );
+                return None;
+            }
+            String::new()
         }
     };
     // Plain helper (not a closure) so `ctx` stays freely reborrowable.
@@ -3909,6 +4691,28 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
                     "E_BAD_TIMING",
                     "text `align` must be exactly `left`, `center`, or `right`",
                     "set `align=\"left\"`, `align=\"center\"`, or `align=\"right\"`",
+                );
+                return None;
+            }
+        },
+    };
+    // Base direction (Sprint 8 look, CAP-002/T002): exactly `ltr`,
+    // `rtl`, or `auto`; absent means left to right.
+    let direction = match find(node, "direction") {
+        None => TextDirection::Ltr,
+        Some(v) => match as_str(v).and_then(TextDirection::parse) {
+            Some(d) => d,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TEXT",
+                    format!(
+                        "text `direction` {} is unknown; accepted directions are: {}",
+                        raw_text(v),
+                        TextDirection::ACCEPTED.join(", ")
+                    ),
+                    "set `direction=\"ltr\"`, `direction=\"rtl\"`, or `direction=\"auto\"`, or remove the key for left-to-right",
                 );
                 return None;
             }
@@ -4086,6 +4890,33 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         },
     };
     let fx = parse_text_fx(ctx, node)?;
+    // Split, typewriter, and count effects address the plain `value`
+    // (Sprint 7 motion, CAP-009); combined with `span` runs the
+    // addressable text is ambiguous, so the combination is refused
+    // naming the runs instead of animating the wrong text.
+    if !spans.is_empty()
+        && (fx.split.is_some()
+            || fx.typewriter
+            || fx.count_from.is_some()
+            || fx.count_to.is_some())
+    {
+        let (line, column) = find(node, "split")
+            .or_else(|| find(node, "typewriter"))
+            .or_else(|| find(node, "count-from"))
+            .or_else(|| find(node, "count_from"))
+            .or_else(|| find(node, "count-to"))
+            .or_else(|| find(node, "count_to"))
+            .map(|v| (v.line, v.column))
+            .unwrap_or((node.name_line, node.name_column));
+        ctx.push(
+            line,
+            column,
+            "E_BAD_TEXT",
+            "text clip with `span` runs carries a split, typewriter, or count effect; the effects address the plain `value`, not styled runs",
+            "remove the effect keys to paint the styled runs, or remove the `span` children to animate the plain `value`",
+        );
+        return None;
+    }
     let turn = clip_turn(ctx, node, "text clip")?;
     let filter_blur = clip_filter(ctx, node, "text clip")?;
     Some(TextClip {
@@ -4108,6 +4939,8 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode) -> Option<TextClip> {
         line_height,
         letter_spacing,
         font_family,
+        direction,
+        spans,
         split: fx.split,
         typewriter: fx.typewriter,
         count_from: fx.count_from,
@@ -4372,6 +5205,9 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         }
     }
     if reject_text_fx(ctx, node, "video clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "video clip") {
         return None;
     }
     // Sprint 5 footage loop flag (T003), parsed before the clip window:
@@ -4723,6 +5559,9 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
     if reject_text_fx(ctx, node, "audio track") {
         return None;
     }
+    if reject_spans(ctx, node, "audio track") {
+        return None;
+    }
     let identity = parse_clip_identity(ctx, node, "audio", "audio track")?;
     // Start and duration report independently (like the old shared
     // window check): a clip missing both names both problems at once.
@@ -4949,9 +5788,394 @@ fn box_num(ctx: &mut Ctx, node: &RawNode, key: &str, default: f64) -> Option<f64
     }
 }
 
-/// Box keys that name Sprint 8 looks: per-side borders, border images,
-/// and non-solid fills. Well-formed but refused with the enabling
-/// sprint (T004), never rendered partially.
+/// Element tag for paint-stack diagnostics (Sprint 8 look, T004):
+/// the clip kind plus its `id` when declared, so every refusal names
+/// the offending element and property.
+fn paint_element(identity_id: &Option<String>) -> String {
+    match identity_id {
+        Some(id) => format!("box clip {id:?}"),
+        None => "box clip".to_string(),
+    }
+}
+
+/// One `stroke-width` or `border-width` value in canvas pixels
+/// (Sprint 8 look, T004): `stroke-width` (or `stroke_width`) wins
+/// when written, else the historical `border-width`. A negative
+/// `stroke-width` fails with `E_BAD_PAINT` naming the element and the
+/// property; a negative `border-width` keeps the historical `E_BAD_BOX`
+/// refusal byte-identically (Sprint 2 boxes keep validating as before).
+fn box_stroke_width(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<f64> {
+    let (key, stroke) = if find(node, "stroke-width").is_some() {
+        ("stroke-width", true)
+    } else if find(node, "stroke_width").is_some() {
+        ("stroke_width", true)
+    } else if find(node, "border-width").is_some() {
+        ("border-width", false)
+    } else {
+        ("border_width", false)
+    };
+    let width = box_num(ctx, node, key, 0.0)?;
+    if width < 0.0 {
+        let v = find(node, key).unwrap();
+        if stroke {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_PAINT",
+                format!("{el} `{key}` {width} is invalid; stroke widths cannot be negative"),
+                format!("set `{key}=<pixels >= 0>` on {el}"),
+            );
+        } else {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_BOX",
+                format!("box `{key}` {width} is invalid; border widths cannot be negative"),
+                format!("set `{key}=<pixels >= 0>` on the box clip"),
+            );
+        }
+        return None;
+    }
+    Some(width)
+}
+
+/// One `stroke-color` or `border-color` value (Sprint 8 look, T004):
+/// `stroke-color` (or `stroke_color`) wins when written, else the
+/// historical `border-color`. Anything but `#rgb`/`#rrggbb` fails with
+/// `E_BAD_COLOR` naming the written property.
+fn box_stroke_color(ctx: &mut Ctx, node: &RawNode) -> Option<Rgb> {
+    let key = if find(node, "stroke-color").is_some() {
+        "stroke-color"
+    } else if find(node, "stroke_color").is_some() {
+        "stroke_color"
+    } else if find(node, "border-color").is_some() {
+        "border-color"
+    } else {
+        "border_color"
+    };
+    match find(node, key) {
+        None => Some(Rgb { r: 0, g: 0, b: 0 }),
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    format!("box `{key}` is not a `#rgb` or `#rrggbb` color"),
+                    format!("use a hex color like `{key}=\"#000000\"`"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `stroke-position` (Sprint 8 look, T004): absent means `inside`
+/// (the historical border); present must read `center`, `inside`, or
+/// `outside`, naming the accepted set otherwise.
+fn box_stroke_position(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<StrokePosition> {
+    let found = find(node, "stroke-position").or_else(|| find(node, "stroke_position"));
+    match found {
+        None => Some(StrokePosition::Inside),
+        Some(v) => match as_str(v).and_then(StrokePosition::parse) {
+            Some(p) => Some(p),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `stroke-position` {} is unknown; accepted positions are: {}",
+                        raw_text(v),
+                        StrokePosition::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    format!(
+                        "set `stroke-position=\"center\"`, `\"inside\"`, or `\"outside\"` on {el}"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one `box-shadow` value (Sprint 8 look, T004): `none` (or an
+/// absent key) paints no shadow, else `"<offset-x> <offset-y> <blur>
+/// <spread> <#color>"` with finite offsets, non-negative blur and
+/// spread, and a `#rgb`/`#rrggbb` color. Anything else fails with
+/// `E_BAD_PAINT` naming the element and the property with the syntax.
+fn parse_box_shadow_value(s: &str) -> Option<BoxShadow> {
+    let t: Vec<&str> = s.split_whitespace().collect();
+    if t.len() != 5 {
+        return None;
+    }
+    let num = |i: usize| t[i].parse::<f64>().ok().filter(|x| x.is_finite());
+    let offset_x = num(0)?;
+    let offset_y = num(1)?;
+    let blur = num(2).filter(|x| *x >= 0.0)?;
+    let spread = num(3).filter(|x| *x >= 0.0)?;
+    let color = parse_color(t[4])?;
+    Some(BoxShadow {
+        offset_x,
+        offset_y,
+        blur,
+        spread,
+        color,
+    })
+}
+
+fn box_shadow_opt(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<Option<BoxShadow>> {
+    let found = find(node, "box-shadow").or_else(|| find(node, "box_shadow"));
+    match found {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some("none") => Some(None),
+            Some(s) => match parse_box_shadow_value(s) {
+                Some(sh) => Some(Some(sh)),
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_PAINT",
+                        format!(
+                            "{el} `box-shadow` {s:?} is unusable; a shadow reads `\"<offset-x> <offset-y> <blur> <spread> <#color>\"` with blur and spread at 0 and up"
+                        ),
+                        format!(
+                            "set `box-shadow=\"8 8 12 0 \\\"#000000\\\"\"` on {el}, or `box-shadow=\"none\"` to paint no shadow"
+                        ),
+                    );
+                    None
+                }
+            },
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `box-shadow` must be a quoted shadow; found {}",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `box-shadow=\"8 8 12 0 \\\"#000000\\\"\"` on {el}, or `box-shadow=\"none\"` to paint no shadow"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `mix-blend-mode` (Sprint 8 look, T004): absent means `normal`
+/// (source-over); present must read `normal`, `multiply`, `screen`,
+/// or `overlay`, naming the accepted set otherwise.
+fn box_blend_mode(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<BlendMode> {
+    let found = find(node, "mix-blend-mode").or_else(|| find(node, "mix_blend_mode"));
+    match found {
+        None => Some(BlendMode::Normal),
+        Some(v) => match as_str(v).and_then(BlendMode::parse) {
+            Some(m) => Some(m),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `mix-blend-mode` {} is unknown; accepted modes are: {}",
+                        raw_text(v),
+                        BlendMode::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    format!(
+                        "set `mix-blend-mode=\"normal\"`, `\"multiply\"`, `\"screen\"`, or `\"overlay\"` on {el}"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// The backdrop pair (Sprint 8 look, T004): `backdrop-blur` samples
+/// the flattened layers beneath through a blur sigma (absent means 0,
+/// negative refuses), and `backdrop-brightness` scales them (absent
+/// means 1, negative refuses). Both refuse with `E_BAD_PAINT` naming
+/// the element and the property.
+fn box_backdrop(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<(f64, f64)> {
+    let blur = match find(node, "backdrop-blur").or_else(|| find(node, "backdrop_blur")) {
+        None => 0.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `backdrop-blur` {} is invalid; backdrop blur runs 0 and up",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `backdrop-blur=<pixels >= 0>` on {el}, or remove the key for a sharp backdrop"
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    let brightness = match find(node, "backdrop-brightness")
+        .or_else(|| find(node, "backdrop_brightness"))
+    {
+        None => 1.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `backdrop-brightness` {} is invalid; backdrop brightness scales 0 and up (1 keeps the layers)",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `backdrop-brightness=<factor >= 0>` on {el}, or remove the key to keep the layers"
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    Some((blur, brightness))
+}
+
+/// One `overflow` (Sprint 8 look, T004): absent means `visible`;
+/// present must read `visible`, `hidden`, or `clip`, naming the
+/// accepted set otherwise.
+fn box_overflow(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<Overflow> {
+    match find(node, "overflow") {
+        None => Some(Overflow::Visible),
+        Some(v) => match as_str(v).and_then(Overflow::parse) {
+            Some(o) => Some(o),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `overflow` {} is unknown; accepted values are: {}",
+                        raw_text(v),
+                        Overflow::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    format!("set `overflow=\"visible\"`, `\"hidden\"`, or `\"clip\"` on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `mask` / `clip-path` reference (Sprint 8 look, T004): absent
+/// means unmasked; present must be a quoted id naming a `box` clip in
+/// the same composition. Dangling references, non-box targets, and
+/// cycles refuse in [`check_mask_graph`], once every clip is known —
+/// forward references stay valid here.
+fn box_mask_ref(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+    el: &str,
+) -> Option<Option<MaskRef>> {
+    let found = find(node, hyphen).or_else(|| find(node, underscore));
+    match found {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some(s) if !s.is_empty() => Some(Some(MaskRef {
+                target: s.to_string(),
+                line: v.line,
+                column: v.column,
+            })),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "{el} `{hyphen}` must be a quoted id naming a `box` clip in the same composition; found {}",
+                        raw_text(v)
+                    ),
+                    format!(
+                        "set `{hyphen}=\"<box clip id>\"` on {el}, or remove the key to paint unmasked"
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Paint-stack keys that belong on `box` clips (Sprint 8 look,
+/// T004): the positioned stroke, the shadow, the blend, the backdrop,
+/// overflow, and mask references. `stroke-width`/`stroke-color` alias
+/// the historical border keys; the rest are new.
+const PAINT_STACK_KEYS: &[&str] = &[
+    "stroke-width",
+    "stroke_width",
+    "stroke-color",
+    "stroke_color",
+    "stroke-position",
+    "stroke_position",
+    "box-shadow",
+    "box_shadow",
+    "mix-blend-mode",
+    "mix_blend_mode",
+    "backdrop-blur",
+    "backdrop_blur",
+    "backdrop-brightness",
+    "backdrop_brightness",
+    "overflow",
+    "mask",
+    "clip-path",
+    "clip_path",
+];
+
+/// Paint-stack keys a flex child must not carry (Sprint 8 look,
+/// T004): laid-out children paint one fill with one stroke, while
+/// shadows, blends, backdrops, overflow, and masks apply to `box`
+/// clips. `stroke-position` rides on [`FLEX_CHILD_KEYS`]; the stroke
+/// width and color alias the child's border keys.
+const FLEX_CHILD_PAINT_KEYS: &[&str] = &[
+    "box-shadow",
+    "box_shadow",
+    "mix-blend-mode",
+    "mix_blend_mode",
+    "backdrop-blur",
+    "backdrop_blur",
+    "backdrop-brightness",
+    "backdrop_brightness",
+    "overflow",
+    "mask",
+    "clip-path",
+    "clip_path",
+];
+
+/// Box keys that name Sprint 8 looks: per-side borders and border
+/// images. Well-formed but refused with the enabling sprint (T004),
+/// never rendered partially. Gradient and image fills arrived in T003
+/// as child elements, so a fill-shaped attribute redirects there.
 const RICH_BOX_KEYS: &[&str] = &[
     "border-top-width",
     "border_top_width",
@@ -4963,12 +6187,17 @@ const RICH_BOX_KEYS: &[&str] = &[
     "border_left_width",
     "border-image",
     "border_image",
-    "gradient",
-    "fill-image",
-    "fill_image",
 ];
 
-fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
+/// Fill-shaped box attributes from before T003 (Sprint 8 look): fills
+/// are child elements (`linear-gradient`, `radial-gradient`,
+/// `image-fill`), never attributes. A fill-shaped attribute fails with
+/// `E_BAD_FILL` naming the element to write instead.
+const LEGACY_FILL_KEYS: &[&str] = &["gradient", "fill-image", "fill_image"];
+
+fn validate_box(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<BoxClip> {
+    let merged = styled_node(ctx, node, "box clip", styles)?;
+    let node = merged.as_ref();
     const KEYS: &[&str] = &[
         "start",
         "duration",
@@ -4990,6 +6219,24 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         "border_width",
         "border-color",
         "border_color",
+        "stroke-width",
+        "stroke_width",
+        "stroke-color",
+        "stroke_color",
+        "stroke-position",
+        "stroke_position",
+        "box-shadow",
+        "box_shadow",
+        "mix-blend-mode",
+        "mix_blend_mode",
+        "backdrop-blur",
+        "backdrop_blur",
+        "backdrop-brightness",
+        "backdrop_brightness",
+        "overflow",
+        "mask",
+        "clip-path",
+        "clip_path",
         "opacity",
         "order",
         "rotation-x",
@@ -5005,6 +6252,16 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         "filter",
     ];
     for (k, v) in &node.props {
+        if LEGACY_FILL_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_FILL",
+                format!("box `{k}` is not a box key; gradient and image fills are child elements, not attributes"),
+                "write a `linear-gradient`, `radial-gradient`, or `image-fill` child element with its `stop` children or `src` on the box instead",
+            );
+            return None;
+        }
         if RICH_BOX_KEYS.contains(&k.as_str()) {
             ctx.diags.push(Diagnostic::new(
                 &ctx.file.clone(),
@@ -5027,6 +6284,9 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         }
     }
     if reject_text_fx(ctx, node, "box clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "box clip") {
         return None;
     }
     let identity = parse_clip_identity(ctx, node, "box", "box clip")?;
@@ -5106,46 +6366,16 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         );
         return None;
     }
-    let border_key = if find(node, "border-width").is_some() {
-        "border-width"
-    } else {
-        "border_width"
-    };
-    let border_width = box_num(ctx, node, border_key, 0.0)?;
-    if border_width < 0.0 {
-        let v = find(node, border_key).unwrap();
-        ctx.push(
-            v.line,
-            v.column,
-            "E_BAD_BOX",
-            format!(
-                "box `border-width` {border_width} is invalid; border widths cannot be negative"
-            ),
-            "set `border-width=<pixels >= 0>` on the box clip",
-        );
-        return None;
-    }
-    let color_key = if find(node, "border-color").is_some() {
-        "border-color"
-    } else {
-        "border_color"
-    };
-    let border_color = match find(node, color_key) {
-        None => notation::model::Rgb { r: 0, g: 0, b: 0 },
-        Some(v) => match as_str(v).and_then(parse_color) {
-            Some(c) => c,
-            None => {
-                ctx.push(
-                    v.line,
-                    v.column,
-                    "E_BAD_COLOR",
-                    "box `border-color` is not a `#rgb` or `#rrggbb` color",
-                    "use a hex color like `border-color=\"#000000\"`",
-                );
-                return None;
-            }
-        },
-    };
+    let el = paint_element(&identity.id);
+    let border_width = box_stroke_width(ctx, node, &el)?;
+    let border_color = box_stroke_color(ctx, node)?;
+    let stroke_position = box_stroke_position(ctx, node, &el)?;
+    let box_shadow = box_shadow_opt(ctx, node, &el)?;
+    let blend_mode = box_blend_mode(ctx, node, &el)?;
+    let (backdrop_blur, backdrop_brightness) = box_backdrop(ctx, node, &el)?;
+    let overflow = box_overflow(ctx, node, &el)?;
+    let mask = box_mask_ref(ctx, node, "mask", "mask", &el)?;
+    let clip_path = box_mask_ref(ctx, node, "clip-path", "clip_path", &el)?;
     let opacity = box_num(ctx, node, "opacity", 1.0)?;
     if !(0.0..=1.0).contains(&opacity) {
         let (line, col) = find(node, "opacity")
@@ -5165,6 +6395,7 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "box clip")?;
     let filter_blur = clip_filter(ctx, node, "box clip")?;
+    let fill_paint = validate_box_fill(ctx, node)?;
     Some(BoxClip {
         start,
         duration,
@@ -5178,13 +6409,1441 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode) -> Option<BoxClip> {
         width,
         height,
         fill,
+        fill_paint,
         radius,
         border_width,
         border_color,
+        stroke_position,
+        box_shadow,
+        blend_mode,
+        backdrop_blur,
+        backdrop_brightness,
+        overflow,
+        mask,
+        clip_path,
         opacity,
         order,
         turn,
         filter_blur,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Validate the fill children of a `box` clip (Sprint 8 look,
+/// CAP-003/T003): at most one `linear-gradient`, `radial-gradient`,
+/// or `image-fill` child element (either hyphenated or underscored
+/// spelling). No fill child keeps the authored `fill` color. Every
+/// fill problem reports together, each naming its stop or fill and
+/// the rule it breaks, before frame one.
+fn validate_box_fill(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
+    let mut fills: Vec<&RawNode> = Vec::new();
+    let mut ok = true;
+    for child in &node.children {
+        match child.name.as_str() {
+            "linear-gradient" | "linear_gradient" | "radial-gradient" | "radial_gradient"
+            | "image-fill" | "image_fill" => fills.push(child),
+            "stop" => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_FILL",
+                    "box clip holds a `stop` outside a gradient; stops live inside a `linear-gradient` or `radial-gradient` element",
+                    "move the `stop` inside a gradient element, or remove it",
+                );
+                ok = false;
+            }
+            _ => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_FILL",
+                    format!(
+                        "box clip holds `{}`; a box holds at most one `linear-gradient`, `radial-gradient`, or `image-fill` child",
+                        child.name
+                    ),
+                    "keep a single gradient or image-fill child on the box, or remove the child",
+                );
+                ok = false;
+            }
+        }
+    }
+    if fills.is_empty() {
+        return ok.then_some(FillPaint::Solid);
+    }
+    let mut paints: Vec<FillPaint> = Vec::new();
+    for fill in &fills {
+        match fill.name.as_str() {
+            "linear-gradient" | "linear_gradient" => {
+                if let Some((angle, stops)) = validate_linear_gradient(ctx, fill) {
+                    paints.push(FillPaint::Linear { angle, stops });
+                } else {
+                    ok = false;
+                }
+            }
+            "radial-gradient" | "radial_gradient" => {
+                if let Some(paint) = validate_radial_gradient(ctx, fill) {
+                    paints.push(paint);
+                } else {
+                    ok = false;
+                }
+            }
+            _ => {
+                if let Some(paint) = validate_image_fill(ctx, fill) {
+                    paints.push(paint);
+                } else {
+                    ok = false;
+                }
+            }
+        }
+    }
+    if fills.len() > 1 {
+        let names: Vec<String> = fills.iter().map(|f| format!("`{}`", f.name)).collect();
+        ctx.push(
+            fills[1].name_line,
+            fills[1].name_column,
+            "E_BAD_FILL",
+            format!(
+                "box clip carries {} fills ({}); an element paints exactly one fill",
+                fills.len(),
+                names.join(" and ")
+            ),
+            "keep a single `linear-gradient`, `radial-gradient`, or `image-fill` child on the box",
+        );
+        return None;
+    }
+    if !ok {
+        return None;
+    }
+    paints.into_iter().next()
+}
+
+/// Validate one `stop` child of a gradient (Sprint 8 look, T003): a
+/// required `offset` from 0 to 1 and a required `#rgb`/`#rrggbb`
+/// `color`. `index` numbers the stop from 1 in document order so every
+/// refusal names its stop.
+fn validate_gradient_stop(
+    ctx: &mut Ctx,
+    kind: &str,
+    node: &RawNode,
+    index: usize,
+) -> Option<GradientStop> {
+    const KEYS: &[&str] = &["offset", "color"];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown {kind} stop key {k:?}"),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    let what = format!("{kind} stop {index}");
+    let offset = match find(node, "offset") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_FILL",
+                format!("{what} is missing required `offset`; every stop names its position from 0 to 1"),
+                format!("add `offset=<number from 0 to 1>` to stop {index} of the {kind}"),
+            );
+            return None;
+        }
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.0..=1.0).contains(&x) => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    format!("{what} `offset` is outside 0 to 1; stop {index} names its position inside the gradient"),
+                    format!("set `offset=<number from 0 to 1>` on stop {index} of the {kind}"),
+                );
+                return None;
+            }
+        },
+    };
+    let color = match find(node, "color").and_then(as_str) {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_FILL",
+                format!("{what} is missing required `color`; every stop names its color"),
+                format!("add `color=\"#rrggbb\"` to stop {index} of the {kind}"),
+            );
+            return None;
+        }
+        Some(s) => match parse_color(s) {
+            Some(c) => c,
+            None => {
+                let v = find(node, "color").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    format!("{what} `color` is not a `#rgb` or `#rrggbb` color"),
+                    format!("set `color=\"#rrggbb\"` on stop {index} of the {kind}"),
+                );
+                return None;
+            }
+        },
+    };
+    Some(GradientStop {
+        offset,
+        color,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Check one parsed stop list (Sprint 8 look, T003): empty lists are
+/// refused, a single stop paints flat, and two or more stops must run
+/// from offset 0 to offset 1 in strictly rising order with no repeats.
+/// Every refusal names its stop and the rule. `node` is the gradient
+/// element, located only when no stop exists to name.
+fn check_stop_order(
+    ctx: &mut Ctx,
+    kind: &str,
+    node: &RawNode,
+    stops: &[GradientStop],
+) -> bool {
+    if stops.is_empty() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_FILL",
+            format!("{kind} carries no `stop` children; a gradient needs at least one stop"),
+            format!("add at least one `stop offset=<0 to 1> color=\"#rrggbb\"` to the {kind}"),
+        );
+        return false;
+    }
+    if stops.len() == 1 {
+        // One stop paints flat in its own color at any offset.
+        return true;
+    }
+    let mut ok = true;
+    if stops[0].offset != 0.0 {
+        ctx.push(
+            stops[0].line,
+            stops[0].column,
+            "E_BAD_FILL",
+            format!(
+                "{kind} stop 1 has offset {}; the first stop must sit at offset 0",
+                stops[0].offset
+            ),
+            format!("set stop 1 `offset=0` on the {kind}"),
+        );
+        ok = false;
+    }
+    let last = stops.len() - 1;
+    if stops[last].offset != 1.0 {
+        ctx.push(
+            stops[last].line,
+            stops[last].column,
+            "E_BAD_FILL",
+            format!(
+                "{kind} stop {} has offset {}; the last stop must sit at offset 1",
+                last + 1,
+                stops[last].offset
+            ),
+            format!("set stop {} `offset=1` on the {kind}", last + 1),
+        );
+        ok = false;
+    }
+    for (i, pair) in stops.windows(2).enumerate() {
+        let (prev, cur) = (&pair[0], &pair[1]);
+        if cur.offset == prev.offset {
+            ctx.push(
+                cur.line,
+                cur.column,
+                "E_BAD_FILL",
+                format!(
+                    "{kind} stop {} duplicates stop {} offset {}; stop offsets must be unique",
+                    i + 2,
+                    i + 1,
+                    cur.offset
+                ),
+                format!(
+                    "give stop {} an `offset` above {} and below the next stop",
+                    i + 2,
+                    prev.offset
+                ),
+            );
+            ok = false;
+        } else if cur.offset < prev.offset {
+            ctx.push(
+                cur.line,
+                cur.column,
+                "E_BAD_FILL",
+                format!(
+                    "{kind} stop {} offset {} runs before stop {} offset {}; stops must run in rising offset order",
+                    i + 2,
+                    cur.offset,
+                    i + 1,
+                    prev.offset
+                ),
+                format!("order the stops of the {kind} from offset 0 to offset 1"),
+            );
+            ok = false;
+        }
+    }
+    ok
+}
+
+/// Collect the `stop` children of one gradient element, refusing
+/// non-`stop` children. Returns `None` when any stop is unusable; the
+/// order rules in [`check_stop_order`] run only over cleanly parsed
+/// stops so one bad value never cascades into ordering noise.
+fn collect_gradient_stops(
+    ctx: &mut Ctx,
+    kind: &str,
+    node: &RawNode,
+) -> Option<Vec<GradientStop>> {
+    let mut stops: Vec<GradientStop> = Vec::new();
+    let mut ok = true;
+    for (i, child) in node
+        .children
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (i + 1, c))
+    {
+        if child.name != "stop" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_FILL",
+                format!(
+                    "{kind} holds `{}`; a gradient holds `stop` children only",
+                    child.name
+                ),
+                format!("use `stop offset=<0 to 1> color=\"#rrggbb\"` inside the {kind}, or remove the child"),
+            );
+            ok = false;
+            continue;
+        }
+        match validate_gradient_stop(ctx, kind, child, i) {
+            Some(stop) => stops.push(stop),
+            None => ok = false,
+        }
+    }
+    if !ok {
+        return None;
+    }
+    if !check_stop_order(ctx, kind, node, &stops) {
+        return None;
+    }
+    Some(stops)
+}
+
+/// Validate one `linear-gradient` fill child (Sprint 8 look, T003): an
+/// optional `angle` in CSS degrees (0 points up, 90 points right) and
+/// ordered `stop` children interpolating in sRGB.
+fn validate_linear_gradient(ctx: &mut Ctx, node: &RawNode) -> Option<(f64, Vec<GradientStop>)> {
+    const KIND: &str = "linear-gradient";
+    for (k, v) in &node.props {
+        if k != "angle" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown {KIND} key {k:?}"),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    let angle = match find(node, "angle") {
+        None => 90.0,
+        Some(v) => match as_f64(v) {
+            Some(a) if a.is_finite() => a,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    format!("{KIND} `angle` must be a number of CSS degrees (0 points up, 90 points right)"),
+                    format!("set `{KIND} angle=<degrees>`, or remove the key for left-to-right"),
+                );
+                return None;
+            }
+        },
+    };
+    let stops = collect_gradient_stops(ctx, KIND, node)?;
+    Some((angle, stops))
+}
+
+/// Validate one `radial-gradient` fill child (Sprint 8 look, T003):
+/// concentric rings from (`cx`, `cy`) in box-local pixels (defaulting
+/// to the box center) out to `radius` pixels (defaulting to the
+/// farthest corner), honoring the stop offsets.
+fn validate_radial_gradient(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
+    const KIND: &str = "radial-gradient";
+    for (k, v) in &node.props {
+        if !["cx", "cy", "radius"].contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown {KIND} key {k:?}"),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    let mut center = |key: &str| -> Option<Option<f64>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(Some(x)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_FILL",
+                        format!("{KIND} `{key}` must be a number of box-local pixels"),
+                        format!("set `{key}=<pixels>` on the {KIND}, or remove the key for the box center"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let cx = center("cx")?;
+    let cy = center("cy")?;
+    let radius = match find(node, "radius") {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(r) if r.is_finite() && r > 0.0 => Some(Some(r)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    format!("{KIND} `radius` must be a positive number of pixels"),
+                    format!("set `radius=<positive pixels>` on the {KIND}, or remove the key to reach the farthest corner"),
+                );
+                return None;
+            }
+        },
+    }?;
+    let stops = collect_gradient_stops(ctx, KIND, node)?;
+    Some(FillPaint::Radial {
+        cx,
+        cy,
+        radius,
+        stops,
+    })
+}
+
+/// Validate one `image-fill` child (Sprint 8 look, T003): a required
+/// `src` naming a readable still picture, painted clipped to the
+/// element box per `object-fit` and `object-position`. Presence and
+/// readability mirror the `image` clip so a missing file names the
+/// fill before frame one.
+fn validate_image_fill(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
+    const KIND: &str = "image-fill";
+    for (k, v) in &node.props {
+        if ![
+            "src",
+            "path",
+            "object-fit",
+            "object_fit",
+            "object-position",
+            "object_position",
+        ]
+        .contains(&k.as_str())
+        {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown {KIND} key {k:?}"),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    for child in &node.children {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_FILL",
+            format!("{KIND} holds `{}`; an image-fill carries no children", child.name),
+            format!("remove the child from the {KIND}; the picture comes from `src`"),
+        );
+    }
+    if !node.children.is_empty() {
+        return None;
+    }
+    let src = match find(node, "src").or_else(|| find(node, "path")) {
+        Some(v) => match as_str(v) {
+            Some(s) => s.to_string(),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    format!("{KIND} `src` must be a quoted project folder path to a picture"),
+                    format!("set `{KIND} src=\"media/photo.png\"`"),
+                );
+                return None;
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                format!("{KIND} is missing required `src`; the fill names the picture it paints"),
+                format!("add `src=\"media/photo.png\"` to the {KIND}"),
+            );
+            return None;
+        }
+    };
+    // Presence and readability come before format, exactly like the
+    // `image` clip: a missing file names the fill, an unsupported
+    // format names the fill and its sprint.
+    let abs = ctx.folder.join(&src);
+    if !abs.is_file() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FILE",
+            format!("image-fill source {src:?} does not exist or is not readable"),
+            "provide the file at the referenced path or fix the `src`",
+        );
+        return None;
+    }
+    // SVG pictures never fill boxes (Sprint 8 look, CAP-005/T005):
+    // they rasterize through `image` and `svg` clips only. A vector
+    // source here names the fill and the clips that take it.
+    if svg_format_supported(&src) {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_FILL",
+            format!("{KIND} source {src:?} is an SVG picture; image fills paint PNG, JPEG, still GIF, or HEIC stills"),
+            "rasterize the SVG to a `.png` first, or point an `image` or `svg` clip at the SVG source",
+        );
+        return None;
+    }
+    if !image_format_supported(&src) {
+        ctx.diags.push(Diagnostic::new(
+            &ctx.file.clone(),
+            node.name_line,
+            node.name_column,
+            "E_UNSUPPORTED",
+            format!("image-fill source {src:?} needs a later sprint: Framesmith decodes PNG, JPEG, still GIF, and HEIC still images only"),
+            "point `src` at a `.png`, `.jpg`, `.jpeg`, `.gif` (still), `.heic`, or `.heif` file, or wait for a later footage sprint",
+        ));
+        return None;
+    }
+    match std::fs::read(&abs) {
+        Ok(bytes) => {
+            if let Some(gif) = gif_info(&bytes, bytes.len()) {
+                if gif.frames > 1 {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_IMAGE",
+                        format!("image-fill source {src:?} is an animated GIF; animations play in a `video` clip, not an image-fill"),
+                        format!("use `video path={src:?} ...` to play the animation, or point the image-fill at a still picture"),
+                    );
+                    return None;
+                }
+                if gif.frames == 0 || !gif.complete {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_IMAGE",
+                        format!("image-fill source {src:?} is corrupt or not a readable GIF picture"),
+                        "restore an undamaged still GIF file at the referenced path",
+                    );
+                    return None;
+                }
+            } else if !image_magic_ok(&bytes) && !heic_magic_ok(&bytes) {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_IMAGE",
+                    format!("image-fill source {src:?} is corrupt or not a PNG/JPEG/GIF-still/HEIC picture"),
+                    "restore an undamaged PNG, JPEG, still GIF, or HEIC file at the referenced path",
+                );
+                return None;
+            }
+        }
+        Err(e) => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_UNREADABLE",
+                format!("image-fill source {src:?} cannot be read: {e}"),
+                "make the image file readable or fix the `src`",
+            );
+            return None;
+        }
+    }
+    let fit = match find_either(node, "object-fit", "object_fit") {
+        None => Fit::Fill,
+        Some(v) => match as_str(v).and_then(Fit::parse) {
+            Some(f) => f,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    "image-fill `object-fit` must be exactly one of `cover`, `contain`, or `fill`",
+                    "set `object-fit=\"cover\"`, `\"contain\"`, or `\"fill\"`",
+                );
+                return None;
+            }
+        },
+    };
+    let placement = match find_either(node, "object-position", "object_position") {
+        None => Placement::center(),
+        Some(v) => match as_str(v).and_then(Placement::parse) {
+            Some(p) => p,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FILL",
+                    "image-fill `object-position` must be a horizontal and vertical placement like `\"center\"`, `\"top-left\"`, or `\"left top\"`",
+                    "set `object-position=\"center\"` or a pair such as `object-position=\"top-left\"`",
+                );
+                return None;
+            }
+        },
+    };
+    Some(FillPaint::Image {
+        src,
+        fit,
+        placement,
+    })
+}
+
+/// `flex` container keys (Sprint 8 layout, T001): layout attributes in
+/// either hyphenated or underscored spelling, plus the shared clip
+/// identity, window, and paint-order keys. Anything else is
+/// `STYLE-NAME-UNKNOWN` (or the owning task's refusal below).
+const FLEX_KEYS: &[&str] = &[
+    "start",
+    "duration",
+    "id",
+    "track",
+    "label",
+    "hidden",
+    "start-after",
+    "start_after",
+    "start-offset",
+    "start_offset",
+    "x",
+    "y",
+    "width",
+    "height",
+    "display",
+    "flex-direction",
+    "flex_direction",
+    "gap",
+    "padding",
+    "margin",
+    "align-items",
+    "align_items",
+    "justify-content",
+    "justify_content",
+    "order",
+];
+
+/// Paint, turn, and filter keys that belong on laid-out boxes (or on
+/// no flex node at all): valid names in the wrong place fail with
+/// `E_BAD_FLEX` naming the move, never as `STYLE-NAME-UNKNOWN`.
+const FLEX_MISPLACED_KEYS: &[&str] = &[
+    "fill",
+    "radius",
+    "border-width",
+    "border_width",
+    "border-color",
+    "border_color",
+    "opacity",
+    "rotation-x",
+    "rotation_x",
+    "rotate-x",
+    "rotate_x",
+    "rotation-y",
+    "rotation_y",
+    "rotate-y",
+    "rotate_y",
+    "perspective",
+    "origin",
+    "filter",
+];
+
+/// `flex` child `box` keys (Sprint 8 layout, T001): base size, grow
+/// share, box paint, and paint order. Positions and windows come from
+/// the container, so timing and `x`/`y` live on the forbidden list.
+const FLEX_CHILD_KEYS: &[&str] = &[
+    "width",
+    "height",
+    "flex-grow",
+    "flex_grow",
+    "fill",
+    "radius",
+    "border-width",
+    "border_width",
+    "border-color",
+    "border_color",
+    "stroke-width",
+    "stroke_width",
+    "stroke-color",
+    "stroke_color",
+    "stroke-position",
+    "stroke_position",
+    "opacity",
+    "order",
+];
+
+/// Container timing, identity, and position keys a flex child must not
+/// carry: children inherit the container window, identity, and layout
+/// position.
+const FLEX_CHILD_FORBIDDEN_KEYS: &[&str] = &[
+    "start",
+    "duration",
+    "id",
+    "track",
+    "label",
+    "hidden",
+    "start-after",
+    "start_after",
+    "start-offset",
+    "start_offset",
+    "x",
+    "y",
+    "end",
+];
+
+/// Valid layout vocabulary for unknown-name suggestions on the
+/// container: canonical hyphenated spellings first, so the suggestion
+/// reads canonically.
+const FLEX_SUGGEST_KEYS: &[&str] = &[
+    "display",
+    "flex-direction",
+    "gap",
+    "padding",
+    "margin",
+    "align-items",
+    "justify-content",
+    "flex-grow",
+    "width",
+    "height",
+];
+
+/// Valid layout vocabulary for unknown-name suggestions on a child.
+const FLEX_CHILD_SUGGEST_KEYS: &[&str] = &[
+    "width",
+    "height",
+    "flex-grow",
+    "fill",
+    "radius",
+    "border-width",
+    "border-color",
+    "opacity",
+    "order",
+];
+
+/// Edit distance between two key spellings (Sprint 8 layout, T001):
+/// plain Levenshtein over characters, so `STYLE-NAME-UNKNOWN` can
+/// name the closest valid property deterministically.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    for (i, &ca) in a.iter().enumerate() {
+        let mut cur = vec![i + 1];
+        for (j, &cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            cur.push((prev[j + 1] + 1).min(cur[j] + 1).min(prev[j] + cost));
+        }
+        prev = cur;
+    }
+    prev[b.len()]
+}
+
+/// Closest valid layout property to a misspelled key: the smallest
+/// edit distance wins, ties breaking toward the earlier candidate so
+/// the suggestion is deterministic.
+fn closest_key<'a>(key: &str, candidates: &'a [&'a str]) -> &'a str {
+    let mut best = candidates[0];
+    let mut best_dist = usize::MAX;
+    for c in candidates {
+        let d = edit_distance(key, c);
+        if d < best_dist {
+            best_dist = d;
+            best = c;
+        }
+    }
+    best
+}
+
+/// One `STYLE-NAME-UNKNOWN` diagnostic for an unknown layout key:
+/// names the offending property, the closest valid property, and the
+/// full valid set, with a concrete fix.
+fn flex_unknown_key(ctx: &mut Ctx, v: &RawValue, key: &str, what: &str, candidates: &[&str]) {
+    let near = closest_key(key, candidates);
+    ctx.push(
+        v.line,
+        v.column,
+        "STYLE-NAME-UNKNOWN",
+        format!("{what} has unknown layout property `{key}`; the closest valid property is `{near}`"),
+        format!(
+            "remove `{key}`, use `{near}`, or pick one of: {}",
+            candidates
+                .iter()
+                .map(|s| format!("`{s}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    );
+}
+
+/// One authored `flex` container position (`x`/`y`): absent means
+/// `default`; present must be a finite number. Anything else fails
+/// with `E_BAD_FLEX` naming the property.
+fn flex_num(ctx: &mut Ctx, node: &RawNode, key: &str, default: f64) -> Option<f64> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex container `{key}` must be a number of canvas pixels; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set `{key}=<number>` on the flex container"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One non-negative `flex` spacing (`gap`, `padding`, or `margin`):
+/// absent means 0; present must be a finite number >= 0. Negative and
+/// non-numeric values fail with `E_BAD_FLEX` naming the number rule.
+fn flex_spacing(ctx: &mut Ctx, node: &RawNode, hyphen: &str, underscore: &str) -> Option<f64> {
+    let found = find(node, hyphen).or_else(|| find(node, underscore));
+    match found {
+        None => Some(0.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!("flex container `{hyphen}` {x} is invalid; spacings run 0 and up"),
+                    format!("set `{hyphen}=<pixels >= 0>` on the flex container"),
+                );
+                None
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex container `{hyphen}` must be a number of canvas pixels; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set `{hyphen}=<pixels >= 0>` on the flex container"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// The required `flex-direction` of one container (Sprint 8 layout,
+/// T001): absent fails naming the property; present must read `row`
+/// or `column`, naming the accepted set otherwise.
+fn flex_direction(ctx: &mut Ctx, node: &RawNode) -> Option<FlexDirection> {
+    let found = find(node, "flex-direction").or_else(|| find(node, "flex_direction"));
+    match found {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_FLEX",
+                "flex container is missing required `flex-direction`; the container cannot flow without a main axis",
+                "add `flex-direction=\"row\"` or `flex-direction=\"column\"` to the flex container",
+            );
+            None
+        }
+        Some(v) => match as_str(v).and_then(FlexDirection::parse) {
+            Some(d) => Some(d),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex container `flex-direction` {} is unknown; accepted directions are: {}",
+                        raw_text(v),
+                        FlexDirection::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `flex-direction=\"row\"` or `flex-direction=\"column\"` on the flex container",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// The `align-items` of one container (Sprint 8 layout, T001): absent
+/// means `start`; present must read `start`, `center`, `end`, or
+/// `stretch`, naming the accepted set otherwise.
+fn flex_align(ctx: &mut Ctx, node: &RawNode) -> Option<FlexAlign> {
+    let found = find(node, "align-items").or_else(|| find(node, "align_items"));
+    match found {
+        None => Some(FlexAlign::Start),
+        Some(v) => match as_str(v).and_then(FlexAlign::parse) {
+            Some(a) => Some(a),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex container `align-items` {} is unknown; accepted alignments are: {}",
+                        raw_text(v),
+                        FlexAlign::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `align-items=\"start\"`, `\"center\"`, `\"end\"`, or `\"stretch\"` on the flex container",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// The `justify-content` of one container (Sprint 8 layout, T001):
+/// absent means `start`; present must read `start`, `center`, or
+/// `end`, naming the accepted set otherwise.
+fn flex_justify(ctx: &mut Ctx, node: &RawNode) -> Option<FlexJustify> {
+    let found = find(node, "justify-content").or_else(|| find(node, "justify_content"));
+    match found {
+        None => Some(FlexJustify::Start),
+        Some(v) => match as_str(v).and_then(FlexJustify::parse) {
+            Some(j) => Some(j),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex container `justify-content` {} is unknown; accepted distributions are: {}",
+                        raw_text(v),
+                        FlexJustify::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `justify-content=\"start\"`, `\"center\"`, or `\"end\"` on the flex container",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// The `flex-grow` share of one child (Sprint 8 layout, T001): absent
+/// means 0 (the base size stands); present must be a finite number
+/// >= 0. Negative and non-numeric shares fail naming the number rule.
+fn flex_grow(ctx: &mut Ctx, node: &RawNode) -> Option<f64> {
+    let found = find(node, "flex-grow").or_else(|| find(node, "flex_grow"));
+    match found {
+        None => Some(0.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            Some(x) => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!("flex child `flex-grow` {x} is invalid; grow shares run 0 and up"),
+                    "set `flex-grow=<number >= 0>` on the child box, or remove the key to keep the base size",
+                );
+                None
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex child `flex-grow` must be a number; found {}",
+                        raw_text(v)
+                    ),
+                    "set `flex-grow=<number >= 0>` on the child box, or remove the key to keep the base size",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One laid-out child `box` of a `flex` container (Sprint 8 layout,
+/// T001): base size, grow share, box paint, and paint order. Unknown
+/// names fail with `STYLE-NAME-UNKNOWN` naming the closest valid
+/// property; timing, identity, and position keys fail as inherited
+/// from the container; text-effect keys fail as text-only.
+fn validate_flex_child(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    styles: &[StyleDecl],
+) -> Option<FlexChild> {
+    let merged = styled_node(ctx, node, "flex child box", styles)?;
+    let node = merged.as_ref();
+    // T003 fills apply to `box` clips: a laid-out child box paints one
+    // `fill` color, never a gradient or image fill of its own.
+    if let Some(child) = node.children.first() {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_FILL",
+            format!(
+                "flex child box holds `{}`; gradient and image fills apply to `box` clips, and flex child boxes paint one `fill` color",
+                child.name
+            ),
+            "move the fill to a `box` clip, or remove the child",
+        );
+        return None;
+    }
+    for (k, v) in &node.props {
+        if FLEX_CHILD_KEYS.contains(&k.as_str()) {
+            continue;
+        }
+        if FLEX_CHILD_FORBIDDEN_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_FLEX",
+                format!("flex child box carries `{k}`, but children inherit the container window and layout position"),
+                format!("remove `{k}` from the child box; the flex container sets it"),
+            );
+            continue;
+        }
+        if FLEX_CHILD_PAINT_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_PAINT",
+                format!("flex child box carries `{k}`, but shadows, blends, backdrops, overflow, and masks apply to `box` clips; laid-out children paint one fill with one stroke"),
+                format!("move `{k}` onto a `box` clip, or remove the key"),
+            );
+            continue;
+        }
+        if TEXT_FX_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("flex child box carries `{k}`, but split, typewriter, and count effects apply to text clips only"),
+                "move the effect to a `text` clip, or remove the key",
+            );
+            continue;
+        }
+        if RICH_BOX_KEYS.contains(&k.as_str()) {
+            ctx.diags.push(Diagnostic::new(
+                &ctx.file.clone(),
+                v.line,
+                v.column,
+                "E_UNSUPPORTED",
+                format!("flex child box `{k}` needs T003 fills; T001 child boxes use one fill color, one corner-radius set, one border width with one border color, and one opacity"),
+                "use a single `fill`, `radius`, `border-width` with one `border-color`, and `opacity` on the child box",
+            ));
+            return None;
+        }
+        if FLEX_MISPLACED_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_FLEX",
+                format!("flex child box carries `{k}`, but laid-out boxes carry no 3D turn or filter in T001"),
+                format!("remove `{k}` from the child box"),
+            );
+            continue;
+        }
+        flex_unknown_key(ctx, v, k, "flex child box", FLEX_CHILD_SUGGEST_KEYS);
+    }
+    let mut size = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_FLEX",
+                    format!("flex child box is missing required `{key}`"),
+                    format!("add `{key}=<positive pixels>` to the child box"),
+                );
+                None
+            }
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(val),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_FLEX",
+                        format!("flex child box `{key}` must be a positive number of canvas pixels"),
+                        format!("set `{key}=<positive pixels>` on the child box"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = size("width")?;
+    let height = size("height")?;
+    let grow = flex_grow(ctx, node)?;
+    let fill = match find(node, "fill") {
+        None => Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => c,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    "flex child box `fill` is not a `#rgb` or `#rrggbb` color",
+                    "use a hex color like `fill=\"#ff0000\"`",
+                );
+                return None;
+            }
+        },
+    };
+    let radius = match find(node, "radius") {
+        None => 0.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_BOX",
+                    "flex child box `radius` must be a non-negative number of canvas pixels",
+                    "set `radius=<pixels >= 0>` on the child box",
+                );
+                return None;
+            }
+        },
+    };
+    let border_key = if find(node, "stroke-width").is_some() {
+        "stroke-width"
+    } else if find(node, "stroke_width").is_some() {
+        "stroke_width"
+    } else if find(node, "border-width").is_some() {
+        "border-width"
+    } else {
+        "border_width"
+    };
+    let border_width = match find(node, border_key) {
+        None => 0.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_BOX",
+                    format!(
+                        "flex child box `{border_key}` must be a non-negative number of canvas pixels"
+                    ),
+                    format!("set `{border_key}=<pixels >= 0>` on the child box"),
+                );
+                return None;
+            }
+        },
+    };
+    let color_key = if find(node, "stroke-color").is_some() {
+        "stroke-color"
+    } else if find(node, "stroke_color").is_some() {
+        "stroke_color"
+    } else if find(node, "border-color").is_some() {
+        "border-color"
+    } else {
+        "border_color"
+    };
+    let border_color = match find(node, color_key) {
+        None => Rgb { r: 0, g: 0, b: 0 },
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => c,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    format!(
+                        "flex child box `{color_key}` is not a `#rgb` or `#rrggbb` color"
+                    ),
+                    format!("use a hex color like `{color_key}=\"#000000\"`"),
+                );
+                return None;
+            }
+        },
+    };
+    let stroke_position = match find(node, "stroke-position")
+        .or_else(|| find(node, "stroke_position"))
+    {
+        None => StrokePosition::Inside,
+        Some(v) => match as_str(v).and_then(StrokePosition::parse) {
+            Some(p) => p,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PAINT",
+                    format!(
+                        "flex child box `stroke-position` {} is unknown; accepted positions are: {}",
+                        raw_text(v),
+                        StrokePosition::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `stroke-position=\"center\"`, `\"inside\"`, or `\"outside\"` on the child box",
+                );
+                return None;
+            }
+        },
+    };
+    let opacity = match find(node, "opacity") {
+        None => 1.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.0..=1.0).contains(&x) => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_BOX",
+                    "flex child box `opacity` must run 0 (transparent) to 1 (opaque)",
+                    "set `opacity=<number from 0 to 1>` on the child box",
+                );
+                return None;
+            }
+        },
+    };
+    let order = parse_order(ctx, node)?;
+    Some(FlexChild {
+        width,
+        height,
+        flex_grow: grow,
+        fill,
+        radius,
+        border_width,
+        border_color,
+        stroke_position,
+        opacity,
+        order,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// One `flex` container (Sprint 8 layout, CAP-001/T001): the row or
+/// column of `box` children laid out by the CSS flex algorithm.
+/// Unknown layout names fail with `STYLE-NAME-UNKNOWN` naming the
+/// closest valid property; every other layout problem fails with
+/// `E_BAD_FLEX` naming the property and its fix. An empty container
+/// lays out cleanly; children inherit the container window.
+fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<FlexClip> {
+    let merged = styled_node(ctx, node, "flex container", styles)?;
+    let node = merged.as_ref();
+    for (k, v) in &node.props {
+        if FLEX_KEYS.contains(&k.as_str()) {
+            continue;
+        }
+        if RICH_BOX_KEYS.contains(&k.as_str()) {
+            ctx.diags.push(Diagnostic::new(
+                &ctx.file.clone(),
+                v.line,
+                v.column,
+                "E_UNSUPPORTED",
+                format!("flex container `{k}` needs T003 fills; T001 containers lay out children and carry no paint of their own"),
+                "move paint onto a child `box`, or remove the key",
+            ));
+            return None;
+        }
+        if FLEX_MISPLACED_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_FLEX",
+                format!("flex container carries `{k}`, but containers lay out children and carry no paint, turn, or filter of their own"),
+                format!("move `{k}` onto a child `box`, or remove it"),
+            );
+            continue;
+        }
+        if PAINT_STACK_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_PAINT",
+                format!("flex container carries `{k}`, but containers lay out children and carry no paint; strokes, shadows, blends, backdrops, overflow, and masks apply to `box` clips"),
+                format!("move `{k}` onto a `box` clip, or remove the key"),
+            );
+            continue;
+        }
+        if TEXT_FX_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MOTION",
+                format!("flex container carries `{k}`, but split, typewriter, and count effects apply to text clips only"),
+                "move the effect to a `text` clip, or remove the key",
+            );
+            continue;
+        }
+        flex_unknown_key(ctx, v, k, "flex container", FLEX_SUGGEST_KEYS);
+    }
+    if reject_text_fx(ctx, node, "flex container") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "flex", "flex container")?;
+    // Like stills (text, box, image): `duration` is optional — an
+    // omitted one runs until the composition end (`NAN` marks the
+    // omission for inference). Children inherit this window.
+    let start = clip_start_relaxed(ctx, node, "flex container");
+    let duration_parsed = clip_optional_duration(ctx, node, "flex container");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    let x = flex_num(ctx, node, "x", 0.0)?;
+    let y = flex_num(ctx, node, "y", 0.0)?;
+    // Container size is required and must be positive: a missing,
+    // negative, or zero size is refused, never guessed.
+    let mut size = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_FLEX",
+                    format!("flex container is missing required `{key}`"),
+                    format!("add `{key}=<positive pixels>` to the flex container"),
+                );
+                None
+            }
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(val),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_FLEX",
+                        format!("flex container `{key}` must be a positive number of canvas pixels"),
+                        format!("set `{key}=<positive pixels>` on the flex container"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = size("width")?;
+    let height = size("height")?;
+    match find(node, "display") {
+        None => {}
+        Some(v) => match as_str(v) {
+            Some("flex") => {}
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FLEX",
+                    format!(
+                        "flex container `display` must read `\"flex\"`; found {}",
+                        raw_text(v)
+                    ),
+                    "set `display=\"flex\"` on the flex container, or remove the key",
+                );
+                return None;
+            }
+        },
+    }
+    let direction = flex_direction(ctx, node)?;
+    let gap = flex_spacing(ctx, node, "gap", "gap")?;
+    let padding = flex_spacing(ctx, node, "padding", "padding")?;
+    let margin = flex_spacing(ctx, node, "margin", "margin")?;
+    let align_items = flex_align(ctx, node)?;
+    let justify_content = flex_justify(ctx, node)?;
+    let order = parse_order(ctx, node)?;
+    let mut children = Vec::with_capacity(node.children.len());
+    for child in &node.children {
+        if child.name == "flex" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_FLEX",
+                "flex container holds a nested `flex` container; T001 lays out one level of `box` children",
+                "lay out `box` children inside the flex container, or lift the inner container out",
+            );
+            return None;
+        }
+        if child.name != "box" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_FLEX",
+                format!(
+                    "flex container holds `{}`; T001 lays out `box` children",
+                    child.name
+                ),
+                "lay out `box` children inside the flex container",
+            );
+            return None;
+        }
+        children.push(validate_flex_child(ctx, child, styles)?);
+    }
+    Some(FlexClip {
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        width,
+        height,
+        direction,
+        gap,
+        padding,
+        margin,
+        align_items,
+        justify_content,
+        order,
+        children,
         line: node.name_line,
         column: node.name_column,
     })
@@ -5203,6 +7862,25 @@ fn image_format_supported(path: &str) -> bool {
         || lower.ends_with(".gif")
         || lower.ends_with(".heic")
         || lower.ends_with(".heif")
+}
+
+/// True when `path` names an SVG picture (Sprint 8 look, CAP-005/T005):
+/// the `.svg` extension, case-insensitive. SVG sources rasterize at
+/// the declared size through the same `image` and `svg` clips as
+/// raster pictures.
+fn svg_format_supported(path: &str) -> bool {
+    path.to_lowercase().ends_with(".svg")
+}
+
+/// Parse SVG bytes once (Sprint 8 look, CAP-005/T005): UTF-8 text
+/// holding an SVG tree. The `Err` carries the human cause for the
+/// diagnostic; text in the file without system fonts still parses —
+/// only glyphs need fonts, never the tree itself.
+fn parse_svg_source(bytes: &[u8]) -> Result<(), String> {
+    let text = std::str::from_utf8(bytes).map_err(|e| format!("it is not UTF-8 text ({e})"))?;
+    usvg::Tree::from_str(text, &usvg::Options::default())
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 fn image_magic_ok(bytes: &[u8]) -> bool {
@@ -5394,7 +8072,9 @@ fn read_head(abs: &std::path::Path, limit: usize) -> Option<Vec<u8>> {
     Some(buf)
 }
 
-fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
+fn validate_image(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<ImageClip> {
+    let merged = styled_node(ctx, node, "image clip", styles)?;
+    let node = merged.as_ref();
     const KEYS: &[&str] = &[
         "path",
         "start",
@@ -5440,6 +8120,9 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
     if reject_text_fx(ctx, node, "image clip") {
         return None;
     }
+    if reject_spans(ctx, node, "image clip") {
+        return None;
+    }
     let identity = parse_clip_identity(ctx, node, "image", "image clip")?;
     // Sprint 6 T003: `duration` is optional — an omitted one runs until
     // the composition end (`NAN` marks the omission for inference).
@@ -5478,23 +8161,37 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
         );
         return None;
     }
-    if !image_format_supported(&path) {
+    // SVG pictures ride the same clip (Sprint 8 look, CAP-005/T005):
+    // they rasterize at the declared size instead of decoding.
+    let is_svg = svg_format_supported(&path);
+    if !is_svg && !image_format_supported(&path) {
         ctx.diags.push(Diagnostic::new(
             &ctx.file.clone(),
             node.name_line,
             node.name_column,
             "E_UNSUPPORTED",
-            format!("image source {path:?} needs a later sprint: Framesmith decodes PNG, JPEG, still GIF, and HEIC still images only"),
-            "point `path` at a `.png`, `.jpg`, `.jpeg`, `.gif` (still), `.heic`, or `.heif` file, or wait for a later footage sprint",
+            format!("image source {path:?} needs a later sprint: Framesmith decodes PNG, JPEG, still GIF, HEIC still images, and SVG pictures only"),
+            "point `path` at a `.png`, `.jpg`, `.jpeg`, `.gif` (still), `.heic`, `.heif`, or `.svg` file, or wait for a later footage sprint",
         ));
         return None;
     }
     match std::fs::read(&abs) {
         Ok(bytes) => {
+            if is_svg {
+                if let Err(detail) = parse_svg_source(&bytes) {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_IMAGE",
+                        format!("image source {path:?} is corrupt or not a readable SVG picture ({detail})"),
+                        "restore a readable SVG picture at the referenced path",
+                    );
+                    return None;
+                }
             // An animated GIF never belongs in `image` (Sprint 5 T007):
             // it plays in a `video` clip. Content-based, so a renamed
             // file is refused the same way.
-            if let Some(gif) = gif_info(&bytes, bytes.len()) {
+            } else if let Some(gif) = gif_info(&bytes, bytes.len()) {
                 if gif.frames > 1 {
                     ctx.push(
                         node.name_line,
@@ -5637,6 +8334,588 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode) -> Option<ImageClip> {
     })
 }
 
+/// Display name of a `path` clip for paint diagnostics (Sprint 8 look,
+/// T005): the clip kind plus its `id` when declared, so every refusal
+/// names the offending element and property.
+fn path_element(identity_id: &Option<String>) -> String {
+    match identity_id {
+        Some(id) => format!("path clip {id:?}"),
+        None => "path clip".to_string(),
+    }
+}
+
+/// One `path` number with a default (Sprint 8 look, T005): present
+/// must be finite, else the diagnostic names the element and the key.
+fn path_num(ctx: &mut Ctx, node: &RawNode, el: &str, key: &str, default: f64) -> Option<f64> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PATH",
+                    format!("{el} `{key}` must be a number of canvas pixels"),
+                    format!("set `{key}=<number>` on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `stroke-width` value of a `path` clip (Sprint 8 look, T005):
+/// absent means no stroke; present must be finite and non-negative.
+/// A negative width fails with `E_BAD_PAINT` naming the element and
+/// the property, like boxes.
+fn path_stroke_width(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<f64> {
+    let key = if find(node, "stroke-width").is_some() {
+        "stroke-width"
+    } else {
+        "stroke_width"
+    };
+    let width = path_num(ctx, node, el, key, 0.0)?;
+    if width < 0.0 {
+        let v = find(node, key).unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_PAINT",
+            format!("{el} `{key}` {width} is invalid; stroke widths cannot be negative"),
+            format!("set `{key}=<pixels >= 0>` on {el}"),
+        );
+        return None;
+    }
+    Some(width)
+}
+
+/// One `stroke-color` value of a `path` clip (Sprint 8 look, T005):
+/// absent means black; present must read `#rgb`/`#rrggbb`.
+fn path_stroke_color(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<Rgb> {
+    let key = if find(node, "stroke-color").is_some() {
+        "stroke-color"
+    } else {
+        "stroke_color"
+    };
+    match find(node, key) {
+        None => Some(Rgb { r: 0, g: 0, b: 0 }),
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    format!("{el} `{key}` is not a `#rgb` or `#rrggbb` color"),
+                    format!("use a hex color like `{key}=\"#000000\"`"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Validate one `path` clip (Sprint 8 look, CAP-005/T005): an
+/// SVG-subset vector shape with a fill rule and the shared stroke
+/// set, routed through the shared paint stack. Unparsable `d` fails
+/// naming the 1-based failing command index; every paint problem
+/// names its element and property before frame one.
+fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<PathClip> {
+    let merged = styled_node(ctx, node, "path clip", styles)?;
+    let node = merged.as_ref();
+    const KEYS: &[&str] = &[
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "d",
+        "fill",
+        "fill-rule",
+        "fill_rule",
+        "stroke-width",
+        "stroke_width",
+        "stroke-color",
+        "stroke_color",
+        "stroke-position",
+        "stroke_position",
+        "box-shadow",
+        "box_shadow",
+        "mix-blend-mode",
+        "mix_blend_mode",
+        "backdrop-blur",
+        "backdrop_blur",
+        "backdrop-brightness",
+        "backdrop_brightness",
+        "overflow",
+        "mask",
+        "clip-path",
+        "clip_path",
+        "opacity",
+        "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown path key {k:?}"),
+                "remove the key or check the spelling against `d`, `fill`, `fill-rule`, `stroke-width`, `stroke-color`, and `stroke-position`",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, "path clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "path clip") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "path", "path clip")?;
+    let start = clip_start_relaxed(ctx, node, "path clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "path clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    let el = path_element(&identity.id);
+    let x = path_num(ctx, node, &el, "x", 0.0)?;
+    let y = path_num(ctx, node, &el, "y", 0.0)?;
+    let d = match find(node, "d") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "path clip is missing required `d`; the shape draws its path data",
+                "add `d=\"M<x>,<y> ...\"` to the path clip",
+            );
+            return None;
+        }
+        Some(v) => match as_str(v) {
+            Some(s) => s.to_string(),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PATH",
+                    format!("{el} `d` is not readable path data; paths are quoted strings like `\"M10,10 L90,10\"`"),
+                    format!("set `d=\"M<x>,<y> ...\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    if let Err(e) = motion::path::parse_indexed(&d) {
+        let v = find(node, "d").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_PATH",
+            format!("{el} `d` {e}"),
+            format!("fix the `d` path data on {el}"),
+        );
+        return None;
+    }
+    let fill = match find(node, "fill") {
+        None => Rgb { r: 0, g: 0, b: 0 },
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => c,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    format!("{el} `fill` is not a `#rgb` or `#rrggbb` color"),
+                    format!("use a hex color like `fill=\"#000000\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let fill_rule = match find(node, "fill-rule").or_else(|| find(node, "fill_rule")) {
+        None => FillRule::NonZero,
+        Some(v) => match as_str(v).and_then(FillRule::parse) {
+            Some(r) => r,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PATH",
+                    format!(
+                        "{el} `fill-rule` {} is unknown; accepted rules are: {}",
+                        raw_text(v),
+                        FillRule::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    format!("set `fill-rule=\"nonzero\"` or `\"evenodd\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let border_width = path_stroke_width(ctx, node, &el)?;
+    let border_color = path_stroke_color(ctx, node, &el)?;
+    let stroke_position = box_stroke_position(ctx, node, &el)?;
+    let box_shadow = box_shadow_opt(ctx, node, &el)?;
+    let blend_mode = box_blend_mode(ctx, node, &el)?;
+    let (backdrop_blur, backdrop_brightness) = box_backdrop(ctx, node, &el)?;
+    let overflow = box_overflow(ctx, node, &el)?;
+    let mask = box_mask_ref(ctx, node, "mask", "mask", &el)?;
+    let clip_path = box_mask_ref(ctx, node, "clip-path", "clip_path", &el)?;
+    let opacity = match find(node, "opacity") {
+        None => 1.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_PATH",
+                    format!("{el} `opacity` must be a number"),
+                    format!("set `opacity=<number from 0 to 1>` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    if !(0.0..=1.0).contains(&opacity) {
+        let (line, col) = find(node, "opacity")
+            .map(|v| (v.line, v.column))
+            .unwrap_or((node.name_line, node.name_column));
+        ctx.push(
+            line,
+            col,
+            "E_BAD_PATH",
+            format!("{el} `opacity` {opacity} is invalid; opacity runs 0 (transparent) to 1 (opaque)"),
+            format!("set `opacity=<number from 0 to 1>` on {el}"),
+        );
+        return None;
+    }
+    for child in &node.children {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_PATH",
+            format!("path clip holds `{}`; a path carries no children", child.name),
+            "remove the child; the shape draws its `d` data",
+        );
+    }
+    if !node.children.is_empty() {
+        return None;
+    }
+    let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "path clip")?;
+    let filter_blur = clip_filter(ctx, node, "path clip")?;
+    Some(PathClip {
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        d,
+        fill,
+        fill_rule,
+        border_width,
+        border_color,
+        stroke_position,
+        box_shadow,
+        blend_mode,
+        backdrop_blur,
+        backdrop_brightness,
+        overflow,
+        mask,
+        clip_path,
+        opacity,
+        order,
+        turn,
+        filter_blur,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Display name of an `svg` clip for diagnostics (Sprint 8 look,
+/// T005): the clip kind plus its `id` when declared.
+fn svg_element(identity_id: &Option<String>) -> String {
+    match identity_id {
+        Some(id) => format!("svg clip {id:?}"),
+        None => "svg clip".to_string(),
+    }
+}
+
+/// Validate one `svg` clip (Sprint 8 look, CAP-005/T005): a standalone
+/// `.svg` file rasterized at its declared `width`/`height`, composed
+/// with `fit` and `placement` like the `image` clip. A missing file
+/// names the file; an unreadable file names the file and the cause;
+/// a corrupt file names the file and the parse cause; a missing,
+/// zero, or negative extent names the rule and the fix — all before
+/// frame one.
+fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<SvgClip> {
+    let merged = styled_node(ctx, node, "svg clip", styles)?;
+    let node = merged.as_ref();
+    const KEYS: &[&str] = &[
+        "path",
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "width",
+        "height",
+        "fit",
+        "placement",
+        "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown svg key {k:?}"),
+                "remove the key or check the spelling against `path`, `width`, `height`, `fit`, and `placement`",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, "svg clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "svg clip") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "svg", "svg clip")?;
+    let start = clip_start_relaxed(ctx, node, "svg clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "svg clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    let el = svg_element(&identity.id);
+    let path = match find(node, "path").and_then(as_str) {
+        Some(s) => s.to_string(),
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "svg clip is missing required `path`",
+                "add `path=\"media/logo.svg\"` to the svg clip",
+            );
+            return None;
+        }
+    };
+    if !svg_format_supported(&path) {
+        let v = find(node, "path").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_IMAGE",
+            format!("{el} source {path:?} must name a `.svg` file; an svg clip rasterizes a standalone SVG picture"),
+            format!("point `path` at a `.svg` file on {el}, or use an `image` clip for raster pictures"),
+        );
+        return None;
+    }
+    let abs = ctx.folder.join(&path);
+    if !abs.is_file() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FILE",
+            format!("svg source {path:?} does not exist or is not readable"),
+            "provide the file at the referenced path or fix the `path`",
+        );
+        return None;
+    }
+    match std::fs::read(&abs) {
+        Ok(bytes) => {
+            if let Err(detail) = parse_svg_source(&bytes) {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_IMAGE",
+                    format!("svg source {path:?} is corrupt or not a readable SVG picture ({detail})"),
+                    "restore a readable SVG picture at the referenced path",
+                );
+                return None;
+            }
+        }
+        Err(e) => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_UNREADABLE",
+                format!("svg source {path:?} cannot be read: {e}"),
+                "make the SVG file readable or fix the `path`",
+            );
+            return None;
+        }
+    }
+    let mut pos = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => Some(0.0),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(x),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_IMAGE",
+                        format!("{el} `{key}` must be a number of canvas pixels"),
+                        format!("set `{key}=<number>` on {el}"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let x = pos("x")?;
+    let y = pos("y")?;
+    let mut extent = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_IMAGE",
+                    format!("{el} is missing required `{key}`; an svg rasterizes at its declared size"),
+                    format!("add `{key}=<positive pixels>` to {el}"),
+                );
+                None
+            }
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(val),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_IMAGE",
+                        format!("{el} `{key}` must be a positive number of canvas pixels"),
+                        format!("set `{key}=<positive pixels>` on {el}"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = extent("width")?;
+    let height = extent("height")?;
+    let fit = match find(node, "fit") {
+        None => Fit::Contain,
+        Some(v) => match as_str(v).and_then(Fit::parse) {
+            Some(f) => f,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FIT",
+                    format!("{el} `fit` must be exactly one of `contain`, `cover`, `fill`"),
+                    format!("set `fit=\"contain\"`, `\"cover\"`, or `\"fill\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let placement = match find(node, "placement") {
+        None => Placement::center(),
+        Some(v) => match as_str(v).and_then(Placement::parse) {
+            Some(p) => p,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_IMAGE",
+                    format!("{el} `placement` must be a horizontal and vertical placement like `\"center\"`, `\"top-left\"`, or `\"left top\"`"),
+                    format!("set `placement=\"center\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    for child in &node.children {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_IMAGE",
+            format!("svg clip holds `{}`; an svg carries no children", child.name),
+            "remove the child; the picture comes from `path`",
+        );
+    }
+    if !node.children.is_empty() {
+        return None;
+    }
+    let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "svg clip")?;
+    let filter_blur = clip_filter(ctx, node, "svg clip")?;
+    Some(SvgClip {
+        path,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        width,
+        height,
+        fit,
+        placement,
+        order,
+        turn,
+        filter_blur,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
 /// Parse one Sprint 6 `nest` trim (`trim-start`/`trim-end`, either
 /// spelling): absent means the default (0 for the start, the child end
 /// for the end); present must be finite seconds from 0. Returns None
@@ -5730,6 +9009,9 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
         }
     }
     if reject_text_fx(ctx, node, "nest clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "nest clip") {
         return None;
     }
     let identity = parse_clip_identity(ctx, node, "nest", "nest clip")?;
@@ -6490,6 +9772,174 @@ fn check_nest_graph(ctx: &mut Ctx, compositions: &[Composition]) {
     }
 }
 
+/// Display name of a clip for mask diagnostics (Sprint 8 look, T004):
+/// its quoted `id`, or `box #<index>` for an anonymous box.
+fn mask_clip_name(comp: &Composition, index: usize) -> String {
+    match &comp.clips[index] {
+        Clip::Box(b) => match &b.id {
+            Some(id) => format!("{id:?}"),
+            None => format!("box #{index}"),
+        },
+        _ => format!("clip #{index}"),
+    }
+}
+
+/// Kind name of a clip for mask-target diagnostics (Sprint 8 look, T004).
+fn mask_clip_kind(clip: &Clip) -> &'static str {
+    match clip {
+        Clip::Text(_) => "text",
+        Clip::Video(_) => "video",
+        Clip::Box(_) => "box",
+        Clip::Image(_) => "image",
+        Clip::Path(_) => "path",
+        Clip::Svg(_) => "svg",
+        Clip::Flex(_) => "flex",
+        Clip::Audio(_) => "audio",
+        Clip::Nest(_) => "nest",
+    }
+}
+
+/// Check every `mask` / `clip-path` reference once all clips are known
+/// (Sprint 8 look, T004): a reference naming no clip in the same
+/// composition dangles, a reference naming a non-`box` clip misses the
+/// rounded-rect shape, and a reference cycle refuses naming the cycle
+/// path through every reference in the chain. Forward references
+/// resolve here, so declaration order never matters. Unknown targets
+/// stay silent when the name is duplicated project-wide (already
+/// refused as `E_DUP_ID`).
+fn check_mask_graph(ctx: &mut Ctx, compositions: &[Composition]) {
+    use std::collections::{HashMap, HashSet};
+    // Project-wide duplicate ids, for cascade suppression (the
+    // duplicate itself is already refused).
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for comp in compositions {
+        for clip in &comp.clips {
+            if let Some(id) = clip.id() {
+                *counts.entry(id).or_insert(0) += 1;
+            }
+        }
+        if let Some(id) = comp.id.as_deref() {
+            *counts.entry(id).or_insert(0) += 1;
+        }
+    }
+    for comp in compositions {
+        // First box clip per id wins, matching render resolution;
+        // duplicates are already refused above.
+        let mut by_id: HashMap<&str, usize> = HashMap::new();
+        for (i, clip) in comp.clips.iter().enumerate() {
+            if let Some(id) = clip.id() {
+                by_id.entry(id).or_insert(i);
+            }
+        }
+        // Dangling and non-box targets refuse at the reference site.
+        // Edges resolve only between box clips for the cycle walk;
+        // `path` clips join the reference check (their targets must be
+        // boxes too) but never take part in a cycle, since no edge
+        // points at a non-box clip.
+        let mut adj: Vec<Vec<(usize, usize, usize, String)>> = vec![Vec::new(); comp.clips.len()];
+        for (i, clip) in comp.clips.iter().enumerate() {
+            let (el, mask, clip_path) = match clip {
+                Clip::Box(b) => (paint_element(&b.id), &b.mask, &b.clip_path),
+                Clip::Path(p) => (path_element(&p.id), &p.mask, &p.clip_path),
+                _ => continue,
+            };
+            for (key, r) in [("mask", mask), ("clip-path", clip_path)] {
+                let Some(r) = r else { continue };
+                if counts.get(r.target.as_str()).copied().unwrap_or(0) > 1 {
+                    continue;
+                }
+                match by_id.get(r.target.as_str()) {
+                    None => {
+                        ctx.push(
+                            r.line,
+                            r.column,
+                            "E_BAD_PAINT",
+                            format!(
+                                "{el} `{key}` names {:?}; no clip in this composition is called {:?}",
+                                r.target, r.target
+                            ),
+                            format!(
+                                "point `{key}` at the `id` of a `box` clip in the same composition, or remove the key"
+                            ),
+                        );
+                    }
+                    Some(&ti) if !matches!(comp.clips[ti], Clip::Box(_)) => {
+                        ctx.push(
+                            r.line,
+                            r.column,
+                            "E_BAD_PAINT",
+                            format!(
+                                "{el} `{key}` names {:?}, which is a `{}` clip; masks reference the rounded rect of a `box` clip",
+                                r.target,
+                                mask_clip_kind(&comp.clips[ti])
+                            ),
+                            format!(
+                                "point `{key}` at the `id` of a `box` clip in the same composition, or remove the key"
+                            ),
+                        );
+                    }
+                    Some(&ti) => {
+                        adj[i].push((ti, r.line, r.column, key.to_string()));
+                    }
+                }
+            }
+        }
+        // Cycles: one DFS over the mask edges in document order. A
+        // back edge names its cycle through every reference in the
+        // chain, reported at the edge that closes it.
+        let mut reported: HashSet<Vec<usize>> = HashSet::new();
+        let mut stack: Vec<usize> = Vec::new();
+        let mut in_stack = vec![false; comp.clips.len()];
+        fn dfs(
+            ctx: &mut Ctx,
+            comp: &Composition,
+            adj: &[Vec<(usize, usize, usize, String)>],
+            reported: &mut HashSet<Vec<usize>>,
+            stack: &mut Vec<usize>,
+            in_stack: &mut [bool],
+            node: usize,
+        ) {
+            in_stack[node] = true;
+            stack.push(node);
+            for (ti, line, column, _key) in adj[node].clone() {
+                if in_stack[ti] {
+                    let pos = stack.iter().position(|&j| j == ti).unwrap_or(0);
+                    let cycle: Vec<usize> = stack[pos..]
+                        .iter()
+                        .copied()
+                        .chain(std::iter::once(ti))
+                        .collect();
+                    if reported.insert(cycle.clone()) {
+                        let chain: Vec<String> = cycle
+                            .iter()
+                            .map(|&j| mask_clip_name(comp, j))
+                            .collect();
+                        ctx.push(
+                            line,
+                            column,
+                            "E_BAD_PAINT",
+                            format!(
+                                "`mask`/`clip-path` cycle: {}; masked content renders self-first, so a cycle has no first layer",
+                                chain.join(" -> ")
+                            ),
+                            "break the cycle so every `mask`/`clip-path` chain ends at an unmasked `box` clip",
+                        );
+                    }
+                    continue;
+                }
+                dfs(ctx, comp, adj, reported, stack, in_stack, ti);
+            }
+            stack.pop();
+            in_stack[node] = false;
+        }
+        for root in 0..comp.clips.len() {
+            if matches!(comp.clips[root], Clip::Box(_)) {
+                dfs(ctx, comp, &adj, &mut reported, &mut stack, &mut in_stack, root);
+            }
+        }
+    }
+}
+
 /// Parse a `tween`/`key`/`frame` easing value (T003 plus the Sprint 7
 /// motion set): the nineteen named curves, parameterized `out-back(n)`,
 /// and the full curve set (`cubic-bezier`, `steps`, `spring`, `bounce`,
@@ -6831,8 +10281,13 @@ fn sound_directive_guards(ctx: &mut Ctx, node: &RawNode, what: &str, property: &
 /// else is a refusal naming the clip kind, never a silent no-op.
 fn property_kind_ok(property: &str, clip: &Clip) -> bool {
     match property {
-        "width" | "height" => matches!(clip, Clip::Box(_) | Clip::Image(_)),
-        "fill" | "radius" | "border-width" | "border-color" => matches!(clip, Clip::Box(_)),
+        "width" | "height" => {
+            matches!(clip, Clip::Box(_) | Clip::Image(_) | Clip::Flex(_) | Clip::Svg(_))
+        }
+        "fill" | "border-width" | "border-color" => {
+            matches!(clip, Clip::Box(_) | Clip::Path(_))
+        }
+        "radius" => matches!(clip, Clip::Box(_)),
         "font-size" | "letter-spacing" => matches!(clip, Clip::Text(_)),
         "volume" | "pan" => matches!(clip, Clip::Audio(_) | Clip::Video(_)),
         _ => true,
@@ -6893,8 +10348,9 @@ fn motion_property(
                         format!(
                             "{what} property {raw:?} needs {} clip; target {idx} is {}",
                             match canonical {
-                                "width" | "height" => "a box or image",
-                                "fill" | "radius" | "border-width" | "border-color" => "a box",
+                                "width" | "height" => "a box, image, flex, or svg",
+                                "fill" | "border-width" | "border-color" => "a box or path",
+                                "radius" => "a box",
                                 "volume" | "pan" => "an audio or video",
                                 _ => "a text",
                             },

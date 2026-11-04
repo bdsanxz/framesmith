@@ -318,9 +318,69 @@ impl Turn3D {
     }
 }
 
+/// Base text direction of a `text` clip (Sprint 8 look, CAP-002):
+/// `ltr` lays runs left to right, `rtl` right to left, and `auto`
+/// infers the direction from the first strong character. Only these
+/// three spellings are valid; anything else is a diagnostic naming
+/// this set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextDirection {
+    Ltr,
+    Rtl,
+    Auto,
+}
+
+impl TextDirection {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "ltr" => Some(TextDirection::Ltr),
+            "rtl" => Some(TextDirection::Rtl),
+            "auto" => Some(TextDirection::Auto),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            TextDirection::Ltr => "ltr",
+            TextDirection::Rtl => "rtl",
+            TextDirection::Auto => "auto",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 3] = ["ltr", "rtl", "auto"];
+}
+
+/// One styled run of a `text` clip (Sprint 8 look, CAP-002/T002): a
+/// `span` child overriding the clip style for its own text. Every
+/// attribute is optional and falls back to the enclosing style (the
+/// parent span, else the clip): `font-family` in comma try order,
+/// `font-size` in canvas pixels, `font-weight` from 100 to 900,
+/// `italic` as a boolean, `color` as `#rgb`/`#rrggbb`,
+/// `letter-spacing` and `line-height` in canvas pixels. A span carries
+/// its text in `value`, in nested `span` children (which inherit the
+/// span's own overrides), or both (the value paints first, then the
+/// children in order); a span with neither is refused.
+#[derive(Debug, Clone)]
+pub struct TextSpan {
+    pub value: String,
+    pub font_family: Option<Vec<String>>,
+    pub font_size: Option<f64>,
+    pub font_weight: Option<f64>,
+    pub italic: Option<bool>,
+    pub color: Option<Rgb>,
+    pub letter_spacing: Option<f64>,
+    pub line_height: Option<f64>,
+    pub children: Vec<TextSpan>,
+    pub line: usize,
+    pub column: usize,
+}
+
 /// A `text` clip (Sprint 1 usable element, plus Sprint 2 paint order,
 /// line height and letter spacing, plus Sprint 6 id/track/label, plus
-/// Sprint 7 split/typewriter/count text effects).
+/// Sprint 7 split/typewriter/count text effects, plus Sprint 8 styled
+/// `span` runs with a base `direction`).
 #[derive(Debug, Clone)]
 pub struct TextClip {
     pub value: String,
@@ -354,6 +414,13 @@ pub struct TextClip {
     /// separated); none means the project font, else the machine style
     /// fallback. At least one name must resolve at render time.
     pub font_family: Option<Vec<String>>,
+    /// Base text direction (Sprint 8 look, CAP-002/T002): the bidi
+    /// base the runs reorder under. Default `ltr`.
+    pub direction: TextDirection,
+    /// Styled runs (Sprint 8 look, CAP-002/T002): `span` children in
+    /// document order. Empty means the whole `value` paints in the
+    /// clip style, exactly as before this task.
+    pub spans: Vec<TextSpan>,
     /// Split mode (Sprint 7 motion, CAP-009): none means the whole
     /// value shows; a split addresses each piece for motion while the
     /// full value still shows unless `typewriter` reveals it.
@@ -959,8 +1026,345 @@ impl Placement {
     }
 }
 
-/// A `box` clip (Sprint 2 element): position, size, fill color, corner
-/// radius, border, and opacity.
+/// Main-axis direction of a `flex` container (Sprint 8 layout,
+/// CAP-001): `row` flows children left to right, `column` top to
+/// bottom. Only these two spellings are valid; anything else is a
+/// diagnostic naming this set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlexDirection {
+    Row,
+    Column,
+}
+
+impl FlexDirection {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "row" => Some(FlexDirection::Row),
+            "column" => Some(FlexDirection::Column),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            FlexDirection::Row => "row",
+            FlexDirection::Column => "column",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 2] = ["row", "column"];
+}
+
+/// Cross-axis alignment of a `flex` container (Sprint 8 layout,
+/// CAP-001): `start` packs children at the cross start, `center`
+/// centers each child across the content box, `end` packs them at the
+/// cross end, and `stretch` grows each child across the content box.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlexAlign {
+    Start,
+    Center,
+    End,
+    Stretch,
+}
+
+impl FlexAlign {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "start" => Some(FlexAlign::Start),
+            "center" => Some(FlexAlign::Center),
+            "end" => Some(FlexAlign::End),
+            "stretch" => Some(FlexAlign::Stretch),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            FlexAlign::Start => "start",
+            FlexAlign::Center => "center",
+            FlexAlign::End => "end",
+            FlexAlign::Stretch => "stretch",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 4] = ["start", "center", "end", "stretch"];
+}
+
+/// Main-axis distribution of a `flex` container (Sprint 8 layout,
+/// CAP-001): `start` packs children at the main start, `center`
+/// centers the row or column in the leftover space, and `end` packs
+/// it at the main end.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlexJustify {
+    Start,
+    Center,
+    End,
+}
+
+impl FlexJustify {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "start" => Some(FlexJustify::Start),
+            "center" => Some(FlexJustify::Center),
+            "end" => Some(FlexJustify::End),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            FlexJustify::Start => "start",
+            FlexJustify::Center => "center",
+            FlexJustify::End => "end",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 3] = ["start", "center", "end"];
+}
+
+/// One gradient color stop (Sprint 8 look, CAP-003/T003): a `stop`
+/// child of a `linear-gradient` or `radial-gradient` fill. `offset`
+/// runs 0 (gradient start) to 1 (gradient end); `color` is the stop
+/// color. Neighboring stops interpolate in sRGB, channel by channel.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GradientStop {
+    pub offset: f64,
+    pub color: Rgb,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Non-solid fill of a `box` clip (Sprint 8 look, CAP-003/T003): one
+/// `linear-gradient`, `radial-gradient`, or `image-fill` child element.
+/// `Solid` keeps the authored `fill` color, exactly as before this task.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FillPaint {
+    Solid,
+    /// Linear gradient across the element box: `angle` in CSS degrees
+    /// (0 points up, 90 points right; 90 is left-to-right), `stops` in
+    /// rising offset order from 0 to 1.
+    Linear {
+        angle: f64,
+        stops: Vec<GradientStop>,
+    },
+    /// Radial gradient of concentric rings: `cx`/`cy` name the center
+    /// in box-local pixels (`None` centers on the box), `radius` names
+    /// the ring radius in pixels (`None` reaches the farthest corner),
+    /// `stops` run from the center (offset 0) outward (offset 1).
+    Radial {
+        cx: Option<f64>,
+        cy: Option<f64>,
+        radius: Option<f64>,
+        stops: Vec<GradientStop>,
+    },
+    /// Image painted clipped to the element box: `src` is the project
+    /// folder path, `fit` and `placement` behave like the `image`
+    /// clip's `fit` and `placement` (`object-fit`/`object-position`).
+    Image {
+        src: String,
+        fit: Fit,
+        placement: Placement,
+    },
+}
+
+impl FillPaint {
+    /// True for the plain authored `fill` color (no fill child).
+    pub fn is_solid(&self) -> bool {
+        matches!(self, FillPaint::Solid)
+    }
+}
+
+/// Where a `box` stroke paints relative to the fill edge (Sprint 8
+/// look, CAP-004/T004): `inside` rings the inner edge (the historical
+/// border behavior, and the default, so existing boxes render
+/// byte-identically), `center` straddles the edge, and `outside` rings
+/// the outer edge. Only these three spellings are valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum StrokePosition {
+    Center,
+    #[default]
+    Inside,
+    Outside,
+}
+
+impl StrokePosition {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "center" => Some(StrokePosition::Center),
+            "inside" => Some(StrokePosition::Inside),
+            "outside" => Some(StrokePosition::Outside),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            StrokePosition::Center => "center",
+            StrokePosition::Inside => "inside",
+            StrokePosition::Outside => "outside",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 3] = ["center", "inside", "outside"];
+}
+
+/// How a `box` composites with the layers beneath (Sprint 8 look,
+/// CAP-004/T004): `normal` paints source-over, `multiply`, `screen`,
+/// and `overlay` blend channel by channel before the element alpha
+/// composites. Only these four spellings are valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BlendMode {
+    #[default]
+    Normal,
+    Multiply,
+    Screen,
+    Overlay,
+}
+
+impl BlendMode {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "normal" => Some(BlendMode::Normal),
+            "multiply" => Some(BlendMode::Multiply),
+            "screen" => Some(BlendMode::Screen),
+            "overlay" => Some(BlendMode::Overlay),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            BlendMode::Normal => "normal",
+            BlendMode::Multiply => "multiply",
+            BlendMode::Screen => "screen",
+            BlendMode::Overlay => "overlay",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 4] = ["normal", "multiply", "screen", "overlay"];
+}
+
+/// Clipping of a `box` body at its own edge (Sprint 8 look,
+/// CAP-004/T004): `visible` paints the whole stroke even past the
+/// edge, `hidden` and `clip` cut fill and stroke at the rounded-rect
+/// box (the shadow still paints outside). Only these three spellings
+/// are valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Overflow {
+    #[default]
+    Visible,
+    Hidden,
+    Clip,
+}
+
+impl Overflow {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "visible" => Some(Overflow::Visible),
+            "hidden" => Some(Overflow::Hidden),
+            "clip" => Some(Overflow::Clip),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Overflow::Visible => "visible",
+            Overflow::Hidden => "hidden",
+            Overflow::Clip => "clip",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 3] = ["visible", "hidden", "clip"];
+}
+
+/// How a `path` shape fills its interior (Sprint 8 look,
+/// CAP-005/T005): `nonzero` fills contours by nonzero winding (the
+/// SVG default), `evenodd` alternates fill across nested contours.
+/// Only these two spellings are valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FillRule {
+    #[default]
+    NonZero,
+    EvenOdd,
+}
+
+impl FillRule {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "nonzero" => Some(FillRule::NonZero),
+            "evenodd" => Some(FillRule::EvenOdd),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            FillRule::NonZero => "nonzero",
+            FillRule::EvenOdd => "evenodd",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 2] = ["nonzero", "evenodd"];
+}
+
+/// A `box-shadow` declaration (Sprint 8 look, CAP-004/T004): the
+/// shadow paints below the element (the background stays transparent
+/// so it shows through) offset by (`offset_x`, `offset_y`) canvas
+/// pixels, blurred by `blur` sigma pixels, grown by `spread` pixels,
+/// in `color`. Written as one attribute:
+/// `box-shadow="8 8 12 0 #000000"`, or `box-shadow="none"`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BoxShadow {
+    pub offset_x: f64,
+    pub offset_y: f64,
+    pub blur: f64,
+    pub spread: f64,
+    pub color: Rgb,
+}
+
+/// A `mask` / `clip-path` reference (Sprint 8 look, CAP-004/T004): the
+/// `id` of a `box` clip in the same composition whose rounded rect
+/// masks this element. Forward references are allowed; dangling
+/// references and cycles refuse before frame one. The referenced box
+/// still paints normally; it additionally lends its shape as a mask.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaskRef {
+    pub target: String,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// The resolved rounded-rect shape of a `mask` / `clip-path` target
+/// (Sprint 8 look, CAP-004/T004): the referenced box's authored box in
+/// canvas pixels. The masked element renders self-first, then its
+/// alpha multiplies by this shape's coverage exactly once.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MaskShape {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub radius: f64,
+}
+
+/// A `box` clip (Sprint 2 element, plus Sprint 8 gradient and image
+/// fills, plus the Sprint 8 paint stack): position, size, fill color,
+/// corner radius, stroke, shadow, blend, backdrop, overflow, and mask,
+/// and at most one gradient or image fill child painting clipped to
+/// the box. A fill child takes precedence over the `fill` color. The
+/// paint stack renders in one layout-then-paint pass: backdrop samples
+/// the flattened layers beneath, the shadow paints below the element,
+/// the stroke paints above the fill at its position, the blend
+/// composites with the layers beneath, overflow clips the body at the
+/// box, and the mask applies once over self-first content.
 #[derive(Debug, Clone)]
 pub struct BoxClip {
     pub start: f64,
@@ -979,9 +1383,38 @@ pub struct BoxClip {
     pub width: f64,
     pub height: f64,
     pub fill: Rgb,
+    /// Gradient or image fill (Sprint 8 look, CAP-003/T003): `Solid`
+    /// keeps the `fill` color; any other variant paints clipped to the
+    /// box instead of it.
+    pub fill_paint: FillPaint,
     pub radius: f64,
     pub border_width: f64,
     pub border_color: Rgb,
+    /// Where the stroke paints relative to the fill edge (Sprint 8
+    /// look, CAP-004/T004). Default `inside` (the historical border).
+    pub stroke_position: StrokePosition,
+    /// Drop shadow below the element (Sprint 8 look, CAP-004/T004);
+    /// none paints no shadow.
+    pub box_shadow: Option<BoxShadow>,
+    /// Blend with the layers beneath (Sprint 8 look, CAP-004/T004).
+    /// Default `normal` (source-over).
+    pub blend_mode: BlendMode,
+    /// Backdrop blur sigma in canvas pixels (Sprint 8 look,
+    /// CAP-004/T004): samples the flattened layers beneath before the
+    /// element paints. Default 0 (sharp).
+    pub backdrop_blur: f64,
+    /// Backdrop brightness factor (Sprint 8 look, CAP-004/T004):
+    /// scales the sampled layers beneath (1 keeps them). Default 1.
+    pub backdrop_brightness: f64,
+    /// Body clipping at the box edge (Sprint 8 look, CAP-004/T004).
+    /// Default `visible`.
+    pub overflow: Overflow,
+    /// Rounded-rect mask reference (Sprint 8 look, CAP-004/T004); none
+    /// paints unmasked.
+    pub mask: Option<MaskRef>,
+    /// Rounded-rect clip-path reference (Sprint 8 look, CAP-004/T004);
+    /// none paints unclipped.
+    pub clip_path: Option<MaskRef>,
     /// 0 transparent to 1 opaque.
     pub opacity: f64,
     pub order: i64,
@@ -997,10 +1430,192 @@ pub struct BoxClip {
     pub column: usize,
 }
 
+/// One laid-out child of a `flex` container (Sprint 8 layout, T001):
+/// a box-sized item with its own paint. The position comes from the
+/// container layout, never from authored `x`/`y`; the window comes
+/// from the container, never from authored timing keys.
+#[derive(Debug, Clone)]
+pub struct FlexChild {
+    /// Base main-axis size in canvas pixels (width in a row, height
+    /// in a column) before `flex-grow` shares the free space.
+    pub width: f64,
+    pub height: f64,
+    /// Share of leftover main-axis space; 0 keeps the base size.
+    pub flex_grow: f64,
+    pub fill: Rgb,
+    pub radius: f64,
+    pub border_width: f64,
+    pub border_color: Rgb,
+    /// Where the stroke paints relative to the fill edge (Sprint 8
+    /// look, CAP-004/T004). Default `inside` (the historical border).
+    pub stroke_position: StrokePosition,
+    /// 0 transparent to 1 opaque.
+    pub opacity: f64,
+    /// Paint order inside the container; the container order shifts it.
+    pub order: i64,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// A `flex` container (Sprint 8 layout, CAP-001/T001): a row or column
+/// of `box` children laid out by the CSS flex algorithm. `display`
+/// must read `"flex"` when written; `flex-direction` names the main
+/// axis; `gap` separates neighbors; `padding` insets the content box
+/// on every side; `margin` offsets the container origin;
+/// `align-items` places children across the content box and
+/// `justify-content` distributes leftover space along it. Children
+/// inherit the container window and are positioned by the layout.
+#[derive(Debug, Clone)]
+pub struct FlexClip {
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    /// Container origin in canvas pixels, before `margin`.
+    pub x: f64,
+    pub y: f64,
+    /// Container outer size in canvas pixels; both must be positive.
+    pub width: f64,
+    pub height: f64,
+    pub direction: FlexDirection,
+    /// Space between neighbors in canvas pixels; 0 packs them tight.
+    pub gap: f64,
+    /// Inset of the content box on every side, in canvas pixels.
+    pub padding: f64,
+    /// Offset of the container origin, in canvas pixels.
+    pub margin: f64,
+    pub align_items: FlexAlign,
+    pub justify_content: FlexJustify,
+    /// Explicit paint order (default 0); children ride shifted by this.
+    pub order: i64,
+    pub children: Vec<FlexChild>,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// A `path` clip (Sprint 8 look, CAP-005/T005): an SVG-subset vector
+/// shape (`d` with `M`, `L`, `C`, `Q`, `A`, `Z` commands) filled by
+/// `fill-rule` in `fill` and stroked with the shared stroke set,
+/// routed through the shared paint stack like a `box`. The `d`
+/// coordinates are absolute canvas pixels; `x`/`y` translate the
+/// whole shape (both default 0). Motion `scale` grows the shape
+/// about its own top-left and `rotation` turns it about its own
+/// center, exactly like a box about its box. Shadow offsets, blur,
+/// and spread stay in canvas pixels and never scale.
+#[derive(Debug, Clone)]
+pub struct PathClip {
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    /// Canvas-pixel translation of the whole shape; default 0.
+    pub x: f64,
+    pub y: f64,
+    /// SVG-subset path data, as written.
+    pub d: String,
+    /// Fill color of the shape interior; default black (SVG canvas).
+    pub fill: Rgb,
+    /// Interior rule (`nonzero` default, `evenodd` alternate).
+    pub fill_rule: FillRule,
+    pub border_width: f64,
+    pub border_color: Rgb,
+    /// Where the stroke paints relative to the shape edge (Sprint 8
+    /// look, CAP-004/T004). Default `inside`, like boxes.
+    pub stroke_position: StrokePosition,
+    /// Drop shadow below the element; none paints no shadow.
+    pub box_shadow: Option<BoxShadow>,
+    /// Blend with the layers beneath. Default `normal` (source-over).
+    pub blend_mode: BlendMode,
+    /// Backdrop blur sigma in canvas pixels; default 0 (sharp).
+    pub backdrop_blur: f64,
+    /// Backdrop brightness factor; default 1 (keeps beneath).
+    pub backdrop_brightness: f64,
+    /// Body clipping at the shape edge. Default `visible`.
+    pub overflow: Overflow,
+    /// Rounded-rect mask reference; none paints unmasked. Targets
+    /// are `box` clips only, like every other element.
+    pub mask: Option<MaskRef>,
+    /// Rounded-rect clip-path reference; none paints unclipped.
+    pub clip_path: Option<MaskRef>,
+    /// 0 transparent to 1 opaque.
+    pub opacity: f64,
+    pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// An `svg` clip (Sprint 8 look, CAP-005/T005): a standalone `.svg`
+/// file rasterized at its declared `width`/`height` (both required
+/// and positive, even below 64px) with `fit` and `placement`
+/// composing it into the target rect exactly like the `image` clip,
+/// which also accepts `.svg` sources. Pointing `svg` at a missing,
+/// unreadable, or corrupt file is refused; animations inside the SVG
+/// (SMIL, script) never play — the first frame's still picture
+/// renders.
+#[derive(Debug, Clone)]
+pub struct SvgClip {
+    pub path: String,
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    pub x: f64,
+    pub y: f64,
+    /// Declared raster size in canvas pixels; both required positive.
+    pub width: f64,
+    pub height: f64,
+    pub fit: Fit,
+    pub placement: Placement,
+    pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
 /// An `image` clip (Sprint 2 element, plus Sprint 5 HEIC and still-GIF
-/// sources): a PNG, JPEG, HEIC/HEIF, or still-GIF source placed with
-/// a fit and a placement inside its target rect. Pointing `image` at
-/// an animated GIF is refused; animations play in a `video` clip.
+/// sources, plus Sprint 8 SVG sources): a PNG, JPEG, HEIC/HEIF,
+/// still-GIF, or SVG source placed with a fit and a placement inside
+/// its target rect. Pointing `image` at an animated GIF is refused;
+/// animations play in a `video` clip.
 #[derive(Debug, Clone)]
 pub struct ImageClip {
     pub path: String,
@@ -1478,7 +2093,10 @@ pub enum Clip {
     Text(TextClip),
     Video(VideoClip),
     Box(BoxClip),
+    Flex(FlexClip),
     Image(ImageClip),
+    Path(PathClip),
+    Svg(SvgClip),
     Audio(AudioClip),
     Nest(NestClip),
 }
@@ -1489,7 +2107,10 @@ impl Clip {
             Clip::Text(c) => c.start,
             Clip::Video(c) => c.start,
             Clip::Box(c) => c.start,
+            Clip::Flex(c) => c.start,
             Clip::Image(c) => c.start,
+            Clip::Path(c) => c.start,
+            Clip::Svg(c) => c.start,
             Clip::Audio(c) => c.start,
             Clip::Nest(c) => c.start,
         }
@@ -1502,7 +2123,10 @@ impl Clip {
             Clip::Text(c) => c.start = start,
             Clip::Video(c) => c.start = start,
             Clip::Box(c) => c.start = start,
+            Clip::Flex(c) => c.start = start,
             Clip::Image(c) => c.start = start,
+            Clip::Path(c) => c.start = start,
+            Clip::Svg(c) => c.start = start,
             Clip::Audio(c) => c.start = start,
             Clip::Nest(c) => c.start = start,
         }
@@ -1514,7 +2138,10 @@ impl Clip {
             Clip::Text(c) => c.id.as_deref(),
             Clip::Video(c) => c.id.as_deref(),
             Clip::Box(c) => c.id.as_deref(),
+            Clip::Flex(c) => c.id.as_deref(),
             Clip::Image(c) => c.id.as_deref(),
+            Clip::Path(c) => c.id.as_deref(),
+            Clip::Svg(c) => c.id.as_deref(),
             Clip::Audio(c) => c.id.as_deref(),
             Clip::Nest(c) => c.id.as_deref(),
         }
@@ -1526,7 +2153,10 @@ impl Clip {
             Clip::Text(c) => c.start_after.as_ref(),
             Clip::Video(c) => c.start_after.as_ref(),
             Clip::Box(c) => c.start_after.as_ref(),
+            Clip::Flex(c) => c.start_after.as_ref(),
             Clip::Image(c) => c.start_after.as_ref(),
+            Clip::Path(c) => c.start_after.as_ref(),
+            Clip::Svg(c) => c.start_after.as_ref(),
             Clip::Audio(c) => c.start_after.as_ref(),
             Clip::Nest(c) => c.start_after.as_ref(),
         }
@@ -1537,7 +2167,10 @@ impl Clip {
             Clip::Text(c) => c.duration,
             Clip::Video(c) => c.duration,
             Clip::Box(c) => c.duration,
+            Clip::Flex(c) => c.duration,
             Clip::Image(c) => c.duration,
+            Clip::Path(c) => c.duration,
+            Clip::Svg(c) => c.duration,
             Clip::Audio(c) => c.duration,
             Clip::Nest(c) => c.duration,
         }
@@ -1553,7 +2186,10 @@ impl Clip {
             Clip::Text(c) => c.duration = duration,
             Clip::Video(c) => c.duration = duration,
             Clip::Box(c) => c.duration = duration,
+            Clip::Flex(c) => c.duration = duration,
             Clip::Image(c) => c.duration = duration,
+            Clip::Path(c) => c.duration = duration,
+            Clip::Svg(c) => c.duration = duration,
             Clip::Audio(c) => c.duration = duration,
             Clip::Nest(c) => c.duration = duration,
         }
@@ -1565,7 +2201,10 @@ impl Clip {
             Clip::Text(_) => "text clip",
             Clip::Video(_) => "video clip",
             Clip::Box(_) => "box clip",
+            Clip::Flex(_) => "flex container",
             Clip::Image(_) => "image clip",
+            Clip::Path(_) => "path clip",
+            Clip::Svg(_) => "svg clip",
             Clip::Audio(_) => "audio track",
             Clip::Nest(_) => "nest clip",
         }
@@ -1577,7 +2216,10 @@ impl Clip {
             Clip::Text(c) => (c.line, c.column),
             Clip::Video(c) => (c.line, c.column),
             Clip::Box(c) => (c.line, c.column),
+            Clip::Flex(c) => (c.line, c.column),
             Clip::Image(c) => (c.line, c.column),
+            Clip::Path(c) => (c.line, c.column),
+            Clip::Svg(c) => (c.line, c.column),
             Clip::Audio(c) => (c.line, c.column),
             Clip::Nest(c) => (c.line, c.column),
         }
@@ -1586,13 +2228,17 @@ impl Clip {
     /// Explicit paint order (default 0); ties fall back to document order.
     /// Audio tracks draw no picture, so they carry order 0 and never
     /// take part in paint sorting. A nest clip's own order shifts its
-    /// nested items, which stack as one unit.
+    /// nested items, which stack as one unit; a flex container's own
+    /// order shifts its laid-out children the same way.
     pub fn order(&self) -> i64 {
         match self {
             Clip::Text(c) => c.order,
             Clip::Video(c) => c.order,
             Clip::Box(c) => c.order,
+            Clip::Flex(c) => c.order,
             Clip::Image(c) => c.order,
+            Clip::Path(c) => c.order,
+            Clip::Svg(c) => c.order,
             Clip::Audio(_) => 0,
             Clip::Nest(c) => c.order,
         }
@@ -1606,7 +2252,10 @@ impl Clip {
             Clip::Text(c) => c.hidden,
             Clip::Video(c) => c.hidden,
             Clip::Box(c) => c.hidden,
+            Clip::Flex(c) => c.hidden,
             Clip::Image(c) => c.hidden,
+            Clip::Path(c) => c.hidden,
+            Clip::Svg(c) => c.hidden,
             Clip::Audio(c) => c.hidden,
             Clip::Nest(c) => c.hidden,
         }
@@ -1618,7 +2267,10 @@ impl Clip {
             Clip::Text(c) => c.track,
             Clip::Video(c) => c.track,
             Clip::Box(c) => c.track,
+            Clip::Flex(c) => c.track,
             Clip::Image(c) => c.track,
+            Clip::Path(c) => c.track,
+            Clip::Svg(c) => c.track,
             Clip::Audio(c) => c.track,
             Clip::Nest(c) => c.track,
         }
@@ -1630,20 +2282,27 @@ impl Clip {
             Clip::Text(c) => c.label.as_deref(),
             Clip::Video(c) => c.label.as_deref(),
             Clip::Box(c) => c.label.as_deref(),
+            Clip::Flex(c) => c.label.as_deref(),
             Clip::Image(c) => c.label.as_deref(),
+            Clip::Path(c) => c.label.as_deref(),
+            Clip::Svg(c) => c.label.as_deref(),
             Clip::Audio(c) => c.label.as_deref(),
             Clip::Nest(c) => c.label.as_deref(),
         }
     }
 
     /// Element name of the clip (`text`, `video`, `box`, `image`,
-    /// `audio`, `nest`): the `kind` timelines and info report per row.
+    /// `audio`, `nest`, `flex`): the `kind` timelines and info report
+    /// per row.
     pub fn kind(&self) -> &'static str {
         match self {
             Clip::Text(_) => "text",
             Clip::Video(_) => "video",
             Clip::Box(_) => "box",
+            Clip::Flex(_) => "flex",
             Clip::Image(_) => "image",
+            Clip::Path(_) => "path",
+            Clip::Svg(_) => "svg",
             Clip::Audio(_) => "audio",
             Clip::Nest(_) => "nest",
         }
@@ -2008,6 +2667,58 @@ mod tests {
         assert_eq!(Fit::parse("contain"), Some(Fit::Contain));
         assert_eq!(Fit::parse("Contain"), None);
         assert_eq!(Fit::parse("fit"), None);
+    }
+
+    #[test]
+    fn fill_rule_spellings_are_exact() {
+        use super::FillRule;
+        assert_eq!(FillRule::parse("nonzero"), Some(FillRule::NonZero));
+        assert_eq!(FillRule::parse("evenodd"), Some(FillRule::EvenOdd));
+        assert_eq!(FillRule::parse("NonZero"), None);
+        assert_eq!(FillRule::parse("winding"), None);
+        assert_eq!(FillRule::ACCEPTED, ["nonzero", "evenodd"]);
+        assert_eq!(FillRule::default(), FillRule::NonZero);
+        assert_eq!(FillRule::NonZero.name(), "nonzero");
+        assert_eq!(FillRule::EvenOdd.name(), "evenodd");
+    }
+
+    #[test]
+    fn paint_stack_spellings_are_exact() {
+        use super::{BlendMode, Overflow, StrokePosition};
+        assert_eq!(
+            StrokePosition::parse("center"),
+            Some(StrokePosition::Center)
+        );
+        assert_eq!(
+            StrokePosition::parse("inside"),
+            Some(StrokePosition::Inside)
+        );
+        assert_eq!(
+            StrokePosition::parse("outside"),
+            Some(StrokePosition::Outside)
+        );
+        assert_eq!(StrokePosition::parse("middle"), None);
+        assert_eq!(StrokePosition::parse("Center"), None);
+        assert_eq!(
+            StrokePosition::ACCEPTED,
+            ["center", "inside", "outside"]
+        );
+        assert_eq!(StrokePosition::default(), StrokePosition::Inside);
+        assert_eq!(BlendMode::parse("multiply"), Some(BlendMode::Multiply));
+        assert_eq!(BlendMode::parse("screen"), Some(BlendMode::Screen));
+        assert_eq!(BlendMode::parse("overlay"), Some(BlendMode::Overlay));
+        assert_eq!(BlendMode::parse("normal"), Some(BlendMode::Normal));
+        assert_eq!(BlendMode::parse("darken"), None);
+        assert_eq!(BlendMode::parse("Multiply"), None);
+        assert_eq!(BlendMode::ACCEPTED, ["normal", "multiply", "screen", "overlay"]);
+        assert_eq!(BlendMode::default(), BlendMode::Normal);
+        assert_eq!(Overflow::parse("hidden"), Some(Overflow::Hidden));
+        assert_eq!(Overflow::parse("clip"), Some(Overflow::Clip));
+        assert_eq!(Overflow::parse("visible"), Some(Overflow::Visible));
+        assert_eq!(Overflow::parse("scroll"), None);
+        assert_eq!(Overflow::parse("Hidden"), None);
+        assert_eq!(Overflow::ACCEPTED, ["visible", "hidden", "clip"]);
+        assert_eq!(Overflow::default(), Overflow::Visible);
     }
 
     #[test]

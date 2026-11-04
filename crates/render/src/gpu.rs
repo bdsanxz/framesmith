@@ -19,7 +19,8 @@
 //! CPU-to-GPU comparison uses tolerance.
 
 use crate::frame::{
-    FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedText, ResolvedVideo,
+    FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedPath, ResolvedText,
+    ResolvedVideo,
 };
 use crate::render::Prepared;
 use std::fmt::Write;
@@ -83,6 +84,60 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
             format!("{x:.6}")
         }
     }
+    // Sprint 8 look (T003): the fill paint rides the fingerprint, so
+    // a gradient or image fill never aliases a solid or another fill.
+    fn fill_paint_desc(paint: &notation::model::FillPaint) -> String {
+        use notation::model::FillPaint;
+        match paint {
+            FillPaint::Solid => "solid".to_string(),
+            FillPaint::Linear { angle, stops } => {
+                let stops: Vec<String> = stops
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "{}:{:02x}{:02x}{:02x}",
+                            num(s.offset),
+                            s.color.r,
+                            s.color.g,
+                            s.color.b
+                        )
+                    })
+                    .collect();
+                format!("linear({angle},{})", stops.join(","))
+            }
+            FillPaint::Radial {
+                cx,
+                cy,
+                radius,
+                stops,
+            } => {
+                let stops: Vec<String> = stops
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "{}:{:02x}{:02x}{:02x}",
+                            num(s.offset),
+                            s.color.r,
+                            s.color.g,
+                            s.color.b
+                        )
+                    })
+                    .collect();
+                format!(
+                    "radial({},{},{},{})",
+                    cx.map(num).unwrap_or_else(|| "-".to_string()),
+                    cy.map(num).unwrap_or_else(|| "-".to_string()),
+                    radius.map(num).unwrap_or_else(|| "-".to_string()),
+                    stops.join(",")
+                )
+            }
+            FillPaint::Image {
+                src,
+                fit,
+                placement,
+            } => format!("image({src:?},{fit:?},{:?}/{:?})", placement.x, placement.y),
+        }
+    }
     let mut out = String::new();
     let _ = write!(
         out,
@@ -141,7 +196,7 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
             FrameItem::Box(r) => {
                 let _ = write!(
                     out,
-                    "box#{} order={} x={} y={} {}x{} fill={} radius={} border={}:{} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?};",
+                    "box#{} order={} x={} y={} {}x{} fill={} paint={} radius={} border={}:{} stroke={} shadow={} blend={} backdrop={}/{} overflow={} mask={} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?};",
                     r.doc,
                     r.order,
                     num(r.x),
@@ -149,9 +204,87 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.width),
                     num(r.height),
                     hex((r.fill.r, r.fill.g, r.fill.b)),
+                    fill_paint_desc(&r.fill_paint),
                     num(r.radius),
                     num(r.border_width),
                     hex((r.border_color.r, r.border_color.g, r.border_color.b)),
+                    r.stroke_position.name(),
+                    r.box_shadow
+                        .map(|s| format!(
+                            "{}:{}:{}:{}:{}",
+                            num(s.offset_x),
+                            num(s.offset_y),
+                            num(s.blur),
+                            num(s.spread),
+                            hex((s.color.r, s.color.g, s.color.b))
+                        ))
+                        .unwrap_or_else(|| "-".to_string()),
+                    r.blend_mode.name(),
+                    num(r.backdrop_blur),
+                    num(r.backdrop_brightness),
+                    r.overflow.name(),
+                    match (&r.mask, &r.clip_path) {
+                        (None, None) => "-".to_string(),
+                        (m, c) => format!(
+                            "{}:{}:{}:{}:{}|{}",
+                            m.map(|s| num(s.x)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.y)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.width)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.height)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.radius)).unwrap_or_else(|| "-".to_string()),
+                            c.map(|s| num(s.x)).unwrap_or_else(|| "-".to_string()),
+                        ),
+                    },
+                    num(r.opacity),
+                    num(r.scale),
+                    num(r.rotation),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
+                );
+            }
+            FrameItem::Path(r) => {
+                let _ = write!(
+                    out,
+                    "path#{} order={} {:?} x={} y={} rule={} fill={} stroke={}:{}:{} shadow={} blend={} backdrop={}/{} overflow={} mask={} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?};",
+                    r.doc,
+                    r.order,
+                    r.d,
+                    num(r.x),
+                    num(r.y),
+                    r.fill_rule.name(),
+                    hex((r.fill.r, r.fill.g, r.fill.b)),
+                    num(r.border_width),
+                    hex((r.border_color.r, r.border_color.g, r.border_color.b)),
+                    r.stroke_position.name(),
+                    r.box_shadow
+                        .map(|s| format!(
+                            "{}:{}:{}:{}:{}",
+                            num(s.offset_x),
+                            num(s.offset_y),
+                            num(s.blur),
+                            num(s.spread),
+                            hex((s.color.r, s.color.g, s.color.b))
+                        ))
+                        .unwrap_or_else(|| "-".to_string()),
+                    r.blend_mode.name(),
+                    num(r.backdrop_blur),
+                    num(r.backdrop_brightness),
+                    r.overflow.name(),
+                    match (&r.mask, &r.clip_path) {
+                        (None, None) => "-".to_string(),
+                        (m, c) => format!(
+                            "{}:{}:{}:{}:{}|{}",
+                            m.map(|s| num(s.x)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.y)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.width)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.height)).unwrap_or_else(|| "-".to_string()),
+                            m.map(|s| num(s.radius)).unwrap_or_else(|| "-".to_string()),
+                            c.map(|s| num(s.x)).unwrap_or_else(|| "-".to_string()),
+                        ),
+                    },
                     num(r.opacity),
                     num(r.scale),
                     num(r.rotation),
@@ -229,6 +362,8 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         dyn_layouts,
         bitmap_fallback,
         raster,
+        paths,
+        folder,
         ..
     } = prep;
     render_description_split(
@@ -239,6 +374,8 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         dyn_layouts,
         *bitmap_fallback,
         raster,
+        paths,
+        folder.as_path(),
         desc,
     )
 }
@@ -255,6 +392,8 @@ pub(crate) fn render_description_split(
     dyn_layouts: &crate::render::DynLayouts,
     bitmap_fallback: bool,
     raster: &mut crate::render::RasterCache,
+    paths: &crate::path_paint::PathCache,
+    folder: &std::path::Path,
     desc: &FrameDescription,
 ) -> Result<Vec<u8>, String> {
     use crate::render::{
@@ -342,9 +481,10 @@ pub(crate) fn render_description_split(
                 }
             }
             FrameItem::Text(tc) => {
-                if tc.value.is_empty() {
+                if tc.value.is_empty() && !tc.has_spans {
                     // A typewriter reveal at progress 0 shows no pieces:
-                    // nothing to draw at this instant.
+                    // nothing to draw at this instant. A value-less span
+                    // text still paints its shaped runs (Sprint 8, T002).
                     continue;
                 }
                 let q = ResolvedText {
@@ -422,14 +562,38 @@ pub(crate) fn render_description_split(
                     rotation: quantize(b.rotation),
                     ..b.clone()
                 };
-                // Sprint 7 motion (T005/T006), same branch as the CPU
-                // blitter; blur and the turn ride through exact.
+                // Sprint 8 look (T004): same paint-stack branch as the
+                // CPU blitter, so both traversals paint the same
+                // stacking. Sprint 7 motion (T005/T006), same branch
+                // as the CPU blitter; blur and the turn ride through
+                // exact. Sprint 8 fills (T003) resolve through the
+                // folder with the vanish check, exactly like the CPU
+                // path.
                 let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
-                if blur_on(q.blur) || probe.is_some() {
-                    draw_box_advanced(&mut frame, cw, chh, &q);
+                if q.paint_stack_active() {
+                    crate::paint::draw_box_paint(&mut frame, cw, chh, &q, images, folder)
+                        .map_err(|e| format!("gpu render failed: {e}"))?;
+                } else if blur_on(q.blur) || probe.is_some() {
+                    draw_box_advanced(&mut frame, cw, chh, &q, images, folder)
+                        .map_err(|e| format!("gpu render failed: {e}"))?;
                 } else {
-                    draw_box(&mut frame, cw, chh, &q);
+                    draw_box(&mut frame, cw, chh, &q, images, folder)
+                        .map_err(|e| format!("gpu render failed: {e}"))?;
                 }
+            }
+            FrameItem::Path(q) => {
+                let r = ResolvedPath {
+                    x: quantize(q.x),
+                    y: quantize(q.y),
+                    opacity: quantize(q.opacity),
+                    scale: quantize(q.scale),
+                    rotation: quantize(q.rotation),
+                    ..q.clone()
+                };
+                // Sprint 8 look (T005): the single path painter serves
+                // both traversals, so CPU and GPU agree pixel for pixel.
+                crate::path_paint::draw_path(&mut frame, cw, chh, &r, paths)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
             }
             FrameItem::Image(im) => {
                 let decoded = images
@@ -606,6 +770,8 @@ mod tests {
                     line_height: Some(30.0),
                     letter_spacing: Some(1.5),
                     font_family: None,
+            direction: notation::model::TextDirection::Ltr,
+            spans: Vec::new(),
                     split: None,
                     typewriter: false,
                     count_from: None,
@@ -629,9 +795,18 @@ mod tests {
                     width: 40.0,
                     height: 30.0,
                     fill: Rgb { r: 255, g: 0, b: 0 },
+                    fill_paint: notation::model::FillPaint::Solid,
                     radius: 0.0,
                     border_width: 0.0,
                     border_color: Rgb { r: 0, g: 0, b: 0 },
+                    stroke_position: notation::model::StrokePosition::Inside,
+                    box_shadow: None,
+                    blend_mode: notation::model::BlendMode::Normal,
+                    backdrop_blur: 0.0,
+                    backdrop_brightness: 1.0,
+                    overflow: notation::model::Overflow::Visible,
+                    mask: None,
+                    clip_path: None,
                     opacity: 0.5,
                     order: 1,
                     line: 2,
@@ -776,6 +951,7 @@ mod tests {
             width: 20.0,
             height: 20.0,
             fill: Rgb { r: 255, g: 0, b: 0 },
+            fill_paint: notation::model::FillPaint::Solid,
             radius: 4.0,
             border_width: 2.0,
             border_color: Rgb { r: 0, g: 0, b: 255 },
@@ -783,9 +959,56 @@ mod tests {
             order,
             line: 1,
             column: 1,
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
         })
+    }
+
+    #[test]
+    fn paint_stack_agrees_on_both_traversals() {
+        // T004: a stroked, shadowed, blended box draws through the
+        // paint stack on both traversals, so the pictures agree.
+        let mut shadowed = red_box(20.0, 20.0, 1);
+        if let Clip::Box(b) = &mut shadowed {
+            b.stroke_position = notation::model::StrokePosition::Outside;
+            b.box_shadow = Some(notation::model::BoxShadow {
+                offset_x: 4.0,
+                offset_y: 4.0,
+                blur: 2.0,
+                spread: 1.0,
+                color: Rgb { r: 0, g: 255, b: 0 },
+            });
+            b.blend_mode = notation::model::BlendMode::Multiply;
+            b.backdrop_brightness = 0.8;
+        }
+        let comp = still_comp(vec![red_box(10.0, 10.0, 0), shadowed]);
+        let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
+        assert_agree(&mut prep, "paint-stack", 0);
+    }
+
+    #[test]
+    fn paint_stack_fingerprints_differ() {
+        // T004: every paint-stack knob rides the fingerprint, so two
+        // looks never share one.
+        let comp = still_comp(vec![red_box(10.0, 10.0, 0)]);
+        let motions = plan_motions(&comp, 30);
+        let base = fingerprint(&describe(&comp, &motions, 0));
+        let mut varied = red_box(10.0, 10.0, 0);
+        if let Clip::Box(b) = &mut varied {
+            b.blend_mode = notation::model::BlendMode::Screen;
+        }
+        let comp = still_comp(vec![varied]);
+        let motions = plan_motions(&comp, 30);
+        let other = fingerprint(&describe(&comp, &motions, 0));
+        assert_ne!(base, other, "blend rides the fingerprint");
     }
 
     /// CPU and GPU pictures of the same frame, compared with the stated
@@ -815,6 +1038,7 @@ mod tests {
                 width: 24.0,
                 height: 24.0,
                 fill: Rgb { r: 0, g: 255, b: 0 },
+                fill_paint: notation::model::FillPaint::Solid,
                 radius: 6.0,
                 border_width: 3.0,
                 border_color: Rgb {
@@ -822,6 +1046,14 @@ mod tests {
                     g: 255,
                     b: 255,
                 },
+                stroke_position: notation::model::StrokePosition::Inside,
+                box_shadow: None,
+                blend_mode: notation::model::BlendMode::Normal,
+                backdrop_blur: 0.0,
+                backdrop_brightness: 1.0,
+                overflow: notation::model::Overflow::Visible,
+                mask: None,
+                clip_path: None,
                 opacity: 0.5,
                 order: 2,
                 line: 2,
@@ -842,6 +1074,110 @@ mod tests {
     }
 
     #[test]
+    fn stroked_paths_agree_within_tolerance_and_reruns_are_identical() {
+        // Sprint 8 look (T005): filled and stroked paths in each fill
+        // rule, plus a shadowed path, draw identically on both
+        // traversals — the single path painter serves CPU and GPU.
+        use notation::model::{FillRule, PathClip, StrokePosition};
+        fn path(d: &str, rule: FillRule, order: i64) -> Clip {
+            Clip::Path(PathClip {
+                id: None,
+                track: TrackKind::Graphics,
+                label: None,
+                start_after: None,
+                hidden: false,
+                start: 0.0,
+                duration: 2.0,
+                x: 0.0,
+                y: 0.0,
+                d: d.to_string(),
+                fill: Rgb { r: 255, g: 0, b: 0 },
+                fill_rule: rule,
+                border_width: 4.0,
+                border_color: Rgb {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
+                stroke_position: StrokePosition::Center,
+                box_shadow: None,
+                blend_mode: notation::model::BlendMode::Normal,
+                backdrop_blur: 0.0,
+                backdrop_brightness: 1.0,
+                overflow: notation::model::Overflow::Visible,
+                mask: None,
+                clip_path: None,
+                opacity: 1.0,
+                order,
+                turn: notation::model::Turn3D::flat(),
+                filter_blur: 0.0,
+                line: 1,
+                column: 1,
+            })
+        }
+        let comp = still_comp(vec![
+            path(
+                "M8,8 L56,8 L56,56 L8,56 Z",
+                FillRule::NonZero,
+                1,
+            ),
+            path(
+                "M10,10 L54,10 L54,54 L10,54 Z M22,22 L42,22 L42,42 L22,42 Z",
+                FillRule::EvenOdd,
+                2,
+            ),
+            Clip::Path(PathClip {
+                id: None,
+                track: TrackKind::Graphics,
+                label: None,
+                start_after: None,
+                hidden: false,
+                start: 0.0,
+                duration: 2.0,
+                x: 0.0,
+                y: 0.0,
+                d: "M20,44 L44,44 L32,24 Z".to_string(),
+                fill: Rgb { r: 0, g: 0, b: 255 },
+                fill_rule: FillRule::NonZero,
+                border_width: 0.0,
+                border_color: Rgb { r: 0, g: 0, b: 0 },
+                stroke_position: StrokePosition::Inside,
+                box_shadow: Some(notation::model::BoxShadow {
+                    offset_x: 6.0,
+                    offset_y: 6.0,
+                    blur: 2.0,
+                    spread: 0.0,
+                    color: Rgb { r: 0, g: 255, b: 0 },
+                }),
+                blend_mode: notation::model::BlendMode::Normal,
+                backdrop_blur: 0.0,
+                backdrop_brightness: 1.0,
+                overflow: notation::model::Overflow::Visible,
+                mask: None,
+                clip_path: None,
+                opacity: 1.0,
+                order: 3,
+                turn: notation::model::Turn3D::flat(),
+                filter_blur: 0.0,
+                line: 3,
+                column: 1,
+            }),
+        ]);
+        let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
+        for k in [0u64, 15, 59] {
+            assert_agree(&mut prep, "stroked-paths", k);
+        }
+        let a = prep.cpu_frame(15).expect("cpu frame");
+        let b = prep.cpu_frame(15).expect("cpu rerun");
+        assert_eq!(a, b, "cpu path reruns are byte-identical");
+        // The fingerprint names the path element and its fill rule.
+        let motions = plan_motions(&comp, 30);
+        let fp = fingerprint(&describe(&comp, &motions, 0));
+        assert!(fp.contains("path#"), "{fp}");
+        assert!(fp.contains("evenodd"), "{fp}");
+    }
+
+    #[test]
     fn written_paint_order_is_shared_by_both_traversals() {
         // T013 via T006: the blue box is documented first but painted
         // second, so it must cover the red one on both renderers.
@@ -859,9 +1195,18 @@ mod tests {
                 width: 30.0,
                 height: 30.0,
                 fill: Rgb { r: 0, g: 0, b: 255 },
+                fill_paint: notation::model::FillPaint::Solid,
                 radius: 0.0,
                 border_width: 0.0,
                 border_color: Rgb { r: 0, g: 0, b: 0 },
+                stroke_position: notation::model::StrokePosition::Inside,
+                box_shadow: None,
+                blend_mode: notation::model::BlendMode::Normal,
+                backdrop_blur: 0.0,
+                backdrop_brightness: 1.0,
+                overflow: notation::model::Overflow::Visible,
+                mask: None,
+                clip_path: None,
                 opacity: 1.0,
                 order: 2,
                 line: 1,
@@ -916,6 +1261,8 @@ mod tests {
             line_height: Some(20.0),
             letter_spacing: Some(3.0),
             font_family: None,
+            direction: notation::model::TextDirection::Ltr,
+            spans: Vec::new(),
             split: None,
             typewriter: false,
             count_from: None,
@@ -1034,5 +1381,239 @@ mod tests {
         // A non-representable motion value stays within one float ulp.
         let v = 0.1f64;
         assert!((quantize(v) - v).abs() < 1e-7, "{}", quantize(v));
+    }
+
+    // --- Sprint 8 look (T003): gradient and image fills ---
+
+    #[test]
+    fn gpu_split_matches_cpu_blitter_for_gradient_and_image_fills() {
+        use crate::render::{draw_description, DecodedImage, DynLayouts, RasterCache};
+        use notation::model::{FillPaint, GradientStop};
+        fn gradient_box() -> notation::model::Clip {
+            notation::model::Clip::Box(BoxClip {
+                id: None,
+                track: TrackKind::Graphics,
+                label: None,
+                start_after: None,
+                hidden: false,
+                start: 0.0,
+                duration: 2.0,
+                x: 4.0,
+                y: 4.0,
+                width: 24.0,
+                height: 16.0,
+                fill: Rgb { r: 255, g: 255, b: 255 },
+                fill_paint: FillPaint::Linear {
+                    angle: 90.0,
+                    stops: vec![
+                        GradientStop {
+                            offset: 0.0,
+                            color: Rgb { r: 255, g: 0, b: 0 },
+                            line: 1,
+                            column: 1,
+                        },
+                        GradientStop {
+                            offset: 1.0,
+                            color: Rgb { r: 0, g: 0, b: 255 },
+                            line: 1,
+                            column: 1,
+                        },
+                    ],
+                },
+                radius: 0.0,
+                border_width: 0.0,
+                border_color: Rgb { r: 0, g: 0, b: 0 },
+                stroke_position: notation::model::StrokePosition::Inside,
+                box_shadow: None,
+                blend_mode: notation::model::BlendMode::Normal,
+                backdrop_blur: 0.0,
+                backdrop_brightness: 1.0,
+                overflow: notation::model::Overflow::Visible,
+                mask: None,
+                clip_path: None,
+                opacity: 1.0,
+                order: 0,
+                line: 1,
+                column: 1,
+                turn: notation::model::Turn3D::flat(),
+                filter_blur: 0.0,
+            })
+        }
+        fn image_box() -> notation::model::Clip {
+            notation::model::Clip::Box(BoxClip {
+                id: None,
+                track: TrackKind::Graphics,
+                label: None,
+                start_after: None,
+                hidden: false,
+                start: 0.0,
+                duration: 2.0,
+                x: 40.0,
+                y: 4.0,
+                width: 24.0,
+                height: 16.0,
+                fill: Rgb { r: 255, g: 255, b: 255 },
+                fill_paint: FillPaint::Image {
+                    src: "bg.png".to_string(),
+                    fit: notation::model::Fit::Cover,
+                    placement: notation::model::Placement::center(),
+                },
+                radius: 0.0,
+                border_width: 0.0,
+                border_color: Rgb { r: 0, g: 0, b: 0 },
+                stroke_position: notation::model::StrokePosition::Inside,
+                box_shadow: None,
+                blend_mode: notation::model::BlendMode::Normal,
+                backdrop_blur: 0.0,
+                backdrop_brightness: 1.0,
+                overflow: notation::model::Overflow::Visible,
+                mask: None,
+                clip_path: None,
+                opacity: 1.0,
+                order: 0,
+                line: 1,
+                column: 1,
+                turn: notation::model::Turn3D::flat(),
+                filter_blur: 0.0,
+            })
+        }
+        let mut comp = composition();
+        comp.width = 64;
+        comp.height = 32;
+        comp.clips = vec![gradient_box(), image_box()];
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        assert_eq!(desc.items.len(), 2);
+        // The GPU traversal stats the same folder with the same vanish
+        // check, so a present file draws and a missing one refuses.
+        let dir = std::env::temp_dir().join(format!("framesmith-gpu-fill-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("bg.png"), b"stat-only").unwrap();
+        let images = vec![DecodedImage {
+            path: dir.join("bg.png"),
+            width: 4,
+            height: 4,
+            rgba: vec![10u8, 20, 30, 255].repeat(16),
+            scaled: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+        }];
+        let mut raster = RasterCache::new();
+        let mut cpu = vec![0u8; 64 * 32 * 3];
+        draw_description(
+            &desc,
+            &mut raster,
+            &[],
+            &DynLayouts::default(),
+            false,
+            &[],
+            &[],
+            &images,
+            &crate::path_paint::PathCache::new(),
+            dir.as_path(),
+            &mut cpu,
+        )
+        .unwrap();
+        let mut raster = RasterCache::new();
+        let gpu = render_description_split(
+            &[],
+            &[],
+            &images,
+            &[],
+            &DynLayouts::default(),
+            false,
+            &mut raster,
+            &crate::path_paint::PathCache::new(),
+            dir.as_path(),
+            &desc,
+        )
+        .unwrap();
+        assert_eq!(cpu, gpu);
+        // The fingerprint names the fill, so two different fills never
+        // alias one solid or each other in comparisons.
+        let fp = fingerprint(&desc);
+        assert!(fp.contains("linear"), "{fp}");
+        assert!(fp.contains("bg.png"), "{fp}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn gpu_split_refuses_a_vanished_fill_source() {
+        use crate::render::{draw_description, DynLayouts, RasterCache};
+        use notation::model::FillPaint;
+        let mut comp = composition();
+        comp.width = 64;
+        comp.height = 32;
+        comp.clips = vec![notation::model::Clip::Box(BoxClip {
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
+            start: 0.0,
+            duration: 2.0,
+            x: 4.0,
+            y: 4.0,
+            width: 24.0,
+            height: 16.0,
+            fill: Rgb { r: 255, g: 255, b: 255 },
+            fill_paint: FillPaint::Image {
+                src: "gone.png".to_string(),
+                fit: notation::model::Fit::Cover,
+                placement: notation::model::Placement::center(),
+            },
+            radius: 0.0,
+            border_width: 0.0,
+            border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
+            opacity: 1.0,
+            order: 0,
+            line: 1,
+            column: 1,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
+        })];
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        let dir = std::env::temp_dir().join(format!("framesmith-gpu-gone-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let mut raster = RasterCache::new();
+        let mut cpu = vec![0u8; 64 * 32 * 3];
+        let err = draw_description(
+            &desc,
+            &mut raster,
+            &[],
+            &DynLayouts::default(),
+            false,
+            &[],
+            &[],
+            &[],
+            &crate::path_paint::PathCache::new(),
+            dir.as_path(),
+            &mut cpu,
+        )
+        .expect_err("vanished fill must refuse");
+        assert!(err.contains("gone.png"), "{err}");
+        let mut raster = RasterCache::new();
+        let err = render_description_split(
+            &[],
+            &[],
+            &[],
+            &[],
+            &DynLayouts::default(),
+            false,
+            &mut raster,
+            &crate::path_paint::PathCache::new(),
+            dir.as_path(),
+            &desc,
+        )
+        .expect_err("vanished fill must refuse on the GPU path");
+        assert!(err.contains("gone.png"), "{err}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

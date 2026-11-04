@@ -82,10 +82,45 @@ pub fn own_values(clip: &Clip, canvas: (f64, f64)) -> [f64; PROP_COUNT] {
             own[Prop::RotateY.index()] = ic.turn.rotation_y;
             own[Prop::Blur.index()] = ic.filter_blur;
         }
+        // A vector path owns its offset, paint, and opacity like a
+        // box: motion tweens ride these channels, while `d` and the
+        // fill rule stay authored.
+        Clip::Path(pc) => {
+            own[Prop::X.index()] = pc.x;
+            own[Prop::Y.index()] = pc.y;
+            own[Prop::Opacity.index()] = pc.opacity;
+            own[Prop::FillR.index()] = f64::from(pc.fill.r);
+            own[Prop::FillG.index()] = f64::from(pc.fill.g);
+            own[Prop::FillB.index()] = f64::from(pc.fill.b);
+            own[Prop::BorderWidth.index()] = pc.border_width;
+            own[Prop::BorderR.index()] = f64::from(pc.border_color.r);
+            own[Prop::BorderG.index()] = f64::from(pc.border_color.g);
+            own[Prop::BorderB.index()] = f64::from(pc.border_color.b);
+            own[Prop::RotateX.index()] = pc.turn.rotation_x;
+            own[Prop::RotateY.index()] = pc.turn.rotation_y;
+            own[Prop::Blur.index()] = pc.filter_blur;
+        }
+        // An SVG picture owns its rect like an image: motion tweens
+        // ride the offset and the required extents.
+        Clip::Svg(sc) => {
+            own[Prop::X.index()] = sc.x;
+            own[Prop::Y.index()] = sc.y;
+            own[Prop::Width.index()] = sc.width;
+            own[Prop::Height.index()] = sc.height;
+            own[Prop::RotateX.index()] = sc.turn.rotation_x;
+            own[Prop::RotateY.index()] = sc.turn.rotation_y;
+            own[Prop::Blur.index()] = sc.filter_blur;
+        }
         Clip::Video(vc) => {
             own[Prop::RotateX.index()] = vc.turn.rotation_x;
             own[Prop::RotateY.index()] = vc.turn.rotation_y;
             own[Prop::Blur.index()] = vc.filter_blur;
+        }
+        Clip::Flex(fc) => {
+            own[Prop::X.index()] = fc.x;
+            own[Prop::Y.index()] = fc.y;
+            own[Prop::Width.index()] = fc.width;
+            own[Prop::Height.index()] = fc.height;
         }
         Clip::Audio(_) | Clip::Nest(_) => {}
     }
@@ -1213,6 +1248,8 @@ mod tests {
             line_height: None,
             letter_spacing: None,
             font_family: None,
+            direction: notation::model::TextDirection::Ltr,
+            spans: Vec::new(),
             split: None,
             typewriter: false,
             count_from: None,
@@ -1296,6 +1333,7 @@ mod tests {
             width: 40.0,
             height: 30.0,
             fill: Rgb { r: 255, g: 0, b: 0 },
+            fill_paint: notation::model::FillPaint::Solid,
             radius: 0.0,
             border_width: 0.0,
             border_color: Rgb { r: 0, g: 0, b: 0 },
@@ -1303,6 +1341,14 @@ mod tests {
             order: 0,
             line: 1,
             column: 1,
+            stroke_position: notation::model::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: notation::model::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: notation::model::Overflow::Visible,
+            mask: None,
+            clip_path: None,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
         })
@@ -3110,6 +3156,65 @@ mod tests {
         assert_eq!(at(0), 50.0, "expression wins over the segment tween");
         assert_eq!(at(30), 70.0, "the set wins over the expression");
         assert_eq!(at(59), 50.0, "past the set the expression holds again");
+    }
+
+    #[test]
+    fn to_tween_without_from_animates_from_the_styled_base() {
+        // T006: validation bakes a style into the clip, so a `to`
+        // tween with no `from` opens at the styled base (here x=10)
+        // and interpolates from there; the end holds past the window
+        // like every tween.
+        let comp = comp_with(
+            vec![box_clip(10.0, 1.0)],
+            vec![tween_decl(
+                0,
+                "x",
+                TweenKind::To,
+                None,
+                Some(110.0),
+                0.0,
+                2.0,
+                EaseDecl::Linear,
+            )],
+            vec![],
+        );
+        let motions = plan_motions(&comp, 30);
+        let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k)).x;
+        assert_eq!(at(0), 10.0, "the window opens at the styled base");
+        assert_eq!(at(30), 60.0, "t=1s rides the midpoint 10->110");
+        assert_eq!(at(60), 110.0, "the end frame shows exactly the end value");
+        assert_eq!(at(90), 110.0, "past the window the end value holds");
+    }
+
+    #[test]
+    fn set_on_styled_property_releases_without_stale_restore() {
+        // T006: a set over a styled property holds its window, then
+        // releases to the live value below — the tween's value when
+        // one runs, the styled base otherwise — never a stale copy.
+        let comp = comp_with(
+            vec![box_clip(10.0, 1.0)],
+            vec![tween_decl(
+                0,
+                "x",
+                TweenKind::To,
+                None,
+                Some(110.0),
+                0.0,
+                2.0,
+                EaseDecl::Linear,
+            )],
+            vec![set_decl(0, "x", 50.0, 1.0, 0.5)],
+        );
+        let motions = plan_motions(&comp, 30);
+        let at = |k: u64| motions[0].values_at(frame_time(&comp.fps, k)).x;
+        assert_eq!(at(0), 10.0, "before the set the tween runs from base");
+        assert_eq!(at(30), 50.0, "inside the set window the set wins");
+        assert_eq!(at(44), 50.0, "the last set frame still holds");
+        assert_eq!(
+            at(45),
+            85.0,
+            "past the set the live tween value shows, not a stale restore"
+        );
     }
 
     #[test]

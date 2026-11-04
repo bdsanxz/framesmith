@@ -1,0 +1,32 @@
+composition name="look-reference" width=640 height=520 duration=2 fps=30 background="#101418" version=1 {
+    style name="card" fill="#2a9d8f" stroke-width=3 stroke-color="#f1fa8c" radius=6 x=10 y=410 width=60 height=50
+    style name="cell" fill="#e63946" width=150 height=60
+    flex display="flex" flex-direction="row" gap=10 padding=8 x=20 y=16 width=600 height=110 start=0 duration=2 {
+        box style="cell"
+        box width=150 height=60 fill="#457b9d"
+        box width=150 height=60 fill="#f4a261"
+    }
+    text x=20 y=140 size=40 color="#ffffff" direction="rtl" start=0 duration=2 {
+        span value="Hello " font-size=40 color="#ffd166"
+        span value="مرحبا" font-size=40 color="#06d6a0"
+    }
+    box x=20 y=200 width=190 height=90 start=0 duration=2 {
+        linear-gradient angle=90 {
+            stop offset=0 color="#ff0000"
+            stop offset=0.5 color="#00ff00"
+            stop offset=1 color="#0000ff"
+        }
+    }
+    box x=225 y=200 width=190 height=90 start=0 duration=2 {
+        image-fill src="bg.png" object-fit="cover"
+    }
+    box x=430 y=200 width=190 height=90 fill="#1d3557" stroke-width=6 stroke-color="#ef233c" stroke-position="outside" box-shadow="8 8 12 0 #93a7bd" start=0 duration=2
+    box x=20 y=305 width=150 height=90 fill="#00ff00" order=1 start=0 duration=2
+    box x=90 y=305 width=150 height=90 fill="#ff0000" mix-blend-mode="multiply" order=2 start=0 duration=2
+    path d="M0,0 L120,0 L60,80 Z" x=270 y=305 fill="#b5e048" start=0 duration=2
+    svg path="logo.svg" x=420 y=305 width=96 height=64 start=0 duration=2
+    box style="card" x=480 y=410 width=60 height=50 start=0 duration=2
+    box style="card" x=550 y=410 width=60 height=50 start=0 duration=2
+    box style="card" id="hero" x=30 y=410 width=60 height=50 start=0 duration=2
+    tween target=11 property="x" kind="to" start=0 duration=2 to=400
+}
