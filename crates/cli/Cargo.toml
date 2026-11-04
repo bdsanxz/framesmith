@@ -17,4 +17,8 @@ ffmpeg = { path = "../ffmpeg" }
 log = { path = "../log" }
 layout = { path = "../layout" }
 render = { path = "../render" }
+preview = { path = "../preview" }
 serde_json = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

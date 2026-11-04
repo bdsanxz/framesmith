@@ -38,6 +38,11 @@ fn usage() -> ! {
          \x20 framesmith keyframes [--json] [--composition <name>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] --clip <id> --property <name> <folder>\n\
          \x20 framesmith compare [--json] [--composition <name>] [--at <secs>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] -o <out.png> <folderA> <folderB>\n\
          \x20 framesmith grade-compare [--json] [--composition <name>] [--at <secs>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] -o <out.png> <folder>\n\
+         \x20 framesmith preview [--port <n>] [--composition <name>] [--foreground] <folder>\n\
+         \x20 framesmith preview-status [<folder>]\n\
+         \x20 framesmith preview-stop <folder>\n\
+         \x20 framesmith preview-list\n\
+         \x20 framesmith preview-stop-all\n\
          \x20 framesmith doctor [--json] [<folder>]\n\
          \x20 framesmith benchmark [--json] [--out <dir>]\n\
          \x20 framesmith errors [--json] [CODE]\n\
@@ -179,6 +184,46 @@ fn doctor_usage_error(msg: &str) -> ! {
 fn benchmark_usage_error(msg: &str) -> ! {
     eprintln!("framesmith benchmark: {msg}.");
     eprintln!("usage: framesmith benchmark [--json] [--out <dir>]");
+    std::process::exit(2);
+}
+
+fn preview_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith preview: {msg}.");
+    eprintln!(
+        "usage: framesmith preview [--port <n>] [--composition <name>] [--foreground] <folder>"
+    );
+    std::process::exit(2);
+}
+
+fn preview_status_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith preview-status: {msg}.");
+    eprintln!("usage: framesmith preview-status [<folder>]");
+    std::process::exit(2);
+}
+
+fn preview_stop_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith preview-stop: {msg}.");
+    eprintln!("usage: framesmith preview-stop <folder>");
+    std::process::exit(2);
+}
+
+fn preview_list_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith preview-list: {msg}.");
+    eprintln!("usage: framesmith preview-list");
+    std::process::exit(2);
+}
+
+fn preview_stop_all_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith preview-stop-all: {msg}.");
+    eprintln!("usage: framesmith preview-stop-all");
+    std::process::exit(2);
+}
+
+fn preview_serve_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith preview-serve: {msg}.");
+    eprintln!(
+        "usage: framesmith preview-serve --port <n> --registry <file> [--composition <name>] <folder>"
+    );
     std::process::exit(2);
 }
 
@@ -1377,6 +1422,178 @@ fn main() {
                 None => grade_compare_usage_error("expected exactly one <folder>"),
             }
         }
+        "preview" => {
+            let mut req = commands::PreviewStartRequest::default();
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--port" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_usage_error("--port needs a value (a port number)");
+                        }
+                        if req.port.is_some() {
+                            preview_usage_error("duplicate --port flag");
+                        }
+                        req.port = Some(args[i].clone());
+                    }
+                    "--composition" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_usage_error("--composition needs a value (a composition name)");
+                        }
+                        if req.composition.is_some() {
+                            preview_usage_error("duplicate --composition flag");
+                        }
+                        req.composition = Some(args[i].clone());
+                    }
+                    "--foreground" => {
+                        if req.foreground {
+                            preview_usage_error("duplicate --foreground flag");
+                        }
+                        req.foreground = true;
+                    }
+                    other if other.starts_with('-') => {
+                        preview_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if folder.is_some() {
+                            preview_usage_error(&format!(
+                                "expected exactly one <folder>, found extra {other:?}"
+                            ));
+                        }
+                        folder = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            match folder {
+                Some(f) => commands::cmd_preview(Path::new(&f), &req),
+                None => preview_usage_error("missing <folder>"),
+            }
+        }
+        "preview-status" => {
+            let mut folder: Option<String> = None;
+            for arg in &args[1..] {
+                if arg.starts_with('-') {
+                    preview_status_usage_error(&format!("unknown flag {arg:?}"));
+                } else if folder.is_some() {
+                    preview_status_usage_error(&format!(
+                        "expected at most one <folder>, found extra {arg:?}"
+                    ));
+                } else {
+                    folder = Some(arg.clone());
+                }
+            }
+            commands::cmd_preview_status(folder.as_deref().map(Path::new))
+        }
+        "preview-stop" => {
+            let mut folder: Option<String> = None;
+            for arg in &args[1..] {
+                if arg.starts_with('-') {
+                    preview_stop_usage_error(&format!("unknown flag {arg:?}"));
+                } else if folder.is_some() {
+                    preview_stop_usage_error(&format!(
+                        "expected exactly one <folder>, found extra {arg:?}"
+                    ));
+                } else {
+                    folder = Some(arg.clone());
+                }
+            }
+            match folder {
+                Some(f) => commands::cmd_preview_stop(Path::new(&f)),
+                None => preview_stop_usage_error("missing <folder>"),
+            }
+        }
+        "preview-list" => {
+            if let Some(arg) = args.get(1) {
+                preview_list_usage_error(&format!("expected no arguments, found extra {arg:?}"));
+            }
+            commands::cmd_preview_list()
+        }
+        "preview-stop-all" => {
+            if let Some(arg) = args.get(1) {
+                preview_stop_all_usage_error(&format!(
+                    "expected no arguments, found extra {arg:?}"
+                ));
+            }
+            commands::cmd_preview_stop_all()
+        }
+        "preview-serve" => {
+            let mut port: Option<String> = None;
+            let mut registry: Option<String> = None;
+            let mut composition: Option<String> = None;
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--port" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_serve_usage_error("--port needs a value (a port number)");
+                        }
+                        if port.is_some() {
+                            preview_serve_usage_error("duplicate --port flag");
+                        }
+                        port = Some(args[i].clone());
+                    }
+                    "--registry" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_serve_usage_error("--registry needs a value (a registry file)");
+                        }
+                        if registry.is_some() {
+                            preview_serve_usage_error("duplicate --registry flag");
+                        }
+                        registry = Some(args[i].clone());
+                    }
+                    "--composition" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_serve_usage_error(
+                                "--composition needs a value (a composition name)",
+                            );
+                        }
+                        if composition.is_some() {
+                            preview_serve_usage_error("duplicate --composition flag");
+                        }
+                        composition = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        preview_serve_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if folder.is_some() {
+                            preview_serve_usage_error(&format!(
+                                "expected exactly one <folder>, found extra {other:?}"
+                            ));
+                        }
+                        folder = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            let port: u16 = match port {
+                Some(p) => p.parse().unwrap_or_else(|_| {
+                    preview_serve_usage_error(&format!("--port needs a port number, found {p:?}"))
+                }),
+                None => preview_serve_usage_error("missing --port <n>"),
+            };
+            let registry = match registry {
+                Some(r) => PathBuf::from(r),
+                None => preview_serve_usage_error("missing --registry <file>"),
+            };
+            match folder {
+                Some(f) => commands::cmd_preview_serve(
+                    Path::new(&f),
+                    port,
+                    &registry,
+                    composition.as_deref(),
+                ),
+                None => preview_serve_usage_error("missing <folder>"),
+            }
+        }
         "doctor" => {
             let mut json = false;
             let mut folder: Option<String> = None;
@@ -1449,6 +1666,11 @@ fn main() {
                  \x20 keyframes --clip <id> --property <name> <folder>  list computed per-frame motion values\n\
                  \x20 compare -o <out.png> <folderA> <folderB>  join two renders side by side with an SSIM score\n\
                  \x20 grade-compare -o <out.png> <folder>  split one composition into ungraded and graded halves\n\
+                 \x20 preview [--port <n>] [--composition <name>] [--foreground] <folder>  serve a live review page in the background and print its URL\n\
+                 \x20 preview-status [<folder>]  name the project and port, or none\n\
+                 \x20 preview-stop <folder>  end exactly that server\n\
+                 \x20 preview-list  show every live server\n\
+                 \x20 preview-stop-all  end all servers and report the count\n\
                  \x20 doctor [<folder>]  report environment and project health facts\n\
                  \x20 benchmark [--out <dir>]  time bundled references (machine-specific)"
             );

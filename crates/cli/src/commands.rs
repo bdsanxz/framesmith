@@ -8282,6 +8282,329 @@ pub fn cmd_errors(code: Option<&str>, json: bool) -> i32 {
     }
 }
 
+/// Preview daemon commands (Sprint 14, T006 / CAP-006, J-03, J-04,
+/// STATE-01, INT-002, REC-001, REC-003).
+///
+/// `preview` starts one background server per project directory on a
+/// free loopback port and prints its URL; `preview-status` names the
+/// project and port or reports none; `preview-stop` ends exactly that
+/// server; `preview-list` shows every live server; `preview-stop-all`
+/// ends all and reports the count. A second start for one directory
+/// prints the existing URL; a busy preferred port falls forward with
+/// the new URL printed; stopping a dead server reports
+/// already-stopped; an empty stop-all reports zero and exits 0; a
+/// broken project refuses before any server starts.
+#[derive(Debug, Default)]
+pub struct PreviewStartRequest {
+    /// Raw `--port` flag text. None picks a free port; a busy value
+    /// falls forward to the next free one.
+    pub port: Option<String>,
+    /// Named composition to preview. None previews the root.
+    pub composition: Option<String>,
+    /// Run the server in this process instead of the background.
+    pub foreground: bool,
+}
+
+/// Parse raw `--port` text into a preferred port (Sprint 14, T006).
+fn parse_preview_port(raw: Option<&str>) -> Result<Option<u16>, String> {
+    match raw {
+        None => Ok(None),
+        Some(text) => text.parse::<u16>().map(Some).map_err(|_| {
+            format!("--port needs a value (a port number, for example 8130), found {text:?}")
+        }),
+    }
+}
+
+/// Wait for a spawned `preview-serve` child to record a live entry.
+enum StartWait {
+    Ready(preview::daemon::ServerEntry),
+    ChildExited(Option<i32>),
+    Timeout,
+}
+
+fn wait_for_server(
+    registry: &Path,
+    dir: &str,
+    port: u16,
+    child: &mut std::process::Child,
+    timeout: std::time::Duration,
+) -> StartWait {
+    let start = std::time::Instant::now();
+    loop {
+        if let Some(entry) = preview::daemon::find_ready(registry, dir, port) {
+            return StartWait::Ready(entry);
+        }
+        match child.try_wait() {
+            Ok(Some(status)) => return StartWait::ChildExited(status.code()),
+            Ok(None) => {}
+            Err(_) => return StartWait::Timeout,
+        }
+        if start.elapsed() >= timeout {
+            return StartWait::Timeout;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+}
+
+/// Server log for one spawned child (Sprint 14, T006): the daemon
+/// must not inherit the parent's stderr pipe — a caller capturing the
+/// parent's output would never see EOF while the server lives — so
+/// the child logs to a file and the parent prints its tail when the
+/// start fails.
+fn serve_log_path(port: u16) -> PathBuf {
+    std::env::temp_dir().join(format!("framesmith-preview-serve-{port}.log"))
+}
+
+/// Last lines of a failed server's log for the start-failure report.
+fn serve_log_tail(port: u16) -> String {
+    let body = std::fs::read_to_string(serve_log_path(port)).unwrap_or_default();
+    let lines: Vec<&str> = body.lines().collect();
+    let tail = lines.iter().rev().take(20).rev().cloned().collect::<Vec<_>>();
+    tail.join("\n")
+}
+
+fn spawn_serve_child(
+    port: u16,
+    registry: &Path,
+    folder: &Path,
+    composition: Option<&str>,
+) -> std::io::Result<std::process::Child> {
+    let exe = std::env::current_exe()?;
+    let mut cmd = std::process::Command::new(exe);
+    // Detach into a new session (Unix): the server must outlive the
+    // `preview` parent — and the terminal — so a plain orphan is not
+    // enough. `setsid` cannot fail here: a freshly spawned child is
+    // never a process-group leader.
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+    }
+    let log = std::fs::File::create(serve_log_path(port))?;
+    cmd.arg("preview-serve")
+        .arg("--port")
+        .arg(port.to_string())
+        .arg("--registry")
+        .arg(registry)
+        .arg(folder)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(log);
+    if let Some(name) = composition {
+        cmd.arg("--composition").arg(name);
+    }
+    cmd.spawn()
+}
+
+/// `preview`: start (or reuse) one background server and print its
+/// URL. Returns the process exit code.
+pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
+    let preferred = match parse_preview_port(req.port.as_deref()) {
+        Ok(p) => p,
+        Err(message) => {
+            eprintln!("framesmith preview: {message}.");
+            return 2;
+        }
+    };
+    let registry = preview::daemon::registry_path();
+    let mut candidate = match preview::daemon::plan_start(&registry, folder, preferred) {
+        Ok(preview::daemon::StartPlan::AlreadyRunning(entry)) => {
+            println!("{}", preview::daemon::msg_existing(&entry));
+            return 0;
+        }
+        Ok(preview::daemon::StartPlan::ToStart { port, .. }) => port,
+        Err(refusal) => {
+            eprintln!("{refusal}");
+            return 1;
+        }
+    };
+    // The plan borrows nothing: re-derive the directory key once for
+    // the readiness probes below.
+    let dir = match preview::daemon::validate_project(folder) {
+        Ok(p) => p.dir,
+        Err(refusal) => {
+            eprintln!("{refusal}");
+            return 1;
+        }
+    };
+    if req.foreground {
+        return preview::server::run_serve(&preview::server::ServeOptions {
+            folder: folder.to_path_buf(),
+            port: candidate,
+            registry,
+            composition: req.composition.clone(),
+        });
+    }
+    for _ in 0..10 {
+        let mut child = match spawn_serve_child(candidate, &registry, folder, req.composition.as_deref())
+        {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("framesmith preview: cannot start the preview server: {e}.");
+                return 1;
+            }
+        };
+        match wait_for_server(
+            &registry,
+            &dir,
+            candidate,
+            &mut child,
+            std::time::Duration::from_secs(20),
+        ) {
+            StartWait::Ready(entry) => {
+                println!("{}", preview::daemon::msg_started(&entry));
+                println!("open {} in a browser to review.", entry.url);
+                return 0;
+            }
+            StartWait::ChildExited(Some(preview::server::PORT_BUSY_EXIT)) => {
+                // The port raced us: fall forward and retry, but first
+                // re-check the registry — a sibling start may have won
+                // this directory while we spawned.
+                if let Some(entry) = preview::daemon::find_live_for(&registry, &dir) {
+                    println!("{}", preview::daemon::msg_existing(&entry));
+                    return 0;
+                }
+                match preview::daemon::pick_port(Some(candidate.saturating_add(1))) {
+                    Ok(next) => candidate = next,
+                    Err(message) => {
+                        eprintln!("{message}; no preview was started");
+                        return 1;
+                    }
+                }
+                continue;
+            }
+            StartWait::ChildExited(code) => {
+                let tail = serve_log_tail(candidate);
+                eprintln!(
+                    "framesmith preview: the preview server exited before serving (exit {}); fix the cause and re-run. No preview was started.\nserver log {}:\n{tail}",
+                    code.map(|c| c.to_string()).as_deref().unwrap_or("?"),
+                    serve_log_path(candidate).display()
+                );
+                return 1;
+            }
+            StartWait::Timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let tail = serve_log_tail(candidate);
+                eprintln!(
+                    "framesmith preview: the preview server did not answer within 20s; fix the cause and re-run. No preview was started.\nserver log {}:\n{tail}",
+                    serve_log_path(candidate).display()
+                );
+                return 1;
+            }
+        }
+    }
+    eprintln!("framesmith preview: the preferred ports stayed busy; free one and re-run. No preview was started.");
+    1
+}
+
+/// `preview-status`: name the project's server and port, or none.
+/// With no folder, list every live server instead.
+pub fn cmd_preview_status(folder: Option<&Path>) -> i32 {
+    let registry = preview::daemon::registry_path();
+    match folder {
+        Some(f) => {
+            let dir = preview::daemon::canonical_dir(f)
+                .unwrap_or_else(|_| f.to_string_lossy().into_owned());
+            match preview::daemon::list_servers(&registry) {
+                Ok(entries) => {
+                    match entries.iter().find(|e| e.dir == dir) {
+                        Some(entry) => println!("{}", preview::daemon::msg_status_some(entry)),
+                        None => println!("{}", preview::daemon::msg_status_none(&dir)),
+                    }
+                    0
+                }
+                Err(message) => {
+                    eprintln!("{message}");
+                    1
+                }
+            }
+        }
+        None => cmd_preview_list(),
+    }
+}
+
+/// `preview-stop`: end exactly that server, or report already-stopped
+/// when the entry is missing or dead.
+pub fn cmd_preview_stop(folder: &Path) -> i32 {
+    let registry = preview::daemon::registry_path();
+    let dir =
+        preview::daemon::canonical_dir(folder).unwrap_or_else(|_| folder.to_string_lossy().into_owned());
+    match preview::daemon::stop_server(&registry, &dir) {
+        Ok(preview::daemon::StopOutcome::Stopped(entry)) => {
+            println!("{}", preview::daemon::msg_stopped(&entry));
+            0
+        }
+        Ok(preview::daemon::StopOutcome::AlreadyStopped { dir }) => {
+            println!("{}", preview::daemon::msg_already_stopped(&dir));
+            0
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            1
+        }
+    }
+}
+
+/// `preview-list`: show every live server.
+pub fn cmd_preview_list() -> i32 {
+    let registry = preview::daemon::registry_path();
+    match preview::daemon::list_servers(&registry) {
+        Ok(entries) => {
+            println!("{}", preview::daemon::msg_list(&entries));
+            0
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            1
+        }
+    }
+}
+
+/// `preview-stop-all`: end all servers and report the count; an empty
+/// registry reports zero and still exits 0.
+pub fn cmd_preview_stop_all() -> i32 {
+    let registry = preview::daemon::registry_path();
+    match preview::daemon::stop_all_servers(&registry) {
+        Ok(outcome) => {
+            for entry in &outcome.stopped {
+                println!("{}", preview::daemon::msg_stopped(entry));
+            }
+            for dir in &outcome.already {
+                println!("{}", preview::daemon::msg_already_stopped(dir));
+            }
+            println!("{}", preview::daemon::msg_stop_all(&outcome));
+            0
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            1
+        }
+    }
+}
+
+/// `preview-serve` (internal): the background child `preview` spawns.
+/// Validates and opens the session before binding, records the
+/// registry entry, and serves until `/api/shutdown`.
+pub fn cmd_preview_serve(
+    folder: &Path,
+    port: u16,
+    registry: &Path,
+    composition: Option<&str>,
+) -> i32 {
+    preview::server::run_serve(&preview::server::ServeOptions {
+        folder: folder.to_path_buf(),
+        port,
+        registry: registry.to_path_buf(),
+        composition: composition.map(|s| s.to_string()),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

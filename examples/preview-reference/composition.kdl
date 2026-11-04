@@ -1,0 +1,6 @@
+composition name="preview" width=320 height=180 duration=2 fps=10 background="#112233" version=1 {
+    box id="slide" start=0 duration=2 x=10 y=60 width=40 height=40 fill="#ff0000"
+    tween target=0 property="x" kind="to" start=0 duration=2 to=200 ease="linear"
+    text id="title" value="Preview" start=0 duration=2 x=10 y=20 size=28 color="#ffffff"
+    audio id="tone" path="tone.wav" start=0 duration=1
+}

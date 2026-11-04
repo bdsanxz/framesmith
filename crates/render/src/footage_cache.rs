@@ -43,6 +43,14 @@ pub struct CacheStats {
 
 /// Directory holding cache entries inside the project log dir.
 const CACHE_DIR_NAME: &[&str] = &["logs", "framesmith-footage-cache"];
+/// Environment override for the cache directory root (Sprint 14 preview,
+/// T001): when `FRAMESMITH_FOOTAGE_CACHE_DIR` names a directory, entries
+/// live under a per-project subdirectory of that root instead of inside
+/// the project, so preview sessions never write into the project
+/// directory. Unset or empty keeps the project-local directory, and
+/// default renders behave exactly as before (same keys, same bytes —
+/// only the location differs).
+const DIR_ENV: &str = "FRAMESMITH_FOOTAGE_CACHE_DIR";
 /// Entry filename prefix and suffix (`fc-<key-hex>.bin`).
 const ENTRY_PREFIX: &str = "fc-";
 const ENTRY_SUFFIX: &str = ".bin";
@@ -288,14 +296,33 @@ pub struct FootageCache {
     content_hashes: HashMap<PathBuf, Option<u64>>,
 }
 
+/// Cache directory for one project folder: the project-local log dir,
+/// or — when `FRAMESMITH_FOOTAGE_CACHE_DIR` names a root — a
+/// per-project subdirectory of that root (Sprint 14 preview, T001).
+/// The per-project leaf hashes the folder path, so two same-named
+/// projects in different parents never share entries.
+fn cache_dir(folder: &Path) -> PathBuf {
+    let mut dir = match std::env::var(DIR_ENV).ok().filter(|v| !v.trim().is_empty()) {
+        Some(root) => {
+            let mut h = Fnv64::new();
+            h.update(folder.as_os_str().as_encoded_bytes());
+            let mut dir = PathBuf::from(root);
+            dir.push(format!("proj-{:016x}", h.finish()));
+            dir
+        }
+        None => folder.to_path_buf(),
+    };
+    for part in CACHE_DIR_NAME {
+        dir.push(part);
+    }
+    dir
+}
+
 impl FootageCache {
     /// Open the project cache, creating the directory. Any failure
     /// disables caching for the run (all misses, correct decodes).
     pub fn open(folder: &Path) -> Self {
-        let mut dir = folder.to_path_buf();
-        for part in CACHE_DIR_NAME {
-            dir.push(part);
-        }
+        let dir = cache_dir(folder);
         let max_bytes = max_bytes();
         let enabled = std::fs::create_dir_all(&dir).is_ok();
         let this = Self {
@@ -498,11 +525,7 @@ fn read_entries(dir: &Path) -> Option<Vec<(String, u64, (u64, u64, u64))>> {
 /// Test hook: the cache directory for one project folder.
 #[cfg(test)]
 pub(crate) fn cache_dir_for(folder: &Path) -> PathBuf {
-    let mut dir = folder.to_path_buf();
-    for part in CACHE_DIR_NAME {
-        dir.push(part);
-    }
-    dir
+    cache_dir(folder)
 }
 
 /// Test hook: hash a short label with the same function the keys use.
@@ -604,6 +627,7 @@ mod tests {
 
     #[test]
     fn store_and_load_through_the_filesystem_with_bypass() {
+        let (_lock, _restore) = DirEnvGuard::unset();
         let folder = std::env::temp_dir().join(format!(
             "framesmith-footage-cache-unit-{}-{}",
             std::process::id(),
@@ -680,6 +704,7 @@ mod tests {
 
     #[test]
     fn edited_media_bytes_never_read_stale() {
+        let (_lock, _restore) = DirEnvGuard::unset();
         let folder = std::env::temp_dir().join(format!(
             "framesmith-footage-cache-fresh-{}",
             std::process::id()
@@ -736,5 +761,127 @@ mod tests {
         assert_eq!(got.frames, second.frames);
         assert_eq!(second_render.stats(), CacheStats { hits: 0, misses: 1 });
         let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    /// Serializes the override tests below: the directory root rides on
+    /// process-global environment, so concurrent tests must not fight
+    /// over it. The guard restores the previous value on drop, even on
+    /// panic, so no other test observes the override.
+    static DIR_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    struct DirEnvGuard {
+        previous: Option<String>,
+    }
+
+    impl DirEnvGuard {
+        fn set(value: &str) -> (std::sync::MutexGuard<'static, ()>, Self) {
+            let guard = DIR_ENV_LOCK.lock().unwrap();
+            let previous = std::env::var(DIR_ENV).ok();
+            std::env::set_var(DIR_ENV, value);
+            (guard, Self { previous })
+        }
+
+        fn unset() -> (std::sync::MutexGuard<'static, ()>, Self) {
+            let guard = DIR_ENV_LOCK.lock().unwrap();
+            let previous = std::env::var(DIR_ENV).ok();
+            std::env::remove_var(DIR_ENV);
+            (guard, Self { previous })
+        }
+    }
+
+    impl Drop for DirEnvGuard {
+        fn drop(&mut self) {
+            match &self.previous {
+                Some(v) => std::env::set_var(DIR_ENV, v),
+                None => std::env::remove_var(DIR_ENV),
+            }
+        }
+    }
+
+    #[test]
+    fn cache_dir_override_moves_entries_outside_the_project() {
+        let (_lock, _restore) = DirEnvGuard::unset();
+        let folder = std::env::temp_dir().join(format!(
+            "framesmith-footage-cache-default-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        // No override: the project-local log dir, exactly as before.
+        assert_eq!(cache_dir_for(&folder), folder.join("logs").join("framesmith-footage-cache"));
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn cache_dir_override_root_keeps_project_untouched() {
+        let root = std::env::temp_dir().join(format!(
+            "framesmith-footage-cache-root-{}",
+            std::process::id()
+        ));
+        let (_lock, _restore) = DirEnvGuard::set(root.to_str().unwrap());
+        let folder = std::env::temp_dir().join(format!(
+            "framesmith-footage-cache-proj-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        let media = folder.join("clip.bin");
+        std::fs::write(&media, b"fake-media-bytes").unwrap();
+        let mut cache = FootageCache::open(&folder);
+        assert!(cache.dir.is_some());
+        // Nothing lands inside the project, not even the log dir shell.
+        assert!(!folder.join("logs").exists());
+        let range = range_of(0, 1);
+        cache
+            .decode_window(
+                Path::new("ffmpeg"),
+                &media,
+                0.0,
+                1.0,
+                64,
+                48,
+                0.0,
+                0,
+                || Ok(range.clone()),
+            )
+            .unwrap();
+        assert!(!folder.join("logs").exists());
+        // Entries live under the override root instead.
+        let dir = cache_dir_for(&folder);
+        assert!(dir.starts_with(&root), "{dir:?} must sit under {root:?}");
+        assert!(std::fs::read_dir(&dir).unwrap().count() > 0);
+        // Same keys, same bytes through the moved cache: a fresh open
+        // hits without running the decoder.
+        let mut again = FootageCache::open(&folder);
+        let hit = again
+            .decode_window(
+                Path::new("ffmpeg"),
+                &media,
+                0.0,
+                1.0,
+                64,
+                48,
+                0.0,
+                0,
+                || Err("decoder must not run on a hit".to_string()),
+            )
+            .unwrap();
+        assert_eq!(hit.frames, range.frames);
+        assert_eq!(again.stats(), CacheStats { hits: 1, misses: 0 });
+        // Same-named projects in different parents never share entries.
+        let sibling = folder.with_extension("other");
+        let _ = std::fs::remove_dir_all(&sibling);
+        std::fs::create_dir_all(&sibling).unwrap();
+        assert_ne!(cache_dir_for(&folder), cache_dir_for(&sibling));
+        let _ = std::fs::remove_dir_all(&folder);
+        let _ = std::fs::remove_dir_all(&sibling);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn cache_dir_empty_override_keeps_the_default() {
+        let (_lock, _restore) = DirEnvGuard::set("   ");
+        let folder = Path::new("/tmp/framesmith-footage-cache-empty-probe");
+        assert_eq!(cache_dir_for(folder), folder.join("logs").join("framesmith-footage-cache"));
     }
 }

@@ -83,8 +83,10 @@ dependencies = [
  "ffmpeg",
  "glyph",
  "layout",
+ "libc",
  "log 0.1.0",
  "notation",
+ "preview",
  "render",
  "serde_json",
  "validate",
@@ -623,6 +625,15 @@ dependencies = [
  "serde_core",
  "writeable",
  "zerovec",
+]
+
+[[package]]
+name = "preview"
+version = "0.1.0"
+dependencies = [
+ "notation",
+ "render",
+ "validate",
 ]
 
 [[package]]
