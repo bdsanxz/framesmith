@@ -108,6 +108,7 @@ mod tests {
 
     fn clip(value: &str, start: f64, duration: f64) -> TextClip {
         TextClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,

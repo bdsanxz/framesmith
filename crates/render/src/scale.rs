@@ -617,6 +617,8 @@ mod tests {
 
     fn comp_with(clips: Vec<Clip>, tweens: Vec<TweenDecl>, keys: Vec<KeyDecl>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -647,6 +649,7 @@ mod tests {
 
     fn text_clip() -> TextClip {
         TextClip {
+            asserts: Default::default(),
             value: "Hi".to_string(),
             start: 0.0,
             duration: 2.0,

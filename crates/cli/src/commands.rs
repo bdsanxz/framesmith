@@ -1,4 +1,4 @@
-//! `init`, `check`, `render` and `errors` command implementations.
+//! `init`, `check`, `lint`, `render` and `errors` command implementations.
 //!
 //! Sprint 1 scope (T001–T010 except drawing, sound and the full run log):
 //!
@@ -22,6 +22,7 @@ use log::log;
 use notation::model::Composition;
 use std::path::{Path, PathBuf};
 use validate::catalog::{self, json_escape};
+use validate::lint;
 use validate::validate as validate_mod;
 use validate_mod::{
     validate_folder, validate_folder_with_variables_strict_themed, Status, Verdict,
@@ -429,6 +430,256 @@ fn preview_master_peak(folder: &Path, verdict: &Verdict) -> Option<u32> {
     }
 }
 
+/// Human-readable lint report (Sprint 13 check, T001 / CAP-001): the
+/// batched findings plus unrunnable-rule notes, then the explicit
+/// zero-or-count summary. Pure function shared by `check` and `lint`
+/// so both commands print the same findings for the same project.
+pub fn format_lint_human(folder: &Path, verdict: &Verdict) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    for f in &verdict.lint_findings {
+        let _ = writeln!(out, "{f}");
+    }
+    for n in &verdict.lint_notes {
+        let _ = writeln!(out, "{n}");
+    }
+    if verdict.lint_findings.is_empty() && verdict.lint_notes.is_empty() {
+        let _ = writeln!(
+            out,
+            "lint: 0 findings across {} rules in {}.",
+            lint::RULE_IDS.len(),
+            folder.display()
+        );
+    } else {
+        let _ = writeln!(
+            out,
+            "lint: {} finding(s) and {} note(s) across {} rules in {} (warnings do not block).",
+            verdict.lint_findings.len(),
+            verdict.lint_notes.len(),
+            lint::RULE_IDS.len(),
+            folder.display()
+        );
+    }
+    out
+}
+
+/// One validation diagnostic as JSON (Sprint 1 T007): file, line,
+/// column, code, message, and fix. Shared by the `check` and `lint`
+/// machine-readable reports so both name the same problems.
+fn push_diagnostics_json(out: &mut String, verdict: &Verdict) {
+    use std::fmt::Write;
+    for (i, d) in verdict.diagnostics.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"file\":\"{}\",\"line\":{},\"column\":{},\"code\":\"{}\",\"message\":\"{}\",\"fix\":\"{}\"}}",
+            json_escape(&d.file),
+            d.line,
+            d.column,
+            json_escape(d.code),
+            json_escape(&d.message),
+            json_escape(&d.fix)
+        );
+    }
+}
+
+/// Lint findings and notes as JSON arrays (Sprint 13 check, T001 /
+/// CAP-001): `"lint":[...]` plus `"lint_notes":[...]`, every finding
+/// carrying its rule, severity, source, file, line, column, message,
+/// and fix. Shared by `check` and `lint` so both commands report the
+/// same findings machine-readably.
+fn push_lint_json(out: &mut String, verdict: &Verdict) {
+    use std::fmt::Write;
+    out.push_str("\"lint\":[");
+    for (i, f) in verdict.lint_findings.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"rule\":\"{}\",\"severity\":\"{}\",\"source\":\"{}\",\"file\":\"{}\",\"line\":{},\"column\":{},\"message\":\"{}\",\"fix\":\"{}\"}}",
+            json_escape(f.rule),
+            json_escape(f.severity.as_str()),
+            json_escape(f.source.as_str()),
+            json_escape(&f.file),
+            f.line,
+            f.column,
+            json_escape(&f.message),
+            json_escape(&f.fix)
+        );
+    }
+    out.push_str("],\"lint_notes\":[");
+    for (i, n) in verdict.lint_notes.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"rule\":\"{}\",\"file\":\"{}\",\"line\":{},\"column\":{},\"cause\":\"{}\",\"workaround\":\"{}\"}}",
+            json_escape(n.rule),
+            json_escape(&n.file),
+            n.line,
+            n.column,
+            json_escape(&n.cause),
+            json_escape(&n.workaround)
+        );
+    }
+    out.push(']');
+}
+
+/// Apply release-gate strictness to a verdict's lint batch (Sprint 13
+/// check, T007 / CAP-007): elevate every matching finding from
+/// warning to error and return the elevated count. The finding and
+/// note counts never change; callers compare counts across modes to
+/// prove strictness invents nothing.
+pub fn apply_strict_to_verdict(verdict: &mut Verdict, mode: lint::StrictMode) -> usize {
+    let mut elevated = 0;
+    for finding in &mut verdict.lint_findings {
+        if lint::strict_elevates(finding.rule, mode)
+            && finding.severity != lint::LintSeverity::Error
+        {
+            finding.severity = lint::LintSeverity::Error;
+            elevated += 1;
+        }
+    }
+    elevated
+}
+
+/// Sorted unique rule ids currently at error severity in a verdict
+/// that strictness elevated (Sprint 13 check, T007): the named set
+/// for gate messages, so a stopped run says which rules blocked it.
+pub fn elevated_rule_names(verdict: &Verdict) -> Vec<&'static str> {
+    let mut rules: Vec<&'static str> = verdict
+        .lint_findings
+        .iter()
+        .filter(|f| f.severity == lint::LintSeverity::Error)
+        .map(|f| f.rule)
+        .collect();
+    rules.sort_unstable();
+    rules.dedup();
+    rules
+}
+
+/// Human-readable strict-gate stop line for `check` and `lint`
+/// (Sprint 13 check, T007 / REC-004): the mode, the elevated count,
+/// and the fix. The elevated findings themselves print just above
+/// through the normal lint batch, each with its rule and fix; this
+/// line states the gate so the stop is explicit on a valid project.
+pub fn format_strict_gate_human(mode: lint::StrictMode, elevated: usize) -> String {
+    format!(
+        "strict: {elevated} finding(s) elevated to errors by {} on a valid project; fix the findings above or re-run without {} to keep warnings as warnings. Nothing was written.",
+        mode.flag(),
+        mode.flag()
+    )
+}
+
+/// Human-readable lint summary with the strict footer swapped in
+/// (Sprint 13 check, T007): the normal human batch, except the
+/// `(warnings do not block)` tail reads as the elevation it became
+/// when `mode` elevated at least one finding. Pure function shared
+/// by the `check` and `lint` strict paths so both stay consistent.
+pub fn format_lint_human_gated(
+    folder: &Path,
+    verdict: &Verdict,
+    mode: lint::StrictMode,
+    elevated: usize,
+) -> String {
+    let out = format_lint_human(folder, verdict);
+    if elevated == 0 || mode == lint::StrictMode::Off || verdict.status != Status::Valid {
+        return out;
+    }
+    let mut out = out.replacen(
+        "(warnings do not block)",
+        &format!("({elevated} elevated to errors by {})", mode.flag()),
+        1,
+    );
+    out.push_str(&format_strict_gate_human(mode, elevated));
+    out.push('\n');
+    out
+}
+
+/// Fold a strict gate into a verdict JSON report (Sprint 13 check,
+/// T007): the normal report, except a gated valid run exits 1 (the
+/// REC-004 gate shares the invalid exit) and carries the mode plus
+/// the elevated count. Only valid reports gate: invalid and
+/// unsupported reports keep their own exits. Pure function shared by
+/// the `check` and `lint` strict paths.
+fn patch_gated_json(report: String, mode: lint::StrictMode, elevated: usize) -> String {
+    let mut out = report.replacen("\"exit\":0", "\"exit\":1", 1);
+    out.pop();
+    use std::fmt::Write;
+    let _ = write!(
+        out,
+        ",\"strict\":\"{}\",\"elevated\":{}}}",
+        mode.as_str(),
+        elevated
+    );
+    out
+}
+
+/// Machine-readable lint report with the strict gate folded in
+/// (Sprint 13 check, T007 / CAP-001): like [`format_lint_json`],
+/// except a gated valid run exits 1 and names its mode. Pure
+/// function for testability.
+pub fn format_lint_json_gated(
+    folder: &Path,
+    verdict: &Verdict,
+    mode: lint::StrictMode,
+    elevated: usize,
+) -> String {
+    let report = format_lint_json(folder, verdict);
+    if elevated == 0 || mode == lint::StrictMode::Off || verdict.status != Status::Valid {
+        report
+    } else {
+        patch_gated_json(report, mode, elevated)
+    }
+}
+
+/// Machine-readable check report with the strict gate folded in
+/// (Sprint 13 check, T007): like [`format_check_json`], except a
+/// gated valid run exits 1 and names its mode. Pure function for
+/// testability.
+pub fn format_check_json_gated(
+    folder: &Path,
+    verdict: &Verdict,
+    master: Option<u32>,
+    mode: lint::StrictMode,
+    elevated: usize,
+) -> String {
+    let report = format_check_json(folder, verdict, master);
+    if elevated == 0 || mode == lint::StrictMode::Off || verdict.status != Status::Valid {
+        report
+    } else {
+        patch_gated_json(report, mode, elevated)
+    }
+}
+
+/// Machine-readable lint report (Sprint 13 check, T001 / CAP-001): the
+/// same verdict status, exit, and diagnostics as `check` plus the same
+/// lint arrays, under the `lint` command name. Pure function for
+/// testability.
+pub fn format_lint_json(folder: &Path, verdict: &Verdict) -> String {
+    use std::fmt::Write;
+    let (status, exit) = match verdict.status {
+        Status::Valid => ("valid", 0),
+        Status::Invalid => ("invalid", 1),
+        Status::Unsupported => ("unsupported", 2),
+    };
+    let mut out = String::new();
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"lint\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"diagnostics\":[",
+        json_escape(&folder.display().to_string())
+    );
+    push_diagnostics_json(&mut out, verdict);
+    out.push_str("],");
+    push_lint_json(&mut out, verdict);
+    let _ = write!(out, ",\"lint_rules\":{}}}", lint::RULE_IDS.len());
+    out
+}
+
 /// Human-readable check report. Pure function so tests can compare it
 /// against the `--json` form and the render refusal text (T006/T007).
 /// `master` carries the preview master peak when one was measurable
@@ -476,6 +727,10 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict, master: Option<u32>)
             let _ = writeln!(out, "{w}");
         }
     }
+    // Sprint 13 check, T001 / CAP-001: `check` runs the lint rules
+    // together with validation and reports everything at once — the
+    // same batch `lint` prints, so both commands agree.
+    out.push_str(&format_lint_human(folder, verdict));
     match verdict.status {
         Status::Valid => {
             let c = verdict.composition.as_ref().unwrap();
@@ -527,6 +782,31 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict, master: Option<u32>)
     out
 }
 
+/// Human-readable check report with the strict gate folded in
+/// (Sprint 13 check, T007): like [`format_check_human`], except a
+/// gated valid run swaps the warnings footer for the elevation and
+/// appends the strict stop line. Pure function for testability.
+pub fn format_check_human_gated(
+    folder: &Path,
+    verdict: &Verdict,
+    master: Option<u32>,
+    mode: lint::StrictMode,
+    elevated: usize,
+) -> String {
+    let out = format_check_human(folder, verdict, master);
+    if elevated == 0 || mode == lint::StrictMode::Off || verdict.status != Status::Valid {
+        return out;
+    }
+    let mut out = out.replacen(
+        "(warnings do not block)",
+        &format!("({elevated} elevated to errors by {})", mode.flag()),
+        1,
+    );
+    out.push_str(&format_strict_gate_human(mode, elevated));
+    out.push('\n');
+    out
+}
+
 /// Machine-readable check report (T007): exactly the same diagnostic set
 /// as the human text, one line of JSON carrying file, line, column and
 /// code per item. Pure function for testability. `master` carries the
@@ -559,28 +839,18 @@ pub fn format_verdict_json(
         json_escape(cmd),
         json_escape(&folder.display().to_string())
     );
-    for (i, d) in verdict.diagnostics.iter().enumerate() {
-        if i > 0 {
-            out.push(',');
-        }
-        let _ = write!(
-            out,
-            "{{\"file\":\"{}\",\"line\":{},\"column\":{},\"code\":\"{}\",\"message\":\"{}\",\"fix\":\"{}\"}}",
-            json_escape(&d.file),
-            d.line,
-            d.column,
-            json_escape(d.code),
-            json_escape(&d.message),
-            json_escape(&d.fix)
-        );
-    }
+    push_diagnostics_json(&mut out, verdict);
+    // Sprint 13 check, T001 / CAP-001: the same lint batch the `lint`
+    // command prints, so `check --json` and `lint --json` agree.
+    out.push_str("],");
+    push_lint_json(&mut out, verdict);
     // Sprint 5 T001/T009: the same effective windows as the human echo,
     // plus the resolved clip length and its inferred marking, so
     // inference and clamping are reviewable machine-readably.
     // Sprint 9 variables (CAP-003): unknown `--variables` keys ride
     // along machine-readably with the same key, message, and fix the
     // human warning carries; empty for override-free runs.
-    out.push_str("],\"variable_warnings\":[");
+    out.push_str(",\"variable_warnings\":[");
     for (i, w) in verdict.variable_warnings.iter().enumerate() {
         if i > 0 {
             out.push(',');
@@ -885,7 +1155,7 @@ pub fn cmd_check_full(
     backend: Option<&str>,
     variables: Option<&str>,
 ) -> i32 {
-    cmd_check_full_strict(folder, json, backend, variables, false)
+    cmd_check_full_strict(folder, json, backend, variables, false, lint::StrictMode::Off)
 }
 
 /// `check` with per-render caller values and an explicit strict switch
@@ -904,8 +1174,9 @@ pub fn cmd_check_full_strict(
     backend: Option<&str>,
     variables: Option<&str>,
     strict: bool,
+    strict_mode: lint::StrictMode,
 ) -> i32 {
-    cmd_check_full_strict_themed(folder, json, backend, variables, strict, None)
+    cmd_check_full_strict_themed(folder, json, backend, variables, strict, None, strict_mode)
 }
 
 /// `check` with per-render caller values, strict mode, and a theme
@@ -913,7 +1184,10 @@ pub fn cmd_check_full_strict(
 /// `--theme` name; `None` selects no caller theme, so each composition
 /// falls back to its own `theme` attribute. The caller theme beats the
 /// composition attribute; an unknown name on either side refuses before
-/// frame one naming the available themes.
+/// frame one naming the available themes. `strict_mode` is the release
+/// gate (Sprint 13 check, T007 / CAP-007): `--strict` elevates the
+/// named warnings to errors, `--strict-all` elevates every warning;
+/// a gated valid run exits 1 listing each elevated finding.
 pub fn cmd_check_full_strict_themed(
     folder: &Path,
     json: bool,
@@ -921,6 +1195,7 @@ pub fn cmd_check_full_strict_themed(
     variables: Option<&str>,
     strict: bool,
     theme: Option<&str>,
+    strict_mode: lint::StrictMode,
 ) -> i32 {
     if let Some(raw) = backend {
         if render::render::Backend::parse(raw).is_none() {
@@ -946,6 +1221,11 @@ pub fn cmd_check_full_strict_themed(
     // Sprint 10 sound (CAP-009): silent normalization fails closed in
     // `check` too, before any peak is previewed.
     apply_normalize_silence_gate(folder, &mut verdict);
+    // Sprint 13 check (T007 / CAP-007): elevate after every other
+    // verdict mutation so the finding count matches the default run
+    // exactly; only a valid project with elevated findings gates.
+    let elevated = apply_strict_to_verdict(&mut verdict, strict_mode);
+    let gated = verdict.status == Status::Valid && elevated > 0;
     // Sprint 10 sound (CAP-011): a valid project additionally reports
     // its preview master peak (and warns when hot); anything else —
     // no FFmpeg, an undecodable source, an invalid project — reports
@@ -956,14 +1236,24 @@ pub fn cmd_check_full_strict_themed(
         None
     };
     if json {
-        println!("{}", format_check_json(folder, &verdict, master));
+        println!(
+            "{}",
+            format_check_json_gated(folder, &verdict, master, strict_mode, elevated)
+        );
     } else {
-        print!("{}", format_check_human(folder, &verdict, master));
+        print!(
+            "{}",
+            format_check_human_gated(folder, &verdict, master, strict_mode, elevated)
+        );
     }
-    let code = match verdict.status {
-        Status::Valid => 0,
-        Status::Invalid => 1,
-        Status::Unsupported => 2,
+    let code = if gated {
+        1
+    } else {
+        match verdict.status {
+            Status::Valid => 0,
+            Status::Invalid => 1,
+            Status::Unsupported => 2,
+        }
     };
     // T015: every validation run appends its notable events to the run
     // log (`note_log` states the gap when there is nowhere to write).
@@ -975,10 +1265,21 @@ pub fn cmd_check_full_strict_themed(
         &format!("check start folder={}", folder.display()),
         json,
     );
-    let (level, what) = match verdict.status {
-        Status::Valid => ("info", "check valid"),
-        Status::Invalid => ("warn", "check invalid"),
-        Status::Unsupported => ("warn", "check unsupported"),
+    let (level, what) = if gated {
+        (
+            "warn",
+            format!(
+                "check gated by {} ({} elevated)",
+                strict_mode.flag(),
+                elevated
+            ),
+        )
+    } else {
+        match verdict.status {
+            Status::Valid => ("info", "check valid".to_string()),
+            Status::Invalid => ("warn", "check invalid".to_string()),
+            Status::Unsupported => ("warn", "check unsupported".to_string()),
+        }
     };
     note_log(
         folder,
@@ -988,6 +1289,127 @@ pub fn cmd_check_full_strict_themed(
         &format!(
             "{what}: {} diagnostic(s), exit {code}",
             verdict.diagnostics.len()
+        ),
+        json,
+    );
+    code
+}
+
+/// `lint`: report the named-rule findings without rendering (Sprint 13
+/// check, T001 / CAP-001). Runs the same validation as `check` and
+/// prints the same batched lint report `check` embeds — human text or
+/// machine-readable JSON — and exits with the same codes (0 valid,
+/// 1 invalid, 2 unsupported). Findings are warnings and never change
+/// the exit on their own; on invalid or unsupported projects the
+/// validation diagnostics print first, then the lint batch, so one run
+/// still reports everything at once. Never writes an MP4 and never
+/// shells to FFmpeg: the T001 packs are static analysis.
+pub fn cmd_lint(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
+    cmd_lint_full_strict_themed(folder, json, backend, None, false, None, lint::StrictMode::Off)
+}
+
+/// Resolve the release-gate strictness from the `--strict` and
+/// `--strict-all` flags (Sprint 13 check, T007 / CAP-007):
+/// `--strict-all` wins when both are set, though the CLI refuses the
+/// combination with exit 2 before it can reach here.
+pub fn resolve_strict_mode(strict: bool, strict_all: bool) -> lint::StrictMode {
+    if strict_all {
+        lint::StrictMode::All
+    } else if strict {
+        lint::StrictMode::Named
+    } else {
+        lint::StrictMode::Off
+    }
+}
+
+/// `lint` with per-render caller values, strict variable mode, and a
+/// theme selection (Sprint 13 check, T001): the same knobs as
+/// [`cmd_check_full_strict_themed`], the same validation underneath,
+/// only the report differs. `strict_mode` is the release gate
+/// (Sprint 13 check, T007 / CAP-007): a gated valid run exits 1
+/// listing each elevated finding with its rule and fix.
+pub fn cmd_lint_full_strict_themed(
+    folder: &Path,
+    json: bool,
+    backend: Option<&str>,
+    variables: Option<&str>,
+    strict: bool,
+    theme: Option<&str>,
+    strict_mode: lint::StrictMode,
+) -> i32 {
+    if let Some(raw) = backend {
+        if render::render::Backend::parse(raw).is_none() {
+            let msg =
+                format!("framesmith lint: unknown --backend {raw:?}: expected cpu, gpu, or auto.");
+            eprintln!("{msg}");
+            return 1;
+        }
+    }
+    let overrides = match variables {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => match validate_mod::parse_variable_overrides(raw) {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("framesmith lint: {e}");
+                return 1;
+            }
+        },
+    };
+    let run = log::run_id();
+    let mut verdict =
+        validate_folder_with_variables_strict_themed(folder, &overrides, strict, theme);
+    // Sprint 13 check (T007 / CAP-007): elevate after validation so
+    // the finding count matches the default run exactly; only a valid
+    // project with elevated findings gates.
+    let elevated = apply_strict_to_verdict(&mut verdict, strict_mode);
+    let gated = verdict.status == Status::Valid && elevated > 0;
+    if json {
+        println!(
+            "{}",
+            format_lint_json_gated(folder, &verdict, strict_mode, elevated)
+        );
+    } else {
+        for d in &verdict.diagnostics {
+            println!("{d}");
+        }
+        for w in &verdict.variable_warnings {
+            println!("{w}");
+        }
+        print!(
+            "{}",
+            format_lint_human_gated(folder, &verdict, strict_mode, elevated)
+        );
+    }
+    let code = if gated {
+        1
+    } else {
+        match verdict.status {
+            Status::Valid => 0,
+            Status::Invalid => 1,
+            Status::Unsupported => 2,
+        }
+    };
+    let (level, what) = if gated {
+        (
+            "warn",
+            format!("lint gated by {} ({} elevated)", strict_mode.flag(), elevated),
+        )
+    } else {
+        match verdict.status {
+            Status::Valid => ("info", "lint valid".to_string()),
+            Status::Invalid => ("warn", "lint invalid".to_string()),
+            Status::Unsupported => ("warn", "lint unsupported".to_string()),
+        }
+    };
+    note_log(
+        folder,
+        level,
+        "lint",
+        &run,
+        &format!(
+            "{what}: {} diagnostic(s), {} finding(s), exit {code}",
+            verdict.diagnostics.len(),
+            verdict.lint_findings.len()
         ),
         json,
     );
@@ -1962,6 +2384,14 @@ pub struct RenderRequest {
     /// declared-but-never-bound variables refuse instead of warning,
     /// and every default-less variable must receive a caller value.
     pub strict_variables: bool,
+    /// Release-gate strictness (Sprint 13 check, T007 / CAP-007): the
+    /// `--strict` flag. The named warnings become errors and stop the
+    /// render before frame one.
+    pub strict: bool,
+    /// Release-gate strictness (Sprint 13 check, T007 / CAP-007): the
+    /// `--strict-all` flag. Every warning becomes an error and stops
+    /// the render before frame one.
+    pub strict_all: bool,
     /// Theme selection (Sprint 9 variables, CAP-005): the raw
     /// `--theme` name. None selects no caller theme, so each
     /// composition falls back to its own `theme` attribute; the caller
@@ -3257,13 +3687,26 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // declarations, and valueless default-less variables refuse here.
     // The caller theme (`--theme`) beats each composition `theme`
     // attribute; unknown names on either side refuse here.
-    let verdict = validate_folder_with_variables_strict_themed(
+    let mut verdict = validate_folder_with_variables_strict_themed(
         folder,
         &resolved.variables,
         resolved.strict_variables,
         resolved.theme.as_deref(),
     );
     let validate_ms = validate_start.elapsed().as_millis() as u64;
+    // Sprint 13 check (T007 / CAP-007): the release gate. Strictness
+    // never invents findings; it only elevates the validated batch.
+    // `--strict-all` wins when both flags reach this layer, though
+    // the CLI refuses the combination with exit 2 before it can.
+    let strict_mode = if req.strict_all {
+        lint::StrictMode::All
+    } else if req.strict {
+        lint::StrictMode::Named
+    } else {
+        lint::StrictMode::Off
+    };
+    let elevated = apply_strict_to_verdict(&mut verdict, strict_mode);
+    let gated = verdict.status == Status::Valid && elevated > 0;
     if !json {
         for d in &verdict.diagnostics {
             println!("{d}");
@@ -3393,6 +3836,65 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             return 2;
         }
         Status::Valid => {
+            // Sprint 13 check (T007 / REC-004): the strict gate stops
+            // before frame one, listing each elevated finding with
+            // its rule and fix; nothing is rendered and no output is
+            // written.
+            if gated {
+                let rules = elevated_rule_names(&verdict).join(", ");
+                let msg = format!(
+                    "render refused before the first frame: {} elevated {elevated} finding(s) ({rules}) to errors on a valid project; fix the findings above or re-run without {} (warnings do not block). Nothing was rendered and no output was written.",
+                    strict_mode.flag(),
+                    strict_mode.flag()
+                );
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed(
+                        "validate",
+                        validate_ms,
+                        format!("{elevated} strict finding(s)"),
+                    ),
+                );
+                stage_line(
+                    json,
+                    &format!("stage validate: failed ({validate_ms}ms): {msg}"),
+                );
+                print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                note_log(folder, "warn", "render", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "invalid",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &msg,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
+                    );
+                } else {
+                    for f in &verdict.lint_findings {
+                        if f.severity == lint::LintSeverity::Error {
+                            println!("{f}");
+                        }
+                    }
+                    println!("{msg}");
+                }
+                return 1;
+            }
             push_stage(
                 &mut stages,
                 render::render::StageTiming::ok(
@@ -5324,6 +5826,2400 @@ fn print_timing_line(json: bool, stages: &[render::render::StageTiming], total_m
         .collect();
     parts.push(format!("total={total_ms}ms"));
     stage_line(json, &format!("timing: {}", parts.join(" ")));
+}
+
+/// `snapshot` request (Sprint 13 check, T005 / CAP-005): the raw flag
+/// texts for one snapshot run. `at` holds the comma-separated `--at`
+/// times, `every` the `--every` interval, `from`/`to` the `--from` /
+/// `--to` range bounds, and `out` the `--out` directory; exactly one
+/// of the three time selectors must be present. `composition`,
+/// `backend`, `variables`, `strict_variables`, and `theme` ride along
+/// from the render flags so the snapshots show the same picture the
+/// render would.
+#[derive(Debug, Clone, Default)]
+pub struct SnapshotRequest {
+    pub json: bool,
+    pub composition: Option<String>,
+    pub backend: Option<String>,
+    pub variables: Option<String>,
+    pub strict_variables: bool,
+    pub theme: Option<String>,
+    pub at: Option<String>,
+    pub every: Option<String>,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub out: Option<String>,
+}
+
+/// One resolved snapshot frame (Sprint 13 check, T005 / CAP-005): the
+/// requested composition time, the output frame drawn for it, and the
+/// exact time of that frame. `requested` and `time` differ only when
+/// the requested time fell between frames and snapped.
+struct SnapshotPick {
+    requested: f64,
+    frame: u64,
+    time: f64,
+}
+
+/// Parse one raw `--at` / `--every` / `--from` / `--to` value (Sprint
+/// 13 check, T005 / CAP-005): a finite number of seconds. Anything
+/// else refuses naming the flag with the expected shape, before any
+/// PNG is written.
+fn parse_snapshot_seconds(raw: &str, flag: &str) -> Result<f64, String> {
+    match raw.trim().parse::<f64>() {
+        Ok(v) if v.is_finite() => Ok(v),
+        _ => Err(format!(
+            "snapshot refused: {flag} {raw:?} is not a number of seconds: pass {flag}=<seconds> (for example {flag}=0.5); no PNG was written"
+        )),
+    }
+}
+
+/// Canonical snapshot time text (Sprint 13 check, T005 / CAP-005):
+/// up to six decimals with trailing zeros stripped (`0`, `0.5`,
+/// `0.033333`), so `snap-<time>s.png` names the exact frame time
+/// without ambiguity.
+fn format_snap_time(t: f64) -> String {
+    if t == 0.0 {
+        return "0".to_string();
+    }
+    let s = format!("{t:.6}");
+    s.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+/// File name of one snapshot PNG (Sprint 13 check, T005 / CAP-005):
+/// `snap-<time>s.png` at the exact (possibly snapped) frame time.
+fn snapshot_file_name(time: f64) -> String {
+    format!("snap-{}s.png", format_snap_time(time))
+}
+
+/// Restate a render-pipeline error for the snapshot command (Sprint 13
+/// check, T005 / CAP-005): the same cause, but naming `snapshot` and
+/// PNGs instead of `render` and MP4s.
+fn snapshotize(mut e: String) -> String {
+    if let Some(rest) = e.strip_prefix("render refused:") {
+        e = format!("snapshot refused:{rest}");
+    } else if let Some(rest) = e.strip_prefix("render failed:") {
+        e = format!("snapshot failed:{rest}");
+    }
+    e = e.replace("no MP4 was written", "no PNG was written");
+    e
+}
+
+/// Resolve the requested times to output frames (Sprint 13 check, T005
+/// / CAP-005): exactly one of `--at` (comma times), `--every`
+/// (interval), or `--from`/`--to` (range). Between-frame times snap to
+/// the nearest frame (ties round up); the caller reports every snap.
+/// Every refusal names the flag and the fix, before any PNG is written.
+fn resolve_snapshot_picks(req: &SnapshotRequest, comp: &Composition) -> Result<Vec<SnapshotPick>, String> {
+    let rate = comp.fps.value();
+    let duration = comp.duration;
+    let frames_total = comp.fps.frame_count(duration);
+    if frames_total == 0 {
+        return Err(
+            "snapshot refused: the composition has no frames; no PNG was written".to_string(),
+        );
+    }
+    let snap = |t: f64| -> SnapshotPick {
+        let frame = ((t * rate).round() as u64).min(frames_total - 1);
+        let time = frame as f64 / rate;
+        SnapshotPick {
+            requested: t,
+            frame,
+            time,
+        }
+    };
+    if let Some(raw) = req.at.as_deref() {
+        let mut picks: Vec<SnapshotPick> = Vec::new();
+        let mut seen: Vec<u64> = Vec::new();
+        let mut any = false;
+        for part in raw.split(',') {
+            let part = part.trim();
+            if part.is_empty() {
+                continue;
+            }
+            any = true;
+            let t = parse_snapshot_seconds(part, "--at")?;
+            if t < 0.0 || t > duration {
+                return Err(format!(
+                    "snapshot refused: --at {t}s is outside composition {:?} (duration {duration:.3}s): pass a time from 0 to {duration:.3}s; no PNG was written",
+                    comp.name
+                ));
+            }
+            let pick = snap(t);
+            if !seen.contains(&pick.frame) {
+                seen.push(pick.frame);
+                picks.push(pick);
+            }
+        }
+        if !any {
+            return Err(
+                "snapshot refused: --at needs at least one time in seconds (for example --at=0,0.5,1); no PNG was written"
+                    .to_string(),
+            );
+        }
+        picks.sort_by_key(|p| p.frame);
+        return Ok(picks);
+    }
+    if let Some(raw) = req.every.as_deref() {
+        let interval = parse_snapshot_seconds(raw, "--every")?;
+        if interval <= 0.0 {
+            return Err(format!(
+                "snapshot refused: --every {raw:?} is not a positive number of seconds: pass --every=<seconds> (for example --every=0.5); no PNG was written"
+            ));
+        }
+        let mut picks: Vec<SnapshotPick> = Vec::new();
+        let mut k: u64 = 0;
+        loop {
+            let t = k as f64 * interval;
+            if t >= duration {
+                break;
+            }
+            picks.push(snap(t));
+            k += 1;
+        }
+        if picks.is_empty() {
+            return Err(format!(
+                "snapshot refused: --every {raw:?} lands no frame inside composition {:?} (duration {duration:.3}s); no PNG was written",
+                comp.name
+            ));
+        }
+        return Ok(picks);
+    }
+    // Reachable only when the caller passed `--from` and/or `--to`
+    // (the shape check in `main` guarantees the pair travels together).
+    let (from_raw, to_raw) = match (req.from.as_deref(), req.to.as_deref()) {
+        (Some(f), Some(t)) => (f, t),
+        _ => {
+            return Err(
+                "snapshot refused: pass --from=<seconds> together with --to=<seconds> (for example --from=0 --to=1); no PNG was written"
+                    .to_string(),
+            );
+        }
+    };
+    let from = parse_snapshot_seconds(from_raw, "--from")?;
+    let to = parse_snapshot_seconds(to_raw, "--to")?;
+    if from < 0.0 || to > duration {
+        return Err(format!(
+            "snapshot refused: --from/--to {from:.3}s..{to:.3}s reaches outside composition {:?} (duration {duration:.3}s): pass 0 <= --from < --to <= {duration:.3}s; no PNG was written",
+            comp.name
+        ));
+    }
+    if from > to {
+        return Err(format!(
+            "snapshot refused: --from/--to {from:.3}s..{to:.3}s runs backward in composition {:?}: pass 0 <= --from < --to <= {duration:.3}s; no PNG was written",
+            comp.name
+        ));
+    }
+    if from == to {
+        return Err(format!(
+            "snapshot refused: --from/--to {from:.3}s..{to:.3}s is an empty range in composition {:?}: pass 0 <= --from < --to <= {duration:.3}s; no PNG was written",
+            comp.name
+        ));
+    }
+    let first = ((from * rate) - 1e-9).ceil() as i64;
+    let last = ((to * rate) - 1e-9).ceil() as i64 - 1;
+    if first > last {
+        return Err(format!(
+            "snapshot refused: --from/--to {from:.3}s..{to:.3}s holds no output frame at {} fps; no PNG was written",
+            comp.fps
+        ));
+    }
+    Ok((first..=last)
+        .map(|k| {
+            let time = k as f64 / rate;
+            SnapshotPick {
+                requested: time,
+                frame: k as u64,
+                time,
+            }
+        })
+        .collect())
+}
+
+/// Machine-readable snapshot report (Sprint 13 check, T005 / CAP-005):
+/// the same composition, frames, and files the human lines carry.
+#[allow(clippy::too_many_arguments)]
+fn format_snapshot_json(
+    folder: &Path,
+    status: &str,
+    exit: i32,
+    composition: Option<&str>,
+    backend: &str,
+    output: &str,
+    message: Option<&str>,
+    picks: &[SnapshotPick],
+) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"snapshot\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"composition\":",
+        json_escape(&folder.display().to_string())
+    );
+    match composition {
+        Some(c) => {
+            let _ = write!(out, "\"{}\"", json_escape(c));
+        }
+        None => out.push_str("null"),
+    }
+    let _ = write!(
+        out,
+        ",\"backend\":\"{}\",\"output\":\"{}\",\"message\":",
+        json_escape(backend),
+        json_escape(output)
+    );
+    match message {
+        Some(m) => {
+            let _ = write!(out, "\"{}\"", json_escape(m));
+        }
+        None => out.push_str("null"),
+    }
+    out.push_str(",\"frames\":[");
+    for (i, p) in picks.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"requested\":{},\"frame\":{},\"time\":{},\"file\":\"{}\"}}",
+            p.requested,
+            p.frame,
+            p.time,
+            json_escape(&snapshot_file_name(p.time))
+        );
+    }
+    out.push_str("],\"files\":[");
+    for (i, p) in picks.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(out, "\"{}\"", json_escape(&snapshot_file_name(p.time)));
+    }
+    out.push_str("]}");
+    out
+}
+
+/// `snapshot`: draw the requested frames and write them as
+/// `snap-<time>s.png` into `--out` (Sprint 13 check, T005 / CAP-005).
+/// Frames draw through the same pipeline as a full render, so each
+/// PNG decodes pixel-identical to the same full-render frame; no MP4
+/// is ever written. Every refusal names the flag and the fix, and no
+/// PNG is written before all refusals have passed. Exits 0 on success,
+/// 1 on refusal or failure, 2 when the project is valid but uses
+/// later-sprint elements.
+pub fn cmd_snapshot_full(folder: &Path, req: &SnapshotRequest) -> i32 {
+    let json = req.json;
+    let run = log::run_id();
+    // The `--out` directory travels as given (like render `-o`:
+    // relative to the caller's working directory). Its absence is a
+    // usage error, like a missing `<folder>`.
+    let out_dir = match req.out.as_deref() {
+        Some(raw) if !raw.trim().is_empty() => PathBuf::from(raw),
+        _ => {
+            eprintln!("framesmith snapshot: missing --out <dir>.");
+            eprintln!("usage: framesmith snapshot [--json] [--composition <name>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] (--at <t,..> | --every <secs> | --from <s> --to <e>) --out <dir> <folder>");
+            return 2;
+        }
+    };
+    // Flags resolve before validation: an unknown backend refuses
+    // naming the flag with no PNG written.
+    let backend_raw = req.backend.as_deref().unwrap_or("auto");
+    let backend = match render::render::Backend::parse(backend_raw) {
+        Some(b) => b,
+        None => {
+            let msg = format!(
+                "snapshot refused: unknown --backend {backend_raw:?}: expected cpu, gpu, or auto; no PNG was written"
+            );
+            stage_line(json, &msg);
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(folder, "invalid", 1, None, "unknown", "", Some(&msg), &[])
+                );
+            }
+            return 1;
+        }
+    };
+    let overrides = match req.variables.as_deref() {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => match validate_mod::parse_variable_overrides(raw) {
+            Ok(m) => m,
+            Err(e) => {
+                let msg = format!("snapshot refused: {e}; no PNG was written");
+                stage_line(json, &msg);
+                note_log(folder, "warn", "snapshot", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_snapshot_json(
+                            folder,
+                            "invalid",
+                            1,
+                            None,
+                            backend.name(),
+                            "",
+                            Some(&msg),
+                            &[]
+                        )
+                    );
+                }
+                return 1;
+            }
+        },
+    };
+    stage_line(json, "stage validate: running");
+    let verdict =
+        validate_folder_with_variables_strict_themed(folder, &overrides, req.strict_variables, req.theme.as_deref());
+    match verdict.status {
+        Status::Invalid => {
+            let msg = format!(
+                "snapshot refused: {} is invalid; fix the problems `check` reports and re-run. No PNG was written.",
+                folder.display()
+            );
+            stage_line(json, &format!("stage validate: failed: {msg}"));
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "invalid",
+                        1,
+                        None,
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            } else {
+                println!("{msg}");
+                for d in &verdict.diagnostics {
+                    println!("{d}");
+                }
+            }
+            return 1;
+        }
+        Status::Unsupported => {
+            let names: Vec<String> = verdict
+                .diagnostics
+                .iter()
+                .map(|d| d.message.clone())
+                .collect();
+            let msg = format!(
+                "snapshot refused: {} uses later-sprint element(s): {}. No PNG was written.",
+                folder.display(),
+                names.join("; ")
+            );
+            stage_line(json, &format!("stage validate: failed: {msg}"));
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "unsupported",
+                        2,
+                        None,
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            } else {
+                println!("{msg}");
+            }
+            return 2;
+        }
+        Status::Valid => {
+            stage_line(json, "stage validate: ok");
+        }
+    }
+    for w in &verdict.variable_warnings {
+        let note = format!("stage validate: note: {w}");
+        stage_line(json, &note);
+        note_log(folder, "info", "snapshot", &run, &note, json);
+    }
+    if backend == render::render::Backend::Gpu && !render::gpu::gpu_available() {
+        let msg = "snapshot refused: no GPU renderer is available on this machine (capability probe found none); use `--backend cpu` or `--backend auto` instead. No PNG was written.".to_string();
+        stage_line(json, &msg);
+        note_log(folder, "warn", "snapshot", &run, &msg, json);
+        if json {
+            println!(
+                "{}",
+                format_snapshot_json(
+                    folder,
+                    "invalid",
+                    1,
+                    None,
+                    backend.name(),
+                    "",
+                    Some(&msg),
+                    &[]
+                )
+            );
+        }
+        return 1;
+    }
+    // The selected composition draws; an unknown name refuses with the
+    // available names and no PNG written.
+    let comp = match select_composition(&verdict, req.composition.as_deref()) {
+        Ok(c) => c,
+        Err(e) => {
+            let msg = snapshotize(e);
+            stage_line(json, &msg);
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "invalid",
+                        1,
+                        None,
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            }
+            return 1;
+        }
+    };
+    // Times resolve against the selected composition: a bad time, an
+    // empty range, or an outside time refuses naming the flag before
+    // any PNG is written.
+    let picks = match resolve_snapshot_picks(req, &comp) {
+        Ok(p) => p,
+        Err(msg) => {
+            stage_line(json, &msg);
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "invalid",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            }
+            return 1;
+        }
+    };
+    // Detection only reads host state; the folder is never modified.
+    let finding = ffmpeg_mod::detect();
+    stage_line(json, &finding.to_string());
+    note_log(
+        folder,
+        "info",
+        "bootstrap",
+        &run,
+        &finding.to_string(),
+        json,
+    );
+    // Bootstrap: the frame preparation decodes video and image sources
+    // through the host FFmpeg, so a missing binary refuses here with
+    // the fix, before any PNG is written.
+    let cfg = bootstrap::BootstrapConfig::from_env(verdict.ffmpeg_auto_download);
+    let ffmpeg_bin = match bootstrap::ensure_ffmpeg(&finding, &cfg) {
+        bootstrap::Bootstrap::Ready {
+            ffmpeg_path,
+            downloaded: _,
+            announcements,
+        } => {
+            for a in &announcements {
+                stage_line(json, a);
+                note_log(folder, "info", "bootstrap", &run, a, json);
+            }
+            ffmpeg_path
+        }
+        bootstrap::Bootstrap::Refused { code, message } => {
+            let msg = snapshotize(message);
+            stage_line(json, &msg);
+            if !json {
+                println!("(code {code} — see `framesmith errors {code}` for meaning and fix.)");
+            }
+            note_log(folder, "warn", "bootstrap", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "failed",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            }
+            return 1;
+        }
+    };
+    if render::cancel::is_cancelled() {
+        let msg = format!(
+            "{} snapshot cancelled: Ctrl-C before the first frame; no PNG was written",
+            render::cancel::PREFIX
+        );
+        stage_line(json, &msg);
+        note_log(folder, "warn", "snapshot", &run, &msg, json);
+        if json {
+            println!(
+                "{}",
+                format_snapshot_json(
+                    folder,
+                    "failed",
+                    130,
+                    Some(&comp.name),
+                    backend.name(),
+                    "",
+                    Some(&msg),
+                    &[]
+                )
+            );
+        }
+        return render::cancel::EXIT_CODE;
+    }
+    // The output directory must accept files before the first frame is
+    // drawn: probe the nearest existing ancestor without creating the
+    // final directory, so an unwritable `--out` refuses with no PNG
+    // written.
+    {
+        let anchor = nearest_existing_ancestor(&out_dir);
+        let probe = anchor.join(".framesmith-write-probe");
+        if let Err(e) = std::fs::write(&probe, b"framesmith writability probe") {
+            let msg = format!(
+                "snapshot refused: output directory {} is not writable: {e} (pass a writable path to `--out`); no PNG was written",
+                out_dir.display()
+            );
+            stage_line(json, &msg);
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "invalid",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        &out_dir.display().to_string(),
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            }
+            return 1;
+        } else {
+            let _ = std::fs::remove_file(&probe);
+        }
+    }
+    // Frames stage: prepare every picture input (fonts, video probes
+    // and decodes, images), exactly like a full render, so snapshots
+    // show the same pictures the render encodes.
+    stage_line(json, "stage frames: running");
+    let effective_backend = render::render::resolve_backend(backend);
+    let prep = match render::render::prepare_frames(&comp, &verdict.compositions, folder, &ffmpeg_bin) {
+        Ok(prep) => prep,
+        Err(e) => {
+            let msg = snapshotize(e);
+            stage_line(json, &format!("stage frames: failed: {msg}"));
+            note_log(folder, "error", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "failed",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            } else {
+                println!("{msg}");
+            }
+            return 1;
+        }
+    };
+    let (canvas_w, canvas_h) = prep.canvas();
+    let frames: Vec<u64> = picks.iter().map(|p| p.frame).collect();
+    // Draw every requested frame through the same pipeline (and the
+    // same effective backend) as the full render: frame N alone equals
+    // frame N of the full render exactly.
+    let drawn = match render::render::draw_batch_parallel(&prep, effective_backend, &frames) {
+        Ok(d) => d,
+        Err(e) => {
+            let msg = snapshotize(e);
+            stage_line(json, &format!("stage frames: failed: {msg}"));
+            note_log(folder, "error", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "failed",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            } else {
+                println!("{msg}");
+            }
+            return 1;
+        }
+    };
+    // Encode every PNG before writing any file, so an encoding problem
+    // still leaves no partial snapshot set behind.
+    let mut encoded: Vec<(String, Vec<u8>)> = Vec::with_capacity(drawn.len());
+    for (frame, rgb) in &drawn {
+        let pick = picks.iter().find(|p| p.frame == *frame).expect("drawn frame was requested");
+        match render::outputs::encode_png_rgb8(canvas_w, canvas_h, rgb) {
+            Ok(bytes) => encoded.push((snapshot_file_name(pick.time), bytes)),
+            Err(msg) => {
+                stage_line(json, &format!("stage frames: failed: {msg}"));
+                note_log(folder, "error", "snapshot", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_snapshot_json(
+                            folder,
+                            "failed",
+                            1,
+                            Some(&comp.name),
+                            backend.name(),
+                            "",
+                            Some(&msg),
+                            &[]
+                        )
+                    );
+                } else {
+                    println!("{msg}");
+                }
+                return 1;
+            }
+        }
+    }
+    // Output stage: create the directory, prove it accepts a file, then
+    // write every PNG. A write failure removes this run's files so no
+    // partial set is presented as complete.
+    if let Err(e) = std::fs::create_dir_all(&out_dir) {
+        let msg = format!(
+            "snapshot refused: cannot create output directory {}: {e}; no PNG was written",
+            out_dir.display()
+        );
+        stage_line(json, &msg);
+        note_log(folder, "warn", "snapshot", &run, &msg, json);
+        if json {
+            println!(
+                "{}",
+                format_snapshot_json(
+                    folder,
+                    "invalid",
+                    1,
+                    Some(&comp.name),
+                    backend.name(),
+                    &out_dir.display().to_string(),
+                    Some(&msg),
+                    &[]
+                )
+            );
+        }
+        return 1;
+    }
+    let probe = out_dir.join(".framesmith-write-probe");
+    match std::fs::write(&probe, b"framesmith writability probe") {
+        Ok(()) => {
+            let _ = std::fs::remove_file(&probe);
+        }
+        Err(e) => {
+            let msg = format!(
+                "snapshot refused: output directory {} is not writable: {e} (pass a writable path to `--out`); no PNG was written",
+                out_dir.display()
+            );
+            stage_line(json, &msg);
+            note_log(folder, "warn", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "invalid",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        &out_dir.display().to_string(),
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            }
+            return 1;
+        }
+    }
+    let mut written: Vec<String> = Vec::with_capacity(encoded.len());
+    for (name, bytes) in &encoded {
+        let path = out_dir.join(name);
+        if let Err(e) = std::fs::write(&path, bytes) {
+            for done in &written {
+                let _ = std::fs::remove_file(out_dir.join(done));
+            }
+            let msg = format!(
+                "snapshot failed: cannot write {}: {e}; no complete snapshot set was written",
+                path.display()
+            );
+            stage_line(json, &msg);
+            note_log(folder, "error", "snapshot", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_snapshot_json(
+                        folder,
+                        "failed",
+                        1,
+                        Some(&comp.name),
+                        backend.name(),
+                        &out_dir.display().to_string(),
+                        Some(&msg),
+                        &[]
+                    )
+                );
+            } else {
+                println!("{msg}");
+            }
+            return 1;
+        }
+        written.push(name.clone());
+    }
+    let out_text = out_dir.display().to_string();
+    for pick in &picks {
+        if pick.requested != pick.time {
+            stage_line(
+                json,
+                &format!(
+                    "snapshot: note: time {}s is between frames; using frame {} at {}s.",
+                    pick.requested,
+                    pick.frame,
+                    format_snap_time(pick.time)
+                ),
+            );
+        }
+    }
+    stage_line(
+        json,
+        &format!(
+            "snapshot: wrote {} PNG(s) to {} (composition {:?}, backend {}).",
+            written.len(),
+            out_text,
+            comp.name,
+            effective_backend.name()
+        ),
+    );
+    for pick in &picks {
+        stage_line(
+            json,
+            &format!(
+                "snapshot: wrote {} (frame {} at {}s).",
+                snapshot_file_name(pick.time),
+                pick.frame,
+                format_snap_time(pick.time)
+            ),
+        );
+    }
+    note_log(
+        folder,
+        "info",
+        "snapshot",
+        &run,
+        &format!("snapshot ok: {} PNG(s) in {}", written.len(), out_text),
+        json,
+    );
+    if json {
+        println!(
+            "{}",
+            format_snapshot_json(
+                folder,
+                "ok",
+                0,
+                Some(&comp.name),
+                effective_backend.name(),
+                &out_text,
+                None,
+                &picks
+            )
+        );
+    }
+    0
+}
+
+// Inspection commands (Sprint 13 check, T006 / CAP-006): `keyframes`
+// lists computed per-frame motion values, `compare` joins two renders
+// side by side with an SSIM score, `grade-compare` splits one
+// composition into ungraded and graded halves, `doctor` reports
+// environment and project health, and `benchmark` times bundled
+// references. Every command is read-only toward the project: sources
+// and media are never modified, and only the command's own outputs
+// (`-o`/`--out` files) are written. The run log and the footage cache
+// keep their usual operational trails beside the project, as with
+// every other command.
+
+/// Restate a render-pipeline error for an inspection command.
+/// (Sprint
+/// 13 check, T006 / CAP-006): the cause stays the render's exact
+/// words, while the command name and the no-output tail name this
+/// inspection — there is no MP4 to leave behind, only the command's
+/// own listing or file unwritten.
+fn inspectize(cmd: &str, tail: &str, e: String) -> String {
+    let restated = if let Some(rest) = e.strip_prefix("render refused:") {
+        format!("{cmd} refused:{rest}")
+    } else if let Some(rest) = e.strip_prefix("render failed:") {
+        format!("{cmd} failed:{rest}")
+    } else {
+        format!("{cmd} refused: {e}")
+    };
+    restated
+        .replace("no MP4 was written", tail)
+        .replace("No MP4 was written", tail)
+}
+
+/// Parse one raw `--at` value for an inspection command (Sprint 13
+/// check, T006 / CAP-006): a finite number of seconds, refused naming
+/// the flag before anything is drawn or written.
+fn parse_inspect_seconds(cmd: &str, tail: &str, raw: &str) -> Result<f64, String> {
+    match raw.trim().parse::<f64>() {
+        Ok(v) if v.is_finite() => Ok(v),
+        _ => Err(format!(
+            "{cmd} refused: --at {raw:?} is not a number of seconds: pass --at=<seconds> (for example --at=0.5); {tail}"
+        )),
+    }
+}
+
+/// Global SSIM of two same-size RGB pictures over luma (Sprint 13
+/// check, T006 / CAP-006): 1.0 for byte-identical inputs, lower the
+/// more the pictures differ. The whole frame is one window, which is
+/// exact for the identical-input bar check the command promises.
+fn ssim_luma(a: &[u8], b: &[u8], pixels: usize) -> f64 {
+    if a == b {
+        return 1.0;
+    }
+    debug_assert_eq!(a.len(), pixels * 3);
+    debug_assert_eq!(b.len(), pixels * 3);
+    let mut sum_a = 0.0f64;
+    let mut sum_b = 0.0f64;
+    for i in 0..pixels {
+        let o = i * 3;
+        sum_a += 0.299 * f64::from(a[o]) + 0.587 * f64::from(a[o + 1]) + 0.114 * f64::from(a[o + 2]);
+        sum_b += 0.299 * f64::from(b[o]) + 0.587 * f64::from(b[o + 1]) + 0.114 * f64::from(b[o + 2]);
+    }
+    let n = pixels as f64;
+    let mean_a = sum_a / n;
+    let mean_b = sum_b / n;
+    let mut var_a = 0.0f64;
+    let mut var_b = 0.0f64;
+    let mut cov = 0.0f64;
+    for i in 0..pixels {
+        let o = i * 3;
+        let la = 0.299 * f64::from(a[o]) + 0.587 * f64::from(a[o + 1]) + 0.114 * f64::from(a[o + 2]);
+        let lb = 0.299 * f64::from(b[o]) + 0.587 * f64::from(b[o + 1]) + 0.114 * f64::from(b[o + 2]);
+        var_a += (la - mean_a) * (la - mean_a);
+        var_b += (lb - mean_b) * (lb - mean_b);
+        cov += (la - mean_a) * (lb - mean_b);
+    }
+    var_a /= n;
+    var_b /= n;
+    cov /= n;
+    // Luminance dynamic range with the standard stability constants.
+    let c1 = 6.5025f64;
+    let c2 = 58.5225f64;
+    let num = (2.0 * mean_a * mean_b + c1) * (2.0 * cov + c2);
+    let den = (mean_a * mean_a + mean_b * mean_b + c1) * (var_a + var_b + c2);
+    if den <= 0.0 {
+        return 1.0;
+    }
+    (num / den).clamp(0.0, 1.0)
+}
+
+/// The similarity bar `compare` reports every score against (Sprint 13
+/// check, T006 / CAP-006): SSIM All at least 0.96, the same bar the
+/// specification names.
+pub const COMPARE_SSIM_BAR: f64 = 0.96;
+
+/// Join two same-size RGB pictures side by side (Sprint 13 check, T006
+/// / CAP-006): `left` on the left half, `right` on the right half, one
+/// row at a time.
+fn join_side_by_side(left: &[u8], right: &[u8], w: u32, h: u32) -> Vec<u8> {
+    let w = w as usize;
+    let row = w * 3;
+    let mut out = vec![0u8; w * 2 * h as usize * 3];
+    for y in 0..h as usize {
+        out[y * row * 2..y * row * 2 + row].copy_from_slice(&left[y * row..(y + 1) * row]);
+        out[y * row * 2 + row..(y + 1) * row * 2]
+            .copy_from_slice(&right[y * row..(y + 1) * row]);
+    }
+    out
+}
+
+/// One frame drawn for an inspection command (Sprint 13 check, T006 /
+/// CAP-006): the selected composition, its canvas, the snapped frame
+/// and its exact time, the straight RGB8 picture, and the effective
+/// backend that drew it.
+struct InspectedDraw {
+    comp: Composition,
+    width: u32,
+    height: u32,
+    frame: u64,
+    time: f64,
+    rgb: Vec<u8>,
+    backend: String,
+}
+
+/// Validate, select, and draw one snapped frame through the same
+/// pipeline (and the same effective backend) as a full render, for an
+/// inspection command (Sprint 13 check, T006 / CAP-006). Every refusal
+/// names the command, the flag or project at fault, and the fix, and
+/// carries the command's no-output tail; nothing is drawn or written
+/// before every check has passed. `strip_grades` draws the
+/// composition with its composition and lane grades removed (the
+/// `grade-compare` ungraded half); per-clip grades ride with their
+/// clips either way.
+#[allow(clippy::too_many_arguments)]
+fn draw_inspect_frame(
+    cmd: &str,
+    tail: &str,
+    folder: &Path,
+    composition: Option<&str>,
+    backend_raw: &str,
+    overrides: &validate_mod::VariableOverrides,
+    strict_variables: bool,
+    theme: Option<&str>,
+    at: f64,
+    strip_grades: bool,
+) -> Result<InspectedDraw, String> {
+    let backend = match render::render::Backend::parse(backend_raw) {
+        Some(b) => b,
+        None => {
+            return Err(format!(
+                "{cmd} refused: unknown --backend {backend_raw:?}: expected cpu, gpu, or auto; {tail}"
+            ));
+        }
+    };
+    let verdict = validate_folder_with_variables_strict_themed(
+        folder,
+        overrides,
+        strict_variables,
+        theme,
+    );
+    match verdict.status {
+        Status::Invalid => {
+            return Err(format!(
+                "{cmd} refused: {} is invalid; fix the problems `check` reports and re-run. {tail}.",
+                folder.display()
+            ));
+        }
+        Status::Unsupported => {
+            return Err(format!(
+                "{cmd} refused: {} uses later-sprint element(s); re-run once the project checks green. {tail}.",
+                folder.display()
+            ));
+        }
+        Status::Valid => {}
+    }
+    let comp = match select_composition(&verdict, composition) {
+        Ok(c) => c,
+        Err(e) => return Err(inspectize(cmd, tail, e)),
+    };
+    if !at.is_finite() || at < 0.0 || at > comp.duration {
+        return Err(format!(
+            "{cmd} refused: --at {at}s is outside composition {:?} (duration {:.3}s): pass a time from 0 to {:.3}s; {tail}",
+            comp.name, comp.duration, comp.duration
+        ));
+    }
+    if backend == render::render::Backend::Gpu && !render::gpu::gpu_available() {
+        return Err(format!(
+            "{cmd} refused: no GPU renderer is available on this machine (capability probe found none); use `--backend cpu` or `--backend auto` instead. {tail}."
+        ));
+    }
+    let rate = comp.fps.value();
+    let frames_total = comp.fps.frame_count(comp.duration);
+    if frames_total == 0 {
+        return Err(format!(
+            "{cmd} refused: composition {:?} has no frames; {tail}",
+            comp.name
+        ));
+    }
+    let frame = ((at * rate).round() as u64).min(frames_total - 1);
+    let time = frame as f64 / rate;
+    let finding = ffmpeg_mod::detect();
+    let cfg = bootstrap::BootstrapConfig::from_env(verdict.ffmpeg_auto_download);
+    let ffmpeg_bin = match bootstrap::ensure_ffmpeg(&finding, &cfg) {
+        bootstrap::Bootstrap::Ready { ffmpeg_path, .. } => ffmpeg_path,
+        bootstrap::Bootstrap::Refused { message, .. } => {
+            return Err(inspectize(cmd, tail, message));
+        }
+    };
+    if render::cancel::is_cancelled() {
+        return Err(format!(
+            "{} {cmd} cancelled: Ctrl-C before the first frame; {tail}",
+            render::cancel::PREFIX
+        ));
+    }
+    let mut use_comp = comp.clone();
+    if strip_grades {
+        use_comp.grade = notation::model::Grade::default();
+        use_comp.lane_grades.clear();
+    }
+    let prep =
+        match render::render::prepare_frames(&use_comp, &verdict.compositions, folder, &ffmpeg_bin)
+        {
+            Ok(prep) => prep,
+            Err(e) => return Err(inspectize(cmd, tail, e)),
+        };
+    let (canvas_w, canvas_h) = prep.canvas();
+    let effective = render::render::resolve_backend(backend);
+    let drawn = match render::render::draw_batch_parallel(&prep, effective, &[frame]) {
+        Ok(d) => d,
+        Err(e) => return Err(inspectize(cmd, tail, e)),
+    };
+    let rgb = drawn
+        .into_iter()
+        .next()
+        .map(|(_, rgb)| rgb)
+        .ok_or_else(|| format!("{cmd} failed: the frame draw returned no picture; {tail}"))?;
+    Ok(InspectedDraw {
+        comp,
+        width: canvas_w,
+        height: canvas_h,
+        frame,
+        time,
+        rgb,
+        backend: effective.name().to_string(),
+    })
+}
+
+/// `keyframes` request flags (Sprint 13 check, T006 / CAP-006): the
+/// report shape plus the target clip and property. `clip` names a clip
+/// `id` (or a zero-based clip index); `property` names a motion
+/// property such as `x` or `opacity`.
+pub struct KeyframesRequest {
+    pub json: bool,
+    pub composition: Option<String>,
+    pub backend: Option<String>,
+    pub variables: Option<String>,
+    pub strict_variables: bool,
+    pub theme: Option<String>,
+    pub clip: Option<String>,
+    pub property: Option<String>,
+}
+
+/// Normalize one raw `--property` value to its canonical motion name
+/// (Sprint 13 check, T006 / CAP-006): case-insensitive, underscores
+/// read as hyphens, and the model's aliases (`rotate-x`, `size`,
+/// `fill-color`, `border-radius`) resolve to their canonical names.
+/// Anything outside the sixteen motion properties refuses.
+fn normalize_keyframes_property(raw: &str) -> Option<&'static str> {
+    let lower = raw.trim().to_lowercase().replace('_', "-");
+    for (alias, canon) in notation::model::MOTION_ALIASES {
+        if lower == alias {
+            return Some(canon);
+        }
+    }
+    notation::model::MOTION_PROPERTIES
+        .iter()
+        .find(|p| **p == lower)
+        .copied()
+}
+
+/// One computed keyframe value (Sprint 13 check, T006 / CAP-006): a
+/// scalar number, or a hex color for the two paint properties.
+enum KeyframeValue {
+    Num(f64),
+    Hex(String),
+}
+
+/// Format one RGB channel triple as lowercase `#rrggbb` (Sprint 13
+/// check, T006 / CAP-006).
+fn keyframe_hex(channels: [f64; 3]) -> String {
+    let mut hex = String::with_capacity(7);
+    hex.push('#');
+    for c in channels {
+        use std::fmt::Write;
+        let _ = write!(hex, "{:02x}", c.round().clamp(0.0, 255.0) as u8);
+    }
+    hex
+}
+
+/// Read one canonical property out of an evaluated motion state
+/// (Sprint 13 check, T006 / CAP-006): the same per-frame values the
+/// draw pass evaluates, so the listing matches rendered motion.
+fn keyframe_value(
+    property: &str,
+    ev: &render::motion_plan::Evaluated,
+) -> KeyframeValue {
+    match property {
+        "x" => KeyframeValue::Num(ev.x),
+        "y" => KeyframeValue::Num(ev.y),
+        "scale" => KeyframeValue::Num(ev.scale),
+        "rotation" => KeyframeValue::Num(ev.rotation),
+        "opacity" => KeyframeValue::Num(ev.opacity),
+        "rotation-x" => KeyframeValue::Num(ev.rotate_x),
+        "rotation-y" => KeyframeValue::Num(ev.rotate_y),
+        "width" => KeyframeValue::Num(ev.width),
+        "height" => KeyframeValue::Num(ev.height),
+        "fill" => KeyframeValue::Hex(keyframe_hex(ev.fill)),
+        "radius" => KeyframeValue::Num(ev.radius),
+        "border-width" => KeyframeValue::Num(ev.border_width),
+        "border-color" => KeyframeValue::Hex(keyframe_hex(ev.border)),
+        "blur" => KeyframeValue::Num(ev.blur),
+        "font-size" => KeyframeValue::Num(ev.font_size),
+        "letter-spacing" => KeyframeValue::Num(ev.letter_spacing),
+        _ => KeyframeValue::Num(f64::NAN),
+    }
+}
+
+/// Human and JSON text of one keyframe value (Sprint 13 check, T006 /
+/// CAP-006): scalars print trimmed like snapshot times, colors print
+/// as `#rrggbb`.
+fn keyframe_text(value: &KeyframeValue) -> String {
+    match value {
+        KeyframeValue::Num(v) => format_snap_time(*v),
+        KeyframeValue::Hex(h) => h.clone(),
+    }
+}
+
+/// Resolve one `--clip` value to a clip index (Sprint 13 check, T006 /
+/// CAP-006): a clip `id` first, then a zero-based clip index.
+/// Anything else refuses naming the available ids.
+fn resolve_keyframes_clip(comp: &Composition, raw: &str) -> Result<(usize, String), String> {
+    for (i, clip) in comp.clips.iter().enumerate() {
+        if clip.id() == Some(raw) {
+            return Ok((i, raw.to_string()));
+        }
+    }
+    if let Ok(i) = raw.trim().parse::<usize>() {
+        if i < comp.clips.len() {
+            let label = comp.clips[i]
+                .id()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| format!("clip {i}"));
+            return Ok((i, label));
+        }
+    }
+    let mut ids: Vec<String> = comp
+        .clips
+        .iter()
+        .filter_map(|c| c.id().map(|s| format!("{s:?}")))
+        .collect();
+    ids.sort();
+    Err(format!(
+        "keyframes refused: unknown --clip {raw:?}: the composition holds {}; pass one of those ids or a clip index from 0 to {}; nothing was listed",
+        if ids.is_empty() {
+            "no clip ids".to_string()
+        } else {
+            ids.join(", ")
+        },
+        comp.clips.len().saturating_sub(1)
+    ))
+}
+
+/// `keyframes`: list computed per-frame values of one motion property
+/// on one clip (Sprint 13 check, T006 / CAP-006). Values evaluate the
+/// same motion plan the draw pass runs, so the listing matches
+/// rendered motion. Prints one line per frame (human) or the same
+/// rows as JSON. Exits 0 on success, 1 on refusal, 2 when the project
+/// is valid but uses later-sprint elements. Never renders and never
+/// writes a file.
+pub fn cmd_keyframes_full(folder: &Path, req: &KeyframesRequest) -> i32 {
+    use std::fmt::Write;
+    let json = req.json;
+    let run = log::run_id();
+    const TAIL: &str = "nothing was listed";
+    let fail = |msg: &str| -> i32 {
+        stage_line(json, msg);
+        note_log(folder, "warn", "keyframes", &run, msg, json);
+        if json {
+            println!(
+                "{{\"tool\":\"framesmith\",\"command\":\"keyframes\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                json_escape(&folder.display().to_string()),
+                json_escape(msg)
+            );
+        }
+        1
+    };
+    let clip_raw = match req.clip.as_deref() {
+        Some(c) => c,
+        None => {
+            eprintln!("framesmith keyframes: missing --clip <id>.");
+            eprintln!("usage: framesmith keyframes [--json] [--composition <name>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] --clip <id> --property <name> <folder>");
+            return 2;
+        }
+    };
+    let property_raw = match req.property.as_deref() {
+        Some(p) => p,
+        None => {
+            eprintln!("framesmith keyframes: missing --property <name>.");
+            eprintln!("usage: framesmith keyframes [--json] [--composition <name>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] --clip <id> --property <name> <folder>");
+            return 2;
+        }
+    };
+    let property = match normalize_keyframes_property(property_raw) {
+        Some(p) => p,
+        None => {
+            let mut accepted: Vec<&str> = notation::model::MOTION_PROPERTIES.to_vec();
+            accepted.sort();
+            return fail(&format!(
+                "keyframes refused: unknown --property {property_raw:?}: pass one of {}; {TAIL}",
+                accepted.join(", ")
+            ));
+        }
+    };
+    if let Some(raw) = req.backend.as_deref() {
+        if render::render::Backend::parse(raw).is_none() {
+            return fail(&format!(
+                "keyframes refused: unknown --backend {raw:?}: expected cpu, gpu, or auto; {TAIL}"
+            ));
+        }
+    }
+    let overrides = match req.variables.as_deref() {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => match validate_mod::parse_variable_overrides(raw) {
+            Ok(m) => m,
+            Err(e) => return fail(&format!("keyframes refused: {e}; {TAIL}")),
+        },
+    };
+    stage_line(json, "stage validate: running");
+    let verdict = validate_folder_with_variables_strict_themed(
+        folder,
+        &overrides,
+        req.strict_variables,
+        req.theme.as_deref(),
+    );
+    match verdict.status {
+        Status::Invalid => {
+            return fail(&format!(
+                "keyframes refused: {} is invalid; fix the problems `check` reports and re-run. {TAIL}.",
+                folder.display()
+            ));
+        }
+        Status::Unsupported => {
+            let msg = format!(
+                "keyframes refused: {} uses later-sprint element(s); re-run once the project checks green. {TAIL}.",
+                folder.display()
+            );
+            stage_line(json, &msg);
+            note_log(folder, "warn", "keyframes", &run, &msg, json);
+            if json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"keyframes\",\"folder\":\"{}\",\"status\":\"unsupported\",\"exit\":2,\"message\":\"{}\"}}",
+                    json_escape(&folder.display().to_string()),
+                    json_escape(&msg)
+                );
+            }
+            return 2;
+        }
+        Status::Valid => {
+            stage_line(json, "stage validate: ok");
+        }
+    }
+    let comp = match select_composition(&verdict, req.composition.as_deref()) {
+        Ok(c) => c,
+        Err(e) => return fail(&inspectize("keyframes", TAIL, e)),
+    };
+    let (clip_idx, clip_label) = match resolve_keyframes_clip(&comp, clip_raw) {
+        Ok(v) => v,
+        Err(msg) => return fail(&msg),
+    };
+    let motions = render::motion_plan::plan_motions(&comp, render::motion_plan::snap_fps(&comp.fps));
+    let frames_total = comp.fps.frame_count(comp.duration);
+    if !json {
+        println!(
+            "keyframes for clip {:?} property {:?} in composition {:?} ({} frame(s) at {} fps).",
+            clip_label,
+            property,
+            comp.name,
+            frames_total,
+            comp.fps
+        );
+    }
+    let mut rows: Vec<(u64, f64, String, bool)> = Vec::new();
+    for k in 0..frames_total {
+        let t = render::motion_plan::frame_time(&comp.fps, k);
+        let time = k as f64 / comp.fps.value();
+        let ev = motions[clip_idx].values_at(t);
+        let value = keyframe_value(property, &ev);
+        let text = keyframe_text(&value);
+        let is_num = matches!(value, KeyframeValue::Num(_));
+        if !json {
+            println!("frame {k} at {}s: {} {}={}", format_snap_time(time), clip_label, property, text);
+        }
+        rows.push((k, time, text, is_num));
+    }
+    note_log(
+        folder,
+        "info",
+        "keyframes",
+        &run,
+        &format!(
+            "keyframes ok: clip {clip_label:?} property {property:?}, {frames_total} frame(s)"
+        ),
+        json,
+    );
+    if json {
+        let mut out = String::new();
+        let _ = write!(
+            out,
+            "{{\"tool\":\"framesmith\",\"command\":\"keyframes\",\"folder\":\"{}\",\"status\":\"valid\",\"exit\":0,\"composition\":\"{}\",\"clip\":\"{}\",\"clip_index\":{},\"property\":\"{}\",\"frames\":[",
+            json_escape(&folder.display().to_string()),
+            json_escape(&comp.name),
+            json_escape(&clip_label),
+            clip_idx,
+            json_escape(property)
+        );
+        for (i, (k, time, text, is_num)) in rows.iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            if *is_num {
+                let _ = write!(out, "{{\"frame\":{k},\"time\":{time},\"value\":{text}}}");
+            } else {
+                let _ = write!(
+                    out,
+                    "{{\"frame\":{k},\"time\":{time},\"value\":\"{}\"}}",
+                    json_escape(text)
+                );
+            }
+        }
+        out.push_str("]}");
+        println!("{out}");
+    }
+    0
+}
+
+/// `compare` request flags (Sprint 13 check, T006 / CAP-006): the two
+/// projects travel as function arguments; the request carries the
+/// report shape, the shared composition name and time, and the output
+/// file. `--at` defaults to the first frame.
+pub struct CompareRequest {
+    pub json: bool,
+    pub composition: Option<String>,
+    pub at: Option<String>,
+    pub backend: Option<String>,
+    pub variables: Option<String>,
+    pub strict_variables: bool,
+    pub theme: Option<String>,
+    pub out: Option<String>,
+}
+
+/// Machine-readable `compare` report (Sprint 13 check, T006 / CAP-006):
+/// the two projects, the drawn frames, the SSIM score against its bar,
+/// and the written file.
+#[allow(clippy::too_many_arguments)]
+fn format_compare_json(
+    folder_a: &Path,
+    folder_b: &Path,
+    status: &str,
+    exit: i32,
+    composition: Option<&str>,
+    frame_a: Option<u64>,
+    time_a: Option<f64>,
+    frame_b: Option<u64>,
+    time_b: Option<f64>,
+    ssim: Option<f64>,
+    pass: Option<bool>,
+    file: &str,
+    message: Option<&str>,
+) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = write!(
+        out,
+        "{{\"tool\":\"framesmith\",\"command\":\"compare\",\"folder_a\":\"{}\",\"folder_b\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"composition\":",
+        json_escape(&folder_a.display().to_string()),
+        json_escape(&folder_b.display().to_string())
+    );
+    match composition {
+        Some(c) => {
+            let _ = write!(out, "\"{}\"", json_escape(c));
+        }
+        None => out.push_str("null"),
+    }
+    let opt = |v: Option<u64>| v.map(|n| n.to_string()).unwrap_or_else(|| "null".to_string());
+    let optf = |v: Option<f64>| v.map(|n| n.to_string()).unwrap_or_else(|| "null".to_string());
+    let _ = write!(
+        out,
+        ",\"frame_a\":{},\"time_a\":{},\"frame_b\":{},\"time_b\":{}",
+        opt(frame_a),
+        optf(time_a),
+        opt(frame_b),
+        optf(time_b)
+    );
+    match ssim {
+        Some(s) => {
+            let _ = write!(out, ",\"ssim\":{s},\"bar\":{COMPARE_SSIM_BAR}");
+        }
+        None => out.push_str(",\"ssim\":null,\"bar\":null"),
+    }
+    match pass {
+        Some(p) => {
+            let _ = write!(out, ",\"pass\":{p}");
+        }
+        None => out.push_str(",\"pass\":null"),
+    }
+    let _ = write!(out, ",\"file\":\"{}\"", json_escape(file));
+    match message {
+        Some(m) => {
+            let _ = write!(out, ",\"message\":\"{}\"", json_escape(m));
+        }
+        None => out.push_str(",\"message\":null"),
+    }
+    out.push('}');
+    out
+}
+
+/// `compare`: render one frame of two projects, join them side by side
+/// (left is the first project, right is the second), and score the
+/// pair with SSIM against the 0.96 bar (Sprint 13 check, T006 /
+/// CAP-006). Identical projects score exactly 1.0 and the file is
+/// still written. Both canvases must match; anything else refuses
+/// naming the sizes with nothing written. Exits 0 whenever the file
+/// and the score are produced (a below-bar score is a reviewable
+/// result, not a failure), 1 on refusal, 2 on later-sprint elements.
+/// Never writes an MP4; the only file written is `-o`.
+pub fn cmd_compare_full(folder_a: &Path, folder_b: &Path, req: &CompareRequest) -> i32 {
+    let json = req.json;
+    let run = log::run_id();
+    const TAIL: &str = "no file was written";
+    let out_path = match req.out.as_deref() {
+        Some(raw) if !raw.trim().is_empty() => PathBuf::from(raw),
+        _ => {
+            eprintln!("framesmith compare: missing -o <out.png>.");
+            eprintln!("usage: framesmith compare [--json] [--composition <name>] [--at <secs>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] -o <out.png> <folderA> <folderB>");
+            return 2;
+        }
+    };
+    let fail = |msg: &str, status: &str, exit: i32| -> i32 {
+        stage_line(json, msg);
+        note_log(folder_a, "warn", "compare", &run, msg, json);
+        if json {
+            println!(
+                "{}",
+                format_compare_json(
+                    folder_a, folder_b, status, exit, None, None, None, None, None, None, None,
+                    "", Some(msg)
+                )
+            );
+        }
+        exit
+    };
+    for (role, folder) in [("first", folder_a), ("second", folder_b)] {
+        if !folder.is_dir() {
+            return fail(
+                &format!(
+                    "compare refused: the {role} project {} has no project directory; pass two existing project folders. {TAIL}.",
+                    folder.display()
+                ),
+                "invalid",
+                1,
+            );
+        }
+    }
+    let at = match req.at.as_deref() {
+        None => 0.0,
+        Some(raw) => match parse_inspect_seconds("compare", TAIL, raw) {
+            Ok(v) => v,
+            Err(msg) => return fail(&msg, "invalid", 1),
+        },
+    };
+    let backend_raw = req.backend.as_deref().unwrap_or("auto");
+    let overrides = match req.variables.as_deref() {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => match validate_mod::parse_variable_overrides(raw) {
+            Ok(m) => m,
+            Err(e) => return fail(&format!("compare refused: {e}; {TAIL}"), "invalid", 1),
+        },
+    };
+    stage_line(json, "stage validate: running");
+    let left = match draw_inspect_frame(
+        "compare",
+        TAIL,
+        folder_a,
+        req.composition.as_deref(),
+        backend_raw,
+        &overrides,
+        req.strict_variables,
+        req.theme.as_deref(),
+        at,
+        false,
+    ) {
+        Ok(d) => d,
+        Err(msg) => {
+            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let exit = if status == "unsupported" { 2 } else { 1 };
+            return fail(&msg, status, exit);
+        }
+    };
+    let right = match draw_inspect_frame(
+        "compare",
+        TAIL,
+        folder_b,
+        req.composition.as_deref(),
+        backend_raw,
+        &overrides,
+        req.strict_variables,
+        req.theme.as_deref(),
+        at,
+        false,
+    ) {
+        Ok(d) => d,
+        Err(msg) => {
+            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let exit = if status == "unsupported" { 2 } else { 1 };
+            return fail(&msg, status, exit);
+        }
+    };
+    if left.width != right.width || left.height != right.height {
+        return fail(
+            &format!(
+                "compare refused: canvas sizes differ (first project {}x{}, second project {}x{}): compare projects with the same canvas. {TAIL}.",
+                left.width, left.height, right.width, right.height
+            ),
+            "invalid",
+            1,
+        );
+    }
+    let pixels = left.width as usize * left.height as usize;
+    let score = ssim_luma(&left.rgb, &right.rgb, pixels);
+    let pass = score + 1e-9 >= COMPARE_SSIM_BAR;
+    let joined = join_side_by_side(&left.rgb, &right.rgb, left.width, left.height);
+    let bytes = match render::outputs::encode_png_rgb8(left.width * 2, left.height, &joined) {
+        Ok(b) => b,
+        Err(msg) => {
+            return fail(
+                &format!("compare failed: cannot encode {}: {msg}; {TAIL}", out_path.display()),
+                "failed",
+                1,
+            );
+        }
+    };
+    if let Some(parent) = out_path.parent() {
+        if !parent.as_os_str().is_empty() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                return fail(
+                    &format!(
+                        "compare refused: cannot create output directory {}: {e}; {TAIL}",
+                        parent.display()
+                    ),
+                    "invalid",
+                    1,
+                );
+            }
+        }
+    }
+    if let Err(e) = std::fs::write(&out_path, &bytes) {
+        return fail(
+            &format!(
+                "compare failed: cannot write {}: {e}; no complete comparison was written",
+                out_path.display()
+            ),
+            "failed",
+            1,
+        );
+    }
+    let verdict = if pass { "pass" } else { "below bar" };
+    stage_line(
+        json,
+        &format!(
+            "compare: drew frame {} at {}s from {} and frame {} at {}s from {} (composition {:?}, backend {}).",
+            left.frame,
+            format_snap_time(left.time),
+            folder_a.display(),
+            right.frame,
+            format_snap_time(right.time),
+            folder_b.display(),
+            left.comp.name,
+            left.backend
+        ),
+    );
+    stage_line(
+        json,
+        &format!(
+            "compare: wrote {} (left {}, right {}, each {}x{}, side-by-side {}x{}).",
+            out_path.display(),
+            folder_a.display(),
+            folder_b.display(),
+            left.width,
+            left.height,
+            left.width * 2,
+            left.height
+        ),
+    );
+    stage_line(
+        json,
+        &format!("compare: ssim {score} against bar {COMPARE_SSIM_BAR}: {verdict}."),
+    );
+    note_log(
+        folder_a,
+        "info",
+        "compare",
+        &run,
+        &format!("compare ok: ssim {score} ({verdict}) in {}", out_path.display()),
+        json,
+    );
+    if json {
+        println!(
+            "{}",
+            format_compare_json(
+                folder_a,
+                folder_b,
+                "ok",
+                0,
+                Some(&left.comp.name),
+                Some(left.frame),
+                Some(left.time),
+                Some(right.frame),
+                Some(right.time),
+                Some(score),
+                Some(pass),
+                &out_path.display().to_string(),
+                None,
+            )
+        );
+    }
+    0
+}
+
+/// `grade-compare` request flags (Sprint 13 check, T006 / CAP-006):
+/// the report shape, the selected composition and time, and the
+/// output file. `--at` defaults to the first frame.
+pub struct GradeCompareRequest {
+    pub json: bool,
+    pub composition: Option<String>,
+    pub at: Option<String>,
+    pub backend: Option<String>,
+    pub variables: Option<String>,
+    pub strict_variables: bool,
+    pub theme: Option<String>,
+    pub out: Option<String>,
+}
+
+/// `grade-compare`: render one frame of a composition twice — with
+/// its grades and without its composition and lane grades — and join
+/// the halves split screen (left ungraded, right graded) into `-o`
+/// (Sprint 13 check, T006 / CAP-006). A composition with no
+/// composition or lane grade refuses naming the gap, since both halves
+/// would be the same picture. Exits 0 on success, 1 on refusal, 2 on
+/// later-sprint elements. Never writes an MP4; the only file written
+/// is `-o`.
+pub fn cmd_grade_compare_full(folder: &Path, req: &GradeCompareRequest) -> i32 {
+    use std::fmt::Write;
+    let json = req.json;
+    let run = log::run_id();
+    const TAIL: &str = "no file was written";
+    let out_path = match req.out.as_deref() {
+        Some(raw) if !raw.trim().is_empty() => PathBuf::from(raw),
+        _ => {
+            eprintln!("framesmith grade-compare: missing -o <out.png>.");
+            eprintln!("usage: framesmith grade-compare [--json] [--composition <name>] [--at <secs>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] -o <out.png> <folder>");
+            return 2;
+        }
+    };
+    let fail = |msg: &str, status: &str, exit: i32| -> i32 {
+        stage_line(json, msg);
+        note_log(folder, "warn", "grade-compare", &run, msg, json);
+        if json {
+            let mut out = String::new();
+            let _ = write!(
+                out,
+                "{{\"tool\":\"framesmith\",\"command\":\"grade-compare\",\"folder\":\"{}\",\"status\":\"{status}\",\"exit\":{exit},\"message\":\"{}\"}}",
+                json_escape(&folder.display().to_string()),
+                json_escape(msg)
+            );
+            println!("{out}");
+        }
+        exit
+    };
+    if !folder.is_dir() {
+        return fail(
+            &format!(
+                "grade-compare refused: {} has no project directory; pass an existing project folder. {TAIL}.",
+                folder.display()
+            ),
+            "invalid",
+            1,
+        );
+    }
+    let at = match req.at.as_deref() {
+        None => 0.0,
+        Some(raw) => match parse_inspect_seconds("grade-compare", TAIL, raw) {
+            Ok(v) => v,
+            Err(msg) => return fail(&msg, "invalid", 1),
+        },
+    };
+    let backend_raw = req.backend.as_deref().unwrap_or("auto");
+    let overrides = match req.variables.as_deref() {
+        None => validate_mod::VariableOverrides::new(),
+        Some(raw) => match validate_mod::parse_variable_overrides(raw) {
+            Ok(m) => m,
+            Err(e) => return fail(&format!("grade-compare refused: {e}; {TAIL}"), "invalid", 1),
+        },
+    };
+    stage_line(json, "stage validate: running");
+    // The grade check runs on the selected composition before any
+    // draw: an identity chain would print two identical halves, so it
+    // refuses naming the composition instead.
+    let graded = match draw_inspect_frame(
+        "grade-compare",
+        TAIL,
+        folder,
+        req.composition.as_deref(),
+        backend_raw,
+        &overrides,
+        req.strict_variables,
+        req.theme.as_deref(),
+        at,
+        false,
+    ) {
+        Ok(d) => d,
+        Err(msg) => {
+            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let exit = if status == "unsupported" { 2 } else { 1 };
+            return fail(&msg, status, exit);
+        }
+    };
+    let has_grade = {
+        let resolved = notation::model::ResolvedGrade::identity().layer(&graded.comp.grade);
+        !resolved.is_empty()
+            || graded.comp.lane_grades.iter().any(|lane| {
+                !notation::model::ResolvedGrade::identity()
+                    .layer(&lane.grade)
+                    .is_empty()
+            })
+    };
+    if !has_grade {
+        return fail(
+            &format!(
+                "grade-compare refused: composition {:?} carries no composition or lane grade to compare (an identity chain shows two identical halves); tune a `grade` on the composition and re-run. {TAIL}.",
+                graded.comp.name
+            ),
+            "invalid",
+            1,
+        );
+    }
+    let plain = match draw_inspect_frame(
+        "grade-compare",
+        TAIL,
+        folder,
+        req.composition.as_deref(),
+        backend_raw,
+        &overrides,
+        req.strict_variables,
+        req.theme.as_deref(),
+        at,
+        true,
+    ) {
+        Ok(d) => d,
+        Err(msg) => {
+            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let exit = if status == "unsupported" { 2 } else { 1 };
+            return fail(&msg, status, exit);
+        }
+    };
+    let joined = join_side_by_side(&plain.rgb, &graded.rgb, graded.width, graded.height);
+    let bytes = match render::outputs::encode_png_rgb8(graded.width * 2, graded.height, &joined) {
+        Ok(b) => b,
+        Err(msg) => {
+            return fail(
+                &format!("grade-compare failed: cannot encode {}: {msg}; {TAIL}", out_path.display()),
+                "failed",
+                1,
+            );
+        }
+    };
+    if let Some(parent) = out_path.parent() {
+        if !parent.as_os_str().is_empty() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                return fail(
+                    &format!(
+                        "grade-compare refused: cannot create output directory {}: {e}; {TAIL}",
+                        parent.display()
+                    ),
+                    "invalid",
+                    1,
+                );
+            }
+        }
+    }
+    if let Err(e) = std::fs::write(&out_path, &bytes) {
+        return fail(
+            &format!(
+                "grade-compare failed: cannot write {}: {e}; no complete comparison was written",
+                out_path.display()
+            ),
+            "failed",
+            1,
+        );
+    }
+    stage_line(
+        json,
+        &format!(
+            "grade-compare: drew frame {} at {}s from {} (composition {:?}, backend {}).",
+            graded.frame,
+            format_snap_time(graded.time),
+            folder.display(),
+            graded.comp.name,
+            graded.backend
+        ),
+    );
+    stage_line(
+        json,
+        &format!(
+            "grade-compare: wrote {} (left ungraded without composition or lane grades, right graded, each {}x{}, split {}x{}).",
+            out_path.display(),
+            graded.width,
+            graded.height,
+            graded.width * 2,
+            graded.height
+        ),
+    );
+    note_log(
+        folder,
+        "info",
+        "grade-compare",
+        &run,
+        &format!("grade-compare ok: {}", out_path.display()),
+        json,
+    );
+    if json {
+        println!(
+            "{{\"tool\":\"framesmith\",\"command\":\"grade-compare\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"composition\":\"{}\",\"frame\":{},\"time\":{},\"file\":\"{}\",\"message\":null}}",
+            json_escape(&folder.display().to_string()),
+            json_escape(&graded.comp.name),
+            graded.frame,
+            graded.time,
+            json_escape(&out_path.display().to_string())
+        );
+    }
+    0
+}
+
+/// Today's UTC date as `YYYY-MM-DD` (Sprint 13 check, T006 / CAP-006):
+/// the civil-date conversion over Unix days, so `benchmark` needs no
+/// date dependency to stamp its machine-specific timings.
+fn utc_today() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let z = secs as i64 / 86_400 + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = (z - era * 146_097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
+    let mut y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    y += if m <= 2 { 1 } else { 0 };
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// `doctor`: report environment and project health facts (Sprint 13
+/// check, T006 / CAP-006). Without a folder, reports the machine only
+/// (Framesmith version, FFmpeg finding, GPU probe, text-shaping face,
+/// OS and architecture). With a folder, validates the project and
+/// adds its status, compositions, and canvas facts; a missing folder
+/// or an invalid project refuses naming the cause. Read-only: prints
+/// the report and writes nothing. Exits 0 when the report is
+/// complete, 1 when the project cannot be reported, 2 on usage errors
+/// or later-sprint elements.
+pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
+    use std::fmt::Write;
+    let run = log::run_id();
+    let framesmith = env!("CARGO_PKG_VERSION");
+    let finding = ffmpeg_mod::detect();
+    let ffmpeg_text = finding.to_string();
+    let gpu = render::gpu::gpu_available();
+    let mut fonts = layout::Fonts::new();
+    let default_face = fonts.resolve_system_style(false, false);
+    let registered_faces = fonts.machine_faces().len();
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    let mut out = String::new();
+    let _ = writeln!(out, "doctor: framesmith {framesmith}.");
+    let _ = writeln!(out, "doctor: {ffmpeg_text}.");
+    let _ = writeln!(
+        out,
+        "doctor: gpu renderer {}.",
+        if gpu { "available" } else { "unavailable (cpu draws every frame)" }
+    );
+    match &default_face {
+        Some(family) => {
+            let _ = writeln!(
+                out,
+                "doctor: text shaping available (default face {family:?}, {registered_faces} machine face(s) registered)."
+            );
+        }
+        None => {
+            let _ = writeln!(
+                out,
+                "doctor: text shaping unavailable (no system face resolved; set FRAMESMITH_SYSTEM_FONT to a readable font file)."
+            );
+        }
+    }
+    let _ = writeln!(out, "doctor: host {os}/{arch}.");
+    if let Some(dir) = folder {
+        if !dir.is_dir() {
+            let msg = format!(
+                "doctor refused: {} has no project directory; pass an existing project folder or run without one for machine facts only.",
+                dir.display()
+            );
+            if json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"doctor\",\"folder\":\"{}\",\"status\":\"invalid\",\"exit\":1,\"message\":\"{}\"}}",
+                    json_escape(&dir.display().to_string()),
+                    json_escape(&msg)
+                );
+            } else {
+                print!("{out}");
+                println!("{msg}");
+            }
+            note_log(dir, "warn", "doctor", &run, &msg, json);
+            return 1;
+        }
+        let verdict = validate_folder(dir);
+        let status_text = match verdict.status {
+            Status::Valid => "valid",
+            Status::Invalid => "invalid",
+            Status::Unsupported => "unsupported",
+        };
+        let _ = writeln!(
+            out,
+            "doctor: project {} is {status_text} ({} composition(s)).",
+            dir.display(),
+            verdict.compositions.len()
+        );
+        for comp in &verdict.compositions {
+            let _ = writeln!(
+                out,
+                "doctor: composition {:?}: {}x{} {} fps duration {:.3}s, {} clip(s).",
+                comp.name,
+                comp.width,
+                comp.height,
+                comp.fps,
+                comp.duration,
+                comp.clips.len()
+            );
+        }
+        if json {
+            let mut job = String::new();
+            let _ = write!(
+                job,
+                "{{\"tool\":\"framesmith\",\"command\":\"doctor\",\"folder\":\"{}\",\"status\":\"{status_text}\",\"exit\":{},\"framesmith\":\"{framesmith}\",\"ffmpeg_suitable\":{},\"ffmpeg\":\"{}\",\"gpu_available\":{gpu},\"text_shaping\":",
+                json_escape(&dir.display().to_string()),
+                if verdict.status == Status::Valid { 0 } else if verdict.status == Status::Invalid { 1 } else { 2 },
+                finding.suitable,
+                json_escape(&ffmpeg_text)
+            );
+            match &default_face {
+                Some(family) => {
+                    let _ = write!(job, "\"{}\"", json_escape(family));
+                }
+                None => job.push_str("null"),
+            }
+            let _ = write!(
+                job,
+                ",\"os\":\"{os}\",\"arch\":\"{arch}\",\"compositions\":["
+            );
+            for (i, comp) in verdict.compositions.iter().enumerate() {
+                if i > 0 {
+                    job.push(',');
+                }
+                let _ = write!(
+                    job,
+                    "{{\"name\":\"{}\",\"width\":{},\"height\":{},\"duration\":{},\"fps\":\"{}\",\"clips\":{}}}",
+                    json_escape(&comp.name),
+                    comp.width,
+                    comp.height,
+                    comp.duration,
+                    comp.fps,
+                    comp.clips.len()
+                );
+            }
+            job.push_str("],\"diagnostics\":[");
+            for (i, d) in verdict.diagnostics.iter().enumerate() {
+                if i > 0 {
+                    job.push(',');
+                }
+                let _ = write!(job, "\"{}\"", json_escape(&d.to_string()));
+            }
+            job.push_str("]}");
+            println!("{job}");
+        } else {
+            print!("{out}");
+            for d in &verdict.diagnostics {
+                println!("doctor: {d}");
+            }
+        }
+        let code = match verdict.status {
+            Status::Valid => 0,
+            Status::Invalid => 1,
+            Status::Unsupported => 2,
+        };
+        note_log(
+            dir,
+            if code == 0 { "info" } else { "warn" },
+            "doctor",
+            &run,
+            &format!("doctor {status_text}: {} composition(s)", verdict.compositions.len()),
+            json,
+        );
+        return code;
+    }
+    if json {
+        let mut job = String::new();
+        let _ = write!(
+            job,
+            "{{\"tool\":\"framesmith\",\"command\":\"doctor\",\"folder\":null,\"status\":\"ok\",\"exit\":0,\"framesmith\":\"{framesmith}\",\"ffmpeg_suitable\":{},\"ffmpeg\":\"{}\",\"gpu_available\":{gpu},\"text_shaping\":",
+            finding.suitable,
+            json_escape(&ffmpeg_text)
+        );
+        match &default_face {
+            Some(family) => {
+                let _ = write!(job, "\"{}\"", json_escape(family));
+            }
+            None => job.push_str("null"),
+        }
+        let _ = write!(job, ",\"os\":\"{os}\",\"arch\":\"{arch}\"}}");
+        println!("{job}");
+    } else {
+        print!("{out}");
+    }
+    0
+}
+
+/// `benchmark` request flags (Sprint 13 check, T006 / CAP-006):
+/// `--out` optionally keeps one PNG per bundled reference.
+pub struct BenchmarkRequest {
+    pub json: bool,
+    pub out: Option<String>,
+}
+
+/// One bundled benchmark reference (Sprint 13 check, T006 /
+/// CAP-006): a small KDL composition rendered in full through the
+/// normal pipeline, so the timing measures real drawing.
+struct BenchmarkRef {
+    name: &'static str,
+    kdl: &'static str,
+}
+
+/// The bundled references (Sprint 13 check, T006 / CAP-006): a static
+/// two-box card plus a moving box over a text line, both tiny so the
+/// command stays fast on any machine.
+const BENCHMARK_REFS: [BenchmarkRef; 2] = [
+    BenchmarkRef {
+        name: "still",
+        kdl: "composition name=\"still\" width=96 height=96 duration=1 fps=10 background=\"#101820\" version=1 {\n box id=\"a\" start=0 duration=1 x=8 y=8 width=80 height=36 fill=\"#e0a100\"\n box id=\"b\" start=0 duration=1 x=8 y=52 width=80 height=36 fill=\"#2e6fb0\"\n}\n",
+    },
+    BenchmarkRef {
+        name: "slide",
+        kdl: "composition name=\"slide\" width=128 height=128 duration=1 fps=10 background=\"#0c0c0c\" version=1 {\n text id=\"t\" value=\"bench\" start=0 duration=1 x=8 y=8 size=20 color=\"#ffffff\"\n box id=\"m\" start=0 duration=1 x=0 y=80 width=24 height=24 fill=\"#ff4040\"\n tween target=1 property=\"x\" kind=\"to\" start=0 duration=1 to=104 ease=\"linear\"\n}\n",
+    },
+];
+
+/// One timed reference render (Sprint 13 check, T006 / CAP-006): the
+/// frame count, the canvas, both pass timings, whether the two passes
+/// drew byte-identical pictures, and the first frame's picture.
+struct BenchmarkResult {
+    name: &'static str,
+    frames: u64,
+    width: u32,
+    height: u32,
+    ms_first: u128,
+    ms_second: u128,
+    deterministic: bool,
+    first_rgb: Vec<u8>,
+}
+
+/// `benchmark`: render the bundled references twice each, report
+/// per-reference timings with versions and date, and label the
+/// numbers machine-specific (Sprint 13 check, T006 / CAP-006). With
+/// `--out`, keeps one PNG per reference. An unrunnable reference
+/// (refused validation or a failed draw) fails naming the reference
+/// and the cause with nothing written — not even a partial PNG set.
+/// Never writes an MP4. Exits 0 on success, 1 on refusal or failure,
+/// 2 on usage errors.
+pub fn cmd_benchmark(req: &BenchmarkRequest) -> i32 {
+    use std::fmt::Write;
+    let json = req.json;
+    let run = log::run_id();
+    const TAIL: &str = "nothing was written";
+    static BENCH_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let fail = |msg: &str| -> i32 {
+        stage_line(json, msg);
+        if json {
+            println!(
+                "{{\"tool\":\"framesmith\",\"command\":\"benchmark\",\"status\":\"failed\",\"exit\":1,\"message\":\"{}\"}}",
+                json_escape(msg)
+            );
+        }
+        1
+    };
+    let out_dir = match req.out.as_deref() {
+        None => None,
+        Some(raw) if !raw.trim().is_empty() => Some(PathBuf::from(raw)),
+        Some(_) => {
+            eprintln!("framesmith benchmark: --out needs a value (an output directory).");
+            eprintln!("usage: framesmith benchmark [--json] [--out <dir>]");
+            return 2;
+        }
+    };
+    let finding = ffmpeg_mod::detect();
+    let ffmpeg_text = finding.to_string();
+    let ffmpeg_version = finding.version.clone().unwrap_or_else(|| "not found".to_string());
+    let ffmpeg_bin = finding
+        .ffmpeg_path
+        .clone()
+        .unwrap_or_else(|| PathBuf::from("ffmpeg"));
+    let base = std::env::temp_dir().join(format!(
+        "framesmith-benchmark-{}-{}",
+        std::process::id(),
+        BENCH_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&base);
+    let mut results: Vec<BenchmarkResult> = Vec::new();
+    let mut outcome: Result<(), String> = Ok(());
+    for reference in &BENCHMARK_REFS {
+        if outcome.is_err() {
+            break;
+        }
+        let dir = base.join(reference.name);
+        if let Err(e) = std::fs::create_dir_all(&dir) {
+            outcome = Err(format!(
+                "benchmark refused: bundled reference {:?} has no scratch space: {e}; {TAIL}",
+                reference.name
+            ));
+            break;
+        }
+        if let Err(e) = std::fs::write(dir.join("composition.kdl"), reference.kdl) {
+            outcome = Err(format!(
+                "benchmark refused: bundled reference {:?} cannot stage its composition: {e}; {TAIL}",
+                reference.name
+            ));
+            break;
+        }
+        let verdict = validate_folder(&dir);
+        if verdict.status != Status::Valid {
+            let problems: Vec<String> =
+                verdict.diagnostics.iter().map(|d| d.to_string()).collect();
+            outcome = Err(format!(
+                "benchmark refused: bundled reference {:?} is unrunnable: {}; {TAIL}",
+                reference.name,
+                if problems.is_empty() {
+                    "validation failed".to_string()
+                } else {
+                    problems.join("; ")
+                }
+            ));
+            break;
+        }
+        let comp = match select_composition(&verdict, None) {
+            Ok(c) => c,
+            Err(e) => {
+                outcome = Err(inspectize("benchmark", TAIL, e));
+                break;
+            }
+        };
+        let prep = match render::render::prepare_frames(&comp, &verdict.compositions, &dir, &ffmpeg_bin)
+        {
+            Ok(prep) => prep,
+            Err(e) => {
+                outcome = Err(inspectize("benchmark", TAIL, e));
+                break;
+            }
+        };
+        let (w, h) = prep.canvas();
+        let frames_total = comp.fps.frame_count(comp.duration);
+        let frames: Vec<u64> = (0..frames_total).collect();
+        let backend = render::render::resolve_backend(render::render::Backend::Auto);
+        let start = std::time::Instant::now();
+        let first = match render::render::draw_batch_parallel(&prep, backend, &frames) {
+            Ok(d) => d,
+            Err(e) => {
+                outcome = Err(inspectize("benchmark", TAIL, e));
+                break;
+            }
+        };
+        let ms_first = start.elapsed().as_millis();
+        let start = std::time::Instant::now();
+        let second = match render::render::draw_batch_parallel(&prep, backend, &frames) {
+            Ok(d) => d,
+            Err(e) => {
+                outcome = Err(inspectize("benchmark", TAIL, e));
+                break;
+            }
+        };
+        let ms_second = start.elapsed().as_millis();
+        let deterministic = first == second;
+        let first_rgb = first
+            .into_iter()
+            .next()
+            .map(|(_, rgb)| rgb)
+            .unwrap_or_default();
+        results.push(BenchmarkResult {
+            name: reference.name,
+            frames: frames_total,
+            width: w,
+            height: h,
+            ms_first,
+            ms_second,
+            deterministic,
+            first_rgb,
+        });
+    }
+    if let Err(msg) = &outcome {
+        let _ = std::fs::remove_dir_all(&base);
+        return fail(msg);
+    }
+    if !results.iter().all(|r| r.deterministic) {
+        let names: Vec<&str> = results
+            .iter()
+            .filter(|r| !r.deterministic)
+            .map(|r| r.name)
+            .collect();
+        let _ = std::fs::remove_dir_all(&base);
+        return fail(&format!(
+            "benchmark failed: reference(s) {} drew different bytes across passes; {TAIL}",
+            names.join(", ")
+        ));
+    }
+    // Every PNG encodes before any file is written, so an encoding
+    // problem still leaves no partial benchmark set behind.
+    let mut encoded: Vec<(String, Vec<u8>)> = Vec::new();
+    for r in &results {
+        match render::outputs::encode_png_rgb8(r.width, r.height, &r.first_rgb) {
+            Ok(bytes) => encoded.push((format!("benchmark-{}.png", r.name), bytes)),
+            Err(msg) => {
+                let _ = std::fs::remove_dir_all(&base);
+                return fail(&format!(
+                    "benchmark failed: cannot encode reference {:?}: {msg}; {TAIL}",
+                    r.name
+                ));
+            }
+        }
+    }
+    if let Some(dir) = &out_dir {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            let _ = std::fs::remove_dir_all(&base);
+            return fail(&format!(
+                "benchmark refused: cannot create output directory {}: {e}; {TAIL}",
+                dir.display()
+            ));
+        }
+        let probe = dir.join(".framesmith-write-probe");
+        match std::fs::write(&probe, b"framesmith writability probe") {
+            Ok(()) => {
+                let _ = std::fs::remove_file(&probe);
+            }
+            Err(e) => {
+                let _ = std::fs::remove_dir_all(&base);
+                return fail(&format!(
+                    "benchmark refused: output directory {} is not writable: {e}; {TAIL}",
+                    dir.display()
+                ));
+            }
+        }
+        let mut written: Vec<String> = Vec::new();
+        for (name, bytes) in &encoded {
+            let path = dir.join(name);
+            if let Err(e) = std::fs::write(&path, bytes) {
+                for done in &written {
+                    let _ = std::fs::remove_file(dir.join(done));
+                }
+                let _ = std::fs::remove_dir_all(&base);
+                return fail(&format!(
+                    "benchmark failed: cannot write {}: {e}; no complete benchmark set was written",
+                    path.display()
+                ));
+            }
+            written.push(name.clone());
+        }
+    }
+    let _ = std::fs::remove_dir_all(&base);
+    let framesmith = env!("CARGO_PKG_VERSION");
+    let date = utc_today();
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    let total_ms: u128 = results.iter().map(|r| r.ms_first + r.ms_second).sum();
+    if !json {
+        println!("benchmark: framesmith {framesmith}, ffmpeg {ffmpeg_version}, {os}/{arch}, date {date}.");
+        for r in &results {
+            println!(
+                "benchmark: reference {:?}: {} frame(s) {}x{} in {}ms then {}ms (deterministic yes).",
+                r.name, r.frames, r.width, r.height, r.ms_first, r.ms_second
+            );
+        }
+        if let Some(dir) = &out_dir {
+            println!(
+                "benchmark: wrote {} PNG(s) to {}.",
+                encoded.len(),
+                dir.display()
+            );
+        }
+        println!(
+            "benchmark: {total_ms}ms total; timings are machine-specific: measured on this machine only, never a guarantee or a cross-machine comparison."
+        );
+        let _ = ffmpeg_text;
+        let _ = run;
+    } else {
+        let mut job = String::new();
+        let _ = write!(
+            job,
+            "{{\"tool\":\"framesmith\",\"command\":\"benchmark\",\"status\":\"ok\",\"exit\":0,\"framesmith\":\"{framesmith}\",\"ffmpeg\":\"{}\",\"os\":\"{os}\",\"arch\":\"{arch}\",\"date\":\"{date}\",\"machine_specific\":true,\"references\":[",
+            json_escape(&ffmpeg_version)
+        );
+        for (i, r) in results.iter().enumerate() {
+            if i > 0 {
+                job.push(',');
+            }
+            let _ = write!(
+                job,
+                "{{\"name\":\"{}\",\"frames\":{},\"width\":{},\"height\":{},\"ms_first\":{},\"ms_second\":{},\"deterministic\":true}}",
+                json_escape(r.name),
+                r.frames,
+                r.width,
+                r.height,
+                r.ms_first,
+                r.ms_second
+            );
+        }
+        job.push_str("],\"files\":[");
+        for (i, (name, _)) in encoded.iter().enumerate() {
+            if i > 0 {
+                job.push(',');
+            }
+            let _ = write!(job, "\"{}\"", json_escape(name));
+        }
+        let _ = write!(job, "],\"message\":null}}");
+        println!("{job}");
+    }
+    0
 }
 
 /// `errors`: print the error-code catalog (T007). With a code, prints the

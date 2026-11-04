@@ -999,6 +999,8 @@ mod tests {
 
     fn comp_with(clips: Vec<Clip>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -1029,6 +1031,7 @@ mod tests {
 
     fn text(start: f64, duration: f64, order: i64, x: f64) -> Clip {
         Clip::Text(TextClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1071,6 +1074,7 @@ mod tests {
 
     fn video(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Video(VideoClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Video,
             label: None,
@@ -1105,6 +1109,7 @@ mod tests {
 
     fn boxed(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Box(BoxClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1291,6 +1296,8 @@ mod tests {
 
     fn comp_with_motion(clips: Vec<Clip>, tweens: Vec<notation::model::TweenDecl>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             tweens,
             ..comp_with(clips)
         }
@@ -1424,6 +1431,7 @@ mod tests {
         // `rate` source seconds from `trim_start` (rate 2 over a
         // 1..3 s window: frame 15 at t=0.5 maps to source 2.0 s).
         let clip = Clip::Video(VideoClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Video,
             label: None,
@@ -1511,6 +1519,7 @@ mod tests {
 
     fn image_clip(start: f64, duration: f64, order: i64) -> Clip {
         Clip::Image(notation::model::ImageClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1538,6 +1547,8 @@ mod tests {
 
     fn motion_comp(clips: Vec<Clip>, tweens: Vec<TweenDecl>, sets: Vec<SetDecl>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -2075,6 +2086,7 @@ mod tests {
         };
         child.tweens = vec![child_tween];
         let root = comp_with(vec![Clip::Nest(NestClip {
+            asserts: Default::default(),
             target: "kid".to_string(),
             start: 0.0,
             duration: 2.0,
@@ -2177,6 +2189,7 @@ mod tests {
         kids: Vec<FlexChild>,
     ) -> Clip {
         Clip::Flex(FlexClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -2498,6 +2511,7 @@ mod tests {
             b.grade = grade(None, Some(1.0), None, None, None, None);
         }
         let mut root = comp_with(vec![Clip::Nest(NestClip {
+            asserts: Default::default(),
             target: "kid".to_string(),
             start: 0.0,
             duration: 2.0,
@@ -2559,6 +2573,7 @@ mod tests {
             };
         }
         let root = comp_with(vec![Clip::Nest(NestClip {
+            asserts: Default::default(),
             target: "kid".to_string(),
             start: 0.0,
             duration: 2.0,

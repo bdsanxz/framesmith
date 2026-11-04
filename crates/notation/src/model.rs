@@ -377,12 +377,68 @@ pub struct TextSpan {
     pub column: usize,
 }
 
+/// Motion assertions of one visual clip (Sprint 13 check, T003 /
+/// CAP-003): the authored `assert-appear`, `assert-inside`, and
+/// `assert-moving` children in KDL, validated with the clip and
+/// checked by lint after validation. `None` means the assertion was
+/// not written; an unwritten assertion never fires. Audio clips carry
+/// no picture, so they carry no assertions (an assertion child on an
+/// audio clip is refused at validation).
+#[derive(Debug, Clone, Default)]
+pub struct MotionAsserts {
+    /// `assert-appear by=<seconds>`: the clip must first show no later
+    /// than `by` seconds. `None` means unwritten.
+    pub appear: Option<AssertAppear>,
+    /// `assert-inside`: the clip must stay fully inside the frame
+    /// while visible (authored geometry; motion is not re-evaluated,
+    /// like the T002 layout rules). `None` means unwritten.
+    pub inside: Option<AssertSite>,
+    /// `assert-moving`: the clip's picture must change across its
+    /// window (a visual tween/key/set, a typewriter reveal, or a count
+    /// range). `None` means unwritten.
+    pub moving: Option<AssertSite>,
+}
+
+impl MotionAsserts {
+    /// True when the clip carries no assertion at all.
+    pub fn is_empty(&self) -> bool {
+        self.appear.is_none() && self.inside.is_none() && self.moving.is_none()
+    }
+}
+
+/// One validated `assert-appear` child: the deadline in composition
+/// seconds plus the assertion site, so the finding names the element
+/// and the measured appearance time.
+#[derive(Debug, Clone)]
+pub struct AssertAppear {
+    /// The `by` deadline in composition seconds (finite, >= 0).
+    pub by: f64,
+    /// Location of the `assert-appear` child node.
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One validated `assert-inside` or `assert-moving` child: a flag
+/// assertion carrying only its site, so the finding names the element
+/// and the measured bounds or stillness.
+#[derive(Debug, Clone)]
+pub struct AssertSite {
+    /// Location of the assertion child node.
+    pub line: usize,
+    pub column: usize,
+}
+
 /// A `text` clip (Sprint 1 usable element, plus Sprint 2 paint order,
 /// line height and letter spacing, plus Sprint 6 id/track/label, plus
 /// Sprint 7 split/typewriter/count text effects, plus Sprint 8 styled
 /// `span` runs with a base `direction`).
 #[derive(Debug, Clone)]
 pub struct TextClip {
+    /// Motion assertions of the clip (Sprint 13 check, T003): the
+    /// validated `assert-appear`, `assert-inside`, and `assert-moving`
+    /// children. Empty when unwritten; lint checks them after
+    /// validation.
+    pub asserts: MotionAsserts,
     pub value: String,
     pub start: f64,
     pub duration: f64,
@@ -483,6 +539,7 @@ pub struct TextClip {
 /// the picture. Without declared keys the sound mixes at unity gain.
 #[derive(Debug, Clone)]
 pub struct VideoClip {
+    pub asserts: MotionAsserts,
     pub path: String,
     pub start: f64,
     /// Stable reference name (`id`), unique across the project when written.
@@ -1414,6 +1471,7 @@ pub struct MaskShape {
 /// box, and the mask applies once over self-first content.
 #[derive(Debug, Clone)]
 pub struct BoxClip {
+    pub asserts: MotionAsserts,
     pub start: f64,
     pub duration: f64,
     /// Stable reference name (`id`), unique across the project when written.
@@ -1529,6 +1587,7 @@ pub struct FlexChild {
 /// inherit the container window and are positioned by the layout.
 #[derive(Debug, Clone)]
 pub struct FlexClip {
+    pub asserts: MotionAsserts,
     pub start: f64,
     pub duration: f64,
     /// Stable reference name (`id`), unique across the project when written.
@@ -1593,6 +1652,7 @@ pub struct FlexClip {
 /// and spread stay in canvas pixels and never scale.
 #[derive(Debug, Clone)]
 pub struct PathClip {
+    pub asserts: MotionAsserts,
     pub start: f64,
     pub duration: f64,
     /// Stable reference name (`id`), unique across the project when written.
@@ -1673,6 +1733,7 @@ pub struct PathClip {
 /// renders.
 #[derive(Debug, Clone)]
 pub struct SvgClip {
+    pub asserts: MotionAsserts,
     pub path: String,
     pub start: f64,
     pub duration: f64,
@@ -1727,6 +1788,7 @@ pub struct SvgClip {
 /// animations play in a `video` clip.
 #[derive(Debug, Clone)]
 pub struct ImageClip {
+    pub asserts: MotionAsserts,
     pub path: String,
     pub start: f64,
     pub duration: f64,
@@ -2181,6 +2243,7 @@ pub const SHAPE_NUMERIC_PROPERTIES: [&str; 4] = ["width", "height", "radius", "b
 /// nest's own `order`, so the use stacks as one unit.
 #[derive(Debug, Clone)]
 pub struct NestClip {
+    pub asserts: MotionAsserts,
     /// Name of the nested composition, as written.
     pub target: String,
     pub start: f64,
@@ -4683,6 +4746,24 @@ impl Clip {
             Clip::Nest(_) => "nest",
         }
     }
+
+    /// Motion assertions of the clip (Sprint 13 check, T003): the
+    /// validated `assert-appear`, `assert-inside`, and `assert-moving`
+    /// children. `None` for audio clips, which carry no picture and
+    /// refuse assertion children at validation.
+    pub fn asserts(&self) -> Option<&MotionAsserts> {
+        match self {
+            Clip::Text(c) => Some(&c.asserts),
+            Clip::Video(c) => Some(&c.asserts),
+            Clip::Box(c) => Some(&c.asserts),
+            Clip::Flex(c) => Some(&c.asserts),
+            Clip::Image(c) => Some(&c.asserts),
+            Clip::Path(c) => Some(&c.asserts),
+            Clip::Svg(c) => Some(&c.asserts),
+            Clip::Audio(_) => None,
+            Clip::Nest(c) => Some(&c.asserts),
+        }
+    }
 }
 
 /// Optional project configuration file name, read from the folder root.
@@ -4870,6 +4951,11 @@ pub struct Composition {
     /// root's element blurs (nested compositions validate the same
     /// rules but render honors the root, like transitions).
     pub motion_blur: Option<MotionBlur>,
+    /// Source location of the `composition` node (Sprint 13 check,
+    /// T003): timeline-wide lint findings (`frozen-timeline`) name
+    /// this site. Render output is unchanged.
+    pub line: usize,
+    pub column: usize,
 }
 
 impl Composition {

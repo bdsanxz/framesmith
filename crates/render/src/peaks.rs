@@ -286,6 +286,7 @@ mod tests {
         use notation::model::{Align, AudioClip, Clip, FontStyle, TextClip, TrackKind, Wrap};
         let text = |start: f64, duration: f64, hidden: bool| {
             Clip::Text(TextClip {
+                asserts: Default::default(),
                 value: "x".to_string(),
                 id: None,
                 track: TrackKind::Graphics,
@@ -349,6 +350,8 @@ mod tests {
             })
         };
         let comp = Composition {
+            line: 1,
+            column: 1,
             name: "t".to_string(),
             id: None,
             canvas: None,

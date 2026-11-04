@@ -604,6 +604,34 @@ pub fn provenance_playlist_comment(stamp: &str) -> String {
     format!("# {stamp}")
 }
 
+/// Encode one drawn frame as a PNG (Sprint 13 check, T005 /
+/// CAP-005): the raw `rgb24` bytes the frame pipeline draws
+/// (`width * height * 3`), losslessly encoded, so decoding the file
+/// yields the input bytes exactly. Snapshots share this encoder with
+/// nothing else; the full render pipes the same bytes to FFmpeg, so
+/// snapshot PNGs decode pixel-identical to the same `pngseq` frames.
+pub fn encode_png_rgb8(width: u32, height: u32, rgb: &[u8]) -> Result<Vec<u8>, String> {
+    if rgb.len() != width as usize * height as usize * 3 {
+        return Err(format!(
+            "snapshot failed: cannot encode a {width}x{height} PNG from {} byte(s) (expected {}); no PNG was written",
+            rgb.len(),
+            width as usize * height as usize * 3
+        ));
+    }
+    let mut out = Vec::new();
+    let mut encoder = png::Encoder::new(&mut out, width, height);
+    encoder.set_color(png::ColorType::Rgb);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header().map_err(|e| {
+        format!("snapshot failed: cannot encode the PNG ({e}); no PNG was written")
+    })?;
+    writer.write_image_data(rgb).map_err(|e| {
+        format!("snapshot failed: cannot encode the PNG ({e}); no PNG was written")
+    })?;
+    drop(writer);
+    Ok(out)
+}
+
 /// Path of the PNG-sequence provenance sidecar (Sprint 12 outputs,
 /// CAP-005): a sibling JSON file beside the sequence directory (the
 /// frames directory itself keeps exactly `frame-%04d.png`), carrying
@@ -1157,6 +1185,8 @@ mod tests {
 
     fn tiny_comp() -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),

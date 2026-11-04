@@ -8876,6 +8876,7 @@ mod tests {
 
     fn span_clip(spans: Vec<notation::model::TextSpan>) -> notation::model::TextClip {
         notation::model::TextClip {
+            asserts: Default::default(),
             value: String::new(),
             start: 0.0,
             duration: 2.0,
@@ -9196,6 +9197,7 @@ mod tests {
             let (red_order, blue_order) = if tie { (0, 0) } else { (1, 0) };
             let mut clips = vec![
                 BoxClip {
+                    asserts: Default::default(),
                     id: None,
                     track: TrackKind::Graphics,
                     label: None,
@@ -9231,6 +9233,7 @@ mod tests {
                     vfx: Default::default(),
                 },
                 BoxClip {
+                    asserts: Default::default(),
                     id: None,
                     track: TrackKind::Graphics,
                     label: None,
@@ -9270,6 +9273,8 @@ mod tests {
                 clips.swap(0, 1);
             }
             Composition {
+                line: 1,
+                column: 1,
                 id: None,
                 canvas: None,
                 name: "t".to_string(),
@@ -9342,6 +9347,7 @@ mod tests {
     ) -> notation::model::BoxClip {
         use notation::model as m;
         m::BoxClip {
+            asserts: Default::default(),
             id: None,
             track,
             label: None,
@@ -9389,6 +9395,8 @@ mod tests {
         lanes: Vec<notation::model::LaneGrade>,
     ) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -10694,6 +10702,8 @@ mod tests {
     fn encode_args_pin_the_standard_mp4() {
         use notation::model::{Composition, Fps, Rgb};
         let comp = Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -10827,6 +10837,8 @@ mod tests {
     fn encoder_flags_follow_presets_and_overrides() {
         use notation::model::{Composition, Fps, Rgb};
         let comp = Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -10970,6 +10982,8 @@ mod tests {
         use crate::motion_plan::plan_motions;
         use notation::model::{Composition, Fps, Rgb};
         let comp = Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -11024,6 +11038,7 @@ mod tests {
     fn red_box() -> notation::model::Clip {
         use notation::model::{BoxClip, Rgb, TrackKind};
         notation::model::Clip::Box(BoxClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -11498,6 +11513,7 @@ mod tests {
         // fails every frame that draws it, serially or in parallel.
         use notation::model::{Clip, Fit, TrackKind, VideoClip};
         let prep = box_prep(vec![Clip::Video(VideoClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Video,
             label: None,
@@ -11715,6 +11731,7 @@ mod tests {
         // the true source end, an omitted trim-end means the source
         // end, and an unknown source end stays unknown.
         let clip = |ts: f64, te: Option<f64>| notation::model::VideoClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Video,
             label: None,

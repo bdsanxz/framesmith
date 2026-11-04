@@ -1324,6 +1324,7 @@ mod tests {
 
     fn text_clip(x: f64, y: f64) -> Clip {
         Clip::Text(TextClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1423,6 +1424,7 @@ mod tests {
 
     fn box_clip(x: f64, opacity: f64) -> Clip {
         Clip::Box(notation::model::BoxClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1556,6 +1558,8 @@ mod tests {
 
     fn comp_with(clips: Vec<Clip>, tweens: Vec<TweenDecl>, sets: Vec<SetDecl>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -1953,6 +1957,8 @@ mod tests {
 
     fn comp_with_keys(clips: Vec<Clip>, keys: Vec<KeyDecl>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -2777,6 +2783,7 @@ mod tests {
         // animated width starts there; a declared width starts there.
         use notation::model::{Fit, ImageClip};
         let bare = Clip::Image(ImageClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,

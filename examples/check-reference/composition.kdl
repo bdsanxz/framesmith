@@ -1,0 +1,22 @@
+composition name="review" root=true width=640 height=480 duration=6 fps=10 background="#112233" version=1 {
+    grade preset="noir"
+    variable id="stale" type="string" default="old"
+    box id="slide" start=0 duration=1 x=0 y=380 width=20 height=20 fill="#ff0000"
+    box id="lower" start=0 duration=2 x=100 y=100 width=200 height=120 fill="#ff0000"
+    box id="upper" start=0 duration=2 x=200 y=160 width=200 height=120 fill="#00ff00"
+    box id="lost" start=0 duration=1 x=-300 y=100 width=200 height=120 fill="#ff00ff"
+    text id="cap" value="Hello" start=0 duration=1 x=100 y=440 size=32 color="#ffffff"
+    box id="escape" start=0 duration=2 x=600 y=100 width=100 height=60 fill="#ff0000" {
+        assert-inside
+    }
+    box id="stuck" start=2 duration=2 x=100 y=300 width=100 height=60 fill="#00ff00" {
+        assert-moving
+    }
+    text id="dim" value="Hello" start=0 duration=6 x=100 y=50 size=16 color="#777777"
+    text id="late" value="Hi" start=3 duration=2 x=100 y=100 size=32 color="#ffffff" {
+        assert-appear by=2
+    }
+    tween target=0 property="x" kind="to" start=0 duration=1 to=140 ease="linear"
+    audio id="dead-hidden" path="tone.wav" start=0 duration=1 hidden=true
+    audio id="dead-quiet" path="tone.wav" start=0 duration=1 volume="-inf"
+}

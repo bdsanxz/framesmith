@@ -541,6 +541,8 @@ mod tests {
             column: 1,
         });
         let comp = Composition {
+            line: 1,
+            column: 1,
             name: "t".to_string(),
             id: None,
             canvas: None,
@@ -836,6 +838,8 @@ mod tests {
     /// crossfade/duck plan tests (no media, no directives).
     fn plan_comp(clips: Vec<notation::model::Clip>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             name: "t".to_string(),
             id: None,
             canvas: None,

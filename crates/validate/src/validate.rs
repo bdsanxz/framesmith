@@ -14,12 +14,13 @@ use notation::model::{
     Composition, Crossfade, DuckUnder, EaseDecl, Effect, EffectParams, EffectPreset, FillPaint,
     FillRule, Fit, FlexAlign, FlexChild,
     FlexClip, FlexDirection, FlexJustify, FontDecl, Fps, Grade, GradePreset, GradientStop,
-    ImageClip, InputDecl, KeyDecl, KeyStop, LaneGrade, MarkDecl, MaskRef, MotionBlur, MotionBlurTier, NestClip, Normalize,
+    ImageClip, InputDecl, KeyDecl, KeyStop, LaneGrade, MarkDecl, MaskRef, AssertAppear, AssertSite,
+    MotionAsserts, MotionBlur, MotionBlurTier, NestClip, Normalize,
     Overflow, PathClip, Placement, ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid,
     StaggerOrigin, StartAfter, StrokePosition, SvgClip, TextClip, TextDirection, TextSpan,
     TrackKind, Transition, TransitionKind, Turn3D, TweenDecl, TweenKind, VariableDecl,
     VariableDefault, VariableType,
-    VideoClip, WaveformDraw, WaveformRangeError, CONFIG_FILE, EFFECT_AMOUNT_RANGE,
+    VideoClip, WaveformDraw, WaveformRangeError, CONFIG_FILE, EFFECT_AMOUNT_RANGE, MOTION_PROPERTIES,
     EFFECT_BLUR_RADIUS_RANGE, EFFECT_BRIGHTNESS_RANGE, EFFECT_CHROMA_DISTANCE_RANGE,
     EFFECT_CONTRAST_RANGE, EFFECT_HUE_ANGLE_RANGE, EFFECT_PIXEL_SIZE_RANGE,
     EFFECT_POSTERIZE_LEVELS_RANGE, EFFECT_SATURATE_RANGE, EFFECT_STRENGTH_RANGE,
@@ -36,6 +37,7 @@ use notation::model::{
     MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
+use crate::lint::{LintFinding, LintNote};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -148,6 +150,17 @@ pub struct Verdict {
     /// clip window (Sprint 10 sound, CAP-010). `check` shows every
     /// entry for review; rendering draws the clamped range.
     pub waveform_clamps: Vec<WaveformClamp>,
+    /// Batched lint findings of this run (Sprint 13 check, T001 /
+    /// CAP-001): one entry per fired named rule, each carrying its
+    /// rule id, severity, file, line, column, and fix. Warnings that
+    /// never block a default run; `check` and `lint` print the same
+    /// batch. Empty for projects no rule fires on.
+    pub lint_findings: Vec<LintFinding>,
+    /// Unrunnable rules of this run (Sprint 13 check, T001 / REC-001):
+    /// one named note per rule that could not run (missing media,
+    /// undecodable frame), with the cause and the workaround. The run
+    /// continues; every runnable finding is still reported.
+    pub lint_notes: Vec<LintNote>,
 }
 
 /// One reviewable inferred length (Sprint 6 T003): the resolved value
@@ -925,6 +938,29 @@ struct Ctx<'a> {
     /// variables refuse as `E_BAD_VARIABLE` instead of warning, and
     /// every default-less variable without a supplied value refuses.
     strict: bool,
+    /// Batched lint findings of this run (Sprint 13 check, T001 /
+    /// CAP-001): every fired named rule lands here with its rule id,
+    /// severity, location, and fix. Warnings only; lint never flips
+    /// `invalid`, so findings never change the verdict or the exit.
+    lint_findings: Vec<LintFinding>,
+    /// Unrunnable rules of this run (Sprint 13 check, T001 / REC-001):
+    /// one named note per rule that could not run, with the cause and
+    /// the workaround. The run continues around them.
+    lint_notes: Vec<LintNote>,
+    /// Declared `style` blocks with their homes (Sprint 13 check, T001
+    /// / `unused-style`): composition index in document order, block
+    /// name, and block location. Recorded in the style pre-pass.
+    style_decls: Vec<(usize, String, usize, usize)>,
+    /// Resolved `style="..."` references (Sprint 13 check, T001 /
+    /// `unused-style`): composition index plus block name, one entry
+    /// per successful resolution. A declared block with no entry here
+    /// is unused.
+    style_uses: BTreeSet<(usize, String)>,
+    /// Selected theme names (Sprint 13 check, T001 / `unused-theme`):
+    /// every composition `theme` attribute hit plus the caller
+    /// `--theme` when it names a declared block. A declared block
+    /// with no entry here is unused.
+    theme_uses: BTreeSet<String>,
 }
 
 impl<'a> Ctx<'a> {
@@ -1245,6 +1281,1649 @@ fn check_ids_and_refs(ctx: &mut Ctx) {
             Some(_) => {}
         }
     }
+}
+
+/// Unused-block lint pass (Sprint 13 check, T001 / `unused-style`,
+/// `unused-theme`): every declared `style` block with no recorded
+/// `style="..."` reference in its own composition, and every declared
+/// `theme` block with no composition or caller selection, reports one
+/// named finding with its rule, location, and fix. Findings batch in
+/// emission order (styles in declaration order, then themes in document
+/// order); warnings only, so this pass never flips the verdict.
+/// Later rule packs (layout, motion, contrast, audio) append their own
+/// findings to the same batch with their own tasks.
+fn check_unused_lint(ctx: &mut Ctx, themes: &[Theme]) {
+    for (comp, name, line, column) in ctx.style_decls.clone() {
+        if ctx.style_uses.contains(&(comp, name.clone())) {
+            continue;
+        }
+        if let Some(finding) = LintFinding::new(
+            "unused-style",
+            &ctx.file.clone(),
+            line,
+            column,
+            format!(
+                "style {name:?} is declared but never referenced by `style={name:?}`; the block has no effect"
+            ),
+            format!(
+                "reference it with `style={name:?}` on a text, box, flex, image, path, or svg element, or remove the `style` block"
+            ),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+    for theme in themes {
+        if ctx.theme_uses.contains(&theme.name) {
+            continue;
+        }
+        if let Some(finding) = LintFinding::new(
+            "unused-theme",
+            &ctx.file.clone(),
+            theme.line,
+            theme.column,
+            format!(
+                "theme {:?} is declared but never selected by a composition `theme` attribute or `--theme`; the block has no effect",
+                theme.name
+            ),
+            format!(
+                "select it with `theme={:?}` on a composition or `--theme {:?}`, or remove the `theme` block",
+                theme.name, theme.name
+            ),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// True for a motion-assertion child name: `assert-appear`,
+/// `assert-inside`, or `assert-moving` (Sprint 13 check, T003). Clip
+/// child loops skip these (they validate through
+/// [`parse_clip_asserts`]); audio and flex-child loops refuse them
+/// with a directed diagnostic instead.
+fn is_assert_child(name: &str) -> bool {
+    matches!(name, "assert-appear" | "assert-inside" | "assert-moving")
+}
+
+/// Validate the motion-assertion children of one visual clip (Sprint
+/// 13 check, T003): at most one `assert-appear` carrying a required
+/// `by=<seconds>` deadline (finite, >= 0), at most one flag child
+/// each of `assert-inside` and `assert-moving` (no properties, no
+/// children). Every malformed assertion fails with `E_BAD_MOTION`
+/// (unknown properties keep `E_UNKNOWN_KEY`) naming the assertion and
+/// the fix, before frame one; any failure drops the clip, like the
+/// other clip-child parsers. Audio clips never reach here: they carry
+/// no picture, so their validator refuses assertion children outright.
+fn parse_clip_asserts(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<MotionAsserts> {
+    let mut out = MotionAsserts::default();
+    let mut ok = true;
+    for child in &node.children {
+        if !is_assert_child(&child.name) {
+            continue;
+        }
+        let label = format!("`{}` on {what}", child.name);
+        if !child.children.is_empty() {
+            let first = &child.children[0];
+            ctx.push(
+                first.name_line,
+                first.name_column,
+                "E_BAD_MOTION",
+                format!(
+                    "{label} holds child `{}`; an assertion carries attributes only, never children",
+                    first.name
+                ),
+                format!(
+                    "remove the child inside `{}`, keeping only its attributes",
+                    child.name
+                ),
+            );
+            ok = false;
+            continue;
+        }
+        match child.name.as_str() {
+            "assert-appear" => {
+                if out.appear.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_MOTION",
+                        format!(
+                            "{what} holds two `assert-appear` children; a clip carries at most one appearance deadline"
+                        ),
+                        "keep one `assert-appear by=<seconds>` on the clip, or remove the extra child",
+                    );
+                    ok = false;
+                    continue;
+                }
+                let mut keys_ok = true;
+                for (k, v) in &child.props {
+                    if k != "by" {
+                        ctx.push(
+                            v.line,
+                            v.column,
+                            "E_UNKNOWN_KEY",
+                            format!(
+                                "unknown `assert-appear` key {k:?}; an appearance assertion holds `by=<seconds>` only"
+                            ),
+                            "keep only `by=<seconds>` on the `assert-appear` child, or remove the key",
+                        );
+                        keys_ok = false;
+                    }
+                }
+                if !keys_ok {
+                    ok = false;
+                    continue;
+                }
+                let by = match find(child, "by") {
+                    None => {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_MOTION",
+                            format!(
+                                "{label} is missing required `by`; an appearance assertion names its deadline"
+                            ),
+                            "add `by=<seconds>` to the `assert-appear` child (for example `assert-appear by=2`)",
+                        );
+                        ok = false;
+                        continue;
+                    }
+                    Some(v) => match as_f64(v) {
+                        Some(x) if x.is_finite() && x >= 0.0 => x,
+                        _ => {
+                            ctx.push(
+                                v.line,
+                                v.column,
+                                "E_BAD_MOTION",
+                                format!(
+                                    "{label} has a bad `by` time; deadlines are finite seconds from 0"
+                                ),
+                                "set `by=<seconds >= 0>` on the `assert-appear` child (for example `by=2`)",
+                            );
+                            ok = false;
+                            continue;
+                        }
+                    },
+                };
+                out.appear = Some(AssertAppear {
+                    by,
+                    line: child.name_line,
+                    column: child.name_column,
+                });
+            }
+            "assert-inside" | "assert-moving" => {
+                let seen = if child.name == "assert-inside" {
+                    &mut out.inside
+                } else {
+                    &mut out.moving
+                };
+                if seen.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_MOTION",
+                        format!(
+                            "{what} holds two `{}` children; a clip carries at most one of each assertion",
+                            child.name
+                        ),
+                        format!(
+                            "keep one `{}` on the clip, or remove the extra child",
+                            child.name
+                        ),
+                    );
+                    ok = false;
+                    continue;
+                }
+                if let Some((k, v)) = child.props.first() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_UNKNOWN_KEY",
+                        format!(
+                            "unknown `{}` key {k:?}; the assertion is a flag with no properties",
+                            child.name
+                        ),
+                        format!("remove the key, keeping a bare `{}` child", child.name),
+                    );
+                    ok = false;
+                    continue;
+                }
+                *seen = Some(AssertSite {
+                    line: child.name_line,
+                    column: child.name_column,
+                });
+            }
+            _ => {}
+        }
+    }
+    if ok { Some(out) } else { None }
+}
+
+/// Static layout lint (Sprint 13 check, T002 / `overlap`, `off-canvas`,
+/// `caption-zone`): pixel-rect analysis over the finished compositions.
+///
+/// Every composition contributes its own canvas and resolved clip
+/// windows (absolute starts and inferred durations are already written
+/// back by `finish_composition`), so one run batches findings across
+/// every composition in document order. The pass runs only on valid
+/// projects: broken windows or geometry would name garbage, and the
+/// diagnostics already refuse those projects.
+///
+/// Rectangles are static: authored `x`/`y`/extents in canvas pixels,
+/// exactly what the renderer consumes before motion. Tweens and sets
+/// that move, resize, or fade a clip are not re-evaluated here (the
+/// rules are static sources in the registry). Text extents are a
+/// documented estimate: the average glyph advance below per character,
+/// one line per newline at the declared `line-height` (else the font
+/// size), reflowed at the `wrap` width when one is written, drawn from
+/// the clip top-left like the renderer. `path` bounds cover segment
+/// endpoints plus bezier control points (arc bulges excluded), offset
+/// by the clip `x`/`y`. Boxes, flex containers, images, and SVGs use
+/// their authored body bounds (stroke and shadow excluded); videos and
+/// nests play fullscreen. Audio clips draw no picture and never take
+/// part. Hidden clips, fully transparent clips (`opacity` 0), and
+/// zero-area clips (which draw nothing) are skipped by every rule here.
+fn check_layout_lint(ctx: &mut Ctx, compositions: &[Composition]) {
+    let multi = compositions.len() > 1;
+    for comp in compositions {
+        let canvas_w = f64::from(comp.width);
+        let canvas_h = f64::from(comp.height);
+        let scope = if multi {
+            format!(" in composition {:?}", comp.name)
+        } else {
+            String::new()
+        };
+        // Visible, opaque, non-empty rectangles in document order.
+        let mut items: Vec<(usize, LayoutRect)> = Vec::new();
+        for (index, clip) in comp.clips.iter().enumerate() {
+            if clip.hidden() || layout_opacity(clip) <= 0.0 {
+                continue;
+            }
+            if let Some(rect) = layout_rect(clip, canvas_w, canvas_h) {
+                items.push((index, rect));
+            }
+        }
+        check_overlap_lint(ctx, comp, &items, &scope);
+        check_off_canvas_lint(ctx, comp, &items, &scope);
+        check_caption_lint(ctx, comp, &items, &scope);
+    }
+}
+
+/// Report every pair of clips that shares a track, a time window, and
+/// pixels (Sprint 13 check, T002 / `overlap`). Merely touching windows
+/// or rectangles never fire: both overlaps need positive measure.
+/// Transparent, hidden, and zero-area clips never reach this pass.
+fn check_overlap_lint(
+    ctx: &mut Ctx,
+    comp: &Composition,
+    items: &[(usize, LayoutRect)],
+    scope: &str,
+) {
+    for a in 0..items.len() {
+        for b in (a + 1)..items.len() {
+            let (ia, ra) = items[a];
+            let (ib, rb) = items[b];
+            let clip_a = &comp.clips[ia];
+            let clip_b = &comp.clips[ib];
+            if clip_a.track() != clip_b.track() {
+                continue;
+            }
+            if !windows_overlap(
+                clip_a.start(),
+                clip_a.start() + clip_a.duration(),
+                clip_b.start(),
+                clip_b.start() + clip_b.duration(),
+            ) {
+                continue;
+            }
+            let Some(hit) = ra.intersect(rb) else {
+                continue;
+            };
+            if hit.area() <= 0.0 {
+                continue;
+            }
+            let name_a = clip_display(clip_a, ia);
+            let name_b = clip_display(clip_b, ib);
+            let (line, column) = comp.clips[ib].line_col();
+            let start = clip_a.start().max(clip_b.start());
+            let end =
+                (clip_a.start() + clip_a.duration()).min(clip_b.start() + clip_b.duration());
+            if let Some(finding) = LintFinding::new(
+                "overlap",
+                &ctx.file.clone(),
+                line,
+                column,
+                format!(
+                    "{name_a} and {name_b} overlap on track {:?} from {}s to {}s{} with overlap area {} (intersection {}; {name_a} spans {}; {name_b} spans {})",
+                    clip_a.track().name(),
+                    px(start),
+                    px(end),
+                    scope,
+                    area_text(hit.area(), hit.width(), hit.height()),
+                    bounds_text(hit),
+                    bounds_text(ra),
+                    bounds_text(rb),
+                ),
+                "move one clip so the pair no longer shares pixels on the same track and time, put one clip on a different `track`, or shift one clip in time",
+            ) {
+                ctx.lint_findings.push(finding);
+            }
+        }
+    }
+}
+
+/// Report every element fully outside the canvas (Sprint 13 check, T002
+/// / `off-canvas`): all four edges past one canvas side, with the
+/// out-of-bounds pixels per side. Partially visible elements stay
+/// silent by definition; transparent, hidden, and zero-area clips
+/// never reach this pass.
+fn check_off_canvas_lint(
+    ctx: &mut Ctx,
+    comp: &Composition,
+    items: &[(usize, LayoutRect)],
+    scope: &str,
+) {
+    let canvas_w = f64::from(comp.width);
+    let canvas_h = f64::from(comp.height);
+    for (index, rect) in items {
+        let sides = outside_sides(*rect, canvas_w, canvas_h);
+        if sides.is_empty() {
+            continue;
+        }
+        let clip = &comp.clips[*index];
+        let (line, column) = clip.line_col();
+        let name = clip_display(clip, *index);
+        if let Some(finding) = LintFinding::new(
+            "off-canvas",
+            &ctx.file.clone(),
+            line,
+            column,
+            format!(
+                "{name} lies fully outside the {}x{} canvas{scope} (bounds {}; {} out of bounds)",
+                comp.width,
+                comp.height,
+                bounds_text(*rect),
+                sides.join(", "),
+            ),
+            "move the clip onto the canvas, shrink it to fit, or remove it",
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// Report every text clip touching the caption band (Sprint 13 check,
+/// T002 / `caption-zone`): the bottom 12% of the frame. Only text
+/// clips are checked; hidden and zero-area texts never reach this pass
+/// (texts carry no `opacity`, so every visible text counts).
+fn check_caption_lint(
+    ctx: &mut Ctx,
+    comp: &Composition,
+    items: &[(usize, LayoutRect)],
+    scope: &str,
+) {
+    let canvas_h = f64::from(comp.height);
+    let band_top = canvas_h * CAPTION_BAND_TOP;
+    for (index, rect) in items {
+        let clip = &comp.clips[*index];
+        if !matches!(clip, Clip::Text(_)) {
+            continue;
+        }
+        if !caption_touches(*rect, band_top, canvas_h) {
+            continue;
+        }
+        let (line, column) = clip.line_col();
+        let name = clip_display(clip, *index);
+        if let Some(finding) = LintFinding::new(
+            "caption-zone",
+            &ctx.file.clone(),
+            line,
+            column,
+            format!(
+                "{name} touches the caption band (bottom 12% of the {}x{} frame, y>={}px{scope}; {name} spans {})",
+                comp.width,
+                comp.height,
+                px(band_top),
+                bounds_text(*rect),
+            ),
+            format!(
+                "move the text above y={}px, or keep it when the caption overlap is intended",
+                px(band_top),
+            ),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// Caption band top as a fraction of the frame height: the caption
+/// band is the bottom 12% of the frame.
+const CAPTION_BAND_TOP: f64 = 0.88;
+
+/// Average glyph advance as a fraction of the font size, for the
+/// static text estimate. Real shaping varies by face and string; lint
+/// needs a deterministic static box, so one documented average stands
+/// in for the shaper.
+const TEXT_ADVANCE: f64 = 0.6;
+
+/// One static pixel rectangle: `(x0, y0)` top-left, `(x1, y1)`
+/// bottom-right, in canvas pixels.
+#[derive(Debug, Clone, Copy)]
+struct LayoutRect {
+    x0: f64,
+    y0: f64,
+    x1: f64,
+    y1: f64,
+}
+
+impl LayoutRect {
+    fn width(self) -> f64 {
+        (self.x1 - self.x0).max(0.0)
+    }
+
+    fn height(self) -> f64 {
+        (self.y1 - self.y0).max(0.0)
+    }
+
+    fn area(self) -> f64 {
+        self.width() * self.height()
+    }
+
+    /// Positive-area intersection, if any. Touching edges share no
+    /// pixels and return `None`.
+    fn intersect(self, other: LayoutRect) -> Option<LayoutRect> {
+        let hit = LayoutRect {
+            x0: self.x0.max(other.x0),
+            y0: self.y0.max(other.y0),
+            x1: self.x1.min(other.x1),
+            y1: self.y1.min(other.y1),
+        };
+        if hit.x1 > hit.x0 && hit.y1 > hit.y0 {
+            Some(hit)
+        } else {
+            None
+        }
+    }
+}
+
+/// Authored opacity of one clip: boxes and paths carry `opacity`,
+/// every other visual clip paints fully opaque. `0` means fully
+/// transparent (skipped by every visual rule); anything above paints
+/// and takes part, even when translucent.
+fn layout_opacity(clip: &Clip) -> f64 {
+    match clip {
+        Clip::Box(b) => b.opacity,
+        Clip::Path(p) => p.opacity,
+        _ => 1.0,
+    }
+}
+
+/// Static pixel rectangle of one clip, if it draws anything.
+/// `None` for audio clips (no picture) and for zero-area rectangles
+/// (which draw nothing). Text rectangles are estimated (see
+/// [`check_layout_lint`]); `path` rectangles cover segment endpoints
+/// plus bezier control points; videos and nests play fullscreen.
+fn layout_rect(clip: &Clip, canvas_w: f64, canvas_h: f64) -> Option<LayoutRect> {
+    fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> Option<LayoutRect> {
+        if x1 > x0 && y1 > y0 {
+            Some(LayoutRect { x0, y0, x1, y1 })
+        } else {
+            None
+        }
+    }
+    match clip {
+        Clip::Audio(_) => None,
+        Clip::Box(b) => rect(b.x, b.y, b.x + b.width, b.y + b.height),
+        Clip::Flex(f) => rect(
+            f.x + f.margin,
+            f.y + f.margin,
+            f.x + f.margin + f.width,
+            f.y + f.margin + f.height,
+        ),
+        Clip::Image(i) => rect(
+            i.x,
+            i.y,
+            i.x + i.width.unwrap_or(canvas_w),
+            i.y + i.height.unwrap_or(canvas_h),
+        ),
+        Clip::Svg(s) => rect(s.x, s.y, s.x + s.width, s.y + s.height),
+        Clip::Video(_) => rect(0.0, 0.0, canvas_w, canvas_h),
+        Clip::Nest(_) => rect(0.0, 0.0, canvas_w, canvas_h),
+        Clip::Path(p) => path_rect(&p.d, p.x, p.y),
+        Clip::Text(t) => text_rect(t),
+    }
+}
+
+/// Estimated static rectangle of one text clip, drawn from the clip
+/// top-left like the renderer. Empty texts draw nothing (`None`).
+/// Span-only texts estimate over the span runs.
+fn text_rect(t: &notation::model::TextClip) -> Option<LayoutRect> {
+    let body: String = if t.value.is_empty() {
+        t.spans
+            .iter()
+            .map(|s| s.value.as_str())
+            .collect::<Vec<_>>()
+            .join("")
+    } else {
+        t.value.clone()
+    };
+    let lines: Vec<&str> = body.lines().collect();
+    if lines.is_empty() {
+        return None;
+    }
+    let lh = t.line_height.unwrap_or(t.size);
+    if !lh.is_finite() || lh <= 0.0 {
+        return None;
+    }
+    let ls = t.letter_spacing.unwrap_or(0.0).max(0.0);
+    let width_of = |line: &str| {
+        let n = line.chars().count() as f64;
+        n * t.size * TEXT_ADVANCE + ls * n
+    };
+    let (w, h) = match t.wrap {
+        notation::model::Wrap::Off => {
+            let widest = lines.iter().map(|l| width_of(l)).fold(0.0, f64::max);
+            (widest, lines.len() as f64 * lh)
+        }
+        notation::model::Wrap::Width(limit) if limit.is_finite() && limit > 0.0 => {
+            let widest = lines.iter().map(|l| width_of(l)).fold(0.0, f64::max);
+            let rows: f64 = lines
+                .iter()
+                .map(|l| (width_of(l) / limit).ceil().max(1.0))
+                .sum();
+            (widest.min(limit), rows * lh)
+        }
+        _ => {
+            let widest = lines.iter().map(|l| width_of(l)).fold(0.0, f64::max);
+            (widest, lines.len() as f64 * lh)
+        }
+    };
+    if w > 0.0 && h > 0.0 {
+        Some(LayoutRect {
+            x0: t.x,
+            y0: t.y,
+            x1: t.x + w,
+            y1: t.y + h,
+        })
+    } else {
+        None
+    }
+}
+
+/// Static bounds of one SVG-subset path, offset by the clip `x`/`y`.
+/// Endpoints plus bezier control points bound every segment (arc
+/// bulges excluded); unparseable data draws no lint rectangle
+/// (`None`), so one odd path can never invent a finding.
+fn path_rect(d: &str, x: f64, y: f64) -> Option<LayoutRect> {
+    let path = motion::path::parse_indexed(d).ok()?;
+    let mut points: Vec<[f64; 2]> = Vec::new();
+    for cmd in &path.cmds {
+        match *cmd {
+            motion::path::Cmd::Move { to }
+            | motion::path::Cmd::Line { to }
+            | motion::path::Cmd::Close { to } => points.push(to),
+            motion::path::Cmd::Cubic { c1, c2, to } => points.extend([c1, c2, to]),
+            motion::path::Cmd::Quad { c, to } => points.extend([c, to]),
+            motion::path::Cmd::Arc { to, .. } => points.push(to),
+        }
+    }
+    if points.is_empty() {
+        return None;
+    }
+    let (mut x0, mut y0, mut x1, mut y1) =
+        (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for [px, py] in points {
+        x0 = x0.min(px);
+        y0 = y0.min(py);
+        x1 = x1.max(px);
+        y1 = y1.max(py);
+    }
+    if x1 > x0 && y1 > y0 {
+        Some(LayoutRect {
+            x0: x0 + x,
+            y0: y0 + y,
+            x1: x1 + x,
+            y1: y1 + y,
+        })
+    } else {
+        None
+    }
+}
+
+/// Half-open windows `[s0, e0)` and `[s1, e1)` share positive time.
+/// Merely touching windows (one ends where the other starts) share
+/// nothing.
+fn windows_overlap(s0: f64, e0: f64, s1: f64, e1: f64) -> bool {
+    s0.max(s1) < e0.min(e1)
+}
+
+/// True when the rectangle reaches into the caption band
+/// (`y >= band_top`, clipped at the canvas end).
+fn caption_touches(rect: LayoutRect, band_top: f64, canvas_h: f64) -> bool {
+    rect.y1 > band_top && rect.y0 < canvas_h
+}
+
+/// Out-of-bounds sides of a fully off-canvas rectangle, each with its
+/// pixel count (at most one side per axis, horizontal first).
+/// Partially visible rectangles (and fully inside ones) yield no sides.
+fn outside_sides(rect: LayoutRect, canvas_w: f64, canvas_h: f64) -> Vec<String> {
+    let fully_out = rect.x1 <= 0.0 || rect.y1 <= 0.0 || rect.x0 >= canvas_w || rect.y0 >= canvas_h;
+    if !fully_out {
+        return Vec::new();
+    }
+    let mut sides = Vec::new();
+    if rect.x0 >= canvas_w {
+        sides.push(format!("{}px past the right edge", px(rect.x0 - canvas_w)));
+    } else if rect.x1 <= 0.0 {
+        sides.push(format!("{}px past the left edge", px(-rect.x1)));
+    }
+    if rect.y0 >= canvas_h {
+        sides.push(format!("{}px past the bottom edge", px(rect.y0 - canvas_h)));
+    } else if rect.y1 <= 0.0 {
+        sides.push(format!("{}px past the top edge", px(-rect.y1)));
+    }
+    sides
+}
+
+/// Display name of one clip in a finding: the kind plus the quoted
+/// `id` when declared, else the kind plus the document position so
+/// anonymous clips still name their element.
+fn clip_display(clip: &Clip, index: usize) -> String {
+    match clip.id() {
+        Some(id) => format!("{} {id:?}", clip.kind()),
+        None => format!("<{} clip {}>", clip.kind(), index + 1),
+    }
+}
+
+/// Whole pixels print whole (`100`), fractional pixels print one
+/// decimal (`422.4`).
+fn px(value: f64) -> String {
+    if value == value.trunc() && value.abs() < 1e15 {
+        format!("{}", value as i64)
+    } else {
+        format!("{value:.1}")
+    }
+}
+
+/// `x0,y0-x1,y1px` bounds of one rectangle, for findings.
+fn bounds_text(rect: LayoutRect) -> String {
+    format!(
+        "{},{}-{},{}px",
+        px(rect.x0),
+        px(rect.y0),
+        px(rect.x1),
+        px(rect.y1)
+    )
+}
+
+/// `Npx² (WxHpx)` overlap area of one intersection, for findings.
+fn area_text(area: f64, w: f64, h: f64) -> String {
+    format!("{}px² ({}x{}px)", px(area), px(w), px(h))
+}
+
+/// Motion lint (Sprint 13 check, T003 / CAP-003): `appear-by`,
+/// `stay-inside`, and `keep-moving` assertion findings plus automatic
+/// `frozen-timeline` detection, over the finished compositions.
+///
+/// Assertions are opt-in: only written assertions can fire, and a
+/// satisfied assertion stays silent. Frozen detection needs no
+/// assertion. The pass runs on valid projects only: broken windows
+/// or geometry would name garbage, and the diagnostics already
+/// refuse those projects. Hidden, fully transparent (`opacity` 0),
+/// and audio clips take no part (audio carries no picture).
+///
+/// The checks are analytic, never rendered pixels: static windows
+/// and authored geometry for appearance and bounds, motion-directive
+/// sampling for stillness and frozen spans. Every measured message
+/// labels the frames it sampled, with their times.
+fn check_motion_lint(ctx: &mut Ctx, compositions: &[Composition]) {
+    let multi = compositions.len() > 1;
+    for comp in compositions {
+        let scope = if multi {
+            format!(" in composition {:?}", comp.name)
+        } else {
+            String::new()
+        };
+        check_appear_lint(ctx, comp, &scope);
+        check_inside_lint(ctx, comp, &scope);
+        check_moving_lint(ctx, comp, &scope);
+        check_frozen_lint(ctx, comp, &scope);
+    }
+}
+
+/// Report every `assert-appear` whose clip first shows after its
+/// `by` deadline (Sprint 13 check, T003 / `appear-by`). Appearance is
+/// the clip window start: the first frame the clip can paint. A clip
+/// starting at or before its deadline stays silent.
+fn check_appear_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let Some(asserts) = clip.asserts() else {
+            continue;
+        };
+        let Some(appear) = &asserts.appear else {
+            continue;
+        };
+        if clip.hidden() || layout_opacity(clip) <= 0.0 {
+            continue;
+        }
+        let start = clip.start();
+        if start <= appear.by {
+            continue;
+        }
+        let name = clip_display(clip, index);
+        let end = start + clip.duration();
+        if let Some(finding) = LintFinding::new(
+            "appear-by",
+            &ctx.file.clone(),
+            appear.line,
+            appear.column,
+            format!(
+                "{name} violates assert-appear: first visible at {} (after the by={} deadline){scope} (clip window {}-{}, composition {} long)",
+                ts(start),
+                ts(appear.by),
+                ts(start),
+                ts(end),
+                ts(comp.duration),
+            ),
+            format!(
+                "move the clip start to at most {} (it starts at {}), or raise the deadline with `by=<seconds>`",
+                ts(appear.by),
+                ts(start),
+            ),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// Report every `assert-inside` whose authored rectangle escapes the
+/// frame on any side (Sprint 13 check, T003 / `stay-inside`), with the
+/// measured bounds and the out-of-bounds pixels per side. Authored
+/// geometry only: tweens and sets that move or resize the clip are
+/// not re-evaluated here (the same documented boundary as the T002
+/// layout rules). Clips fully inside stay silent; zero-area clips
+/// draw nothing and cannot escape.
+fn check_inside_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
+    let canvas_w = f64::from(comp.width);
+    let canvas_h = f64::from(comp.height);
+    let fps = comp.fps.value();
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let Some(asserts) = clip.asserts() else {
+            continue;
+        };
+        let Some(inside) = &asserts.inside else {
+            continue;
+        };
+        if clip.hidden() || layout_opacity(clip) <= 0.0 {
+            continue;
+        }
+        let Some(rect) = layout_rect(clip, canvas_w, canvas_h) else {
+            continue;
+        };
+        let escapes = escape_sides(rect, canvas_w, canvas_h);
+        if escapes.is_empty() {
+            continue;
+        }
+        let name = clip_display(clip, index);
+        let samples = motion_sample_times(clip.start(), clip.start() + clip.duration(), fps, 6);
+        if let Some(finding) = LintFinding::new(
+            "stay-inside",
+            &ctx.file.clone(),
+            inside.line,
+            inside.column,
+            format!(
+                "{name} violates assert-inside: bounds {} escape the {}x{} frame{scope} ({}; {})",
+                bounds_text(rect),
+                comp.width,
+                comp.height,
+                escapes.join(", "),
+                sample_list(&samples),
+            ),
+            format!(
+                "move or resize the clip fully inside the {}x{} frame, or remove the `assert-inside` child",
+                comp.width, comp.height,
+            ),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// Report every `assert-moving` whose clip shows no picture change
+/// across its window (Sprint 13 check, T003 / `keep-moving`), with the
+/// measured stillness. Motion is any visual `tween`, `key`, or `set`
+/// targeting the clip (a geometric, paint, or blur property, or a
+/// path tween), a text `typewriter` reveal, or a `count` range.
+/// Anything with none of those is still across every sampled frame.
+/// Video and nest clips cannot be sampled statically (their pixels
+/// come from decoded footage or another composition), so they leave
+/// a named note (REC-001) while every other finding still reports.
+fn check_moving_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
+    let fps = comp.fps.value();
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let Some(asserts) = clip.asserts() else {
+            continue;
+        };
+        let Some(moving) = &asserts.moving else {
+            continue;
+        };
+        if clip.hidden() || layout_opacity(clip) <= 0.0 {
+            continue;
+        }
+        let name = clip_display(clip, index);
+        if matches!(clip, Clip::Video(_) | Clip::Nest(_)) {
+            if let Some(note) = LintNote::new(
+                "keep-moving",
+                &ctx.file.clone(),
+                moving.line,
+                moving.column,
+                format!(
+                    "{name} carries `assert-moving`, but its pixels come from decoded footage (video) or another composition (nest), which static analysis cannot sample for change"
+                ),
+                "render the composition and compare frames across the clip window to confirm motion, or remove the `assert-moving` child",
+            ) {
+                ctx.lint_notes.push(note);
+            }
+            continue;
+        }
+        if clip_has_visual_motion(comp, index) {
+            continue;
+        }
+        let start = clip.start();
+        let samples = motion_sample_times(start, start + clip.duration(), fps, 6);
+        let geometry = match layout_rect(clip, f64::from(comp.width), f64::from(comp.height)) {
+            Some(rect) => format!("bounds {}", bounds_text(rect)),
+            None => "draws no pixels".to_string(),
+        };
+        if let Some(finding) = LintFinding::new(
+            "keep-moving",
+            &ctx.file.clone(),
+            moving.line,
+            moving.column,
+            format!(
+                "{name} violates assert-moving: identical picture across {} sampled frame{}{scope} ({}, {})",
+                samples.len(),
+                if samples.len() == 1 { "" } else { "s" },
+                geometry,
+                sample_list(&samples),
+            ),
+            "animate a visual property of the clip with a `tween`, `key`, or `set` (for example `x` or `opacity`), use a `typewriter` or `count` range on text, or remove the `assert-moving` child",
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// Report every timeline span holding identical frames for more than
+/// 1s with no assertion needed (Sprint 13 check, T003 /
+/// `frozen-timeline`), with its time range. A span counts as frozen
+/// when no clip picture can change inside it: video and nest windows
+/// always count as changing (their pixels advance or may advance),
+/// as does any window with visual motion, a text reveal, a count, or
+/// a transition bridge; everything else (stills, background) holds
+/// still. Spans are clipped to the searchable range — the first and
+/// last frames never count (fades commonly hold still) — and only
+/// spans strictly longer than 1s report.
+fn check_frozen_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
+    let fps = comp.fps.value();
+    if !(fps > 0.0) || !comp.duration.is_finite() {
+        return;
+    }
+    let frame = 1.0 / fps;
+    let mut changing: Vec<(f64, f64)> = Vec::new();
+    for (index, clip) in comp.clips.iter().enumerate() {
+        if clip.hidden() || matches!(clip, Clip::Audio(_)) {
+            continue;
+        }
+        let start = clip.start();
+        let end = start + clip.duration();
+        if !(end > start) {
+            continue;
+        }
+        let moves = matches!(clip, Clip::Video(_) | Clip::Nest(_))
+            || clip_has_visual_motion(comp, index);
+        if moves {
+            changing.push((start, end));
+        }
+    }
+    // Transition bridges blend pictures across their span (measured
+    // from the incoming clip start for the bridge duration, the same
+    // window the link checker overlaps), so they count as changing too.
+    for t in &comp.transitions {
+        if let Some(to_idx) = comp.clips.iter().position(|c| c.id() == Some(t.to.as_str())) {
+            let start = comp.clips[to_idx].start();
+            changing.push((start, start + t.duration));
+        }
+    }
+    changing.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    let mut merged: Vec<(f64, f64)> = Vec::new();
+    for (s, e) in changing {
+        if !(e.is_finite() && s.is_finite()) {
+            continue;
+        }
+        match merged.last_mut() {
+            Some(last) if s <= last.1 + 1e-9 => {
+                last.1 = last.1.max(e);
+            }
+            _ => merged.push((s, e)),
+        }
+    }
+    // The first and last frames never count: the searchable range
+    // starts after the first frame and ends before the last one.
+    let lo = frame;
+    let hi = comp.duration - frame;
+    if !(hi > lo) {
+        return;
+    }
+    let mut cursor = 0.0f64;
+    let mut gaps: Vec<(f64, f64)> = Vec::new();
+    for (s, e) in &merged {
+        let s = s.clamp(0.0, comp.duration);
+        let e = e.clamp(0.0, comp.duration);
+        if s > cursor {
+            gaps.push((cursor, s));
+        }
+        cursor = cursor.max(e);
+    }
+    if cursor < comp.duration {
+        gaps.push((cursor, comp.duration));
+    }
+    for (g0, g1) in gaps {
+        let f0 = g0.max(lo);
+        let f1 = g1.min(hi);
+        if f1 - f0 > 1.0 {
+            let samples = motion_sample_times(f0, f1, fps, 6);
+            if let Some(finding) = LintFinding::new(
+                "frozen-timeline",
+                &ctx.file.clone(),
+                comp.line,
+                comp.column,
+                format!(
+                    "timeline frozen from {} to {} ({} of identical frames){scope} ({}; first and last frames excluded)",
+                    ts(f0),
+                    ts(f1),
+                    ts(f1 - f0),
+                    sample_list(&samples),
+                ),
+                format!(
+                    "add motion overlapping {}-{} (a `tween`, `key`, `set`, typewriter, count, `transition`, or video/nest footage), or shorten the composition past the still span",
+                    ts(f0),
+                    ts(f1),
+                ),
+            ) {
+                ctx.lint_findings.push(finding);
+            }
+        }
+    }
+}
+
+/// Contrast plus silent and discarded audio lint (Sprint 13 check,
+/// T004 / CAP-004): WCAG AA text findings measured against the
+/// effective background, `silent-audio` when the mix cannot sound,
+/// and `discarded-audio` for clips that never contribute. The pass
+/// runs on valid projects only, like layout and motion: broken
+/// windows or geometry would name garbage, and the diagnostics
+/// already refuse those projects. Findings batch into the same
+/// shared report `check` and `lint` both print.
+fn check_contrast_audio_lint(ctx: &mut Ctx, compositions: &[Composition]) {
+    let multi = compositions.len() > 1;
+    for comp in compositions {
+        let scope = if multi {
+            format!(" in composition {:?}", comp.name)
+        } else {
+            String::new()
+        };
+        check_contrast_lint(ctx, comp, &scope);
+        check_audio_lint(ctx, comp, &scope);
+    }
+}
+
+/// WCAG AA bars for the `contrast` rule (Sprint 13 check, T004):
+/// 4.5:1 for normal text, 3:1 for large text. Every text is
+/// checked: decorative text cannot be marked decorative (no such
+/// attribute exists).
+const CONTRAST_NORMAL_BAR: f64 = 4.5;
+const CONTRAST_LARGE_BAR: f64 = 3.0;
+/// `size` at and above which text counts as large (Sprint 13 check,
+/// T004): size 18 and up takes the 3:1 bar, anything below takes the
+/// 4.5:1 bar.
+const LARGE_TEXT_SIZE: f64 = 18.0;
+/// Mix-peak bar for `silent-audio` (Sprint 13 check, T004): a mix
+/// peaking below −60 dBFS reports as silent, naming the peak.
+const SILENT_BAR_DBFS: f64 = -60.0;
+
+/// sRGB channel (0..1) to linear light, the low-end branch kept so
+/// near-black text measures exactly instead of clipping to zero.
+fn srgb_to_linear(c: f64) -> f64 {
+    if c <= 0.03928 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+/// Relative luminance of one color (WCAG definition): the weighted
+/// linear sum text and background ratios compare through.
+fn rel_luminance(color: Rgb) -> f64 {
+    0.2126 * srgb_to_linear(f64::from(color.r) / 255.0)
+        + 0.7152 * srgb_to_linear(f64::from(color.g) / 255.0)
+        + 0.0722 * srgb_to_linear(f64::from(color.b) / 255.0)
+}
+
+/// WCAG contrast ratio of two colors: lighter over darker, 1.0 for
+/// identical colors, 21.0 for black on white.
+fn contrast_ratio(a: Rgb, b: Rgb) -> f64 {
+    let (la, lb) = (rel_luminance(a), rel_luminance(b));
+    let (hi, lo) = if la >= lb { (la, lb) } else { (lb, la) };
+    (hi + 0.05) / (lo + 0.05)
+}
+
+/// `3.6:1`: one decimal, like the pixel helpers elsewhere in lint.
+fn ratio_text(ratio: f64) -> String {
+    format!("{ratio:.1}:1")
+}
+
+/// `#rrggbb` spelling of one color, for finding messages.
+fn hex_text(color: Rgb) -> String {
+    format!("#{}", color.to_hex())
+}
+
+/// Alpha-blend one solid layer over the color below: what the eye
+/// sees through a translucent box, so a translucent solid still
+/// measures one ratio instead of leaving a note.
+fn blend_over(top: Rgb, alpha: f64, below: Rgb) -> Rgb {
+    let mix = |t: u8, b: u8| -> u8 {
+        (f64::from(t) * alpha + f64::from(b) * (1.0 - alpha)).round() as u8
+    };
+    Rgb {
+        r: mix(top.r, below.r),
+        g: mix(top.g, below.g),
+        b: mix(top.b, below.b),
+    }
+}
+
+/// Every color one text clip paints (Sprint 13 check, T004): the
+/// base color when the clip `value` paints, plus the effective
+/// color of every span run that paints text (nested spans inherit
+/// the nearest written ancestor, else the clip color). Runs that
+/// paint no text contribute no color, so an empty styled run can
+/// never invent a finding.
+fn text_colors(t: &TextClip) -> Vec<Rgb> {
+    fn paints(span: &TextSpan) -> bool {
+        !span.value.is_empty() || span.children.iter().any(paints)
+    }
+    fn walk(span: &TextSpan, inherited: Rgb, out: &mut Vec<Rgb>) {
+        if !paints(span) {
+            return;
+        }
+        let own = span.color.unwrap_or(inherited);
+        out.push(own);
+        for child in &span.children {
+            walk(child, own, out);
+        }
+    }
+    let mut out = Vec::new();
+    if !t.value.is_empty() {
+        out.push(t.color);
+    }
+    for span in &t.spans {
+        walk(span, t.color, &mut out);
+    }
+    out
+}
+
+/// Sample one gradient fill at a canvas point (Sprint 13 check,
+/// T004): the color the midpoint frame shows there, interpolating
+/// the stops in sRGB channel by channel like the renderer. Linear
+/// gradients project onto the angled axis (CSS degrees: 0 points
+/// up, 90 points right, the default); radial gradients measure from
+/// the center outward (defaulting to the box center and the
+/// farthest corner). `None` for an image fill (decoded pixels, never
+/// sampled) or a degenerate gradient with no span to interpolate.
+fn gradient_at(paint: &FillPaint, b: &BoxClip, x: f64, y: f64) -> Option<Rgb> {
+    fn lerp_stops(stops: &[GradientStop], t: f64) -> Option<Rgb> {
+        if stops.is_empty() {
+            return None;
+        }
+        let t = t.clamp(0.0, 1.0);
+        let mut below = &stops[0];
+        let mut above = &stops[stops.len() - 1];
+        for stop in stops {
+            if stop.offset <= t {
+                below = stop;
+            }
+            if stop.offset >= t {
+                above = stop;
+                break;
+            }
+        }
+        let span = above.offset - below.offset;
+        let f = if span <= 0.0 {
+            0.0
+        } else {
+            ((t - below.offset) / span).clamp(0.0, 1.0)
+        };
+        let mix = |a: u8, o: u8| -> u8 {
+            (f64::from(a) * (1.0 - f) + f64::from(o) * f).round() as u8
+        };
+        Some(Rgb {
+            r: mix(below.color.r, above.color.r),
+            g: mix(below.color.g, above.color.g),
+            b: mix(below.color.b, above.color.b),
+        })
+    }
+    match paint {
+        FillPaint::Solid | FillPaint::Image { .. } => None,
+        FillPaint::Linear { angle, stops } => {
+            let rad = angle.to_radians();
+            let (dx, dy) = (rad.sin(), -rad.cos());
+            let line = b.width * dx.abs() + b.height * dy.abs();
+            if !line.is_finite() || line <= 0.0 {
+                return None;
+            }
+            let cx = b.x + b.width / 2.0;
+            let cy = b.y + b.height / 2.0;
+            lerp_stops(stops, 0.5 + ((x - cx) * dx + (y - cy) * dy) / line)
+        }
+        FillPaint::Radial {
+            cx,
+            cy,
+            radius,
+            stops,
+        } => {
+            let ox = cx.unwrap_or(b.width / 2.0);
+            let oy = cy.unwrap_or(b.height / 2.0);
+            let center = (b.x + ox, b.y + oy);
+            let reach = radius.unwrap_or_else(|| {
+                [(b.x, b.y), (b.x + b.width, b.y), (b.x, b.y + b.height), (
+                    b.x + b.width,
+                    b.y + b.height,
+                )]
+                .into_iter()
+                .map(|(px, py)| (px - center.0).hypot(py - center.1))
+                .fold(0.0, f64::max)
+            });
+            if !reach.is_finite() || reach <= 0.0 {
+                return None;
+            }
+            lerp_stops(
+                stops,
+                (x - center.0).hypot(y - center.1) / reach,
+            )
+        }
+    }
+}
+
+/// Report every text whose contrast against its effective
+/// background misses WCAG AA (Sprint 13 check, T004 / `contrast`),
+/// with the measured ratio and the bar.
+///
+/// The effective background is the composition background layered
+/// with every solid box painted beneath the text (translucent
+/// solids blend; the bar is 4.5:1, or 3:1 for size 18 and up). A
+/// box with a gradient fill or with motion behind the text is an
+/// animated background: the finding reports the ratio sampled at
+/// the midpoint frame and says so (spec CAP-004). Anything whose
+/// pixels static analysis cannot sample — decoded footage (video,
+/// image, nest), drawn shapes (flex, path, svg), image fills, a
+/// background that covers only part of the text or of its window,
+/// or another text — leaves a named note (REC-001) while every
+/// other finding still reports. Hidden and empty texts draw nothing
+/// and are skipped, like the visual rules before this task.
+fn check_contrast_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
+    let canvas_w = f64::from(comp.width);
+    let canvas_h = f64::from(comp.height);
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let Clip::Text(t) = clip else {
+            continue;
+        };
+        if t.hidden {
+            continue;
+        }
+        let Some(rect) = text_rect(t) else {
+            continue;
+        };
+        let start = clip.start();
+        let end = start + clip.duration();
+        let key = (clip.order(), index);
+        let mut under: Vec<(i64, usize)> = Vec::new();
+        for (ui, other) in comp.clips.iter().enumerate() {
+            if ui == index || matches!(other, Clip::Audio(_)) || other.hidden() {
+                continue;
+            }
+            if (other.order(), ui) >= key {
+                continue;
+            }
+            if !windows_overlap(other.start(), other.start() + other.duration(), start, end) {
+                continue;
+            }
+            if layout_opacity(other) <= 0.0 {
+                continue;
+            }
+            let Some(urect) = layout_rect(other, canvas_w, canvas_h) else {
+                continue;
+            };
+            if urect.x1 <= rect.x0
+                || urect.x0 >= rect.x1
+                || urect.y1 <= rect.y0
+                || urect.y0 >= rect.y1
+            {
+                continue;
+            }
+            under.push((other.order(), ui));
+        }
+        under.sort();
+        // Resolve the effective background bottom-up: solid boxes
+        // blend over what is below, animated backgrounds sample at
+        // the midpoint frame, and anything unmeasurable stops the
+        // text with a named note instead of a guessed ratio.
+        let mut bg = comp.background;
+        let mut sampled = false;
+        let mut blocked: Option<(String, &'static str)> = None;
+        for (_, ui) in under {
+            let other = &comp.clips[ui];
+            let urect = match layout_rect(other, canvas_w, canvas_h) {
+                Some(r) => r,
+                None => continue,
+            };
+            let covers = urect.x0 <= rect.x0
+                && urect.y0 <= rect.y0
+                && urect.x1 >= rect.x1
+                && urect.y1 >= rect.y1;
+            let spans_window =
+                other.start() <= start && other.start() + other.duration() >= end;
+            let name = clip_display(other, ui);
+            match other {
+                Clip::Box(b) => {
+                    let animated = clip_has_visual_motion(comp, ui);
+                    match &b.fill_paint {
+                        FillPaint::Solid if !animated => {
+                            if !covers || !spans_window {
+                                blocked = Some((
+                                    format!(
+                                        "{name} covers only part of the text (or of its window), so the text spans two backgrounds"
+                                    ),
+                                    "move the text fully onto one flat background (the composition background or a solid box covering the whole text window), or render the composition and compare frames to confirm the ratio",
+                                ));
+                                break;
+                            }
+                            bg = blend_over(b.fill, b.opacity.clamp(0.0, 1.0), bg);
+                        }
+                        FillPaint::Solid => {
+                            if !covers || !spans_window {
+                                blocked = Some((
+                                    format!(
+                                        "{name} is animated and covers only part of the text (or of its window), so no single midpoint ratio exists"
+                                    ),
+                                    "move the text fully onto one flat background (the composition background or a solid box covering the whole text window), or render the composition and compare frames to confirm the ratio",
+                                ));
+                                break;
+                            }
+                            bg = b.fill;
+                            sampled = true;
+                        }
+                        FillPaint::Linear { .. } | FillPaint::Radial { .. } => {
+                            if !covers || !spans_window {
+                                blocked = Some((
+                                    format!(
+                                        "{name} is a gradient covering only part of the text (or of its window), so no single midpoint ratio exists"
+                                    ),
+                                    "move the text fully onto one flat background (the composition background or a solid box covering the whole text window), or render the composition and compare frames to confirm the ratio",
+                                ));
+                                break;
+                            }
+                            match gradient_at(
+                                &b.fill_paint,
+                                b,
+                                (rect.x0 + rect.x1) / 2.0,
+                                (rect.y0 + rect.y1) / 2.0,
+                            ) {
+                                Some(c) => {
+                                    bg = c;
+                                    sampled = true;
+                                }
+                                None => {
+                                    blocked = Some((
+                                        format!(
+                                            "{name} is a degenerate gradient with no span to sample, so no ratio can be measured"
+                                        ),
+                                        "give the gradient at least two stops with distinct offsets, move the text onto a flat background, or render the composition and compare frames to confirm the ratio",
+                                    ));
+                                    break;
+                                }
+                            }
+                        }
+                        FillPaint::Image { .. } => {
+                            blocked = Some((
+                                format!(
+                                    "{name} paints decoded image pixels static analysis cannot sample, so no single ratio can be measured"
+                                ),
+                                "move the text onto a flat background (the composition background or a solid box), or render the composition and compare frames to confirm the ratio",
+                            ));
+                            break;
+                        }
+                    }
+                }
+                _ => {
+                    blocked = Some((
+                        format!(
+                            "{name} paints pixels static analysis cannot sample (decoded footage or drawn shapes), so no single ratio can be measured"
+                        ),
+                        "move the text onto a flat background (the composition background or a solid box), or render the composition and compare frames to confirm the ratio",
+                    ));
+                    break;
+                }
+            }
+        }
+        let name = clip_display(clip, index);
+        if let Some((cause, workaround)) = blocked {
+            if let Some(note) = LintNote::new(
+                "contrast",
+                &ctx.file.clone(),
+                t.line,
+                t.column,
+                format!("{name} paints over a background that cannot be measured: {cause}"),
+                workaround.to_string(),
+            ) {
+                ctx.lint_notes.push(note);
+            }
+            continue;
+        }
+        let colors = text_colors(t);
+        if colors.is_empty() {
+            continue;
+        }
+        let (worst_color, worst) = colors
+            .iter()
+            .map(|&c| (c, contrast_ratio(c, bg)))
+            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or((t.color, contrast_ratio(t.color, bg)));
+        let large = t.size >= LARGE_TEXT_SIZE;
+        let bar = if large {
+            CONTRAST_LARGE_BAR
+        } else {
+            CONTRAST_NORMAL_BAR
+        };
+        if worst >= bar {
+            continue;
+        }
+        let kind = if large { "large" } else { "normal" };
+        let mid = (start + end) / 2.0;
+        let samples = motion_sample_times(start, end, comp.fps.value(), 6);
+        let detail = if sampled {
+            format!(
+                "background is animated; ratio sampled at the midpoint frame (mid={}; {})",
+                ts(mid),
+                sample_list(&samples),
+            )
+        } else {
+            format!("{} spans {}", name, bounds_text(rect))
+        };
+        if let Some(finding) = LintFinding::new(
+            "contrast",
+            &ctx.file.clone(),
+            t.line,
+            t.column,
+            format!(
+                "{name} contrast {} against {} misses WCAG AA (needs {bar}:1 for {kind} text{scope}; {detail})",
+                ratio_text(worst),
+                hex_text(bg),
+            ),
+            format!(
+                "lift the contrast to {bar}:1 (lighten text {} or darken the background {}){}",
+                hex_text(worst_color),
+                hex_text(bg),
+                if large {
+                    ""
+                } else {
+                    ", or grow the text to size 18 or more for the 3:1 large-text bar"
+                },
+            ),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// True when the clip is ducked to silence for its whole window
+/// (Sprint 13 check, T004): a `duck-under` voice with
+/// `duck-amount=0` whose window covers the clip window, so the
+/// mixer never lets it sound. Ducking reads timeline windows only,
+/// never signal, so coverage is exact by construction.
+fn ducked_to_zero(comp: &Composition, index: usize) -> Option<String> {
+    let duck = match &comp.clips[index] {
+        Clip::Audio(a) => a.duck_under.as_ref(),
+        Clip::Video(v) => v.duck_under.as_ref(),
+        _ => None,
+    }?;
+    if duck.amount != 0.0 {
+        return None;
+    }
+    let voice = comp
+        .clips
+        .iter()
+        .find(|c| c.id() == Some(duck.target.as_str()))?;
+    let (start, end) = (comp.clips[index].start(), comp.clips[index].start() + comp.clips[index].duration());
+    if voice.start() <= start && voice.start() + voice.duration() >= end {
+        Some(duck.target.clone())
+    } else {
+        None
+    }
+}
+
+/// Report every audio-bearing clip that never contributes to the
+/// mix (Sprint 13 check, T004 / `discarded-audio`), naming the clip
+/// and the reason: hidden, muted by a full-window zero duck, zero
+/// volume (`volume="-inf"`), fully faded (both fades cover the
+/// whole window, so the clip never reaches full gain), or fully
+/// outside the composition. One finding per clip with the first
+/// cause in that order; an audible clip stays silent. When clips
+/// are authored but none can sound, the `silent-audio` finding
+/// reports the silent mix with its measured peak (−inf dBFS, below
+/// the −60 dBFS bar). A project with no audio-bearing clip at all
+/// is not a silent mix: nothing was authored to sound.
+fn check_audio_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
+    let mut bearing = 0usize;
+    let mut contributing = 0usize;
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let (volume_db, fade_in, fade_out, hidden) = match clip {
+            Clip::Audio(a) => (a.volume_db, a.fade_in, a.fade_out, a.hidden),
+            Clip::Video(v) => (v.volume_db, v.fade_in, v.fade_out, v.hidden),
+            _ => continue,
+        };
+        bearing += 1;
+        let start = clip.start();
+        let end = start + clip.duration();
+        let name = clip_display(clip, index);
+        let (line, column) = clip.line_col();
+        let cause: Option<(String, String)> = if hidden {
+            Some((
+                format!("{name} is hidden, so it paints no picture and mixes no sound"),
+                format!("unhide {name}, or remove the clip when it is not needed"),
+            ))
+        } else if start >= comp.duration || end <= 0.0 {
+            Some((
+                format!(
+                    "{name} window {}-{} lies fully outside the composition (0-{}), so it never sounds",
+                    ts(start),
+                    ts(end),
+                    ts(comp.duration),
+                ),
+                format!(
+                    "move {name} inside 0-{}, or remove the clip when it is not needed",
+                    ts(comp.duration),
+                ),
+            ))
+        } else if volume_db == f64::NEG_INFINITY {
+            Some((
+                format!("{name} has zero volume (`volume=\"-inf\"`, exact digital silence)"),
+                format!("raise {name} `volume` above `-inf` (for example `volume=0`), or remove the clip when it is not needed"),
+            ))
+        } else if clip.duration() > 0.0 && fade_in + fade_out >= clip.duration() {
+            Some((
+                format!(
+                    "{name} is fully faded (`fade-in` {} plus `fade-out` {} cover the whole {} window), so it never reaches full gain",
+                    ts(fade_in),
+                    ts(fade_out),
+                    ts(clip.duration()),
+                ),
+                format!(
+                    "shorten the {name} fades to leave full-gain samples, or remove the clip when it is not needed"
+                ),
+            ))
+        } else {
+            ducked_to_zero(comp, index).map(|voice| {
+                (
+                    format!("{name} is muted (ducked to silence under voice {voice:?} for the whole window with `duck-amount=0`)"),
+                    format!("raise {name} `duck-amount` above 0, shrink the voice window, or remove the ducking"),
+                )
+            })
+        };
+        match cause {
+            Some((message, fix)) => {
+                if let Some(finding) = LintFinding::new(
+                    "discarded-audio",
+                    &ctx.file.clone(),
+                    line,
+                    column,
+                    format!("{message}{scope}"),
+                    fix,
+                ) {
+                    ctx.lint_findings.push(finding);
+                }
+            }
+            None => contributing += 1,
+        }
+    }
+    if bearing > 0 && contributing == 0 {
+        let plural = if bearing == 1 { "" } else { "s" };
+        if let Some(finding) = LintFinding::new(
+            "silent-audio",
+            &ctx.file.clone(),
+            comp.line,
+            comp.column,
+            format!(
+                "mix is silent (measured peak -inf dBFS, below the {} dBFS bar): all {bearing} audio-bearing clip{plural} discarded{scope}",
+                SILENT_BAR_DBFS as i64,
+            ),
+            "give at least one audio-bearing clip an audible window: unhide it, raise `volume` above `-inf`, shorten the fades to leave full-gain samples, move it inside the composition, or lift the duck".to_string(),
+        ) {
+            ctx.lint_findings.push(finding);
+        }
+    }
+}
+
+/// True when the clip's picture can change inside its own window
+/// (Sprint 13 check, T003): a visual `tween`, `key`, or `set`
+/// targets the clip, a text reveal or count runs, or a path motion
+/// travels. Sound-only envelopes (`volume`, `pan`) never change
+/// pixels and do not count.
+fn clip_has_visual_motion(comp: &Composition, index: usize) -> bool {
+    if let Clip::Text(t) = &comp.clips[index] {
+        if t.typewriter {
+            return true;
+        }
+        if let (Some(from), Some(to)) = (t.count_from, t.count_to) {
+            if from != to {
+                return true;
+            }
+        }
+    }
+    for tw in &comp.tweens {
+        if tw.target == index
+            && (tw.path.is_some() || MOTION_PROPERTIES.contains(&tw.property.as_str()))
+        {
+            return true;
+        }
+    }
+    for s in &comp.sets {
+        if s.target == index && MOTION_PROPERTIES.contains(&s.property.as_str()) {
+            return true;
+        }
+    }
+    for k in &comp.keys {
+        if k.target == index
+            && (MOTION_PROPERTIES.contains(&k.property.as_str())
+                || k.stops.iter().any(|stop| stop.path.is_some()))
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// Frame-quantized sample times across `[start, end]` (Sprint 13
+/// check, T003): up to `max` evenly spaced times snapped to the
+/// exact frame grid, endpoints always included, so finding messages
+/// label the real frames that were sampled.
+fn motion_sample_times(start: f64, end: f64, fps: f64, max: usize) -> Vec<f64> {
+    if !start.is_finite() || !end.is_finite() || !(end > start) || !(fps > 0.0) {
+        return vec![start];
+    }
+    let frames = ((end - start) * fps).floor() as usize + 1;
+    let n = frames.min(max.max(2));
+    if n <= 1 {
+        return vec![start];
+    }
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        let t = start + (end - start) * (i as f64) / ((n - 1) as f64);
+        let snapped = (t * fps).round() / fps;
+        let clamped = snapped.clamp(start, end);
+        if out.last().map_or(true, |&last| clamped > last + 1e-9) {
+            out.push(clamped);
+        }
+    }
+    if out.is_empty() {
+        out.push(start);
+    }
+    out
+}
+
+/// `sampled frames at 0s, 1s, 2s`: the label every measured motion
+/// message carries, naming the exact frames behind the verdict.
+fn sample_list(times: &[f64]) -> String {
+    if times.is_empty() {
+        return "sampled frames at none".to_string();
+    }
+    format!(
+        "sampled frames at {}",
+        times.iter().map(|t| ts(*t)).collect::<Vec<_>>().join(", ")
+    )
+}
+
+/// Whole seconds print whole (`2s`), fractional seconds print up to
+/// three decimals with no trailing zeros (`422.4s`, `0.033s`), so
+/// finding messages name exact frame times.
+fn ts(value: f64) -> String {
+    if value == value.trunc() && value.abs() < 1e15 {
+        format!("{}s", value as i64)
+    } else {
+        let digits = format!("{value:.3}");
+        let trimmed = digits.trim_end_matches('0').trim_end_matches('.');
+        format!("{trimmed}s")
+    }
+}
+
+/// Out-of-bounds sides of a rectangle that escapes the canvas on any
+/// side (partial or full), each with its pixel count, horizontal
+/// first. Fully inside rectangles yield no sides. Unlike
+/// [`outside_sides`] (fully off-canvas only), one escaped edge is
+/// enough: `assert-inside` needs the whole picture in frame.
+fn escape_sides(rect: LayoutRect, canvas_w: f64, canvas_h: f64) -> Vec<String> {
+    let mut sides = Vec::new();
+    if rect.x0 < 0.0 {
+        sides.push(format!("{}px past the left edge", px(-rect.x0)));
+    }
+    if rect.y0 < 0.0 {
+        sides.push(format!("{}px past the top edge", px(-rect.y0)));
+    }
+    if rect.x1 > canvas_w {
+        sides.push(format!("{}px past the right edge", px(rect.x1 - canvas_w)));
+    }
+    if rect.y1 > canvas_h {
+        sides.push(format!("{}px past the bottom edge", px(rect.y1 - canvas_h)));
+    }
+    sides
 }
 
 /// Display name for a clip inside a `start-after` chain diagnostic:
@@ -1671,6 +3350,8 @@ pub fn validate_folder_with_variables_strict_themed(
                 "point check at an existing folder or create one with `framesmith init`",
             )],
             variable_warnings: Vec::new(),
+            lint_findings: Vec::new(),
+            lint_notes: Vec::new(),
             ffmpeg_auto_download: true,
             footage: Vec::new(),
             inferred: Vec::new(),
@@ -1708,6 +3389,8 @@ pub fn validate_folder_with_variables_strict_themed(
                 root_name: None,
                 diagnostics: diags,
                 variable_warnings: Vec::new(),
+                lint_findings: Vec::new(),
+                lint_notes: Vec::new(),
                 ffmpeg_auto_download,
                 footage: Vec::new(),
                 inferred: Vec::new(),
@@ -1739,6 +3422,8 @@ pub fn validate_folder_with_variables_strict_themed(
                 root_name: None,
                 diagnostics: diags,
                 variable_warnings: Vec::new(),
+                lint_findings: Vec::new(),
+                lint_notes: Vec::new(),
                 ffmpeg_auto_download,
                 footage: Vec::new(),
                 inferred: Vec::new(),
@@ -1770,6 +3455,11 @@ pub fn validate_folder_with_variables_strict_themed(
         overrides: overrides.clone(),
         override_warnings: Vec::new(),
         strict,
+        lint_findings: Vec::new(),
+        lint_notes: Vec::new(),
+        style_decls: Vec::new(),
+        style_uses: BTreeSet::new(),
+        theme_uses: BTreeSet::new(),
     };
 
     // Several uniquely named `composition` blocks validate together
@@ -1999,6 +3689,28 @@ pub fn validate_folder_with_variables_strict_themed(
                                 d.id
                             ),
                         });
+                        // Sprint 13 check, T001 (`unused-variable`): the
+                        // same dead declaration as a named lint finding
+                        // with its rule, location, and fix, so `check`
+                        // and `lint` report it through the registry.
+                        // Strict mode refuses above instead and emits no
+                        // finding here.
+                        if let Some(finding) = LintFinding::new(
+                            "unused-variable",
+                            &ctx.file.clone(),
+                            d.line,
+                            d.column,
+                            format!(
+                                "variable `--{0}` is declared but never bound by `var(--{0})`; the declaration has no effect",
+                                d.id
+                            ),
+                            format!(
+                                "bind it with `var(--{0})` in text, media, or an ordinary attribute, or remove the `variable` declaration",
+                                d.id
+                            ),
+                        ) {
+                            ctx.lint_findings.push(finding);
+                        }
                     }
                 }
                 if ctx.strict && !has_value && !supplied {
@@ -2030,6 +3742,11 @@ pub fn validate_folder_with_variables_strict_themed(
     // Every duplicate id, unknown reference, and self-reference reports
     // here, together with the per-clip problems above.
     check_ids_and_refs(&mut ctx);
+    // Sprint 13 check, T001 (`unused-style`, `unused-theme`): every
+    // declared block with no recorded reference or selection reports
+    // as a named lint finding with its rule, location, and fix.
+    // Warnings only, so this pass never flips the verdict.
+    check_unused_lint(&mut ctx, &themes);
     let mut compositions: Vec<Composition> = Vec::new();
     for (ci, partial) in partials.into_iter().enumerate() {
         ctx.current_comp = ci;
@@ -2047,6 +3764,24 @@ pub fn validate_folder_with_variables_strict_themed(
     // finished windows and overlong crossfade windows report their
     // clamp, before frame one.
     check_sound_windows(&mut ctx, &compositions);
+    // Sprint 13 check (T002): layout rules over the finished
+    // compositions — overlap, off-canvas, and caption-zone findings
+    // batch into the same report. Valid projects only: broken windows
+    // or geometry would name garbage, and the diagnostics already
+    // refuse those projects.
+    // Sprint 13 check (T003): motion rules over the same finished
+    // compositions — `appear-by`, `stay-inside`, and `keep-moving`
+    // assertion findings plus automatic `frozen-timeline` detection —
+    // into the same batch, under the same valid-only gate.
+    // Sprint 13 check (T004): contrast plus silent and discarded
+    // audio over the same finished compositions — measured ratios
+    // and peaks with their bars, unrunnable backgrounds as named
+    // notes — into the same batch, under the same valid-only gate.
+    if !ctx.invalid {
+        check_layout_lint(&mut ctx, &compositions);
+        check_motion_lint(&mut ctx, &compositions);
+        check_contrast_audio_lint(&mut ctx, &compositions);
+    }
     // Sprint 9 variables, CAP-002: name the variable behind every
     // substituted binding whose resolved value still failed to coerce,
     // so the refusal names the attribute and the variable together.
@@ -3035,6 +4770,10 @@ fn styled_node<'a>(
                 return None;
             }
         };
+        // Sprint 13 check, T001 (`unused-style`): the name resolved to
+        // a declared block, so the block counts as referenced in this
+        // composition whatever the element validator decides next.
+        ctx.style_uses.insert((ctx.current_comp, name.to_string()));
         for (k, v) in &style.props {
             match merged.iter().position(|(ek, _)| ek == k) {
                 Some(i) if i >= owned_len => {
@@ -3456,6 +5195,15 @@ fn validate_composition_parts<'n>(
     for child in &root.children {
         if child.name == "style" {
             if let Some(s) = validate_style_block(&mut ctx, child, &styles) {
+                // Sprint 13 check, T001 (`unused-style`): remember the
+                // block home so the end-of-validation pass can tell a
+                // referenced block from a dead one.
+                ctx.style_decls.push((
+                    ctx.current_comp,
+                    s.name.clone(),
+                    child.name_line,
+                    child.name_column,
+                ));
                 styles.push(s);
             }
         }
@@ -3997,6 +5745,8 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         lane_grades,
         transitions,
         motion_blur,
+        line: root.name_line,
+        column: root.name_column,
     }
 }
 
@@ -4033,6 +5783,8 @@ fn finish(
         },
         diagnostics: ctx.diags,
         variable_warnings: ctx.override_warnings,
+        lint_findings: ctx.lint_findings,
+        lint_notes: ctx.lint_notes,
         ffmpeg_auto_download,
         footage: ctx.footage,
         inferred: ctx.inferred,
@@ -4954,7 +6706,13 @@ fn parse_text_spans(ctx: &mut Ctx, node: &RawNode) -> Option<Vec<TextSpan>> {
     for (i, child) in node.children.iter().enumerate() {
         // The `grade` and `effect` children validate with the clip
         // (Sprint 11 grade T001, effects T004), not with the styled runs.
-        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+        // Assertion children validate through `parse_clip_asserts`
+        // (Sprint 13 check, T003), not with the styled runs either.
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
             continue;
         }
         if child.name != "span" {
@@ -5401,10 +7159,12 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
     }
     let turn = clip_turn(ctx, node, "text clip")?;
     let filter_blur = clip_filter(ctx, node, "text clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "text clip")?;
     let grade = parse_clip_grade(ctx, node, "text clip")?;
     let effects = parse_clip_effects(ctx, node, "text clip")?;
     let vfx = parse_clip_vfx(ctx, node, "text clip")?;
     Some(TextClip {
+        asserts,
         value,
         start,
         duration,
@@ -5920,6 +7680,7 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
     let waveform = parse_waveform(ctx, node, "video clip")?;
     let turn = clip_turn(ctx, node, "video clip")?;
     let filter_blur = clip_filter(ctx, node, "video clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "video clip")?;
     let grade = parse_clip_grade(ctx, node, "video clip")?;
     let effects = parse_clip_effects(ctx, node, "video clip")?;
     let vfx = parse_clip_vfx(ctx, node, "video clip")?;
@@ -5940,6 +7701,7 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         clamped,
     });
     Some(VideoClip {
+        asserts,
         path,
         start,
         duration,
@@ -6028,6 +7790,27 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
         "waveform-to",
         "waveform_to",
     ];
+    // Motion assertions describe a picture (Sprint 13 check, T003): an
+    // audio track draws none, so an assertion child is refused before
+    // frame one naming the assertion and the fix.
+    for child in &node.children {
+        if is_assert_child(&child.name) {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_MOTION",
+                format!(
+                    "audio track holds `{}`; assertions describe a visible element, and an audio track draws no picture",
+                    child.name
+                ),
+                format!(
+                    "move the `{}` onto the element it describes (a `text`, `box`, `flex`, `image`, `path`, `svg`, `video`, or `nest` clip), or remove the child",
+                    child.name
+                ),
+            );
+            return None;
+        }
+    }
     for (k, v) in &node.props {
         if LATER_AUDIO_KEYS.contains(&k.as_str()) {
             ctx.diags.push(Diagnostic::new(
@@ -6895,11 +8678,13 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<B
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "box clip")?;
     let filter_blur = clip_filter(ctx, node, "box clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "box clip")?;
     let grade = parse_clip_grade(ctx, node, "box clip")?;
     let effects = parse_clip_effects(ctx, node, "box clip")?;
     let vfx = parse_clip_vfx(ctx, node, "box clip")?;
     let fill_paint = validate_box_fill(ctx, node)?;
     Some(BoxClip {
+        asserts,
         start,
         duration,
         id: identity.id,
@@ -6948,7 +8733,13 @@ fn validate_box_fill(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
     for child in &node.children {
         // The `grade` and `effect` children validate with the clip
         // (Sprint 11 grade T001, effects T004), not with the fill.
-        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+        // Assertion children validate through `parse_clip_asserts`
+        // (Sprint 13 check, T003), not with the fill either.
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
             continue;
         }
         match child.name.as_str() {
@@ -7930,7 +9721,25 @@ fn validate_flex_child(
     let node = merged.as_ref();
     // T003 fills apply to `box` clips: a laid-out child box paints one
     // `fill` color, never a gradient or image fill of its own.
+    // Assertions live on the flex container (Sprint 13 check, T003),
+    // never on a laid-out child.
     if let Some(child) = node.children.first() {
+        if is_assert_child(&child.name) {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_MOTION",
+                format!(
+                    "flex child box holds `{}`; assertions live on the `flex` container, not on a laid-out child",
+                    child.name
+                ),
+                format!(
+                    "move the `{}` onto the enclosing `flex` container, or remove the child",
+                    child.name
+                ),
+            );
+            return None;
+        }
         ctx.push(
             child.name_line,
             child.name_column,
@@ -8312,8 +10121,13 @@ fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
     for child in &node.children {
         // The `grade` and `effect` children validate with the
         // container (Sprint 11 grade T001, effects T004), not with the
-        // laid-out children.
-        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+        // laid-out children. Assertion children validate through
+        // `parse_clip_asserts` (Sprint 13 check, T003) instead.
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
             continue;
         }
         if child.name == "flex" {
@@ -8341,10 +10155,12 @@ fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
         }
         children.push(validate_flex_child(ctx, child, styles)?);
     }
+    let asserts = parse_clip_asserts(ctx, node, "flex container")?;
     let grade = parse_clip_grade(ctx, node, "flex container")?;
     let effects = parse_clip_effects(ctx, node, "flex container")?;
     let vfx = parse_clip_vfx(ctx, node, "flex container")?;
     Some(FlexClip {
+        asserts,
         start,
         duration,
         id: identity.id,
@@ -8834,10 +10650,12 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "image clip")?;
     let filter_blur = clip_filter(ctx, node, "image clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "image clip")?;
     let grade = parse_clip_grade(ctx, node, "image clip")?;
     let effects = parse_clip_effects(ctx, node, "image clip")?;
     let vfx = parse_clip_vfx(ctx, node, "image clip")?;
     Some(ImageClip {
+        asserts,
         path,
         start,
         duration,
@@ -9147,7 +10965,13 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
     for child in &node.children {
         // The `grade` and `effect` children validate with the clip
         // (Sprint 11 grade T001, effects T004), not with the shape.
-        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+        // Assertion children validate through `parse_clip_asserts`
+        // (Sprint 13 check, T003), not with the shape either.
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
             continue;
         }
         ctx.push(
@@ -9158,20 +10982,20 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
             "remove the child; the shape draws its `d` data",
         );
     }
-    if node
-        .children
-        .iter()
-        .any(|c| c.name != "grade" && c.name != "effect" && c.name != "vfx")
-    {
+    if node.children.iter().any(|c| {
+        c.name != "grade" && c.name != "effect" && c.name != "vfx" && !is_assert_child(&c.name)
+    }) {
         return None;
     }
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "path clip")?;
     let filter_blur = clip_filter(ctx, node, "path clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "path clip")?;
     let grade = parse_clip_grade(ctx, node, "path clip")?;
     let effects = parse_clip_effects(ctx, node, "path clip")?;
     let vfx = parse_clip_vfx(ctx, node, "path clip")?;
     Some(PathClip {
+        asserts,
         start,
         duration,
         id: identity.id,
@@ -9425,7 +11249,13 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
     for child in &node.children {
         // The `grade` and `effect` children validate with the clip
         // (Sprint 11 grade T001, effects T004), not with the picture.
-        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+        // Assertion children validate through `parse_clip_asserts`
+        // (Sprint 13 check, T003), not with the picture either.
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
             continue;
         }
         ctx.push(
@@ -9436,20 +11266,20 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
             "remove the child; the picture comes from `path`",
         );
     }
-    if node
-        .children
-        .iter()
-        .any(|c| c.name != "grade" && c.name != "effect" && c.name != "vfx")
-    {
+    if node.children.iter().any(|c| {
+        c.name != "grade" && c.name != "effect" && c.name != "vfx" && !is_assert_child(&c.name)
+    }) {
         return None;
     }
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "svg clip")?;
     let filter_blur = clip_filter(ctx, node, "svg clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "svg clip")?;
     let grade = parse_clip_grade(ctx, node, "svg clip")?;
     let effects = parse_clip_effects(ctx, node, "svg clip")?;
     let vfx = parse_clip_vfx(ctx, node, "svg clip")?;
     Some(SvgClip {
+        asserts,
         path,
         start,
         duration,
@@ -9670,10 +11500,12 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
         needs_composition: true,
         comp: ctx.current_comp,
     });
+    let asserts = parse_clip_asserts(ctx, node, "nest clip")?;
     let grade = parse_clip_grade(ctx, node, "nest clip")?;
     let effects = parse_clip_effects(ctx, node, "nest clip")?;
     let vfx = parse_clip_vfx(ctx, node, "nest clip")?;
     Some(NestClip {
+        asserts,
         target,
         start,
         duration,
@@ -15263,6 +17095,15 @@ fn composition_theme_tokens(
             );
         }
     }
+    // Sprint 13 check, T001 (`unused-theme`): every hit counts as a
+    // use, caller selection and attribute selection alike, even when
+    // the caller shadows the attribute.
+    if let Some(ref name) = attr_selected {
+        ctx.theme_uses.insert(name.clone());
+    }
+    if let Some(ref name) = cli_selected {
+        ctx.theme_uses.insert(name.clone());
+    }
     let effective = cli_selected.or(if attr_bad { None } else { attr_selected });
     match effective {
         Some(name) => themes
@@ -16732,6 +18573,110 @@ mod tests {
         png.extend_from_slice(&[0u8; 8]);
         assert!(!heic_magic_ok(&png));
         assert!(!heic_magic_ok(b"fake"));
+    }
+}
+
+#[cfg(test)]
+mod layout_lint_tests {
+    use super::*;
+
+    fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> LayoutRect {
+        LayoutRect { x0, y0, x1, y1 }
+    }
+
+    #[test]
+    fn intersection_needs_positive_shared_pixels() {
+        let hit = rect(0.0, 0.0, 100.0, 100.0)
+            .intersect(rect(50.0, 50.0, 150.0, 150.0))
+            .expect("shared pixels intersect");
+        assert_eq!((hit.x0, hit.y0, hit.x1, hit.y1), (50.0, 50.0, 100.0, 100.0));
+        assert_eq!(hit.area(), 2500.0);
+        // Touching edges share no pixels.
+        assert!(rect(0.0, 0.0, 100.0, 100.0)
+            .intersect(rect(100.0, 0.0, 200.0, 100.0))
+            .is_none());
+        assert!(rect(0.0, 0.0, 100.0, 100.0)
+            .intersect(rect(0.0, 100.0, 100.0, 200.0))
+            .is_none());
+        // Disjoint rectangles never intersect.
+        assert!(rect(0.0, 0.0, 10.0, 10.0)
+            .intersect(rect(20.0, 20.0, 30.0, 30.0))
+            .is_none());
+        // Containment still overlaps.
+        let outer = rect(0.0, 0.0, 200.0, 200.0);
+        let inner = rect(50.0, 50.0, 60.0, 60.0);
+        assert_eq!(outer.intersect(inner).expect("contained").area(), 100.0);
+    }
+
+    #[test]
+    fn windows_share_only_positive_time() {
+        assert!(windows_overlap(0.0, 2.0, 1.0, 3.0));
+        assert!(windows_overlap(1.0, 3.0, 0.0, 2.0));
+        // Merely touching windows share nothing.
+        assert!(!windows_overlap(0.0, 1.0, 1.0, 2.0));
+        assert!(!windows_overlap(1.0, 2.0, 0.0, 1.0));
+        assert!(!windows_overlap(0.0, 1.0, 2.0, 3.0));
+    }
+
+    #[test]
+    fn caption_band_catches_only_band_reach() {
+        let band_top = 480.0 * CAPTION_BAND_TOP; // 422.4
+        // Reaches into the band: touches.
+        assert!(caption_touches(rect(100.0, 410.0, 200.0, 458.0), band_top, 480.0));
+        // Starts inside the band: touches.
+        assert!(caption_touches(rect(0.0, 450.0, 640.0, 480.0), band_top, 480.0));
+        // Ends exactly at the band top: silent.
+        assert!(!caption_touches(rect(0.0, 0.0, 640.0, 422.4), band_top, 480.0));
+        // Fully above: silent.
+        assert!(!caption_touches(rect(0.0, 0.0, 100.0, 100.0), band_top, 480.0));
+        // Fully below the canvas (past the end): silent.
+        assert!(!caption_touches(rect(0.0, 480.0, 100.0, 500.0), band_top, 480.0));
+    }
+
+    #[test]
+    fn off_canvas_counts_only_fully_outside_pixels() {
+        // Fully past the left edge: pixels counted.
+        let sides = outside_sides(rect(-300.0, 100.0, -100.0, 220.0), 640.0, 480.0);
+        assert_eq!(sides, ["100px past the left edge"]);
+        // Fully past the right and bottom edges: both counted.
+        let sides = outside_sides(rect(700.0, 500.0, 900.0, 600.0), 640.0, 480.0);
+        assert_eq!(
+            sides,
+            ["60px past the right edge", "20px past the bottom edge"]
+        );
+        // Fully above the canvas: top counted.
+        let sides = outside_sides(rect(10.0, -50.0, 100.0, -10.0), 640.0, 480.0);
+        assert_eq!(sides, ["10px past the top edge"]);
+        // Partially visible on any side stays silent.
+        assert!(outside_sides(rect(-50.0, 100.0, 100.0, 200.0), 640.0, 480.0).is_empty());
+        assert!(outside_sides(rect(600.0, 100.0, 700.0, 200.0), 640.0, 480.0).is_empty());
+        assert!(outside_sides(rect(100.0, -50.0, 200.0, 100.0), 640.0, 480.0).is_empty());
+        assert!(outside_sides(rect(100.0, 400.0, 200.0, 500.0), 640.0, 480.0).is_empty());
+        // Fully inside stays silent.
+        assert!(outside_sides(rect(0.0, 0.0, 640.0, 480.0), 640.0, 480.0).is_empty());
+    }
+
+    #[test]
+    fn pixels_print_whole_or_one_decimal() {
+        assert_eq!(px(100.0), "100");
+        assert_eq!(px(0.0), "0");
+        assert_eq!(px(-0.0), "0");
+        assert_eq!(px(422.4), "422.4");
+        assert_eq!(area_text(2500.0, 50.0, 50.0), "2500px² (50x50px)");
+        assert_eq!(bounds_text(rect(100.0, 410.0, 200.0, 458.0)), "100,410-200,458px");
+    }
+
+    #[test]
+    fn path_bounds_cover_endpoints_and_controls_with_offset() {
+        let r = path_rect("M10,10 L90,10 L90,50 Z", 5.0, 7.0).expect("lines bound");
+        assert_eq!((r.x0, r.y0, r.x1, r.y1), (15.0, 17.0, 95.0, 57.0));
+        // Bezier control points bound the curve conservatively.
+        let r = path_rect("M0,0 C0,100 100,100 100,0", 0.0, 0.0).expect("cubic bounds");
+        assert_eq!((r.x0, r.y0, r.x1, r.y1), (0.0, 0.0, 100.0, 100.0));
+        // Degenerate (zero-area) and unparseable data draw no rectangle.
+        assert!(path_rect("M10,10 L10,10", 0.0, 0.0).is_none());
+        assert!(path_rect("nonsense", 0.0, 0.0).is_none());
+        assert!(path_rect("", 0.0, 0.0).is_none());
     }
 }
 

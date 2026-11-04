@@ -82,6 +82,7 @@ version = "0.1.0"
 dependencies = [
  "ffmpeg",
  "glyph",
+ "layout",
  "log 0.1.0",
  "notation",
  "render",
@@ -668,6 +669,7 @@ dependencies = [
  "libc",
  "motion",
  "notation",
+ "png",
  "resvg",
  "timebase",
 ]

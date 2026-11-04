@@ -857,6 +857,8 @@ mod tests {
 
     fn composition() -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -868,6 +870,7 @@ mod tests {
             version: 1,
             clips: vec![
                 notation::model::Clip::Text(TextClip {
+                    asserts: Default::default(),
                     id: None,
                     track: TrackKind::Graphics,
                     label: None,
@@ -907,6 +910,7 @@ mod tests {
                     vfx: Default::default(),
                 }),
                 notation::model::Clip::Box(BoxClip {
+                    asserts: Default::default(),
                     id: None,
                     track: TrackKind::Graphics,
                     label: None,
@@ -1046,6 +1050,8 @@ mod tests {
 
     fn still_comp(clips: Vec<Clip>) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -1076,6 +1082,7 @@ mod tests {
 
     fn red_box(x: f64, y: f64, order: i64) -> Clip {
         Clip::Box(BoxClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1251,6 +1258,7 @@ mod tests {
         let comp = still_comp(vec![
             red_box(4.0, 4.0, 1),
             Clip::Box(BoxClip {
+                asserts: Default::default(),
                 id: None,
                 track: TrackKind::Graphics,
                 label: None,
@@ -1309,6 +1317,7 @@ mod tests {
         use notation::model::{FillRule, PathClip, StrokePosition};
         fn path(d: &str, rule: FillRule, order: i64) -> Clip {
             Clip::Path(PathClip {
+                asserts: Default::default(),
                 id: None,
                 track: TrackKind::Graphics,
                 label: None,
@@ -1354,6 +1363,7 @@ mod tests {
                 2,
             ),
             Clip::Path(PathClip {
+                asserts: Default::default(),
                 id: None,
                 track: TrackKind::Graphics,
                 label: None,
@@ -1413,6 +1423,7 @@ mod tests {
         // second, so it must cover the red one on both renderers.
         let comp = still_comp(vec![
             Clip::Box(BoxClip {
+                asserts: Default::default(),
                 id: None,
                 track: TrackKind::Graphics,
                 label: None,
@@ -1471,6 +1482,7 @@ mod tests {
         // and letter spacing. Both sides share the same prepared
         // layouts, so the assertion holds on any machine font set.
         let comp = still_comp(vec![Clip::Text(TextClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,
@@ -1627,6 +1639,7 @@ mod tests {
         use notation::model::{FillPaint, GradientStop};
         fn gradient_box() -> notation::model::Clip {
             notation::model::Clip::Box(BoxClip {
+                asserts: Default::default(),
                 id: None,
                 track: TrackKind::Graphics,
                 label: None,
@@ -1684,6 +1697,7 @@ mod tests {
         }
         fn image_box() -> notation::model::Clip {
             notation::model::Clip::Box(BoxClip {
+                asserts: Default::default(),
                 id: None,
                 track: TrackKind::Graphics,
                 label: None,
@@ -1793,6 +1807,7 @@ mod tests {
         comp.width = 64;
         comp.height = 32;
         comp.clips = vec![notation::model::Clip::Box(BoxClip {
+            asserts: Default::default(),
             id: None,
             track: TrackKind::Graphics,
             label: None,

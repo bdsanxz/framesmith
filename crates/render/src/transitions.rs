@@ -823,6 +823,7 @@ mod tests {
         use timebase::Time;
         fn bbox(id: &str, start: f64, duration: f64) -> Clip {
             Clip::Box(BoxClip {
+                asserts: Default::default(),
                 id: Some(id.to_string()),
                 track: notation::model::TrackKind::Video,
                 label: None,
@@ -859,6 +860,8 @@ mod tests {
             })
         }
         let comp = Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -915,6 +918,7 @@ mod tests {
 
     fn full_box(id: &str, start: f64, fill: (u8, u8, u8)) -> Clip {
         Clip::Box(BoxClip {
+            asserts: Default::default(),
             id: Some(id.to_string()),
             track: notation::model::TrackKind::Video,
             label: None,
@@ -957,6 +961,8 @@ mod tests {
 
     fn bridge_comp(kind: TransitionKind) -> Composition {
         Composition {
+            line: 1,
+            column: 1,
             id: None,
             canvas: None,
             name: "t".to_string(),
@@ -1072,6 +1078,8 @@ mod tests {
         // incoming-only frames (blend or motion, never a cut).
         let plain_red = draw_frame_cpu(&bridge_comp(TransitionKind::Fade), 29);
         let comp_blue = Composition {
+            line: 1,
+            column: 1,
             transitions: Vec::new(),
             ..bridge_comp(TransitionKind::Fade)
         };
