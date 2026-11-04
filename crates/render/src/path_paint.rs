@@ -15,7 +15,7 @@ use crate::frame::ResolvedPath;
 use crate::paint::{composite_direct_blend, composite_warp_blend};
 use crate::render::{blur_margin, blur_on, item_turn, layer_blend, warp_bounds, DecodedImage};
 use notation::model::{
-    BlendMode, Fit, MaskShape, Overflow, PlaceH, PlaceV, Placement, StrokePosition,
+    BlendMode, Fit, MaskShape, Overflow, PlaceH, PlaceV, Placement, ResolvedGrade, StrokePosition,
 };
 use resvg::tiny_skia as sk;
 use std::collections::HashMap;
@@ -423,6 +423,10 @@ pub(crate) fn draw_path(
     chh: u32,
     p: &ResolvedPath,
     paths: &PathCache,
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) -> Result<(), String> {
     if p.scale <= 0.0 || !p.scale.is_finite() {
         return Ok(());
@@ -494,6 +498,12 @@ pub(crate) fn draw_path(
             if blur_on(sigma) {
                 pm.blur(sigma);
             }
+            // The look grades the shadow with the body, then its effects
+            // (Sprint 11 grade T001, effects T004): the whole cast element
+            // carries one look.
+            crate::blur::apply_grade_to_premult(&mut pm, grade);
+            crate::effects::apply_effects_to_premult(&mut pm, effects);
+            crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
             let margin = blur_margin(sigma) + 1.0;
             let grown = shadow_rect.map(|r| (r.0 - margin, r.1 - margin, r.2 + margin, r.3 + margin));
             // The shadow warps about the body anchor, so a rotated or
@@ -538,6 +548,12 @@ pub(crate) fn draw_path(
         if blur_on(p.blur) {
             pm.blur(p.blur);
         }
+        // The look grades the body's own pixels, then its effects
+        // (Sprint 11 grade T001, effects T004): beneath layers keep
+        // their own looks.
+        crate::blur::apply_grade_to_premult(&mut pm, grade);
+        crate::effects::apply_effects_to_premult(&mut pm, effects);
+        crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
         match (turn, rotated) {
             (None, false) => {
                 let margin = blur_margin(p.blur) + 1.0;
@@ -711,7 +727,7 @@ mod tests {
         for c in frame.chunks_exact_mut(3) {
             c.copy_from_slice(&bg);
         }
-        draw_path(&mut frame, cw, chh, p, cache).unwrap();
+        draw_path(&mut frame, cw, chh, p, cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         frame
     }
 
@@ -726,9 +742,9 @@ mod tests {
         // Two full draws recompute numbers only: no second parse.
         let p = test_path(d);
         let mut f1 = vec![0u8; 64 * 64 * 3];
-        draw_path(&mut f1, 64, 64, &p, &cache).unwrap();
+        draw_path(&mut f1, 64, 64, &p, &cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         let mut f2 = vec![0u8; 64 * 64 * 3];
-        draw_path(&mut f2, 64, 64, &p, &cache).unwrap();
+        draw_path(&mut f2, 64, 64, &p, &cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(f1, f2, "re-renders are byte-identical");
         assert_eq!(cache.parses(), 1);
         // A different string parses once more.
@@ -847,7 +863,7 @@ mod tests {
         let cache = PathCache::new();
         let p = test_path("M10,10 X20,20");
         let mut frame = vec![0u8; 64 * 64 * 3];
-        let err = draw_path(&mut frame, 64, 64, &p, &cache).expect_err("bad d must refuse");
+        let err = draw_path(&mut frame, 64, 64, &p, &cache, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).expect_err("bad d must refuse");
         assert!(err.contains("command 2"), "{err}");
     }
 

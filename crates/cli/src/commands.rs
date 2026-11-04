@@ -1670,6 +1670,267 @@ pub fn cmd_waveform(folder: &Path, req: &WaveformRequest) -> i32 {
     0
 }
 
+/// Bake the composition-wide grade chain to an equivalent `.cube`
+/// (Sprint 11 grade, CAP-002/T003): resolves the selected
+/// composition's `grade` (composition level only: lane and clip
+/// grades are per-element looks and ride along with their clips,
+/// never with the baked file), samples the position-independent
+/// color pipeline, and writes a size-33-or-smaller `.cube` that
+/// renders pixel-identical (sole-LUT chains bit-exactly) when
+/// imported with `lut ... amount=1`. Prints exactly one report line
+/// with the grid size and the source chain. An identity chain, a
+/// spatial chain (vignette/grain no 3D LUT can store), or an
+/// unwritable output refuses non-zero with nothing written.
+pub fn cmd_grade_bake(folder: &Path, output: &Path, composition: Option<&str>) -> i32 {
+    let verdict = validate_folder(folder);
+    if !matches!(verdict.status, Status::Valid) {
+        for d in &verdict.diagnostics {
+            println!("{d}");
+        }
+        match verdict.status {
+            Status::Invalid => {
+                println!(
+                    "grade-bake refused: {} is invalid; fix the problems above and re-run. Nothing was written.",
+                    folder.display()
+                );
+                return 1;
+            }
+            _ => {
+                println!(
+                    "grade-bake refused: {} uses later-sprint element(s); bake the grade once the project checks green. Nothing was written.",
+                    folder.display()
+                );
+                return 2;
+            }
+        }
+    }
+    let comp = match select_composition(&verdict, composition) {
+        Ok(c) => c,
+        Err(msg) => {
+            // `select_composition` words its refusal for render; bake
+            // rewords the stage but keeps the missing name and the
+            // available names.
+            let msg = msg
+                .replacen("render refused:", "grade-bake refused:", 1)
+                .replacen("(validation stage); no MP4 was written", "(nothing was written)", 1);
+            println!("{msg}");
+            return 1;
+        }
+    };
+    let mut resolved = notation::model::ResolvedGrade::identity().layer(&comp.grade);
+    if resolved.is_empty() {
+        println!(
+            "grade-bake refused: composition {:?} has no grade content to bake (an identity chain writes no pass-through file); tune a `grade` preset, adjust, detail, or `lut` on the composition and re-run. Nothing was written.",
+            comp.name
+        );
+        return 1;
+    }
+    if !resolved.vignette.is_empty() || !resolved.grain.is_empty() {
+        println!(
+            "grade-bake refused: composition {:?} carries vignette or grain, which a `.cube` cannot store (they vary per pixel, not per color); bake a color-only chain instead. Nothing was written.",
+            comp.name
+        );
+        return 1;
+    }
+    // Materialize the authored LUT, if any: a file that vanished
+    // between `check` and this bake refuses here naming the path.
+    if resolved.lut.src.is_some() && resolved.lut.amount != 0.0 {
+        let src = resolved.lut.src.clone().unwrap_or_default();
+        let abs = folder.join(&src);
+        if !abs.is_file() {
+            println!(
+                "grade-bake refused: lut source {src:?} does not exist or is not readable; nothing was written."
+            );
+            return 1;
+        }
+        match std::fs::read(&abs) {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(text) => match notation::model::parse_cube(&text) {
+                    Ok(table) => {
+                        resolved.lut.grid = Some(table);
+                    }
+                    Err(problem) => {
+                        println!(
+                            "grade-bake refused: lut source {src:?} is unusable: {problem}; nothing was written."
+                        );
+                        return 1;
+                    }
+                },
+                Err(_) => {
+                    println!(
+                        "grade-bake refused: lut source {src:?} is not UTF-8 text; nothing was written."
+                    );
+                    return 1;
+                }
+            },
+            Err(e) => {
+                println!(
+                    "grade-bake refused: lut source {src:?} cannot be read: {e}; nothing was written."
+                );
+                return 1;
+            }
+        }
+    }
+    // The baked grid: a sole LUT import re-samples exactly on its own
+    // lattice (bit-exact on reimport, with a verbatim copy when the
+    // blend is full); any tuned chain samples at the 33 maximum for
+    // the finest fidelity the format allows.
+    let sole_lut = resolved.preset == notation::model::GradePreset::None
+        && resolved.exposure == 0.0
+        && resolved.contrast == 0.0
+        && resolved.saturation == 0.0
+        && resolved.temperature == 0.0
+        && resolved.tint == 0.0
+        && resolved.wheel.is_empty()
+        && resolved.curve.is_empty()
+        && resolved.hsl.is_empty()
+        && resolved.lut.src.is_some()
+        && resolved.lut.amount != 0.0
+        && resolved.lut.grid.is_some();
+    let (size, body): (usize, Option<Vec<u8>>) = if sole_lut && resolved.lut.amount == 1.0 {
+        // Verbatim copy: the resolved mapping IS this file's mapping,
+        // so re-emitting its bytes is the most faithful bake.
+        let src = resolved.lut.src.clone().unwrap_or_default();
+        let size = resolved.lut.grid.as_ref().map(|t| t.size).unwrap_or(33);
+        match std::fs::read(folder.join(&src)) {
+            Ok(bytes) => (size, Some(bytes)),
+            Err(e) => {
+                println!(
+                    "grade-bake refused: lut source {src:?} cannot be read: {e}; nothing was written."
+                );
+                return 1;
+            }
+        }
+    } else {
+        let size = if sole_lut {
+            resolved.lut.grid.as_ref().map(|t| t.size).unwrap_or(33)
+        } else {
+            notation::model::LUT_MAX_GRID_SIZE
+        };
+        (size, None)
+    };
+    let bytes: Vec<u8> = match body {
+        Some(raw) => raw,
+        None => {
+            let chain = grade_chain_text(&resolved);
+            let mut out = format!(
+                "TITLE \"Framesmith grade-bake of composition {:?} ({chain})\"\nLUT_3D_SIZE {size}\nDOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n",
+                comp.name
+            );
+            let denom = (size - 1) as f64;
+            for b in 0..size {
+                for g in 0..size {
+                    for r in 0..size {
+                        let (rr, gg, bb) = resolved.apply(
+                            r as f64 * 255.0 / denom,
+                            g as f64 * 255.0 / denom,
+                            b as f64 * 255.0 / denom,
+                        );
+                        out.push_str(&format!(
+                            "{:.9} {:.9} {:.9}\n",
+                            rr as f32 / 255.0,
+                            gg as f32 / 255.0,
+                            bb as f32 / 255.0
+                        ));
+                    }
+                }
+            }
+            out.into_bytes()
+        }
+    };
+    // Atomic write: a temp file beside the target, renamed over it,
+    // so a failed bake never leaves a partial `.cube` behind.
+    if let Some(parent) = output.parent() {
+        if !parent.as_os_str().is_empty() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                println!(
+                    "grade-bake refused: cannot create output directory {}: {e}; nothing was written.",
+                    parent.display()
+                );
+                return 1;
+            }
+        }
+    }
+    let tmp = output.with_extension(format!(
+        "tmp-cube-{}",
+        std::process::id()
+    ));
+    let write_out = std::fs::write(&tmp, &bytes)
+        .and_then(|()| std::fs::rename(&tmp, output));
+    if let Err(e) = write_out {
+        // The temp file holds any partial bytes; the target itself is
+        // untouched (rename is atomic), so only the temp goes.
+        let _ = std::fs::remove_file(&tmp);
+        println!(
+            "grade-bake refused: cannot write {}: {e}; nothing was written.",
+            output.display()
+        );
+        return 1;
+    }
+    let chain = grade_chain_text(&resolved);
+    println!(
+        "baked {size}-point LUT from composition {:?} ({chain}) -> {}.",
+        comp.name,
+        output.display()
+    );
+    0
+}
+
+/// One-line source-chain summary for the bake report: every
+/// non-identity stage of the resolved composition grade.
+fn grade_chain_text(resolved: &notation::model::ResolvedGrade) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if resolved.preset != notation::model::GradePreset::None {
+        parts.push(format!("preset={}", resolved.preset.name()));
+    }
+    for (key, v) in [
+        ("exposure", resolved.exposure),
+        ("contrast", resolved.contrast),
+        ("saturation", resolved.saturation),
+        ("temperature", resolved.temperature),
+        ("tint", resolved.tint),
+    ] {
+        if v != 0.0 {
+            parts.push(format!("{key}={v}"));
+        }
+    }
+    if !resolved.wheel.is_empty() {
+        parts.push(format!(
+            "wheel={:.3},{:.3},{:.3}",
+            resolved.wheel.shadows, resolved.wheel.midtones, resolved.wheel.highlights
+        ));
+    }
+    if !resolved.curve.is_empty() {
+        let mut chans = Vec::new();
+        for (name, pts) in [
+            ("red", &resolved.curve.red),
+            ("green", &resolved.curve.green),
+            ("blue", &resolved.curve.blue),
+            ("master", &resolved.curve.master),
+        ] {
+            if !pts.is_empty() {
+                chans.push(format!("{name}:{}pts", pts.len()));
+            }
+        }
+        parts.push(format!("curve={}", chans.join("+")));
+    }
+    if !resolved.hsl.is_empty() {
+        parts.push(format!(
+            "hsl={:.1}..{:.1}@{:.3}",
+            resolved.hsl.hue_min, resolved.hsl.hue_max, resolved.hsl.lightness
+        ));
+    }
+    if let Some(src) = &resolved.lut.src {
+        if resolved.lut.amount != 0.0 {
+            parts.push(format!("lut={src:?}@{}", resolved.lut.amount));
+        }
+    }
+    if parts.is_empty() {
+        parts.push("identity".to_string());
+    }
+    parts.join(", ")
+}
+
 /// Render a fully valid folder to a standard MP4 using one explicit
 /// Flags for one `render` run (Sprint 3 T001/T002/T006): the backend
 /// choice, the quality preset with exclusive encoder overrides, and
@@ -4932,7 +5193,8 @@ mod tests {
             assert_eq!(cmd_render(&folder, None), 2);
             assert!(!folder.join("out.mp4").exists());
         }
-        // Beyond-blur filters wait for Sprint 11, even well-formed.
+        // Beyond-blur motion filter properties still refuse (Sprint 11
+        // effects live on clip `effect` elements; only `blur` animates).
         for prop in ["brightness", "filter", "contrast"] {
             let folder = tmp_dir("laterfilter");
             write(

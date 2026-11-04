@@ -316,6 +316,9 @@ mod tests {
                 column: 1,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
             })
         };
         let audio = |start: f64, duration: f64, hidden: bool, id: Option<&str>| {
@@ -326,6 +329,9 @@ mod tests {
                 label: None,
                 start_after: None,
                 hidden,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
                 start,
                 duration,
                 trim_start: 0.0,
@@ -369,6 +375,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         };
         let sections = mix_sections(&comp);
         assert_eq!(sections.len(), 2);

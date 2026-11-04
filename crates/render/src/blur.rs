@@ -118,6 +118,47 @@ impl Premult {
     }
 }
 
+/// Grade one premultiplied-RGBA layer in place (Sprint 11 grade,
+/// CAP-001/T001+T002): every texel unpremultiplies to straight RGB,
+/// takes the resolved look, and premultiplies back with its alpha
+/// untouched. Transparent texels stay transparent. An empty (identity)
+/// look is a no-op. Layers are canvas-sized, so the texel index maps
+/// straight onto frame coordinates for the spatial detail stages
+/// (vignette, grain). Pure closed-form math plus an integer grain
+/// hash, no RNG state, so graded layers re-render byte-identically.
+pub fn apply_grade_to_premult(pm: &mut Premult, grade: &notation::model::ResolvedGrade) {
+    if grade.is_empty() {
+        return;
+    }
+    let w = pm.w;
+    for (t, cell) in pm.px.chunks_exact_mut(4).enumerate() {
+        let a = cell[3].clamp(0.0, 1.0);
+        if a <= 0.0 {
+            continue;
+        }
+        // Canvas position of this texel; a degenerate canvas has no
+        // positions (the look's own guards skip what needs them).
+        let (x, y) = if w > 0 {
+            ((t % w) as f64, (t / w) as f64)
+        } else {
+            (0.0, 0.0)
+        };
+        let inv = 1.0 / a as f64;
+        let (r, g, b) = grade.apply_at(
+            cell[0] as f64 * inv,
+            cell[1] as f64 * inv,
+            cell[2] as f64 * inv,
+            x,
+            y,
+            pm.w as f64,
+            pm.h as f64,
+        );
+        cell[0] = (r * a as f64) as f32;
+        cell[1] = (g * a as f64) as f32;
+        cell[2] = (b * a as f64) as f32;
+    }
+}
+
 /// Normalized Gaussian kernel for `sigma`: `2*ceil(3σ)+1` taps summing
 /// to exactly 1 (the tail beyond 3σ is cut, like every analytic blur).
 pub fn gaussian_kernel(sigma: f64) -> Vec<f64> {

@@ -1259,6 +1259,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -1351,6 +1354,9 @@ mod tests {
             clip_path: None,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -1472,6 +1478,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -1865,6 +1875,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -2683,6 +2697,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         });
         let comp = comp_with(vec![bare], vec![], vec![]);
         let motions = plan_motions(&comp, 30);

@@ -142,6 +142,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         }
     }
 

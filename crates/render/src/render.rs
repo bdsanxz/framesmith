@@ -35,7 +35,10 @@ use crate::frame::{FrameDescription, FrameItem};
 use crate::motion_plan::{plan_motions, snap_fps, ClipMotion};
 use crate::turn::Turn;
 use glyph::font::Face;
-use notation::model::{AudioClip, Clip, Composition, FillPaint, Fit, GradientStop, VideoClip};
+use notation::model::{
+    AudioClip, Clip, Composition, FillPaint, Fit, GradientStop, LutTable, ResolvedGrade, Rgb,
+    TransitionKind, VideoClip,
+};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -1192,6 +1195,34 @@ fn prepare_comp_images(
                 }
             }
             _ => {}
+        }
+        // Sprint 11 VFX (CAP-004/T005): active file-backed stages
+        // decode with the clip stills, so an unreadable map or matte
+        // refuses before frame one even when `check` was skipped; the
+        // per-frame vanish check still guards sources deleted after
+        // this decode. Audio chains rest inert and decode nothing; an
+        // inert stage decodes nothing either, so disabling a stage
+        // matches the chain written without it.
+        if !matches!(clip, Clip::Audio(_)) {
+            let vfx = clip.vfx();
+            let mut stage_srcs = Vec::new();
+            if let Some(stage) = vfx.displacement.as_ref().filter(|s| !s.is_empty()) {
+                if let Some(map) = stage.map.as_deref() {
+                    stage_srcs.push(map);
+                }
+            }
+            if let Some(stage) = vfx.luma_matte.as_ref().filter(|s| !s.is_empty()) {
+                stage_srcs.push(stage.src.as_str());
+            }
+            for src in stage_srcs {
+                if images
+                    .iter()
+                    .any(|d: &DecodedImage| d.path == folder.join(src))
+                {
+                    continue;
+                }
+                images.push(decode_image(ffmpeg_bin, folder, src)?);
+            }
         }
     }
     Ok(())
@@ -2769,12 +2800,63 @@ pub(crate) fn draw_one_frame_view(
     backend: Backend,
     frame: u64,
 ) -> Result<Vec<u8>, String> {
-    let desc = crate::frame::describe_nested_at(
-        &view.nest,
-        0,
-        frame,
-        view.time_offset + crate::motion_plan::frame_time(&view.nest.comps[0].fps, frame),
-    );
+    let fps = view.nest.comps[0].fps;
+    let end = view.time_offset + crate::motion_plan::frame_time(&fps, frame);
+    match view.nest.comps[0].motion_blur {
+        // Blur-free compositions draw through the exact pre-blur path.
+        None => draw_sharp_frame_view(view, raster, backend, frame, end),
+        Some(blur) => {
+            let mut draw_at = |now| draw_sharp_frame_view(view, &mut *raster, backend, frame, now);
+            crate::motion_blur::draw_blurred(&mut draw_at, end, &fps, &blur)
+        }
+    }
+}
+
+/// Draw one output frame at one exact composition instant (Sprint 11
+/// motion blur, CAP-006/T007): the pre-blur path — the description at
+/// `now` (plain, or transition-bridged when a bridge covers `now`),
+/// drawn through the effective backend. Blur-free frames call this
+/// with the frame-time instant directly, so they render byte-identical
+/// to before.
+fn draw_sharp_frame_view(
+    view: &DrawView,
+    raster: &mut RasterCache,
+    backend: Backend,
+    frame: u64,
+    now: timebase::Time,
+) -> Result<Vec<u8>, String> {
+    let desc = crate::frame::describe_nested_at(&view.nest, 0, frame, now);
+    let active =
+        crate::transitions::active_transitions(view.nest.comps[0], desc.time);
+    if active.is_empty() {
+        return draw_plain_frame_view(view, raster, backend, &desc);
+    }
+    let planned = plan_transition_frame(&view.nest, 0, frame, &desc, &active);
+    draw_planned_transition(
+        view.videos,
+        view.ranges,
+        view.images,
+        view.layouts,
+        view.dyn_layouts,
+        view.bitmap_fallback,
+        raster,
+        view.paths,
+        view.folder,
+        backend,
+        &planned,
+    )
+}
+
+/// Draw one described frame with no bridge active (Sprint 11
+/// transitions, CAP-005/T006): the exact pre-transition path, so
+/// transition-free frames — and transition-free compositions — draw
+/// byte-identical to before.
+pub(crate) fn draw_plain_frame_view(
+    view: &DrawView,
+    raster: &mut RasterCache,
+    backend: Backend,
+    desc: &FrameDescription,
+) -> Result<Vec<u8>, String> {
     match backend {
         Backend::Gpu => crate::gpu::render_description_split(
             view.videos,
@@ -2786,12 +2868,12 @@ pub(crate) fn draw_one_frame_view(
             raster,
             view.paths,
             view.folder,
-            &desc,
+            desc,
         ),
         Backend::Cpu | Backend::Auto => {
             let mut out = vec![0u8; desc.width as usize * desc.height as usize * 3];
             draw_description(
-                &desc,
+                desc,
                 raster,
                 view.layouts,
                 view.dyn_layouts,
@@ -2806,6 +2888,177 @@ pub(crate) fn draw_one_frame_view(
             Ok(out)
         }
     }
+}
+
+/// One bridge layer's isolated pictures: the outgoing side drawn at
+/// its remapped tail instant and the incoming side at frame time,
+/// each over flat black and flat white for coverage recovery.
+pub(crate) struct PlannedTransitionLayer {
+    pub kind: TransitionKind,
+    pub progress: f64,
+    pub a_black: FrameDescription,
+    pub a_white: FrameDescription,
+    pub b_black: FrameDescription,
+    pub b_white: FrameDescription,
+}
+
+/// One bridged frame's pictures: the composition without the bridged
+/// clips plus one isolated pair per active bridge.
+pub(crate) struct PlannedTransitionFrame {
+    pub base: FrameDescription,
+    pub layers: Vec<PlannedTransitionLayer>,
+}
+
+/// Describe one bridged frame's pictures (Sprint 11 transitions,
+/// CAP-005/T006): the base without any bridged clip, and per bridge
+/// the outgoing tail replayed at its remapped instant plus the
+/// incoming head at frame time. Descriptions are owned data, so the
+/// caller draws them after this borrow ends.
+pub(crate) fn plan_transition_frame(
+    nest: &crate::frame::NestView,
+    root: usize,
+    frame: u64,
+    desc: &FrameDescription,
+    active: &[crate::transitions::ActiveTransition],
+) -> PlannedTransitionFrame {
+    fn flat(mut desc: FrameDescription, bg: Rgb) -> FrameDescription {
+        // Flat ungraded backgrounds: coverage recovery compares
+        // against the exact fill bytes, so the grade must not tint
+        // the key colors.
+        desc.background = bg;
+        desc.composition_grade = ResolvedGrade::identity();
+        desc
+    }
+    let black = Rgb { r: 0, g: 0, b: 0 };
+    let white = Rgb {
+        r: 255,
+        g: 255,
+        b: 255,
+    };
+    let hidden: Vec<(usize, usize)> = active.iter().map(|a| (a.from, a.to)).collect();
+    let base = crate::frame::describe_nested_at_filtered(
+        nest,
+        root,
+        frame,
+        desc.time,
+        Some(&|i: usize| !hidden.iter().any(|(f, t)| *f == i || *t == i)),
+    );
+    let mut layers = Vec::with_capacity(active.len());
+    for a in active {
+        let from = a.from;
+        let only_a = crate::frame::describe_nested_at_filtered(
+            nest,
+            root,
+            frame,
+            a.from_time,
+            Some(&|i: usize| i == from),
+        );
+        let to = a.to;
+        let only_b = crate::frame::describe_nested_at_filtered(
+            nest,
+            root,
+            frame,
+            desc.time,
+            Some(&|i: usize| i == to),
+        );
+        layers.push(PlannedTransitionLayer {
+            kind: a.kind,
+            progress: a.progress,
+            a_black: flat(only_a.clone(), black),
+            a_white: flat(only_a, white),
+            b_black: flat(only_b.clone(), black),
+            b_white: flat(only_b, white),
+        });
+    }
+    PlannedTransitionFrame { base, layers }
+}
+
+/// Draw one bridged frame's pictures and composite them (Sprint 11
+/// transitions, CAP-005/T006): the base plus every layer's
+/// black/white pairs draw through the same backend traversal as
+/// ordinary frames, then the blend composites over the base. Drawing
+/// needs no render tree, only the planned descriptions plus media.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn draw_planned_transition(
+    videos: &[ProbedVideo],
+    ranges: &[DecodedRange],
+    images: &[DecodedImage],
+    layouts: &[Option<layout::Block>],
+    dyn_layouts: &DynLayouts,
+    bitmap_fallback: bool,
+    raster: &mut RasterCache,
+    paths: &crate::path_paint::PathCache,
+    folder: &Path,
+    backend: Backend,
+    planned: &PlannedTransitionFrame,
+) -> Result<Vec<u8>, String> {
+    let mut draw = |desc: &FrameDescription| -> Result<Vec<u8>, String> {
+        match backend {
+            Backend::Gpu => crate::gpu::render_description_split(
+                videos,
+                ranges,
+                images,
+                layouts,
+                dyn_layouts,
+                bitmap_fallback,
+                raster,
+                paths,
+                folder,
+                desc,
+            ),
+            Backend::Cpu | Backend::Auto => {
+                let mut out = vec![0u8; desc.width as usize * desc.height as usize * 3];
+                draw_description(
+                    desc,
+                    raster,
+                    layouts,
+                    dyn_layouts,
+                    bitmap_fallback,
+                    videos,
+                    ranges,
+                    images,
+                    paths,
+                    folder,
+                    &mut out,
+                )?;
+                Ok(out)
+            }
+        }
+    };
+    let base = draw(&planned.base)?;
+    let (w, h) = (
+        planned.base.width as usize,
+        planned.base.height as usize,
+    );
+    // Owned pair buffers first (the draw above borrows the raster
+    // mutably, so layers can only borrow the finished buffers).
+    let mut bufs: Vec<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> = Vec::new();
+    for layer in &planned.layers {
+        bufs.push((
+            draw(&layer.a_black)?,
+            draw(&layer.a_white)?,
+            draw(&layer.b_black)?,
+            draw(&layer.b_white)?,
+        ));
+    }
+    let layers: Vec<crate::transitions::TransitionLayer<'_>> = planned
+        .layers
+        .iter()
+        .zip(bufs.iter())
+        .map(|(layer, (a_black, a_white, b_black, b_white))| {
+            crate::transitions::TransitionLayer {
+                kind: layer.kind,
+                progress: layer.progress,
+                a_black,
+                a_white,
+                b_black,
+                b_white,
+            }
+        })
+        .collect();
+    Ok(crate::transitions::composite_transition_frame(
+        &base, w, h, &layers,
+    ))
 }
 
 /// Draw one output frame on the effective backend from shared prepared
@@ -4135,6 +4388,53 @@ fn paint_box_pixel(
 /// T003): the file is statted on every call, so a source that
 /// vanishes mid-render refuses here with its path named and no
 /// partial MP4, instead of painting stale decoded pixels.
+/// Resolve one item's VFX stage pictures (Sprint 11 VFX, CAP-004/T005):
+/// each active file-backed stage borrows its decoded picture from the
+/// shared list. A source deleted after the decode stage refuses naming
+/// its path with no partial MP4, exactly like the image-fill path. An
+/// inert stage resolves to none, so disabling a stage matches the
+/// chain written without it even when its file vanishes.
+pub(crate) fn resolve_vfx_maps<'a>(
+    images: &'a [DecodedImage],
+    folder: &Path,
+    vfx: &notation::model::VfxChain,
+) -> Result<crate::vfx::VfxMaps<'a>, String> {
+    fn one<'a>(
+        images: &'a [DecodedImage],
+        folder: &Path,
+        stage: &str,
+        src: &str,
+    ) -> Result<crate::vfx::VfxMap<'a>, String> {
+        if !folder.join(src).is_file() {
+            return Err(format!(
+                "render refused: {stage} source {src:?} vanished before its frame could draw; no MP4 was written"
+            ));
+        }
+        let decoded = images.iter().find(|d| d.path.ends_with(src)).ok_or_else(|| {
+            format!(
+                "render refused: {stage} source {src:?} was not decoded (decode stage); no MP4 was written"
+            )
+        })?;
+        Ok(crate::vfx::VfxMap {
+            w: decoded.width as usize,
+            h: decoded.height as usize,
+            rgba: &decoded.rgba,
+        })
+    }
+    let displacement = match vfx.displacement.as_ref().filter(|s| !s.is_empty()) {
+        Some(stage) => match stage.map.as_deref() {
+            Some(map) => Some(one(images, folder, "displacement", map)?),
+            None => None,
+        },
+        None => None,
+    };
+    let luma_matte = match vfx.luma_matte.as_ref().filter(|s| !s.is_empty()) {
+        Some(stage) => Some(one(images, folder, "luma-matte", &stage.src)?),
+        None => None,
+    };
+    Ok(crate::vfx::VfxMaps { displacement, luma_matte })
+}
+
 pub(crate) fn fill_image_decoded<'a>(
     images: &'a [DecodedImage],
     folder: &Path,
@@ -4636,6 +4936,117 @@ pub(crate) fn fill_canvas(frame: &mut [u8], r: u8, g: u8, b: u8) {
     }
 }
 
+/// Per-frame LUT grid cache (Sprint 11 grade, CAP-002/T003): one
+/// parsed grid per distinct `src`, loaded fresh on every frame. The
+/// freshness is the point — like the image-fill vanish check, the
+/// file is statted on every frame, so a source deleted mid-render
+/// refuses here with its path named and no partial MP4, instead of
+/// painting stale grids.
+pub(crate) struct LutFrameCache {
+    tables: HashMap<String, LutTable>,
+}
+
+impl LutFrameCache {
+    pub(crate) fn new() -> Self {
+        Self {
+            tables: HashMap::new(),
+        }
+    }
+
+    /// Resolve one look's LUT for drawing: clones the grade with its
+    /// grid materialized from disk. A look without a file (or with a
+    /// zero amount) resolves untouched; a vanished, unreadable, or
+    /// unparsable file refuses naming the path, like the check-time
+    /// refusals but raised mid-render with no partial MP4.
+    pub(crate) fn grade(
+        &mut self,
+        folder: &Path,
+        grade: &ResolvedGrade,
+    ) -> Result<ResolvedGrade, String> {
+        let (Some(src), amount) = (grade.lut.src.as_deref(), grade.lut.amount) else {
+            return Ok(grade.clone());
+        };
+        if amount == 0.0 {
+            return Ok(grade.clone());
+        }
+        // The vanish check stats the file on every frame (even a
+        // cached one), exactly like the image-fill path: a source
+        // deleted mid-render refuses here instead of painting the
+        // stale cached grid.
+        let abs = folder.join(src);
+        if !abs.is_file() {
+            self.tables.remove(src);
+            return Err(format!(
+                "render refused: lut source {src:?} vanished before its frame could draw; no MP4 was written"
+            ));
+        }
+        if !self.tables.contains_key(src) {
+            let bytes = std::fs::read(&abs).map_err(|e| {
+                format!("render refused: lut source {src:?} cannot be read: {e}; no MP4 was written")
+            })?;
+            let text = String::from_utf8(bytes).map_err(|_| {
+                format!(
+                    "render refused: lut source {src:?} is not UTF-8 text; no MP4 was written"
+                )
+            })?;
+            let table = notation::model::parse_cube(&text).map_err(|problem| {
+                format!("render refused: lut source {src:?} is unusable: {problem}; no MP4 was written")
+            })?;
+            self.tables.insert(src.to_string(), table);
+        }
+        let mut out = grade.clone();
+        out.lut.grid = self.tables.get(src).cloned();
+        Ok(out)
+    }
+}
+
+/// Fill an RGB24 canvas with the graded background (Sprint 11 grade,
+/// CAP-001/T001+T002): the composition-wide grade alone. An empty
+/// grade keeps the authored color bit-exact; a position-independent
+/// grade fills flat through the position-independent chain (LUT
+/// included once the resolve step loads its grid); a spatial grade
+/// (vignette or grain) paints per pixel so corners and grain land
+/// where the frame is. Both backends share this, so CPU and GPU
+/// backgrounds agree byte-exactly.
+pub(crate) fn fill_graded_background(
+    frame: &mut [u8],
+    cw: u32,
+    chh: u32,
+    bg: notation::model::Rgb,
+    grade: &ResolvedGrade,
+) {
+    if grade.is_empty() {
+        fill_canvas(frame, bg.r, bg.g, bg.b);
+        return;
+    }
+    if !grade.is_spatial() {
+        let (r, g, b) = grade.apply(bg.r as f64, bg.g as f64, bg.b as f64);
+        fill_canvas(frame, r.round() as u8, g.round() as u8, b.round() as u8);
+        return;
+    }
+    let (w, h) = (cw as f64, chh as f64);
+    for j in 0..chh {
+        for i in 0..cw {
+            let o = ((j as usize * cw as usize) + i as usize) * 3;
+            if o + 2 >= frame.len() {
+                continue;
+            }
+            let (r, g, b) = grade.apply_at(
+                bg.r as f64,
+                bg.g as f64,
+                bg.b as f64,
+                i as f64,
+                j as f64,
+                w,
+                h,
+            );
+            frame[o] = r.round() as u8;
+            frame[o + 1] = g.round() as u8;
+            frame[o + 2] = b.round() as u8;
+        }
+    }
+}
+
 /// Draw one frame description into `frame`. The description is the only
 /// composition input: visibility, paint order, and evaluated motion are
 /// already resolved in it, so the same frame number always draws the
@@ -5126,6 +5537,10 @@ pub(crate) fn draw_box_advanced(
     b: &crate::frame::ResolvedBox,
     images: &[DecodedImage],
     folder: &Path,
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) -> Result<(), String> {
     if b.opacity <= 0.0 || b.width <= 0.0 || b.height <= 0.0 {
         return Ok(());
@@ -5146,6 +5561,11 @@ pub(crate) fn draw_box_advanced(
     if blur_on(b.blur) {
         pm.blur(b.blur);
     }
+    // The look grades the layer's own pixels, then its effects
+    // (Sprint 11 grade T001, effects T004).
+    crate::blur::apply_grade_to_premult(&mut pm, grade);
+    crate::effects::apply_effects_to_premult(&mut pm, effects);
+    crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
     let s = b.scale;
     let card = (b.x, b.y, b.x + b.width * s, b.y + b.height * s);
     let anchor = ((card.0 + card.2) / 2.0, (card.1 + card.3) / 2.0);
@@ -5180,6 +5600,10 @@ pub(crate) fn draw_image_advanced(
     chh: u32,
     im: &crate::frame::ResolvedImage,
     decoded: &DecodedImage,
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) {
     let mut layer = vec![0u8; cw as usize * chh as usize * 4];
     let Some((dx, dy, dw, dh, tx0, ty0, tx1, ty1)) =
@@ -5191,6 +5615,11 @@ pub(crate) fn draw_image_advanced(
     if blur_on(im.blur) {
         pm.blur(im.blur);
     }
+    // The look grades the layer's own pixels, then its effects
+    // (Sprint 11 grade T001, effects T004).
+    crate::blur::apply_grade_to_premult(&mut pm, grade);
+    crate::effects::apply_effects_to_premult(&mut pm, effects);
+    crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
     let card = (tx0, ty0, tx1, ty1);
     let anchor = (dx + dw / 2.0, dy + dh / 2.0);
     let turn = item_turn(im.rotate_x, im.rotate_y, &im.turn, card);
@@ -5229,6 +5658,10 @@ pub(crate) fn draw_video_advanced(
     sw: u32,
     sh: u32,
     turn: Option<Turn>,
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) {
     if v.opacity <= 0.0 {
         return;
@@ -5284,6 +5717,11 @@ pub(crate) fn draw_video_advanced(
     if blur_on(v.blur) {
         pm.blur(v.blur);
     }
+    // The look grades the layer's own pixels, then its effects
+    // (Sprint 11 grade T001, effects T004).
+    crate::blur::apply_grade_to_premult(&mut pm, grade);
+    crate::effects::apply_effects_to_premult(&mut pm, effects);
+    crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
     let card = (dx, dy, dx + dw, dy + dh);
     let anchor = ((card.0 + card.2) / 2.0, (card.1 + card.3) / 2.0);
     let rotated = v.rotation != 0.0 && v.rotation.is_finite();
@@ -5318,6 +5756,10 @@ pub(crate) fn draw_text_advanced(
     tc: &crate::frame::ResolvedText,
     turn: Option<Turn>,
     card: (f64, f64, f64, f64),
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) -> Result<(), String> {
     if tc.scale <= 0.0 || !tc.scale.is_finite() || tc.opacity <= 0.0 {
         return Ok(());
@@ -5338,6 +5780,11 @@ pub(crate) fn draw_text_advanced(
     if blur_on(tc.blur) {
         pm.blur(tc.blur);
     }
+    // The look grades the layer's own pixels, then its effects
+    // (Sprint 11 grade T001, effects T004).
+    crate::blur::apply_grade_to_premult(&mut pm, grade);
+    crate::effects::apply_effects_to_premult(&mut pm, effects);
+    crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
     let anchor = (tc.x, tc.y);
     let rotated = tc.rotation != 0.0 && tc.rotation.is_finite();
     match (turn, rotated) {
@@ -5372,11 +5819,20 @@ pub(crate) fn draw_bitmap_advanced(
     tc: &crate::frame::ResolvedText,
     turn: Option<Turn>,
     card: (f64, f64, f64, f64),
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) {
     let mut pm = Premult::from_layer(layer, cw as usize, chh as usize);
     if blur_on(tc.blur) {
         pm.blur(tc.blur);
     }
+    // The look grades the layer's own pixels, then its effects
+    // (Sprint 11 grade T001, effects T004).
+    crate::blur::apply_grade_to_premult(&mut pm, grade);
+    crate::effects::apply_effects_to_premult(&mut pm, effects);
+    crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
     let anchor = (tc.x, tc.y);
     let rotated = tc.rotation != 0.0 && tc.rotation.is_finite();
     match (turn, rotated) {
@@ -5409,18 +5865,31 @@ pub(crate) fn draw_description(
     folder: &Path,
     frame: &mut [u8],
 ) -> Result<(), String> {
-    // Background fill.
-    fill_canvas(
+    // LUT grids resolve once per frame from disk (Sprint 11 grade,
+    // CAP-002/T003): the freshness is the mid-render vanish check.
+    let mut luts = LutFrameCache::new();
+    // Background fill, carrying the composition-wide grade alone
+    // (Sprint 11 grade, T001+T002). Empty and position-independent
+    // grades fill flat and bit-exact; spatial grades (vignette, grain)
+    // paint per pixel.
+    let comp_grade = luts.grade(folder, &desc.composition_grade)?;
+    fill_graded_background(
         frame,
-        desc.background.r,
-        desc.background.g,
-        desc.background.b,
+        desc.width,
+        desc.height,
+        desc.background,
+        &comp_grade,
     );
     let cw = desc.width;
     let chh = desc.height;
     for item in &desc.items {
         match item {
             FrameItem::Video(v) => {
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(v.doc))?;
+                let effects = desc.effects_for(v.doc);
+                let vfx = desc.vfx_for(v.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
                 let vi = videos
                     .iter()
                     .position(|p| p.clip_idx == v.doc)
@@ -5455,8 +5924,21 @@ pub(crate) fn draw_description(
                 let card = blit_dest(cw, chh, range.width, range.height, v.fit, v.scale, v.x, v.y)
                     .map(|(dx, dy, dw, dh)| (dx, dy, dx + dw, dy + dh));
                 let turn = card.and_then(|c| item_turn(v.rotate_x, v.rotate_y, &v.turn, c));
-                if blur_on(v.blur) || turn.is_some() {
-                    draw_video_advanced(frame, cw, chh, v, pic, range.width, range.height, turn);
+                if blur_on(v.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                    draw_video_advanced(
+                        frame,
+                        cw,
+                        chh,
+                        v,
+                        pic,
+                        range.width,
+                        range.height,
+                        turn,
+                        &grade,
+                        effects,
+                        vfx,
+                        &maps,
+                    );
                 } else {
                     blit_fit(
                         frame,
@@ -5475,6 +5957,11 @@ pub(crate) fn draw_description(
                 }
             }
             FrameItem::Text(tc) => {
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(tc.doc))?;
+                let effects = desc.effects_for(tc.doc);
+                let vfx = desc.vfx_for(tc.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
                 if tc.value.is_empty() && !tc.has_spans {
                     // A typewriter reveal at progress 0 shows no pieces:
                     // nothing to draw at this instant. A value-less span
@@ -5499,8 +5986,10 @@ pub(crate) fn draw_description(
                             tc.y + block.height as f64 * tc.scale,
                         );
                         let turn = item_turn(tc.rotate_x, tc.rotate_y, &tc.turn, card);
-                        if blur_on(tc.blur) || turn.is_some() {
-                            draw_text_advanced(frame, cw, chh, raster, block, tc, turn, card)?;
+                        if blur_on(tc.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                            draw_text_advanced(
+                                frame, cw, chh, raster, block, tc, turn, card, &grade, effects, vfx, &maps,
+                            )?;
                         } else {
                             draw_text_block(frame, cw, chh, raster, block, tc)?;
                         }
@@ -5510,7 +5999,7 @@ pub(crate) fn draw_description(
                         // probe runs origin-free, and only an active
                         // blur or turn pays for the ink-box card.
                         let probe = turn_probe(tc.rotate_x, tc.rotate_y, tc.turn.perspective);
-                        if !(blur_on(tc.blur) || probe.is_some()) {
+                        if !(blur_on(tc.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty()) {
                             draw_bitmap_text_item(frame, cw, chh, tc);
                         } else if tc.scale <= 0.0 || !tc.scale.is_finite() || tc.opacity <= 0.0 {
                             // Nothing draws, exactly like the legacy path.
@@ -5530,7 +6019,9 @@ pub(crate) fn draw_description(
                                     let card =
                                         (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
                                     let turn = item_turn(tc.rotate_x, tc.rotate_y, &tc.turn, card);
-                                    draw_bitmap_advanced(frame, cw, chh, &layer, tc, turn, card);
+                                    draw_bitmap_advanced(
+                                        frame, cw, chh, &layer, tc, turn, card, &grade, effects, vfx, &maps,
+                                    );
                                 }
                             }
                         }
@@ -5544,18 +6035,25 @@ pub(crate) fn draw_description(
                 }
             }
             FrameItem::Box(b) => {
+                // Inward-out look for this box (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(b.doc))?;
+                let effects = desc.effects_for(b.doc);
+                let vfx = desc.vfx_for(b.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
                 // Sprint 8 look (T004): any paint-stack feature draws
                 // through the paint stack (backdrop, shadow, blend,
                 // mask) in one layout-then-paint pass. Sprint 7 motion
                 // (T005/T006): blurred or turned boxes draw through the
                 // layer path; everything else draws exactly as before.
+                // A graded box always takes a layer path so the look
+                // grades its own pixels before compositing.
                 // Sprint 8 fills resolve through the same image list
                 // with their vanish check.
                 let probe = turn_probe(b.rotate_x, b.rotate_y, b.turn.perspective);
                 if b.paint_stack_active() {
-                    crate::paint::draw_box_paint(frame, cw, chh, b, images, folder)?;
-                } else if blur_on(b.blur) || probe.is_some() {
-                    draw_box_advanced(frame, cw, chh, b, images, folder)?;
+                    crate::paint::draw_box_paint(frame, cw, chh, b, images, folder, &grade, effects, vfx, &maps)?;
+                } else if blur_on(b.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                    draw_box_advanced(frame, cw, chh, b, images, folder, &grade, effects, vfx, &maps)?;
                 } else {
                     draw_box(frame, cw, chh, b, images, folder)?;
                 }
@@ -5565,9 +6063,19 @@ pub(crate) fn draw_description(
             // positioned stroke above it, then shadow, blend, and
             // mask like boxes.
             FrameItem::Path(q) => {
-                crate::path_paint::draw_path(frame, cw, chh, q, paths)?;
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(q.doc))?;
+                let effects = desc.effects_for(q.doc);
+                let vfx = desc.vfx_for(q.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
+                crate::path_paint::draw_path(frame, cw, chh, q, paths, &grade, effects, vfx, &maps)?;
             }
             FrameItem::Image(im) => {
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(im.doc))?;
+                let effects = desc.effects_for(im.doc);
+                let vfx = desc.vfx_for(im.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
                 let decoded = images
                     .iter()
                     .find(|d| d.path.ends_with(&im.path))
@@ -5579,10 +6087,11 @@ pub(crate) fn draw_description(
                     })?;
                 // Sprint 7 motion (T005/T006): blurred or turned images
                 // draw through the layer path; everything else draws
-                // exactly as before.
+                // exactly as before. A graded image takes the layer
+                // path so the look grades its own pixels.
                 let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
-                if blur_on(im.blur) || probe.is_some() {
-                    draw_image_advanced(frame, cw, chh, im, decoded);
+                if blur_on(im.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                    draw_image_advanced(frame, cw, chh, im, decoded, &grade, effects, vfx, &maps);
                 } else {
                     draw_image(frame, cw, chh, im, decoded);
                 }
@@ -7511,11 +8020,11 @@ mod tests {
         let (x0, y0, x1, y1) = layer_ink_bbox(&layer, 64, 32).expect("fallback ink draws");
         let card = (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
         let mut frame = vec![0u8; 64 * 32 * 3];
-        draw_bitmap_advanced(&mut frame, 64, 32, &layer, &tc, None, card);
+        draw_bitmap_advanced(&mut frame, 64, 32, &layer, &tc, None, card, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty());
         let (_, _, _, n) = ink_extent(&frame, 64);
         assert!(n > 10, "blurred ink draws, got {n}");
         let mut again = vec![0u8; 64 * 32 * 3];
-        draw_bitmap_advanced(&mut again, 64, 32, &layer, &tc, None, card);
+        draw_bitmap_advanced(&mut again, 64, 32, &layer, &tc, None, card, &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty());
         assert_eq!(frame, again, "blurred re-render is byte-identical");
         let mut sharp = vec![0u8; 64 * 32 * 3];
         draw_bitmap_text_item(&mut sharp, 64, 32, &test_text("HI", 1.0, 0.0, 1.0));
@@ -7587,6 +8096,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         }
     }
 
@@ -7894,6 +8406,9 @@ mod tests {
                     column: 1,
                     turn: notation::model::Turn3D::flat(),
                     filter_blur: 0.0,
+                    grade: notation::model::Grade::default(),
+                    effects: Vec::new(),
+                    vfx: Default::default(),
                 },
                 BoxClip {
                     id: None,
@@ -7926,6 +8441,9 @@ mod tests {
                     column: 1,
                     turn: notation::model::Turn3D::flat(),
                     filter_blur: 0.0,
+                    grade: notation::model::Grade::default(),
+                    effects: Vec::new(),
+                    vfx: Default::default(),
                 },
             ];
             if !order_first {
@@ -7953,6 +8471,10 @@ mod tests {
                 autoplay: false,
                 normalize: Default::default(),
                 normalize_loc: None,
+                grade: notation::model::Grade::default(),
+                lane_grades: Vec::new(),
+                transitions: Vec::new(),
+                motion_blur: None,
             }
         }
         fn draw(comp: &Composition) -> Vec<u8> {
@@ -7989,6 +8511,1259 @@ mod tests {
         assert_ne!(c, d, "ties must follow document order");
         assert_eq!((c[o], c[o + 1], c[o + 2]), (0, 0, 255));
         assert_eq!((d[o], d[o + 1], d[o + 2]), (255, 0, 0));
+    }
+
+    // --- Sprint 11 grade (T001): preset and adjust pixels ---
+
+    fn grade_box(
+        fill: (u8, u8, u8),
+        track: notation::model::TrackKind,
+        grade: notation::model::Grade,
+    ) -> notation::model::BoxClip {
+        use notation::model as m;
+        m::BoxClip {
+            id: None,
+            track,
+            label: None,
+            start_after: None,
+            hidden: false,
+            start: 0.0,
+            duration: 1.0,
+            x: 8.0,
+            y: 8.0,
+            width: 16.0,
+            height: 16.0,
+            fill: Rgb {
+                r: fill.0,
+                g: fill.1,
+                b: fill.2,
+            },
+            fill_paint: m::FillPaint::Solid,
+            radius: 0.0,
+            border_width: 0.0,
+            border_color: Rgb { r: 0, g: 0, b: 0 },
+            stroke_position: m::StrokePosition::Inside,
+            box_shadow: None,
+            blend_mode: m::BlendMode::Normal,
+            backdrop_blur: 0.0,
+            backdrop_brightness: 1.0,
+            overflow: m::Overflow::Visible,
+            mask: None,
+            clip_path: None,
+            opacity: 1.0,
+            order: 0,
+            line: 1,
+            column: 1,
+            turn: m::Turn3D::flat(),
+            filter_blur: 0.0,
+            grade,
+            effects: Vec::new(),
+            vfx: Default::default(),
+        }
+    }
+
+    fn grade_comp(
+        bg: (u8, u8, u8),
+        boxes: Vec<notation::model::BoxClip>,
+        comp_grade: notation::model::Grade,
+        lanes: Vec<notation::model::LaneGrade>,
+    ) -> Composition {
+        Composition {
+            id: None,
+            canvas: None,
+            name: "t".to_string(),
+            width: 32,
+            height: 32,
+            duration: 1.0,
+            fps: notation::model::Fps::from_int(30),
+            background: Rgb {
+                r: bg.0,
+                g: bg.1,
+                b: bg.2,
+            },
+            version: 1,
+            clips: boxes.into_iter().map(notation::model::Clip::Box).collect(),
+            fonts: Vec::new(),
+            tweens: Vec::new(),
+            sets: Vec::new(),
+            keys: Vec::new(),
+            marks: Vec::new(),
+            inputs: Vec::new(),
+            variables: Vec::new(),
+            replicates: Vec::new(),
+            autoplay: false,
+            normalize: Default::default(),
+            normalize_loc: None,
+            grade: comp_grade,
+            lane_grades: lanes,
+            transitions: Vec::new(),
+            motion_blur: None,
+        }
+    }
+
+    fn draw32(comp: &Composition) -> Vec<u8> {
+        draw32_in(comp, std::path::Path::new("."))
+    }
+
+    fn draw32_in(comp: &Composition, folder: &std::path::Path) -> Vec<u8> {
+        use crate::frame::describe;
+        let motions = plan_motions(comp, 30);
+        let desc = describe(comp, &motions, 0);
+        let mut raster = std::collections::HashMap::new();
+        let mut frame = vec![0u8; 32 * 32 * 3];
+        draw_description(
+            &desc,
+            &mut raster,
+            &[],
+            &DynLayouts::default(),
+            false,
+            &[],
+            &[],
+            &[],
+            &crate::path_paint::PathCache::new(),
+            folder,
+            &mut frame,
+        )
+        .unwrap();
+        frame
+    }
+
+    fn px(frame: &[u8], x: usize, y: usize) -> (u8, u8, u8) {
+        let o = (y * 32 + x) * 3;
+        (frame[o], frame[o + 1], frame[o + 2])
+    }
+
+    fn empty_grade() -> notation::model::Grade {
+        notation::model::Grade::default()
+    }
+
+    fn preset_grade(preset: notation::model::GradePreset) -> notation::model::Grade {
+        notation::model::Grade {
+            preset: Some(preset),
+            ..empty_grade()
+        }
+    }
+
+    #[test]
+    fn grade_presets_render_their_looks() {
+        use notation::model::GradePreset;
+        // A colored box so every preset has room to move.
+        let plain = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                empty_grade(),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        assert_eq!(px(&plain, 16, 16), (200, 100, 50));
+        // `none` renders exactly the authored pixels.
+        let none = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                preset_grade(GradePreset::None),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        assert_eq!(none, plain);
+        // Every other preset visibly moves the pixels.
+        for preset in [
+            GradePreset::Filmic,
+            GradePreset::Noir,
+            GradePreset::TealOrange,
+            GradePreset::Pastel,
+            GradePreset::Bleach,
+        ] {
+            let graded = draw32(&grade_comp(
+                (0, 0, 0),
+                vec![grade_box(
+                    (200, 100, 50),
+                    notation::model::TrackKind::Graphics,
+                    preset_grade(preset),
+                )],
+                empty_grade(),
+                Vec::new(),
+            ));
+            assert_ne!(graded, plain, "{preset:?} must move pixels");
+        }
+        // Noir is gray.
+        let noir = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                preset_grade(GradePreset::Noir),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, g, b) = px(&noir, 16, 16);
+        assert_eq!((r, g, b), (r, r, r), "noir renders gray");
+        // Teal-orange cools these shadows: red down, blue up.
+        let to = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                preset_grade(GradePreset::TealOrange),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, _, b) = px(&to, 16, 16);
+        assert!(r < 200 && b > 50, "teal-orange cools shadows: {r},{b}");
+        // Pastel lifts a dark box.
+        let pastel = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (20, 20, 20),
+                notation::model::TrackKind::Graphics,
+                preset_grade(GradePreset::Pastel),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, _, _) = px(&pastel, 16, 16);
+        assert!(r > 20, "pastel lifts shadows: {r}");
+        // Bleach brightens the mean.
+        let bleach = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                preset_grade(GradePreset::Bleach),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, g, b) = px(&bleach, 16, 16);
+        assert!(
+            (r as u32 + g as u32 + b as u32) > 350,
+            "bleach brightens: {r},{g},{b}"
+        );
+    }
+
+    #[test]
+    fn grade_adjusts_shift_pixels_in_their_direction() {
+        use notation::model::TrackKind;
+        let graded = |grade: notation::model::Grade| {
+            draw32(&grade_comp(
+                (0, 0, 0),
+                vec![grade_box((128, 128, 128), TrackKind::Graphics, grade)],
+                empty_grade(),
+                Vec::new(),
+            ))
+        };
+        let one = |key: &str, v: f64| {
+            let mut g = empty_grade();
+            match key {
+                "exposure" => g.exposure = Some(v),
+                "contrast" => g.contrast = Some(v),
+                "saturation" => g.saturation = Some(v),
+                "temperature" => g.temperature = Some(v),
+                "tint" => g.tint = Some(v),
+                _ => unreachable!(),
+            }
+            px(&graded(g), 16, 16)
+        };
+        assert_eq!(one("exposure", 1.0), (255, 255, 255));
+        assert_eq!(one("exposure", -1.0), (64, 64, 64));
+        // Contrast spreads brights up and darks down around middle gray.
+        let (r, _, _) = one("contrast", 0.5);
+        assert_eq!((r, r, r), (128, 128, 128), "mid gray holds under contrast");
+        // Saturation at -1 grays a colored box.
+        let sat = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                TrackKind::Graphics,
+                {
+                    let mut g = empty_grade();
+                    g.saturation = Some(-1.0);
+                    g
+                },
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, g, b) = px(&sat, 16, 16);
+        assert!((r as i16 - g as i16).abs() <= 1 && (g as i16 - b as i16).abs() <= 1);
+        // Temperature warms, tint magentas.
+        let (r, g, b) = one("temperature", 1.0);
+        assert!(r > 128 && b < 128 && g == 128, "{r},{g},{b}");
+        let (r, g, b) = one("tint", 1.0);
+        assert!(r > 128 && b > 128 && g < 128, "{r},{g},{b}");
+    }
+
+    #[test]
+    fn grade_levels_compose_with_clip_winning() {
+        use notation::model::{LaneGrade, TrackKind};
+        // Composition +1 EV with a clip -1 EV resolves to the clip's
+        // -1 EV (override), not the sum and not the composition value.
+        let comp = grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (128, 128, 128),
+                TrackKind::Video,
+                {
+                    let mut g = empty_grade();
+                    g.exposure = Some(-1.0);
+                    g
+                },
+            )],
+            {
+                let mut g = empty_grade();
+                g.exposure = Some(1.0);
+                g
+            },
+            Vec::new(),
+        );
+        assert_eq!(px(&draw32(&comp), 16, 16), (64, 64, 64));
+        // A lane grade applies to every clip on that track and no other:
+        // the video-track box doubles, the graphics-track box holds.
+        let mut video_box = grade_box((64, 64, 64), TrackKind::Video, empty_grade());
+        video_box.x = 2.0;
+        video_box.width = 12.0;
+        video_box.order = 0;
+        let mut gfx_box = grade_box((64, 64, 64), TrackKind::Graphics, empty_grade());
+        gfx_box.x = 18.0;
+        gfx_box.width = 12.0;
+        gfx_box.order = 1;
+        let comp = grade_comp(
+            (0, 0, 0),
+            vec![video_box, gfx_box],
+            empty_grade(),
+            vec![LaneGrade {
+                track: TrackKind::Video,
+                grade: {
+                    let mut g = empty_grade();
+                    g.exposure = Some(1.0);
+                    g
+                },
+            }],
+        );
+        let frame = draw32(&comp);
+        assert_eq!(px(&frame, 8, 16), (128, 128, 128));
+        assert_eq!(px(&frame, 24, 16), (64, 64, 64));
+        // A missing piece at the clip level inherits the composition
+        // value instead of zeroing it: composition saturation -1 with
+        // a clip exposure-only tweak still renders gray.
+        let comp = grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                TrackKind::Graphics,
+                {
+                    let mut g = empty_grade();
+                    g.exposure = Some(0.5);
+                    g
+                },
+            )],
+            {
+                let mut g = empty_grade();
+                g.saturation = Some(-1.0);
+                g
+            },
+            Vec::new(),
+        );
+        let (r, g, b) = px(&draw32(&comp), 16, 16);
+        assert!((r as i16 - g as i16).abs() <= 2 && (g as i16 - b as i16).abs() <= 2);
+    }
+
+    #[test]
+    fn grade_background_carries_the_composition_look() {
+        // A gray background warms under a composition temperature.
+        let comp = grade_comp(
+            (128, 128, 128),
+            Vec::new(),
+            {
+                let mut g = empty_grade();
+                g.temperature = Some(1.0);
+                g
+            },
+            Vec::new(),
+        );
+        let (r, g, b) = px(&draw32(&comp), 2, 2);
+        assert!(r > 128 && b < 128 && g == 128, "{r},{g},{b}");
+        // An ungraded background stays bit-exact.
+        let plain = grade_comp((10, 20, 30), Vec::new(), empty_grade(), Vec::new());
+        assert_eq!(px(&draw32(&plain), 2, 2), (10, 20, 30));
+    }
+
+    #[test]
+    fn graded_renders_are_byte_identical() {
+        // A graded frame re-renders byte-identically (no randomness in
+        // the look pipeline).
+        let comp = grade_comp(
+            (10, 10, 10),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                {
+                    let mut g = preset_grade(notation::model::GradePreset::Filmic);
+                    g.exposure = Some(0.5);
+                    g
+                },
+            )],
+            {
+                let mut g = empty_grade();
+                g.temperature = Some(-0.5);
+                g
+            },
+            Vec::new(),
+        );
+        assert_eq!(draw32(&comp), draw32(&comp));
+    }
+
+    // --- Sprint 11 grade detail stages (T002) ---
+
+    #[test]
+    fn grade_wheel_bands_render_their_zones() {
+        use notation::model::TrackKind;
+        let graded = |fill: (u8, u8, u8), band: &str, v: f64| {
+            let mut g = empty_grade();
+            match band {
+                "shadows" => g.wheel.shadows = Some(v),
+                "midtones" => g.wheel.midtones = Some(v),
+                "highlights" => g.wheel.highlights = Some(v),
+                _ => unreachable!(),
+            }
+            draw32(&grade_comp(
+                (0, 0, 0),
+                vec![grade_box(fill, TrackKind::Graphics, g)],
+                empty_grade(),
+                Vec::new(),
+            ))
+        };
+        // Shadows lift a dark box far, highlights leave it alone.
+        let (r, _, _) = px(&graded((40, 40, 40), "shadows", 0.6), 16, 16);
+        assert!((100..=125).contains(&r), "shadows lift dark: {r}");
+        let (r, _, _) = px(&graded((40, 40, 40), "highlights", 0.6), 16, 16);
+        assert!((39..=41).contains(&r), "highlights hold dark: {r}");
+        // Highlights clip a bright box to white, shadows leave it alone.
+        let (r, _, _) = px(&graded((220, 220, 220), "highlights", 0.6), 16, 16);
+        assert_eq!(r, 255, "highlights clip bright: {r}");
+        let (r, _, _) = px(&graded((220, 220, 220), "shadows", 0.6), 16, 16);
+        assert!((219..=221).contains(&r), "shadows hold bright: {r}");
+        // Midtones lift middle gray.
+        let (r, _, _) = px(&graded((128, 128, 128), "midtones", 0.4), 16, 16);
+        assert!((226..=234).contains(&r), "midtones lift mid: {r}");
+    }
+
+    #[test]
+    fn grade_curve_renders_its_remap() {
+        // Red dips through (0.5, 0) while green and blue hold.
+        let mut g = empty_grade();
+        g.curve.red = Some(vec![(0.0, 0.0), (0.5, 0.0), (1.0, 1.0)]);
+        let frame = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                notation::model::TrackKind::Graphics,
+                g,
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, gg, b) = px(&frame, 16, 16);
+        assert!((140..=150).contains(&r), "red dips: {r}");
+        assert!((99..=101).contains(&gg), "green holds: {gg}");
+        assert!((49..=51).contains(&b), "blue holds: {b}");
+    }
+
+    #[test]
+    fn grade_hsl_renders_only_its_selection() {
+        use notation::model::TrackKind;
+        // One red box and one green box under the same red-window look.
+        let mut red_box = grade_box((200, 60, 60), TrackKind::Graphics, {
+            let mut g = empty_grade();
+            g.hsl.hue_min = Some(330.0);
+            g.hsl.hue_max = Some(30.0);
+            g.hsl.saturation = Some(0.2);
+            g.hsl.lightness = Some(0.3);
+            g
+        });
+        red_box.x = 2.0;
+        red_box.width = 12.0;
+        red_box.order = 0;
+        let mut green_box = grade_box((60, 200, 60), TrackKind::Graphics, {
+            let mut g = empty_grade();
+            g.hsl.hue_min = Some(330.0);
+            g.hsl.hue_max = Some(30.0);
+            g.hsl.saturation = Some(0.2);
+            g.hsl.lightness = Some(0.3);
+            g
+        });
+        green_box.x = 18.0;
+        green_box.width = 12.0;
+        green_box.order = 1;
+        let frame = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![red_box, green_box],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let (r, gg, b) = px(&frame, 8, 16);
+        assert!(r > 230 && gg > 130 && b > 130, "red lifts pink: {r},{gg},{b}");
+        let (r, gg, b) = px(&frame, 24, 16);
+        assert!((59..=61).contains(&r), "green red holds: {r}");
+        assert!((199..=201).contains(&gg), "green holds: {gg}");
+        assert!((59..=61).contains(&b), "green blue holds: {b}");
+    }
+
+    #[test]
+    fn grade_vignette_darkens_frame_corners_on_the_background() {
+        // A composition vignette over a flat background: corners fall,
+        // the center holds exactly.
+        let mut comp_grade = empty_grade();
+        comp_grade.vignette.amount = Some(1.0);
+        comp_grade.vignette.softness = Some(0.5);
+        let frame = draw32(&grade_comp(
+            (150, 150, 150),
+            Vec::new(),
+            comp_grade,
+            Vec::new(),
+        ));
+        let (r, _, _) = px(&frame, 0, 0);
+        assert!(r < 20, "corner falls: {r}");
+        assert_eq!(px(&frame, 16, 16), (150, 150, 150));
+        // A position-independent composition grade still fills flat.
+        let mut flat_grade = empty_grade();
+        flat_grade.temperature = Some(1.0);
+        let frame = draw32(&grade_comp((128, 128, 128), Vec::new(), flat_grade, Vec::new()));
+        assert_eq!(px(&frame, 0, 0), px(&frame, 16, 16));
+    }
+
+    #[test]
+    fn grade_grain_renders_and_rerenders_identically() {
+        use notation::model::TrackKind;
+        let grained = |seed: i64| {
+            let mut g = empty_grade();
+            g.grain.amount = Some(1.0);
+            g.grain.size = Some(1);
+            g.grain.seed = Some(seed);
+            draw32(&grade_comp(
+                (0, 0, 0),
+                vec![grade_box((128, 128, 128), TrackKind::Graphics, g)],
+                empty_grade(),
+                Vec::new(),
+            ))
+        };
+        let plain = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (128, 128, 128),
+                TrackKind::Graphics,
+                empty_grade(),
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let a = grained(7);
+        // Grain shows somewhere inside the box.
+        let shows = (8..24).any(|y| {
+            (8..24).any(|x| {
+                let (r, _, _) = px(&a, x, y);
+                let (pr, _, _) = px(&plain, x, y);
+                (r as i16 - pr as i16).abs() > 1
+            })
+        });
+        assert!(shows, "grain must visibly move box pixels");
+        // The same seed re-renders byte-identically; another seed moves.
+        assert_eq!(a, grained(7));
+        assert_ne!(a, grained(8));
+    }
+
+    // --- Sprint 11 VFX chain (T005): stage pixels, purity, mattes ---
+
+    fn vfx_box(
+        fill: (u8, u8, u8),
+        vfx: notation::model::VfxChain,
+    ) -> notation::model::BoxClip {
+        let mut b = grade_box(fill, notation::model::TrackKind::Graphics, empty_grade());
+        b.vfx = vfx;
+        b
+    }
+
+    fn vfx_noise(amount: f64, seed: i64) -> notation::model::VfxChain {
+        notation::model::VfxChain {
+            noise: Some(notation::model::VfxNoise { amount, seed: Some(seed) }),
+            ..notation::model::VfxChain::empty()
+        }
+    }
+
+    #[test]
+    fn vfx_noise_on_box_moves_pixels_and_rerenders_identically() {
+        use notation::model::TrackKind;
+        let noised = |seed: i64| {
+            draw32(&grade_comp(
+                (0, 0, 0),
+                vec![vfx_box((200, 100, 50), vfx_noise(1.0, seed))],
+                empty_grade(),
+                Vec::new(),
+            ))
+        };
+        let plain = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box((200, 100, 50), TrackKind::Graphics, empty_grade())],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let a = noised(7);
+        // Noise shows somewhere inside the box.
+        let shows = (8..24).any(|y| {
+            (8..24).any(|x| {
+                let (r, _, _) = px(&a, x, y);
+                let (pr, _, _) = px(&plain, x, y);
+                (r as i16 - pr as i16).abs() > 1
+            })
+        });
+        assert!(shows, "VFX noise must visibly move box pixels");
+        // The same seed re-renders byte-identically; another seed moves.
+        assert_eq!(a, noised(7));
+        assert_ne!(a, noised(8));
+    }
+
+    #[test]
+    fn vfx_warp_moves_box_pixels() {
+        use notation::model::{TrackKind, VfxChain, VfxWarp};
+        let warped = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![vfx_box(
+                (200, 100, 50),
+                VfxChain {
+                    warp: Some(VfxWarp { amount: 1.0, grid: Some(4), strength: Some(6.0) }),
+                    ..VfxChain::empty()
+                },
+            )],
+            empty_grade(),
+            Vec::new(),
+        ));
+        let plain = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box((200, 100, 50), TrackKind::Graphics, empty_grade())],
+            empty_grade(),
+            Vec::new(),
+        ));
+        assert_ne!(warped, plain, "VFX warp must move box pixels");
+    }
+
+    #[test]
+    fn vfx_inert_chain_matches_chain_written_without_stage() {
+        // Disabling a stage renders pixel-identical to the chain
+        // written without it, through the full describe-and-draw path.
+        use notation::model::{TrackKind, VfxChain, VfxNoise, VfxWarp};
+        let full = VfxChain {
+            noise: Some(VfxNoise { amount: 1.0, seed: Some(7) }),
+            warp: Some(VfxWarp { amount: 1.0, grid: Some(4), strength: Some(3.0) }),
+            ..VfxChain::empty()
+        };
+        let draw = |vfx: VfxChain| {
+            draw32(&grade_comp(
+                (0, 0, 0),
+                vec![vfx_box((200, 100, 50), vfx)],
+                empty_grade(),
+                Vec::new(),
+            ))
+        };
+        let without_noise = VfxChain { noise: None, ..full.clone() };
+        let zeroed_noise = VfxChain {
+            noise: Some(VfxNoise { amount: 0.0, seed: Some(7) }),
+            ..full.clone()
+        };
+        assert_eq!(draw(zeroed_noise), draw(without_noise));
+        let without_warp = VfxChain { warp: None, ..full.clone() };
+        let zeroed_warp = VfxChain {
+            warp: Some(VfxWarp { amount: 1.0, grid: Some(4), strength: Some(0.0) }),
+            ..full.clone()
+        };
+        assert_eq!(draw(zeroed_warp), draw(without_warp));
+        // The empty chain matches no chain at all.
+        let plain = draw32(&grade_comp(
+            (0, 0, 0),
+            vec![grade_box((200, 100, 50), TrackKind::Graphics, empty_grade())],
+            empty_grade(),
+            Vec::new(),
+        ));
+        assert_eq!(draw(VfxChain::empty()), plain);
+    }
+
+    /// One 32x32 half-white, half-black matte as decoded bytes.
+    fn split_matte(folder: &std::path::Path, name: &str) -> DecodedImage {
+        let (w, h) = (32usize, 32usize);
+        let mut rgba = vec![0u8; w * h * 4];
+        for j in 0..h {
+            for i in 0..w {
+                let o = (j * w + i) * 4;
+                let v = if i < w / 2 { 255 } else { 0 };
+                rgba[o] = v;
+                rgba[o + 1] = v;
+                rgba[o + 2] = v;
+                rgba[o + 3] = 255;
+            }
+        }
+        // The resolve step stats the source: a marker file proves it
+        // exists, while the bytes ride in on the shared image list.
+        std::fs::write(folder.join(name), b"matte").expect("write matte marker");
+        DecodedImage {
+            path: folder.join(name),
+            width: w as u32,
+            height: h as u32,
+            rgba,
+            scaled: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn draw32_media(
+        comp: &Composition,
+        folder: &std::path::Path,
+        images: &[DecodedImage],
+    ) -> Vec<u8> {
+        use crate::frame::describe;
+        let motions = plan_motions(comp, 30);
+        let desc = describe(comp, &motions, 0);
+        let mut raster = std::collections::HashMap::new();
+        let mut frame = vec![0u8; 32 * 32 * 3];
+        draw_description(
+            &desc,
+            &mut raster,
+            &[],
+            &DynLayouts::default(),
+            false,
+            &[],
+            &[],
+            images,
+            &crate::path_paint::PathCache::new(),
+            folder,
+            &mut frame,
+        )
+        .unwrap();
+        frame
+    }
+
+    fn vfx_tmp(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "framesmith-render-vfx-{tag}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("vfx tmp dir");
+        dir
+    }
+
+    #[test]
+    fn vfx_luma_matte_cuts_to_the_matte() {
+        use notation::model::{VfxChain, VfxLumaMatte};
+        let dir = vfx_tmp("matte");
+        let matte = split_matte(&dir, "matte.png");
+        let frame = draw32_media(
+            &grade_comp(
+                (0, 0, 0),
+                vec![vfx_box(
+                    (200, 100, 50),
+                    VfxChain {
+                        luma_matte: Some(VfxLumaMatte {
+                            amount: 1.0,
+                            src: "matte.png".to_string(),
+                        }),
+                        ..VfxChain::empty()
+                    },
+                )],
+                empty_grade(),
+                Vec::new(),
+            ),
+            &dir,
+            std::slice::from_ref(&matte),
+        );
+        // The box spans x 8..24; the matte is white left of x=16.
+        let (r, g, b) = px(&frame, 10, 16);
+        assert!(
+            (r as i16 - 200).abs() <= 2 && (g as i16 - 100).abs() <= 2 && (b as i16 - 50).abs() <= 2,
+            "white matte keeps the box color, got {r},{g},{b}"
+        );
+        let (r, g, b) = px(&frame, 21, 16);
+        assert!(
+            r <= 2 && g <= 2 && b <= 2,
+            "black matte cuts to the background, got {r},{g},{b}"
+        );
+        // Re-rendering cuts identically.
+        let again = draw32_media(
+            &grade_comp(
+                (0, 0, 0),
+                vec![vfx_box(
+                    (200, 100, 50),
+                    VfxChain {
+                        luma_matte: Some(VfxLumaMatte {
+                            amount: 1.0,
+                            src: "matte.png".to_string(),
+                        }),
+                        ..VfxChain::empty()
+                    },
+                )],
+                empty_grade(),
+                Vec::new(),
+            ),
+            &dir,
+            std::slice::from_ref(&matte),
+        );
+        assert_eq!(frame, again);
+    }
+
+    #[test]
+    fn vfx_resolve_refuses_vanished_and_undecoded_sources() {
+        use notation::model::{VfxChain, VfxLumaMatte};
+        let dir = vfx_tmp("resolve");
+        let chain = VfxChain {
+            luma_matte: Some(VfxLumaMatte { amount: 1.0, src: "gone.png".to_string() }),
+            ..VfxChain::empty()
+        };
+        // No file on disk: the vanish refusal names the path.
+        let err = resolve_vfx_maps(&[], &dir, &chain).expect_err("vanished matte must refuse");
+        assert!(err.contains("gone.png"), "{err}");
+        assert!(err.contains("no MP4 was written"), "{err}");
+        // A marker file with no decoded entry: the decode refusal
+        // names the path instead of painting a guess.
+        std::fs::write(dir.join("gone.png"), b"matte").expect("write marker");
+        let err = resolve_vfx_maps(&[], &dir, &chain).expect_err("undecoded matte must refuse");
+        assert!(err.contains("gone.png"), "{err}");
+        // An inert stage resolves to none without touching disk.
+        let inert = VfxChain {
+            luma_matte: Some(VfxLumaMatte { amount: 0.0, src: "never.png".to_string() }),
+            ..VfxChain::empty()
+        };
+        let maps = resolve_vfx_maps(&[], &dir, &inert).expect("inert stage resolves");
+        assert!(maps.luma_matte.is_none());
+        assert!(maps.displacement.is_none());
+    }
+
+    // --- Sprint 11 LUT import (T003): `.cube` pixels, blends, vanish ---
+
+    /// One size-2 `.cube` swapping red and blue, written to `dir`.
+    fn write_swap_cube(dir: &std::path::Path) -> std::path::PathBuf {
+        let mut s = String::from("TITLE \"swap r and b\"\nLUT_3D_SIZE 2\n");
+        for b in 0..2 {
+            for g in 0..2 {
+                for r in 0..2 {
+                    s.push_str(&format!("{b} {g} {r}\n"));
+                }
+            }
+        }
+        let path = dir.join("swap.cube");
+        std::fs::write(&path, s).expect("write swap cube");
+        path
+    }
+
+    fn lut_tmp(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "framesmith-render-lut-{tag}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("lut tmp dir");
+        dir
+    }
+
+    fn lut_grade(src: &str, amount: f64) -> notation::model::Grade {
+        let mut g = empty_grade();
+        g.lut.src = Some(src.to_string());
+        g.lut.amount = Some(amount);
+        g
+    }
+
+    #[test]
+    fn grade_lut_shifts_pixels_at_full_amount() {
+        use notation::model::TrackKind;
+        let dir = lut_tmp("full");
+        write_swap_cube(&dir);
+        let frame = draw32_in(
+            &grade_comp(
+                (0, 0, 0),
+                vec![grade_box(
+                    (200, 100, 50),
+                    TrackKind::Graphics,
+                    lut_grade("swap.cube", 1.0),
+                )],
+                empty_grade(),
+                Vec::new(),
+            ),
+            &dir,
+        );
+        // Red and blue trade places through the grid (f32 layer path
+        // rounds within a couple of LSB).
+        let (r, g, b) = px(&frame, 16, 16);
+        assert!(
+            (r as i16 - 50).abs() <= 2 && (g as i16 - 100).abs() <= 2 && (b as i16 - 200).abs() <= 2,
+            "swapped box pixel, got {r},{g},{b}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn grade_lut_on_the_composition_grades_the_background() {
+        let dir = lut_tmp("bg");
+        write_swap_cube(&dir);
+        let frame = draw32_in(
+            &grade_comp(
+                (10, 20, 30),
+                Vec::new(),
+                lut_grade("swap.cube", 1.0),
+                Vec::new(),
+            ),
+            &dir,
+        );
+        // The flat background fill carries the loaded grid too.
+        let (r, g, b) = px(&frame, 4, 4);
+        assert!(
+            (r as i16 - 30).abs() <= 2 && (g as i16 - 20).abs() <= 2 && (b as i16 - 10).abs() <= 2,
+            "swapped background pixel, got {r},{g},{b}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn grade_lut_zero_amount_matches_no_lut_exactly() {
+        use notation::model::TrackKind;
+        let dir = lut_tmp("zero");
+        write_swap_cube(&dir);
+        let boxed = |grade: notation::model::Grade| {
+            grade_comp(
+                (0, 0, 0),
+                vec![grade_box((200, 100, 50), TrackKind::Graphics, grade)],
+                empty_grade(),
+                Vec::new(),
+            )
+        };
+        let plain = draw32_in(&boxed(empty_grade()), &dir);
+        let zero = draw32_in(&boxed(lut_grade("swap.cube", 0.0)), &dir);
+        assert_eq!(zero, plain, "amount 0 is pixel-identical to no LUT");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn grade_lut_half_amount_blends_halfway() {
+        use notation::model::TrackKind;
+        let dir = lut_tmp("half");
+        write_swap_cube(&dir);
+        let boxed = |grade: notation::model::Grade| {
+            draw32_in(
+                &grade_comp(
+                    (0, 0, 0),
+                    vec![grade_box((200, 100, 50), TrackKind::Graphics, grade)],
+                    empty_grade(),
+                    Vec::new(),
+                ),
+                &dir,
+            )
+        };
+        let none = boxed(empty_grade());
+        let full = boxed(lut_grade("swap.cube", 1.0));
+        let half = boxed(lut_grade("swap.cube", 0.5));
+        // The byte render rounds, so halfway holds within one LSB.
+        for o in (0..none.len()).step_by(3) {
+            for c in 0..3 {
+                let (a, b, h) = (none[o + c] as i16, full[o + c] as i16, half[o + c] as i16);
+                assert!(
+                    (h - (a + b) / 2).abs() <= 1,
+                    "half blend off at byte {o}+{c}: none={a} full={b} half={h}"
+                );
+            }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // --- Sprint 11 motion blur (T007): shutter integration ---
+
+    fn blur_tween() -> notation::model::TweenDecl {
+        // Box 0 slides right 112 canvas pixels over the 1s composition,
+        // linear: frame 15 sits at exactly x=56.
+        notation::model::TweenDecl {
+            target: 0,
+            property: "x".to_string(),
+            kind: notation::model::TweenKind::FromTo,
+            from: Some(0.0),
+            to: Some(112.0),
+            from_color: None,
+            to_color: None,
+            start: 0.0,
+            duration: 1.0,
+            ease: notation::model::EaseDecl::Linear,
+            stagger: 0.0,
+            stagger_from: notation::model::StaggerOrigin::Start,
+            stagger_grid: None,
+            repeat: 1,
+            yoyo: false,
+            repeat_delay: 0.0,
+            path: None,
+            path_to: None,
+            orient: false,
+            expr: None,
+            line: 1,
+            column: 1,
+        }
+    }
+
+    fn blur_comp(
+        tweens: Vec<notation::model::TweenDecl>,
+        blur: Option<notation::model::MotionBlur>,
+    ) -> Composition {
+        let mut boxed = grade_box((255, 255, 255), TrackKind::Video, empty_grade());
+        boxed.x = 0.0;
+        boxed.y = 24.0;
+        boxed.width = 16.0;
+        boxed.height = 16.0;
+        let mut comp = grade_comp((0, 0, 0), vec![boxed], empty_grade(), Vec::new());
+        comp.width = 128;
+        comp.height = 64;
+        comp.tweens = tweens;
+        comp.motion_blur = blur;
+        comp
+    }
+
+    fn motion_blur(
+        shutter: f64,
+        samples: u32,
+        tier: notation::model::MotionBlurTier,
+    ) -> notation::model::MotionBlur {
+        notation::model::MotionBlur {
+            shutter,
+            samples,
+            tier,
+            line: 1,
+            column: 1,
+        }
+    }
+
+    fn draw_blur_frame(comp: &Composition, frame: u64, backend: Backend) -> Vec<u8> {
+        use crate::frame::NestView;
+        let motions = plan_motions(comp, 30);
+        let nest = NestView::single(comp, &motions);
+        let paths = crate::path_paint::PathCache::new();
+        let dyn_layouts = DynLayouts::default();
+        let view = DrawView {
+            videos: &[],
+            ranges: &[],
+            images: &[],
+            paths: &paths,
+            layouts: &[],
+            dyn_layouts: &dyn_layouts,
+            bitmap_fallback: false,
+            nest,
+            time_offset: timebase::Time::ZERO,
+            folder: std::path::Path::new("."),
+        };
+        let mut raster = RasterCache::new();
+        draw_one_frame_view(&view, &mut raster, backend, frame).expect("blurred frame draws")
+    }
+
+    fn red_row(frame: &[u8], width: u32, y: u32) -> Vec<u8> {
+        (0..width)
+            .map(|x| frame[((y * width + x) as usize) * 3])
+            .collect()
+    }
+
+    fn in_between_count(row: &[u8]) -> usize {
+        row.iter().filter(|&&v| v > 0 && v < 255).count()
+    }
+
+    #[test]
+    fn moving_object_blurs_along_its_motion_at_180_degrees() {
+        use notation::model::MotionBlurTier;
+        let sharp = blur_comp(vec![blur_tween()], None);
+        let blurred = blur_comp(
+            vec![blur_tween()],
+            Some(motion_blur(180.0, 16, MotionBlurTier::High)),
+        );
+        // Frame 15: the box sits at exactly x=56, moving right.
+        let a = draw_blur_frame(&sharp, 15, Backend::Cpu);
+        let b = draw_blur_frame(&blurred, 15, Backend::Cpu);
+        assert_ne!(a, b, "shutter blur changes the moving frame");
+        let (ra, rb) = (red_row(&a, 128, 32), red_row(&b, 128, 32));
+        // The sharp box covers [56, 72): crisp edges, no halo.
+        assert_eq!(ra[55], 0, "sharp frame leaves pixel 55 dark");
+        assert_eq!(ra[72], 0, "sharp frame leaves pixel 72 dark");
+        assert_eq!(in_between_count(&ra), 0, "sharp edges are crisp");
+        // The 180-degree window trails behind the motion: pixel 55
+        // (left of the box) lights up while pixel 72 (ahead of the
+        // box) stays dark — the smear follows the motion direction.
+        assert!(rb[55] > 0, "blur trails behind the motion, got {}", rb[55]);
+        assert_eq!(rb[72], 0, "no smear ahead of the motion");
+        assert!(
+            in_between_count(&rb) >= 2,
+            "blur softens the edges, got {:?}",
+            &rb[52..76]
+        );
+    }
+
+    #[test]
+    fn wider_shutter_blurs_more_than_narrower() {
+        use notation::model::MotionBlurTier;
+        let sharp = blur_comp(vec![blur_tween()], None);
+        let narrow = blur_comp(
+            vec![blur_tween()],
+            Some(motion_blur(90.0, 16, MotionBlurTier::High)),
+        );
+        let wide = blur_comp(
+            vec![blur_tween()],
+            Some(motion_blur(360.0, 16, MotionBlurTier::High)),
+        );
+        let a = draw_blur_frame(&sharp, 15, Backend::Cpu);
+        let n = draw_blur_frame(&narrow, 15, Backend::Cpu);
+        let w = draw_blur_frame(&wide, 15, Backend::Cpu);
+        assert_ne!(n, w, "shutter angle changes the smear");
+        let (ca, cn, cw) = (
+            in_between_count(&red_row(&a, 128, 32)),
+            in_between_count(&red_row(&n, 128, 32)),
+            in_between_count(&red_row(&w, 128, 32)),
+        );
+        assert!(cn > ca, "a 90-degree shutter softens edges ({cn} vs {ca})");
+        assert!(cw > cn, "a 360-degree shutter softens more ({cw} vs {cn})");
+    }
+
+    #[test]
+    fn still_content_under_auto_matches_blur_off() {
+        use notation::model::MotionBlurTier;
+        // No tweens: nothing moves, so `auto` must draw exactly once.
+        let sharp = blur_comp(Vec::new(), None);
+        let auto = blur_comp(
+            Vec::new(),
+            Some(motion_blur(180.0, 16, MotionBlurTier::Auto)),
+        );
+        let high = blur_comp(
+            Vec::new(),
+            Some(motion_blur(180.0, 16, MotionBlurTier::High)),
+        );
+        let a = draw_blur_frame(&sharp, 15, Backend::Cpu);
+        assert_eq!(
+            draw_blur_frame(&auto, 15, Backend::Cpu),
+            a,
+            "still auto renders pixel-identical to blur off"
+        );
+        assert_eq!(
+            draw_blur_frame(&high, 15, Backend::Cpu),
+            a,
+            "averaging identical still pictures is exact"
+        );
+    }
+
+    #[test]
+    fn blurred_rerenders_are_byte_identical() {
+        use notation::model::MotionBlurTier;
+        for tier in [MotionBlurTier::Auto, MotionBlurTier::High] {
+            let comp = blur_comp(vec![blur_tween()], Some(motion_blur(180.0, 8, tier)));
+            let once = draw_blur_frame(&comp, 15, Backend::Cpu);
+            let twice = draw_blur_frame(&comp, 15, Backend::Cpu);
+            assert_eq!(
+                once,
+                twice,
+                "tier {:?} re-renders byte-identically",
+                tier.name()
+            );
+        }
+    }
+
+    #[test]
+    fn cpu_and_gpu_agree_on_blurred_frames() {
+        use notation::model::MotionBlurTier;
+        let comp = blur_comp(
+            vec![blur_tween()],
+            Some(motion_blur(180.0, 8, MotionBlurTier::High)),
+        );
+        let cpu = draw_blur_frame(&comp, 15, Backend::Cpu);
+        let gpu = draw_blur_frame(&comp, 15, Backend::Gpu);
+        let cmp = crate::gpu::compare_frames(&cpu, &gpu).expect("frames compare");
+        assert!(cmp.pass(), "{}", cmp.report("motion-blur", 15));
+    }
+
+    #[test]
+    fn lut_frame_cache_resolves_and_refuses_a_vanish() {
+        let dir = lut_tmp("vanish");
+        write_swap_cube(&dir);
+        let mut luts = LutFrameCache::new();
+        let mut base = notation::model::ResolvedGrade::identity();
+        base.lut.src = Some("swap.cube".to_string());
+        base.lut.amount = 1.0;
+        let resolved = luts.grade(&dir, &base).expect("first resolve loads");
+        assert_eq!(resolved.lut.grid.as_ref().map(|t| t.size), Some(2));
+        // A second frame reuses the file while it stands.
+        let _ = luts.grade(&dir, &base).expect("cached resolve loads");
+        // The source vanishes mid-render: the next frame refuses
+        // naming the path, instead of painting the stale grid.
+        std::fs::remove_file(dir.join("swap.cube")).expect("delete cube");
+        let err = luts.grade(&dir, &base).expect_err("vanish must refuse");
+        assert!(err.contains("swap.cube"), "{err}");
+        assert!(err.contains("vanished"), "{err}");
+        assert!(err.contains("no MP4 was written"), "{err}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn grade_lut_vanishing_between_describe_and_draw_refuses() {
+        use crate::frame::describe;
+        use notation::model::TrackKind;
+        let dir = lut_tmp("midrender");
+        write_swap_cube(&dir);
+        let comp = grade_comp(
+            (0, 0, 0),
+            vec![grade_box(
+                (200, 100, 50),
+                TrackKind::Graphics,
+                lut_grade("swap.cube", 1.0),
+            )],
+            empty_grade(),
+            Vec::new(),
+        );
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        // The file stands at describe time, then vanishes before the
+        // frame draws: the draw stats the file for its frame and
+        // refuses naming the path, instead of painting stale pixels.
+        std::fs::remove_file(dir.join("swap.cube")).expect("delete cube");
+        let mut raster = std::collections::HashMap::new();
+        let mut frame = vec![0u8; 32 * 32 * 3];
+        let err = draw_description(
+            &desc,
+            &mut raster,
+            &[],
+            &DynLayouts::default(),
+            false,
+            &[],
+            &[],
+            &[],
+            &crate::path_paint::PathCache::new(),
+            &dir,
+            &mut frame,
+        )
+        .expect_err("vanished LUT must refuse the frame");
+        assert!(err.contains("swap.cube"), "{err}");
+        assert!(err.contains("vanished"), "{err}");
+        assert!(err.contains("no MP4 was written"), "{err}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn lut_frame_cache_refuses_an_unparsable_grid() {
+        let dir = lut_tmp("corrupt");
+        std::fs::write(dir.join("bad.cube"), "LUT_3D_SIZE 2\n0 0\n").expect("write bad cube");
+        let mut luts = LutFrameCache::new();
+        let mut base = notation::model::ResolvedGrade::identity();
+        base.lut.src = Some("bad.cube".to_string());
+        let err = luts.grade(&dir, &base).expect_err("corrupt must refuse");
+        assert!(err.contains("bad.cube"), "{err}");
+        assert!(err.contains("unusable"), "{err}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -8078,6 +9853,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let standard = RenderOptions::default().encoder();
@@ -8205,6 +9984,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let draft = RenderOptions {
@@ -8331,6 +10114,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         };
         let motions = plan_motions(&comp, 30);
         let frames = comp.fps.frame_count(comp.duration) as usize;
@@ -8390,6 +10177,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -8449,7 +10239,7 @@ mod tests {
         let mut legacy = vec![0u8; 64 * 48 * 3];
         draw_box(&mut legacy, 64, 48, &b, &[], Path::new(".")).unwrap();
         let mut advanced = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut advanced, 64, 48, &b, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut advanced, 64, 48, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(advanced, legacy, "identity layer path matches the blit");
         // A rounded, bordered, translucent box matches within one
         // step per channel (the layer stores one rounded alpha byte).
@@ -8461,7 +10251,7 @@ mod tests {
         let mut legacy = vec![0u8; 64 * 48 * 3];
         draw_box(&mut legacy, 64, 48, &soft, &[], Path::new(".")).unwrap();
         let mut advanced = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut advanced, 64, 48, &soft, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut advanced, 64, 48, &soft, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(legacy.len(), advanced.len());
         for (i, (a, l)) in advanced.iter().zip(legacy.iter()).enumerate() {
             assert!(
@@ -8478,7 +10268,7 @@ mod tests {
         // draws nothing.
         let b = turned_box(10.0, 10.0, 40.0, 40.0, 60.0, 0.0);
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &b, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut frame, 64, 64, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         for j in 20..40 {
             assert_eq!(pixel(&frame, 64, 30, j), (255, 0, 0), "row {j} fills");
         }
@@ -8488,7 +10278,7 @@ mod tests {
         assert_eq!(pixel(&frame, 64, 49, 30), (255, 0, 0), "full width keeps");
         let edge = turned_box(10.0, 10.0, 40.0, 40.0, 90.0, 0.0);
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &edge, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut frame, 64, 64, &edge, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert!(frame.iter().all(|&v| v == 0), "edge-on cards draw nothing");
     }
 
@@ -8506,7 +10296,7 @@ mod tests {
             ..Turn3D::flat()
         };
         let mut frame = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut frame, 64, 64, &top, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut frame, 64, 64, &top, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(pixel(&frame, 64, 30, 10), (255, 0, 0), "top pins");
         assert_eq!(
             pixel(&frame, 64, 30, 29),
@@ -8531,7 +10321,7 @@ mod tests {
         // heights); with p=200 the near (left) edge stands taller.
         let flat = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
         let mut frame = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut frame, 160, 120, &flat, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut frame, 160, 120, &flat, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         // Flat edges: find the first/last red columns, compare heights.
         let cols: Vec<u32> = (0..160)
             .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
@@ -8549,7 +10339,7 @@ mod tests {
         let mut persp = turned_box(40.0, 40.0, 80.0, 40.0, 0.0, 45.0);
         persp.turn.perspective = Some(200.0);
         let mut frame = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut frame, 160, 120, &persp, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut frame, 160, 120, &persp, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         let cols: Vec<u32> = (0..160)
             .filter(|&i| red_height_at(&frame, 160, 120, i) > 0)
             .collect();
@@ -8564,7 +10354,7 @@ mod tests {
         );
         // Both renders are deterministic.
         let mut again = vec![0u8; 160 * 120 * 3];
-        draw_box_advanced(&mut again, 160, 120, &persp, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut again, 160, 120, &persp, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(frame, again, "turned re-render is byte-identical");
     }
 
@@ -8577,7 +10367,7 @@ mod tests {
         let mut b = sharp_box(10.0, 10.0, 1.0, 1.0);
         b.blur = 1.0;
         let mut frame = vec![0u8; 32 * 32 * 3];
-        draw_box_advanced(&mut frame, 32, 32, &b, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut frame, 32, 32, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         // Hand kernel, computed here from the Gaussian alone.
         let raw = [-3.0f64, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0].map(|x| (-x * x / 2.0).exp());
         let total: f64 = raw.iter().sum();
@@ -8611,7 +10401,7 @@ mod tests {
         assert_eq!(mass, hand, "byte mass matches the rounded kernel");
         // Deterministic re-render.
         let mut again = vec![0u8; 32 * 32 * 3];
-        draw_box_advanced(&mut again, 32, 32, &b, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut again, 32, 32, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(frame, again, "blurred re-render is byte-identical");
     }
 
@@ -8623,7 +10413,7 @@ mod tests {
         let mut b = sharp_box(10.0, 10.0, 20.0, 20.0);
         b.blur = 2.5;
         let mut blurred = vec![0u8; 64 * 64 * 3];
-        draw_box_advanced(&mut blurred, 64, 64, &b, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut blurred, 64, 64, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(
             pixel(&blurred, 64, 20, 20),
             (255, 0, 0),
@@ -8648,7 +10438,17 @@ mod tests {
         let mut legacy = vec![0u8; 32 * 32 * 3];
         draw_image(&mut legacy, 32, 32, &im, &decoded);
         let mut frame = vec![0u8; 32 * 32 * 3];
-        draw_image_advanced(&mut frame, 32, 32, &im, &decoded);
+        draw_image_advanced(
+            &mut frame,
+            32,
+            32,
+            &im,
+            &decoded,
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
+        );
         assert_eq!(frame, legacy, "identity image layer matches the blit");
         assert_eq!(pixel(&frame, 32, 0, 0), (0, 255, 0));
     }
@@ -8715,6 +10515,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })]);
         for w in [1, 2, 4] {
             let err = draw_batch_parallel_with_workers(&prep, Backend::Cpu, &[0, 1, 2], w)
@@ -8929,6 +10732,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         };
         assert_eq!(
             effective_source_window(&clip(1.0, Some(9.0)), Some(4.0)),
@@ -9989,7 +11795,7 @@ mod tests {
         let mut direct = vec![0u8; 64 * 48 * 3];
         draw_box(&mut direct, 64, 48, &b, &[], Path::new(".")).unwrap();
         let mut layered = vec![0u8; 64 * 48 * 3];
-        draw_box_advanced(&mut layered, 64, 48, &b, &[], Path::new(".")).unwrap();
+        draw_box_advanced(&mut layered, 64, 48, &b, &[], Path::new("."), &ResolvedGrade::identity(), &[], &notation::model::VfxChain::empty(), &crate::vfx::VfxMaps::empty()).unwrap();
         assert_eq!(direct, layered);
     }
 

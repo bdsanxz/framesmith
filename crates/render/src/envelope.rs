@@ -534,6 +534,9 @@ mod tests {
             fx: Default::default(),
             waveform: Default::default(),
             hidden: false,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
             line: 1,
             column: 1,
         });
@@ -623,6 +626,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         };
         let env = resolve_envelope(&comp, 0);
         // The key (lines 5-6) sorts before the tween (line 10).
@@ -850,6 +857,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -879,6 +890,9 @@ mod tests {
             fx: Default::default(),
             waveform: Default::default(),
             hidden: false,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
             line: 1,
             column: 1,
         })

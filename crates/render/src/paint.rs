@@ -18,7 +18,7 @@ use crate::render::{
     rr_coverage, warp_bounds,
 };
 use crate::turn::Turn;
-use notation::model::{BlendMode, MaskShape, Overflow, StrokePosition};
+use notation::model::{BlendMode, MaskShape, Overflow, ResolvedGrade, StrokePosition};
 use std::path::Path;
 
 /// One blended texel (Sprint 8 look, T004): `src` is the straight
@@ -417,6 +417,7 @@ pub fn composite_warp_blend(
 /// mode, and the mask shapes scale the alpha exactly once over
 /// self-first content. Only runs when [`ResolvedBox::paint_stack_active`]
 /// holds; every other box keeps the historical paths.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn draw_box_paint(
     frame: &mut [u8],
     cw: u32,
@@ -424,6 +425,10 @@ pub(crate) fn draw_box_paint(
     b: &ResolvedBox,
     images: &[crate::render::DecodedImage],
     folder: &Path,
+    grade: &ResolvedGrade,
+    effects: &[notation::model::Effect],
+    vfx: &notation::model::VfxChain,
+    maps: &crate::vfx::VfxMaps<'_>,
 ) -> Result<(), String> {
     if b.width <= 0.0 || b.height <= 0.0 {
         return Ok(());
@@ -512,6 +517,12 @@ pub(crate) fn draw_box_paint(
             if blur_on(sigma) {
                 pm.blur(sigma);
             }
+            // The look grades the shadow with the body, then its effects
+            // (Sprint 11 grade T001, effects T004): the whole cast element
+            // carries one look.
+            crate::blur::apply_grade_to_premult(&mut pm, grade);
+            crate::effects::apply_effects_to_premult(&mut pm, effects);
+            crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
             let margin = blur_margin(sigma) + 1.0;
             let grown = shadow_rect.map(|r| (r.0 - margin, r.1 - margin, r.2 + margin, r.3 + margin));
             // The shadow warps about the body anchor, so a rotated or
@@ -556,6 +567,12 @@ pub(crate) fn draw_box_paint(
         if blur_on(b.blur) {
             pm.blur(b.blur);
         }
+        // The look grades the body's own pixels, then its effects
+        // (Sprint 11 grade T001, effects T004): beneath layers keep
+        // their own looks.
+        crate::blur::apply_grade_to_premult(&mut pm, grade);
+        crate::effects::apply_effects_to_premult(&mut pm, effects);
+        crate::vfx::apply_vfx_to_premult(&mut pm, vfx, maps);
         match (turn, rotated) {
             (None, false) => {
                 let margin = blur_margin(b.blur) + 1.0;
@@ -753,6 +770,10 @@ mod tests {
             b,
             &[],
             std::path::Path::new("."),
+            &ResolvedGrade::identity(),
+            &[],
+            &notation::model::VfxChain::empty(),
+            &crate::vfx::VfxMaps::empty(),
         )
         .unwrap();
         frame

@@ -9,14 +9,31 @@
 //!   render refuses before the first frame and writes no MP4)
 
 use notation::model::{
-    parse_color, resolve_waveform_range, AudioClip, BlendMode, BoxClip, BoxShadow, Clip,
-    Composition, Crossfade, DuckUnder, EaseDecl, FillPaint, FillRule, Fit, FlexAlign, FlexChild,
-    FlexClip, FlexDirection, FlexJustify, FontDecl, Fps, GradientStop, ImageClip, InputDecl,
-    KeyDecl, KeyStop, MarkDecl, MaskRef, NestClip, Normalize, Overflow, PathClip, Placement,
-    ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid, StaggerOrigin, StartAfter,
-    StrokePosition, SvgClip, TextClip, TextDirection, TextSpan, TrackKind, Turn3D, TweenDecl,
-    TweenKind, VariableDecl, VariableDefault, VariableType, VideoClip, WaveformDraw,
-    WaveformRangeError, CONFIG_FILE, MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
+    parse_color, parse_cube, parse_curve_points, resolve_waveform_range, AudioClip, BlendMode,
+    BoxClip, BoxShadow, Clip,
+    Composition, Crossfade, DuckUnder, EaseDecl, Effect, EffectParams, EffectPreset, FillPaint,
+    FillRule, Fit, FlexAlign, FlexChild,
+    FlexClip, FlexDirection, FlexJustify, FontDecl, Fps, Grade, GradePreset, GradientStop,
+    ImageClip, InputDecl, KeyDecl, KeyStop, LaneGrade, MarkDecl, MaskRef, MotionBlur, MotionBlurTier, NestClip, Normalize,
+    Overflow, PathClip, Placement, ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid,
+    StaggerOrigin, StartAfter, StrokePosition, SvgClip, TextClip, TextDirection, TextSpan,
+    TrackKind, Transition, TransitionKind, Turn3D, TweenDecl, TweenKind, VariableDecl,
+    VariableDefault, VariableType,
+    VideoClip, WaveformDraw, WaveformRangeError, CONFIG_FILE, EFFECT_AMOUNT_RANGE,
+    EFFECT_BLUR_RADIUS_RANGE, EFFECT_BRIGHTNESS_RANGE, EFFECT_CHROMA_DISTANCE_RANGE,
+    EFFECT_CONTRAST_RANGE, EFFECT_HUE_ANGLE_RANGE, EFFECT_PIXEL_SIZE_RANGE,
+    EFFECT_POSTERIZE_LEVELS_RANGE, EFFECT_SATURATE_RANGE, EFFECT_STRENGTH_RANGE,
+    EFFECT_THRESHOLD_RANGE, EFFECT_VIGNETTE_SOFTNESS_RANGE, EFFECT_KEYS,
+    VfxChain, VfxDisplacement, VfxLumaMatte, VfxNoise, VfxWarp, VFX_AMOUNT_RANGE,
+    VFX_DEFAULT_AMOUNT, VFX_DISPLACEMENT_SCALE_RANGE, VFX_WARP_GRID_RANGE,
+    VFX_WARP_STRENGTH_RANGE,
+    GRADE_CONTRAST_RANGE,
+    GRADE_EXPOSURE_RANGE, GRADE_GRAIN_AMOUNT_RANGE, GRADE_GRAIN_SIZE_RANGE,
+    GRADE_HSL_HUE_RANGE, GRADE_HSL_LIGHTNESS_RANGE, GRADE_HSL_SATURATION_RANGE,
+    GRADE_LUT_AMOUNT_RANGE, GRADE_SATURATION_RANGE, GRADE_TEMPERATURE_RANGE, GRADE_TINT_RANGE,
+    GRADE_VIGNETTE_AMOUNT_RANGE, GRADE_VIGNETTE_SOFTNESS_RANGE, GRADE_WHEEL_BAND_RANGE,
+    CurveGrade, GrainGrade, HslGrade, LutGrade, VignetteGrade, WheelGrade, LUT_MAX_GRID_SIZE,
+    MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
 use std::borrow::Cow;
@@ -2050,6 +2067,8 @@ pub fn validate_folder_with_variables_strict_themed(
 struct PartialComposition<'n> {
     root: &'n RawNode,
     name: String,
+    transitions: Vec<Transition>,
+    motion_blur: Option<MotionBlur>,
     comp_id: Option<String>,
     canvas_name: Option<String>,
     width: Option<f64>,
@@ -2062,6 +2081,8 @@ struct PartialComposition<'n> {
     autoplay: bool,
     normalize: Normalize,
     normalize_loc: Option<(usize, usize)>,
+    grade: Grade,
+    lane_grades: Vec<LaneGrade>,
     clips: Vec<Clip>,
     fonts: Vec<FontDecl>,
     pending_stills: Vec<usize>,
@@ -3416,6 +3437,18 @@ fn validate_composition_parts<'n>(
     // clips expand to indexed clones inline below, so `target`
     // indexes resolve against the final clip count like any clip.
     let mut replicates: Vec<ReplicateGroup> = Vec::new();
+    // Look grades (Sprint 11 grade, CAP-001/T001): the composition-wide
+    // `grade` plus one `lane` per track, resolved inward-out with each
+    // clip's own grade at frame time.
+    let mut comp_grade: Option<Grade> = None;
+    let mut lane_grades: Vec<LaneGrade> = Vec::new();
+    // Clip bridges (Sprint 11 transitions, CAP-005/T006): validated
+    // `transition` elements in written order; links resolve in
+    // `finish_composition`, once clip windows settle.
+    let mut transitions: Vec<Transition> = Vec::new();
+    // Shutter blur (Sprint 11 motion blur, CAP-006/T007): at most one
+    // `motion-blur` element; `None` renders exactly as before.
+    let mut motion_blur: Option<MotionBlur> = None;
     // Shared looks (Sprint 8 look, CAP-006/T006): style blocks
     // validate in a pre-pass so referring elements resolve them
     // whatever the declaration order (forward references allowed).
@@ -3501,6 +3534,68 @@ fn validate_composition_parts<'n>(
                     clips.push(Clip::Nest(c));
                 }
             }
+            // Composition-wide grade (Sprint 11 grade, CAP-001/T001):
+            // at most one `grade` child; it layers under every lane
+            // and clip grade.
+            "grade" => {
+                if comp_grade.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_GRADE",
+                        "composition holds two `grade` children; a composition carries at most one `grade`",
+                        "keep one `grade` child on the composition, or remove the extra child",
+                    );
+                } else if let Some(g) = validate_grade(&mut ctx, child, "the composition") {
+                    comp_grade = Some(g);
+                }
+            }
+            // Lane-group grade (Sprint 11 grade, CAP-001/T001): at most
+            // one `lane` per track; it layers between the composition
+            // grade and each clip's own grade on that track.
+            "lane" => {
+                if let Some(l) = validate_lane(&mut ctx, child) {
+                    if lane_grades.iter().any(|e: &LaneGrade| e.track == l.track) {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_GRADE",
+                            format!(
+                                "composition holds two `lane` elements for track `{}`; one track carries one lane grade",
+                                l.track.name()
+                            ),
+                            "merge the lane grades into one `lane` element, or remove the extra element",
+                        );
+                    } else {
+                        lane_grades.push(l);
+                    }
+                }
+            }
+            // Clip bridges (Sprint 11 transitions, CAP-005/T006): each
+            // `transition` validates its own shape here; id links,
+            // handle lengths, and boundary overlaps resolve in
+            // `finish_composition`, once starts and durations settle.
+            "transition" => {
+                if let Some(t) = validate_transition(&mut ctx, child) {
+                    transitions.push(t);
+                }
+            }
+            // Shutter blur (Sprint 11 motion blur, CAP-006/T007): at
+            // most one `motion-blur` per composition; a second one
+            // fails naming the element and the fix.
+            "motion-blur" => {
+                if motion_blur.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_BLUR",
+                        "composition holds two `motion-blur` children; a composition carries at most one `motion-blur`",
+                        "keep one `motion-blur` child on the composition, or remove the extra child",
+                    );
+                } else if let Some(b) = validate_motion_blur(&mut ctx, child) {
+                    motion_blur = Some(b);
+                }
+            }
             "tween" => motion_nodes.push((true, child)),
             "set" => motion_nodes.push((false, child)),
             "key" => key_nodes.push(child),
@@ -3545,7 +3640,7 @@ fn validate_composition_parts<'n>(
                     child.name_column,
                     "E_UNKNOWN_ELEMENT",
                     format!("unknown element `{other}`"),
-                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `audio`, `style`, `tween`, `key`, `set`, `mark`, `input`, `variable`, or `replicate`, or remove the element",
+                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `audio`, `style`, `tween`, `key`, `set`, `mark`, `input`, `variable`, `replicate`, `grade`, `lane`, `transition`, or `motion-blur`, or remove the element",
                 );
             }
         }
@@ -3554,6 +3649,8 @@ fn validate_composition_parts<'n>(
     PartialComposition {
         root,
         name,
+        transitions,
+        motion_blur,
         comp_id,
         canvas_name,
         width,
@@ -3575,6 +3672,8 @@ fn validate_composition_parts<'n>(
         autoplay: autoplay.unwrap_or(false),
         normalize,
         normalize_loc,
+        grade: comp_grade.unwrap_or_default(),
+        lane_grades,
     }
 }
 
@@ -3586,6 +3685,7 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
     let PartialComposition {
         root,
         name,
+        transitions,
         comp_id,
         canvas_name,
         width,
@@ -3607,6 +3707,9 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         autoplay,
         normalize,
         normalize_loc,
+        grade,
+        lane_grades,
+        motion_blur,
     } = partial;
 
     // --- relative starts plus duration inference (T002 + T003) -------
@@ -3861,6 +3964,13 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         );
     }
 
+    // --- transition bridges (Sprint 11 transitions, CAP-005/T006) -----
+    // Id links, handle lengths, and boundary overlaps resolve here,
+    // once every clip window (relative starts, inferred lengths) has
+    // settled above. Shape errors already failed in `validate_transition`
+    // (an empty `transitions` list skips this pass entirely).
+    validate_transition_links(&mut ctx, &clips, &transitions, &fps);
+
     Composition {
         name,
         id: comp_id,
@@ -3883,6 +3993,10 @@ fn finish_composition(mut ctx: &mut Ctx, partial: PartialComposition) -> Composi
         autoplay,
         normalize,
         normalize_loc,
+        grade,
+        lane_grades,
+        transitions,
+        motion_blur,
     }
 }
 
@@ -4838,6 +4952,11 @@ fn parse_text_spans(ctx: &mut Ctx, node: &RawNode) -> Option<Vec<TextSpan>> {
     let mut spans = Vec::with_capacity(node.children.len());
     let mut ok = true;
     for (i, child) in node.children.iter().enumerate() {
+        // The `grade` and `effect` children validate with the clip
+        // (Sprint 11 grade T001, effects T004), not with the styled runs.
+        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+            continue;
+        }
         if child.name != "span" {
             ctx.push(
                 child.name_line,
@@ -5282,6 +5401,9 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
     }
     let turn = clip_turn(ctx, node, "text clip")?;
     let filter_blur = clip_filter(ctx, node, "text clip")?;
+    let grade = parse_clip_grade(ctx, node, "text clip")?;
+    let effects = parse_clip_effects(ctx, node, "text clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "text clip")?;
     Some(TextClip {
         value,
         start,
@@ -5311,6 +5433,9 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
         decimals: fx.decimals,
         turn,
         filter_blur,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -5795,6 +5920,9 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
     let waveform = parse_waveform(ctx, node, "video clip")?;
     let turn = clip_turn(ctx, node, "video clip")?;
     let filter_blur = clip_filter(ctx, node, "video clip")?;
+    let grade = parse_clip_grade(ctx, node, "video clip")?;
+    let effects = parse_clip_effects(ctx, node, "video clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "video clip")?;
     ctx.footage.push(VideoFootage {
         path: path.clone(),
         line: node.name_line,
@@ -5836,6 +5964,9 @@ fn validate_video(ctx: &mut Ctx, node: &RawNode) -> Option<VideoClip> {
         loop_clip,
         turn,
         filter_blur,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -6107,6 +6238,9 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
             detail,
         });
     }
+    let grade = parse_clip_grade(ctx, node, "audio track")?;
+    let effects = parse_clip_effects(ctx, node, "audio track")?;
+    let vfx = parse_clip_vfx(ctx, node, "audio track")?;
     Some(AudioClip {
         path,
         start,
@@ -6126,6 +6260,9 @@ fn validate_audio(ctx: &mut Ctx, node: &RawNode) -> Option<AudioClip> {
         duck_under,
         fx,
         waveform,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -6758,6 +6895,9 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<B
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "box clip")?;
     let filter_blur = clip_filter(ctx, node, "box clip")?;
+    let grade = parse_clip_grade(ctx, node, "box clip")?;
+    let effects = parse_clip_effects(ctx, node, "box clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "box clip")?;
     let fill_paint = validate_box_fill(ctx, node)?;
     Some(BoxClip {
         start,
@@ -6788,6 +6928,9 @@ fn validate_box(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<B
         order,
         turn,
         filter_blur,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -6803,6 +6946,11 @@ fn validate_box_fill(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
     let mut fills: Vec<&RawNode> = Vec::new();
     let mut ok = true;
     for child in &node.children {
+        // The `grade` and `effect` children validate with the clip
+        // (Sprint 11 grade T001, effects T004), not with the fill.
+        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+            continue;
+        }
         match child.name.as_str() {
             "linear-gradient" | "linear_gradient" | "radial-gradient" | "radial_gradient"
             | "image-fill" | "image_fill" => fills.push(child),
@@ -8162,6 +8310,12 @@ fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
     let order = parse_order(ctx, node)?;
     let mut children = Vec::with_capacity(node.children.len());
     for child in &node.children {
+        // The `grade` and `effect` children validate with the
+        // container (Sprint 11 grade T001, effects T004), not with the
+        // laid-out children.
+        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+            continue;
+        }
         if child.name == "flex" {
             ctx.push(
                 child.name_line,
@@ -8187,6 +8341,9 @@ fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
         }
         children.push(validate_flex_child(ctx, child, styles)?);
     }
+    let grade = parse_clip_grade(ctx, node, "flex container")?;
+    let effects = parse_clip_effects(ctx, node, "flex container")?;
+    let vfx = parse_clip_vfx(ctx, node, "flex container")?;
     Some(FlexClip {
         start,
         duration,
@@ -8206,6 +8363,9 @@ fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
         align_items,
         justify_content,
         order,
+        grade,
+        effects,
+        vfx,
         children,
         line: node.name_line,
         column: node.name_column,
@@ -8674,6 +8834,9 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "image clip")?;
     let filter_blur = clip_filter(ctx, node, "image clip")?;
+    let grade = parse_clip_grade(ctx, node, "image clip")?;
+    let effects = parse_clip_effects(ctx, node, "image clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "image clip")?;
     Some(ImageClip {
         path,
         start,
@@ -8692,6 +8855,9 @@ fn validate_image(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option
         order,
         turn,
         filter_blur,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -8979,6 +9145,11 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
         return None;
     }
     for child in &node.children {
+        // The `grade` and `effect` children validate with the clip
+        // (Sprint 11 grade T001, effects T004), not with the shape.
+        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+            continue;
+        }
         ctx.push(
             child.name_line,
             child.name_column,
@@ -8987,12 +9158,19 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
             "remove the child; the shape draws its `d` data",
         );
     }
-    if !node.children.is_empty() {
+    if node
+        .children
+        .iter()
+        .any(|c| c.name != "grade" && c.name != "effect" && c.name != "vfx")
+    {
         return None;
     }
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "path clip")?;
     let filter_blur = clip_filter(ctx, node, "path clip")?;
+    let grade = parse_clip_grade(ctx, node, "path clip")?;
+    let effects = parse_clip_effects(ctx, node, "path clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "path clip")?;
     Some(PathClip {
         start,
         duration,
@@ -9020,6 +9198,9 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
         order,
         turn,
         filter_blur,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -9242,6 +9423,11 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
         },
     };
     for child in &node.children {
+        // The `grade` and `effect` children validate with the clip
+        // (Sprint 11 grade T001, effects T004), not with the picture.
+        if child.name == "grade" || child.name == "effect" || child.name == "vfx" {
+            continue;
+        }
         ctx.push(
             child.name_line,
             child.name_column,
@@ -9250,12 +9436,19 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
             "remove the child; the picture comes from `path`",
         );
     }
-    if !node.children.is_empty() {
+    if node
+        .children
+        .iter()
+        .any(|c| c.name != "grade" && c.name != "effect" && c.name != "vfx")
+    {
         return None;
     }
     let order = parse_order(ctx, node)?;
     let turn = clip_turn(ctx, node, "svg clip")?;
     let filter_blur = clip_filter(ctx, node, "svg clip")?;
+    let grade = parse_clip_grade(ctx, node, "svg clip")?;
+    let effects = parse_clip_effects(ctx, node, "svg clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "svg clip")?;
     Some(SvgClip {
         path,
         start,
@@ -9274,6 +9467,9 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
         order,
         turn,
         filter_blur,
+        grade,
+        effects,
+        vfx,
         line: node.name_line,
         column: node.name_column,
     })
@@ -9474,6 +9670,9 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
         needs_composition: true,
         comp: ctx.current_comp,
     });
+    let grade = parse_clip_grade(ctx, node, "nest clip")?;
+    let effects = parse_clip_effects(ctx, node, "nest clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "nest clip")?;
     Some(NestClip {
         target,
         start,
@@ -9486,6 +9685,9 @@ fn validate_nest(ctx: &mut Ctx, node: &RawNode) -> Option<NestClip> {
         trim_start,
         trim_end,
         rate,
+        grade,
+        effects,
+        vfx,
         order,
         line: node.name_line,
         column: node.name_column,
@@ -10752,9 +10954,9 @@ fn motion_property(
             node.name_column,
             "E_UNSUPPORTED",
             format!(
-                "{what} property {raw:?} is a filter beyond blur and needs Sprint 11; only `blur` animates today"
+                "{what} property {raw:?} is a filter beyond blur; Sprint 11 picture treatments live on clip `effect` elements, and only `blur` animates today"
             ),
-            "animate `blur` for softness, or wait for Sprint 11 picture treatments",
+            "animate `blur` for softness, or add an `effect` child with the preset you need",
         ));
         return None;
     }
@@ -10959,9 +11161,10 @@ fn clip_turn(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Turn3D> {
 
 /// Shared static `filter` clip key (Sprint 7 motion, CAP-006): absent
 /// or `none` draws sharp (sigma 0); `blur(N)`/`blur(Npx)` draws a
-/// static Gaussian blur of N canvas pixels. Any other filter shape is
-/// still Sprint 11 and fails as unsupported naming the sprint; a
-/// malformed `blur(...)` fails with `E_BAD_MOTION` naming the form.
+/// static Gaussian blur of N canvas pixels. Any other filter shape
+/// fails as unsupported naming the sprint; richer treatments live on
+/// clip `effect` elements (Sprint 11 effects). A malformed `blur(...)`
+/// fails with `E_BAD_MOTION` naming the form.
 fn clip_filter(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
     let found = match find(node, "filter") {
         None => return Some(0.0),
@@ -10991,7 +11194,8 @@ fn clip_filter(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
         .and_then(|rest| rest.strip_suffix(')'))
     {
         // A parenthesized remainder is a filter list (or a second
-        // function): beyond one blur, so Sprint 11, not malformed.
+        // function): beyond one blur, so a Sprint 11 `effect`
+        // element, not malformed.
         if inner.contains('(') || inner.contains(')') {
             let v = find(node, "filter").unwrap();
             ctx.diags.push(Diagnostic::new(
@@ -10999,8 +11203,8 @@ fn clip_filter(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
                 v.line,
                 v.column,
                 "E_UNSUPPORTED",
-                format!("{what} `filter` {raw:?} needs Sprint 11; only `none` and `blur(N)` exist today"),
-                "use `filter=\"none\"` or `filter=\"blur(2)\"`, animate `blur` with a tween or key, or wait for Sprint 11 picture treatments",
+                format!("{what} `filter` {raw:?} is beyond `none` and `blur(N)`; Sprint 11 picture treatments live on clip `effect` elements"),
+                "use `filter=\"none\"` or `filter=\"blur(2)\"`, animate `blur` with a tween or key, or add an `effect` child with the preset you need",
             ));
             return None;
         }
@@ -11034,6 +11238,1927 @@ fn clip_filter(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
         "use `filter=\"none\"` or `filter=\"blur(2)\"`, animate `blur` with a tween or key, or wait for Sprint 11 picture treatments",
     ));
     None
+}
+
+/// Accepted `grade` presets, rendered for diagnostics in spec order.
+fn grade_preset_list() -> String {
+    GradePreset::ACCEPTED
+        .iter()
+        .map(|s| format!("`{s}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// One adjust range rendered for diagnostics (`-4 to 4`).
+fn grade_range_text((lo, hi): (f64, f64)) -> String {
+    format!("{lo} to {hi}")
+}
+
+/// Validate one `grade` child node (Sprint 11 grade, CAP-001/T001+T002):
+/// an optional `preset` plus optional adjust attributes (`exposure`,
+/// `contrast`, `saturation`, `temperature`, `tint`) plus at most one of
+/// each detail child (`wheel`, `curve`, `hsl`, `vignette`, `grain`).
+/// Every piece is optional; a missing piece inherits the outer level
+/// at frame time. An unknown preset, an out-of-range adjust, a bad
+/// detail value, a duplicated stage, an unknown key, or any other child
+/// fails with `E_BAD_GRADE` naming the element and the fix. `what`
+/// names the grade's owner for diagnostics (for example "text clip",
+/// "video lane", "the composition").
+fn validate_grade(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Grade> {
+    const KEYS: &[&str] = &[
+        "preset",
+        "exposure",
+        "contrast",
+        "saturation",
+        "temperature",
+        "tint",
+    ];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown grade key {k:?} on {what}; a `grade` carries `preset` plus `exposure`, `contrast`, `saturation`, `temperature`, and `tint`"),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    // At most one of each detail stage; anything else is refused.
+    let mut wheel_node: Option<&RawNode> = None;
+    let mut curve_node: Option<&RawNode> = None;
+    let mut hsl_node: Option<&RawNode> = None;
+    let mut vignette_node: Option<&RawNode> = None;
+    let mut grain_node: Option<&RawNode> = None;
+    let mut lut_node: Option<&RawNode> = None;
+    for child in &node.children {
+        let slot = match child.name.as_str() {
+            "wheel" => &mut wheel_node,
+            "curve" => &mut curve_node,
+            "hsl" => &mut hsl_node,
+            "vignette" => &mut vignette_node,
+            "grain" => &mut grain_node,
+            "lut" => &mut lut_node,
+            _ => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "`grade` on {} holds child `{}`; a `grade` carries preset and adjust attributes plus `wheel`, `curve`, `hsl`, `vignette`, `grain`, and `lut` children only",
+                        what, child.name
+                    ),
+                    "remove the child, or write one of `wheel`, `curve`, `hsl`, `vignette`, `grain`, or `lut`",
+                );
+                ok = false;
+                continue;
+            }
+        };
+        if slot.is_some() {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_GRADE",
+                format!(
+                    "`grade` on {what} holds two `{}` children; a `grade` carries at most one `{}` stage",
+                    child.name, child.name
+                ),
+                format!(
+                    "merge the two `{}` children into one, or remove the extra child",
+                    child.name
+                ),
+            );
+            ok = false;
+        } else {
+            *slot = Some(child);
+        }
+    }
+    if !ok {
+        return None;
+    }
+    let preset = match find(node, "preset") {
+        None => None,
+        Some(v) => match as_str(v).and_then(GradePreset::parse) {
+            Some(p) => Some(p),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "`grade` on {what} names unknown preset {}; accepted presets are: {}",
+                        raw_text(v),
+                        grade_preset_list()
+                    ),
+                    format!(
+                        "set `preset=` to one of {} on the `grade`",
+                        grade_preset_list()
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    // One adjust attribute: absent means inherit, present must be a
+    // finite number inside its accepted range.
+    fn adjust(
+        ctx: &mut Ctx,
+        node: &RawNode,
+        what: &str,
+        key: &str,
+        range: (f64, f64),
+    ) -> Option<Option<f64>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() && x >= range.0 && x <= range.1 => Some(Some(x)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_GRADE",
+                        format!(
+                            "`grade` on {what} sets `{key}` to {}; accepted {key} values run {}",
+                            raw_text(v),
+                            grade_range_text(range)
+                        ),
+                        format!(
+                            "set `{key}=<number from {}>` on the `grade`, or remove the key to inherit it",
+                            grade_range_text(range)
+                        ),
+                    );
+                    None
+                }
+            },
+        }
+    }
+    let exposure = adjust(ctx, node, what, "exposure", GRADE_EXPOSURE_RANGE)?;
+    let contrast = adjust(ctx, node, what, "contrast", GRADE_CONTRAST_RANGE)?;
+    let saturation = adjust(ctx, node, what, "saturation", GRADE_SATURATION_RANGE)?;
+    let temperature = adjust(ctx, node, what, "temperature", GRADE_TEMPERATURE_RANGE)?;
+    let tint = adjust(ctx, node, what, "tint", GRADE_TINT_RANGE)?;
+    // Detail stages (Sprint 11 grade, CAP-001/T002): each present child
+    // validates; absent stages stay empty and inherit outward.
+    let wheel = match wheel_node {
+        None => WheelGrade::default(),
+        Some(n) => validate_wheel(ctx, n, what)?,
+    };
+    let curve = match curve_node {
+        None => CurveGrade::default(),
+        Some(n) => validate_curve(ctx, n, what)?,
+    };
+    let hsl = match hsl_node {
+        None => HslGrade::default(),
+        Some(n) => validate_hsl(ctx, n, what)?,
+    };
+    let vignette = match vignette_node {
+        None => VignetteGrade::default(),
+        Some(n) => validate_vignette(ctx, n, what)?,
+    };
+    let grain = match grain_node {
+        None => GrainGrade::default(),
+        Some(n) => validate_grain(ctx, n, what)?,
+    };
+    let lut = match lut_node {
+        None => LutGrade::default(),
+        Some(n) => validate_lut(ctx, n, what)?,
+    };
+    Some(Grade {
+        preset,
+        exposure,
+        contrast,
+        saturation,
+        temperature,
+        tint,
+        wheel,
+        curve,
+        hsl,
+        vignette,
+        grain,
+        lut,
+    })
+}
+
+/// One detail-stage number (Sprint 11 grade, CAP-001/T002): absent
+/// means inherit, present must be a finite number inside its accepted
+/// range. Failures name the stage element, the attribute, and the
+/// range, with a concrete fix.
+fn stage_number(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    stage: &str,
+    key: &str,
+    range: (f64, f64),
+) -> Option<Option<f64>> {
+    match find(node, key) {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= range.0 && x <= range.1 => Some(Some(x)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "`{stage}` on {what} sets `{key}` to {}; accepted {key} values run {}",
+                        raw_text(v),
+                        grade_range_text(range)
+                    ),
+                    format!(
+                        "set `{key}=<number from {}>` on the `{stage}`, or remove the key to inherit it",
+                        grade_range_text(range)
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Refuse unknown keys and children on one detail stage node, so every
+/// stage carries exactly its documented shape. Returns false when a
+/// refusal was pushed.
+fn stage_shape(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, keys: &[&str]) -> bool {
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !keys.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown {stage} key {k:?} on {what}; a `{stage}` carries {}", keys.join(", ")),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    for child in &node.children {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_GRADE",
+            format!(
+                "`{stage}` on {what} holds child `{}`; a `{stage}` carries {} attributes only",
+                child.name,
+                keys.join(", ")
+            ),
+            format!("remove the child, or move the detail into the `{stage}` attributes"),
+        );
+        ok = false;
+    }
+    ok
+}
+
+/// Validate one `wheel` child (Sprint 11 grade, CAP-001/T002):
+/// `shadows`, `midtones`, `highlights` lifts in -1 to 1. Every band is
+/// optional; a missing band inherits the outer level.
+fn validate_wheel(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<WheelGrade> {
+    if !stage_shape(ctx, node, what, "wheel", &["shadows", "midtones", "highlights"]) {
+        return None;
+    }
+    Some(WheelGrade {
+        shadows: stage_number(ctx, node, what, "wheel", "shadows", GRADE_WHEEL_BAND_RANGE)?,
+        midtones: stage_number(ctx, node, what, "wheel", "midtones", GRADE_WHEEL_BAND_RANGE)?,
+        highlights: stage_number(ctx, node, what, "wheel", "highlights", GRADE_WHEEL_BAND_RANGE)?,
+    })
+}
+
+/// Validate one `curve` child (Sprint 11 grade, CAP-001/T002): each of
+/// `red`, `green`, `blue`, `master` holds a point list like
+/// `red="0,0 0.5,0.6 1,1"` (whitespace-separated `x,y` pairs, every
+/// number in 0 to 1, rising `x`, at least two points). A malformed list
+/// fails naming the element and the expected shape. Every channel is
+/// optional; a missing channel inherits the outer level.
+fn validate_curve(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<CurveGrade> {
+    if !stage_shape(
+        ctx,
+        node,
+        what,
+        "curve",
+        &["red", "green", "blue", "master"],
+    ) {
+        return None;
+    }
+    fn channel(
+        ctx: &mut Ctx,
+        node: &RawNode,
+        what: &str,
+        key: &str,
+    ) -> Option<Option<Vec<(f64, f64)>>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_str(v).and_then(parse_curve_points) {
+                Some(pts) => Some(Some(pts)),
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_GRADE",
+                        format!(
+                            "`curve` on {what} sets `{key}` to {}; a curve channel lists at least two `x,y` points like `{key}=\"0,0 0.5,0.5 1,1\"` with every number from 0 to 1 and rising `x`",
+                            raw_text(v),
+                        ),
+                        format!(
+                            "set `{key}=\"0,0 0.5,0.5 1,1\"` (or your own rising points) on the `curve`, or remove the key to inherit it"
+                        ),
+                    );
+                    None
+                }
+            },
+        }
+    }
+    Some(CurveGrade {
+        red: channel(ctx, node, what, "red")?,
+        green: channel(ctx, node, what, "green")?,
+        blue: channel(ctx, node, what, "blue")?,
+        master: channel(ctx, node, what, "master")?,
+    })
+}
+
+/// Validate one `hsl` child (Sprint 11 grade, CAP-001/T002): `hue-min`
+/// and `hue-max` bound the hue window in degrees 0 to 360 (wrapping
+/// past 360 when min exceeds max), `saturation` floors the selection
+/// in 0 to 1, and `lightness` shifts it in -1 to 1. Every key is
+/// optional; a missing key inherits the outer level.
+fn validate_hsl(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<HslGrade> {
+    if !stage_shape(
+        ctx,
+        node,
+        what,
+        "hsl",
+        &["hue-min", "hue-max", "saturation", "lightness"],
+    ) {
+        return None;
+    }
+    Some(HslGrade {
+        hue_min: stage_number(ctx, node, what, "hsl", "hue-min", GRADE_HSL_HUE_RANGE)?,
+        hue_max: stage_number(ctx, node, what, "hsl", "hue-max", GRADE_HSL_HUE_RANGE)?,
+        saturation: stage_number(ctx, node, what, "hsl", "saturation", GRADE_HSL_SATURATION_RANGE)?,
+        lightness: stage_number(ctx, node, what, "hsl", "lightness", GRADE_HSL_LIGHTNESS_RANGE)?,
+    })
+}
+
+/// Validate one `vignette` child (Sprint 11 grade, CAP-001/T002):
+/// `amount` and `softness` in 0 to 1. Both knobs are optional; a
+/// missing knob inherits the outer level.
+fn validate_vignette(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VignetteGrade> {
+    if !stage_shape(ctx, node, what, "vignette", &["amount", "softness"]) {
+        return None;
+    }
+    Some(VignetteGrade {
+        amount: stage_number(ctx, node, what, "vignette", "amount", GRADE_VIGNETTE_AMOUNT_RANGE)?,
+        softness: stage_number(
+            ctx,
+            node,
+            what,
+            "vignette",
+            "softness",
+            GRADE_VIGNETTE_SOFTNESS_RANGE,
+        )?,
+    })
+}
+
+/// Validate one `grain` child (Sprint 11 grade, CAP-001/T002): `amount`
+/// in 0 to 1, `size` a whole-pixel cell count 1 to 64, and `seed` any
+/// whole number (omitted seeds resolve to the fixed default, never
+/// wall-clock randomness; an empty or unreadable seed is refused).
+/// Every knob is optional; a missing knob inherits the outer level.
+fn validate_grain(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<GrainGrade> {
+    if !stage_shape(ctx, node, what, "grain", &["amount", "size", "seed"]) {
+        return None;
+    }
+    let amount = stage_number(ctx, node, what, "grain", "amount", GRADE_GRAIN_AMOUNT_RANGE)?;
+    let size = match find(node, "size") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x)
+                if x.is_finite()
+                    && x.fract() == 0.0
+                    && x >= GRADE_GRAIN_SIZE_RANGE.0 as f64
+                    && x <= GRADE_GRAIN_SIZE_RANGE.1 as f64 =>
+            {
+                Some(x as u32)
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "`grain` on {what} sets `size` to {}; accepted `size` values run {} to {} whole pixels",
+                        raw_text(v),
+                        GRADE_GRAIN_SIZE_RANGE.0,
+                        GRADE_GRAIN_SIZE_RANGE.1
+                    ),
+                    format!(
+                        "set `size=<whole pixels from {} to {}>` on the `grain`, or remove the key to inherit it",
+                        GRADE_GRAIN_SIZE_RANGE.0, GRADE_GRAIN_SIZE_RANGE.1
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    let seed = match find(node, "seed") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x.fract() == 0.0 => Some(x as i64),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "`grain` on {what} sets `seed` to {}; a `seed` is a whole number like `seed=7` (omit it for the fixed default seed)",
+                        raw_text(v),
+                    ),
+                    "set `seed=<whole number>` on the `grain`, or remove the key for the fixed default seed",
+                );
+                return None;
+            }
+        },
+    };
+    Some(GrainGrade { amount, size, seed })
+}
+
+/// Validate one `lut` child (Sprint 11 grade, CAP-002/T003): `src`
+/// names a project-folder-relative `.cube` file applied at this chain
+/// position, `amount` blends it from 0 to 1. Both keys are optional
+/// and a missing key inherits the outer level; a bare `lut` is the
+/// identity. The file must exist and parse at check time: a missing
+/// file fails with `E_MISSING_FILE`, an unreadable file with
+/// `E_UNREADABLE`, and an unparsable or oversized grid with
+/// `E_BAD_GRADE` naming the file and the problem — all before frame
+/// one.
+fn validate_lut(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<LutGrade> {
+    if !stage_shape(ctx, node, what, "lut", &["src", "amount"]) {
+        return None;
+    }
+    let src = match find(node, "src") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) => Some(s.to_string()),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "`lut` on {what} sets `src` to {}; a `lut` names its `.cube` file with `src=\"look.cube\"`",
+                        raw_text(v),
+                    ),
+                    "set `src=\"look.cube\"` (a project-folder-relative `.cube` path) on the `lut`, or remove the key to inherit it",
+                );
+                return None;
+            }
+        },
+    };
+    let amount = stage_number(ctx, node, what, "lut", "amount", GRADE_LUT_AMOUNT_RANGE)?;
+    if let Some(src) = &src {
+        let abs = ctx.folder.join(src);
+        if !abs.is_file() {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FILE",
+                format!("lut source {src:?} does not exist or is not readable"),
+                "provide the file at the referenced path or fix the `src`",
+            );
+            return None;
+        }
+        match std::fs::read(&abs) {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(text) => {
+                    if let Err(problem) = parse_cube(&text) {
+                        ctx.push(
+                            node.name_line,
+                            node.name_column,
+                            "E_BAD_GRADE",
+                            format!("lut source {src:?} is unusable: {problem}"),
+                            format!(
+                                "fix the `.cube` file or point `src` at a valid 3D `.cube` with a grid of {} or smaller",
+                                LUT_MAX_GRID_SIZE
+                            ),
+                        );
+                        return None;
+                    }
+                }
+                Err(_) => {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_GRADE",
+                        format!(
+                            "lut source {src:?} is unusable: the file is not UTF-8 text; a `.cube` is a text file"
+                        ),
+                        format!(
+                            "restore a text `.cube` file at the referenced path or point `src` at a valid 3D `.cube` with a grid of {} or smaller",
+                            LUT_MAX_GRID_SIZE
+                        ),
+                    );
+                    return None;
+                }
+            },
+            Err(e) => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_UNREADABLE",
+                    format!("lut source {src:?} cannot be read: {e}"),
+                    "make the LUT file readable or fix the `src`",
+                );
+                return None;
+            }
+        }
+    }
+    Some(LutGrade { src, amount })
+}
+
+/// Collect the single `grade` child of one clip, lane, or composition
+/// node (Sprint 11 grade, CAP-001/T001): none means the empty grade,
+/// one validates, two or more fail naming the duplicate. Returns
+/// `None` when validation fails.
+fn parse_clip_grade(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Grade> {
+    let mut found: Option<&RawNode> = None;
+    for child in &node.children {
+        if child.name != "grade" {
+            continue;
+        }
+        if found.is_some() {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_GRADE",
+                format!(
+                    "{what} holds two `grade` children; a clip, lane, or composition carries at most one `grade`"
+                ),
+                "keep one `grade` child on the element, or remove the extra child",
+            );
+            return None;
+        }
+        found = Some(child);
+    }
+    match found {
+        None => Some(Grade::empty()),
+        Some(g) => validate_grade(ctx, g, what),
+    }
+}
+
+/// Accepted `effect` presets for diagnostics, in spec order.
+fn effect_preset_list() -> String {
+    EffectPreset::ACCEPTED
+        .iter()
+        .map(|s| format!("`{s}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Collect the `effect` children of one clip node (Sprint 11 effects,
+/// CAP-003/T004) in document order: none means no effects, each one
+/// validates, and any failure drops the clip. Document order is the
+/// application order, so the vector order is the render order.
+fn parse_clip_effects(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Vec<Effect>> {
+    let mut out = Vec::new();
+    let mut ok = true;
+    for child in &node.children {
+        if child.name != "effect" {
+            continue;
+        }
+        match validate_effect(ctx, child, what) {
+            Some(e) => out.push(e),
+            None => ok = false,
+        }
+    }
+    ok.then_some(out)
+}
+
+/// Validate one `effect` clip child (Sprint 11 effects, CAP-003/T004):
+/// `preset` names one of the eighteen effects, `amount` blends it
+/// from 0 to 1 (absent means full), and each preset reads only its
+/// own parameters at their documented defaults. An unknown preset,
+/// an out-of-range amount, a malformed parameter, a parameter the
+/// preset does not read, an unknown key, or any child fails with
+/// `E_BAD_EFFECT` (unknown keys keep `E_UNKNOWN_KEY`) naming the
+/// effect and the fix.
+fn validate_effect(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Effect> {
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_EFFECT",
+            format!(
+                "`effect` on {what} holds child `{}`; an `effect` carries `preset`, `amount`, and its preset parameters only",
+                child.name
+            ),
+            "remove the child, or move the detail into the `effect` attributes",
+        );
+        return None;
+    }
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !EFFECT_KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown effect key {k:?} on {what}; an `effect` carries {}",
+                    EFFECT_KEYS.join(", ")
+                ),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !ok {
+        return None;
+    }
+    let preset = match find(node, "preset") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_EFFECT",
+                format!(
+                    "`effect` on {what} is missing required `preset`; an `effect` names one of: {}",
+                    effect_preset_list()
+                ),
+                format!(
+                    "set `preset=` to one of {} on the `effect`",
+                    effect_preset_list()
+                ),
+            );
+            return None;
+        }
+        Some(v) => match as_str(v).and_then(EffectPreset::parse) {
+            Some(p) => p,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_EFFECT",
+                    format!(
+                        "`effect` on {what} names unknown preset {}; accepted presets are: {}",
+                        raw_text(v),
+                        effect_preset_list()
+                    ),
+                    format!(
+                        "set `preset=` to one of {} on the `effect`",
+                        effect_preset_list()
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    let name = preset.name();
+    // One ranged effect number: absent means the documented default,
+    // present must be a finite number inside its accepted range.
+    // Failures name the `effect` preset and the expected shape.
+    fn effect_number(
+        ctx: &mut Ctx,
+        node: &RawNode,
+        what: &str,
+        preset: &str,
+        key: &str,
+        range: (f64, f64),
+    ) -> Option<Option<f64>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() && x >= range.0 && x <= range.1 => Some(Some(x)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_EFFECT",
+                        format!(
+                            "`effect` preset `{preset}` on {what} sets `{key}` to {}; accepted `{key}` values run {lo} to {hi}",
+                            raw_text(v),
+                            lo = range.0,
+                            hi = range.1
+                        ),
+                        format!(
+                            "set `{key}=<number from {lo} to {hi}>` on the `{preset}` `effect`, or remove the key for its default",
+                            lo = range.0,
+                            hi = range.1
+                        ),
+                    );
+                    None
+                }
+            },
+        }
+    }
+    // One whole-pixel effect size: absent means the documented
+    // default, present must be a whole number inside its accepted
+    // range. Failures name the `effect` preset and the expected shape.
+    fn effect_size(
+        ctx: &mut Ctx,
+        node: &RawNode,
+        what: &str,
+        preset: &str,
+        key: &str,
+        range: (i64, i64),
+    ) -> Option<Option<u32>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(x)
+                    if x.is_finite()
+                        && x.fract() == 0.0
+                        && x >= range.0 as f64
+                        && x <= range.1 as f64 =>
+                {
+                    Some(Some(x as u32))
+                }
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_EFFECT",
+                        format!(
+                            "`effect` preset `{preset}` on {what} sets `{key}` to {}; accepted `{key}` values run {} to {} whole pixels",
+                            raw_text(v),
+                            range.0,
+                            range.1
+                        ),
+                        format!(
+                            "set `{key}=<whole pixels from {} to {}>` on the `{preset}` `effect`, or remove the key for its default",
+                            range.0, range.1
+                        ),
+                    );
+                    None
+                }
+            },
+        }
+    }
+    // One whole-number effect seed: absent means the fixed default
+    // seed, present must be a whole number (never wall-clock
+    // randomness; an empty or unreadable seed is refused). Failures
+    // name the `effect` preset and the expected shape.
+    fn effect_seed(
+        ctx: &mut Ctx,
+        node: &RawNode,
+        what: &str,
+        preset: &str,
+    ) -> Option<Option<i64>> {
+        match find(node, "seed") {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() && x.fract() == 0.0 => Some(Some(x as i64)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_EFFECT",
+                        format!(
+                            "`effect` preset `{preset}` on {what} sets `seed` to {}; a `seed` is a whole number like `seed=7` (omit it for the fixed default seed)",
+                            raw_text(v),
+                        ),
+                        "set `seed=<whole number>` on the `effect`, or remove the key for the fixed default seed",
+                    );
+                    None
+                }
+            },
+        }
+    }
+    // A known key the preset does not read is refused naming the
+    // preset and the shape it does read, never ignored silently.
+    let allowed = preset.allowed_keys();
+    for (k, v) in &node.props {
+        if k == "preset" || k == "amount" || allowed.contains(&k.as_str()) {
+            continue;
+        }
+        let shape = if allowed.is_empty() {
+            "no parameters".to_string()
+        } else {
+            format!("only {}", allowed.join(", "))
+        };
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_EFFECT",
+            format!(
+                "`effect` preset `{name}` on {what} sets `{k}` to {}; `{name}` reads {shape}",
+                raw_text(v),
+            ),
+            format!(
+                "remove `{k}` from the `{name}` `effect`, or move it to a preset that reads it"
+            ),
+        );
+        return None;
+    }
+    let amount = effect_number(ctx, node, what, name, "amount", EFFECT_AMOUNT_RANGE)?;
+    let amount = amount.unwrap_or(notation::model::EFFECT_DEFAULT_AMOUNT);
+    let mut params = EffectParams::default();
+    // Only the preset's own keys are read (foreign keys failed above):
+    // each present key parses, each missing key renders default.
+    match preset {
+        EffectPreset::Grayscale | EffectPreset::Sepia | EffectPreset::Invert => {}
+        EffectPreset::Brightness => {
+            params.brightness =
+                effect_number(ctx, node, what, name, "brightness", EFFECT_BRIGHTNESS_RANGE)?;
+        }
+        EffectPreset::Contrast => {
+            params.contrast =
+                effect_number(ctx, node, what, name, "contrast", EFFECT_CONTRAST_RANGE)?;
+        }
+        EffectPreset::Saturate => {
+            params.saturate =
+                effect_number(ctx, node, what, name, "saturate", EFFECT_SATURATE_RANGE)?;
+        }
+        EffectPreset::HueRotate => {
+            params.angle =
+                effect_number(ctx, node, what, name, "angle", EFFECT_HUE_ANGLE_RANGE)?;
+        }
+        EffectPreset::Blur => {
+            params.radius =
+                effect_number(ctx, node, what, name, "radius", EFFECT_BLUR_RADIUS_RANGE)?;
+        }
+        EffectPreset::Sharpen | EffectPreset::EdgeDetect | EffectPreset::Emboss => {
+            params.strength =
+                effect_number(ctx, node, what, name, "strength", EFFECT_STRENGTH_RANGE)?;
+        }
+        EffectPreset::Vignette => {
+            params.softness = effect_number(
+                ctx,
+                node,
+                what,
+                name,
+                "softness",
+                EFFECT_VIGNETTE_SOFTNESS_RANGE,
+            )?;
+        }
+        EffectPreset::Grain => {
+            params.size = effect_size(ctx, node, what, name, "size", EFFECT_PIXEL_SIZE_RANGE)?;
+            params.seed = effect_seed(ctx, node, what, name)?;
+        }
+        EffectPreset::Noise => {
+            params.seed = effect_seed(ctx, node, what, name)?;
+        }
+        EffectPreset::Pixelate => {
+            params.size = effect_size(ctx, node, what, name, "size", EFFECT_PIXEL_SIZE_RANGE)?;
+        }
+        EffectPreset::Posterize => {
+            params.levels = match find(node, "levels") {
+                None => None,
+                Some(v) => match as_f64(v) {
+                    Some(x)
+                        if x.is_finite()
+                            && x.fract() == 0.0
+                            && x >= EFFECT_POSTERIZE_LEVELS_RANGE.0 as f64
+                            && x <= EFFECT_POSTERIZE_LEVELS_RANGE.1 as f64 =>
+                    {
+                        Some(x as u32)
+                    }
+                    _ => {
+                        ctx.push(
+                            v.line,
+                            v.column,
+                            "E_BAD_EFFECT",
+                            format!(
+                                "`effect` preset `{name}` on {what} sets `levels` to {}; accepted `levels` values run {} to {} whole levels",
+                                raw_text(v),
+                                EFFECT_POSTERIZE_LEVELS_RANGE.0,
+                                EFFECT_POSTERIZE_LEVELS_RANGE.1
+                            ),
+                            format!(
+                                "set `levels=<whole levels from {} to {}>` on the `{name}` `effect`, or remove the key for its default",
+                                EFFECT_POSTERIZE_LEVELS_RANGE.0,
+                                EFFECT_POSTERIZE_LEVELS_RANGE.1
+                            ),
+                        );
+                        return None;
+                    }
+                },
+            };
+        }
+        EffectPreset::Threshold => {
+            params.threshold = effect_number(
+                ctx,
+                node,
+                what,
+                name,
+                "threshold",
+                EFFECT_THRESHOLD_RANGE,
+            )?;
+        }
+        EffectPreset::ChromaticAberration => {
+            params.distance = effect_number(
+                ctx,
+                node,
+                what,
+                name,
+                "distance",
+                EFFECT_CHROMA_DISTANCE_RANGE,
+            )?;
+        }
+    }
+    Some(Effect {
+        preset,
+        amount,
+        params,
+    })
+}
+
+/// Accepted `vfx` stage names for diagnostics, in application order.
+fn vfx_stage_list() -> String {
+    notation::model::VFX_STAGES
+        .iter()
+        .map(|s| format!("`{s}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Collect the single `vfx` child of one clip node (Sprint 11 VFX,
+/// CAP-004/T005): none means the empty chain, one validates, two or
+/// more fail naming the duplicate. Returns `None` when validation
+/// fails.
+fn parse_clip_vfx(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxChain> {
+    let mut found: Option<&RawNode> = None;
+    for child in &node.children {
+        if child.name != "vfx" {
+            continue;
+        }
+        if found.is_some() {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_VFX",
+                format!(
+                    "{what} holds two `vfx` children; a clip carries at most one `vfx`"
+                ),
+                "keep one `vfx` child on the element, or remove the extra child",
+            );
+            return None;
+        }
+        found = Some(child);
+    }
+    match found {
+        None => Some(VfxChain::empty()),
+        Some(v) => validate_vfx(ctx, v, what),
+    }
+}
+
+/// Validate one `vfx` clip child (Sprint 11 VFX, CAP-004/T005): each
+/// of `noise`, `warp`, `displacement`, and `luma-matte` appears at
+/// most once, in any document order; stages apply in the fixed order
+/// noise, warp, displacement, luma matte. An unknown stage, a
+/// duplicated stage, a prop on the `vfx` itself, or a bad stage
+/// fails with `E_BAD_VFX` (unknown keys keep `E_UNKNOWN_KEY`, missing
+/// files keep `E_MISSING_FILE`) naming the stage and the fix.
+fn validate_vfx(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxChain> {
+    for (k, v) in &node.props {
+        ctx.push(
+            v.line,
+            v.column,
+            "E_UNKNOWN_KEY",
+            format!(
+                "unknown vfx key {k:?} on {what}; a `vfx` carries stage children only ({})",
+                vfx_stage_list()
+            ),
+            "remove the key, or move the detail into a stage child",
+        );
+    }
+    if !node.props.is_empty() {
+        return None;
+    }
+    let mut noise: Option<VfxNoise> = None;
+    let mut warp: Option<VfxWarp> = None;
+    let mut displacement: Option<VfxDisplacement> = None;
+    let mut luma_matte: Option<VfxLumaMatte> = None;
+    let mut ok = true;
+    for child in &node.children {
+        let stage = child.name.as_str();
+        let canonical = match stage {
+            "noise" | "warp" | "displacement" => stage,
+            "luma-matte" | "luma_matte" => "luma-matte",
+            _ => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_VFX",
+                    format!(
+                        "`vfx` on {what} holds unknown stage `{stage}`; a `vfx` holds {} only",
+                        vfx_stage_list()
+                    ),
+                    format!(
+                        "use {} on the `vfx`, or remove the child",
+                        vfx_stage_list()
+                    ),
+                );
+                ok = false;
+                continue;
+            }
+        };
+        match canonical {
+            "noise" => {
+                if noise.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_VFX",
+                        format!(
+                            "`vfx` on {what} holds two `noise` stages; each stage appears at most once per chain"
+                        ),
+                        "keep one `noise` child on the `vfx`, or remove the extra child",
+                    );
+                    ok = false;
+                } else {
+                    match validate_vfx_noise(ctx, child, what) {
+                        Some(s) => noise = Some(s),
+                        None => ok = false,
+                    }
+                }
+            }
+            "warp" => {
+                if warp.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_VFX",
+                        format!(
+                            "`vfx` on {what} holds two `warp` stages; each stage appears at most once per chain"
+                        ),
+                        "keep one `warp` child on the `vfx`, or remove the extra child",
+                    );
+                    ok = false;
+                } else {
+                    match validate_vfx_warp(ctx, child, what) {
+                        Some(s) => warp = Some(s),
+                        None => ok = false,
+                    }
+                }
+            }
+            "displacement" => {
+                if displacement.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_VFX",
+                        format!(
+                            "`vfx` on {what} holds two `displacement` stages; each stage appears at most once per chain"
+                        ),
+                        "keep one `displacement` child on the `vfx`, or remove the extra child",
+                    );
+                    ok = false;
+                } else {
+                    match validate_vfx_displacement(ctx, child, what) {
+                        Some(s) => displacement = Some(s),
+                        None => ok = false,
+                    }
+                }
+            }
+            _ => {
+                if luma_matte.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_VFX",
+                        format!(
+                            "`vfx` on {what} holds two `luma-matte` stages; each stage appears at most once per chain"
+                        ),
+                        "keep one `luma-matte` child on the `vfx`, or remove the extra child",
+                    );
+                    ok = false;
+                } else {
+                    match validate_vfx_luma_matte(ctx, child, what) {
+                        Some(s) => luma_matte = Some(s),
+                        None => ok = false,
+                    }
+                }
+            }
+        }
+    }
+    if !ok {
+        return None;
+    }
+    Some(VfxChain {
+        noise,
+        warp,
+        displacement,
+        luma_matte,
+    })
+}
+
+/// Refuse unknown keys and children on one VFX stage node. Returns
+/// false when a refusal was pushed.
+fn vfx_stage_shape(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, keys: &[&str]) -> bool {
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !keys.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown {stage} key {k:?} on {what}; a `{stage}` carries {}", keys.join(", ")),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    for child in &node.children {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_VFX",
+            format!(
+                "`{stage}` on {what} holds child `{}`; a `{stage}` carries {} attributes only",
+                child.name,
+                keys.join(", ")
+            ),
+            format!("remove the child, or move the detail into the `{stage}` attributes"),
+        );
+        ok = false;
+    }
+    ok
+}
+
+/// One VFX stage number: absent means the documented default (or
+/// `None` for an optional knob), present must be a finite number
+/// inside its accepted range. Failures name the stage and the range,
+/// with a concrete fix.
+fn vfx_number(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    stage: &str,
+    key: &str,
+    range: (f64, f64),
+) -> Option<Option<f64>> {
+    match find(node, key) {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= range.0 && x <= range.1 => Some(Some(x)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VFX",
+                    format!(
+                        "`{stage}` on {what} sets `{key}` to {}; accepted `{key}` values run {} to {}",
+                        raw_text(v),
+                        range.0,
+                        range.1
+                    ),
+                    format!(
+                        "set `{key}=<number from {} to {}>` on the `{stage}`, or remove the key for its default",
+                        range.0, range.1
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One whole-pixel VFX stage size: absent means the documented
+/// default, present must be a whole number inside its accepted
+/// range. Failures name the stage and the range, with a fix.
+fn vfx_size(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    stage: &str,
+    key: &str,
+    range: (i64, i64),
+) -> Option<Option<u32>> {
+    match find(node, key) {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x)
+                if x.is_finite()
+                    && x.fract() == 0.0
+                    && x >= range.0 as f64
+                    && x <= range.1 as f64 =>
+            {
+                Some(Some(x as u32))
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VFX",
+                    format!(
+                        "`{stage}` on {what} sets `{key}` to {}; accepted `{key}` values run {} to {} whole pixels",
+                        raw_text(v),
+                        range.0,
+                        range.1
+                    ),
+                    format!(
+                        "set `{key}=<whole pixels from {} to {}>` on the `{stage}`, or remove the key for its default",
+                        range.0, range.1
+                    ),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One whole-number VFX stage seed: absent means the fixed default
+/// seed, present must be a whole number (never wall-clock
+/// randomness). Failures name the stage and the expected shape.
+fn vfx_seed(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str) -> Option<Option<i64>> {
+    match find(node, "seed") {
+        None => Some(None),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x.fract() == 0.0 => Some(Some(x as i64)),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_VFX",
+                    format!(
+                        "`{stage}` on {what} sets `seed` to {}; a `seed` is a whole number like `seed=7` (omit it for the fixed default seed)",
+                        raw_text(v),
+                    ),
+                    "set `seed=<whole number>` on the stage, or remove the key for the fixed default seed",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One VFX stage blend amount: absent means full strength, present
+/// must run 0 to 1. Failures name the stage and the range.
+fn vfx_amount(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str) -> Option<f64> {
+    match vfx_number(ctx, node, what, stage, "amount", VFX_AMOUNT_RANGE)? {
+        None => Some(VFX_DEFAULT_AMOUNT),
+        Some(x) => Some(x),
+    }
+}
+
+/// Check that a VFX stage picture reference names an existing file.
+/// A missing file fails with `E_MISSING_FILE` naming the file;
+/// decodability is proven at render prep, which refuses a corrupt
+/// file naming it before frame one.
+fn vfx_picture_src(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, key: &str) -> Option<String> {
+    let v = match find(node, key) {
+        None => return Some(String::new()),
+        Some(v) => v,
+    };
+    let src = match as_str(v) {
+        Some(s) => s.to_string(),
+        None => {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_VFX",
+                format!(
+                    "`{stage}` on {what} sets `{key}` to {}; a `{stage}` names its picture with `{key}=\"picture.png\"`",
+                    raw_text(v),
+                ),
+                format!("set `{key}=\"<project-folder-relative picture path>\"` on the `{stage}`"),
+            );
+            return None;
+        }
+    };
+    if !ctx.folder.join(&src).is_file() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FILE",
+            format!("{stage} source {src:?} does not exist or is not readable"),
+            format!("provide the file at the referenced path or fix the `{key}`"),
+        );
+        return None;
+    }
+    Some(src)
+}
+
+/// Validate one `noise` VFX stage: `amount` blends the grain from 0
+/// (pass-through) to 1 (full), `seed` patterns it deterministically.
+fn validate_vfx_noise(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxNoise> {
+    if !vfx_stage_shape(ctx, node, what, "noise", &["amount", "seed"]) {
+        return None;
+    }
+    Some(VfxNoise {
+        amount: vfx_amount(ctx, node, what, "noise")?,
+        seed: vfx_seed(ctx, node, what, "noise")?,
+    })
+}
+
+/// Validate one `warp` VFX stage: `grid` sizes the smooth warp cells
+/// in whole pixels, `strength` peaks the offset in canvas pixels,
+/// `amount` blends the warp from 0 (pass-through) to 1 (full).
+fn validate_vfx_warp(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxWarp> {
+    if !vfx_stage_shape(ctx, node, what, "warp", &["amount", "grid", "strength"]) {
+        return None;
+    }
+    Some(VfxWarp {
+        amount: vfx_amount(ctx, node, what, "warp")?,
+        grid: vfx_size(ctx, node, what, "warp", "grid", VFX_WARP_GRID_RANGE)?,
+        strength: vfx_number(ctx, node, what, "warp", "strength", VFX_WARP_STRENGTH_RANGE)?,
+    })
+}
+
+/// Validate one `displacement` VFX stage: `map` names the steering
+/// picture (omitted steers by the layer's own luma), `scale` peaks
+/// the offset in canvas pixels, `amount` blends from 0
+/// (pass-through) to 1 (full).
+fn validate_vfx_displacement(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxDisplacement> {
+    if !vfx_stage_shape(ctx, node, what, "displacement", &["amount", "map", "scale"]) {
+        return None;
+    }
+    let map = match vfx_picture_src(ctx, node, what, "displacement", "map")? {
+        s if s.is_empty() => None,
+        s => Some(s),
+    };
+    Some(VfxDisplacement {
+        amount: vfx_amount(ctx, node, what, "displacement")?,
+        map,
+        scale: vfx_number(ctx, node, what, "displacement", "scale", VFX_DISPLACEMENT_SCALE_RANGE)?,
+    })
+}
+
+/// Validate one `luma-matte` VFX stage: `src` names the matte picture
+/// (required), `amount` blends the cutout from 0 (pass-through) to 1
+/// (full). A missing `src` names the stage and the fix; a `src`
+/// pointing at a missing file names the file.
+fn validate_vfx_luma_matte(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxLumaMatte> {
+    if !vfx_stage_shape(ctx, node, what, "luma-matte", &["amount", "src"]) {
+        return None;
+    }
+    if find(node, "src").is_none() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_VFX",
+            format!("`luma-matte` on {what} is missing required `src`; a `luma-matte` cuts to its picture's luma"),
+            "set `src=\"<project-folder-relative picture path>\"` on the `luma-matte`",
+        );
+        return None;
+    }
+    let src = vfx_picture_src(ctx, node, what, "luma-matte", "src")?;
+    Some(VfxLumaMatte {
+        amount: vfx_amount(ctx, node, what, "luma-matte")?,
+        src,
+    })
+}
+
+/// Validate one `lane` composition child (Sprint 11 grade,
+/// CAP-001/T001): `lane track="<kind>"` carries at most one `grade`
+/// child applying to every clip on that track. A missing or unknown
+/// `track`, an unknown key or child, or a bad grade fails with
+/// `E_BAD_GRADE` (unknown keys keep `E_UNKNOWN_KEY`) naming the lane
+/// and the fix.
+fn validate_lane(ctx: &mut Ctx, node: &RawNode) -> Option<LaneGrade> {
+    const KEYS: &[&str] = &["track"];
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown lane key {k:?}; a `lane` carries `track` with a `grade` child"),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    for child in &node.children {
+        if child.name != "grade" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_GRADE",
+                format!(
+                    "lane holds `{}`; a `lane` carries one `grade` child only",
+                    child.name
+                ),
+                "write a `grade` child inside the `lane`, or remove the element",
+            );
+            ok = false;
+        }
+    }
+    if !ok {
+        return None;
+    }
+    let track = match find(node, "track") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_GRADE",
+                "lane is missing required `track`; a `lane` grades one track",
+                "add `track=\"video\"`, `track=\"audio\"`, `track=\"caption\"`, or `track=\"graphics\"` to the `lane`",
+            );
+            return None;
+        }
+        Some(v) => match as_str(v).and_then(TrackKind::parse) {
+            Some(t) => t,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_GRADE",
+                    format!(
+                        "lane names unknown track {}; accepted lanes are: {}",
+                        raw_text(v),
+                        TrackKind::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `track` to `video`, `audio`, `caption`, or `graphics`, or remove the `lane`",
+                );
+                return None;
+            }
+        },
+    };
+    let what = format!("{} lane", track.name());
+    let grade = parse_clip_grade(ctx, node, &what)?;
+    Some(LaneGrade { track, grade })
+}
+
+/// Accepted `transition` kinds for diagnostics, in spec order
+/// (fourteen natives, then the six-piece CSS gallery).
+fn transition_kind_list() -> String {
+    TransitionKind::ACCEPTED
+        .iter()
+        .map(|s| format!("`{s}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Validate one composition-level `transition` child (Sprint 11
+/// transitions, CAP-005/T006): `from`/`to` name clip ids (quoted, id
+/// syntax), `duration` is a positive number of seconds, and `kind`
+/// names one of the twenty accepted kinds. Unknown keys fail with
+/// `E_UNKNOWN_KEY`; children, missing keys, unreadable ids, and
+/// non-positive durations fail with `E_BAD_TRANSITION` naming the
+/// element and the fix. Id existence, handle lengths, and boundary
+/// overlaps resolve in [`validate_transition_links`], once clip
+/// windows settle.
+fn validate_transition(ctx: &mut Ctx, node: &RawNode) -> Option<Transition> {
+    const KEYS: &[&str] = &["from", "to", "duration", "kind"];
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_TRANSITION",
+            format!(
+                "`transition` holds child `{}`; a `transition` carries `from`, `to`, `duration`, and `kind` attributes only",
+                child.name
+            ),
+            "remove the child, or move the detail into the `transition` attributes",
+        );
+        return None;
+    }
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown transition key {k:?}; a `transition` carries `from`, `to`, `duration`, and `kind`"
+                ),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !ok {
+        return None;
+    }
+    // One endpoint id: absent, unquoted, or mis-shaped values fail
+    // naming the endpoint and the id shape.
+    fn transition_endpoint(
+        ctx: &mut Ctx,
+        node: &RawNode,
+        key: &str,
+    ) -> Option<String> {
+        match find(node, key) {
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_TRANSITION",
+                    format!(
+                        "`transition` is missing required `{key}`; a `transition` bridges two clips by id"
+                    ),
+                    format!("add `{key}=\\\"<clip id>\\\"` to the `transition`"),
+                );
+                None
+            }
+            Some(v) => match as_str(v) {
+                Some(s) if valid_id_syntax(s) => Some(s.to_string()),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_TRANSITION",
+                        format!(
+                            "`transition` `{key}` must be a quoted clip id (1-64 letters, digits, `-` or `_`); found {}",
+                            raw_text(v)
+                        ),
+                        format!("set `{key}=\\\"<clip id>\\\"` naming the intended clip"),
+                    );
+                    None
+                }
+            },
+        }
+    }
+    let from = transition_endpoint(ctx, node, "from")?;
+    let to = transition_endpoint(ctx, node, "to")?;
+    let duration = match find(node, "duration") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_TRANSITION",
+                "`transition` is missing required `duration`; a `transition` borrows a positive number of seconds from both clips",
+                "add `duration=<positive seconds>` to the `transition`",
+            );
+            return None;
+        }
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x > 0.0 => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TRANSITION",
+                    format!(
+                        "`transition` `duration` {} is invalid; a transition borrows a positive number of seconds (zero and negative durations are refused)",
+                        raw_text(v)
+                    ),
+                    "set `duration=<positive seconds>` on the `transition`, at most the shorter of the two clips",
+                );
+                return None;
+            }
+        },
+    };
+    let kind = match find(node, "kind") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_TRANSITION",
+                format!(
+                    "`transition` is missing required `kind`; a `transition` names one of: {}",
+                    transition_kind_list()
+                ),
+                format!(
+                    "set `kind=` to one of {} on the `transition`",
+                    transition_kind_list()
+                ),
+            );
+            return None;
+        }
+        Some(v) => match as_str(v).and_then(TransitionKind::parse) {
+            Some(k) => k,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_TRANSITION",
+                    format!(
+                        "`transition` names unknown kind {}; accepted kinds are: {}",
+                        raw_text(v),
+                        transition_kind_list()
+                    ),
+                    format!(
+                        "set `kind=` to one of {} on the `transition`",
+                        transition_kind_list()
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    Some(Transition {
+        from,
+        to,
+        duration,
+        kind,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Resolve transition links (Sprint 11 transitions, CAP-005/T006):
+/// every `from`/`to` must name a clip of this composition, no
+/// transition bridges a clip to itself, no two transitions sharing a
+/// clip overlap in time, and `duration` must fit inside both clips'
+/// ranges. Failures name the transition and the fix: unknown ids fail
+/// with `E_UNKNOWN_REF` naming the missing id; every other link
+/// failure uses `E_BAD_TRANSITION`.
+fn validate_transition_links(
+    ctx: &mut Ctx,
+    clips: &[Clip],
+    transitions: &[Transition],
+    fps: &Fps,
+) {
+    if transitions.is_empty() {
+        return;
+    }
+    let index_of = |id: &str| clips.iter().position(|c| c.id() == Some(id));
+    // Fully linked transitions (both endpoints resolve to distinct
+    // clips): the only ones whose windows and handles can be checked.
+    let mut linked: Vec<(usize, usize, usize)> = Vec::new();
+    for (i, t) in transitions.iter().enumerate() {
+        if t.from == t.to {
+            ctx.push(
+                t.line,
+                t.column,
+                "E_BAD_TRANSITION",
+                format!(
+                    "`transition` from {:?} to {:?} (kind `{}`) bridges a clip to itself; a transition joins two different clips",
+                    t.from,
+                    t.to,
+                    t.kind.name()
+                ),
+                "point `from` and `to` at two different clip ids, or remove the `transition`",
+            );
+            continue;
+        }
+        let from_idx = match index_of(&t.from) {
+            Some(idx) => idx,
+            None => {
+                ctx.push(
+                    t.line,
+                    t.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "`transition` from {:?} to {:?} (kind `{}`) names unknown `from` id {:?}; no clip in this composition declares that id",
+                        t.from,
+                        t.to,
+                        t.kind.name(),
+                        t.from
+                    ),
+                    format!(
+                        "declare `id={:?}` on the intended clip, or fix the spelling",
+                        t.from
+                    ),
+                );
+                continue;
+            }
+        };
+        let to_idx = match index_of(&t.to) {
+            Some(idx) => idx,
+            None => {
+                ctx.push(
+                    t.line,
+                    t.column,
+                    "E_UNKNOWN_REF",
+                    format!(
+                        "`transition` from {:?} to {:?} (kind `{}`) names unknown `to` id {:?}; no clip in this composition declares that id",
+                        t.from,
+                        t.to,
+                        t.kind.name(),
+                        t.to
+                    ),
+                    format!(
+                        "declare `id={:?}` on the intended clip, or fix the spelling",
+                        t.to
+                    ),
+                );
+                continue;
+            }
+        };
+        if from_idx == to_idx {
+            ctx.push(
+                t.line,
+                t.column,
+                "E_BAD_TRANSITION",
+                format!(
+                    "`transition` from {:?} to {:?} (kind `{}`) bridges a clip to itself; a transition joins two different clips",
+                    t.from,
+                    t.to,
+                    t.kind.name()
+                ),
+                "point `from` and `to` at two different clip ids, or remove the `transition`",
+            );
+            continue;
+        }
+        linked.push((i, from_idx, to_idx));
+    }
+    // One bridge per boundary at a time: two transitions sharing a
+    // clip whose windows overlap refuse naming both transitions.
+    for a in 0..linked.len() {
+        for b in (a + 1)..linked.len() {
+            let (i, from_i, to_i) = linked[a];
+            let (j, from_j, to_j) = linked[b];
+            if from_i != from_j && to_i != to_j && from_i != to_j && to_i != from_j {
+                continue;
+            }
+            let (s1, d1) = (clips[to_i].start(), transitions[i].duration);
+            let (s2, d2) = (clips[to_j].start(), transitions[j].duration);
+            if s1 < s2 + d2 && s2 < s1 + d1 {
+                let (first, second) = (&transitions[i], &transitions[j]);
+                ctx.push(
+                    second.line,
+                    second.column,
+                    "E_BAD_TRANSITION",
+                    format!(
+                        "`transition` from {:?} to {:?} (kind `{}`) overlaps `transition` from {:?} to {:?} (kind `{}`) on their shared clip; one boundary carries one transition at a time",
+                        second.from,
+                        second.to,
+                        second.kind.name(),
+                        first.from,
+                        first.to,
+                        first.kind.name()
+                    ),
+                    "shorten one `duration` so the windows no longer overlap, or remove one `transition`",
+                );
+            }
+        }
+    }
+    // Handles live inside the clips: `duration` must fit inside both
+    // ranges, and the shortfall reports in frames at this fps.
+    for (i, from_idx, to_idx) in &linked {
+        let t = &transitions[*i];
+        for (side, idx) in [("from", *from_idx), ("to", *to_idx)] {
+            let have = clips[idx].duration();
+            if !have.is_finite() || !t.duration.is_finite() {
+                continue;
+            }
+            let short = t.duration - have;
+            if short > 1e-9 {
+                let frames = ((short * fps.value()).ceil() as u64).max(1);
+                let clip_id = clips[idx].id().unwrap_or("<clip>");
+                ctx.push(
+                    t.line,
+                    t.column,
+                    "E_BAD_TRANSITION",
+                    format!(
+                        "`transition` from {:?} to {:?} (kind `{}`, duration {}s) needs {}s of `{}` clip {}; the clip runs {}s, short by {} frame{} at {}fps",
+                        t.from,
+                        t.to,
+                        t.kind.name(),
+                        t.duration,
+                        t.duration,
+                        side,
+                        clip_id,
+                        have,
+                        frames,
+                        if frames == 1 { "" } else { "s" },
+                        fps
+                    ),
+                    format!(
+                        "lengthen clip {}, or shorten `duration` to at most {}s",
+                        clip_id, have
+                    ),
+                );
+            }
+        }
+    }
+}
+
+/// Validate a composition `motion-blur` element (Sprint 11 motion
+/// blur, CAP-006/T007): attribute-only with a required `shutter`
+/// angle in degrees (0–360), a required whole-number `samples` budget
+/// (1–32), and a required `tier` (`auto`, `high`, `medium`, or
+/// `low`). Every refusal names `motion-blur` with the accepted shape
+/// and the fix; a second `motion-blur` on one composition is refused
+/// by the caller.
+fn validate_motion_blur(ctx: &mut Ctx, node: &RawNode) -> Option<MotionBlur> {
+    const KEYS: &[&str] = &["shutter", "samples", "tier"];
+    if !node.children.is_empty() {
+        let child = &node.children[0];
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_BLUR",
+            format!(
+                "`motion-blur` holds child `{}`; a `motion-blur` carries `shutter`, `samples`, and `tier` attributes only",
+                child.name
+            ),
+            "remove the child, or move the detail into the `motion-blur` attributes",
+        );
+        return None;
+    }
+    let mut ok = true;
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!(
+                    "unknown motion-blur key {k:?}; a `motion-blur` carries `shutter`, `samples`, and `tier`"
+                ),
+                "remove the key or check the spelling",
+            );
+            ok = false;
+        }
+    }
+    if !ok {
+        return None;
+    }
+    let shutter = match find(node, "shutter") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_BLUR",
+                "`motion-blur` is missing required `shutter`; a `motion-blur` blurs moving content along its motion scaled by the shutter angle",
+                "add `shutter=<degrees from 0 to 360>` to the `motion-blur`",
+            );
+            return None;
+        }
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.0..=360.0).contains(&x) => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_BLUR",
+                    format!(
+                        "`motion-blur` `shutter` {} is invalid; the shutter angle runs 0 to 360 degrees",
+                        raw_text(v)
+                    ),
+                    "set `shutter=<degrees from 0 to 360>` on the `motion-blur`",
+                );
+                return None;
+            }
+        },
+    };
+    let samples = match find(node, "samples") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_BLUR",
+                "`motion-blur` is missing required `samples`; a `motion-blur` draws up to `samples` sub-frame pictures per frame",
+                "add `samples=<whole pictures from 1 to 32>` to the `motion-blur`",
+            );
+            return None;
+        }
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x.fract() == 0.0 && (1.0..=32.0).contains(&x) => x as u32,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_BLUR",
+                    format!(
+                        "`motion-blur` `samples` {} is invalid; the sample budget runs 1 to 32 whole pictures",
+                        raw_text(v)
+                    ),
+                    "set `samples=<whole pictures from 1 to 32>` on the `motion-blur`",
+                );
+                return None;
+            }
+        },
+    };
+    let tier = match find(node, "tier") {
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_BLUR",
+                format!(
+                    "`motion-blur` is missing required `tier`; a `motion-blur` samples at one of: {}",
+                    MotionBlurTier::ACCEPTED.join(", ")
+                ),
+                format!(
+                    "set `tier=` to one of {} on the `motion-blur`",
+                    MotionBlurTier::ACCEPTED.join(", ")
+                ),
+            );
+            return None;
+        }
+        Some(v) => match as_str(v).and_then(MotionBlurTier::parse) {
+            Some(t) => t,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_BLUR",
+                    format!(
+                        "`motion-blur` names unknown tier {}; accepted tiers are: {}",
+                        raw_text(v),
+                        MotionBlurTier::ACCEPTED.join(", ")
+                    ),
+                    format!(
+                        "set `tier=` to one of {} on the `motion-blur`",
+                        MotionBlurTier::ACCEPTED.join(", ")
+                    ),
+                );
+                return None;
+            }
+        },
+    };
+    Some(MotionBlur {
+        shutter,
+        samples,
+        tier,
+        line: node.name_line,
+        column: node.name_column,
+    })
 }
 
 /// Shared `stagger` delay check (Sprint 7 motion, CAP-002): absent

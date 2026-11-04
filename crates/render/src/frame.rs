@@ -12,8 +12,25 @@
 
 use crate::motion_plan::ClipMotion;
 use motion::Prop;
-use notation::model::{Clip, Composition, Fit, Placement, Rgb};
+use notation::model::{Clip, Composition, Fit, Placement, ResolvedGrade, Rgb};
 use timebase::Time;
+
+/// One visible item's resolved look (Sprint 11 grade, CAP-001/T001+T002):
+/// the inward-out merge (composition, then lane, then clip) for the
+/// clip at global document id `doc`. Flex children share their
+/// container's `doc`, so they share its look. Clone, not Copy: detail
+/// stages own heap curve lists. `effects` holds the clip's `effect`
+/// children in document order (Sprint 11 effects, CAP-003/T004),
+/// applied after the grade chain; `vfx` holds the clip's `vfx` chain
+/// (Sprint 11 VFX, CAP-004/T005), applied after the effects in the
+/// fixed order noise, warp, displacement, luma matte.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FrameGrade {
+    pub doc: usize,
+    pub grade: ResolvedGrade,
+    pub effects: Vec<notation::model::Effect>,
+    pub vfx: notation::model::VfxChain,
+}
 
 /// One visible text element at one frame time.
 #[derive(Debug, Clone, PartialEq)]
@@ -389,6 +406,55 @@ pub struct FrameDescription {
     /// Visible items in paint order: written `order` first, document
     /// order between equal orders.
     pub items: Vec<FrameItem>,
+    /// Resolved look per visible item (Sprint 11 grade, CAP-001/T001),
+    /// keyed by global document id and independent of paint order.
+    pub grades: Vec<FrameGrade>,
+    /// Composition-wide look (Sprint 11 grade, CAP-001/T001): the
+    /// composition `grade` alone, carried by the background.
+    pub composition_grade: ResolvedGrade,
+}
+
+impl FrameDescription {
+    /// Resolved look for one visible item: the composition, lane, and
+    /// clip merge for the clip at `doc`. Items without an entry (never
+    /// on valid derivations) show the identity look.
+    pub fn grade_for(&self, doc: usize) -> ResolvedGrade {
+        // NOTE: grades clone here (Sprint 11 T002 detail stages own
+        // heap curve lists, so the resolved look is Clone, not Copy).
+        self.grades
+            .iter()
+            .find(|g| g.doc == doc)
+            .map(|g| g.grade.clone())
+            .unwrap_or_else(ResolvedGrade::identity)
+    }
+
+    /// Authored effects for one visible item (Sprint 11 effects,
+    /// CAP-003/T004): the `effect` children of the clip at `doc` in
+    /// document order. Items without an entry carry no effects.
+    pub fn effects_for(&self, doc: usize) -> &[notation::model::Effect] {
+        self.grades
+            .iter()
+            .find(|g| g.doc == doc)
+            .map(|g| g.effects.as_slice())
+            .unwrap_or(&[])
+    }
+
+    /// Authored VFX chain for one visible item (Sprint 11 VFX,
+    /// CAP-004/T005): the `vfx` child of the clip at `doc`. Items
+    /// without an entry carry the empty chain.
+    pub fn vfx_for(&self, doc: usize) -> &notation::model::VfxChain {
+        static EMPTY: notation::model::VfxChain = notation::model::VfxChain {
+            noise: None,
+            warp: None,
+            displacement: None,
+            luma_matte: None,
+        };
+        self.grades
+            .iter()
+            .find(|g| g.doc == doc)
+            .map(|g| &g.vfx)
+            .unwrap_or(&EMPTY)
+    }
 }
 
 /// Derive the description of output frame `frame`: exact time
@@ -429,8 +495,35 @@ pub fn describe_nested_at(
     out_frame: u64,
     now: Time,
 ) -> FrameDescription {
+    describe_nested_at_filtered(view, root, out_frame, now, None)
+}
+
+/// Derive the description of the tree root at one exact composition
+/// time with a top-level clip filter (Sprint 11 transitions,
+/// CAP-005/T006): like [`describe_nested_at`], but `keep_top` decides
+/// which root clips contribute. A `None` filter keeps every clip and
+/// describes exactly like [`describe_nested_at`]; a provided filter
+/// receives each root clip's local index (nested expansions of a kept
+/// clip still resolve fully, so a kept `nest` draws its whole
+/// subtree). Transition bridges describe their isolated pictures
+/// through this filter; ordinary frames pass `None` and render
+/// exactly as before.
+pub fn describe_nested_at_filtered(
+    view: &NestView,
+    root: usize,
+    out_frame: u64,
+    now: Time,
+    keep_top: Option<&dyn Fn(usize) -> bool>,
+) -> FrameDescription {
     let comp = view.comps[root];
-    let mut items = collect_items(view, root, now, 0);
+    let (mut items, grades) = collect_items(
+        view,
+        root,
+        now,
+        0,
+        &ResolvedGrade::identity(),
+        keep_top,
+    );
     // Written order decides; document order breaks ties, and no other
     // stacking (element kind or timing) overrides it. `sort_by` is
     // stable, so equal orders keep document order.
@@ -443,6 +536,8 @@ pub fn describe_nested_at(
         height: comp.height,
         background: comp.background,
         items,
+        grades,
+        composition_grade: ResolvedGrade::identity().layer(&comp.grade),
     }
 }
 
@@ -451,15 +546,34 @@ pub fn describe_nested_at(
 /// global (`bases[ci] + local index`) so the items address the unified
 /// prepared media. Unresolvable targets and empty child timelines
 /// contribute nothing; valid projects never hit the depth cap.
-fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameItem> {
+fn collect_items(
+    view: &NestView,
+    ci: usize,
+    now: Time,
+    depth: u8,
+    outer: &ResolvedGrade,
+    keep_top: Option<&dyn Fn(usize) -> bool>,
+) -> (Vec<FrameItem>, Vec<FrameGrade>) {
     use crate::motion_plan::secs_to_time;
     if depth > MAX_NEST_RENDER_DEPTH {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     }
     let comp = view.comps[ci];
     let base = view.bases[ci];
     let t = now.to_f64();
+    // Grade base for this composition: the parent chain (identity at
+    // the root) layered with this composition's own grade. Each clip
+    // then layers its lane grade and its own grade inward-out, with
+    // missing pieces inherited, never zeroed.
+    let comp_base = outer.layer(&comp.grade);
+    let lane_grade = |clip: &Clip| {
+        comp.lane_grades
+            .iter()
+            .find(|l| l.track == clip.track())
+            .map(|l| &l.grade)
+    };
     let mut items: Vec<FrameItem> = Vec::new();
+    let mut grades: Vec<FrameGrade> = Vec::new();
     for (local, clip) in comp.clips.iter().enumerate() {
         // Hidden clips contribute no picture (Sprint 6 T009): the
         // frame shows them as if absent. Sound exclusion rides in the
@@ -467,12 +581,27 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
         if clip.hidden() {
             continue;
         }
+        // Transition isolation (Sprint 11 transitions, CAP-005/T006):
+        // the top-level filter drops every root clip the bridge does
+        // not draw, so the bridge pictures hold exactly one side.
+        // Nested subtrees are untouched (a kept `nest` still expands
+        // fully), and `None` keeps everything, as before.
+        if depth == 0 {
+            if let Some(keep) = keep_top {
+                if !keep(local) {
+                    continue;
+                }
+            }
+        }
         let doc = base + local;
         let start_t = secs_to_time(clip.start());
         let end_t = start_t + secs_to_time(clip.duration());
         if now < start_t || now >= end_t {
             continue;
         }
+        // Inward-out look for this clip: composition, then lane, then
+        // clip, with missing pieces inherited, never zeroed.
+        let grade = comp_base.layer_opt(lane_grade(clip)).layer(clip.grade());
         let motion = view.motions[ci].get(local);
         let eval = motion.map(|m| m.values_at(now)).unwrap_or_else(|| {
             // No motion entry: the clip holds its own values.
@@ -490,7 +619,8 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
         // Clips without a motion entry never touch anything.
         let touches = |prop: Prop| motion.is_some_and(|m| m.touches(prop));
         match clip {
-            Clip::Text(tc) => items.push(FrameItem::Text(ResolvedText {
+            Clip::Text(tc) => {
+                items.push(FrameItem::Text(ResolvedText {
                 doc,
                 order: tc.order,
                 // Sprint 7 text effects (CAP-009): a typewriter reveal
@@ -518,8 +648,11 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 rotate_y: eval.rotate_y,
                 blur: eval.blur,
                 turn: tc.turn,
-            })),
-            Clip::Video(v) => items.push(FrameItem::Video(ResolvedVideo {
+            }));
+            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+            }
+            Clip::Video(v) => {
+                items.push(FrameItem::Video(ResolvedVideo {
                 doc,
                 order: v.order,
                 // Sprint 5 T002: the clip consumes its source window at
@@ -536,8 +669,11 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 rotate_y: eval.rotate_y,
                 blur: eval.blur,
                 turn: v.turn,
-            })),
-            Clip::Box(b) => items.push(FrameItem::Box(ResolvedBox {
+            }));
+            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+            }
+            Clip::Box(b) => {
+                items.push(FrameItem::Box(ResolvedBox {
                 doc,
                 order: b.order,
                 x: eval.x,
@@ -578,7 +714,9 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 rotate_y: eval.rotate_y,
                 blur: eval.blur,
                 turn: b.turn,
-            })),
+            }));
+            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+            }
             // A `flex` container (Sprint 8 layout, T001) emits one box
             // item per laid-out child: the shared layout function
             // positions them, so checked offsets and painted pixels
@@ -640,6 +778,12 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                         blur: 0.0,
                         turn: notation::model::Turn3D::flat(),
                     }));
+                    grades.push(FrameGrade {
+                        doc,
+                        grade: grade.clone(),
+                        effects: clip.effects().to_vec(),
+                        vfx: clip.vfx().clone(),
+                    });
                 }
             }
             // Audio tracks draw no picture: they ride in the composition
@@ -667,16 +811,44 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                     let interval = 1.0 / child.fps.value().max(1.0);
                     secs_to_time((content_end - interval).max(n.trim_start))
                 };
-                for mut item in collect_items(view, ti, child_now, depth + 1) {
+                // The child's items resolve under the nest use: the
+                // parent chain plus this composition, its lane for the
+                // nest clip's track, and the nest clip's own grade form
+                // the outer chain the child composition layers under.
+                let child_outer = comp_base.layer_opt(lane_grade(clip)).layer(&n.grade);
+                let (mut child_items, mut child_grades) =
+                    collect_items(view, ti, child_now, depth + 1, &child_outer, keep_top);
+                for item in child_items.iter_mut() {
                     item.shift_order(n.order);
-                    items.push(item);
                 }
+                // The nest clip's own effects finish the nested content
+                // (Sprint 11 effects, CAP-003/T004): outer look last,
+                // like the grade chain, in the nest clip's document
+                // order.
+                if !n.effects.is_empty() {
+                    for g in child_grades.iter_mut() {
+                        g.effects.extend(n.effects.iter().cloned());
+                    }
+                }
+                // The nest clip's own VFX chain finishes the nested
+                // content (Sprint 11 VFX, CAP-004/T005): each stage
+                // the nested item already defines wins, each missing
+                // stage inherits the nest use, so the merged chain
+                // still holds every stage at most once.
+                if !n.vfx.is_empty() {
+                    for g in child_grades.iter_mut() {
+                        g.vfx = g.vfx.layer_outer(&n.vfx);
+                    }
+                }
+                items.append(&mut child_items);
+                grades.extend(child_grades);
             }
             // A vector path resolves like a box: every paint field
             // evaluates per frame (motion tweens win), while `d` and
             // the fill rule ride authored — path data carries no
             // motion of its own in T005.
-            Clip::Path(p) => items.push(FrameItem::Path(ResolvedPath {
+            Clip::Path(p) => {
+                items.push(FrameItem::Path(ResolvedPath {
                 doc,
                 order: p.order,
                 x: eval.x,
@@ -715,7 +887,9 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 rotate_y: eval.rotate_y,
                 blur: eval.blur,
                 turn: p.turn,
-            })),
+            }));
+            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+            }
             Clip::Image(im) => {
                 // SVG sources (Sprint 8 look, T005) decode pre-composed
                 // at a concrete size, so an omitted extent falls back
@@ -754,12 +928,14 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 blur: eval.blur,
                 turn: im.turn,
                 }));
+                grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
             }
             // An `svg` clip resolves to an image item: validation
             // guarantees `width`/`height`, and preparation decodes the
             // source pre-composed at that declared size, so the shared
             // blitter draws it with `fill` placement.
-            Clip::Svg(sv) => items.push(FrameItem::Image(ResolvedImage {
+            Clip::Svg(sv) => {
+                items.push(FrameItem::Image(ResolvedImage {
                 doc,
                 order: sv.order,
                 path: sv.path.clone(),
@@ -782,10 +958,12 @@ fn collect_items(view: &NestView, ci: usize, now: Time, depth: u8) -> Vec<FrameI
                 rotate_y: eval.rotate_y,
                 blur: eval.blur,
                 turn: sv.turn,
-            })),
+            }));
+            grades.push(FrameGrade { doc, grade, effects: clip.effects().to_vec(), vfx: clip.vfx().clone() });
+            }
         }
     }
-    items
+    (items, grades)
 }
 
 #[cfg(test)]
@@ -820,6 +998,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -859,6 +1041,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -890,6 +1075,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -925,6 +1113,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -1237,6 +1428,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         });
         let comp = comp_with(vec![clip]);
         let motions = plan_motions(&comp, 30);
@@ -1314,6 +1508,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -1340,6 +1537,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -1864,6 +2065,9 @@ mod tests {
             rate: 2.0,
             order: 0,
             hidden: false,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
             line: 1,
             column: 1,
         })]);
@@ -1956,6 +2160,9 @@ mod tests {
             label: None,
             start_after: None,
             hidden: false,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
             start: 0.0,
             duration: 2.0,
             x: 10.0,
@@ -2159,5 +2366,228 @@ mod tests {
             FrameItem::Box(r) => assert_eq!(r.fill_paint, paint),
             other => panic!("expected a box item, got {other:?}"),
         }
+    }
+
+    // --- Sprint 11 grade (T001): inward-out level resolution ---
+
+    fn grade(
+        preset: Option<notation::model::GradePreset>,
+        exposure: Option<f64>,
+        contrast: Option<f64>,
+        saturation: Option<f64>,
+        temperature: Option<f64>,
+        tint: Option<f64>,
+    ) -> notation::model::Grade {
+        notation::model::Grade {
+            preset,
+            exposure,
+            contrast,
+            saturation,
+            temperature,
+            tint,
+            ..Default::default()
+        }
+    }
+
+    fn boxed_on_track(track: TrackKind, start: f64, duration: f64, order: i64) -> Clip {
+        let mut clip = boxed(start, duration, order);
+        if let Clip::Box(b) = &mut clip {
+            b.track = track;
+        }
+        clip
+    }
+
+    #[test]
+    fn grade_resolves_inward_out_with_clip_winning() {
+        use notation::model::GradePreset;
+        // Composition filmic +1 EV, lane overrides exposure, clip
+        // overrides exposure again and clears the preset: the clip's
+        // pieces win, the lane's saturation and the composition's
+        // contrast inherit.
+        let mut comp = comp_with(vec![boxed_on_track(TrackKind::Video, 0.0, 2.0, 0)]);
+        comp.grade = grade(Some(GradePreset::Filmic), Some(1.0), Some(0.2), None, None, None);
+        comp.lane_grades = vec![notation::model::LaneGrade {
+            track: TrackKind::Video,
+            grade: grade(None, Some(-0.5), None, Some(0.5), None, None),
+        }];
+        if let Clip::Box(b) = &mut comp.clips[0] {
+            b.grade = grade(
+                Some(GradePreset::None),
+                Some(-1.0),
+                None,
+                None,
+                Some(0.25),
+                None,
+            );
+        }
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        assert_eq!(desc.items.len(), 1);
+        let resolved = desc.grade_for(0);
+        assert_eq!(resolved.preset, GradePreset::None);
+        assert_eq!(resolved.exposure, -1.0);
+        assert_eq!(resolved.contrast, 0.2);
+        assert_eq!(resolved.saturation, 0.5);
+        assert_eq!(resolved.temperature, 0.25);
+        assert_eq!(resolved.tint, 0.0);
+        assert_eq!(desc.grades.len(), 1);
+        assert_eq!(desc.grades[0].doc, 0);
+        // The composition grade alone rides the background entry.
+        assert_eq!(desc.composition_grade.preset, GradePreset::Filmic);
+        assert_eq!(desc.composition_grade.exposure, 1.0);
+    }
+
+    #[test]
+    fn grade_lane_applies_per_track_only() {
+        // A video-lane grade touches the video-track box only; the
+        // graphics-track box keeps the composition look.
+        let mut comp = comp_with(vec![
+            boxed_on_track(TrackKind::Video, 0.0, 2.0, 0),
+            boxed_on_track(TrackKind::Graphics, 0.0, 2.0, 1),
+        ]);
+        comp.grade = grade(None, Some(0.5), None, None, None, None);
+        comp.lane_grades = vec![notation::model::LaneGrade {
+            track: TrackKind::Video,
+            grade: grade(None, Some(2.0), None, None, None, None),
+        }];
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        assert_eq!(desc.grade_for(0).exposure, 2.0);
+        assert_eq!(desc.grade_for(1).exposure, 0.5);
+    }
+
+    #[test]
+    fn grade_nest_use_layers_parent_chain_outside_child() {
+        use notation::model::{GradePreset, NestClip};
+        // A nested item resolves under the nest use: the root
+        // composition grade, the root lane for the nest clip's track,
+        // and the nest clip's own grade form the outer chain the child
+        // composition layers under.
+        let mut child = comp_with(vec![boxed(0.0, 2.0, 0)]);
+        child.name = "kid".to_string();
+        if let Clip::Box(b) = &mut child.clips[0] {
+            b.grade = grade(None, Some(1.0), None, None, None, None);
+        }
+        let mut root = comp_with(vec![Clip::Nest(NestClip {
+            target: "kid".to_string(),
+            start: 0.0,
+            duration: 2.0,
+            id: None,
+            track: TrackKind::Video,
+            label: None,
+            start_after: None,
+            trim_start: 0.0,
+            trim_end: None,
+            rate: 1.0,
+            order: 0,
+            hidden: false,
+            grade: grade(None, None, None, Some(-0.5), None, None),
+            effects: Vec::new(),
+            vfx: Default::default(),
+            line: 1,
+            column: 1,
+        })]);
+        root.grade = grade(None, None, None, None, Some(0.5), None);
+        root.lane_grades = vec![notation::model::LaneGrade {
+            track: TrackKind::Video,
+            grade: grade(None, None, Some(0.3), None, None, None),
+        }];
+        let root_motions = plan_motions(&root, 30);
+        let child_motions = plan_motions(&child, 30);
+        let view = NestView {
+            comps: vec![&root, &child],
+            motions: vec![&root_motions, &child_motions],
+            bases: vec![0, 1],
+        };
+        let at = crate::motion_plan::frame_time(&root.fps, 0);
+        let desc = describe_nested_at(&view, 0, 0, at);
+        assert_eq!(desc.items.len(), 1);
+        // The child box is the only item, at global doc 1.
+        let resolved = desc.grade_for(1);
+        assert_eq!(resolved.preset, GradePreset::None);
+        assert_eq!(resolved.exposure, 1.0);
+        assert_eq!(resolved.contrast, 0.3);
+        assert_eq!(resolved.saturation, -0.5);
+        assert_eq!(resolved.temperature, 0.5);
+        assert_eq!(resolved.tint, 0.0);
+    }
+
+    #[test]
+    fn vfx_nest_use_merges_inner_wins_per_stage() {
+        use notation::model::{NestClip, VfxChain, VfxNoise, VfxWarp};
+        // The nested box defines noise; the nest use defines noise
+        // (losing seed) and warp. The merged chain keeps the inner
+        // noise and inherits the outer warp.
+        let mut child = comp_with(vec![boxed(0.0, 2.0, 0)]);
+        child.name = "kid".to_string();
+        if let Clip::Box(b) = &mut child.clips[0] {
+            b.vfx = VfxChain {
+                noise: Some(VfxNoise { amount: 0.5, seed: Some(7) }),
+                ..VfxChain::empty()
+            };
+        }
+        let root = comp_with(vec![Clip::Nest(NestClip {
+            target: "kid".to_string(),
+            start: 0.0,
+            duration: 2.0,
+            id: None,
+            track: TrackKind::Video,
+            label: None,
+            start_after: None,
+            trim_start: 0.0,
+            trim_end: None,
+            rate: 1.0,
+            order: 0,
+            hidden: false,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: VfxChain {
+                noise: Some(VfxNoise { amount: 1.0, seed: Some(9) }),
+                warp: Some(VfxWarp { amount: 1.0, grid: Some(8), strength: None }),
+                ..VfxChain::empty()
+            },
+            line: 1,
+            column: 1,
+        })]);
+        let root_motions = plan_motions(&root, 30);
+        let child_motions = plan_motions(&child, 30);
+        let view = NestView {
+            comps: vec![&root, &child],
+            motions: vec![&root_motions, &child_motions],
+            bases: vec![0, 1],
+        };
+        let at = crate::motion_plan::frame_time(&root.fps, 0);
+        let desc = describe_nested_at(&view, 0, 0, at);
+        assert_eq!(desc.items.len(), 1);
+        let vfx = desc.vfx_for(1);
+        // Inner noise wins over the outer noise.
+        assert_eq!(vfx.noise.as_ref().expect("inner noise").seed, Some(7));
+        assert_eq!(vfx.noise.as_ref().expect("inner noise").amount, 0.5);
+        // Missing warp inherits the outer one.
+        assert_eq!(vfx.warp.as_ref().expect("outer warp").grid, Some(8));
+        assert!(vfx.displacement.is_none());
+        assert!(vfx.luma_matte.is_none());
+    }
+
+    #[test]
+    fn grade_missing_levels_are_skipped_never_zeroed() {
+        // No lane grade, no clip grade: the composition values stand.
+        // An unknown doc id resolves to the identity look.
+        let mut comp = comp_with(vec![boxed(0.0, 2.0, 0)]);
+        comp.grade = grade(
+            Some(notation::model::GradePreset::Noir),
+            None,
+            None,
+            Some(-0.5),
+            None,
+            None,
+        );
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        let resolved = desc.grade_for(0);
+        assert_eq!(resolved.preset, notation::model::GradePreset::Noir);
+        assert_eq!(resolved.saturation, -0.5);
+        assert_eq!(resolved.exposure, 0.0);
+        assert_eq!(desc.grade_for(99), notation::model::ResolvedGrade::identity());
     }
 }

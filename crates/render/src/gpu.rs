@@ -141,12 +141,13 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
     let mut out = String::new();
     let _ = write!(
         out,
-        "frame={} time={} canvas={}x{} bg={} items={} [",
+        "frame={} time={} canvas={}x{} bg={} cg={} items={} [",
         desc.frame,
         desc.time.to_exact(),
         desc.width,
         desc.height,
         hex((desc.background.r, desc.background.g, desc.background.b)),
+        desc.composition_grade.fingerprint(),
         desc.items.len()
     );
     for item in &desc.items {
@@ -154,7 +155,7 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
             FrameItem::Text(r) => {
                 let _ = write!(
                     out,
-                    "text#{} order={} x={} y={} size={} color={} lh={} ls={} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?};",
+                    "text#{} order={} x={} y={} size={} color={} lh={} ls={} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?} g={};",
                     r.doc,
                     r.order,
                     num(r.x),
@@ -171,12 +172,13 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.blur),
                     r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
                     r.turn.origin,
+                    desc.grade_for(r.doc).fingerprint(),
                 );
             }
             FrameItem::Video(r) => {
                 let _ = write!(
                     out,
-                    "video#{} order={} src_t={} fit={:?} x={} y={} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?};",
+                    "video#{} order={} src_t={} fit={:?} x={} y={} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?} g={};",
                     r.doc,
                     r.order,
                     num(r.src_t),
@@ -191,12 +193,13 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.blur),
                     r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
                     r.turn.origin,
+                    desc.grade_for(r.doc).fingerprint(),
                 );
             }
             FrameItem::Box(r) => {
                 let _ = write!(
                     out,
-                    "box#{} order={} x={} y={} {}x{} fill={} paint={} radius={} border={}:{} stroke={} shadow={} blend={} backdrop={}/{} overflow={} mask={} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?};",
+                    "box#{} order={} x={} y={} {}x{} fill={} paint={} radius={} border={}:{} stroke={} shadow={} blend={} backdrop={}/{} overflow={} mask={} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?} g={};",
                     r.doc,
                     r.order,
                     num(r.x),
@@ -243,12 +246,13 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.blur),
                     r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
                     r.turn.origin,
+                    desc.grade_for(r.doc).fingerprint(),
                 );
             }
             FrameItem::Path(r) => {
                 let _ = write!(
                     out,
-                    "path#{} order={} {:?} x={} y={} rule={} fill={} stroke={}:{}:{} shadow={} blend={} backdrop={}/{} overflow={} mask={} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?};",
+                    "path#{} order={} {:?} x={} y={} rule={} fill={} stroke={}:{}:{} shadow={} blend={} backdrop={}/{} overflow={} mask={} opacity={} scale={} rot={} rx={} ry={} blur={} pers={} org={:?} g={};",
                     r.doc,
                     r.order,
                     r.d,
@@ -293,12 +297,13 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.blur),
                     r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
                     r.turn.origin,
+                    desc.grade_for(r.doc).fingerprint(),
                 );
             }
             FrameItem::Image(r) => {
                 let _ = write!(
                     out,
-                    "image#{} order={} {:?} x={} y={} w={} h={} fit={:?} place={:?}/{:?} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?};",
+                    "image#{} order={} {:?} x={} y={} w={} h={} fit={:?} place={:?}/{:?} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?} g={};",
                     r.doc,
                     r.order,
                     r.path,
@@ -317,6 +322,7 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     num(r.blur),
                     r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
                     r.turn.origin,
+                    desc.grade_for(r.doc).fingerprint(),
                 );
             }
         }
@@ -341,7 +347,40 @@ pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> 
     let view = prep.nest_view();
     let at = prep.range_start + crate::motion_plan::frame_time(&prep.composition().fps, frame);
     let desc = crate::frame::describe_nested_at(&view, 0, frame, at);
-    render_description(prep, &desc)
+    let active = crate::transitions::active_transitions(prep.composition(), at);
+    if active.is_empty() {
+        return render_description(prep, &desc);
+    }
+    // Bridged frame (Sprint 11 transitions, CAP-005/T006): describe
+    // the base plus every bridge pair first (owned descriptions, so
+    // the tree borrow ends here), then draw through the GPU split
+    // path like an ordinary frame.
+    let planned = crate::render::plan_transition_frame(&view, 0, frame, &desc, &active);
+    let Prepared {
+        videos,
+        ranges,
+        images,
+        layouts,
+        dyn_layouts,
+        bitmap_fallback,
+        raster,
+        paths,
+        folder,
+        ..
+    } = prep;
+    crate::render::draw_planned_transition(
+        videos,
+        ranges,
+        images,
+        layouts,
+        dyn_layouts,
+        *bitmap_fallback,
+        raster,
+        paths,
+        folder.as_path(),
+        crate::render::Backend::Gpu,
+        &planned,
+    )
 }
 
 /// Draw one frame description on the GPU picture path (T013/T014).
@@ -399,20 +438,36 @@ pub(crate) fn render_description_split(
     use crate::render::{
         blit_dest, blit_fit, blur_on, draw_bitmap_advanced, draw_bitmap_text_item,
         draw_bitmap_text_layer, draw_box, draw_box_advanced, draw_image, draw_image_advanced,
-        draw_text_advanced, draw_text_block, draw_video_advanced, fill_canvas, item_turn,
+        draw_text_advanced, draw_text_block, draw_video_advanced, item_turn,
         layer_ink_bbox, pick_picture_or_hold, turn_probe, wrap_loop_time,
     };
+    use crate::render::fill_graded_background;
     let (cw, chh) = (desc.width, desc.height);
     let mut frame = vec![0u8; cw as usize * chh as usize * 3];
-    fill_canvas(
+    // LUT grids resolve once per frame from disk (Sprint 11 grade,
+    // CAP-002/T003), exactly like the CPU blitter: the freshness is
+    // the mid-render vanish check.
+    let mut luts = crate::render::LutFrameCache::new();
+    // Background fill, carrying the composition-wide grade alone
+    // (Sprint 11 grade, T001+T002), exactly like the CPU blitter:
+    // spatial grades paint per pixel through the shared helper.
+    let comp_grade = luts.grade(folder, &desc.composition_grade)?;
+    fill_graded_background(
         &mut frame,
-        desc.background.r,
-        desc.background.g,
-        desc.background.b,
+        desc.width,
+        desc.height,
+        desc.background,
+        &comp_grade,
     );
     for item in &desc.items {
         match item {
             FrameItem::Video(v) => {
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(v.doc))?;
+                let effects = desc.effects_for(v.doc);
+                let vfx = desc.vfx_for(v.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
                 let vi = videos
                     .iter()
                     .position(|p| p.clip_idx == v.doc)
@@ -461,8 +516,8 @@ pub(crate) fn render_description_split(
                 let card = blit_dest(cw, chh, sw, sh, v.fit, qv.scale, qv.x, qv.y)
                     .map(|(dx, dy, dw, dh)| (dx, dy, dx + dw, dy + dh));
                 let turn = card.and_then(|c| item_turn(qv.rotate_x, qv.rotate_y, &qv.turn, c));
-                if blur_on(qv.blur) || turn.is_some() {
-                    draw_video_advanced(&mut frame, cw, chh, &qv, &pic, sw, sh, turn);
+                if blur_on(qv.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                    draw_video_advanced(&mut frame, cw, chh, &qv, &pic, sw, sh, turn, &grade, effects, vfx, &maps);
                 } else {
                     blit_fit(
                         &mut frame,
@@ -481,6 +536,12 @@ pub(crate) fn render_description_split(
                 }
             }
             FrameItem::Text(tc) => {
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(tc.doc))?;
+                let effects = desc.effects_for(tc.doc);
+                let vfx = desc.vfx_for(tc.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
                 if tc.value.is_empty() && !tc.has_spans {
                     // A typewriter reveal at progress 0 shows no pieces:
                     // nothing to draw at this instant. A value-less span
@@ -513,9 +574,11 @@ pub(crate) fn render_description_split(
                             q.y + block.height as f64 * q.scale,
                         );
                         let turn = item_turn(q.rotate_x, q.rotate_y, &q.turn, card);
-                        if blur_on(q.blur) || turn.is_some() {
-                            draw_text_advanced(&mut frame, cw, chh, raster, &block, &q, turn, card)
-                                .map_err(|e| format!("gpu render failed: {e}"))?;
+                        if blur_on(q.blur) || turn.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                            draw_text_advanced(
+                                &mut frame, cw, chh, raster, &block, &q, turn, card, &grade, effects, vfx, &maps,
+                            )
+                            .map_err(|e| format!("gpu render failed: {e}"))?;
                         } else {
                             draw_text_block(&mut frame, cw, chh, raster, &block, &q)
                                 .map_err(|e| format!("gpu render failed: {e}"))?;
@@ -523,7 +586,7 @@ pub(crate) fn render_description_split(
                     }
                     None if bitmap_fallback => {
                         let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
-                        if !(blur_on(q.blur) || probe.is_some()) {
+                        if !(blur_on(q.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty()) {
                             draw_bitmap_text_item(&mut frame, cw, chh, &q);
                         } else if q.scale <= 0.0 || !q.scale.is_finite() || q.opacity <= 0.0 {
                             // Nothing draws, exactly like the CPU path.
@@ -540,7 +603,9 @@ pub(crate) fn render_description_split(
                             if let Some((x0, y0, x1, y1)) = layer_ink_bbox(&layer, cw, chh) {
                                 let card = (x0 as f64, y0 as f64, x1 as f64 + 1.0, y1 as f64 + 1.0);
                                 let turn = item_turn(q.rotate_x, q.rotate_y, &q.turn, card);
-                                draw_bitmap_advanced(&mut frame, cw, chh, &layer, &q, turn, card);
+                                draw_bitmap_advanced(
+                                    &mut frame, cw, chh, &layer, &q, turn, card, &grade, effects, vfx, &maps,
+                                );
                             }
                         }
                     }
@@ -550,6 +615,12 @@ pub(crate) fn render_description_split(
                 }
             }
             FrameItem::Box(b) => {
+                // Inward-out look for this box (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(b.doc))?;
+                let effects = desc.effects_for(b.doc);
+                let vfx = desc.vfx_for(b.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
                 let q = ResolvedBox {
                     x: quantize(b.x),
                     y: quantize(b.y),
@@ -571,10 +642,10 @@ pub(crate) fn render_description_split(
                 // path.
                 let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
                 if q.paint_stack_active() {
-                    crate::paint::draw_box_paint(&mut frame, cw, chh, &q, images, folder)
+                    crate::paint::draw_box_paint(&mut frame, cw, chh, &q, images, folder, &grade, effects, vfx, &maps)
                         .map_err(|e| format!("gpu render failed: {e}"))?;
-                } else if blur_on(q.blur) || probe.is_some() {
-                    draw_box_advanced(&mut frame, cw, chh, &q, images, folder)
+                } else if blur_on(q.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                    draw_box_advanced(&mut frame, cw, chh, &q, images, folder, &grade, effects, vfx, &maps)
                         .map_err(|e| format!("gpu render failed: {e}"))?;
                 } else {
                     draw_box(&mut frame, cw, chh, &q, images, folder)
@@ -582,6 +653,12 @@ pub(crate) fn render_description_split(
                 }
             }
             FrameItem::Path(q) => {
+                // Inward-out look for this path (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(q.doc))?;
+                let effects = desc.effects_for(q.doc);
+                let vfx = desc.vfx_for(q.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
                 let r = ResolvedPath {
                     x: quantize(q.x),
                     y: quantize(q.y),
@@ -592,10 +669,16 @@ pub(crate) fn render_description_split(
                 };
                 // Sprint 8 look (T005): the single path painter serves
                 // both traversals, so CPU and GPU agree pixel for pixel.
-                crate::path_paint::draw_path(&mut frame, cw, chh, &r, paths)
+                crate::path_paint::draw_path(&mut frame, cw, chh, &r, paths, &grade, effects, vfx, &maps)
                     .map_err(|e| format!("gpu render failed: {e}"))?;
             }
             FrameItem::Image(im) => {
+                // Inward-out look for this image (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(im.doc))?;
+                let effects = desc.effects_for(im.doc);
+                let vfx = desc.vfx_for(im.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
                 let decoded = images
                     .iter()
                     .find(|d| d.path.ends_with(&im.path))
@@ -615,10 +698,11 @@ pub(crate) fn render_description_split(
                     ..im.clone()
                 };
                 // Sprint 7 motion (T005/T006), same branch as the CPU
-                // blitter; blur and the turn ride through exact.
+                // blitter; blur and the turn ride through exact. A graded
+                // image takes the layer path, exactly like the CPU side.
                 let probe = turn_probe(q.rotate_x, q.rotate_y, q.turn.perspective);
-                if blur_on(q.blur) || probe.is_some() {
-                    draw_image_advanced(&mut frame, cw, chh, &q, &decoded);
+                if blur_on(q.blur) || probe.is_some() || !grade.is_empty() || !effects.is_empty() || !vfx.is_empty() {
+                    draw_image_advanced(&mut frame, cw, chh, &q, &decoded, &grade, effects, vfx, &maps);
                 } else {
                     draw_image(&mut frame, cw, chh, &q, &decoded);
                 }
@@ -781,6 +865,9 @@ mod tests {
                     column: 1,
                     turn: notation::model::Turn3D::flat(),
                     filter_blur: 0.0,
+                    grade: notation::model::Grade::default(),
+                    effects: Vec::new(),
+                    vfx: Default::default(),
                 }),
                 notation::model::Clip::Box(BoxClip {
                     id: None,
@@ -813,6 +900,9 @@ mod tests {
                     column: 1,
                     turn: notation::model::Turn3D::flat(),
                     filter_blur: 0.0,
+                    grade: notation::model::Grade::default(),
+                    effects: Vec::new(),
+                    vfx: Default::default(),
                 }),
             ],
             fonts: Vec::new(),
@@ -826,6 +916,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -936,6 +1030,10 @@ mod tests {
             autoplay: false,
             normalize: Default::default(),
             normalize_loc: None,
+            grade: notation::model::Grade::default(),
+            lane_grades: Vec::new(),
+            transitions: Vec::new(),
+            motion_blur: None,
         }
     }
 
@@ -971,6 +1069,9 @@ mod tests {
             clip_path: None,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })
     }
 
@@ -1011,6 +1112,94 @@ mod tests {
         let motions = plan_motions(&comp, 30);
         let other = fingerprint(&describe(&comp, &motions, 0));
         assert_ne!(base, other, "blend rides the fingerprint");
+    }
+
+    #[test]
+    fn graded_boxes_agree_within_tolerance() {
+        // Sprint 11 grade (T001): a clip look plus a composition look
+        // draw through the same layer path on both backends, so the
+        // pictures agree within tolerance and re-runs are identical.
+        let mut graded = red_box(10.0, 10.0, 0);
+        if let Clip::Box(b) = &mut graded {
+            b.grade = notation::model::Grade {
+                preset: Some(notation::model::GradePreset::Filmic),
+                exposure: Some(0.5),
+                contrast: None,
+                saturation: Some(-0.25),
+                temperature: None,
+                tint: None,
+                ..Default::default()
+            };
+        }
+        let mut comp = still_comp(vec![graded]);
+        comp.grade = notation::model::Grade {
+            preset: None,
+            exposure: None,
+            contrast: None,
+            saturation: None,
+            temperature: Some(0.25),
+            tint: None,
+            ..Default::default()
+        };
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        assert!(
+            !desc.grade_for(0).is_empty(),
+            "the clip grade must resolve"
+        );
+        let fp = fingerprint(&desc);
+        assert!(fp.contains("filmic"), "{fp}");
+        assert!(fp.contains("cg="), "{fp}");
+        let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
+        assert_agree(&mut prep, "grade", 0);
+        // A graded frame re-renders byte-identically on each backend.
+        let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
+        let a = prep.cpu_frame(0).expect("cpu frame draws");
+        let b = prep.cpu_frame(0).expect("cpu frame draws again");
+        assert_eq!(a, b, "graded cpu re-renders are byte-identical");
+    }
+
+    #[test]
+    fn detail_graded_boxes_agree_within_tolerance() {
+        // Sprint 11 grade (T002): a clip look with wheels, a curve, an
+        // HSL selection, and seeded grain over a vignetted composition
+        // background draws through the shared spatial helpers on both
+        // backends, so the pictures agree and re-runs are identical.
+        let mut graded = red_box(10.0, 10.0, 0);
+        if let Clip::Box(b) = &mut graded {
+            b.grade.wheel.shadows = Some(0.2);
+            b.grade.curve.red = Some(vec![(0.0, 0.0), (0.5, 0.6), (1.0, 1.0)]);
+            b.grade.hsl.hue_min = Some(330.0);
+            b.grade.hsl.hue_max = Some(30.0);
+            b.grade.hsl.saturation = Some(0.2);
+            b.grade.hsl.lightness = Some(0.1);
+            b.grade.grain.amount = Some(0.5);
+            b.grade.grain.size = Some(1);
+            b.grade.grain.seed = Some(7);
+        }
+        let mut comp = still_comp(vec![graded]);
+        comp.grade.vignette.amount = Some(0.6);
+        comp.grade.vignette.softness = Some(0.5);
+        let motions = plan_motions(&comp, 30);
+        let desc = describe(&comp, &motions, 0);
+        assert!(
+            desc.grade_for(0).is_spatial(),
+            "the clip grade must resolve spatial"
+        );
+        assert!(
+            desc.composition_grade.is_spatial(),
+            "the composition grade must resolve spatial"
+        );
+        let fp = fingerprint(&desc);
+        assert!(fp.contains("|w:"), "{fp}");
+        assert!(fp.contains("|g:"), "{fp}");
+        let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
+        assert_agree(&mut prep, "detail-grade", 0);
+        // A detail-graded frame re-renders byte-identically on each backend.
+        let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
+        let a = prep.cpu_frame(0).expect("cpu frame draws");
+        let b = prep.cpu_frame(0).expect("cpu frame draws again");
+        assert_eq!(a, b, "detail-graded cpu re-renders are byte-identical");
     }
 
     /// CPU and GPU pictures of the same frame, compared with the stated
@@ -1062,6 +1251,9 @@ mod tests {
                 column: 1,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
             }),
         ]);
         let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
@@ -1113,6 +1305,9 @@ mod tests {
                 order,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
                 line: 1,
                 column: 1,
             })
@@ -1161,6 +1356,9 @@ mod tests {
                 order: 3,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
                 line: 3,
                 column: 1,
             }),
@@ -1215,6 +1413,9 @@ mod tests {
                 column: 1,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
             }),
             red_box(20.0, 20.0, 1),
         ]);
@@ -1274,6 +1475,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })]);
         let mut prep = prepare(&comp, Path::new("."), Path::new("ffmpeg")).expect("prepare");
         assert_agree(&mut prep, "spaced-text", 0);
@@ -1439,6 +1643,9 @@ mod tests {
                 column: 1,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
             })
         }
         fn image_box() -> notation::model::Clip {
@@ -1477,6 +1684,9 @@ mod tests {
                 column: 1,
                 turn: notation::model::Turn3D::flat(),
                 filter_blur: 0.0,
+                grade: notation::model::Grade::default(),
+                effects: Vec::new(),
+                vfx: Default::default(),
             })
         }
         let mut comp = composition();
@@ -1579,6 +1789,9 @@ mod tests {
             column: 1,
             turn: notation::model::Turn3D::flat(),
             filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
         })];
         let motions = plan_motions(&comp, 30);
         let desc = describe(&comp, &motions, 0);

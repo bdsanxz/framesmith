@@ -33,6 +33,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Point `path` at a readable supported audio file; keep `trim-start`/`trim-end` ordered seconds from 0, `rate` from 0.1 to 10, `volume` at most +12 dB (`-inf` is silence), each fade within the clip duration, and every duration-less track offering a knowable source end (or its own `trim-end`).",
     },
     CatalogEntry {
+        code: "E_BAD_BLUR",
+        meaning: "A composition `motion-blur` element is unusable: a missing or unreadable `shutter` outside 0 to 360 degrees, a missing or non-whole `samples` outside 1 to 32, an unknown `tier`, a child where the element carries attributes only, or a second `motion-blur` on one composition.",
+        example: "motion-blur shutter=400 samples=8 tier=\"high\"   // the shutter angle runs 0 to 360 degrees",
+        fix: "Set `shutter=<degrees from 0 to 360>`, `samples=<whole pictures from 1 to 32>`, and `tier` to one of `auto`, `high`, `medium`, or `low`; keep `motion-blur` attribute-only with at most one per composition.",
+    },
+    CatalogEntry {
         code: "E_BAD_BOX",
         meaning: "A box size, radius, border width, or opacity is missing, not a number, or outside its accepted range.",
         example: "box x=10 y=20 width=0 height=50 fill=\"#ff0000\" start=0 duration=1   // zero width",
@@ -67,6 +73,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "A `tween`, `key`, or `frame` names an unknown easing, or a parameterized easing carries missing, non-numeric, or out-of-range parameters; the system never guesses a curve.",
         example: "tween target=0 property=\"x\" kind=\"to\" start=0 duration=1 to=10 ease=\"fast\"   // unknown easing",
         fix: "Set `ease=` to one of the nineteen named curves (e.g. `linear`, `in-out-sine`), `ease=\"out-back(1.7)\"` with a numeric overshoot, or a full-curve spelling: `cubic-bezier(x1,y1,x2,y2)`, `steps(n)`, `spring` or `spring(stiffness,damping)`, `bounce`, `elastic`, `wiggle` or `wiggle(n)`, or `hold`.",
+    },
+    CatalogEntry {
+        code: "E_BAD_EFFECT",
+        meaning: "A clip `effect` is unusable: an unknown preset, an `amount` outside 0 to 1, a parameter outside its preset's accepted shape, a parameter the preset does not read, or a child where the effect carries attributes only.",
+        example: "text value=\"Hi\" start=0 duration=1 { effect preset=\"vintage\" amount=2 }   // unknown preset, amount above the range",
+        fix: "Set `preset` to one of `grayscale`, `sepia`, `invert`, `brightness`, `contrast`, `hue-rotate`, `saturate`, `blur`, `sharpen`, `vignette`, `grain`, `noise`, `pixelate`, `posterize`, `threshold`, `edge-detect`, `emboss`, or `chromatic-aberration`; keep `amount` from 0 to 1; give each preset only its own parameters (`brightness`/`contrast`/`saturate` factors from 0 to 4, `angle` from 0 to 360, `radius` from 0 to 64 pixels, `strength` from 0 to 4, `softness` and `threshold` from 0 to 1, whole-pixel `size` from 1 to 64, a whole-number `seed`, whole `levels` from 2 to 16, `distance` from 0 to 32 pixels), and keep `effect` children at the clip level with no children of their own.",
     },
     CatalogEntry {
         code: "E_BAD_FILL",
@@ -109,6 +121,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "The composition `fps` is not an integer or exact rational within 1 to 240; decimal fps is rejected, never rounded.",
         example: "composition name=\"t\" width=64 height=64 duration=1 fps=29.97 background=\"#000\" version=1 { }",
         fix: "Use an integer like `fps=30` or an exact rational like `fps=\"30000/1001\"` within 1 to 240.",
+    },
+    CatalogEntry {
+        code: "E_BAD_GRADE",
+        meaning: "A `grade` or `lane` look is unusable: an unknown preset, an adjust outside its accepted range, a malformed curve list, an out-of-range detail value (including a `lut` amount outside 0 to 1), a bad grain seed or size, an unparsable or oversized LUT grid, a duplicated `grade` child, `lane` element, or detail stage, a `lane` with a missing or unknown `track`, or a child where the look carries none.",
+        example: "box x=0 y=0 width=50 height=50 start=0 duration=1 { grade preset=\"vintage\" exposure=9 }   // unknown preset, exposure above the range",
+        fix: "Set `preset` to one of `none`, `filmic`, `noir`, `teal-orange`, `pastel`, or `bleach`; keep `exposure` from -4 to 4, `contrast` from -1 to 1, `saturation` from -1 to 2, `temperature` and `tint` from -1 to 1; shape detail with at most one `wheel` (`shadows`, `midtones`, `highlights` from -1 to 1), one `curve` (`red`, `green`, `blue`, `master` point lists like `\"0,0 0.5,0.5 1,1\"`), one `hsl` (`hue-min`/`hue-max` from 0 to 360, `saturation` from 0 to 1, `lightness` from -1 to 1), one `vignette` (`amount`, `softness` from 0 to 1), one `grain` (`amount` from 0 to 1, `size` 1 to 64 whole pixels, whole-number `seed`), and one `lut` (`src` naming a readable 3D `.cube` with a grid of 33 or smaller, `amount` from 0 to 1) child; keep one `grade` child per clip, lane, or composition and one `lane` per track with `track` of `video`, `audio`, `caption`, or `graphics`.",
     },
     CatalogEntry {
         code: "E_BAD_HIDDEN",
@@ -189,6 +207,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Set `track` to `video`, `audio`, `caption`, or `graphics`, or remove the key for the kind default; tracks never change rendered output.",
     },
     CatalogEntry {
+        code: "E_BAD_TRANSITION",
+        meaning: "A `transition` bridge is unusable: a missing or mis-shaped `from`/`to` id, a missing, unreadable, or non-positive `duration`, an unknown `kind`, a child where the transition carries attributes only, a bridge from a clip to itself, two transitions sharing a clip whose windows overlap, or a `duration` longer than either clip's range.",
+        example: "transition from=\"a\" to=\"b\" duration=2 kind=\"fade\"   // clips `a`/`b` run 1s each, so the 2s bridge has no handles",
+        fix: "Point `from` and `to` at two different declared clip ids; set `duration=<positive seconds>` fitting inside both clips; set `kind` to one of `fade`, `dissolve`, `wipe-left`, `wipe-right`, `wipe-up`, `wipe-down`, `slide`, `push`, `cover`, `circle-open`, `iris`, `dip-black`, `dip-white`, `blur-dissolve`, `css-fade-up`, `css-fade-down`, `css-zoom-in`, `css-zoom-out`, `css-slide-left`, or `css-slide-right`; keep one transition per boundary at a time.",
+    },
+    CatalogEntry {
         code: "E_BAD_VARIABLE",
         meaning: "A `variable` declaration names an unknown type, a default outside its type, an `enum` without at least two `options` (or a default outside them), `options` on a non-`enum` type, or carries children; a `var(--id)` binding names an unknown or valueless variable, uses bad `var()` syntax, sits in a structural reference (`id`, `track`, `start-after` targets) or the composition timing foundation (`name`, `width`, `height`, `duration`, `fps`), or substitutes a value outside the attribute's shape; a `--variables` override value sits outside its variable's type; a `theme` block misnames itself, repeats a theme or token name, or holds non-`token` children; a composition selects two themes or an unknown theme; a `--theme` flag names no declared theme; a `var(--x)` resolves through nothing (no override, no theme token, no default, no fallback); or, under `--strict-variables`, an override key names no declared variable, a declaration is never bound by `var(--id)`, or a default-less variable received no caller value.",
         example: "variable id=\"accent\" type=\"color\" default=\"red\"   // not a `#rgb`/`#rrggbb` color",
@@ -199,6 +223,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "The notation `version` is missing or is an integer below 1.",
         example: "composition name=\"t\" width=64 height=64 duration=1 background=\"#000\" version=0 { }",
         fix: "Set `version=1` on the composition root.",
+    },
+    CatalogEntry {
+        code: "E_BAD_VFX",
+        meaning: "A clip `vfx` chain is unusable: an unknown stage, a duplicated stage or `vfx` child, an `amount` outside 0 to 1, a parameter outside its stage's accepted shape, a `luma-matte` missing its required `src`, or a stage child where the stage carries attributes only.",
+        example: "box x=0 y=0 width=50 height=50 start=0 duration=1 { vfx { noise amount=2 } }   // amount above the range",
+        fix: "Hold at most one `vfx` child per clip with each of `noise`, `warp`, `displacement`, and `luma-matte` at most once; keep `amount` from 0 to 1, `grid` from 1 to 64 whole pixels, `strength` and `scale` from 0 to 64 pixels, a whole-number `seed`, and `map`/`src` pointing at readable picture files with `luma-matte` always carrying `src`.",
     },
     CatalogEntry {
         code: "E_DOWNLOAD_FAILED",
@@ -329,12 +359,14 @@ mod tests {
     const KNOWN_EMITTED: &[&str] = &[
         "E_AMBIGUOUS_ROOT",
         "E_BAD_AUDIO",
+        "E_BAD_BLUR",
         "E_BAD_BOX",
         "E_BAD_CANVAS",
         "E_BAD_COLOR",
         "E_BAD_CONFIG",
         "E_BAD_DURATION",
         "E_BAD_EASING",
+        "E_BAD_EFFECT",
         "E_BAD_FILL",
         "E_BAD_FIT",
         "E_BAD_FLAG",
@@ -342,6 +374,7 @@ mod tests {
         "E_BAD_FONT",
         "E_BAD_FOOTAGE",
         "E_BAD_FPS",
+        "E_BAD_GRADE",
         "E_BAD_HIDDEN",
         "E_BAD_ID",
         "E_BAD_IMAGE",
@@ -355,8 +388,10 @@ mod tests {
         "E_BAD_TEXT",
         "E_BAD_TIMING",
         "E_BAD_TRACK",
+        "E_BAD_TRANSITION",
         "E_BAD_VARIABLE",
         "E_BAD_VERSION",
+        "E_BAD_VFX",
         "E_DOWNLOAD_FAILED",
         "E_DUP_ID",
         "E_MISSING_COMPOSITION",

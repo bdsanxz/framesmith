@@ -35,7 +35,8 @@ fn usage() -> ! {
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
          \x20 framesmith render <folder> [-o <output.mp4>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--variables JSON] [--strict-variables] [--theme NAME] [--json]\n\
-         \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row"
+         \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row\n\
+         \x20 framesmith grade-bake [--composition <name>] -o <out.cube> <folder>"
     );
     std::process::exit(2);
 }
@@ -129,6 +130,12 @@ fn waveform_usage_error(msg: &str) -> ! {
 fn errors_usage_error(msg: &str) -> ! {
     eprintln!("framesmith errors: {msg}.");
     eprintln!("usage: framesmith errors [--json] [CODE]");
+    std::process::exit(2);
+}
+
+fn grade_bake_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith grade-bake: {msg}.");
+    eprintln!("usage: framesmith grade-bake [--composition <name>] -o <out.cube> <folder>");
     std::process::exit(2);
 }
 
@@ -495,6 +502,52 @@ fn main() {
             let (folder, name, json) = parse_listing_args("info", &args[1..]);
             commands::cmd_info(&folder, name.as_deref(), json)
         }
+        "grade-bake" => {
+            let mut composition: Option<String> = None;
+            let mut output: Option<String> = None;
+            let mut positionals: Vec<String> = Vec::new();
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--composition" => {
+                        i += 1;
+                        if i >= args.len() {
+                            grade_bake_usage_error("--composition needs a value (a composition name)");
+                        }
+                        if composition.is_some() {
+                            grade_bake_usage_error("duplicate --composition flag");
+                        }
+                        composition = Some(args[i].clone());
+                    }
+                    "-o" | "--output" => {
+                        i += 1;
+                        if i >= args.len() {
+                            grade_bake_usage_error("-o needs a value (an output `.cube` path)");
+                        }
+                        if output.is_some() {
+                            grade_bake_usage_error("duplicate -o flag");
+                        }
+                        output = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        grade_bake_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => positionals.push(other.to_string()),
+                }
+                i += 1;
+            }
+            if positionals.len() != 1 {
+                grade_bake_usage_error("expected exactly one <folder>");
+            }
+            match output {
+                Some(o) => commands::cmd_grade_bake(
+                    Path::new(&positionals[0]),
+                    Path::new(&o),
+                    composition.as_deref(),
+                ),
+                None => grade_bake_usage_error("missing -o <out.cube>"),
+            }
+        }
         "waveform" => {
             let mut json = false;
             let mut composition: Option<String> = None;
@@ -573,7 +626,8 @@ fn main() {
                  \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
                  \x20 waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]  report per-bucket mix peaks plus the master peak\n\
                  \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--variables JSON] [--strict-variables] [--theme NAME] [--json]  validate, bootstrap FFmpeg, refuse or encode\n\
-                 \x20 render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row plus a per-row summary"
+                 \x20 render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row plus a per-row summary\n\
+                 \x20 grade-bake [--composition <name>] -o <out.cube> <folder>  bake the composition grade to an equivalent `.cube`"
             );
             0
         }
