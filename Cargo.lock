@@ -88,6 +88,7 @@ dependencies = [
  "notation",
  "preview",
  "render",
+ "sdk",
  "serde_json",
  "validate",
 ]
@@ -742,6 +743,18 @@ dependencies = [
  "unicode-ccc",
  "unicode-properties",
  "unicode-script",
+]
+
+[[package]]
+name = "sdk"
+version = "0.1.0"
+dependencies = [
+ "motion",
+ "notation",
+ "preview",
+ "serde",
+ "serde_json",
+ "validate",
 ]
 
 [[package]]

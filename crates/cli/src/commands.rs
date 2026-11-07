@@ -19,6 +19,8 @@
 use ffmpeg::bootstrap;
 use ffmpeg::ffmpeg as ffmpeg_mod;
 use log::log;
+use sdk::history as sdk_history;
+use sdk::{ClipRef, OpenOptions, SdkSession};
 use notation::model::Composition;
 use std::path::{Path, PathBuf};
 use validate::catalog::{self, json_escape};
@@ -1845,6 +1847,736 @@ pub fn cmd_timeline(folder: &Path, name: Option<&str>, json: bool) -> i32 {
         json,
     );
     0
+}
+
+/// Words after `timeline` that name an edit verb (Sprint 15, T007):
+/// anything else keeps the Sprint 6 listing parse. A project folder
+/// literally named like a verb is unreachable as a listing; prefix
+/// it with `./` — the verb still wins, by design.
+pub const TIMELINE_VERBS: [&str; 10] = [
+    "move",
+    "trim",
+    "split",
+    "delete",
+    "set",
+    "duplicate",
+    "ids",
+    "plan",
+    "apply",
+    "undo",
+];
+
+/// True when the word after `timeline` names an edit verb rather than
+/// a project folder for the Sprint 6 listing.
+pub fn is_timeline_verb(word: &str) -> bool {
+    TIMELINE_VERBS.contains(&word)
+}
+
+/// Content verbs: the six verbs `plan` and `apply` nest over. `ids`
+/// and `undo` stand alone; `plan`/`apply` never nest further.
+fn is_content_verb(word: &str) -> bool {
+    matches!(
+        word,
+        "move" | "trim" | "split" | "delete" | "set" | "duplicate"
+    )
+}
+
+/// CLI-owned undo state for `timeline undo` (Sprint 15, T007): the
+/// whole-delta bytes before the last verb application, so one CLI
+/// `undo` restores the exact prior effective sources whatever the
+/// verb staged (one patch or many). Lives in the hidden project
+/// directory next to the SDK delta; render, check, and validation
+/// never read it. Single level, exactly like the SDK session's
+/// last-verb tracking: a second apply overwrites it, an empty apply
+/// clears it, and a successful undo consumes it so a double undo
+/// refuses.
+const TIMELINE_UNDO_FILE: &str = "timeline-undo.json";
+
+/// Version of the CLI-owned timeline undo record. Another version is
+/// unreadable, never guessed: `undo` refuses like a missing record.
+const TIMELINE_UNDO_VERSION: u32 = 1;
+
+/// Hidden undo-record path for one project folder.
+fn timeline_undo_path_for(folder: &Path) -> PathBuf {
+    folder.join(sdk::HISTORY_DIR_NAME).join(TIMELINE_UNDO_FILE)
+}
+
+/// Usage error for the timeline verbs (exit 2): malformed flags, not
+/// a refused edit. Prints to stderr; the project tree is untouched.
+fn timeline_verb_usage(msg: &str) -> i32 {
+    eprintln!("framesmith timeline: {msg}.");
+    eprintln!(
+        "usage:\n\
+         \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]  (Sprint 6 listing, unchanged)\n\
+         \x20 framesmith timeline move --clip <ref> --to <expr> [--composition <name>] [--plan] <folder>\n\
+         \x20 framesmith timeline trim --clip <ref> [--start <expr>] [--end <expr>] [--composition <name>] [--plan] <folder>\n\
+         \x20 framesmith timeline split --clip <ref> --at <expr> [--composition <name>] [--plan] <folder>\n\
+         \x20 framesmith timeline delete [--clip <ref>] [--start <expr> --end <expr>] [--snap <secs>] [--composition <name>] [--plan] <folder>\n\
+         \x20 framesmith timeline set --clip <ref> --property label|hidden|start|duration --value <v> [--composition <name>] [--plan] <folder>\n\
+         \x20 framesmith timeline duplicate --clip <ref> [--at <expr>] [--new-id <id>] [--composition <name>] [--plan] <folder>\n\
+         \x20 framesmith timeline ids [--composition <name>] <folder>\n\
+         \x20 framesmith timeline plan <move|trim|split|delete|set|duplicate> <same flags> <folder>\n\
+         \x20 framesmith timeline apply <move|trim|split|delete|set|duplicate> <same flags> <folder>\n\
+         \x20 framesmith timeline undo <folder>\n\
+         \x20 <ref> is a clip `id`, or a document index when fully numeric; <expr> is `+N` seconds, `Nf` frames, `end`, or `after:<ref>`"
+    );
+    2
+}
+
+/// One refused timeline verb (exit 1): the reason text with its
+/// reason code in `Display` form (`[E_SDK_*] ...`), on stdout like the
+/// listing refusals. SDK refusals arrive pre-coded through their own
+/// `Display`; hand-written ones below carry the same `[CODE]` prefix.
+/// A refused apply stages nothing, persists nothing, and leaves no
+/// receipt; the pending undo record (if any) stays exactly as it was.
+fn refuse_timeline_verb(line: &str) -> i32 {
+    println!("{line}");
+    1
+}
+
+/// One `--flag <value>` step: takes the next token as the value. A
+/// missing value, or one starting with `-` (another flag), is a usage
+/// error. Clip refs starting with `-` are therefore unreachable;
+/// `id` values with a leading dash are pathological and unsupported.
+fn take_flag_value(
+    args: &[String],
+    i: &mut usize,
+    flag: &str,
+) -> Result<String, i32> {
+    *i += 1;
+    match args.get(*i) {
+        Some(v) if !v.starts_with('-') => Ok(v.clone()),
+        _ => Err(timeline_verb_usage(&format!(
+            "{flag} needs a value"
+        ))),
+    }
+}
+
+/// Raw content-verb arguments: every flag boxed, presence-tracked so
+/// an empty `--value ""` (clearing a label) still counts as given.
+#[derive(Debug, Default)]
+struct ContentArgs {
+    clip: Option<String>,
+    to: Option<String>,
+    at: Option<String>,
+    start: Option<String>,
+    end: Option<String>,
+    snap: Option<String>,
+    property: Option<String>,
+    value: Option<String>,
+    new_id: Option<String>,
+    composition: Option<String>,
+    plan: bool,
+    folder: Option<String>,
+}
+
+/// Parse the flags of one content verb (Sprint 15, T007). `arg0` is
+/// the verb word, used only to reject flags the verb does not take.
+/// On success the struct still needs per-verb required-flag checks.
+fn parse_content_args(verb: &str, args: &[String]) -> Result<ContentArgs, i32> {
+    let mut out = ContentArgs::default();
+    let set_flag = |slot: &mut Option<String>, flag: &str, v: String| -> Result<(), i32> {
+        if slot.is_some() {
+            return Err(timeline_verb_usage(&format!("duplicate {flag} flag")));
+        }
+        *slot = Some(v);
+        Ok(())
+    };
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--clip" => {
+                let v = take_flag_value(args, &mut i, "--clip")?;
+                set_flag(&mut out.clip, "--clip", v)?;
+            }
+            "--to" => {
+                let v = take_flag_value(args, &mut i, "--to")?;
+                set_flag(&mut out.to, "--to", v)?;
+            }
+            "--at" => {
+                let v = take_flag_value(args, &mut i, "--at")?;
+                set_flag(&mut out.at, "--at", v)?;
+            }
+            "--start" => {
+                let v = take_flag_value(args, &mut i, "--start")?;
+                set_flag(&mut out.start, "--start", v)?;
+            }
+            "--end" => {
+                let v = take_flag_value(args, &mut i, "--end")?;
+                set_flag(&mut out.end, "--end", v)?;
+            }
+            "--snap" => {
+                let v = take_flag_value(args, &mut i, "--snap")?;
+                set_flag(&mut out.snap, "--snap", v)?;
+            }
+            "--property" => {
+                let v = take_flag_value(args, &mut i, "--property")?;
+                set_flag(&mut out.property, "--property", v)?;
+            }
+            "--value" => {
+                let v = take_flag_value(args, &mut i, "--value")?;
+                set_flag(&mut out.value, "--value", v)?;
+            }
+            "--new-id" => {
+                let v = take_flag_value(args, &mut i, "--new-id")?;
+                set_flag(&mut out.new_id, "--new-id", v)?;
+            }
+            "--composition" => {
+                let v = take_flag_value(args, &mut i, "--composition")?;
+                set_flag(&mut out.composition, "--composition", v)?;
+            }
+            "--plan" => {
+                if out.plan {
+                    return Err(timeline_verb_usage("duplicate --plan flag"));
+                }
+                out.plan = true;
+            }
+            other if other.starts_with('-') => {
+                return Err(timeline_verb_usage(&format!("unknown flag {other:?}")));
+            }
+            other => {
+                if out.folder.is_some() {
+                    return Err(timeline_verb_usage(&format!(
+                        "expected exactly one <folder>, found extra {other:?}"
+                    )));
+                }
+                out.folder = Some(other.to_string());
+            }
+        }
+        i += 1;
+    }
+    // Flags the verb does not take are usage errors, catching typos
+    // (`move --at` meant `--to`) before anything resolves.
+    let reject = |present: bool, flag: &str| -> Result<(), i32> {
+        if present {
+            return Err(timeline_verb_usage(&format!("{verb} takes no {flag} flag")));
+        }
+        Ok(())
+    };
+    match verb {
+        "move" => {
+            reject(out.at.is_some(), "--at")?;
+            reject(out.start.is_some(), "--start")?;
+            reject(out.end.is_some(), "--end")?;
+            reject(out.snap.is_some(), "--snap")?;
+            reject(out.property.is_some(), "--property")?;
+            reject(out.value.is_some(), "--value")?;
+            reject(out.new_id.is_some(), "--new-id")?;
+        }
+        "trim" => {
+            reject(out.to.is_some(), "--to")?;
+            reject(out.at.is_some(), "--at")?;
+            reject(out.snap.is_some(), "--snap")?;
+            reject(out.property.is_some(), "--property")?;
+            reject(out.value.is_some(), "--value")?;
+            reject(out.new_id.is_some(), "--new-id")?;
+        }
+        "split" => {
+            reject(out.to.is_some(), "--to")?;
+            reject(out.start.is_some(), "--start")?;
+            reject(out.end.is_some(), "--end")?;
+            reject(out.snap.is_some(), "--snap")?;
+            reject(out.property.is_some(), "--property")?;
+            reject(out.value.is_some(), "--value")?;
+            reject(out.new_id.is_some(), "--new-id")?;
+        }
+        "delete" => {
+            reject(out.to.is_some(), "--to")?;
+            reject(out.at.is_some(), "--at")?;
+            reject(out.property.is_some(), "--property")?;
+            reject(out.value.is_some(), "--value")?;
+            reject(out.new_id.is_some(), "--new-id")?;
+        }
+        "set" => {
+            reject(out.to.is_some(), "--to")?;
+            reject(out.at.is_some(), "--at")?;
+            reject(out.start.is_some(), "--start")?;
+            reject(out.end.is_some(), "--end")?;
+            reject(out.snap.is_some(), "--snap")?;
+            reject(out.new_id.is_some(), "--new-id")?;
+        }
+        "duplicate" => {
+            reject(out.to.is_some(), "--to")?;
+            reject(out.start.is_some(), "--start")?;
+            reject(out.end.is_some(), "--end")?;
+            reject(out.snap.is_some(), "--snap")?;
+            reject(out.property.is_some(), "--property")?;
+            reject(out.value.is_some(), "--value")?;
+        }
+        _ => return Err(timeline_verb_usage(&format!("unknown verb {verb:?}"))),
+    }
+    Ok(out)
+}
+
+/// One `--clip` value as an SDK clip reference: fully numeric reads
+/// as a document index, anything else as a stable `id` — the same
+/// rule the SDK uses for `after:<ref>`.
+fn parse_clip_ref(raw: &str) -> ClipRef {
+    match raw.parse::<usize>() {
+        Ok(index) => ClipRef::by_index(index),
+        Err(_) => ClipRef::by_id(raw),
+    }
+}
+
+/// One parsed time-expression flag: raw text goes to the SDK parser
+/// so the refusal (with its reason code) comes from the module that
+/// owns the four forms. Returns the exit code on refusal.
+fn parse_time_flag(raw: &str) -> Result<sdk::TimeExpr, i32> {
+    sdk::parse_time_expr(raw).map_err(|e| refuse_timeline_verb(&e.to_string()))
+}
+
+/// Build one content verb from parsed flags: required-flag checks are
+/// usage errors (exit 2); unresolvable expressions and incapable
+/// properties are SDK refusals (exit 1, no receipt, nothing written).
+fn build_content_verb(verb: &str, a: &ContentArgs) -> Result<sdk::TimelineVerb, i32> {
+    let need = |slot: &Option<String>, flag: &str| -> Result<String, i32> {
+        slot.clone()
+            .ok_or_else(|| timeline_verb_usage(&format!("{verb} needs {flag}")))
+    };
+    match verb {
+        "move" => Ok(sdk::TimelineVerb::Move {
+            target: parse_clip_ref(&need(&a.clip, "--clip")?),
+            to: parse_time_flag(&need(&a.to, "--to")?)?,
+        }),
+        "trim" => {
+            if a.start.is_none() && a.end.is_none() {
+                return Err(timeline_verb_usage(
+                    "trim needs --start and/or --end (at least one edge)",
+                ));
+            }
+            Ok(sdk::TimelineVerb::Trim {
+                target: parse_clip_ref(&need(&a.clip, "--clip")?),
+                start: a
+                    .start
+                    .as_deref()
+                    .map(parse_time_flag)
+                    .transpose()?,
+                end: a.end.as_deref().map(parse_time_flag).transpose()?,
+            })
+        }
+        "split" => Ok(sdk::TimelineVerb::Split {
+            target: parse_clip_ref(&need(&a.clip, "--clip")?),
+            at: parse_time_flag(&need(&a.at, "--at")?)?,
+        }),
+        "delete" => {
+            let snap = a
+                .snap
+                .as_deref()
+                .map(|raw| {
+                    raw.parse::<f64>().map_err(|_| {
+                        timeline_verb_usage("--snap needs a value (tolerance seconds from 0)")
+                    })
+                })
+                .transpose()?;
+            let target = a.clip.as_deref().map(parse_clip_ref);
+            Ok(sdk::TimelineVerb::Delete {
+                target,
+                start: a
+                    .start
+                    .as_deref()
+                    .map(parse_time_flag)
+                    .transpose()?,
+                end: a.end.as_deref().map(parse_time_flag).transpose()?,
+                snap,
+            })
+        }
+        "set" => {
+            let property = sdk::parse_set_property(&need(&a.property, "--property")?)
+                .map_err(|e| refuse_timeline_verb(&e.to_string()))?;
+            let value = need(&a.value, "--value")?;
+            Ok(sdk::TimelineVerb::Set {
+                target: parse_clip_ref(&need(&a.clip, "--clip")?),
+                property,
+                value,
+            })
+        }
+        "duplicate" => Ok(sdk::TimelineVerb::Duplicate {
+            target: parse_clip_ref(&need(&a.clip, "--clip")?),
+            at: a.at.as_deref().map(parse_time_flag).transpose()?,
+            new_id: a.new_id.clone(),
+        }),
+        _ => Err(timeline_verb_usage(&format!("unknown verb {verb:?}"))),
+    }
+}
+
+/// Open one composition through the SDK for a verb: read-only for
+/// plan and ids (no directory is created, nothing is written), writable
+/// for apply. The persisted SDK delta replays in both cases, so verbs
+/// see every earlier application. Refusals print the SDK message.
+fn open_for_verb(
+    folder: &Path,
+    composition: Option<&str>,
+    writable: bool,
+) -> Result<SdkSession, i32> {
+    SdkSession::open(
+        folder,
+        OpenOptions {
+            persist: writable,
+            history: false,
+            composition: composition.map(|s| s.to_string()),
+            ..OpenOptions::default()
+        },
+    )
+    .map_err(|e| {
+        println!("{e}");
+        1
+    })
+}
+
+/// `timeline ids`: list every clip identifier with its window and the
+/// `mediaStart` file-to-film mapping. Pure read: opens read-only and
+/// writes nothing anywhere.
+fn run_timeline_ids(composition: Option<&str>, folder: &Path) -> i32 {
+    let session = match open_for_verb(folder, composition, false) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    print!("{}", session.timeline_rows_human());
+    0
+}
+
+/// Plan one content verb (Sprint 15, T007): print only the count
+/// (`timeline plan: N clip(s) would change`) and change nothing — the
+/// session opens read-only and this path performs no write of any
+/// kind: no delta, no undo record, no directory, no log.
+fn run_content_plan(
+    verb: sdk::TimelineVerb,
+    composition: Option<&str>,
+    folder: &Path,
+) -> i32 {
+    let session = match open_for_verb(folder, composition, false) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    match session.timeline_plan(&verb) {
+        Ok(plan) => {
+            println!("{plan}");
+            0
+        }
+        Err(e) => refuse_timeline_verb(&e.to_string()),
+    }
+}
+
+/// Read the raw persisted SDK delta bytes, if the file exists. Any
+/// other read failure refuses the apply: the pre-verb state could not
+/// be snapshotted, so staging must not start.
+fn snapshot_delta(folder: &Path) -> Result<Option<String>, i32> {
+    let path = folder
+        .join(sdk::HISTORY_DIR_NAME)
+        .join(sdk::SDK_OVERRIDES_FILE);
+    match std::fs::read_to_string(&path) {
+        Ok(raw) => Ok(Some(raw)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(refuse_timeline_verb(
+            &format!(
+                "[E_SDK_UNWRITABLE] timeline refused: the SDK override delta {} cannot be read ({e}); the pre-verb state is unsnapshottable. Nothing was staged, and no receipt was left",
+                path.display()
+            ),
+        )),
+    }
+}
+
+/// Write the CLI undo record after a successful apply plus persist:
+/// the pre-verb delta bytes with the applied count and summary. A
+/// second apply overwrites it (single level, like the SDK session).
+/// Warns without failing the apply when the record itself is
+/// unwritable — the verb already landed; only a later `undo` suffers.
+fn store_undo_record(folder: &Path, prev: Option<String>, applied: usize, summary: &str) {
+    let path = timeline_undo_path_for(folder);
+    if let Some(parent) = path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!(
+                "warning: the timeline undo record {} cannot be prepared ({e}); `timeline undo` will be unavailable for this turn.",
+                path.display()
+            );
+            return;
+        }
+    }
+    let record = serde_json::json!({
+        "version": TIMELINE_UNDO_VERSION,
+        "prev_delta": prev,
+        "applied": applied,
+        "verb_summary": summary,
+    });
+    let raw = serde_json::to_string_pretty(&record).unwrap_or_else(|_| "{}".to_string());
+    if let Err(e) = std::fs::write(&path, raw) {
+        eprintln!(
+            "warning: the timeline undo record {} cannot be written ({e}); `timeline undo` will be unavailable for this turn.",
+            path.display()
+        );
+    }
+}
+
+/// Drop the pending CLI undo record, if any: an empty apply (nothing
+/// staged, like the SDK's zero-length run) leaves no verb to undo, so
+/// a later `undo` refuses exactly like the SDK's double undo.
+fn clear_undo_record(folder: &Path) {
+    let path = timeline_undo_path_for(folder);
+    match std::fs::remove_file(&path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => eprintln!(
+            "warning: the timeline undo record {} cannot be cleared ({e}).",
+            path.display()
+        ),
+    }
+}
+
+/// Apply one content verb (Sprint 15, T007): stage through the SDK
+/// patch machinery, persist the hidden SDK delta (composition sources
+/// stay byte-identical), record the pre-verb delta for `undo`, then
+/// print the undo receipt and the resulting `mediaStart` rows. A
+/// refused apply stages nothing and leaves no receipt; an empty apply
+/// (a range touching nothing) clears the pending undo and still
+/// reports. Returns the process exit code.
+fn run_content_apply(
+    verb: sdk::TimelineVerb,
+    composition: Option<&str>,
+    folder: &Path,
+) -> i32 {
+    let mut session = match open_for_verb(folder, composition, true) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    let receipt = match session.timeline_apply(verb) {
+        Ok(r) => r,
+        Err(e) => return refuse_timeline_verb(&e.to_string()),
+    };
+    if receipt.applied == 0 {
+        clear_undo_record(folder);
+        println!("{receipt}");
+        return 0;
+    }
+    let prev = match snapshot_delta(folder) {
+        Ok(p) => p,
+        Err(code) => return code,
+    };
+    let summary = receipt.verb_summary.clone();
+    let applied = receipt.applied;
+    if let Err(e) = session.persist() {
+        return refuse_timeline_verb(&e.to_string());
+    }
+    store_undo_record(folder, prev, applied, &summary);
+    println!("{receipt}");
+    print!("{}", session.timeline_rows_human());
+    0
+}
+
+/// Read the pending CLI undo record: `None` when no verb application
+/// is pending (nothing applied yet, the last run was already undone,
+/// or the record is corrupt) — all refuse like the SDK's empty undo.
+fn read_undo_record(folder: &Path) -> Option<(Option<String>, usize, String)> {
+    let raw = std::fs::read_to_string(timeline_undo_path_for(folder)).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    if value.get("version")?.as_u64()? != u64::from(TIMELINE_UNDO_VERSION) {
+        return None;
+    }
+    let prev = match value.get("prev_delta")? {
+        serde_json::Value::Null => None,
+        serde_json::Value::String(s) => Some(s.clone()),
+        _ => return None,
+    };
+    let applied = value.get("applied")?.as_u64()? as usize;
+    let summary = value.get("verb_summary")?.as_str()?.to_string();
+    Some((prev, applied, summary))
+}
+
+/// `timeline undo`: restore the exact pre-verb delta (byte-identical
+/// bytes, or a removed delta when none existed) and consume the
+/// record, so the effective sources match the pre-verb state and a
+/// second undo refuses. With no pending record, refuses with
+/// `E_SDK_NOTHING_TO_UNDO` changing nothing.
+fn run_timeline_undo(folder: &Path) -> i32 {
+    let (prev, applied, summary) = match read_undo_record(folder) {
+        Some(r) => r,
+        None => {
+            return refuse_timeline_verb(
+                "[E_SDK_NOTHING_TO_UNDO] timeline refused: undo names no verb application: no mutating verb ran since the last undo. Nothing was reversed",
+            );
+        }
+    };
+    let delta_path = folder
+        .join(sdk::HISTORY_DIR_NAME)
+        .join(sdk::SDK_OVERRIDES_FILE);
+    match prev {
+        Some(bytes) => {
+            if let Some(parent) = delta_path.parent() {
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    return refuse_timeline_verb(
+                        &format!(
+                            "[E_SDK_UNWRITABLE] timeline refused: the hidden SDK directory {} cannot be prepared ({e}); the prior sources stay staged. Nothing was reversed",
+                            parent.display()
+                        ),
+                    );
+                }
+            }
+            if let Err(e) = std::fs::write(&delta_path, bytes) {
+                return refuse_timeline_verb(
+                    &format!(
+                        "[E_SDK_UNWRITABLE] timeline refused: the SDK override delta {} cannot be restored ({e}). Nothing was reversed",
+                        delta_path.display()
+                    ),
+                );
+            }
+        }
+        None => {
+            match std::fs::remove_file(&delta_path) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => {
+                    return refuse_timeline_verb(
+                        &format!(
+                            "[E_SDK_UNWRITABLE] timeline refused: the SDK override delta {} cannot be removed ({e}). Nothing was reversed",
+                            delta_path.display()
+                        ),
+                    );
+                }
+            }
+        }
+    }
+    clear_undo_record(folder);
+    println!(
+        "timeline undo: restored {applied} patch(es): {summary}; sources match the pre-verb state"
+    );
+    0
+}
+
+/// `timeline` edit verbs (Sprint 15, T007 / CAP-006): the human CLI
+/// surface over the SDK timeline module. Content verbs apply by
+/// default (persisting the hidden SDK delta plus the CLI undo record,
+/// printing the undo receipt and the resulting `mediaStart` rows);
+/// `--plan` (or the `plan` verb) prints only the count and changes
+/// nothing; `ids` lists identifiers; `undo` restores the exact prior
+/// sources. `args[0]` is the verb word. Returns the process exit code:
+/// 0 applied, 1 refused with a reason code, 2 malformed invocation.
+///
+/// Write boundary: the only project writes are the hidden SDK delta
+/// and the hidden CLI undo record, both under `.framesmith/` and only
+/// on explicit persist (apply/undo). Plan, ids, listing, and every
+/// refusal write nothing — not even the run log.
+pub fn cmd_timeline_verb(args: &[String]) -> i32 {
+    let verb = match args.first() {
+        Some(v) => v.clone(),
+        None => return timeline_verb_usage("expected a verb"),
+    };
+    match verb.as_str() {
+        "ids" => {
+            let mut composition: Option<String> = None;
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--composition" => {
+                        let v = match take_flag_value(args, &mut i, "--composition") {
+                            Ok(v) => v,
+                            Err(code) => return code,
+                        };
+                        if composition.is_some() {
+                            return timeline_verb_usage("duplicate --composition flag");
+                        }
+                        composition = Some(v);
+                    }
+                    other if other.starts_with('-') => {
+                        return timeline_verb_usage(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if folder.is_some() {
+                            return timeline_verb_usage(&format!(
+                                "expected exactly one <folder>, found extra {other:?}"
+                            ));
+                        }
+                        folder = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            match folder {
+                Some(f) => run_timeline_ids(composition.as_deref(), Path::new(&f)),
+                None => timeline_verb_usage("expected exactly one <folder>"),
+            }
+        }
+        "undo" => {
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    other if other.starts_with('-') => {
+                        return timeline_verb_usage(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if folder.is_some() {
+                            return timeline_verb_usage(&format!(
+                                "expected exactly one <folder>, found extra {other:?}"
+                            ));
+                        }
+                        folder = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            match folder {
+                Some(f) => run_timeline_undo(Path::new(&f)),
+                None => timeline_verb_usage("expected exactly one <folder>"),
+            }
+        }
+        "plan" | "apply" => {
+            let nested = match args.get(1) {
+                Some(n) => n.clone(),
+                None => {
+                    return timeline_verb_usage(&format!(
+                        "{verb} needs a content verb (one of move, trim, split, delete, set, duplicate)"
+                    ));
+                }
+            };
+            if !is_content_verb(&nested) {
+                return timeline_verb_usage(&format!(
+                    "{verb} needs a content verb (one of move, trim, split, delete, set, duplicate), found {nested:?}"
+                ));
+            }
+            let parsed = match parse_content_args(&nested, &args[2..]) {
+                Ok(p) => p,
+                Err(code) => return code,
+            };
+            if parsed.plan {
+                return timeline_verb_usage(&format!(
+                    "--plan contradicts `{verb}`; use `timeline plan {nested} ...` to preview"
+                ));
+            }
+            let folder = match parsed.folder.clone() {
+                Some(f) => f,
+                None => return timeline_verb_usage("expected exactly one <folder>"),
+            };
+            let content = match build_content_verb(&nested, &parsed) {
+                Ok(c) => c,
+                Err(code) => return code,
+            };
+            if verb == "plan" {
+                run_content_plan(content, parsed.composition.as_deref(), Path::new(&folder))
+            } else {
+                run_content_apply(content, parsed.composition.as_deref(), Path::new(&folder))
+            }
+        }
+        word if is_content_verb(word) => {
+            let parsed = match parse_content_args(word, &args[1..]) {
+                Ok(p) => p,
+                Err(code) => return code,
+            };
+            let folder = match parsed.folder.clone() {
+                Some(f) => f,
+                None => return timeline_verb_usage("expected exactly one <folder>"),
+            };
+            let content = match build_content_verb(word, &parsed) {
+                Ok(c) => c,
+                Err(code) => return code,
+            };
+            if parsed.plan {
+                run_content_plan(content, parsed.composition.as_deref(), Path::new(&folder))
+            } else {
+                run_content_apply(content, parsed.composition.as_deref(), Path::new(&folder))
+            }
+        }
+        other => timeline_verb_usage(&format!("unknown verb {other:?}")),
+    }
 }
 
 /// `info`: summarize one composition's canvas, duration, and clip
@@ -8404,17 +9136,69 @@ fn spawn_serve_child(
 /// `preview`: start (or reuse) one background server and print its
 /// URL. Returns the process exit code.
 pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
-    let preferred = match parse_preview_port(req.port.as_deref()) {
+    cmd_start(
+        "preview",
+        folder,
+        req.port.as_deref(),
+        req.composition.clone(),
+        req.foreground,
+    )
+}
+
+/// `play` (Sprint 15, T005): serve the same server as `preview` and
+/// print its embeddable player page URL (`<server>/player`, served with
+/// the hyphenated embed attributes and the film at its own shape).
+/// A refused project fails before any server starts, exactly like
+/// `preview`. Returns the process exit code.
+pub fn cmd_play(folder: &Path, req: &PreviewStartRequest) -> i32 {
+    cmd_start(
+        "play",
+        folder,
+        req.port.as_deref(),
+        req.composition.clone(),
+        req.foreground,
+    )
+}
+
+/// Player page URL behind one server entry (Sprint 15, T005).
+pub fn player_url_for(entry: &preview::daemon::ServerEntry) -> String {
+    format!("{}player", entry.url)
+}
+
+/// Shared `preview` / `play` start: validate, then run in this process
+/// (`foreground`) or spawn one background server per project directory
+/// with busy-port fall-forward. `cmd` names the command in reports;
+/// `play` additionally prints the player page URL.
+fn cmd_start(
+    cmd: &str,
+    folder: &Path,
+    port: Option<&str>,
+    composition: Option<String>,
+    foreground: bool,
+) -> i32 {
+    let preferred = match parse_preview_port(port) {
         Ok(p) => p,
         Err(message) => {
-            eprintln!("framesmith preview: {message}.");
+            eprintln!("framesmith {cmd}: {message}.");
             return 2;
         }
     };
     let registry = preview::daemon::registry_path();
+    // `play` reuses the one server per directory: the daemon entry is
+    // shared, and only the printed URL differs (the player page).
+    let announce = |entry: &preview::daemon::ServerEntry| {
+        println!("{}", preview::daemon::msg_existing(entry));
+        if cmd == "play" {
+            println!("open {} in a browser to play.", player_url_for(entry));
+        }
+    };
     let mut candidate = match preview::daemon::plan_start(&registry, folder, preferred) {
         Ok(preview::daemon::StartPlan::AlreadyRunning(entry)) => {
-            println!("{}", preview::daemon::msg_existing(&entry));
+            if cmd == "play" {
+                announce(&entry);
+            } else {
+                println!("{}", preview::daemon::msg_existing(&entry));
+            }
             return 0;
         }
         Ok(preview::daemon::StartPlan::ToStart { port, .. }) => port,
@@ -8432,20 +9216,26 @@ pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
             return 1;
         }
     };
-    if req.foreground {
+    if foreground {
+        if cmd == "play" {
+            eprintln!(
+                "framesmith play: serving the player at {} (append /player); press Ctrl-C to stop.",
+                preview::daemon::url_for_port(candidate)
+            );
+        }
         return preview::server::run_serve(&preview::server::ServeOptions {
             folder: folder.to_path_buf(),
             port: candidate,
             registry,
-            composition: req.composition.clone(),
+            composition,
         });
     }
     for _ in 0..10 {
-        let mut child = match spawn_serve_child(candidate, &registry, folder, req.composition.as_deref())
+        let mut child = match spawn_serve_child(candidate, &registry, folder, composition.as_deref())
         {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("framesmith preview: cannot start the preview server: {e}.");
+                eprintln!("framesmith {cmd}: cannot start the preview server: {e}.");
                 return 1;
             }
         };
@@ -8458,7 +9248,11 @@ pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
         ) {
             StartWait::Ready(entry) => {
                 println!("{}", preview::daemon::msg_started(&entry));
-                println!("open {} in a browser to review.", entry.url);
+                if cmd == "play" {
+                    println!("open {} in a browser to play.", player_url_for(&entry));
+                } else {
+                    println!("open {} in a browser to review.", entry.url);
+                }
                 return 0;
             }
             StartWait::ChildExited(Some(preview::server::PORT_BUSY_EXIT)) => {
@@ -8466,13 +9260,17 @@ pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
                 // re-check the registry — a sibling start may have won
                 // this directory while we spawned.
                 if let Some(entry) = preview::daemon::find_live_for(&registry, &dir) {
-                    println!("{}", preview::daemon::msg_existing(&entry));
+                    if cmd == "play" {
+                        announce(&entry);
+                    } else {
+                        println!("{}", preview::daemon::msg_existing(&entry));
+                    }
                     return 0;
                 }
                 match preview::daemon::pick_port(Some(candidate.saturating_add(1))) {
                     Ok(next) => candidate = next,
                     Err(message) => {
-                        eprintln!("{message}; no preview was started");
+                        eprintln!("{message}; no {cmd} was started");
                         return 1;
                     }
                 }
@@ -8481,7 +9279,7 @@ pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
             StartWait::ChildExited(code) => {
                 let tail = serve_log_tail(candidate);
                 eprintln!(
-                    "framesmith preview: the preview server exited before serving (exit {}); fix the cause and re-run. No preview was started.\nserver log {}:\n{tail}",
+                    "framesmith {cmd}: the preview server exited before serving (exit {}); fix the cause and re-run. No {cmd} was started.\nserver log {}:\n{tail}",
                     code.map(|c| c.to_string()).as_deref().unwrap_or("?"),
                     serve_log_path(candidate).display()
                 );
@@ -8492,14 +9290,14 @@ pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
                 let _ = child.wait();
                 let tail = serve_log_tail(candidate);
                 eprintln!(
-                    "framesmith preview: the preview server did not answer within 20s; fix the cause and re-run. No preview was started.\nserver log {}:\n{tail}",
+                    "framesmith {cmd}: the preview server did not answer within 20s; fix the cause and re-run. No {cmd} was started.\nserver log {}:\n{tail}",
                     serve_log_path(candidate).display()
                 );
                 return 1;
             }
         }
     }
-    eprintln!("framesmith preview: the preferred ports stayed busy; free one and re-run. No preview was started.");
+    eprintln!("framesmith {cmd}: the preferred ports stayed busy; free one and re-run. No {cmd} was started.");
     1
 }
 
@@ -8603,6 +9401,635 @@ pub fn cmd_preview_serve(
         registry: registry.to_path_buf(),
         composition: composition.map(|s| s.to_string()),
     })
+}
+
+/// `history` verbs (Sprint 15, T008 / CAP-007, CAP-008, CAP-009, J-04,
+/// STATE-05, INT-003, REC-003, REC-004): one shared, guarded record
+/// for humans and agents inside the project's hidden history directory.
+///
+/// * `list` names every turn oldest first and always works, even when
+///   writes are unavailable (then it says so with the cause).
+/// * `show` prints one turn; `--diff` names its changed files.
+/// * `peek` prints the newest turn without consuming anything.
+/// * `pin` (or `pin --unpin`) keeps a turn named for `restore`.
+/// * `begin --who <name> [--exclusive] [--if-open]` opens a guarded
+///   turn; `--if-open` joins the open turn instead of starting one.
+/// * `end --who <name>` closes that name's open turn.
+/// * `undo [<seq>] [--who <name>]` reverses one turn from its backup;
+///   `--who` reverses that name's last turn still in effect; a bare
+///   `undo` reverses the newest turn.
+/// * `restore <seq>` brings a turn's `after` state back.
+///
+/// Refusals exit 1 naming the holder, the missing target or backup,
+/// or the empty `--who`, and change nothing; usage errors exit 2.
+/// Render, check, and validation never read the history directory, so
+/// these verbs never change default renders. Returns the exit code.
+#[derive(Debug, Default)]
+pub struct HistoryRequest {
+    /// Verb: `list`, `show`, `undo`, `restore`, `peek`, `pin`,
+    /// `begin`, or `end`.
+    pub verb: String,
+    /// Project folder owning the hidden history directory.
+    pub folder: PathBuf,
+    /// Raw turn sequence for `show`, `pin`, `undo`, and `restore`.
+    pub seq: Option<String>,
+    /// Actor name for `begin`, `end`, and `undo --who`.
+    pub who: Option<String>,
+    /// `show --diff`: name the turn's changed files.
+    pub diff: bool,
+    /// `begin --exclusive`: block other writers until `end`.
+    pub exclusive: bool,
+    /// `begin --if-open`: join the open turn instead of starting one.
+    pub if_open: bool,
+    /// `pin --unpin`: clear the pin instead of setting it.
+    pub unpin: bool,
+    /// Machine-readable JSON report instead of human text.
+    pub json: bool,
+}
+
+/// Parse raw `<seq>` text into a turn number (Sprint 15 history): a
+/// non-numeric sequence is a usage error naming the expected shape.
+fn parse_history_seq(raw: &str) -> Result<u64, String> {
+    raw.parse::<u64>().map_err(|_| {
+        format!("expected a turn number <seq>, found {raw:?}")
+    })
+}
+
+/// One refused `history` verb (Sprint 15, T008): the SDK refusal on
+/// stderr as human text (or as the machine-readable report with
+/// `--json`, keeping stdout pure JSON), the run log warned, exit 1.
+/// Nothing was recorded, reversed, or guarded on refusal.
+fn refuse_history(req: &HistoryRequest, refusal: &sdk_history::HistoryRefusal) -> i32 {
+    let run = log::run_id();
+    if req.json {
+        println!(
+            "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"{}\",\"folder\":\"{}\",\"status\":\"refused\",\"exit\":1,\"code\":\"{}\",\"message\":\"{}\"}}",
+            json_escape(&req.verb),
+            json_escape(&req.folder.display().to_string()),
+            json_escape(refusal.code),
+            json_escape(&refusal.message)
+        );
+    } else {
+        eprintln!("framesmith history {} refused: {refusal}", req.verb);
+    }
+    note_log(
+        &req.folder,
+        "warn",
+        "history",
+        &run,
+        &format!("history {} refused: {refusal}", req.verb),
+        req.json,
+    );
+    1
+}
+
+/// One misused `history` verb (Sprint 15, T008): the usage gap on
+/// stderr with the verb usage, exit 2. Nothing ran, so nothing changed.
+fn misuse_history(req: &HistoryRequest, msg: &str) -> i32 {
+    eprintln!("framesmith history {}: {msg}.", req.verb);
+    eprintln!("{HISTORY_USAGE}");
+    2
+}
+
+/// Usage line for every `history` verb (shared by the dispatch and
+/// the misuse report so both name the same shape).
+const HISTORY_USAGE: &str = "usage: framesmith history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]";
+
+/// `history list`: name every recorded turn oldest first, then say
+/// whether the current run may write history. Listing never refuses
+/// over writability: an unwritable history directory still lists,
+/// saying so with the cause. Returns the process exit code.
+fn cmd_history_list(req: &HistoryRequest) -> i32 {
+    let run = log::run_id();
+    match sdk_history::list_turns(&req.folder) {
+        Ok(listing) => {
+            if req.json {
+                use std::fmt::Write;
+                let mut out = format!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"list\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"turns\":[",
+                    json_escape(&req.folder.display().to_string())
+                );
+                for (i, t) in listing.turns.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    let _ = write!(
+                        out,
+                        "{{\"seq\":{},\"actor\":\"{}\",\"summary\":\"{}\",\"pinned\":{},\"undone\":{},\"created_unix\":{}}}",
+                        t.seq,
+                        json_escape(&t.actor),
+                        json_escape(&t.summary),
+                        t.pinned,
+                        t.undone,
+                        t.created_unix
+                    );
+                }
+                let _ = write!(
+                    out,
+                    "],\"writes_available\":{},\"write_cause\":{}",
+                    listing.writes_available,
+                    match &listing.write_cause {
+                        Some(c) => format!("\"{}\"", json_escape(c)),
+                        None => "null".to_string(),
+                    }
+                );
+                out.push('}');
+                println!("{out}");
+            } else {
+                println!(
+                    "history: {} turn(s) in {}.",
+                    listing.turns.len(),
+                    req.folder.display()
+                );
+                for t in &listing.turns {
+                    let mut flags = String::new();
+                    if t.pinned {
+                        flags.push_str(" [pinned]");
+                    }
+                    if t.undone {
+                        flags.push_str(" [undone]");
+                    }
+                    println!("#{} {} {:?}{flags}", t.seq, t.actor, t.summary);
+                }
+                if listing.writes_available {
+                    println!("writes available.");
+                } else {
+                    println!(
+                        "warning: writes are unavailable: {}.",
+                        listing.write_cause.as_deref().unwrap_or("unknown cause")
+                    );
+                }
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!("history list: {} turn(s)", listing.turns.len()),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history show`: print one recorded turn; `--diff` names its
+/// changed files (the `show --diff` names). A missing turn refuses
+/// naming which target is missing. Returns the exit code.
+fn cmd_history_show(req: &HistoryRequest, seq: u64) -> i32 {
+    let run = log::run_id();
+    match sdk_history::show_turn(&req.folder, seq) {
+        Ok(detail) => {
+            let r = &detail.record;
+            if req.json {
+                use std::fmt::Write;
+                let mut out = format!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"show\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"seq\":{},\"actor\":\"{}\",\"summary\":\"{}\",\"pinned\":{},\"undone\":{},\"created_unix\":{},\"targets\":[",
+                    json_escape(&req.folder.display().to_string()),
+                    r.seq,
+                    json_escape(&r.actor),
+                    json_escape(&r.summary),
+                    r.pinned,
+                    r.undone,
+                    r.created_unix
+                );
+                for (i, t) in r.targets.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    let _ = write!(out, "\"{}\"", json_escape(t));
+                }
+                out.push_str("],\"artifacts_cleaned\":[");
+                for (i, a) in r.artifacts_cleaned.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    let _ = write!(out, "\"{}\"", json_escape(a));
+                }
+                out.push_str("],\"changed_files\":[");
+                for (i, f) in detail.diff.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    let _ = write!(out, "\"{}\"", json_escape(f));
+                }
+                out.push_str("]}");
+                println!("{out}");
+            } else {
+                println!("turn #{} in {}.", r.seq, req.folder.display());
+                println!("actor: {}", r.actor);
+                println!("summary: {:?}", r.summary);
+                println!("targets:");
+                for t in &r.targets {
+                    println!("  - {t}");
+                }
+                println!("artifacts cleaned:");
+                for a in &r.artifacts_cleaned {
+                    println!("  - {a}");
+                }
+                println!("pinned: {}.", if r.pinned { "yes" } else { "no" });
+                println!("undone: {}.", if r.undone { "yes" } else { "no" });
+                if req.diff {
+                    println!("changed files:");
+                    for f in &detail.diff {
+                        println!("  - {f}");
+                    }
+                } else {
+                    println!(
+                        "changed files: {} file(s) (pass --diff to name them).",
+                        detail.diff.len()
+                    );
+                }
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!("history show: turn {seq}"),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history peek`: print the newest recorded turn without consuming
+/// anything; an empty history reports that and still exits 0.
+/// Returns the exit code.
+fn cmd_history_peek(req: &HistoryRequest) -> i32 {
+    let run = log::run_id();
+    match sdk_history::peek_turn(&req.folder) {
+        Ok(Some(t)) => {
+            if req.json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"peek\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"seq\":{},\"actor\":\"{}\",\"summary\":\"{}\",\"pinned\":{},\"undone\":{},\"created_unix\":{}}}",
+                    json_escape(&req.folder.display().to_string()),
+                    t.seq,
+                    json_escape(&t.actor),
+                    json_escape(&t.summary),
+                    t.pinned,
+                    t.undone,
+                    t.created_unix
+                );
+            } else {
+                println!(
+                    "newest turn #{} by {} {:?} in {}.",
+                    t.seq,
+                    t.actor,
+                    t.summary,
+                    req.folder.display()
+                );
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!("history peek: turn {}", t.seq),
+                req.json,
+            );
+            0
+        }
+        Ok(None) => {
+            if req.json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"peek\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"seq\":null,\"message\":\"no turns recorded\"}}",
+                    json_escape(&req.folder.display().to_string())
+                );
+            } else {
+                println!("no turns recorded in {}.", req.folder.display());
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                "history peek: no turns recorded",
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history pin`: keep (`pin`) or release (`pin --unpin`) a named
+/// turn so `restore` can bring it back. A missing turn refuses naming
+/// which target is missing. Returns the exit code.
+fn cmd_history_pin(req: &HistoryRequest, seq: u64) -> i32 {
+    let run = log::run_id();
+    match sdk_history::pin_turn(&req.folder, seq, !req.unpin) {
+        Ok(record) => {
+            if req.json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"pin\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"seq\":{},\"pinned\":{}}}",
+                    json_escape(&req.folder.display().to_string()),
+                    record.seq,
+                    record.pinned
+                );
+            } else if record.pinned {
+                println!("pinned turn #{}.", record.seq);
+            } else {
+                println!("unpinned turn #{}.", record.seq);
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!(
+                    "history pin: turn {} pinned={}",
+                    record.seq, record.pinned
+                ),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history begin`: open a guarded turn for `--who <name>`;
+/// `--exclusive` blocks other writers until `end`, `--if-open`
+/// joins the already-open turn instead of starting a second. A
+/// conflicting turn refuses naming the holder and the turn's age,
+/// preserving the refused work unapplied. Returns the exit code.
+fn cmd_history_begin(req: &HistoryRequest, who: &str) -> i32 {
+    let run = log::run_id();
+    let opts = sdk_history::BeginOptions {
+        exclusive: req.exclusive,
+        if_open: req.if_open,
+    };
+    match sdk_history::begin_turn(&req.folder, who, &opts) {
+        Ok(handle) => {
+            if req.json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"begin\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"actor\":\"{}\",\"exclusive\":{},\"attached\":{},\"started_unix\":{}}}",
+                    json_escape(&req.folder.display().to_string()),
+                    json_escape(&handle.actor),
+                    handle.exclusive,
+                    handle.attached,
+                    handle.started_unix
+                );
+            } else if handle.attached {
+                println!(
+                    "attached {who:?} to the open turn held by {:?} (--if-open).",
+                    handle.actor
+                );
+            } else if handle.exclusive {
+                println!("began exclusive turn for {who:?} in {}.", req.folder.display());
+            } else {
+                println!("began shared turn for {who:?} in {}.", req.folder.display());
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!(
+                    "history begin: actor={} exclusive={} attached={}",
+                    handle.actor, handle.exclusive, handle.attached
+                ),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history end`: close `--who <name>`'s open turn. Ending a name
+/// with no open turn refuses naming it and changes nothing. Returns
+/// the exit code.
+fn cmd_history_end(req: &HistoryRequest, who: &str) -> i32 {
+    let run = log::run_id();
+    match sdk_history::end_turn(&req.folder, who) {
+        Ok(handle) => {
+            if req.json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"end\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"actor\":\"{}\"}}",
+                    json_escape(&req.folder.display().to_string()),
+                    json_escape(&handle.actor)
+                );
+            } else {
+                println!("ended the open turn held by {:?}.", handle.actor);
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!("history end: actor={}", handle.actor),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// One reversed turn as human text (Sprint 15, T008): the verb, the
+/// turn, and the restored state the tree now matches, so the maker
+/// reads back what changed on disk.
+fn format_history_reversed_human(
+    verb: &str,
+    seq: u64,
+    actor: &str,
+    summary: &str,
+    restored_state: &str,
+    restored_files: &[String],
+) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "{verb} turn #{seq} by {actor} {summary:?}; {restored_state}."
+    );
+    let _ = writeln!(out, "restored {} file(s):", restored_files.len());
+    for f in restored_files {
+        let _ = writeln!(out, "  - {f}");
+    }
+    out
+}
+
+/// `history undo`: reverse one recorded turn from its backup and
+/// report the restored state. `--who <name>` reverses that name's
+/// last turn still in effect (reporting when none is); a bare `undo`
+/// reverses the newest turn. A missing target or backup refuses naming
+/// which one is missing, reversing nothing. Returns the exit code.
+fn cmd_history_undo(req: &HistoryRequest, seq: Option<u64>, who: Option<&str>) -> i32 {
+    let run = log::run_id();
+    let outcome = match (seq, who) {
+        (_, Some(name)) => sdk_history::undo_who(&req.folder, name),
+        (Some(n), None) => sdk_history::undo_turn(&req.folder, n),
+        (None, None) => match sdk_history::list_turns(&req.folder) {
+            Err(refusal) => Err(refusal),
+            Ok(listing) => match listing.turns.iter().max_by_key(|t| t.seq) {
+                Some(newest) => sdk_history::undo_turn(&req.folder, newest.seq),
+                None => {
+                    return refuse_history(
+                        req,
+                        &sdk_history::HistoryRefusal {
+                            kind: sdk_history::HistoryRefusalKind::NoTurn,
+                            code: sdk_history::E_SDK_NO_TURN,
+                            message: format!(
+                                "history refused: no recorded turn answers the request: the history holds no turns. Record a turn first; nothing was reversed."
+                            ),
+                        },
+                    );
+                }
+            },
+        },
+    };
+    match outcome {
+        Ok(receipt) => {
+            if req.json {
+                use std::fmt::Write;
+                let mut out = format!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"undo\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"seq\":{},\"actor\":\"{}\",\"summary\":\"{}\",\"restored_state\":\"{}\",\"restored_files\":[",
+                    json_escape(&req.folder.display().to_string()),
+                    receipt.seq,
+                    json_escape(&receipt.actor),
+                    json_escape(&receipt.summary),
+                    json_escape(&receipt.restored_state)
+                );
+                for (i, f) in receipt.restored_files.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    let _ = write!(out, "\"{}\"", json_escape(f));
+                }
+                out.push_str("]}");
+                println!("{out}");
+            } else {
+                print!(
+                    "{}",
+                    format_history_reversed_human(
+                        "undone",
+                        receipt.seq,
+                        &receipt.actor,
+                        &receipt.summary,
+                        &receipt.restored_state,
+                        &receipt.restored_files
+                    )
+                );
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!("history undo: turn {}", receipt.seq),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history restore`: bring a turn's `after` state back and report
+/// the restored state. A missing target or backup refuses naming
+/// which one is missing, restoring nothing. Returns the exit code.
+fn cmd_history_restore(req: &HistoryRequest, seq: u64) -> i32 {
+    let run = log::run_id();
+    match sdk_history::restore_turn(&req.folder, seq) {
+        Ok(receipt) => {
+            if req.json {
+                use std::fmt::Write;
+                let mut out = format!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"history\",\"verb\":\"restore\",\"folder\":\"{}\",\"status\":\"ok\",\"exit\":0,\"seq\":{},\"actor\":\"{}\",\"summary\":\"{}\",\"restored_state\":\"{}\",\"restored_files\":[",
+                    json_escape(&req.folder.display().to_string()),
+                    receipt.seq,
+                    json_escape(&receipt.actor),
+                    json_escape(&receipt.summary),
+                    json_escape(&receipt.restored_state)
+                );
+                for (i, f) in receipt.restored_files.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    let _ = write!(out, "\"{}\"", json_escape(f));
+                }
+                out.push_str("]}");
+                println!("{out}");
+            } else {
+                print!(
+                    "{}",
+                    format_history_reversed_human(
+                        "restored",
+                        receipt.seq,
+                        &receipt.actor,
+                        &receipt.summary,
+                        &receipt.restored_state,
+                        &receipt.restored_files
+                    )
+                );
+            }
+            note_log(
+                &req.folder,
+                "info",
+                "history",
+                &run,
+                &format!("history restore: turn {}", receipt.seq),
+                req.json,
+            );
+            0
+        }
+        Err(refusal) => refuse_history(req, &refusal),
+    }
+}
+
+/// `history`: dispatch one guarded-history verb (Sprint 15, T008).
+/// Returns the process exit code (0 ok, 1 refused, 2 misused).
+pub fn cmd_history(req: &HistoryRequest) -> i32 {
+    match req.verb.as_str() {
+        "list" => cmd_history_list(req),
+        "peek" => cmd_history_peek(req),
+        "show" => match &req.seq {
+            Some(raw) => match parse_history_seq(raw) {
+                Ok(seq) => cmd_history_show(req, seq),
+                Err(msg) => misuse_history(req, &msg),
+            },
+            None => misuse_history(req, "show needs a turn number <seq>"),
+        },
+        "pin" => match &req.seq {
+            Some(raw) => match parse_history_seq(raw) {
+                Ok(seq) => cmd_history_pin(req, seq),
+                Err(msg) => misuse_history(req, &msg),
+            },
+            None => misuse_history(req, "pin needs a turn number <seq>"),
+        },
+        "begin" => match &req.who {
+            Some(who) => cmd_history_begin(req, who),
+            None => misuse_history(req, "begin needs --who <name> (an actor name)"),
+        },
+        "end" => match &req.who {
+            Some(who) => cmd_history_end(req, who),
+            None => misuse_history(req, "end needs --who <name> (an actor name)"),
+        },
+        "undo" => {
+            let seq = match &req.seq {
+                Some(raw) => match parse_history_seq(raw) {
+                    Ok(n) => Some(n),
+                    Err(msg) => return misuse_history(req, &msg),
+                },
+                None => None,
+            };
+            cmd_history_undo(req, seq, req.who.as_deref())
+        }
+        "restore" => match &req.seq {
+            Some(raw) => match parse_history_seq(raw) {
+                Ok(seq) => cmd_history_restore(req, seq),
+                Err(msg) => misuse_history(req, &msg),
+            },
+            None => misuse_history(req, "restore needs a turn number <seq>"),
+        },
+        other => misuse_history(req, &format!("unknown verb {other:?}; expected list, show, undo, restore, peek, pin, begin, or end")),
+    }
 }
 
 #[cfg(test)]

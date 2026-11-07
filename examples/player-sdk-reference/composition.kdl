@@ -1,0 +1,10 @@
+composition name="player-sdk" width=320 height=180 duration=6 fps=10 background="#112233" version=1 {
+    variable id="title" type="string" default="Hello SDK"
+    variable id="accent" type="color" default="#ff3366"
+    variable id="show" type="boolean" default=false
+    variable id="step" type="number" default=1.5
+    variable id="brand" type="font" default="Alpha, Beta"
+    text id="a" value="var(--title)" start=0 duration=2 x=10 y=40 size=24 color="#ffffff" font-family="var(--brand)"
+    text id="b" value="Two" start=2 duration=2 x="var(--step)" y=80 size=24 color="var(--accent)"
+    text id="c" value="Three" start=4 duration=2 x=10 y=120 size=24 color="#ffffff" hidden="var(--show)"
+}

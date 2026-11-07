@@ -191,7 +191,9 @@ fn composition_file(folder: &Path) -> PathBuf {
 }
 
 fn composition_mtime(folder: &Path) -> Option<SystemTime> {
-    std::fs::metadata(composition_file(folder)).and_then(|m| m.modified()).ok()
+    std::fs::metadata(composition_file(folder))
+        .and_then(|m| m.modified())
+        .ok()
 }
 
 /// Accept connections until `/api/shutdown` flips the flag.
@@ -267,18 +269,16 @@ fn query_pairs(query: &str) -> Vec<(String, String)> {
                     out.push(' ');
                     i += 1;
                 }
-                b'%' if i + 2 < bytes.len() => {
-                    match u8::from_str_radix(&s[i + 1..i + 3], 16) {
-                        Ok(b) => {
-                            out.push(b as char);
-                            i += 3;
-                        }
-                        Err(_) => {
-                            out.push('%');
-                            i += 1;
-                        }
+                b'%' if i + 2 < bytes.len() => match u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                    Ok(b) => {
+                        out.push(b as char);
+                        i += 3;
                     }
-                }
+                    Err(_) => {
+                        out.push('%');
+                        i += 1;
+                    }
+                },
                 _ => {
                     out.push(bytes[i] as char);
                     i += 1;
@@ -298,7 +298,10 @@ fn query_pairs(query: &str) -> Vec<(String, String)> {
 }
 
 fn query_get(query: &str, key: &str) -> Option<String> {
-    query_pairs(query).into_iter().find(|(k, _)| k == key).map(|(_, v)| v)
+    query_pairs(query)
+        .into_iter()
+        .find(|(k, _)| k == key)
+        .map(|(_, v)| v)
 }
 
 fn json_escape(value: &str) -> String {
@@ -341,7 +344,47 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str)
     match (method, path) {
         ("GET", "/") => {
             let page = render_page(state);
-            respond(stream, "200 OK", "text/html; charset=utf-8", page.as_bytes());
+            respond(
+                stream,
+                "200 OK",
+                "text/html; charset=utf-8",
+                page.as_bytes(),
+            );
+        }
+        // Embeddable player (Sprint 15, T005): the same frames and mix
+        // behind a player page implementing the method/event surface.
+        // Embed attributes arrive hyphenated in the query string
+        // (`?autoplay=1&click-to-play=0&no-load-timeout=1`); with no
+        // height given the film shows at its own shape.
+        ("GET", "/player") => {
+            let attrs = crate::player::PlayerAttributes::from_query(query);
+            let page = render_player(state, &attrs);
+            respond(
+                stream,
+                "200 OK",
+                "text/html; charset=utf-8",
+                page.as_bytes(),
+            );
+        }
+        // Host embed snippet (Sprint 15, T005 / INT-001): an iframe
+        // pointing at `/player` with the hyphenated attributes.
+        ("GET", "/embed") => {
+            let attrs = crate::player::PlayerAttributes::from_query(query);
+            let port = state.port;
+            let snippet = crate::player::embed_snippet(
+                &format!("http://{}:{port}/player", daemon::LOOPBACK),
+                state.session.composition_name(),
+                &attrs,
+                state.session.canvas().0,
+                state.session.canvas().1,
+                None,
+            );
+            respond(
+                stream,
+                "200 OK",
+                "text/html; charset=utf-8",
+                snippet.as_bytes(),
+            );
         }
         ("GET", "/api/status") => {
             let body = render_status(state);
@@ -418,7 +461,9 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str)
             }
         }
         ("POST", "/api/step") => {
-            let delta: i64 = query_get(query, "d").and_then(|v| v.parse().ok()).unwrap_or(1);
+            let delta: i64 = query_get(query, "d")
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(1);
             let result = if delta < 0 {
                 state.transport.step_back()
             } else {
@@ -580,7 +625,10 @@ fn render_page(state: &mut ServerState) -> String {
     for row in &report.actions {
         medians.push_str(&format!("<li>{row}</li>"));
     }
-    let reload = state.last_reload.clone().unwrap_or_else(|| "no reload yet".to_string());
+    let reload = state
+        .last_reload
+        .clone()
+        .unwrap_or_else(|| "no reload yet".to_string());
     let audio_block = if silent {
         "<p id=\"audio-note\">silent project: video plays with no audio track.</p>".to_string()
     } else {
@@ -607,5 +655,30 @@ fn render_page(state: &mut ServerState) -> String {
         audio = audio_block,
         medians = medians,
         reload = reload,
+    )
+}
+
+/// The embeddable player page (Sprint 15, T005): the same session's
+/// frames and mix behind the player method/event surface. The film
+/// model comes straight from the session, so shown bytes equal the
+/// pipeline's bytes exactly and nothing is written into the project.
+fn render_player(state: &mut ServerState, attrs: &crate::player::PlayerAttributes) -> String {
+    let r = state.transport.readout();
+    let silent = state.session.mix_info().ok().flatten().is_none();
+    let background = state.session.background_css();
+    crate::player::player_page_html_with_background(
+        &crate::player::PlayerPageModel {
+            project: state.dir_key.clone(),
+            composition: state.session.composition_name().to_string(),
+            frame: r.frame,
+            frame_count: state.session.frame_count(),
+            duration_secs: state.session.duration_secs(),
+            fps_value: state.session.fps().value(),
+            width: state.session.canvas().0,
+            height: state.session.canvas().1,
+            has_audio: !silent,
+            attrs: attrs.clone(),
+        },
+        &background,
     )
 }

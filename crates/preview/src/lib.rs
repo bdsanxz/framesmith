@@ -24,6 +24,7 @@ use std::time::{Duration, Instant};
 mod audio;
 pub mod daemon;
 mod latency;
+pub mod player;
 mod reload;
 pub mod server;
 mod transport;
@@ -33,8 +34,14 @@ pub use audio::{
     PlayAudioErrorKind, PlaybackGain, MIX_CHANNELS, MIX_RATE,
 };
 pub use latency::{
-    ActionLatency, LatencyBars, LatencySample, LatencyTracker, SessionLatencyReport, TransportAction,
-    Warmth, JUMP_BAR_MS, SCRUB_BAR_MS, STEP_BAR_MS,
+    ActionLatency, LatencyBars, LatencySample, LatencyTracker, SessionLatencyReport,
+    TransportAction, Warmth, JUMP_BAR_MS, SCRUB_BAR_MS, STEP_BAR_MS,
+};
+pub use player::{
+    embed_snippet, film_style, is_menu_rate, player_page_html, player_page_html_with_background,
+    ControlAction, LoadFailureKind, LoadedFilm, Player, PlayerAttributes, PlayerError, PlayerEvent,
+    PlayerEventKind, PlayerFailure, PlayerPageModel, PlayerReadout, PlayerState, CANONICAL_ORDER,
+    LOAD_DEADLINE, LOAD_DEADLINE_SECS, SPEED_MENU, SPEED_MENU_MAX, SPEED_MENU_MIN,
 };
 pub use reload::{ReloadReport, RELOAD_BUDGET, RELOAD_BUDGET_MS};
 pub use transport::{
@@ -310,10 +317,16 @@ impl PreviewSession {
                     "preview refused: {} is invalid; fix the problems `check` reports and re-run. No preview was started.",
                     folder.display()
                 );
-                let diagnostics: Vec<PreviewDiagnostic> =
-                    verdict.diagnostics.iter().map(PreviewDiagnostic::from).collect();
+                let diagnostics: Vec<PreviewDiagnostic> = verdict
+                    .diagnostics
+                    .iter()
+                    .map(PreviewDiagnostic::from)
+                    .collect();
                 for d in &diagnostics {
-                    message.push_str(&format!("\n{}:{}:{} {} {}", d.file, d.line, d.column, d.code, d.message));
+                    message.push_str(&format!(
+                        "\n{}:{}:{} {} {}",
+                        d.file, d.line, d.column, d.code, d.message
+                    ));
                 }
                 return Err(PreviewRefusal {
                     kind: RefusalKind::Invalid,
@@ -394,7 +407,8 @@ impl PreviewSession {
             }
             None => {
                 let seq = SESSION_SEQ.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                std::env::temp_dir().join(format!("framesmith-preview-{}-{seq}", std::process::id()))
+                std::env::temp_dir()
+                    .join(format!("framesmith-preview-{}-{seq}", std::process::id()))
             }
         };
         if let Some(root) = &options.cache_dir {
@@ -429,12 +443,8 @@ impl PreviewSession {
             let _guard = PREPARE_LOCK.lock().unwrap();
             let previous = std::env::var_os("FRAMESMITH_FOOTAGE_CACHE_DIR");
             std::env::set_var("FRAMESMITH_FOOTAGE_CACHE_DIR", &disk_dir);
-            let prepared = render::render::prepare_frames(
-                &comp,
-                &verdict.compositions,
-                folder,
-                &ffmpeg_bin,
-            );
+            let prepared =
+                render::render::prepare_frames(&comp, &verdict.compositions, folder, &ffmpeg_bin);
             match previous {
                 Some(v) => std::env::set_var("FRAMESMITH_FOOTAGE_CACHE_DIR", v),
                 None => std::env::remove_var("FRAMESMITH_FOOTAGE_CACHE_DIR"),
@@ -494,6 +504,14 @@ impl PreviewSession {
         self.canvas
     }
 
+    /// Composition background as a CSS hex color (Sprint 15, T006):
+    /// the player page paints the empty-timeline background frame box
+    /// with this color. Reads the validated composition only, so the
+    /// project directory is never touched.
+    pub fn background_css(&self) -> String {
+        format!("#{}", self.composition.background.to_hex())
+    }
+
     /// Frames per second behind the transport time readout (Sprint 14,
     /// T003): the validated composition rate.
     pub fn fps(&self) -> notation::model::Fps {
@@ -551,7 +569,8 @@ impl PreviewSession {
         let start = Instant::now();
         let frame = self.frame_png(index)?;
         let elapsed = start.elapsed();
-        self.latency.record_source(action, frame.served_from, elapsed);
+        self.latency
+            .record_source(action, frame.served_from, elapsed);
         Ok((frame, elapsed))
     }
 
@@ -704,8 +723,11 @@ impl PreviewSession {
         );
         match verdict.status {
             validate::validate::Status::Invalid => {
-                let diagnostics: Vec<PreviewDiagnostic> =
-                    verdict.diagnostics.iter().map(PreviewDiagnostic::from).collect();
+                let diagnostics: Vec<PreviewDiagnostic> = verdict
+                    .diagnostics
+                    .iter()
+                    .map(PreviewDiagnostic::from)
+                    .collect();
                 let mut message = format!(
                     "preview reload kept the last good look: {} is invalid; fix the problems and save again. Last good frames keep showing.",
                     self.folder.display()
@@ -719,10 +741,12 @@ impl PreviewSession {
                 return broken(self, diagnostics, message);
             }
             validate::validate::Status::Unsupported => {
-                let diagnostics: Vec<PreviewDiagnostic> =
-                    verdict.diagnostics.iter().map(PreviewDiagnostic::from).collect();
-                let names: Vec<String> =
-                    diagnostics.iter().map(|d| d.message.clone()).collect();
+                let diagnostics: Vec<PreviewDiagnostic> = verdict
+                    .diagnostics
+                    .iter()
+                    .map(PreviewDiagnostic::from)
+                    .collect();
+                let names: Vec<String> = diagnostics.iter().map(|d| d.message.clone()).collect();
                 return broken(
                     self,
                     diagnostics,
@@ -736,7 +760,10 @@ impl PreviewSession {
             validate::validate::Status::Valid => {}
         }
         let comp = match &self.wanted {
-            None => verdict.composition.clone().expect("valid verdict carries a composition"),
+            None => verdict
+                .composition
+                .clone()
+                .expect("valid verdict carries a composition"),
             Some(want) => match verdict
                 .compositions
                 .iter()
@@ -934,22 +961,30 @@ impl PreviewSession {
                 served_from: CacheSource::Disk,
             });
         }
-        let drawn = render::render::draw_batch_parallel(&self.prep, self.backend, &[index]).map_err(|e| {
-            PreviewFrameError {
+        let drawn = render::render::draw_batch_parallel(&self.prep, self.backend, &[index])
+            .map_err(|e| PreviewFrameError {
                 kind: FrameErrorKind::RenderFailed,
-                message: format!("{}; showing last good frame {}", previewize(e), self.last_good_desc()),
-            }
-        })?;
+                message: format!(
+                    "{}; showing last good frame {}",
+                    previewize(e),
+                    self.last_good_desc()
+                ),
+            })?;
         let (_, rgb) = drawn
             .iter()
             .find(|(k, _)| *k == index)
             .expect("drawn frame was requested");
-        let png = render::outputs::encode_png_rgb8(self.canvas.0, self.canvas.1, rgb).map_err(|e| {
-            PreviewFrameError {
-                kind: FrameErrorKind::RenderFailed,
-                message: format!("{}; showing last good frame {}", previewize(e), self.last_good_desc()),
-            }
-        })?;
+        let png =
+            render::outputs::encode_png_rgb8(self.canvas.0, self.canvas.1, rgb).map_err(|e| {
+                PreviewFrameError {
+                    kind: FrameErrorKind::RenderFailed,
+                    message: format!(
+                        "{}; showing last good frame {}",
+                        previewize(e),
+                        self.last_good_desc()
+                    ),
+                }
+            })?;
         // Atomic store: encode fully, then rename into place, so a
         // crash never leaves a partial entry behind.
         let tmp = disk_path.with_extension("png.tmp");

@@ -43,11 +43,14 @@ fn usage() -> ! {
          \x20 framesmith preview-stop <folder>\n\
          \x20 framesmith preview-list\n\
          \x20 framesmith preview-stop-all\n\
+         \x20 framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>\n\
          \x20 framesmith doctor [--json] [<folder>]\n\
          \x20 framesmith benchmark [--json] [--out <dir>]\n\
          \x20 framesmith errors [--json] [CODE]\n\
          \x20 framesmith compositions [--json] <folder>\n\
          \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
+         \x20 framesmith timeline move|trim|split|delete|set|duplicate|ids|plan|apply|undo ...  (timeline edit verbs; bare `timeline` still lists)\n\
+         \x20 framesmith history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
          \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080] [--supersample 1|2|3|4] [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
@@ -187,10 +190,24 @@ fn benchmark_usage_error(msg: &str) -> ! {
     std::process::exit(2);
 }
 
+fn history_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith history: {msg}.");
+    eprintln!("usage: framesmith history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]");
+    std::process::exit(2);
+}
+
 fn preview_usage_error(msg: &str) -> ! {
     eprintln!("framesmith preview: {msg}.");
     eprintln!(
         "usage: framesmith preview [--port <n>] [--composition <name>] [--foreground] <folder>"
+    );
+    std::process::exit(2);
+}
+
+fn play_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith play: {msg}.");
+    eprintln!(
+        "usage: framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>"
     );
     std::process::exit(2);
 }
@@ -816,12 +833,152 @@ fn main() {
             commands::cmd_compositions(&folder, json)
         }
         "timeline" => {
-            let (folder, name, json) = parse_listing_args("timeline", &args[1..]);
-            commands::cmd_timeline(&folder, name.as_deref(), json)
+            // Edit verbs live alongside the Sprint 6 listing: a verb
+            // word in first position dispatches to the verb surface,
+            // anything else keeps the listing parse byte-for-byte.
+            if args.len() > 1 && commands::is_timeline_verb(&args[1]) {
+                commands::cmd_timeline_verb(&args[1..])
+            } else {
+                let (folder, name, json) = parse_listing_args("timeline", &args[1..]);
+                commands::cmd_timeline(&folder, name.as_deref(), json)
+            }
         }
         "info" => {
             let (folder, name, json) = parse_listing_args("info", &args[1..]);
             commands::cmd_info(&folder, name.as_deref(), json)
+        }
+        "history" => {
+            let mut req = commands::HistoryRequest::default();
+            let mut verb: Option<String> = None;
+            let mut positionals: Vec<String> = Vec::new();
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--json" => {
+                        if req.json {
+                            history_usage_error("duplicate --json flag");
+                        }
+                        req.json = true;
+                    }
+                    "--diff" => {
+                        if req.diff {
+                            history_usage_error("duplicate --diff flag");
+                        }
+                        req.diff = true;
+                    }
+                    "--exclusive" => {
+                        if req.exclusive {
+                            history_usage_error("duplicate --exclusive flag");
+                        }
+                        req.exclusive = true;
+                    }
+                    "--if-open" => {
+                        if req.if_open {
+                            history_usage_error("duplicate --if-open flag");
+                        }
+                        req.if_open = true;
+                    }
+                    "--unpin" => {
+                        if req.unpin {
+                            history_usage_error("duplicate --unpin flag");
+                        }
+                        req.unpin = true;
+                    }
+                    "--who" => {
+                        i += 1;
+                        if i >= args.len() {
+                            history_usage_error("--who needs a value (an actor name)");
+                        }
+                        if req.who.is_some() {
+                            history_usage_error("duplicate --who flag");
+                        }
+                        req.who = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        history_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if verb.is_none() {
+                            verb = Some(other.to_string());
+                        } else {
+                            positionals.push(other.to_string());
+                        }
+                    }
+                }
+                i += 1;
+            }
+            let verb = match verb {
+                Some(v) => v,
+                None => history_usage_error(
+                    "missing <verb> (list, show, undo, restore, peek, pin, begin, or end)",
+                ),
+            };
+            match verb.as_str() {
+                "list" | "show" | "undo" | "restore" | "peek" | "pin" | "begin" | "end" => {}
+                other => history_usage_error(&format!(
+                    "unknown verb {other:?}; expected list, show, undo, restore, peek, pin, begin, or end"
+                )),
+            }
+            // Flag-to-verb shape: guards select writers, --diff names
+            // changed files, --unpin releases a pin; anything else is
+            // a usage error naming the mismatch.
+            if req.diff && verb != "show" {
+                history_usage_error("--diff needs the show verb (show --diff names changed files)");
+            }
+            if req.exclusive && verb != "begin" {
+                history_usage_error("--exclusive needs the begin verb");
+            }
+            if req.if_open && verb != "begin" {
+                history_usage_error("--if-open needs the begin verb");
+            }
+            if req.unpin && verb != "pin" {
+                history_usage_error("--unpin needs the pin verb");
+            }
+            if req.who.is_some() && !matches!(verb.as_str(), "begin" | "end" | "undo") {
+                history_usage_error("--who needs the begin, end, or undo verb");
+            }
+            if positionals.is_empty() {
+                history_usage_error("missing <folder>");
+            }
+            if positionals.len() > 2 {
+                history_usage_error(&format!(
+                    "expected <folder> plus an optional [seq], found extra {:?}",
+                    positionals[2]
+                ));
+            }
+            req.verb = verb.clone();
+            req.folder = PathBuf::from(&positionals[0]);
+            if let Some(seq) = positionals.get(1) {
+                req.seq = Some(seq.clone());
+            }
+            match verb.as_str() {
+                "show" | "pin" | "restore" => {
+                    if req.seq.is_none() {
+                        history_usage_error(&format!("{verb} needs a turn number <seq>"));
+                    }
+                }
+                "begin" | "end" => {
+                    if req.who.is_none() {
+                        history_usage_error(&format!("{verb} needs --who <name> (an actor name)"));
+                    }
+                    if req.seq.is_some() {
+                        history_usage_error(&format!("{verb} takes no <seq>"));
+                    }
+                }
+                "undo" => {
+                    if req.who.is_some() && req.seq.is_some() {
+                        history_usage_error(
+                            "undo takes <seq> or --who <name>, not both; pass one",
+                        );
+                    }
+                }
+                _ => {
+                    if req.seq.is_some() {
+                        history_usage_error(&format!("{verb} takes no <seq>"));
+                    }
+                }
+            }
+            commands::cmd_history(&req)
         }
         "grade-bake" => {
             let mut composition: Option<String> = None;
@@ -1473,6 +1630,57 @@ fn main() {
                 None => preview_usage_error("missing <folder>"),
             }
         }
+        "play" => {
+            let mut req = commands::PreviewStartRequest::default();
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--port" => {
+                        i += 1;
+                        if i >= args.len() {
+                            play_usage_error("--port needs a value (a port number)");
+                        }
+                        if req.port.is_some() {
+                            play_usage_error("duplicate --port flag");
+                        }
+                        req.port = Some(args[i].clone());
+                    }
+                    "--composition" => {
+                        i += 1;
+                        if i >= args.len() {
+                            play_usage_error("--composition needs a value (a composition name)");
+                        }
+                        if req.composition.is_some() {
+                            play_usage_error("duplicate --composition flag");
+                        }
+                        req.composition = Some(args[i].clone());
+                    }
+                    "--foreground" => {
+                        if req.foreground {
+                            play_usage_error("duplicate --foreground flag");
+                        }
+                        req.foreground = true;
+                    }
+                    other if other.starts_with('-') => {
+                        play_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if folder.is_some() {
+                            play_usage_error(&format!(
+                                "expected exactly one <folder>, found extra {other:?}"
+                            ));
+                        }
+                        folder = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            match folder {
+                Some(f) => commands::cmd_play(Path::new(&f), &req),
+                None => play_usage_error("missing <folder>"),
+            }
+        }
         "preview-status" => {
             let mut folder: Option<String> = None;
             for arg in &args[1..] {
@@ -1657,6 +1865,7 @@ fn main() {
                  \x20 errors [--json] [CODE]        explain every error code\n\
                  \x20 compositions [--json] <folder>  list every composition name plus the root\n\
                  \x20 timeline [--json] [--composition <name>] <folder> [<name>]  list every clip with id, track, label, hidden state, and window\n\
+                 \x20 history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]  share one guarded history across writers\n\
                  \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
                  \x20 waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]  report per-bucket mix peaks plus the master peak\n\
                  \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format ..] [--resolution ..] [--supersample N] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]  validate, bootstrap FFmpeg, refuse or encode\n\
