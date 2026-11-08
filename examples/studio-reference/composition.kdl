@@ -1,0 +1,18 @@
+composition name="studio" width=320 height=180 duration=4 fps=10 background="#112233" version=1 {
+    text id="title" value="Hello timeline" start=0 duration=2 x=10 y=40 size=24 color="#ffffff"
+    text id="bye" value="Second line" start=2 duration=2 x=10 y=80 size=24 color="#ffffff"
+    audio id="s" path="s.wav" start=0 duration=4 volume=-6 fade-in=0.5 fade-out=0.5
+    video id="v" path="v.mp4" start=1 duration=2 {
+        effect preset="grayscale"
+    }
+    transition from="title" to="bye" duration=0.5 kind="fade"
+    key target=0 property="x" {
+        frame at=0 value=10
+        frame at=1 value=60 ease="in-quad"
+        frame at=2 value=110
+    }
+    key target=0 property="opacity" {
+        frame at=0 value=0
+        frame at=2 value=1
+    }
+}

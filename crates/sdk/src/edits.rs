@@ -350,6 +350,33 @@ pub enum EditOp {
     /// skips picture and sound as if absent while the `id` stays
     /// referenceable, exactly like the validated `hidden` key.
     SetHidden { target: ClipRef, hidden: bool },
+    /// Retime one keyframe stop (Sprint 16, T007): move stop `stop` of
+    /// key `key` to the composition instant `at`. `at` must be finite
+    /// at or after 0 and keep the stops in strictly rising time order;
+    /// anything else refuses naming the bound or the neighbor. Studio
+    /// drags clamp into the target clip's film window first (showing
+    /// the clamped value) and then apply here; headless callers pass
+    /// the exact instant.
+    RetimeKeyStop { key: usize, stop: usize, at: f64 },
+    /// Edit the easing of one key (Sprint 16, T007): the key-level
+    /// fallback when `stop` is `None`, else the easing of the segment
+    /// leaving stop `stop`. `ease` names the same curves `check`
+    /// accepts; anything else refuses naming what was written.
+    SetKeyEase {
+        key: usize,
+        stop: Option<usize>,
+        ease: String,
+    },
+    /// Delete one keyframe stop (Sprint 16, T007): remove stop `stop`
+    /// of key `key`. A key reduced below two stops cannot stand, so
+    /// deleting from a two-stop key removes the whole key instead and
+    /// the receipt says so.
+    RemoveKeyStop { key: usize, stop: usize },
+    /// Copy one key (Sprint 16, T007): append an exact duplicate of
+    /// key `key` (same target, property, stops, and easing). The copy
+    /// is a valid key exactly when the original is, so copying never
+    /// invents motion.
+    DuplicateKey { key: usize },
 }
 
 impl EditOp {
@@ -417,6 +444,17 @@ impl EditOp {
                     format!("show {target}")
                 }
             }
+            EditOp::RetimeKeyStop { key, stop, at } => {
+                format!("retime key {key} stop {stop} to {at}")
+            }
+            EditOp::SetKeyEase { key, stop, ease } => match stop {
+                Some(s) => format!("set ease of key {key} stop {s} to {ease:?}"),
+                None => format!("set ease of key {key} to {ease:?}"),
+            },
+            EditOp::RemoveKeyStop { key, stop } => {
+                format!("remove key {key} stop {stop}")
+            }
+            EditOp::DuplicateKey { key } => format!("copy key {key}"),
         }
     }
 }
@@ -463,6 +501,29 @@ pub enum RevertOp {
     RestoreSplit { index: usize, clip: Box<Clip> },
     /// Restore the prior visibility switch (inverts a hide/show).
     RestoreHidden { target: ClipRef, hidden: bool },
+    /// Restore the prior instant of one keyframe stop (inverts a
+    /// retime): the exact prior `at`, never an approximation.
+    RestoreKeyStopAt { key: usize, stop: usize, at: f64 },
+    /// Restore the prior easing (inverts an ease edit): the key-level
+    /// fallback when `stop` is `None`, else the easing of the segment
+    /// leaving stop `stop`. `None` means the slot carried no easing
+    /// (the key easing, then linear); `Some` carries the exact prior
+    /// curve as its canonical name.
+    RestoreKeyEase {
+        key: usize,
+        stop: Option<usize>,
+        ease: Option<String>,
+    },
+    /// Reinsert a removed keyframe stop snapshot (inverts a stop
+    /// removal): the exact prior stop at its index.
+    InsertKeyStop {
+        key: usize,
+        stop: usize,
+        at: f64,
+        value: f64,
+        value_color: Option<Rgb>,
+        ease: Option<String>,
+    },
 }
 
 impl RevertOp {
@@ -485,6 +546,16 @@ impl RevertOp {
                 format!("restore split clip at index {index}")
             }
             RevertOp::RestoreHidden { target, .. } => format!("restore visibility on {target}"),
+            RevertOp::RestoreKeyStopAt { key, stop, .. } => {
+                format!("restore key {key} stop {stop} instant")
+            }
+            RevertOp::RestoreKeyEase { key, stop, .. } => match stop {
+                Some(s) => format!("restore ease of key {key} stop {s}"),
+                None => format!("restore ease of key {key}"),
+            },
+            RevertOp::InsertKeyStop { key, stop, .. } => {
+                format!("reinsert key {key} stop at index {stop}")
+            }
         }
     }
 }
@@ -1569,6 +1640,123 @@ fn build_tween(
     })
 }
 
+/// Locate one key by index (Sprint 16, T007): an unknown index
+/// refuses naming how many keys the open composition holds.
+fn key_index(comp: &Composition, key: usize) -> Result<usize, EditRefusal> {
+    if key >= comp.keys.len() {
+        return Err(refused(
+            EditRefusalKind::UnknownTarget,
+            E_SDK_UNKNOWN_TARGET,
+            format!(
+                "sdk refused: key index {key} names nothing; the open composition holds {} key(s). Nothing was applied, previewed, or recorded.",
+                comp.keys.len()
+            ),
+        ));
+    }
+    Ok(key)
+}
+
+/// One mutable keyframe stop with its neighbor instants copied out
+/// (Sprint 16, T007): the slot plus the strictly-rising bounds the
+/// retime must keep. Missing neighbors read as unbounded infinities;
+/// callers gate on the stop position instead of reading them blind.
+struct KeyStopSlot<'a> {
+    slot: &'a mut KeyStop,
+    prev_at: f64,
+    next_at: f64,
+    stop_count: usize,
+}
+
+/// Locate one mutable keyframe stop (Sprint 16, T007): an unknown key
+/// or stop refuses naming the composition count.
+fn key_stop_mut(
+    comp: &mut Composition,
+    key: usize,
+    stop: usize,
+) -> Result<KeyStopSlot<'_>, EditRefusal> {
+    let index = key_index(comp, key)?;
+    let stops = &comp.keys[index].stops;
+    if stop >= stops.len() {
+        return Err(refused(
+            EditRefusalKind::UnknownTarget,
+            E_SDK_UNKNOWN_TARGET,
+            format!(
+                "sdk refused: key {key} stop {stop} names nothing; key {key} holds {} stop(s). Nothing was applied, previewed, or recorded.",
+                stops.len()
+            ),
+        ));
+    }
+    let prev_at = if stop > 0 {
+        stops[stop - 1].at
+    } else {
+        f64::NEG_INFINITY
+    };
+    let next_at = if stop + 1 < stops.len() {
+        stops[stop + 1].at
+    } else {
+        f64::INFINITY
+    };
+    let stop_count = stops.len();
+    Ok(KeyStopSlot {
+        slot: &mut comp.keys[index].stops[stop],
+        prev_at,
+        next_at,
+        stop_count,
+    })
+}
+
+/// Locate one mutable easing slot (Sprint 16, T007): the key-level
+/// fallback when `stop` is `None`, else the easing of the segment
+/// leaving stop `stop`.
+fn key_ease_slot(
+    comp: &mut Composition,
+    key: usize,
+    stop: Option<usize>,
+) -> Result<&mut Option<EaseDecl>, EditRefusal> {
+    let index = key_index(comp, key)?;
+    match stop {
+        None => Ok(&mut comp.keys[index].ease),
+        Some(s) => {
+            if s >= comp.keys[index].stops.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: key {key} stop {s} names nothing; key {key} holds {} stop(s). Nothing was applied, previewed, or recorded.",
+                        comp.keys[index].stops.len()
+                    ),
+                ));
+            }
+            Ok(&mut comp.keys[index].stops[s].ease)
+        }
+    }
+}
+
+/// Snapshot one keyframe stop (Sprint 16, T007): the key index with an
+/// exact copy of the stop, for stop-removal inverses.
+fn key_stop_snapshot(
+    comp: &Composition,
+    key: usize,
+    stop: usize,
+) -> Result<(usize, KeyStop), EditRefusal> {
+    let index = key_index(comp, key)?;
+    comp.keys[index]
+        .stops
+        .get(stop)
+        .cloned()
+        .map(|snapshot| (index, snapshot))
+        .ok_or_else(|| {
+            refused(
+                EditRefusalKind::UnknownTarget,
+                E_SDK_UNKNOWN_TARGET,
+                format!(
+                    "sdk refused: key {key} stop {stop} names nothing; key {key} holds {} stop(s). Nothing was applied, previewed, or recorded.",
+                    comp.keys[index].stops.len()
+                ),
+            )
+        })
+}
+
 /// Build one key directive: at least two stops in strictly rising
 /// time order with per-property values, before the caller mutates.
 fn build_key(
@@ -1823,6 +2011,100 @@ pub(crate) fn apply_forward(comp: &mut Composition, op: &EditOp) -> Result<Rever
             Ok(RevertOp::InsertKey {
                 index: *index,
                 key: Box::new(key),
+            })
+        }
+        EditOp::RetimeKeyStop { key, stop, at } => {
+            let entry = key_stop_mut(comp, *key, *stop)?;
+            if !at.is_finite() || *at < 0.0 {
+                return Err(refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!(
+                        "sdk refused: key {key} stop {stop} retimes to {at:?}; write a finite instant at or after 0. Nothing was applied, previewed, or recorded.",
+                    ),
+                ));
+            }
+            if *stop > 0 && *at <= entry.prev_at {
+                return Err(refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!(
+                        "sdk refused: key {key} stop {stop} retimes to {at} which never rises past stop {} at {}; write an instant past the previous stop. Nothing was applied, previewed, or recorded.",
+                        stop - 1,
+                        entry.prev_at
+                    ),
+                ));
+            }
+            if *stop + 1 < entry.stop_count && *at >= entry.next_at {
+                return Err(refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!(
+                        "sdk refused: key {key} stop {stop} retimes to {at} which never stays under stop {} at {}; write an instant before the next stop. Nothing was applied, previewed, or recorded.",
+                        stop + 1,
+                        entry.next_at
+                    ),
+                ));
+            }
+            let old = std::mem::replace(&mut entry.slot.at, *at);
+            Ok(RevertOp::RestoreKeyStopAt {
+                key: *key,
+                stop: *stop,
+                at: old,
+            })
+        }
+        EditOp::SetKeyEase { key, stop, ease } => {
+            let decl = parse_ease(ease).map_err(|why| {
+                refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!(
+                        "sdk refused: key {key} easing {ease:?} {why}. Nothing was applied, previewed, or recorded."
+                    ),
+                )
+            })?;
+            let slot = key_ease_slot(comp, *key, *stop)?;
+            let old = slot.replace(decl);
+            Ok(RevertOp::RestoreKeyEase {
+                key: *key,
+                stop: *stop,
+                ease: old.map(|e| e.name()),
+            })
+        }
+        EditOp::RemoveKeyStop { key, stop } => {
+            let (index, snapshot) = key_stop_snapshot(comp, *key, *stop)?;
+            if comp.keys[index].stops.len() <= 2 {
+                let removed = comp.keys.remove(index);
+                Ok(RevertOp::InsertKey {
+                    index,
+                    key: Box::new(removed),
+                })
+            } else {
+                comp.keys[index].stops.remove(*stop);
+                Ok(RevertOp::InsertKeyStop {
+                    key: index,
+                    stop: *stop,
+                    at: snapshot.at,
+                    value: snapshot.value,
+                    value_color: snapshot.value_color,
+                    ease: snapshot.ease.map(|e| e.name()),
+                })
+            }
+        }
+        EditOp::DuplicateKey { key } => {
+            if *key >= comp.keys.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: key index {key} names nothing; the open composition holds {} key(s). Nothing was applied, previewed, or recorded.",
+                        comp.keys.len()
+                    ),
+                ));
+            }
+            comp.keys.push(comp.keys[*key].clone());
+            Ok(RevertOp::RemoveKey {
+                index: comp.keys.len() - 1,
             })
         }
         EditOp::SetLabel { target, label } => {
@@ -2257,6 +2539,88 @@ pub(crate) fn apply_revert(comp: &mut Composition, revert: &RevertOp) -> Result<
         RevertOp::RestoreHidden { target, hidden } => {
             let idx = resolve_clip(&comp.clips, target)?;
             clip_set_hidden(&mut comp.clips[idx], *hidden);
+            Ok(())
+        }
+        RevertOp::RestoreKeyStopAt { key, stop, at } => {
+            let entry = key_stop_mut(comp, *key, *stop)?;
+            if *stop > 0 && *at <= entry.prev_at {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target key {key} stop {stop} at {at} no longer rises past its neighbor; its target is gone. Nothing was applied, previewed, or recorded.",
+                    ),
+                ));
+            }
+            if *stop + 1 < entry.stop_count && *at >= entry.next_at {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target key {key} stop {stop} at {at} no longer stays under its neighbor; its target is gone. Nothing was applied, previewed, or recorded.",
+                    ),
+                ));
+            }
+            entry.slot.at = *at;
+            Ok(())
+        }
+        RevertOp::RestoreKeyEase { key, stop, ease } => {
+            let slot = key_ease_slot(comp, *key, *stop)?;
+            *slot = match ease {
+                None => None,
+                Some(name) => Some(parse_ease(name).map_err(|why| {
+                    refused(
+                        EditRefusalKind::BadValue,
+                        E_SDK_BAD_VALUE,
+                        format!(
+                            "sdk refused: revert restores easing {name:?} but it no longer parses ({why}); its backup cannot restore. Nothing was applied, previewed, or recorded."
+                        ),
+                    )
+                })?),
+            };
+            Ok(())
+        }
+        RevertOp::InsertKeyStop {
+            key,
+            stop,
+            at,
+            value,
+            value_color,
+            ease,
+        } => {
+            let index = key_index(comp, *key)?;
+            if *stop > comp.keys[index].stops.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target key {key} stop index {stop} is past {} stop(s). Nothing was applied, previewed, or recorded.",
+                        comp.keys[index].stops.len()
+                    ),
+                ));
+            }
+            let parsed_ease = match ease {
+                None => None,
+                Some(name) => Some(parse_ease(name).map_err(|why| {
+                    refused(
+                        EditRefusalKind::BadValue,
+                        E_SDK_BAD_VALUE,
+                        format!(
+                            "sdk refused: revert restores stop easing {name:?} but it no longer parses ({why}); its backup cannot restore. Nothing was applied, previewed, or recorded."
+                        ),
+                    )
+                })?),
+            };
+            let snapshot = KeyStop {
+                at: *at,
+                value: *value,
+                value_color: *value_color,
+                path: None,
+                ease: parsed_ease,
+                line: 0,
+                column: 0,
+            };
+            comp.keys[index].stops.insert(*stop, snapshot);
             Ok(())
         }
     }

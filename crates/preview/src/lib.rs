@@ -27,6 +27,11 @@ mod latency;
 pub mod player;
 mod reload;
 pub mod server;
+pub mod studio;
+pub mod studio_clips;
+pub mod studio_shortcuts;
+pub mod studio_snap_zoom;
+pub mod studio_tools;
 mod transport;
 
 pub use audio::{
@@ -44,6 +49,26 @@ pub use player::{
     LOAD_DEADLINE, LOAD_DEADLINE_SECS, SPEED_MENU, SPEED_MENU_MAX, SPEED_MENU_MIN,
 };
 pub use reload::{ReloadReport, RELOAD_BUDGET, RELOAD_BUDGET_MS};
+pub use studio::{
+    apply_conflict_pick, apply_studio_edit, conflict_json, conflict_notice, conflict_resolved_json,
+    default_layout, disk_stat_sig, disk_version_json, disk_version_of, edit_receipt_json,
+    effective_composition_for, layout_json, load_layout, load_theme, parse_conflict_pick_body,
+    parse_deep_link, parse_edit_body, parse_layout_body, parse_theme_body, project_reachable,
+    reset_layout, resolve_deep_link, save_layout, save_state_json, save_theme, selection_keys_of,
+    selection_keys_of_rows, studio_composition_file, studio_layout_path_for, studio_page_html,
+    studio_rows_of, studio_theme_path_for, theme_json, timeline_rows_json, unreachable_notice,
+    validate_layout, ConflictPick, ConflictPickRequest, ConflictResolution, DeepLinkRequest,
+    DeepLinkResolution, DiskVersion, LayoutLoad, PanelPlacement, QueuedEdit, SaveQueue, SaveSource,
+    StudioConflict, StudioEdit, StudioEditReceipt, StudioLayout, StudioPageModel, StudioRow,
+    StudioRowList, StudioTheme, ThemeLoad, STUDIO_DOCKS, STUDIO_LAYOUT_FILE, STUDIO_LAYOUT_VERSION,
+    STUDIO_PANELS, STUDIO_THEME_FILE, STUDIO_THEME_VERSION,
+};
+pub use studio_shortcuts::{
+    default_shortcuts, describe_request_text, load_shortcuts, normalize_chord, parse_dispatch_body,
+    parse_remap_body, resolve_effective, resolve_handoff_selection, save_remap, shortcuts_json,
+    shortcuts_path_for, DispatchRequest, HandoffClip, RemapEntry, ShortcutAction, ShortcutArea,
+    ShortcutBinding, ShortcutLoad, STUDIO_SHORTCUTS_FILE, STUDIO_SHORTCUTS_VERSION,
+};
 pub use transport::{
     Fps, Readout, Transport, TransportControl, TransportError, TransportErrorKind,
 };
@@ -258,6 +283,31 @@ pub(crate) fn previewize(mut e: String) -> String {
     e
 }
 
+/// Replay the persisted SDK edit delta over one validated base
+/// composition (Sprint 16, T004): a read-only SDK open
+/// (`persist: false`, `history: false`) replays the hidden override
+/// delta onto the base, so the preview serves the same effective
+/// composition the SDK serves. The probe writes nothing — not the
+/// history directory, not the delta — so opening a preview never
+/// dirties the project. An empty delta returns the base untouched.
+fn replayed_effective(
+    folder: &Path,
+    base: &notation::model::Composition,
+) -> Result<notation::model::Composition, String> {
+    match sdk::SdkSession::open(
+        folder,
+        sdk::OpenOptions {
+            persist: false,
+            history: false,
+            composition: Some(base.name.clone()),
+            ..sdk::OpenOptions::default()
+        },
+    ) {
+        Ok(session) => Ok(session.effective_composition().clone()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
 /// An exact-frame preview session over one validated project (Sprint
 /// 14, T001). Owns its preparation plus the two-layer exact-byte
 /// cache; the disk layer lives outside the project directory and is
@@ -383,6 +433,20 @@ impl PreviewSession {
                     }
                 })?,
         };
+        // Replay the persisted SDK edit delta (Sprint 16, T004):
+        // visual timeline tools persist through the Sprint 15 patch
+        // machinery, so the previewed composition is the validated base
+        // with the delta replayed — the same effective composition the
+        // SDK serves. An empty delta replays to itself, so default
+        // renders stay byte-identical. A broken delta refuses naming
+        // the file, exactly like the SDK open.
+        let comp = replayed_effective(folder, &comp).map_err(|e| PreviewRefusal {
+            kind: RefusalKind::Invalid,
+            message: format!(
+                "preview refused: the SDK edit delta cannot replay: {e} No preview was started."
+            ),
+            diagnostics: Vec::new(),
+        })?;
         let ffmpeg_bin = tool_on_path("ffmpeg").ok_or_else(|| PreviewRefusal {
             kind: RefusalKind::NoFfmpeg,
             message: "preview refused: no FFmpeg binary was found on PATH; install FFmpeg and re-run. No preview was started.".to_string(),
@@ -492,6 +556,19 @@ impl PreviewSession {
     /// Name of the previewed composition.
     pub fn composition_name(&self) -> &str {
         &self.composition_name
+    }
+
+    /// The previewed composition model (Sprint 16, T001): the Studio
+    /// shell reads timeline rows from this without staging anything.
+    pub fn composition(&self) -> &notation::model::Composition {
+        &self.composition
+    }
+
+    /// Every validated composition of the project (Sprint 16, T001):
+    /// the Studio shell lists them for deep links and timeline rows
+    /// without touching the project directory.
+    pub fn all_compositions(&self) -> &[notation::model::Composition] {
+        &self.all_compositions
     }
 
     /// Output frame count of the previewed composition.
@@ -792,6 +869,21 @@ impl PreviewSession {
                     );
                 }
             },
+        };
+        // Replay the persisted SDK edit delta (Sprint 16, T004): a
+        // broken delta keeps the last good look with its cause, exactly
+        // like a broken edit.
+        let comp = match replayed_effective(&self.folder, &comp) {
+            Ok(comp) => comp,
+            Err(e) => {
+                return broken(
+                    self,
+                    Vec::new(),
+                    format!(
+                        "preview reload kept the last good look: the SDK edit delta cannot replay: {e} Last good frames keep showing."
+                    ),
+                );
+            }
         };
         // Re-prepare before dropping anything: a prepare failure keeps
         // the last good look exactly like a broken edit.
