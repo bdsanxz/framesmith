@@ -1,0 +1,5 @@
+composition name="studio-canvas" width=320 height=180 duration=4 fps=10 background="#112233" version=1 {
+    box id="card" x=10 y=20 width=100 height=50 fill="#ffffff" order=2 start=0 duration=4
+    box id="panel" x=50 y=30 width=80 height=40 fill="#ff0000" order=1 start=0 duration=4
+    text id="title" value="Hi" start=0 duration=4 x=10 y=150 size=24 color="#ffffff"
+}

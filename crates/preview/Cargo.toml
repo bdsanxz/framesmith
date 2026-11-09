@@ -6,6 +6,9 @@ description = "Framesmith preview frame service (Sprint 14): on-demand exact fra
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+glyph = { path = "../glyph" }
+layout = { path = "../layout" }
+motion = { path = "../motion" }
 notation = { path = "../notation" }
 validate = { path = "../validate" }
 render = { path = "../render" }

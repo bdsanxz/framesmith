@@ -35,7 +35,7 @@ use std::path::{Path, PathBuf};
 
 use notation::model::{
     Align, BlendMode, BoxClip, Clip, Composition, EaseDecl, FillPaint, FillRule, FontStyle,
-    KeyDecl, KeyStop, MotionAsserts, Overflow, PathClip, Rgb, StrokePosition, TextClip,
+    KeyDecl, KeyStop, MotionAsserts, Overflow, PathClip, Rgb, SetDecl, StrokePosition, TextClip,
     TextDirection, TrackKind, Turn3D, TweenDecl, TweenKind, Wrap, MOTION_ALIASES,
     MOTION_PROPERTIES,
 };
@@ -298,6 +298,46 @@ pub enum EditOp {
     },
     /// Remove the key at this motion-directive index.
     RemoveKey { index: usize },
+    /// Hold one value over a window (Sprint 17, T008): a `set`
+    /// directive with one number and no easing. Colors hold no single
+    /// number, so a set on `fill` or `border-color` refuses naming the
+    /// `tween` or `key` that interpolates them instead.
+    AddSet {
+        target: ClipRef,
+        property: String,
+        value: String,
+        start: f64,
+        duration: f64,
+    },
+    /// Remove the set at this motion-directive index.
+    RemoveSet { index: usize },
+    /// Travel a path (Sprint 17, T008): a path tween over a window
+    /// with easing. `path_to` morphs toward a second path of the same
+    /// structure and `orient` rotates the clip to the path tangent. An
+    /// unparseable path refuses naming its cause, and a morph over two
+    /// structures refuses naming the first difference.
+    AddPathTween {
+        target: ClipRef,
+        path: String,
+        path_to: Option<String>,
+        orient: bool,
+        start: f64,
+        duration: f64,
+        ease: String,
+    },
+    /// Set the easing of the tween at this index (Sprint 17, T008):
+    /// the bezier editor writes here. `ease` names the same curves
+    /// `check` accepts; anything else refuses naming what was written.
+    SetTweenEase { index: usize, ease: String },
+    /// Replace the travel path of the tween at this index (Sprint 17,
+    /// T008): edited motion-path points commit here. The tween must
+    /// carry a path; `path_to` replaces the morph destination (`None`
+    /// clears it).
+    SetTweenPath {
+        index: usize,
+        path: String,
+        path_to: Option<String>,
+    },
     /// Set the editor note on one clip (`None` clears it). Notes ride
     /// along with no render effect.
     SetLabel {
@@ -350,6 +390,19 @@ pub enum EditOp {
     /// skips picture and sound as if absent while the `id` stays
     /// referenceable, exactly like the validated `hidden` key.
     SetHidden { target: ClipRef, hidden: bool },
+    /// Set one inspector row on the referenced clip (Sprint 17,
+    /// T007): `property` is a CSS-like hyphenated row key
+    /// (`font-size`, `background-color`, `object-fit`, `z-index`,
+    /// ...), `value` its authored text. Validation mirrors `check`:
+    /// bad values and wrong-kind rows refuse with rule and location
+    /// keeping the prior value, while render-deferred rows
+    /// (`filter`, `transform-3d`, ...) refuse naming their
+    /// milestone. Reset writes the row default through this same op.
+    SetRow {
+        target: ClipRef,
+        property: String,
+        value: String,
+    },
     /// Retime one keyframe stop (Sprint 16, T007): move stop `stop` of
     /// key `key` to the composition instant `at`. `at` must be finite
     /// at or after 0 and keep the stops in strictly rising time order;
@@ -401,6 +454,19 @@ impl EditOp {
                 target, property, ..
             } => format!("key {property} on {target}"),
             EditOp::RemoveKey { index } => format!("remove key {index}"),
+            EditOp::AddSet {
+                target, property, ..
+            } => format!("set {property} on {target}"),
+            EditOp::RemoveSet { index } => format!("remove set {index}"),
+            EditOp::AddPathTween { target, .. } => {
+                format!("path tween on {target}")
+            }
+            EditOp::SetTweenPath { index, .. } => {
+                format!("retarget path tween {index}")
+            }
+            EditOp::SetTweenEase { index, ease } => {
+                format!("set ease of tween {index} to {ease:?}")
+            }
             EditOp::SetLabel { target, label } => match label {
                 Some(l) => format!("label {target} as {l:?}"),
                 None => format!("clear label on {target}"),
@@ -444,6 +510,11 @@ impl EditOp {
                     format!("show {target}")
                 }
             }
+            EditOp::SetRow {
+                target,
+                property,
+                value,
+            } => format!("set row `{property}` to {value:?} on {target}"),
             EditOp::RetimeKeyStop { key, stop, at } => {
                 format!("retime key {key} stop {stop} to {at}")
             }
@@ -501,6 +572,14 @@ pub enum RevertOp {
     RestoreSplit { index: usize, clip: Box<Clip> },
     /// Restore the prior visibility switch (inverts a hide/show).
     RestoreHidden { target: ClipRef, hidden: bool },
+    /// Restore the prior rendered row value (inverts a row set): the
+    /// exact prior text, re-applied through the same row validation
+    /// so undo restores the prior value, never an approximation.
+    RestoreRow {
+        target: ClipRef,
+        property: String,
+        prior: String,
+    },
     /// Restore the prior instant of one keyframe stop (inverts a
     /// retime): the exact prior `at`, never an approximation.
     RestoreKeyStopAt { key: usize, stop: usize, at: f64 },
@@ -524,6 +603,21 @@ pub enum RevertOp {
         value_color: Option<Rgb>,
         ease: Option<String>,
     },
+    /// Remove the set at this index (inverts an add).
+    RemoveSet { index: usize },
+    /// Reinsert a removed set snapshot (inverts a remove).
+    InsertSet { index: usize, set: Box<SetDecl> },
+    /// Restore the prior tween easing (inverts an ease set): the exact
+    /// prior curve as its canonical name.
+    RestoreTweenEase { index: usize, ease: String },
+    /// Restore the prior travel path (inverts a retarget): the exact
+    /// prior `path` with its morph destination (`None` means the tween
+    /// carried no destination).
+    RestoreTweenPath {
+        index: usize,
+        path: Option<String>,
+        path_to: Option<String>,
+    },
 }
 
 impl RevertOp {
@@ -546,6 +640,9 @@ impl RevertOp {
                 format!("restore split clip at index {index}")
             }
             RevertOp::RestoreHidden { target, .. } => format!("restore visibility on {target}"),
+            RevertOp::RestoreRow {
+                target, property, ..
+            } => format!("restore row `{property}` on {target}"),
             RevertOp::RestoreKeyStopAt { key, stop, .. } => {
                 format!("restore key {key} stop {stop} instant")
             }
@@ -555,6 +652,14 @@ impl RevertOp {
             },
             RevertOp::InsertKeyStop { key, stop, .. } => {
                 format!("reinsert key {key} stop at index {stop}")
+            }
+            RevertOp::RemoveSet { index } => format!("remove set {index}"),
+            RevertOp::InsertSet { index, .. } => format!("reinsert set at index {index}"),
+            RevertOp::RestoreTweenPath { index, .. } => {
+                format!("restore path of tween {index}")
+            }
+            RevertOp::RestoreTweenEase { index, .. } => {
+                format!("restore ease of tween {index}")
             }
         }
     }
@@ -1528,6 +1633,78 @@ fn resolve_endpoint(
     }
 }
 
+/// Build one set directive: a held number over a window with no
+/// easing. Colors hold no single number, so `fill` and
+/// `border-color` refuse naming the `tween` or `key` that
+/// interpolates them instead — exactly like `check`.
+fn build_set(
+    target: usize,
+    property: String,
+    value_raw: &str,
+    start: f64,
+    duration: f64,
+) -> Result<SetDecl, EditRefusal> {
+    if is_color_property(&property) {
+        return Err(refused(
+            EditRefusalKind::BadValue,
+            E_SDK_BAD_VALUE,
+            format!(
+                "sdk refused: set property {property:?} holds a color; a `set` holds one number, so colors animate with `tween` or `key`. Nothing was applied, previewed, or recorded."
+            ),
+        ));
+    }
+    let value = parse_num(value_raw, "value")?;
+    check_motion_value(&property, "value", value)?;
+    check_motion_window(start, duration, "set")?;
+    Ok(SetDecl {
+        target,
+        property,
+        value,
+        start,
+        duration,
+        line: 0,
+        column: 0,
+    })
+}
+
+/// Check one authored path string: it must parse, else the engine
+/// cannot follow it. The trimmed text returns for storage, so the
+/// persisted turn re-validates exactly what the maker wrote.
+fn check_path_data(raw: &str, key: &str) -> Result<String, EditRefusal> {
+    let text = raw.trim().to_string();
+    if let Err(e) = motion::path::parse(&text) {
+        return Err(refused(
+            EditRefusalKind::BadValue,
+            E_SDK_BAD_VALUE,
+            format!(
+                "sdk refused: the engine cannot follow {key} {raw:?}: {e}. Nothing was applied, previewed, or recorded."
+            ),
+        ));
+    }
+    Ok(text)
+}
+
+/// Check one path morph destination: both paths parsed already, so a
+/// structural difference refuses naming the first difference, never
+/// faked with a partial morph.
+fn check_path_morph(path: &str, path_to: Option<&str>) -> Result<(), EditRefusal> {
+    let Some(dest) = path_to else {
+        return Ok(());
+    };
+    let from = motion::path::parse(path).expect("travel path parses after validation");
+    let to = motion::path::parse(dest).expect("morph destination parses after validation");
+    if let Err(e) = motion::path::morph(&from, &to, 0.0) {
+        return Err(refused(
+            EditRefusalKind::BadValue,
+            E_SDK_BAD_VALUE,
+            format!(
+                "sdk refused: the engine cannot morph toward `path-to` {dest:?}: {e}. Nothing was applied, previewed, or recorded."
+            ),
+        ));
+    }
+    Ok(())
+}
+
 /// Build one tween directive: kind/endpoints first, then easing and
 /// window, before the caller mutates anything.
 #[allow(clippy::too_many_arguments)]
@@ -2013,6 +2190,173 @@ pub(crate) fn apply_forward(comp: &mut Composition, op: &EditOp) -> Result<Rever
                 key: Box::new(key),
             })
         }
+        EditOp::AddSet {
+            target,
+            property,
+            value,
+            start,
+            duration,
+        } => {
+            let idx = resolve_clip(&comp.clips, target)?;
+            if is_audio_clip(&comp.clips[idx]) {
+                return Err(refused(
+                    EditRefusalKind::Unsupported,
+                    E_SDK_UNSUPPORTED,
+                    format!(
+                        "sdk refused: {target} is an audio track; `set` holds a picture value, and sound envelopes arrive in a later slice. Nothing was applied, previewed, or recorded."
+                    ),
+                ));
+            }
+            let property = canon_property(property)?;
+            let set = build_set(idx, property, value, *start, *duration)?;
+            comp.sets.push(set);
+            Ok(RevertOp::RemoveSet {
+                index: comp.sets.len() - 1,
+            })
+        }
+        EditOp::RemoveSet { index } => {
+            if *index >= comp.sets.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: set index {index} names nothing; the open composition holds {} set(s). Nothing was applied, previewed, or recorded.",
+                        comp.sets.len()
+                    ),
+                ));
+            }
+            let set = comp.sets.remove(*index);
+            Ok(RevertOp::InsertSet {
+                index: *index,
+                set: Box::new(set),
+            })
+        }
+        EditOp::AddPathTween {
+            target,
+            path,
+            path_to,
+            orient,
+            start,
+            duration,
+            ease,
+        } => {
+            let idx = resolve_clip(&comp.clips, target)?;
+            if is_audio_clip(&comp.clips[idx]) {
+                return Err(refused(
+                    EditRefusalKind::Unsupported,
+                    E_SDK_UNSUPPORTED,
+                    format!(
+                        "sdk refused: {target} is an audio track; path travel moves picture clips, and sound envelopes arrive in a later slice. Nothing was applied, previewed, or recorded."
+                    ),
+                ));
+            }
+            let ease = parse_ease(ease).map_err(|why| {
+                refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!("sdk refused: {why}. Nothing was applied, previewed, or recorded."),
+                )
+            })?;
+            check_motion_window(*start, *duration, "path tween")?;
+            let path = check_path_data(path, "path")?;
+            let path_to = match path_to {
+                Some(raw) => Some(check_path_data(raw, "path-to")?),
+                None => None,
+            };
+            check_path_morph(&path, path_to.as_deref())?;
+            comp.tweens.push(TweenDecl {
+                target: idx,
+                property: String::new(),
+                kind: TweenKind::To,
+                from: None,
+                to: None,
+                from_color: None,
+                to_color: None,
+                start: *start,
+                duration: *duration,
+                ease,
+                stagger: 0.0,
+                stagger_from: notation::model::StaggerOrigin::Start,
+                stagger_grid: None,
+                repeat: 1,
+                yoyo: false,
+                repeat_delay: 0.0,
+                path: Some(path),
+                path_to,
+                orient: *orient,
+                expr: None,
+                line: 0,
+                column: 0,
+            });
+            Ok(RevertOp::RemoveTween {
+                index: comp.tweens.len() - 1,
+            })
+        }
+        EditOp::SetTweenPath {
+            index,
+            path,
+            path_to,
+        } => {
+            if *index >= comp.tweens.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: tween index {index} names nothing; the open composition holds {} tween(s). Nothing was applied, previewed, or recorded.",
+                        comp.tweens.len()
+                    ),
+                ));
+            }
+            if comp.tweens[*index].path.is_none() {
+                return Err(refused(
+                    EditRefusalKind::Unsupported,
+                    E_SDK_UNSUPPORTED,
+                    format!(
+                        "sdk refused: tween {index} travels no path; retargeting edits path tweens only — add a path tween or edit the numeric endpoints instead. Nothing was applied, previewed, or recorded."
+                    ),
+                ));
+            }
+            let path = check_path_data(path, "path")?;
+            let path_to = match path_to {
+                Some(raw) => Some(check_path_data(raw, "path-to")?),
+                None => None,
+            };
+            check_path_morph(&path, path_to.as_deref())?;
+            let slot = &mut comp.tweens[*index];
+            let old_path = slot.path.replace(path);
+            let old_to = std::mem::replace(&mut slot.path_to, path_to);
+            Ok(RevertOp::RestoreTweenPath {
+                index: *index,
+                path: old_path,
+                path_to: old_to,
+            })
+        }
+        EditOp::SetTweenEase { index, ease } => {
+            if *index >= comp.tweens.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: tween index {index} names nothing; the open composition holds {} tween(s). Nothing was applied, previewed, or recorded.",
+                        comp.tweens.len()
+                    ),
+                ));
+            }
+            let decl = parse_ease(ease).map_err(|why| {
+                refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!(
+                        "sdk refused: tween {index} easing {ease:?} {why}. Nothing was applied, previewed, or recorded."
+                    ),
+                )
+            })?;
+            let old = std::mem::replace(&mut comp.tweens[*index].ease, decl);
+            Ok(RevertOp::RestoreTweenEase {
+                index: *index,
+                ease: old.name(),
+            })
+        }
         EditOp::RetimeKeyStop { key, stop, at } => {
             let entry = key_stop_mut(comp, *key, *stop)?;
             if !at.is_finite() || *at < 0.0 {
@@ -2346,6 +2690,47 @@ pub(crate) fn apply_forward(comp: &mut Composition, op: &EditOp) -> Result<Rever
                 hidden: old,
             })
         }
+        EditOp::SetRow {
+            target,
+            property,
+            value,
+        } => {
+            let property = crate::rows::canonical_row_property(property);
+            // Render-deferred rows refuse before anything resolves,
+            // naming their milestone so the inspector marks them
+            // unavailable instead of staging them.
+            if let crate::rows::RowAvailability::Unavailable { milestone } =
+                crate::rows::row_availability(&property)
+            {
+                return Err(refused(
+                    EditRefusalKind::Unsupported,
+                    E_SDK_UNSUPPORTED,
+                    format!(
+                        "sdk refused: row `{property}` waits for the {milestone}; rows cover the render-supported 2D property set today. Nothing was applied, previewed, or recorded."
+                    ),
+                ));
+            }
+            if !crate::rows::ACCEPTED_ROWS.contains(&property.as_str()) {
+                return Err(refused(
+                    EditRefusalKind::BadValue,
+                    E_SDK_BAD_VALUE,
+                    format!(
+                        "sdk refused: row key {property:?} names nothing settable; write one of {}. Nothing was applied, previewed, or recorded.",
+                        crate::rows::ACCEPTED_ROWS.join(", ")
+                    ),
+                ));
+            }
+            let idx = resolve_clip(&comp.clips, target)?;
+            let prior = crate::rows::apply_row_value(idx, &mut comp.clips[idx], &property, value, target)?;
+            Ok(RevertOp::RestoreRow {
+                target: ClipRef {
+                    id: comp.clips[idx].id().map(|s| s.to_string()),
+                    index: Some(idx),
+                },
+                property,
+                prior,
+            })
+        }
     }
 }
 
@@ -2468,6 +2853,79 @@ pub(crate) fn apply_revert(comp: &mut Composition, revert: &RevertOp) -> Result<
             comp.keys.insert(*index, key);
             Ok(())
         }
+        RevertOp::RemoveSet { index } => {
+            if *index >= comp.sets.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target set index {index} names nothing; the open composition holds {} set(s). Nothing was applied, previewed, or recorded.",
+                        comp.sets.len()
+                    ),
+                ));
+            }
+            comp.sets.remove(*index);
+            Ok(())
+        }
+        RevertOp::InsertSet { index, set } => {
+            if *index > comp.sets.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target set index {index} is past {} set(s). Nothing was applied, previewed, or recorded.",
+                        comp.sets.len()
+                    ),
+                ));
+            }
+            let mut set = set.as_ref().clone();
+            set.target = set.target.min(comp.clips.len().saturating_sub(1));
+            comp.sets.insert(*index, set);
+            Ok(())
+        }
+        RevertOp::RestoreTweenPath {
+            index,
+            path,
+            path_to,
+        } => {
+            if *index >= comp.tweens.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target tween index {index} names nothing; the open composition holds {} tween(s). Nothing was applied, previewed, or recorded.",
+                        comp.tweens.len()
+                    ),
+                ));
+            }
+            let slot = &mut comp.tweens[*index];
+            slot.path = path.clone();
+            slot.path_to = path_to.clone();
+            Ok(())
+        }
+        RevertOp::RestoreTweenEase { index, ease } => {
+            if *index >= comp.tweens.len() {
+                return Err(refused(
+                    EditRefusalKind::UnknownTarget,
+                    E_SDK_UNKNOWN_TARGET,
+                    format!(
+                        "sdk refused: revert target tween index {index} names nothing; the open composition holds {} tween(s). Nothing was applied, previewed, or recorded.",
+                        comp.tweens.len()
+                    ),
+                ));
+            }
+            let decl = parse_ease(ease).map_err(|why| {
+                refused(
+                    EditRefusalKind::BrokenTurn,
+                    E_SDK_BROKEN_TURN,
+                    format!(
+                        "sdk refused: revert target tween {index} easing restores nothing runnable: {why}. Nothing was applied, previewed, or recorded."
+                    ),
+                )
+            })?;
+            comp.tweens[*index].ease = decl;
+            Ok(())
+        }
         RevertOp::RestoreLabel { target, label } => {
             let idx = resolve_clip(&comp.clips, target)?;
             *clip_label_mut(&mut comp.clips[idx]) = label.clone();
@@ -2539,6 +2997,27 @@ pub(crate) fn apply_revert(comp: &mut Composition, revert: &RevertOp) -> Result<
         RevertOp::RestoreHidden { target, hidden } => {
             let idx = resolve_clip(&comp.clips, target)?;
             clip_set_hidden(&mut comp.clips[idx], *hidden);
+            Ok(())
+        }
+        RevertOp::RestoreRow {
+            target,
+            property,
+            prior,
+        } => {
+            let idx = resolve_clip(&comp.clips, target)?;
+            // The prior rendered value validated when it was live, so
+            // it validates now; a kind change in between (which no op
+            // performs) refuses naming the rule instead of guessing.
+            let _ = crate::rows::apply_row_value(idx, &mut comp.clips[idx], property, prior, target)
+                .map_err(|e| {
+                    refused(
+                        EditRefusalKind::UnknownTarget,
+                        E_SDK_UNKNOWN_TARGET,
+                        format!(
+                            "sdk refused: revert target row `{property}` on {target} no longer restores ({e}); its target is gone. Nothing was applied, previewed, or recorded."
+                        ),
+                    )
+                })?;
             Ok(())
         }
         RevertOp::RestoreKeyStopAt { key, stop, at } => {

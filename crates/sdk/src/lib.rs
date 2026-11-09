@@ -66,6 +66,7 @@
 
 pub mod edits;
 pub mod history;
+pub mod rows;
 pub mod timeline;
 pub mod variables;
 
@@ -75,6 +76,10 @@ pub use edits::{
     UndoReceipt, E_SDK_BAD_VALUE, E_SDK_BROKEN_TURN, E_SDK_GUARD_HELD, E_SDK_NOTHING_TO_REDO,
     E_SDK_NOTHING_TO_UNDO, E_SDK_PREVIEW, E_SDK_READ_ONLY, E_SDK_UNKNOWN_TARGET, E_SDK_UNSUPPORTED,
     E_SDK_UNWRITABLE, MAX_UNDO_ENTRIES, SDK_OVERRIDES_FILE, SDK_OVERRIDES_VERSION,
+};
+pub use rows::{
+    canonical_row_property, row_availability, row_default_value, row_live_value, RowAvailability,
+    RowDefault, ACCEPTED_ROWS, DEFERRED_ROWS, ROW_MILESTONE_3D, ROW_MILESTONE_FILTER,
 };
 pub use history::{
     BeginOptions, HistoryListing, HistoryRefusal, HistoryRefusalKind, RestoreReceipt, TurnDetail,

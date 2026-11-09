@@ -156,13 +156,29 @@ struct ServerState {
     /// saves stage here with nothing applied; resuming drains every
     /// staged edit through the SDK patch and history machinery.
     save_queue: crate::studio::SaveQueue,
+    /// Canvas transport extras (Sprint 17, T005): shuttle memory, the
+    /// sub-frame carry, and the still-picture watch. Pure playback
+    /// state layered over the serving-session playhead.
+    studio_transport_live: crate::studio_transport::StudioTransportLive,
 }
 
 impl ServerState {
     fn new(session: PreviewSession, folder: PathBuf, port: u16) -> Self {
-        let transport = session.transport();
+        let mut transport = session.transport();
         let dir_key = session.project_folder().to_string_lossy().into_owned();
         let kdl_disk = crate::studio::disk_version_of(&folder);
+        // Canvas transport extras (Sprint 17, T005): restore the
+        // persisted menu speed onto the fresh playhead; a refused
+        // speed (for example on an empty timeline) keeps 1x.
+        let saved = crate::studio_transport::load_transport(&folder);
+        let _ = transport.set_speed(saved.settings.speed);
+        if saved.settings.loop_enabled {
+            transport.set_loop(true);
+        }
+        let live = crate::studio_transport::StudioTransportLive::new(
+            transport.position(),
+            std::time::Instant::now(),
+        );
         Self {
             session,
             transport,
@@ -174,6 +190,7 @@ impl ServerState {
             last_reload: None,
             shutdown: Arc::new(AtomicBool::new(false)),
             save_queue: crate::studio::SaveQueue::default(),
+            studio_transport_live: live,
         }
     }
 
@@ -1500,6 +1517,409 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 }
             }
         }
+        // Inspector rows (Sprint 17, T007 / CAP-007, J-04, INT-002,
+        // REC-001): live rows of the selected clip across the ten
+        // groups with per-row reset defaults, render-deferred rows
+        // marked unavailable with their milestone, and row edits plus
+        // resets recorded as validated turns through the SDK patch
+        // and history machinery. A refused value names its rule and
+        // location and stages nothing.
+        ("GET", "/api/studio/inspector") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let want = query_get(query, "composition");
+            let base = match &want {
+                None => Some(state.session.composition().clone()),
+                Some(name) => state
+                    .session
+                    .all_compositions()
+                    .iter()
+                    .find(|c| &c.name == name)
+                    .cloned(),
+            };
+            match base {
+                None => respond_text(stream, "404 Not Found", &unknown_composition(state, want)),
+                Some(comp) => {
+                    let shown = readout_composition(state, &comp, want.as_deref());
+                    let target_raw = query_get(query, "target").unwrap_or_default();
+                    let selection_raw = query_get(query, "selection").unwrap_or_default();
+                    let selection: Vec<String> = selection_raw
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_string)
+                        .collect();
+                    let target = if target_raw.trim().is_empty() {
+                        match selection.first() {
+                            Some(first) => crate::studio_inspector::parse_inspector_target(first),
+                            None => {
+                                respond_text(
+                                    stream,
+                                    "400 Bad Request",
+                                    "studio refused: the inspector needs `?target=<id-or-index>` (or `?selection=<keys>` taking the first key); rows address one clip. Nothing was staged.",
+                                );
+                                return;
+                            }
+                        }
+                    } else {
+                        crate::studio_inspector::parse_inspector_target(&target_raw)
+                    };
+                    match crate::studio_inspector::inspector_json(&shown, &target, &selection) {
+                        Ok(out) => respond_json(stream, "200 OK", &out),
+                        Err(message) => respond_text(stream, "404 Not Found", &message),
+                    }
+                }
+            }
+        }
+        ("POST", "/api/studio/inspector") => {
+            let edit = match crate::studio_inspector::parse_inspector_body(body) {
+                Ok(edit) => edit,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before inspector rows apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let composition = state.session.composition_name().to_string();
+            match crate::studio_inspector::apply_inspector_edit(
+                &state.folder,
+                Some(&composition),
+                &edit,
+            ) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_inspector::inspector_receipt_json(&receipt),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Animation catalog (Sprint 17, T008 / CAP-008, CAP-009,
+        // J-05): card kinds, engine-supported ease families with
+        // presets, and unavailable families with the supported
+        // spelling — plus the echoed canvas/timeline selection sync.
+        ("GET", "/api/studio/animation") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let want = query_get(query, "composition");
+            let base = match &want {
+                None => Some(state.session.composition().clone()),
+                Some(name) => state
+                    .session
+                    .all_compositions()
+                    .iter()
+                    .find(|c| &c.name == name)
+                    .cloned(),
+            };
+            match base {
+                None => respond_text(stream, "404 Not Found", &unknown_composition(state, want)),
+                Some(comp) => {
+                    let shown = readout_composition(state, &comp, want.as_deref());
+                    let selection_raw = query_get(query, "selection").unwrap_or_default();
+                    let selection: Vec<String> = selection_raw
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_string)
+                        .collect();
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_animate::animation_catalog_json(&shown, &selection),
+                    );
+                }
+            }
+        }
+        // Tween cards (Sprint 17, T008 / CAP-008, J-05, INT-001):
+        // `to`, `from`, `from-to`, and `set` cards with start,
+        // length, and speed write real tweens and sets as one named
+        // turn. Parse failures answer 400; apply failures 409 with
+        // the rule and location while nothing stages.
+        ("POST", "/api/studio/card") => {
+            let req = match crate::studio_animate::parse_card_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before tween cards apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let composition = state.session.composition_name().to_string();
+            match crate::studio_animate::apply_card_edit(&state.folder, Some(&composition), &req) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_animate::card_receipt_json(&receipt),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Bezier editor (Sprint 17, T008 / CAP-008, J-05, INT-001):
+        // engine easings write tween ease, per-segment key ease, or
+        // every segment at once as one named turn. Unsupported and
+        // unknown families refuse at parse time, never faked.
+        ("POST", "/api/studio/bezier") => {
+            let req = match crate::studio_animate::parse_bezier_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before curves apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let composition = state.session.composition_name().to_string();
+            match crate::studio_animate::apply_bezier_edit(&state.folder, Some(&composition), &req)
+            {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_animate::bezier_receipt_json(&receipt),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Unrolled computed values (Sprint 17, T008 / CAP-008, J-05):
+        // sampled tween windows, key segments, expression results,
+        // and live path positions for editing. Unknown directives
+        // answer 404; bad counts 400; nothing stages either way.
+        ("GET", "/api/studio/unroll") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let req = match crate::studio_animate::parse_unroll_params(
+                query_get(query, "tween").as_deref(),
+                query_get(query, "key").as_deref(),
+                query_get(query, "samples").as_deref(),
+            ) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            let want = query_get(query, "composition");
+            let base = match &want {
+                None => Some(state.session.composition().clone()),
+                Some(name) => state
+                    .session
+                    .all_compositions()
+                    .iter()
+                    .find(|c| &c.name == name)
+                    .cloned(),
+            };
+            match base {
+                None => respond_text(stream, "404 Not Found", &unknown_composition(state, want)),
+                Some(comp) => {
+                    let shown = readout_composition(state, &comp, want.as_deref());
+                    match crate::studio_animate::unroll_json(&shown, &req) {
+                        Ok(out) => respond_json(stream, "200 OK", &out),
+                        Err(message) => {
+                            let status = if message.contains("names nothing") {
+                                "404 Not Found"
+                            } else {
+                                "400 Bad Request"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                    }
+                }
+            }
+        }
+        // Live motion-path preview (Sprint 17, T008 / CAP-009, J-05):
+        // positions along the same arc-length table the render
+        // travels. An unfollowable path answers 400 with its cause.
+        ("GET", "/api/studio/path-preview") => {
+            let data = query_get(query, "d").unwrap_or_default();
+            let samples = query_get(query, "samples")
+                .as_deref()
+                .unwrap_or("25")
+                .trim()
+                .parse::<usize>()
+                .unwrap_or(25);
+            match crate::studio_animate::preview_path(&data, samples) {
+                Ok(out) => respond_json(stream, "200 OK", &out),
+                Err(message) => respond_text(stream, "400 Bad Request", &message),
+            }
+        }
+        // Motion paths (Sprint 17, T008 / CAP-009, J-05, INT-001):
+        // `add` appends a path tween, `retarget` commits edited
+        // points to a path tween — always as one named turn. An
+        // unfollowable path or a mismatched morph refuses with its
+        // reason while nothing stages.
+        ("POST", "/api/studio/path") => {
+            let req = match crate::studio_animate::parse_path_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before motion paths apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let composition = state.session.composition_name().to_string();
+            match crate::studio_animate::apply_path_edit(&state.folder, Some(&composition), &req) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_animate::path_receipt_json(&receipt),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Gesture capture (Sprint 17, T008 / CAP-009, J-05, INT-001,
+        // REC-004): recorded samples land as `x`/`y` keyframes in one
+        // named turn. An empty capture discards itself with a 200
+        // note and no turn.
+        ("POST", "/api/studio/capture") => {
+            let req = match crate::studio_animate::parse_capture_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before captures apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let composition = state.session.composition_name().to_string();
+            match crate::studio_animate::apply_capture(&state.folder, Some(&composition), &req) {
+                Ok(outcome) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_animate::capture_outcome_json(&outcome),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
         // Snap settings (Sprint 16, T005 / CAP-005): the visible
         // project setting behind drag magnets — the on/off switch
         // plus the threshold in CSS pixels. Refusals save nothing.
@@ -1606,6 +2026,69 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 &crate::studio_snap_zoom::snap_resolve_json(&load.settings, &outcome, req.want),
             );
         }
+        // Canvas snap (Sprint 17, T003 / CAP-003): one film point
+        // against element edges and centres, equidistance, frame edges
+        // and centre, and grid within the visible threshold, with the
+        // guide lines and ruler positions the panel paints. Pure view
+        // math: no patch stages, no history records, so the delta and
+        // turns stay exactly as they were.
+        ("POST", "/api/studio/canvas-snap") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let req = match crate::studio_canvas_snap::parse_canvas_snap_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            let composition = req
+                .composition
+                .clone()
+                .or_else(|| query_get(query, "composition"))
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&req.selection, &rows);
+                    let (width, height) = state.session.canvas();
+                    let settings = crate::studio_snap_zoom::load_snap(&state.folder).settings;
+                    let candidates = crate::studio_canvas_snap::build_canvas_snap_candidates(
+                        &shown,
+                        width as f64,
+                        height as f64,
+                        req.grid,
+                        &req.exclude,
+                    );
+                    let outcome = crate::studio_canvas_snap::resolve_canvas_snap(
+                        req.want,
+                        &settings,
+                        req.scale,
+                        &candidates,
+                    );
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_canvas_snap::canvas_snap_json(
+                            &settings, &outcome, req.want, req.grid, req.scale, &kept, &dropped,
+                        ),
+                    );
+                }
+            }
+        }
         // Zoom (Sprint 16, T005 / CAP-005): fit fills the viewport,
         // manual holds a percent of fit from 10 percent to frame
         // level anchored at the cursor or playhead, selection frames
@@ -1666,6 +2149,818 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                             "200 OK",
                             &crate::studio_snap_zoom::zoom_result_json(&outcome, &pref),
                         ),
+                    }
+                }
+            }
+        }
+        // Canvas view (Sprint 17, T001 / CAP-001): zoom 25 to 400
+        // percent anchored at the cursor or centre, free pan, fit,
+        // fullscreen, rulers, minimap, and 90/70 percent safe margins
+        // on demand. View state only: the view persists in the hidden
+        // history directory; no patch stages, no history records, and
+        // a missing film shows the empty canvas with its reason.
+        ("GET", "/api/studio/canvas") => {
+            let composition = query_get(query, "composition")
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let selection: Vec<String> = query_get(query, "selection")
+                        .map(|raw| {
+                            raw.split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&selection, &rows);
+                    let (width, height) = state.session.canvas();
+                    let film = crate::studio_canvas::CanvasFilm {
+                        width,
+                        height,
+                        frame_count: state.session.frame_count(),
+                        font_families: crate::studio_canvas::canvas_font_lists_of(&shown),
+                    };
+                    let load = crate::studio_canvas::load_canvas(&state.folder);
+                    let detail = crate::studio_canvas::canvas_status_line(&load.view);
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_canvas::canvas_state_json(
+                            &load,
+                            &detail,
+                            &film,
+                            state.transport.position(),
+                            &kept,
+                            &dropped,
+                        ),
+                    );
+                }
+            }
+        }
+        ("POST", "/api/studio/canvas") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let current = crate::studio_canvas::load_canvas(&state.folder).view;
+            let update = match crate::studio_canvas::parse_canvas_body(body, &current) {
+                Ok(update) => update,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            let composition = update
+                .composition
+                .clone()
+                .or_else(|| query_get(query, "composition"))
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let echo = update.selection.clone().unwrap_or_default();
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) = crate::studio_canvas::sync_canvas_selection(&echo, &rows);
+                    let (width, height) = state.session.canvas();
+                    let film = crate::studio_canvas::CanvasFilm {
+                        width,
+                        height,
+                        frame_count: state.session.frame_count(),
+                        font_families: crate::studio_canvas::canvas_font_lists_of(&shown),
+                    };
+                    // View state only: persist the hidden canvas file
+                    // directly — never a patch, never a turn.
+                    match crate::studio_canvas::save_canvas(&state.folder, body) {
+                        Err(message) => respond_text(stream, "400 Bad Request", &message),
+                        Ok((view, outcome)) => {
+                            let load = crate::studio_canvas::CanvasLoad {
+                                view,
+                                restored: true,
+                                notice: None,
+                            };
+                            respond_json(
+                                stream,
+                                "200 OK",
+                                &crate::studio_canvas::canvas_state_json(
+                                    &load,
+                                    &outcome.detail,
+                                    &film,
+                                    state.transport.position(),
+                                    &kept,
+                                    &dropped,
+                                ),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        // Canvas selection and layers (Sprint 17, T002 / CAP-002,
+        // INT-003): click, Shift-toggle/add, marquee, and clear
+        // resolve against authored element boxes, and the minimal
+        // layers readout lists elements by z-order with boxes,
+        // off-canvas indicators, and the synced selection echo.
+        // Selection is view state: it writes nothing, stages no
+        // patch, and records no turn.
+        ("GET", "/api/studio/layers") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let composition = query_get(query, "composition")
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let selection: Vec<String> = query_get(query, "selection")
+                        .map(|raw| {
+                            raw.split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&selection, &rows);
+                    let (width, height) = state.session.canvas();
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_select::layers_json(
+                            &shown,
+                            width as f64,
+                            height as f64,
+                            &kept,
+                            &dropped,
+                        ),
+                    );
+                }
+            }
+        }
+        ("POST", "/api/studio/select") => {
+            let req = match crate::studio_select::parse_select_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            let composition = query_get(query, "composition")
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let (width, height) = state.session.canvas();
+                    match crate::studio_select::resolve_selection(
+                        &shown,
+                        &req,
+                        width as f64,
+                        height as f64,
+                    ) {
+                        Err(message) => {
+                            let status = if message.contains("names nothing") {
+                                "404 Not Found"
+                            } else {
+                                "409 Conflict"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                        Ok(resolved) => {
+                            let echo = if req.selection.is_empty() {
+                                resolved.clone()
+                            } else {
+                                req.selection.clone()
+                            };
+                            let rows = crate::studio::studio_rows_of(&shown);
+                            let (kept, dropped) =
+                                crate::studio_canvas::sync_canvas_selection(&echo, &rows);
+                            respond_json(
+                                stream,
+                                "200 OK",
+                                &crate::studio_select::select_json(
+                                    &shown,
+                                    &req,
+                                    &resolved,
+                                    &kept,
+                                    &dropped,
+                                    width as f64,
+                                    height as f64,
+                                ),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        // Canvas transforms (Sprint 17, T002 / CAP-002, J-01, INT-001,
+        // REC-001..003): move, resize, nudge, and rotate gestures.
+        // Transforms preview by default and stage nothing until the
+        // maker commits; `cancelled` discards the preview. Commits
+        // apply through the SDK patch and history machinery as one
+        // named turn. A refused gesture names its rule and location
+        // and stages nothing; a clamped resize names the bound and
+        // the turn records the clamped result.
+        ("POST", "/api/studio/transform") => {
+            let req = match crate::studio_select::parse_transform_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let composition = query_get(query, "composition")
+                .or_else(|| {
+                    serde_json::from_str::<serde_json::Value>(body)
+                        .ok()
+                        .and_then(|v| {
+                            v.get("composition")
+                                .and_then(|c| c.as_str())
+                                .map(str::to_string)
+                        })
+                })
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&req.selection, &rows);
+                    if req.cancelled {
+                        respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_select::transform_cancelled_json(&req, &kept, &dropped),
+                        );
+                        return;
+                    }
+                    let (width, height) = state.session.canvas();
+                    let film_w = width as f64;
+                    let film_h = height as f64;
+                    if req.action == "rotate" {
+                        let (angle, snapped) = crate::studio_select::preview_rotate(
+                            req.degrees.expect("rotate carries degrees"),
+                            req.shift,
+                        );
+                        if !req.commit {
+                            respond_json(
+                                stream,
+                                "200 OK",
+                                &crate::studio_select::transform_preview_json(
+                                    &req,
+                                    &[],
+                                    false,
+                                    &[],
+                                    Some((angle, snapped)),
+                                    &kept,
+                                    &dropped,
+                                ),
+                            );
+                            return;
+                        }
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            &crate::studio_select::rotate_commit_refusal(
+                                &shown, &req, angle, snapped,
+                            ),
+                        );
+                        return;
+                    }
+                    if state.conflict.is_some() {
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            &conflict_blocker_message(state.save_queue.staged.len()),
+                        );
+                        return;
+                    }
+                    if req.commit && state.save_queue.paused {
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            "studio: the save queue is paused; resume it before canvas transforms apply. Nothing was applied or recorded.",
+                        );
+                        return;
+                    }
+                    match crate::studio_select::propose_transform(&shown, &req, film_w, film_h) {
+                        Err(message) => {
+                            let status = if message.contains("names nothing")
+                                || message.contains("past the open composition")
+                            {
+                                "404 Not Found"
+                            } else if message.contains("not JSON")
+                                || message.contains("not a number")
+                                || message.contains("not finite")
+                                || message.contains("names no ")
+                                || message.contains("unknown canvas")
+                            {
+                                "400 Bad Request"
+                            } else {
+                                "409 Conflict"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                        Ok((proposed, clamped, notes)) => {
+                            if !req.commit {
+                                respond_json(
+                                    stream,
+                                    "200 OK",
+                                    &crate::studio_select::transform_preview_json(
+                                        &req, &proposed, clamped, &notes, None, &kept, &dropped,
+                                    ),
+                                );
+                                return;
+                            }
+                            match crate::studio_select::apply_transform(
+                                &state.folder,
+                                Some(&composition),
+                                &req,
+                                &proposed,
+                            ) {
+                                Ok(receipt) => respond_json(
+                                    stream,
+                                    "200 OK",
+                                    &crate::studio_select::transform_receipt_json(
+                                        &req, &receipt, &proposed, clamped, &notes, &kept, &dropped,
+                                    ),
+                                ),
+                                Err(message) => respond_text(stream, "409 Conflict", &message),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Crop mode (Sprint 17, T004 / CAP-004, J-02, INT-001,
+        // INT-003, REC-001..003): Free, 16:9, 9:16, 1:1, and 4:5
+        // presets constrain the crop frame with live preview.
+        // Previews and cancels stage nothing; commits apply through
+        // the SDK patch and history machinery as one named turn. A
+        // refused crop names its rule and location and stages
+        // nothing; an un-fittable frame clamps and shows the clamped
+        // frame.
+        ("POST", "/api/studio/crop") => {
+            let req = match crate::studio_crop::parse_crop_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let composition = req
+                .composition
+                .clone()
+                .or_else(|| query_get(query, "composition"))
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&req.selection, &rows);
+                    if req.cancelled {
+                        respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_crop::crop_cancelled_json(&req, &kept, &dropped),
+                        );
+                        return;
+                    }
+                    if state.conflict.is_some() {
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            &conflict_blocker_message(state.save_queue.staged.len()),
+                        );
+                        return;
+                    }
+                    if req.commit && state.save_queue.paused {
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            "studio: the save queue is paused; resume it before crops apply. Nothing was applied or recorded.",
+                        );
+                        return;
+                    }
+                    let (width, height) = state.session.canvas();
+                    let film_w = width as f64;
+                    let film_h = height as f64;
+                    match crate::studio_crop::propose_crop(&shown, &req, film_w, film_h) {
+                        Err(message) => {
+                            let status = if message.contains("names nothing")
+                                || message.contains("past the open composition")
+                            {
+                                "404 Not Found"
+                            } else {
+                                "409 Conflict"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                        Ok((proposed, clamped, notes)) => {
+                            if !req.commit {
+                                respond_json(
+                                    stream,
+                                    "200 OK",
+                                    &crate::studio_crop::crop_preview_json(
+                                        &req, &proposed, clamped, &notes, &kept, &dropped,
+                                    ),
+                                );
+                                return;
+                            }
+                            match crate::studio_crop::apply_crop(
+                                &state.folder,
+                                Some(&composition),
+                                &req,
+                                &proposed,
+                            ) {
+                                Ok(receipt) => respond_json(
+                                    stream,
+                                    "200 OK",
+                                    &crate::studio_crop::crop_receipt_json(
+                                        &req, &receipt, &proposed, clamped, &notes, &kept, &dropped,
+                                    ),
+                                ),
+                                Err(message) => respond_text(stream, "409 Conflict", &message),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Inline text editing sessions (Sprint 17, T006 / CAP-006,
+        // J-03, STATE-03, REC-001..002): double-click opens the live
+        // session with bold, italic, underline, and colour; typing
+        // previews without staging; Enter commits as one patch turn
+        // and Escape cancels with nothing staged. An invalid value
+        // (for example an unknown font family) refuses with its
+        // reason keeping the prior text; offered fonts always
+        // resolve.
+        ("GET", "/api/studio/text") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let composition = query_get(query, "composition")
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let target_raw = query_get(query, "target").unwrap_or_default();
+                    let selection: Vec<String> = query_get(query, "selection")
+                        .map(|raw| {
+                            raw.split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let target = if target_raw.trim().is_empty() {
+                        match selection.first() {
+                            Some(first) => crate::studio_inspector::parse_inspector_target(first),
+                            None => {
+                                respond_text(
+                                    stream,
+                                    "400 Bad Request",
+                                    "studio refused: the inline text session needs `?target=<id-or-index>` (or `?selection=<keys>` taking the first key); sessions open on one text clip. Nothing was staged.",
+                                );
+                                return;
+                            }
+                        }
+                    } else {
+                        crate::studio_inspector::parse_inspector_target(&target_raw)
+                    };
+                    let req = crate::studio_text::TextRequest {
+                        action: "open".to_string(),
+                        target,
+                        value: None,
+                        bold: None,
+                        italic: None,
+                        underline: None,
+                        color: None,
+                        font_family: None,
+                        actor: String::new(),
+                        selection: selection.clone(),
+                    };
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&req.selection, &rows);
+                    match crate::studio_text::open_session(
+                        &state.folder,
+                        &shown,
+                        &req,
+                        &kept,
+                        &dropped,
+                    ) {
+                        Ok(out) => respond_json(stream, "200 OK", &out),
+                        Err(message) => {
+                            let status = if message.contains("names nothing")
+                                || message.contains("past the open composition")
+                            {
+                                "404 Not Found"
+                            } else {
+                                "409 Conflict"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                    }
+                }
+            }
+        }
+        ("POST", "/api/studio/text") => {
+            let req = match crate::studio_text::parse_text_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let composition = query_get(query, "composition")
+                .or_else(|| {
+                    serde_json::from_str::<serde_json::Value>(body)
+                        .ok()
+                        .and_then(|v| {
+                            v.get("composition")
+                                .and_then(|c| c.as_str())
+                                .map(str::to_string)
+                        })
+                })
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&req.selection, &rows);
+                    if req.action == "cancel" {
+                        respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_text::text_cancelled_json(&req, &kept, &dropped),
+                        );
+                        return;
+                    }
+                    if req.action == "open" {
+                        match crate::studio_text::open_session(
+                            &state.folder,
+                            &shown,
+                            &req,
+                            &kept,
+                            &dropped,
+                        ) {
+                            Ok(out) => respond_json(stream, "200 OK", &out),
+                            Err(message) => {
+                                let status = if message.contains("names nothing")
+                                    || message.contains("past the open composition")
+                                {
+                                    "404 Not Found"
+                                } else {
+                                    "409 Conflict"
+                                };
+                                respond_text(stream, status, &message);
+                            }
+                        }
+                        return;
+                    }
+                    if req.action == "preview" {
+                        match crate::studio_text::preview_session(
+                            &state.folder,
+                            &shown,
+                            &req,
+                            &kept,
+                            &dropped,
+                        ) {
+                            Ok(out) => respond_json(stream, "200 OK", &out),
+                            Err(message) => {
+                                let status = if message.contains("names nothing")
+                                    || message.contains("past the open composition")
+                                {
+                                    "404 Not Found"
+                                } else if message.contains("not JSON")
+                                    || message.contains("names no ")
+                                    || message.contains("unknown inline text")
+                                    || message.contains("not a switch")
+                                    || message.contains("not text")
+                                {
+                                    "400 Bad Request"
+                                } else {
+                                    "409 Conflict"
+                                };
+                                respond_text(stream, status, &message);
+                            }
+                        }
+                        return;
+                    }
+                    if state.conflict.is_some() {
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            &conflict_blocker_message(state.save_queue.staged.len()),
+                        );
+                        return;
+                    }
+                    if state.save_queue.paused {
+                        respond_text(
+                            stream,
+                            "409 Conflict",
+                            "studio: the save queue is paused; resume it before inline text commits apply. Nothing was applied or recorded.",
+                        );
+                        return;
+                    }
+                    match crate::studio_text::apply_text_edit(
+                        &state.folder,
+                        Some(&composition),
+                        &req,
+                    ) {
+                        Ok(receipt) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_text::text_receipt_json(&receipt, &kept, &dropped),
+                        ),
+                        Err(message) => {
+                            let status = if message.contains("names nothing")
+                                || message.contains("past the open composition")
+                            {
+                                "404 Not Found"
+                            } else if message.contains("names no ")
+                                || message.contains("unknown inline text")
+                            {
+                                "400 Bad Request"
+                            } else {
+                                "409 Conflict"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                    }
+                }
+            }
+        }
+        // Canvas transport extras (Sprint 17, T005 / CAP-005): J, K,
+        // L shuttle at 1x, 2x, and 4x with K pausing, one-frame arrow
+        // steps, the 0.25x to 2x speed menu, the seek bar under the
+        // canvas, and playback health reporting the clock followed and
+        // the still-picture duration. A film short of data holds its
+        // last frame with the hold reported, never looping a tail
+        // snippet. Transport moves no composition data: every action
+        // drives the serving-session playhead (the Sprint 15 player
+        // clock), persists only the menu speed in the hidden transport
+        // file, and stages no patch and records no turn.
+        ("GET", "/api/studio/transport") => {
+            let composition = query_get(query, "composition")
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let selection: Vec<String> = query_get(query, "selection")
+                        .map(|raw| {
+                            raw.split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let body = render_transport_state(state, &shown, &selection, None);
+                    respond_json(stream, "200 OK", &body);
+                }
+            }
+        }
+        ("POST", "/api/studio/transport") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let parsed = match crate::studio_transport::parse_transport_body(body) {
+                Ok(parsed) => parsed,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            let request = parsed.request;
+            let selection = parsed.selection;
+            let composition = parsed.composition;
+            let composition = composition
+                .or_else(|| query_get(query, "composition"))
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let echo = selection.clone().unwrap_or_default();
+                    match run_studio_transport(state, request) {
+                        Err((status, message)) => respond_text(stream, &status, &message),
+                        Ok(detail) => {
+                            let body = render_transport_state(state, &shown, &echo, Some(&detail));
+                            respond_json(stream, "200 OK", &body);
+                        }
                     }
                 }
             }
@@ -1771,6 +3066,230 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
             &format!("preview refused: unknown route {method} {path}; open / for the review page"),
         ),
     }
+}
+
+/// Drive one canvas transport action against the serving session
+/// (Sprint 17, T005 / CAP-005): shuttle, steps, the speed menu, seeks,
+/// and player-clock ticks. Every action moves only the
+/// serving-session playhead — no patch stages and no history turn
+/// records — and only a validated menu speed persists in the hidden
+/// transport file. Returns the strip detail line; a refused action
+/// stages nothing and reports its status with its cause.
+fn run_studio_transport(
+    state: &mut ServerState,
+    request: crate::studio_transport::TransportRequest,
+) -> Result<String, (String, String)> {
+    use crate::studio_transport::{
+        advance_position, hold_first_message, hold_last_message, load_transport, save_transport,
+        TransportRequest as Req, SHUTTLE_RATES,
+    };
+    let now = std::time::Instant::now();
+    let bad = |message: String| (String::from("409 Conflict"), message);
+    let saved = load_transport(&state.folder);
+    match request {
+        Req::Play => {
+            state
+                .transport
+                .set_speed(saved.settings.speed)
+                .map_err(|e| bad(e.to_string()))?;
+            state
+                .session
+                .play_with_audio(&mut state.transport)
+                .map_err(|e| bad(e.to_string()))?;
+            let live = &mut state.studio_transport_live;
+            live.shuttle.play_plain();
+            live.note_frame(state.transport.position(), now);
+        }
+        Req::Pause | Req::ShuttleK => {
+            state.transport.pause();
+            let live = &mut state.studio_transport_live;
+            if matches!(request, Req::ShuttleK) {
+                live.shuttle.press_k();
+            } else {
+                live.shuttle.pause_plain();
+            }
+            live.note_frame(state.transport.position(), now);
+        }
+        Req::ShuttleL | Req::ShuttleJ => {
+            let forward = matches!(request, Req::ShuttleL);
+            {
+                let live = &mut state.studio_transport_live;
+                if forward {
+                    live.shuttle.press_l();
+                } else {
+                    live.shuttle.press_j();
+                }
+            }
+            let rate = state
+                .studio_transport_live
+                .shuttle
+                .shuttle_rate
+                .unwrap_or(SHUTTLE_RATES[0]);
+            state
+                .transport
+                .set_speed(rate)
+                .map_err(|e| bad(e.to_string()))?;
+            state
+                .session
+                .play_with_audio(&mut state.transport)
+                .map_err(|e| bad(e.to_string()))?;
+            let pos = state.transport.position();
+            let live = &mut state.studio_transport_live;
+            live.note_frame(pos, now);
+        }
+        Req::StepForward => {
+            state
+                .transport
+                .step_forward()
+                .map_err(|e| bad(e.to_string()))?;
+            let pos = state.transport.position();
+            state.studio_transport_live.note_frame(pos, now);
+        }
+        Req::StepBack => {
+            state
+                .transport
+                .step_back()
+                .map_err(|e| bad(e.to_string()))?;
+            let pos = state.transport.position();
+            state.studio_transport_live.note_frame(pos, now);
+        }
+        Req::Seek(index) => {
+            state
+                .transport
+                .scrub_to(index)
+                .map_err(|e| bad(e.to_string()))?;
+            let pos = state.transport.position();
+            state.studio_transport_live.note_frame(pos, now);
+        }
+        Req::SetSpeed(speed) => {
+            state
+                .transport
+                .set_speed(speed)
+                .map_err(|e| bad(e.to_string()))?;
+            let settings = crate::studio_transport::TransportSettings {
+                speed,
+                loop_enabled: saved.settings.loop_enabled,
+            };
+            save_transport(&state.folder, &settings)
+                .map_err(|message| (String::from("500 Internal Server Error"), message))?;
+            let live = &mut state.studio_transport_live;
+            live.shuttle.shuttle_rate = None;
+            live.note_frame(state.transport.position(), now);
+        }
+        Req::Tick(elapsed_secs) => {
+            if state.transport.readout().playing {
+                let frames = state.session.frame_count();
+                let fps = state.session.fps().value();
+                let pos = state.transport.position();
+                let shuttle = state.studio_transport_live.shuttle;
+                let rate = shuttle.effective_rate(saved.settings.speed);
+                let reverse =
+                    shuttle.direction == crate::studio_transport::ShuttleDirection::Reverse;
+                let (next, carry, parked) = advance_position(
+                    pos,
+                    frames,
+                    fps,
+                    elapsed_secs,
+                    rate,
+                    reverse,
+                    state.studio_transport_live.carry,
+                );
+                if next != pos {
+                    state
+                        .transport
+                        .scrub_to(next)
+                        .map_err(|e| bad(e.to_string()))?;
+                }
+                let live = &mut state.studio_transport_live;
+                live.note_frame(next, now);
+                live.carry = carry;
+                if parked {
+                    state.transport.pause();
+                    let live = &mut state.studio_transport_live;
+                    live.shuttle.playing = false;
+                    live.held = Some(if reverse {
+                        hold_first_message(frames)
+                    } else {
+                        hold_last_message(frames.saturating_sub(1), frames)
+                    });
+                }
+            }
+        }
+    }
+    let live = &state.studio_transport_live;
+    let readout = state.transport.readout();
+    Ok(crate::studio_transport::transport_detail(
+        &live.shuttle,
+        saved.settings.speed,
+        readout.frame,
+        readout.frame_count,
+        readout.playing,
+    ))
+}
+
+/// Render one canvas transport state (Sprint 17, T005): the playhead
+/// with its readout, the shuttle, the 0.25x to 2x speed menu, the
+/// seek bar, playback health, the synced selection, and the
+/// `font-family` pass-through. A moved playhead restarts the
+/// still-picture watch here too, so health stays honest however the
+/// playhead moved.
+fn render_transport_state(
+    state: &mut ServerState,
+    shown: &notation::model::Composition,
+    selection: &[String],
+    detail: Option<&str>,
+) -> String {
+    use crate::studio_transport::{load_transport, transport_state_json};
+    let now = std::time::Instant::now();
+    let saved = load_transport(&state.folder);
+    let pos = state.transport.position();
+    {
+        let live = &mut state.studio_transport_live;
+        if pos != live.last_frame {
+            live.note_frame(pos, now);
+        }
+    }
+    let live = &state.studio_transport_live;
+    let readout = state.transport.readout();
+    // The loop switch lives on the serving-session playhead (shared
+    // with the review page); echo its live value, not the file copy.
+    let mut effective = saved.settings;
+    effective.loop_enabled = readout.loop_enabled;
+    let rows = crate::studio::studio_rows_of(shown);
+    let (kept, dropped) = crate::studio_canvas::sync_canvas_selection(selection, &rows);
+    let empty_reason = state.transport.disabled_reason();
+    let has_audio = state.session.mix_info().ok().flatten().is_some();
+    let detail = detail.map(str::to_string).unwrap_or_else(|| {
+        crate::studio_transport::transport_detail(
+            &live.shuttle,
+            saved.settings.speed,
+            readout.frame,
+            readout.frame_count,
+            readout.playing,
+        )
+    });
+    transport_state_json(
+        &effective,
+        saved.restored,
+        saved.notice.as_deref(),
+        &live.shuttle,
+        readout.frame,
+        readout.frame_count,
+        readout.time_secs,
+        readout.duration_secs,
+        readout.fps.value(),
+        readout.playing,
+        readout.enabled,
+        empty_reason.as_deref(),
+        has_audio,
+        live.still_secs(now),
+        live.held.as_deref(),
+        &detail,
+        pos,
+        &kept,
+        &dropped,
+        &crate::studio_canvas::canvas_font_lists_of(shown),
+    )
 }
 
 /// Drive one dispatched shortcut against the serving session (Sprint

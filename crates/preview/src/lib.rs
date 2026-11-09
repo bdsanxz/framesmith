@@ -28,10 +28,18 @@ pub mod player;
 mod reload;
 pub mod server;
 pub mod studio;
+pub mod studio_animate;
+pub mod studio_canvas;
+pub mod studio_canvas_snap;
 pub mod studio_clips;
+pub mod studio_crop;
+pub mod studio_inspector;
+pub mod studio_select;
 pub mod studio_shortcuts;
 pub mod studio_snap_zoom;
+pub mod studio_text;
 pub mod studio_tools;
+pub mod studio_transport;
 mod transport;
 
 pub use audio::{

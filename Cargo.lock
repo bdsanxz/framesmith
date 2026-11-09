@@ -632,6 +632,9 @@ dependencies = [
 name = "preview"
 version = "0.1.0"
 dependencies = [
+ "glyph",
+ "layout",
+ "motion",
  "notation",
  "render",
  "sdk",
