@@ -76,11 +76,7 @@ fn decode_png(path: &Path, w: u32, h: u32) -> Vec<u8> {
         ])
         .output()
         .expect("decode png");
-    assert!(
-        out.status.success(),
-        "decode failed for {}",
-        path.display()
-    );
+    assert!(out.status.success(), "decode failed for {}", path.display());
     assert_eq!(out.stdout.len(), w as usize * h as usize * 3);
     out.stdout
 }
@@ -118,14 +114,20 @@ fn assert_no_mp4(dir: &Path) {
 fn snapshot_at_times_land_pngs_named_for_their_times() {
     let root = tmp("at");
     proj(&root, MOVING);
-    let (code, out) = run(&["snapshot", "--at", "0,0.5,0.9", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "0,0.5,0.9", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     assert_eq!(
         png_names(&root.join("snaps")),
         vec!["snap-0.5s.png", "snap-0.9s.png", "snap-0s.png"],
         "{out}"
     );
-    assert!(out.contains("snapshot: wrote snap-0s.png (frame 0 at 0s)"), "{out}");
+    assert!(
+        out.contains("snapshot: wrote snap-0s.png (frame 0 at 0s)"),
+        "{out}"
+    );
     assert!(
         out.contains("snapshot: wrote snap-0.5s.png (frame 5 at 0.5s)"),
         "{out}"
@@ -141,7 +143,10 @@ fn snapshot_at_times_land_pngs_named_for_their_times() {
 fn snapshot_every_lands_pngs_across_the_composition() {
     let root = tmp("every");
     proj(&root, MOVING);
-    let (code, out) = run(&["snapshot", "--every", "0.4", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--every", "0.4", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     assert_eq!(
         png_names(&root.join("snaps")),
@@ -158,7 +163,9 @@ fn snapshot_range_lands_exactly_the_frames_inside() {
     let root = tmp("range");
     proj(&root, MOVING);
     let (code, out) = run(
-        &["snapshot", "--from", "0.2", "--to", "0.5", "--out", "snaps", "proj"],
+        &[
+            "snapshot", "--from", "0.2", "--to", "0.5", "--out", "snaps", "proj",
+        ],
         &root,
     );
     assert_eq!(code, 0, "{out}");
@@ -176,9 +183,16 @@ fn snapshot_range_lands_exactly_the_frames_inside() {
 fn snapshot_between_frame_time_snaps_and_reports_the_frame_used() {
     let root = tmp("snap");
     proj(&root, MOVING);
-    let (code, out) = run(&["snapshot", "--at", "0.33", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "0.33", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
-    assert_eq!(png_names(&root.join("snaps")), vec!["snap-0.3s.png"], "{out}");
+    assert_eq!(
+        png_names(&root.join("snaps")),
+        vec!["snap-0.3s.png"],
+        "{out}"
+    );
     assert!(
         out.contains("time 0.33s is between frames; using frame 3 at 0.3s"),
         "{out}"
@@ -190,18 +204,34 @@ fn snapshot_between_frame_time_snaps_and_reports_the_frame_used() {
 fn snapshot_pngs_are_pixel_identical_to_full_render_frames() {
     let root = tmp("pixel");
     proj(&root, MOVING);
-    let (code, out) = run(&["render", "proj", "--format", "pngseq", "-o", "seq"], &root);
+    let (code, out) = run(
+        &["render", "proj", "--format", "pngseq", "-o", "seq"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run(&["snapshot", "--at", "0,0.5,0.9", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "0,0.5,0.9", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     // The full render really moves: neighboring frames differ, so an
     // off-by-one snapshot could not pass the comparisons below.
     let seq: Vec<Vec<u8>> = (0..10)
         .map(|i| decode_png(&root.join(format!("seq/frame-{i:04}.png")), 160, 120))
         .collect();
-    assert_ne!(seq[0], seq[5], "seeded motion must move between frames 0 and 5");
-    assert_ne!(seq[5], seq[9], "seeded motion must move between frames 5 and 9");
-    for (snap, frame) in [("snap-0s.png", 0), ("snap-0.5s.png", 5), ("snap-0.9s.png", 9)] {
+    assert_ne!(
+        seq[0], seq[5],
+        "seeded motion must move between frames 0 and 5"
+    );
+    assert_ne!(
+        seq[5], seq[9],
+        "seeded motion must move between frames 5 and 9"
+    );
+    for (snap, frame) in [
+        ("snap-0s.png", 0),
+        ("snap-0.5s.png", 5),
+        ("snap-0.9s.png", 9),
+    ] {
         let got = decode_png(&root.join("snaps").join(snap), 160, 120);
         assert_eq!(
             got, seq[frame],
@@ -215,14 +245,23 @@ fn snapshot_pngs_are_pixel_identical_to_full_render_frames() {
 fn snapshot_range_pngs_match_full_render_frames() {
     let root = tmp("pixel-range");
     proj(&root, MOVING);
-    let (code, out) = run(&["render", "proj", "--format", "pngseq", "-o", "seq"], &root);
-    assert_eq!(code, 0, "{out}");
     let (code, out) = run(
-        &["snapshot", "--from", "0.2", "--to", "0.5", "--out", "snaps", "proj"],
+        &["render", "proj", "--format", "pngseq", "-o", "seq"],
         &root,
     );
     assert_eq!(code, 0, "{out}");
-    for (snap, frame) in [("snap-0.2s.png", 2), ("snap-0.3s.png", 3), ("snap-0.4s.png", 4)] {
+    let (code, out) = run(
+        &[
+            "snapshot", "--from", "0.2", "--to", "0.5", "--out", "snaps", "proj",
+        ],
+        &root,
+    );
+    assert_eq!(code, 0, "{out}");
+    for (snap, frame) in [
+        ("snap-0.2s.png", 2),
+        ("snap-0.3s.png", 3),
+        ("snap-0.4s.png", 4),
+    ] {
         let got = decode_png(&root.join("snaps").join(snap), 160, 120);
         let want = decode_png(&root.join(format!("seq/frame-{frame:04}.png")), 160, 120);
         assert_eq!(got, want, "{snap} must match full-render frame {frame}");
@@ -235,7 +274,9 @@ fn snapshot_json_reports_frames_and_files() {
     let root = tmp("json");
     proj(&root, MOVING);
     let (code, out) = run(
-        &["snapshot", "--json", "--at", "0,0.5", "--out", "snaps", "proj"],
+        &[
+            "snapshot", "--json", "--at", "0,0.5", "--out", "snaps", "proj",
+        ],
         &root,
     );
     assert_eq!(code, 0, "{out}");
@@ -256,22 +297,34 @@ fn snapshot_json_reports_frames_and_files() {
 fn snapshot_bad_time_refuses_naming_the_flag_with_nothing_written() {
     let root = tmp("bad-time");
     proj(&root, MOVING);
-    let (code, out) = run(&["snapshot", "--at", "abc", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "abc", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--at"), "{out}");
     assert!(out.contains("no PNG was written"), "{out}");
-    assert!(!root.join("snaps").exists(), "bad time must write nothing:\n{out}");
+    assert!(
+        !root.join("snaps").exists(),
+        "bad time must write nothing:\n{out}"
+    );
 }
 
 #[test]
 fn snapshot_outside_time_refuses_naming_the_flag_with_nothing_written() {
     let root = tmp("outside");
     proj(&root, MOVING);
-    let (code, out) = run(&["snapshot", "--at", "2.5", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "2.5", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--at 2.5s is outside"), "{out}");
     assert!(out.contains("no PNG was written"), "{out}");
-    assert!(!root.join("snaps").exists(), "outside time must write nothing:\n{out}");
+    assert!(
+        !root.join("snaps").exists(),
+        "outside time must write nothing:\n{out}"
+    );
 }
 
 #[test]
@@ -279,21 +332,31 @@ fn snapshot_empty_and_backward_ranges_refuse_with_nothing_written() {
     let root = tmp("empty");
     proj(&root, MOVING);
     let (code, out) = run(
-        &["snapshot", "--from", "0.5", "--to", "0.5", "--out", "s1", "proj"],
+        &[
+            "snapshot", "--from", "0.5", "--to", "0.5", "--out", "s1", "proj",
+        ],
         &root,
     );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--from/--to"), "{out}");
     assert!(out.contains("empty range"), "{out}");
-    assert!(!root.join("s1").exists(), "empty range must write nothing:\n{out}");
+    assert!(
+        !root.join("s1").exists(),
+        "empty range must write nothing:\n{out}"
+    );
     let (code, out) = run(
-        &["snapshot", "--from", "0.8", "--to", "0.2", "--out", "s2", "proj"],
+        &[
+            "snapshot", "--from", "0.8", "--to", "0.2", "--out", "s2", "proj",
+        ],
         &root,
     );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--from/--to"), "{out}");
     assert!(out.contains("runs backward"), "{out}");
-    assert!(!root.join("s2").exists(), "backward range must write nothing:\n{out}");
+    assert!(
+        !root.join("s2").exists(),
+        "backward range must write nothing:\n{out}"
+    );
 }
 
 #[test]
@@ -301,7 +364,10 @@ fn snapshot_bad_every_refuses_naming_the_flag_with_nothing_written() {
     let root = tmp("bad-every");
     proj(&root, MOVING);
     for every in ["0", "-1", "soon"] {
-        let (code, out) = run(&["snapshot", "--every", every, "--out", "snaps", "proj"], &root);
+        let (code, out) = run(
+            &["snapshot", "--every", every, "--out", "snaps", "proj"],
+            &root,
+        );
         assert_eq!(code, 1, "--every {every}:\n{out}");
         assert!(out.contains("--every"), "{out}");
         assert!(out.contains("no PNG was written"), "{out}");
@@ -320,12 +386,18 @@ fn snapshot_unwritable_directory_refuses_naming_the_flag_with_nothing_written() 
     // (not even root) can create files beneath it, so the refusal is
     // permission-independent.
     write(&root, "blocker", "in the way");
-    let (code, out) = run(&["snapshot", "--at", "0", "--out", "blocker/sub", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "0", "--out", "blocker/sub", "proj"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--out"), "{out}");
     assert!(out.contains("not writable"), "{out}");
     assert!(out.contains("no PNG was written"), "{out}");
-    assert!(!root.join("blocker/sub").exists(), "unwritable dir must stay empty:\n{out}");
+    assert!(
+        !root.join("blocker/sub").exists(),
+        "unwritable dir must stay empty:\n{out}"
+    );
 }
 
 #[test]
@@ -336,8 +408,14 @@ fn snapshot_invalid_and_missing_projects_refuse_with_nothing_written() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("is invalid"), "{out}");
     assert!(out.contains("No PNG was written"), "{out}");
-    assert!(!root.join("snaps").exists(), "invalid project must write nothing:\n{out}");
-    let (code, out) = run(&["snapshot", "--at", "0", "--out", "elsewhere", "nope"], &root);
+    assert!(
+        !root.join("snaps").exists(),
+        "invalid project must write nothing:\n{out}"
+    );
+    let (code, out) = run(
+        &["snapshot", "--at", "0", "--out", "elsewhere", "nope"],
+        &root,
+    );
     assert_ne!(code, 0, "{out}");
     assert!(out.contains("No PNG was written"), "{out}");
     assert!(
@@ -353,11 +431,22 @@ fn snapshot_shape_errors_are_usage_errors() {
     let (code, out) = run(&["snapshot", "--out", "snaps", "proj"], &root);
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("need one of --at"), "{out}");
-    let (code, out) = run(&["snapshot", "--at", "0", "--every", "0.5", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &[
+            "snapshot", "--at", "0", "--every", "0.5", "--out", "snaps", "proj",
+        ],
+        &root,
+    );
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("exactly one of --at"), "{out}");
-    let (code, out) = run(&["snapshot", "--from", "0", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--from", "0", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("--from together with --to"), "{out}");
-    assert!(!root.join("snaps").exists(), "usage errors must write nothing:\n{out}");
+    assert!(
+        !root.join("snaps").exists(),
+        "usage errors must write nothing:\n{out}"
+    );
 }

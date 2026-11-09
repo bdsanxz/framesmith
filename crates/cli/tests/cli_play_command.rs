@@ -68,7 +68,9 @@ fn get(port: u16, target: &str) -> (u16, String) {
         Duration::from_secs(5),
     )
     .expect("connect");
-    stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .unwrap();
     stream
         .write_all(
             format!("GET {target} HTTP/1.0\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
@@ -157,7 +159,10 @@ fn play_refuses_a_broken_project_before_serving() {
 
     let (code, out) = run(&reg, &["play", proj.to_str().unwrap()]);
     assert_eq!(code, 1, "{out}");
-    assert!(extract_player_url(&out).is_none(), "no URL is printed: {out}");
+    assert!(
+        extract_player_url(&out).is_none(),
+        "no URL is printed: {out}"
+    );
 
     // Nothing serves and nothing is listed.
     let (code, out) = run(&reg, &["preview-list"]);

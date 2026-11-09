@@ -84,11 +84,7 @@ fn decode_png(path: &Path, w: u32, h: u32) -> Vec<u8> {
         ])
         .output()
         .expect("decode png");
-    assert!(
-        out.status.success(),
-        "decode failed for {}",
-        path.display()
-    );
+    assert!(out.status.success(), "decode failed for {}", path.display());
     assert_eq!(out.stdout.len(), w as usize * h as usize * 3);
     out.stdout
 }
@@ -144,7 +140,10 @@ fn keyframe_rows(out: &str) -> Vec<(u64, f64, String)> {
 fn keyframes_lists_computed_values_per_frame() {
     let root = tmp("kf");
     proj(&root, "proj", MOVING);
-    let (code, out) = run(&["keyframes", "--clip", "m", "--property", "x", "proj"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "m", "--property", "x", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("keyframes for clip"), "{out}");
     let rows = keyframe_rows(&out);
@@ -163,16 +162,33 @@ fn keyframes_json_and_alias_and_fill() {
     let root = tmp("kfjson");
     proj(&root, "proj", MOVING);
     let (code, out) = run(
-        &["keyframes", "--json", "--clip", "m", "--property", "x", "proj"],
+        &[
+            "keyframes",
+            "--json",
+            "--clip",
+            "m",
+            "--property",
+            "x",
+            "proj",
+        ],
         &root,
     );
     assert_eq!(code, 0, "{out}");
-    let doc = out.lines().rfind(|l| l.contains("\"command\":\"keyframes\"")).unwrap();
+    let doc = out
+        .lines()
+        .rfind(|l| l.contains("\"command\":\"keyframes\""))
+        .unwrap();
     assert!(doc.contains("\"clip\":\"m\""), "{doc}");
     assert!(doc.contains("\"property\":\"x\""), "{doc}");
-    assert!(doc.contains("\"frame\":5,\"time\":0.5,\"value\":70"), "{doc}");
+    assert!(
+        doc.contains("\"frame\":5,\"time\":0.5,\"value\":70"),
+        "{doc}"
+    );
     // A paint property reports hex, and an aliased spelling resolves.
-    let (code, out) = run(&["keyframes", "--clip", "0", "--property", "fill", "proj"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "0", "--property", "fill", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("m fill=#ff0000"), "{out}");
     let (code, out) = run(
@@ -190,7 +206,10 @@ fn keyframes_match_rendered_motion() {
     // 70..90 at y=40..60).
     let root = tmp("kfrender");
     proj(&root, "proj", MOVING);
-    let (code, out) = run(&["snapshot", "--at", "0.5", "--out", "snaps", "proj"], &root);
+    let (code, out) = run(
+        &["snapshot", "--at", "0.5", "--out", "snaps", "proj"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let rgb = decode_png(&root.join("snaps").join("snap-0.5s.png"), 160, 120);
     let mut sx = 0u64;
@@ -214,11 +233,17 @@ fn keyframes_refusals_name_the_cause() {
     let root = tmp("kfref");
     proj(&root, "proj", MOVING);
     proj(&root, "bad", INVALID);
-    let (code, out) = run(&["keyframes", "--clip", "m", "--property", "skew", "proj"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "m", "--property", "skew", "proj"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--property"), "{out}");
     assert!(out.contains("nothing was listed"), "{out}");
-    let (code, out) = run(&["keyframes", "--clip", "ghost", "--property", "x", "proj"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "ghost", "--property", "x", "proj"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--clip"), "{out}");
     let (code, out) = run(&["keyframes", "--property", "x", "proj"], &root);
@@ -227,16 +252,37 @@ fn keyframes_refusals_name_the_cause() {
     let (code, out) = run(&["keyframes", "--clip", "m", "proj"], &root);
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("--property"), "{out}");
-    let (code, out) = run(&["keyframes", "--clip", "m", "--property", "bogus", "proj"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "m", "--property", "bogus", "proj"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--property"), "{out}");
-    let (code, out) = run(&["keyframes", "--clip", "m", "--property", "x", "bad"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "m", "--property", "x", "bad"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("invalid"), "{out}");
-    let (code, out) = run(&["keyframes", "--clip", "m", "--property", "x", "missing"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "m", "--property", "x", "missing"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("missing"), "{out}");
-    let (code, out) = run(&["keyframes", "--wat", "1", "--clip", "m", "--property", "x", "proj"], &root);
+    let (code, out) = run(
+        &[
+            "keyframes",
+            "--wat",
+            "1",
+            "--clip",
+            "m",
+            "--property",
+            "x",
+            "proj",
+        ],
+        &root,
+    );
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("--wat"), "{out}");
 }
@@ -262,7 +308,10 @@ fn compare_identical_scores_one_and_writes_file() {
     assert_eq!(left, right);
     let (code, out) = run(&["compare", "--json", "-o", "cmpj.png", "pa", "pb"], &root);
     assert_eq!(code, 0, "{out}");
-    let doc = out.lines().rfind(|l| l.contains("\"command\":\"compare\"")).unwrap();
+    let doc = out
+        .lines()
+        .rfind(|l| l.contains("\"command\":\"compare\""))
+        .unwrap();
     assert!(doc.contains("\"ssim\":1"), "{doc}");
     assert!(doc.contains("\"bar\":0.96"), "{doc}");
     assert!(doc.contains("\"pass\":true"), "{doc}");
@@ -273,7 +322,10 @@ fn compare_different_scores_below_bar() {
     let root = tmp("cmp2");
     proj(&root, "pa", STATIC_RED);
     proj(&root, "pb", STATIC_GREEN);
-    let (code, out) = run(&["compare", "--at", "0", "-o", "cmp.png", "pa", "pb"], &root);
+    let (code, out) = run(
+        &["compare", "--at", "0", "-o", "cmp.png", "pa", "pb"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("against bar 0.96: below bar"), "{out}");
     assert!(root.join("cmp.png").is_file());
@@ -295,7 +347,11 @@ fn compare_refusals_name_the_cause_and_write_nothing() {
     let root = tmp("cmpref");
     proj(&root, "pa", STATIC_RED);
     proj(&root, "pb", STATIC_RED);
-    proj(&root, "wide", &STATIC_RED.replace("width=160 height=120", "width=320 height=120"));
+    proj(
+        &root,
+        "wide",
+        &STATIC_RED.replace("width=160 height=120", "width=320 height=120"),
+    );
     proj(&root, "bad", INVALID);
     let (code, out) = run(&["compare", "-o", "cmp.png", "pa", "missing"], &root);
     assert_eq!(code, 1, "{out}");
@@ -309,11 +365,17 @@ fn compare_refusals_name_the_cause_and_write_nothing() {
     let (code, out) = run(&["compare", "pa", "pb"], &root);
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("-o"), "{out}");
-    let (code, out) = run(&["compare", "--at", "soon", "-o", "cmp3.png", "pa", "pb"], &root);
+    let (code, out) = run(
+        &["compare", "--at", "soon", "-o", "cmp3.png", "pa", "pb"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--at"), "{out}");
     assert!(!root.join("cmp3.png").exists());
-    let (code, out) = run(&["compare", "--at", "5", "-o", "cmp4.png", "pa", "pb"], &root);
+    let (code, out) = run(
+        &["compare", "--at", "5", "-o", "cmp4.png", "pa", "pb"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--at"), "{out}");
     assert!(!root.join("cmp4.png").exists());
@@ -343,7 +405,10 @@ fn grade_compare_splits_halves() {
     assert_ne!(left, right, "graded and ungraded halves must differ");
     let (code, out) = run(&["grade-compare", "--json", "-o", "gcj.png", "gp"], &root);
     assert_eq!(code, 0, "{out}");
-    let doc = out.lines().rfind(|l| l.contains("\"command\":\"grade-compare\"")).unwrap();
+    let doc = out
+        .lines()
+        .rfind(|l| l.contains("\"command\":\"grade-compare\""))
+        .unwrap();
     assert!(doc.contains("\"status\":\"ok\""), "{doc}");
     assert!(doc.contains("\"file\""), "{doc}");
 }
@@ -369,7 +434,10 @@ fn grade_compare_refusals_name_the_cause() {
     let (code, out) = run(&["grade-compare", "gp"], &root);
     assert_eq!(code, 2, "{out}");
     assert!(out.contains("-o"), "{out}");
-    let (code, out) = run(&["grade-compare", "--at", "9", "-o", "gc4.png", "gp"], &root);
+    let (code, out) = run(
+        &["grade-compare", "--at", "9", "-o", "gc4.png", "gp"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--at"), "{out}");
     assert!(!root.join("gc4.png").exists());
@@ -393,7 +461,10 @@ fn doctor_reports_machine_and_project() {
     assert!(out.contains("160x120"), "{out}");
     let (code, out) = run(&["doctor", "--json", "proj"], &root);
     assert_eq!(code, 0, "{out}");
-    let doc = out.lines().rfind(|l| l.contains("\"command\":\"doctor\"")).unwrap();
+    let doc = out
+        .lines()
+        .rfind(|l| l.contains("\"command\":\"doctor\""))
+        .unwrap();
     assert!(doc.contains("\"status\":\"valid\""), "{doc}");
     assert!(doc.contains("\"framesmith\":"), "{doc}");
     assert!(doc.contains("\"compositions\":"), "{doc}");
@@ -430,12 +501,21 @@ fn benchmark_reports_timings_versions_and_date() {
         .flatten()
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();
-    assert!(outs.contains(&"benchmark-still.png".to_string()), "{outs:?}");
-    assert!(outs.contains(&"benchmark-slide.png".to_string()), "{outs:?}");
+    assert!(
+        outs.contains(&"benchmark-still.png".to_string()),
+        "{outs:?}"
+    );
+    assert!(
+        outs.contains(&"benchmark-slide.png".to_string()),
+        "{outs:?}"
+    );
     assert!(!outs.iter().any(|n| n.ends_with(".mp4")), "{outs:?}");
     let (code, out) = run(&["benchmark", "--json"], &root);
     assert_eq!(code, 0, "{out}");
-    let doc = out.lines().rfind(|l| l.contains("\"command\":\"benchmark\"")).unwrap();
+    let doc = out
+        .lines()
+        .rfind(|l| l.contains("\"command\":\"benchmark\""))
+        .unwrap();
     assert!(doc.contains("\"machine_specific\":true"), "{doc}");
     assert!(doc.contains("\"references\":"), "{doc}");
     assert!(doc.contains("\"date\":"), "{doc}");
@@ -451,9 +531,17 @@ fn inspect_commands_leave_projects_read_only() {
     let gp = proj(&root, "gp", GRADED);
     let before: Vec<(PathBuf, Vec<u8>)> = [&pa, &pb, &gp]
         .iter()
-        .map(|d| (d.join("composition.kdl"), std::fs::read(d.join("composition.kdl")).unwrap()))
+        .map(|d| {
+            (
+                d.join("composition.kdl"),
+                std::fs::read(d.join("composition.kdl")).unwrap(),
+            )
+        })
         .collect();
-    let (code, out) = run(&["keyframes", "--clip", "m", "--property", "x", "pa"], &root);
+    let (code, out) = run(
+        &["keyframes", "--clip", "m", "--property", "x", "pa"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let (code, out) = run(&["compare", "-o", "cmp.png", "pa", "pb"], &root);
     assert_eq!(code, 0, "{out}");

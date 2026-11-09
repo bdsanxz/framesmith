@@ -136,14 +136,7 @@ fn each_preset_renders_at_its_exact_dimensions() {
     ];
     for (preset, name, w, h) in cases {
         let (code, out) = run(
-            &[
-                "render",
-                "proj",
-                "--resolution",
-                preset,
-                "-o",
-                name,
-            ],
+            &["render", "proj", "--resolution", preset, "-o", name],
             &root,
         );
         assert_eq!(code, 0, "render --resolution {preset}: {out}");
@@ -207,7 +200,10 @@ fn source_at_1x_is_byte_identical_to_default() {
         &root,
     );
     assert_eq!(code, 0, "{out}");
-    let (code, out) = run(&["render", "proj", "--supersample", "1", "-o", "c.mp4"], &root);
+    let (code, out) = run(
+        &["render", "proj", "--supersample", "1", "-o", "c.mp4"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let (a, b, c) = (
         std::fs::read(root.join("a.mp4")).unwrap(),
@@ -427,10 +423,17 @@ fn alpha_compositing_survives_scaling() {
         (r as f64 / n, g as f64 / n, b as f64 / n)
     };
     let (r, g, b) = mean(&o2);
-    let dist_bg = ((r - 0x11 as f64).abs() + (g - 0x22 as f64).abs() + (b - 0x33 as f64).abs()) / 3.0;
+    let dist_bg =
+        ((r - 0x11 as f64).abs() + (g - 0x22 as f64).abs() + (b - 0x33 as f64).abs()) / 3.0;
     let dist_red = ((r - 255.0).abs() + g.abs() + b.abs()) / 3.0;
-    assert!(dist_bg > 30.0, "blended, not background ({r:.1},{g:.1},{b:.1})");
-    assert!(dist_red > 30.0, "blended, not opaque red ({r:.1},{g:.1},{b:.1})");
+    assert!(
+        dist_bg > 30.0,
+        "blended, not background ({r:.1},{g:.1},{b:.1})"
+    );
+    assert!(
+        dist_red > 30.0,
+        "blended, not opaque red ({r:.1},{g:.1},{b:.1})"
+    );
 }
 
 #[test]

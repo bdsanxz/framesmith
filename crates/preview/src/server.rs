@@ -28,6 +28,10 @@
 //!   frames keep showing.
 //! * `POST /api/shutdown` — graceful stop for `preview-stop` and
 //!   `preview-stop-all`.
+//! * `GET /studio/catalog` — the catalog search panel page.
+//! * `GET /api/studio/catalog/search?q=WORDS` — ranked offline word
+//!   hits over the merged registry index (the same envelope
+//!   `catalog search --json` prints).
 //!
 //! Saving a project file also reloads automatically: before serving
 //! a frame or status the server compares the composition file mtime
@@ -4345,6 +4349,29 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                     };
                     respond_text(stream, status, &message);
                 }
+            }
+        }
+        // Catalog panel (Sprint 19, T005 / CAP-005, STATE-01): the
+        // human page plus its JSON search over the same merged
+        // offline word index the CLI picker ranks, so the panel and
+        // the CLI agree on order and scores. An empty registry
+        // reports itself; a miss carries the report offer.
+        ("GET", "/studio/catalog") => {
+            let page = crate::studio_catalog::catalog_panel_html();
+            respond(
+                stream,
+                "200 OK",
+                "text/html; charset=utf-8",
+                page.as_bytes(),
+            );
+        }
+        ("GET", "/api/studio/catalog/search") => {
+            let query = query_get(query, "q");
+            let (status, body) = crate::studio_catalog::catalog_search_response(query);
+            if status == "200 OK" {
+                respond_json(stream, status, &body);
+            } else {
+                respond_text(stream, status, &body);
             }
         }
         _ => respond_text(

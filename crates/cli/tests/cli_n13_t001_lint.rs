@@ -70,9 +70,13 @@ fn lint_lines(text: &str) -> Vec<String> {
 
 /// Slice of one JSON report between two markers.
 fn json_between<'a>(json: &'a str, start: &str, end: &str) -> &'a str {
-    let s = json.find(start).unwrap_or_else(|| panic!("missing {start:?} in {json}"));
+    let s = json
+        .find(start)
+        .unwrap_or_else(|| panic!("missing {start:?} in {json}"));
     let rest = &json[s + start.len()..];
-    let e = rest.find(end).unwrap_or_else(|| panic!("missing {end:?} in {json}"));
+    let e = rest
+        .find(end)
+        .unwrap_or_else(|| panic!("missing {end:?} in {json}"));
     &rest[..e]
 }
 
@@ -183,8 +187,8 @@ fn lint_reports_the_same_findings_as_check() {
         "lint vs check json:\n{lint_json}\n{check_json}"
     );
     let lint_notes = json_between(&lint_json, "\"lint_notes\":[", "],\"lint_rules\"").to_string();
-    let check_notes = json_between(&check_json, "\"lint_notes\":[", "],\"variable_warnings\"")
-        .to_string();
+    let check_notes =
+        json_between(&check_json, "\"lint_notes\":[", "],\"variable_warnings\"").to_string();
     assert_eq!(lint_notes, check_notes, "{lint_json}\n{check_json}");
 }
 

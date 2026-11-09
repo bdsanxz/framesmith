@@ -107,11 +107,15 @@ fn gen_hdr(folder: &Path, name: &str, transfer: &str) {
 fn footage_project(root: &Path, name: &str, source: &str) -> PathBuf {
     let folder = root.join(name);
     std::fs::create_dir_all(&folder).unwrap();
-    gen_hdr(&folder, source, if source.contains("hlg") {
-        "arib-std-b67"
-    } else {
-        "smpte2084"
-    });
+    gen_hdr(
+        &folder,
+        source,
+        if source.contains("hlg") {
+            "arib-std-b67"
+        } else {
+            "smpte2084"
+        },
+    );
     write(
         &folder,
         "composition.kdl",
@@ -159,7 +163,14 @@ fn auto_pq_source_renders_hevc_main10_bt2020() {
     // active (not the default H.264).
     let (code, out) = run(
         &[
-            "render", "proj", "--format", "hevc", "--hdr", "auto", "-o", "out-hevc.mp4",
+            "render",
+            "proj",
+            "--format",
+            "hevc",
+            "--hdr",
+            "auto",
+            "-o",
+            "out-hevc.mp4",
         ],
         &root,
     );
@@ -210,10 +221,7 @@ fn explicit_modes_render_their_demanded_transfer() {
     let folder = footage_project(&root, "pproj", "hdr-pq.mp4");
     gen_hdr(&folder, "hdr-hlg.mp4", "arib-std-b67");
     // Explicit `pq` with a PQ source renders PQ metadata.
-    let (code, out) = run(
-        &["render", "pproj", "--hdr", "pq", "-o", "pq.mp4"],
-        &root,
-    );
+    let (code, out) = run(&["render", "pproj", "--hdr", "pq", "-o", "pq.mp4"], &root);
     assert_eq!(code, 0, "{out}");
     let probe = stream_entries(&root.join("pq.mp4"));
     assert!(probe.contains("color_transfer=smpte2084"), "{probe}");
@@ -229,7 +237,14 @@ fn explicit_modes_render_their_demanded_transfer() {
     );
     let (code, out) = run(
         &[
-            "render", "pproj", "--composition", "h", "--hdr", "hlg", "-o", "hlg.mp4",
+            "render",
+            "pproj",
+            "--composition",
+            "h",
+            "--hdr",
+            "hlg",
+            "-o",
+            "hlg.mp4",
         ],
         &root,
     );
@@ -286,10 +301,7 @@ fn hdr_source_to_gif_renders_tone_mapped_sdr() {
 fn explicit_hdr_with_sdr_sources_refuses() {
     let root = tmp("refuse-sdr");
     let _folder = sdr_project(&root);
-    let (code, out) = run(
-        &["render", "sproj", "--hdr", "pq", "-o", "out.mp4"],
-        &root,
-    );
+    let (code, out) = run(&["render", "sproj", "--hdr", "pq", "-o", "out.mp4"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--hdr pq"), "{out}");
     assert!(out.contains("SDR"), "{out}");
@@ -302,10 +314,7 @@ fn explicit_hdr_with_sdr_sources_refuses() {
     // Demanding HLG from a PQ-only composition refuses the same way.
     let root = tmp("refuse-wrong");
     let _folder = footage_project(&root, "proj", "hdr-pq.mp4");
-    let (code, out) = run(
-        &["render", "proj", "--hdr", "hlg", "-o", "out.mp4"],
-        &root,
-    );
+    let (code, out) = run(&["render", "proj", "--hdr", "hlg", "-o", "out.mp4"], &root);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--hdr hlg"), "{out}");
     assert!(out.contains("arib-std-b67"), "{out}");
@@ -333,9 +342,7 @@ fn hdr_with_uncarrying_format_refuses() {
     // `auto` with an HDR source to WebM refuses the same limit (only
     // GIF/PNG sequences tone-map).
     let (code, out) = run(
-        &[
-            "render", "proj", "--format", "webm", "-o", "out.webm",
-        ],
+        &["render", "proj", "--format", "webm", "-o", "out.webm"],
         &root,
     );
     assert_eq!(code, 1, "{out}");
@@ -370,9 +377,7 @@ fn json_report_names_the_hdr_decision() {
     let root = tmp("json-hdr");
     let _folder = footage_project(&root, "proj", "hdr-pq.mp4");
     let (code, out) = run(
-        &[
-            "render", "proj", "--hdr", "auto", "--json", "-o", "out.mp4",
-        ],
+        &["render", "proj", "--hdr", "auto", "--json", "-o", "out.mp4"],
         &root,
     );
     assert_eq!(code, 0, "{out}");

@@ -124,8 +124,8 @@ fn tool_version() -> String {
         .args(["--version"])
         .output()
         .expect("run framesmith --version");
-    let text = String::from_utf8_lossy(&out.stdout).into_owned()
-        + &String::from_utf8_lossy(&out.stderr);
+    let text =
+        String::from_utf8_lossy(&out.stdout).into_owned() + &String::from_utf8_lossy(&out.stderr);
     let version = text
         .trim()
         .split_whitespace()
@@ -225,7 +225,10 @@ fn pngseq_writes_a_sidecar_with_the_same_fields() {
     let (code, out) = run(&["render", "proj", "-o", "s.mp4"], &root);
     assert_eq!(code, 0, "{out}");
     let digest = digest_of(&container_comment(&root.join("s.mp4")));
-    let (code, out) = run(&["render", "proj", "--format", "pngseq", "-o", "stills"], &root);
+    let (code, out) = run(
+        &["render", "proj", "--format", "pngseq", "-o", "stills"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     let dir = root.join("stills");
     let mut names: Vec<String> = std::fs::read_dir(&dir)
@@ -250,7 +253,10 @@ fn pngseq_writes_a_sidecar_with_the_same_fields() {
         "{sidecar}"
     );
     // The sidecar is deterministic: a re-render writes the same bytes.
-    let (code, out) = run(&["render", "proj", "--format", "pngseq", "-o", "again"], &root);
+    let (code, out) = run(
+        &["render", "proj", "--format", "pngseq", "-o", "again"],
+        &root,
+    );
     assert_eq!(code, 0, "{out}");
     assert_eq!(
         std::fs::read(&sidecar_path).unwrap(),
@@ -310,7 +316,10 @@ fn gif_warns_naming_the_format_without_blocking_pixels() {
     project(&root, "Hi");
     let (code, out) = run(&["render", "proj", "--format", "gif", "-o", "a.gif"], &root);
     assert_eq!(code, 0, "gif still renders: {out}");
-    assert!(out.contains("--format gif"), "warning names the format: {out}");
+    assert!(
+        out.contains("--format gif"),
+        "warning names the format: {out}"
+    );
     assert!(out.contains("unstamped"), "warning says unstamped: {out}");
     assert!(out.contains("provenance"), "warning says provenance: {out}");
     // The animation still covers the full composition.

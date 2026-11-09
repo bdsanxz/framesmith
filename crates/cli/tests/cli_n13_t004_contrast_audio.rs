@@ -127,9 +127,13 @@ fn lint_lines(text: &str) -> Vec<String> {
 
 /// Slice of one JSON report between two markers.
 fn json_between<'a>(json: &'a str, start: &str, end: &str) -> &'a str {
-    let s = json.find(start).unwrap_or_else(|| panic!("missing {start:?} in {json}"));
+    let s = json
+        .find(start)
+        .unwrap_or_else(|| panic!("missing {start:?} in {json}"));
     let rest = &json[s + start.len()..];
-    let e = rest.find(end).unwrap_or_else(|| panic!("missing {end:?} in {json}"));
+    let e = rest
+        .find(end)
+        .unwrap_or_else(|| panic!("missing {end:?} in {json}"));
     &rest[..e]
 }
 
@@ -330,8 +334,17 @@ fn contrast_audio_json_findings_carry_rule_source_location_and_fix() {
     assert_eq!(code, 0, "{json}");
     let array = json_between(&json, "\"lint\":[", "],\"lint_notes\"").to_string();
     // Static and measured sources are labeled per rule.
-    assert!(array.contains("\"rule\":\"discarded-audio\",\"severity\":\"warning\",\"source\":\"static\""), "{json}");
-    assert!(array.contains("\"rule\":\"silent-audio\",\"severity\":\"warning\",\"source\":\"measured\""), "{json}");
+    assert!(
+        array.contains(
+            "\"rule\":\"discarded-audio\",\"severity\":\"warning\",\"source\":\"static\""
+        ),
+        "{json}"
+    );
+    assert!(
+        array
+            .contains("\"rule\":\"silent-audio\",\"severity\":\"warning\",\"source\":\"measured\""),
+        "{json}"
+    );
     for chunk in array.split("{\"rule\":").skip(1) {
         for key in [
             "\"severity\":\"warning\"",
@@ -357,12 +370,18 @@ fn contrast_audio_json_findings_carry_rule_source_location_and_fix() {
     let (code, json) = run(&["lint", "--json", "proj"], &root);
     assert_eq!(code, 0, "{json}");
     let array = json_between(&json, "\"lint\":[", "],\"lint_notes\"").to_string();
-    assert!(array.contains("\"rule\":\"contrast\",\"severity\":\"warning\",\"source\":\"measured\""), "{json}");
+    assert!(
+        array.contains("\"rule\":\"contrast\",\"severity\":\"warning\",\"source\":\"measured\""),
+        "{json}"
+    );
     let notes = json_between(&json, "\"lint_notes\":[", "],\"lint_rules\"").to_string();
     assert_eq!(notes.matches("\"rule\":\"contrast\"").count(), 2, "{notes}");
     assert!(notes.contains("\"cause\":"), "{notes}");
     assert!(notes.contains("\"workaround\":"), "{notes}");
-    assert!(json.contains("sampled") || json.contains("cannot be measured"), "{json}");
+    assert!(
+        json.contains("sampled") || json.contains("cannot be measured"),
+        "{json}"
+    );
 }
 
 #[test]
@@ -399,8 +418,15 @@ fn contrast_audio_invalid_project_batches_diagnostics_without_contrast_or_audio(
     assert!(lint_out.contains("lint:"), "{lint_out}");
     // Broken windows would name garbage: an invalid project refuses
     // through diagnostics and reports no contrast or audio findings.
-    for rule in ["lint[contrast]", "lint[silent-audio]", "lint[discarded-audio]"] {
-        assert!(!lint_out.contains(rule), "contrast/audio fires on invalid:\n{lint_out}");
+    for rule in [
+        "lint[contrast]",
+        "lint[silent-audio]",
+        "lint[discarded-audio]",
+    ] {
+        assert!(
+            !lint_out.contains(rule),
+            "contrast/audio fires on invalid:\n{lint_out}"
+        );
     }
     assert_eq!(
         lint_lines(&lint_out),

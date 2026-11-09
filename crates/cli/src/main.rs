@@ -2,7 +2,8 @@
 //! pinned FFmpeg self-download, CPU text/video rendering, sound
 //! passthrough, and standard MP4 output).
 //!
-//! * `framesmith init <name> [--dir <parent>]` — create a minimal project.
+//! * `framesmith init <name> [--dir <parent>] [--example <starter>]` — create a minimal
+//!   project, or start one from a bundled starter example.
 //! * `framesmith check [--json] <folder>` — validate without rendering.
 //! * `framesmith snapshot (--at T,.. | --every S | --from S --to E) --out <dir> <folder>`
 //!   — draw frames as `snap-<time>s.png` without writing any MP4.
@@ -24,14 +25,16 @@
 // dead-code lints until those slices land.
 #![allow(dead_code)]
 
+mod catalog_cmd;
 mod commands;
+mod starters;
 
 use std::path::{Path, PathBuf};
 
 fn usage() -> ! {
     eprintln!(
         "usage:\n\
-         \x20 framesmith init <name> [--dir <parent>]\n\
+         \x20 framesmith init <name> [--dir <parent>] [--example <starter>]\n\
          \x20 framesmith check [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] <folder>\n\
          \x20 framesmith lint [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] <folder>\n\
          \x20 framesmith snapshot [--json] [--composition <name>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] (--at <t,..> | --every <secs> | --from <s> --to <e>) --out <dir> <folder>\n\
@@ -46,7 +49,13 @@ fn usage() -> ! {
          \x20 framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>\n\
          \x20 framesmith doctor [--json] [<folder>]\n\
          \x20 framesmith benchmark [--json] [--out <dir>]\n\
-         \x20 framesmith errors [--json] [CODE]\n\
+         \x20 framesmith errors [--json] [CODE]
+         \x20 framesmith catalog search <words...> [--json] [--registry <dir>]
+         \x20 framesmith catalog show <name> [--json] [--registry <dir>]
+         \x20 framesmith catalog report-miss <words...> [--registry <dir>] [--out <file>]
+         \x20 framesmith catalog install <project> <name...> [--tag <tag>...] [--registry <dir>] [--vars <id=value>...] [--force]
+         \x20 framesmith catalog meaning-search <words...> [--consent yes|no] [--registry <dir>]
+         \x20 framesmith catalog meaning-revoke\n\
          \x20 framesmith compositions [--json] <folder>\n\
          \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith timeline move|trim|split|delete|set|duplicate|ids|plan|apply|undo ...  (timeline edit verbs; bare `timeline` still lists)\n\
@@ -206,9 +215,7 @@ fn preview_usage_error(msg: &str) -> ! {
 
 fn play_usage_error(msg: &str) -> ! {
     eprintln!("framesmith play: {msg}.");
-    eprintln!(
-        "usage: framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>"
-    );
+    eprintln!("usage: framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>");
     std::process::exit(2);
 }
 
@@ -265,6 +272,7 @@ fn main() {
         "init" => {
             let mut name: Option<String> = None;
             let mut dir = PathBuf::from(".");
+            let mut example: Option<String> = None;
             let mut i = 1;
             while i < args.len() {
                 match args[i].as_str() {
@@ -275,6 +283,14 @@ fn main() {
                             std::process::exit(2);
                         }
                         dir = PathBuf::from(&args[i]);
+                    }
+                    "--example" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith init: --example needs a value (a starter name).");
+                            std::process::exit(2);
+                        }
+                        example = Some(args[i].clone());
                     }
                     other if other.starts_with('-') => {
                         eprintln!("framesmith init: unknown flag {other:?}.");
@@ -293,7 +309,7 @@ fn main() {
                 i += 1;
             }
             match name {
-                Some(n) => commands::cmd_init(&n, &dir),
+                Some(n) => commands::cmd_init_with_example(&n, &dir, example.as_deref()),
                 None => {
                     eprintln!("framesmith init: missing <name>.");
                     std::process::exit(2);
@@ -499,6 +515,7 @@ fn main() {
             }
             commands::cmd_errors(code.as_deref(), json)
         }
+        "catalog" => catalog_cmd::cmd_catalog(&args[1..]),
         "render" => {
             let mut folder: Option<String> = None;
             let mut output: Option<PathBuf> = None;
@@ -651,7 +668,9 @@ fn main() {
                     "--hdr" => {
                         i += 1;
                         if i >= args.len() {
-                            eprintln!("framesmith render: --hdr needs a value (off, pq, hlg, or auto).");
+                            eprintln!(
+                                "framesmith render: --hdr needs a value (off, pq, hlg, or auto)."
+                            );
                             std::process::exit(2);
                         }
                         if req.hdr.is_some() {
@@ -967,9 +986,7 @@ fn main() {
                 }
                 "undo" => {
                     if req.who.is_some() && req.seq.is_some() {
-                        history_usage_error(
-                            "undo takes <seq> or --who <name>, not both; pass one",
-                        );
+                        history_usage_error("undo takes <seq> or --who <name>, not both; pass one");
                     }
                 }
                 _ => {
@@ -1235,10 +1252,14 @@ fn main() {
             if req.out.is_none() {
                 snapshot_usage_error("missing --out <dir>");
             }
-            let selectors = [req.at.is_some(), req.every.is_some(), req.from.is_some() || req.to.is_some()]
-                .iter()
-                .filter(|&&b| b)
-                .count();
+            let selectors = [
+                req.at.is_some(),
+                req.every.is_some(),
+                req.from.is_some() || req.to.is_some(),
+            ]
+            .iter()
+            .filter(|&&b| b)
+            .count();
             if selectors == 0 {
                 snapshot_usage_error("need one of --at, --every, or --from/--to");
             }
@@ -1274,7 +1295,9 @@ fn main() {
                     "--composition" => {
                         i += 1;
                         if i >= args.len() {
-                            keyframes_usage_error("--composition needs a value (a composition name)");
+                            keyframes_usage_error(
+                                "--composition needs a value (a composition name)",
+                            );
                         }
                         if req.composition.is_some() {
                             keyframes_usage_error("duplicate --composition flag");
@@ -1814,7 +1837,9 @@ fn main() {
                 } else if arg.starts_with('-') {
                     doctor_usage_error(&format!("unknown flag {arg:?}"));
                 } else if folder.is_some() {
-                    doctor_usage_error(&format!("expected at most one <folder>, found extra {arg:?}"));
+                    doctor_usage_error(&format!(
+                        "expected at most one <folder>, found extra {arg:?}"
+                    ));
                 } else {
                     folder = Some(arg.clone());
                 }
@@ -1822,7 +1847,10 @@ fn main() {
             commands::cmd_doctor(folder.as_deref().map(Path::new), json)
         }
         "benchmark" => {
-            let mut req = commands::BenchmarkRequest { json: false, out: None };
+            let mut req = commands::BenchmarkRequest {
+                json: false,
+                out: None,
+            };
             let mut i = 1;
             while i < args.len() {
                 match args[i].as_str() {

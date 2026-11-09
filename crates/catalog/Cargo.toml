@@ -1,0 +1,12 @@
+[package]
+name = "catalog"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith catalog and registry: item manifest schema and registry listing (Sprint 19)"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+notation = { path = "../notation" }

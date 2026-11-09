@@ -132,9 +132,7 @@ fn each_verb_rewrites_with_a_visible_result() {
     // trim rewrites one window.
     let (_root, folder) = project("verbs-trim");
     let f = s(&folder);
-    let (code, out, err) = run(&[
-        "timeline", "trim", "--clip", "a", "--start", "+0.5", &f,
-    ]);
+    let (code, out, err) = run(&["timeline", "trim", "--clip", "a", "--start", "+0.5", &f]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("undo receipt"), "{out}");
     assert!(out.contains("window 0.500s..2.000s"), "{out}");
@@ -161,7 +159,15 @@ fn each_verb_rewrites_with_a_visible_result() {
     let (_root, folder) = project("verbs-set");
     let f = s(&folder);
     let (code, out, err) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "hidden", "--value", "true", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "hidden",
+        "--value",
+        "true",
+        &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("undo receipt"), "{out}");
@@ -266,12 +272,16 @@ fn plan_mode_prints_only_a_count_and_changes_nothing() {
     assert!(err.is_empty(), "{err:?}");
 
     // The --plan flag on a direct verb plans identically.
-    let (code, out, err) = run(&["timeline", "move", "--clip", "b", "--to", "+1", "--plan", &f]);
+    let (code, out, err) = run(&[
+        "timeline", "move", "--clip", "b", "--to", "+1", "--plan", &f,
+    ]);
     assert_eq!(code, 0, "{out}{err}");
     assert_eq!(out, "timeline plan: 1 clip(s) would change\n", "{out:?}");
 
     // Split touches two resulting halves.
-    let (code, out, err) = run(&["timeline", "split", "--clip", "a", "--at", "+1", "--plan", &f]);
+    let (code, out, err) = run(&[
+        "timeline", "split", "--clip", "a", "--at", "+1", "--plan", &f,
+    ]);
     assert_eq!(code, 0, "{out}{err}");
     assert_eq!(out, "timeline plan: 2 clip(s) would change\n", "{out:?}");
 
@@ -296,8 +306,14 @@ fn apply_prints_an_undo_receipt_and_undo_restores_exact_sources() {
     // Composition sources stay byte-identical; only the hidden delta
     // records the turn, and default renders are untouched.
     let raw = std::fs::read_to_string(folder.join("composition.kdl")).unwrap();
-    assert!(raw.contains("text id=\"b\" value=\"Two\" start=2 duration=2"), "{raw}");
-    assert!(folder.join(".framesmith").join("sdk-overrides.json").is_file());
+    assert!(
+        raw.contains("text id=\"b\" value=\"Two\" start=2 duration=2"),
+        "{raw}"
+    );
+    assert!(folder
+        .join(".framesmith")
+        .join("sdk-overrides.json")
+        .is_file());
     assert!(!has_render_output(&folder));
 
     // Undo restores the exact prior rows and removes the delta again.
@@ -307,7 +323,10 @@ fn apply_prints_an_undo_receipt_and_undo_restores_exact_sources() {
     let (code, after, _) = run(&["timeline", "ids", &f]);
     assert_eq!(code, 0);
     assert_eq!(after, before);
-    assert!(!folder.join(".framesmith").join("sdk-overrides.json").exists());
+    assert!(!folder
+        .join(".framesmith")
+        .join("sdk-overrides.json")
+        .exists());
 
     // A second undo names no pending verb application and changes nothing.
     let (code, out, _) = run(&["timeline", "undo", &f]);
@@ -326,9 +345,7 @@ fn undo_restores_exact_sources_after_a_multi_patch_ranged_delete() {
     assert_eq!(code, 0);
 
     // Range [1,5) stages three patches across three clips.
-    let (code, out, err) = run(&[
-        "timeline", "delete", "--start", "+1", "--end", "+5", &f,
-    ]);
+    let (code, out, err) = run(&["timeline", "delete", "--start", "+1", "--end", "+5", &f]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("undo receipt"), "{out}");
     assert!(out.contains("window 0.000s..1.000s"), "{out}");
@@ -370,8 +387,7 @@ fn ranged_delete_removes_only_its_range_with_snap_covering_delete() {
     let (_root, folder) = project("ranged-snap");
     let f = s(&folder);
     let (code, out, err) = run(&[
-        "timeline", "delete", "--clip", "a", "--start", "+0.05", "--end", "+2",
-        "--snap", "0.1", &f,
+        "timeline", "delete", "--clip", "a", "--start", "+0.05", "--end", "+2", "--snap", "0.1", &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("(2 clip(s)"), "{out}");
@@ -393,28 +409,60 @@ fn set_covers_label_hidden_and_film_window() {
     let f = s(&folder);
 
     let (code, out, err) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "label", "--value", "cover", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "label",
+        "--value",
+        "cover",
+        &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("label=\"cover\""), "{out}");
 
     // Verbs stack: later invocations replay the persisted delta.
     let (code, out, err) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "start", "--value", "1", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "start",
+        "--value",
+        "1",
+        &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("window 1.000s..3.000s"), "{out}");
     assert!(out.contains("label=\"cover\""), "{out}");
 
     let (code, out, err) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "duration", "--value", "0.5", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "duration",
+        "--value",
+        "0.5",
+        &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("window 1.000s..1.500s"), "{out}");
 
     // An empty value clears the label.
     let (code, out, err) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "label", "--value", "", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "label",
+        "--value",
+        "",
+        &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(!out.contains("label=\"cover\""), "{out}");
@@ -434,7 +482,15 @@ fn duplicate_drops_colliding_ids_unless_a_fresh_one_is_named() {
     let (_root, folder) = project("dup-named");
     let f = s(&folder);
     let (code, out, err) = run(&[
-        "timeline", "duplicate", "--clip", "a", "--at", "30f", "--new-id", "a2", &f,
+        "timeline",
+        "duplicate",
+        "--clip",
+        "a",
+        "--at",
+        "30f",
+        "--new-id",
+        "a2",
+        &f,
     ]);
     assert_eq!(code, 0, "{out}{err}");
     assert!(out.contains("id=\"a2\""), "{out}");
@@ -444,9 +500,7 @@ fn duplicate_drops_colliding_ids_unless_a_fresh_one_is_named() {
     let (_root, folder) = project("dup-taken");
     let f = s(&folder);
     let before = tree_bytes(&folder);
-    let (code, out, _) = run(&[
-        "timeline", "duplicate", "--clip", "a", "--new-id", "b", &f,
-    ]);
+    let (code, out, _) = run(&["timeline", "duplicate", "--clip", "a", "--new-id", "b", &f]);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_SDK_BAD_VALUE"), "{out}");
     assert!(!out.contains("undo receipt"), "{out}");
@@ -465,7 +519,9 @@ fn unresolvable_expressions_and_incapable_verbs_refuse_with_no_receipt() {
     assert!(out.contains("E_SDK_BAD_VALUE"), "{out}");
 
     // plan mode refuses the same way, printing no count.
-    let (code, out, _) = run(&["timeline", "plan", "move", "--clip", "a", "--to", "tomorrow", &f]);
+    let (code, out, _) = run(&[
+        "timeline", "plan", "move", "--clip", "a", "--to", "tomorrow", &f,
+    ]);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_SDK_BAD_VALUE"), "{out}");
     assert!(!out.contains("would change"), "{out}");
@@ -487,14 +543,30 @@ fn unresolvable_expressions_and_incapable_verbs_refuse_with_no_receipt() {
 
     // An unknown set property refuses as outside verb capability.
     let (code, out, _) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "opacity", "--value", "0.5", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "opacity",
+        "--value",
+        "0.5",
+        &f,
     ]);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_SDK_UNSUPPORTED"), "{out}");
 
     // A bad hidden value refuses.
     let (code, out, _) = run(&[
-        "timeline", "set", "--clip", "a", "--property", "hidden", "--value", "maybe", &f,
+        "timeline",
+        "set",
+        "--clip",
+        "a",
+        "--property",
+        "hidden",
+        "--value",
+        "maybe",
+        &f,
     ]);
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("E_SDK_BAD_VALUE"), "{out}");
@@ -520,10 +592,14 @@ fn malformed_invocations_are_usage_errors() {
     let (code, _, err) = run(&["timeline", "move", "--clip", "a", &f]);
     assert_eq!(code, 2, "{err}");
     // Unknown flags.
-    let (code, _, err) = run(&["timeline", "move", "--clip", "a", "--to", "+1", "--frob", &f]);
+    let (code, _, err) = run(&[
+        "timeline", "move", "--clip", "a", "--to", "+1", "--frob", &f,
+    ]);
     assert_eq!(code, 2, "{err}");
     // Flags the verb does not take.
-    let (code, _, err) = run(&["timeline", "move", "--clip", "a", "--to", "+1", "--at", "+2", &f]);
+    let (code, _, err) = run(&[
+        "timeline", "move", "--clip", "a", "--to", "+1", "--at", "+2", &f,
+    ]);
     assert_eq!(code, 2, "{err}");
     // plan/apply need a nested content verb.
     let (code, _, err) = run(&["timeline", "plan", &f]);
@@ -531,7 +607,9 @@ fn malformed_invocations_are_usage_errors() {
     let (code, _, err) = run(&["timeline", "apply", "undo", &f]);
     assert_eq!(code, 2, "{err}");
     // --plan contradicts nested apply.
-    let (code, _, err) = run(&["timeline", "apply", "move", "--clip", "a", "--to", "+1", "--plan", &f]);
+    let (code, _, err) = run(&[
+        "timeline", "apply", "move", "--clip", "a", "--to", "+1", "--plan", &f,
+    ]);
     assert_eq!(code, 2, "{err}");
     // Usage errors write nothing.
     assert!(!folder.join(".framesmith").exists());
@@ -565,13 +643,20 @@ fn font_family_try_order_passes_through_verbs_untouched() {
     // nothing resolves, substitutes, or reorders the try-order list.
     let (code, out, err) = run(&["timeline", "move", "--clip", "a", "--to", "+1", &f]);
     assert_eq!(code, 0, "{out}{err}");
-    assert_eq!(std::fs::read(folder.join("composition.kdl")).unwrap(), kdl_before);
-    let delta = std::fs::read_to_string(folder.join(".framesmith").join("sdk-overrides.json")).unwrap();
+    assert_eq!(
+        std::fs::read(folder.join("composition.kdl")).unwrap(),
+        kdl_before
+    );
+    let delta =
+        std::fs::read_to_string(folder.join(".framesmith").join("sdk-overrides.json")).unwrap();
     assert!(!delta.contains("font"), "{delta}");
 
     let (code, out, err) = run(&["timeline", "undo", &f]);
     assert_eq!(code, 0, "{out}{err}");
-    assert_eq!(std::fs::read(folder.join("composition.kdl")).unwrap(), kdl_before);
+    assert_eq!(
+        std::fs::read(folder.join("composition.kdl")).unwrap(),
+        kdl_before
+    );
 }
 
 #[test]
@@ -582,7 +667,10 @@ fn sprint6_listing_keeps_working_unchanged_beside_the_verbs() {
     // Human listing: Sprint 6 rows with no mediaStart column.
     let (code, out, err) = run(&["timeline", &f]);
     assert_eq!(code, 0, "{out}{err}");
-    assert!(out.starts_with("timeline of composition \"t\" in "), "{out}");
+    assert!(
+        out.starts_with("timeline of composition \"t\" in "),
+        "{out}"
+    );
     assert!(out.contains("[0] text id=\"a\""), "{out}");
     assert!(out.contains("window 0.000s..2.000s"), "{out}");
     assert!(!out.contains("mediaStart"), "{out}");

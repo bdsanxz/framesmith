@@ -78,9 +78,13 @@ fn lint_lines(text: &str) -> Vec<String> {
 
 /// Slice of one JSON report between two markers.
 fn json_between<'a>(json: &'a str, start: &str, end: &str) -> &'a str {
-    let s = json.find(start).unwrap_or_else(|| panic!("missing {start:?} in {json}"));
+    let s = json
+        .find(start)
+        .unwrap_or_else(|| panic!("missing {start:?} in {json}"));
     let rest = &json[s + start.len()..];
-    let e = rest.find(end).unwrap_or_else(|| panic!("missing {end:?} in {json}"));
+    let e = rest
+        .find(end)
+        .unwrap_or_else(|| panic!("missing {end:?} in {json}"));
     &rest[..e]
 }
 
@@ -263,7 +267,10 @@ fn layout_invalid_project_batches_diagnostics_without_layout() {
     // Geometry needs resolved windows: an invalid project refuses
     // through diagnostics and reports no layout findings.
     for rule in ["lint[overlap]", "lint[off-canvas]", "lint[caption-zone]"] {
-        assert!(!lint_out.contains(rule), "layout fires on invalid:\n{lint_out}");
+        assert!(
+            !lint_out.contains(rule),
+            "layout fires on invalid:\n{lint_out}"
+        );
     }
     assert_eq!(
         lint_lines(&lint_out),

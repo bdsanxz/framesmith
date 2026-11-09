@@ -117,9 +117,13 @@ fn lint_rule(line: &str) -> &str {
 
 /// Slice of one JSON report between two markers.
 fn json_between<'a>(json: &'a str, start: &str, end: &str) -> &'a str {
-    let s = json.find(start).unwrap_or_else(|| panic!("missing {start:?} in {json}"));
+    let s = json
+        .find(start)
+        .unwrap_or_else(|| panic!("missing {start:?} in {json}"));
     let rest = &json[s + start.len()..];
-    let e = rest.find(end).unwrap_or_else(|| panic!("missing {end:?} in {json}"));
+    let e = rest
+        .find(end)
+        .unwrap_or_else(|| panic!("missing {end:?} in {json}"));
     &rest[..e]
 }
 
@@ -193,13 +197,19 @@ fn strict_all_stops_on_any_warning_as_error() {
         let (code, out) = run(&[cmd, "--strict-all", "proj"], &root);
         assert_eq!(code, 1, "{cmd} --strict-all gates:\n{out}");
         let lines = lint_lines(&out);
-        assert_eq!(lines.len(), 7, "{cmd} --strict-all lists every finding:\n{out}");
+        assert_eq!(
+            lines.len(),
+            7,
+            "{cmd} --strict-all lists every finding:\n{out}"
+        );
         for line in &lines {
             assert!(line.contains("error"), "{line}");
             assert!(line.contains("(fix:"), "{line}");
         }
         assert!(
-            lines.iter().any(|l| lint_rule(l) == "overlap" && l.contains("error")),
+            lines
+                .iter()
+                .any(|l| lint_rule(l) == "overlap" && l.contains("error")),
             "the canary elevates under --strict-all:\n{out}"
         );
         assert!(
@@ -222,7 +232,12 @@ fn strict_invents_no_findings_counts_match_the_default_run() {
     ] {
         let (code, out) = run(&args, &root);
         let _ = code;
-        modes.push(lint_lines(&out).iter().map(|l| lint_rule(l).to_string()).collect());
+        modes.push(
+            lint_lines(&out)
+                .iter()
+                .map(|l| lint_rule(l).to_string())
+                .collect(),
+        );
     }
     assert_eq!(modes[0], modes[1], "strict adds no rule");
     assert_eq!(modes[0], modes[2], "strict-all adds no rule");
@@ -342,10 +357,7 @@ fn strict_render_stops_before_frame_one_with_nothing_written() {
             out.contains("Nothing was rendered"),
             "gate renders nothing:\n{out}"
         );
-        assert!(
-            out.contains(flag),
-            "gate names the flag:\n{out}"
-        );
+        assert!(out.contains(flag), "gate names the flag:\n{out}");
         assert!(
             !root.join(&target).exists(),
             "render {flag} wrote no output"
@@ -378,7 +390,10 @@ fn strict_render_json_gates_without_output() {
     let root = tmp("render-json");
     let folder = proj(&root, STRICT);
     write_tone(&folder);
-    let (code, out) = run(&["render", "--strict", "--json", "proj", "-o", "gated.mp4"], &root);
+    let (code, out) = run(
+        &["render", "--strict", "--json", "proj", "-o", "gated.mp4"],
+        &root,
+    );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("\"exit\":1"), "{out}");
     assert!(out.contains("--strict"), "{out}");
@@ -401,7 +416,10 @@ fn strict_clean_project_stays_clean_without_a_gate() {
                 out.contains("lint: 0 findings across 13 rules"),
                 "{cmd} {flag} stays explicit:\n{out}"
             );
-            assert!(!out.contains("elevated"), "{cmd} {flag} gates nothing:\n{out}");
+            assert!(
+                !out.contains("elevated"),
+                "{cmd} {flag} gates nothing:\n{out}"
+            );
         }
     }
 }
@@ -413,7 +431,10 @@ fn strict_invalid_project_keeps_its_invalid_exit() {
     for cmd in ["check", "lint"] {
         let (code, out) = run(&[cmd, "--strict", "proj"], &root);
         assert_eq!(code, 1, "{cmd} --strict on invalid exits 1:\n{out}");
-        assert!(out.contains("invalid"), "{cmd} --strict stays invalid:\n{out}");
+        assert!(
+            out.contains("invalid"),
+            "{cmd} --strict stays invalid:\n{out}"
+        );
     }
     // Invalid projects carry no lint batch to gate on.
     let (code, out) = run(&["lint", "--strict-all", "proj"], &root);

@@ -19,9 +19,9 @@
 use ffmpeg::bootstrap;
 use ffmpeg::ffmpeg as ffmpeg_mod;
 use log::log;
+use notation::model::Composition;
 use sdk::history as sdk_history;
 use sdk::{ClipRef, OpenOptions, SdkSession};
-use notation::model::Composition;
 use std::path::{Path, PathBuf};
 use validate::catalog::{self, json_escape};
 use validate::lint;
@@ -72,7 +72,20 @@ fn dir_is_empty(dir: &Path) -> std::io::Result<bool> {
 }
 
 /// `init`: create the scaffold. Returns the process exit code.
+///
+/// Every project also gains the agent guide file (`AGENTS.md`); pass
+/// `example` to start from a bundled starter instead of the minimal
+/// scaffold (Sprint 19, T008). Refusals change nothing.
 pub fn cmd_init(name: &str, parent: &Path) -> i32 {
+    cmd_init_with_example(name, parent, None)
+}
+
+/// `init` with an optional starter example (Sprint 19, T008 / CAP-008):
+/// gate order is name, then example, then target occupancy, and nothing
+/// is written until all three pass. An unknown example refuses listing
+/// every available starter; a non-empty target refuses leaving its
+/// content byte-identical. Returns the process exit code.
+pub fn cmd_init_with_example(name: &str, parent: &Path, example: Option<&str>) -> i32 {
     if let Some(rule) = name_error(name) {
         eprintln!(
             "framesmith init refused: invalid project name {name:?}: {rule}.\n\
@@ -80,6 +93,28 @@ pub fn cmd_init(name: &str, parent: &Path) -> i32 {
         );
         return 1;
     }
+    // The example gate runs before touching the filesystem: an unknown
+    // name refuses here, so no directory is ever created for it.
+    let starter = match example {
+        None => None,
+        Some(want) => match crate::starters::find_starter(want) {
+            Some(s) => Some(s),
+            None => {
+                eprintln!(
+                    "framesmith init refused: unknown starter example {want:?}.\n\
+                     available starters: {}.\n\
+                     fix: pass one of those names to `--example`; nothing was created.",
+                    crate::starters::starter_list_line()
+                );
+                return 1;
+            }
+        },
+    };
+    let composition = match starter {
+        Some(s) => crate::starters::starter_composition(s, name),
+        None => scaffold_composition(name),
+    };
+    let guide = crate::starters::agent_guide(name, starter);
     let target = parent.join(name);
     if target.exists() {
         match dir_is_empty(&target) {
@@ -112,26 +147,37 @@ pub fn cmd_init(name: &str, parent: &Path) -> i32 {
     let created_dir = !target.exists() || dir_is_empty(&target).unwrap_or(false);
     let _ = created_dir;
     let comp_path = target.join(validate_mod::COMPOSITION_FILE);
-    if let Err(e) = std::fs::write(&comp_path, scaffold_composition(name)) {
+    let guide_path = target.join(crate::starters::AGENT_GUIDE_FILE);
+    if let Err(e) =
+        std::fs::write(&comp_path, &composition).and_then(|()| std::fs::write(&guide_path, &guide))
+    {
         // No partial folder on failure: remove what this run created.
         let _ = std::fs::remove_file(&comp_path);
+        let _ = std::fs::remove_file(&guide_path);
         // Only remove the directory when this run created it and it is
         // still empty (never touch pre-existing content).
         if dir_is_empty(&target).unwrap_or(false) {
             let _ = std::fs::remove_dir(&target);
         }
         eprintln!(
-            "framesmith init refused: cannot write {}: {e}.\n\
-             fix: choose a writable location; nothing was left behind.",
-            comp_path.display()
+            "framesmith init refused: cannot write project files: {e}.\n\
+             fix: choose a writable location; nothing was left behind."
         );
         return 1;
     }
-    println!(
-        "created project {} ({}).",
-        target.display(),
-        validate_mod::COMPOSITION_FILE
-    );
+    match starter {
+        Some(s) => println!(
+            "created project {} from starter example {:?} ({}).",
+            target.display(),
+            s.name,
+            validate_mod::COMPOSITION_FILE
+        ),
+        None => println!(
+            "created project {} ({}).",
+            target.display(),
+            validate_mod::COMPOSITION_FILE
+        ),
+    }
     println!(
         "next: run `framesmith check {}` to validate it.",
         target.display()
@@ -1157,7 +1203,14 @@ pub fn cmd_check_full(
     backend: Option<&str>,
     variables: Option<&str>,
 ) -> i32 {
-    cmd_check_full_strict(folder, json, backend, variables, false, lint::StrictMode::Off)
+    cmd_check_full_strict(
+        folder,
+        json,
+        backend,
+        variables,
+        false,
+        lint::StrictMode::Off,
+    )
 }
 
 /// `check` with per-render caller values and an explicit strict switch
@@ -1307,7 +1360,15 @@ pub fn cmd_check_full_strict_themed(
 /// still reports everything at once. Never writes an MP4 and never
 /// shells to FFmpeg: the T001 packs are static analysis.
 pub fn cmd_lint(folder: &Path, json: bool, backend: Option<&str>) -> i32 {
-    cmd_lint_full_strict_themed(folder, json, backend, None, false, None, lint::StrictMode::Off)
+    cmd_lint_full_strict_themed(
+        folder,
+        json,
+        backend,
+        None,
+        false,
+        None,
+        lint::StrictMode::Off,
+    )
 }
 
 /// Resolve the release-gate strictness from the `--strict` and
@@ -1394,7 +1455,11 @@ pub fn cmd_lint_full_strict_themed(
     let (level, what) = if gated {
         (
             "warn",
-            format!("lint gated by {} ({} elevated)", strict_mode.flag(), elevated),
+            format!(
+                "lint gated by {} ({} elevated)",
+                strict_mode.flag(),
+                elevated
+            ),
         )
     } else {
         match verdict.status {
@@ -1938,17 +2003,11 @@ fn refuse_timeline_verb(line: &str) -> i32 {
 /// missing value, or one starting with `-` (another flag), is a usage
 /// error. Clip refs starting with `-` are therefore unreachable;
 /// `id` values with a leading dash are pathological and unsupported.
-fn take_flag_value(
-    args: &[String],
-    i: &mut usize,
-    flag: &str,
-) -> Result<String, i32> {
+fn take_flag_value(args: &[String], i: &mut usize, flag: &str) -> Result<String, i32> {
     *i += 1;
     match args.get(*i) {
         Some(v) if !v.starts_with('-') => Ok(v.clone()),
-        _ => Err(timeline_verb_usage(&format!(
-            "{flag} needs a value"
-        ))),
+        _ => Err(timeline_verb_usage(&format!("{flag} needs a value"))),
     }
 }
 
@@ -2146,11 +2205,7 @@ fn build_content_verb(verb: &str, a: &ContentArgs) -> Result<sdk::TimelineVerb, 
             }
             Ok(sdk::TimelineVerb::Trim {
                 target: parse_clip_ref(&need(&a.clip, "--clip")?),
-                start: a
-                    .start
-                    .as_deref()
-                    .map(parse_time_flag)
-                    .transpose()?,
+                start: a.start.as_deref().map(parse_time_flag).transpose()?,
                 end: a.end.as_deref().map(parse_time_flag).transpose()?,
             })
         }
@@ -2171,11 +2226,7 @@ fn build_content_verb(verb: &str, a: &ContentArgs) -> Result<sdk::TimelineVerb, 
             let target = a.clip.as_deref().map(parse_clip_ref);
             Ok(sdk::TimelineVerb::Delete {
                 target,
-                start: a
-                    .start
-                    .as_deref()
-                    .map(parse_time_flag)
-                    .transpose()?,
+                start: a.start.as_deref().map(parse_time_flag).transpose()?,
                 end: a.end.as_deref().map(parse_time_flag).transpose()?,
                 snap,
             })
@@ -2239,11 +2290,7 @@ fn run_timeline_ids(composition: Option<&str>, folder: &Path) -> i32 {
 /// (`timeline plan: N clip(s) would change`) and change nothing — the
 /// session opens read-only and this path performs no write of any
 /// kind: no delta, no undo record, no directory, no log.
-fn run_content_plan(
-    verb: sdk::TimelineVerb,
-    composition: Option<&str>,
-    folder: &Path,
-) -> i32 {
+fn run_content_plan(verb: sdk::TimelineVerb, composition: Option<&str>, folder: &Path) -> i32 {
     let session = match open_for_verb(folder, composition, false) {
         Ok(s) => s,
         Err(code) => return code,
@@ -2329,11 +2376,7 @@ fn clear_undo_record(folder: &Path) {
 /// refused apply stages nothing and leaves no receipt; an empty apply
 /// (a range touching nothing) clears the pending undo and still
 /// reports. Returns the process exit code.
-fn run_content_apply(
-    verb: sdk::TimelineVerb,
-    composition: Option<&str>,
-    folder: &Path,
-) -> i32 {
+fn run_content_apply(verb: sdk::TimelineVerb, composition: Option<&str>, folder: &Path) -> i32 {
     let mut session = match open_for_verb(folder, composition, true) {
         Ok(s) => s,
         Err(code) => return code,
@@ -2419,20 +2462,18 @@ fn run_timeline_undo(folder: &Path) -> i32 {
                 );
             }
         }
-        None => {
-            match std::fs::remove_file(&delta_path) {
-                Ok(()) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => {
-                    return refuse_timeline_verb(
+        None => match std::fs::remove_file(&delta_path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                return refuse_timeline_verb(
                         &format!(
                             "[E_SDK_UNWRITABLE] timeline refused: the SDK override delta {} cannot be removed ({e}). Nothing was reversed",
                             delta_path.display()
                         ),
                     );
-                }
             }
-        }
+        },
     }
     clear_undo_record(folder);
     println!(
@@ -3475,14 +3516,7 @@ fn resolve_hdr_decision(
     format: render::outputs::OutputFormat,
     prep: &render::render::Prepared,
     hdr_flag_passed: bool,
-) -> Result<
-    (
-        render::outputs::HdrTransfer,
-        bool,
-        Option<String>,
-    ),
-    String,
-> {
+) -> Result<(render::outputs::HdrTransfer, bool, Option<String>), String> {
     use render::outputs::{HdrMode, HdrTransfer};
     let sources = prep.hdr_sources();
     let detected = prep.composition_transfer();
@@ -3494,11 +3528,7 @@ fn resolve_hdr_decision(
         } else {
             format!(
                 "the composition's HDR source(s) carry {} only ({})",
-                if want == HdrTransfer::Pq {
-                    "HLG"
-                } else {
-                    "PQ"
-                },
+                if want == HdrTransfer::Pq { "HLG" } else { "PQ" },
                 hdr_source_names(&sources, None)
             )
         };
@@ -4230,8 +4260,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         backend: "unknown",
                         preset: "unknown",
                         format: "unknown",
-                    resolution: "unknown",
-                    supersample: 0,
+                        resolution: "unknown",
+                        supersample: 0,
                         enc: &enc,
                         output: "",
                         message: &e,
@@ -4964,8 +4994,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                     &opts.encoder(),
                     &dest,
                     opts.format.name(),
-            opts.resolution.name(),
-            opts.supersample,
+                    opts.resolution.name(),
+                    opts.supersample,
                     "frames",
                     &mut stages,
                     total_start,
@@ -5094,84 +5124,85 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     let audio_start = Instant::now();
     stage_line(json, "stage audio: running");
     let mix_path = mix_path_for_dest(&dest);
-    let plan = match render::render::build_audio_plan(&scaled_comp, folder, &ffmpeg_bin, &prep, &mix_path)
-    {
-        Ok(plan) => plan,
-        Err(e) => {
-            if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
-                let audio_ms = audio_start.elapsed().as_millis() as u64;
-                let detail = without_cancel_prefix(&e).unwrap_or("").to_string();
-                return cmd_cancelled(
-                    folder,
-                    &run,
-                    json,
-                    opts.backend.name(),
-                    opts.preset.name(),
-                    &opts.encoder(),
-                    &dest,
-                    opts.format.name(),
-            opts.resolution.name(),
-            opts.supersample,
-                    "audio",
-                    &mut stages,
-                    total_start,
-                    audio_ms,
-                    &detail,
-                );
-            }
-            let audio_ms = audio_start.elapsed().as_millis() as u64;
-            let frames_ms = frames_start.elapsed().as_millis() as u64;
-            push_stage(
-                &mut stages,
-                render::render::StageTiming::ok("frames", frames_ms, prepared_note.clone()),
-            );
-            push_stage(
-                &mut stages,
-                render::render::StageTiming::failed(
-                    "audio",
-                    audio_ms,
-                    "mix build failed".to_string(),
-                ),
-            );
-            stage_line(
-                json,
-                &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
-            );
-            stage_line(json, &format!("stage audio: failed ({audio_ms}ms): {e}"));
-            print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
-            note_log(folder, "error", "render", &run, &e, json);
-            if json {
-                println!(
-                    "{}",
-                    format_render_json(&RenderJson {
+    let plan =
+        match render::render::build_audio_plan(&scaled_comp, folder, &ffmpeg_bin, &prep, &mix_path)
+        {
+            Ok(plan) => plan,
+            Err(e) => {
+                if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
+                    let audio_ms = audio_start.elapsed().as_millis() as u64;
+                    let detail = without_cancel_prefix(&e).unwrap_or("").to_string();
+                    return cmd_cancelled(
                         folder,
-                        status: "failed",
-                        exit: 1,
-                        backend: opts.backend.name(),
-                        preset: opts.preset.name(),
-                        format: opts.format.name(),
-                        resolution: opts.resolution.name(),
-                        supersample: opts.supersample,
-                        enc: &opts.encoder(),
-                        output: "",
-                        message: &e,
-                        cache_hits: 0,
-                        cache_misses: 0,
-                        peaks: None,
-                        normalize: None,
-                        diagnostics: &[],
-                        stages: &stages,
-                        total_ms: total_start.elapsed().as_millis() as u64
-                    })
+                        &run,
+                        json,
+                        opts.backend.name(),
+                        opts.preset.name(),
+                        &opts.encoder(),
+                        &dest,
+                        opts.format.name(),
+                        opts.resolution.name(),
+                        opts.supersample,
+                        "audio",
+                        &mut stages,
+                        total_start,
+                        audio_ms,
+                        &detail,
+                    );
+                }
+                let audio_ms = audio_start.elapsed().as_millis() as u64;
+                let frames_ms = frames_start.elapsed().as_millis() as u64;
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::ok("frames", frames_ms, prepared_note.clone()),
                 );
-            } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
-                println!("{e}");
-            } else {
-                println!("render failed: {e}");
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed(
+                        "audio",
+                        audio_ms,
+                        "mix build failed".to_string(),
+                    ),
+                );
+                stage_line(
+                    json,
+                    &format!("stage frames: ok ({frames_ms}ms): {prepared_note}"),
+                );
+                stage_line(json, &format!("stage audio: failed ({audio_ms}ms): {e}"));
+                print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                note_log(folder, "error", "render", &run, &e, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "failed",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &e,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
+                    );
+                } else if e.starts_with("render refused:") || e.starts_with("render failed:") {
+                    println!("{e}");
+                } else {
+                    println!("render failed: {e}");
+                }
+                return 1;
             }
-            return 1;
-        }
-    };
+        };
     if render::cancel::is_cancelled() {
         let ms = audio_start.elapsed().as_millis() as u64;
         return cmd_cancelled(
@@ -5383,8 +5414,8 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         &opts.encoder(),
                         &dest,
                         opts.format.name(),
-            opts.resolution.name(),
-            opts.supersample,
+                        opts.resolution.name(),
+                        opts.supersample,
                         stage,
                         &mut stages,
                         total_start,
@@ -5468,8 +5499,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         // `#` comment, so segment verification and players
                         // pass over it.
                         Some(first) if first.trim() == "#EXTM3U" => {
-                            let mut out =
-                                String::with_capacity(body.len() + comment.len() + 1);
+                            let mut out = String::with_capacity(body.len() + comment.len() + 1);
                             out.push_str(first);
                             out.push('\n');
                             out.push_str(&comment);
@@ -5481,8 +5511,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                             out
                         }
                         _ => {
-                            let mut out =
-                                String::with_capacity(body.len() + comment.len() + 2);
+                            let mut out = String::with_capacity(body.len() + comment.len() + 2);
                             out.push_str(body.trim_end());
                             out.push('\n');
                             out.push_str(&comment);
@@ -6508,7 +6537,10 @@ fn snapshotize(mut e: String) -> String {
 /// (interval), or `--from`/`--to` (range). Between-frame times snap to
 /// the nearest frame (ties round up); the caller reports every snap.
 /// Every refusal names the flag and the fix, before any PNG is written.
-fn resolve_snapshot_picks(req: &SnapshotRequest, comp: &Composition) -> Result<Vec<SnapshotPick>, String> {
+fn resolve_snapshot_picks(
+    req: &SnapshotRequest,
+    comp: &Composition,
+) -> Result<Vec<SnapshotPick>, String> {
     let rate = comp.fps.value();
     let duration = comp.duration;
     let frames_total = comp.fps.frame_count(duration);
@@ -6733,7 +6765,16 @@ pub fn cmd_snapshot_full(folder: &Path, req: &SnapshotRequest) -> i32 {
             if json {
                 println!(
                     "{}",
-                    format_snapshot_json(folder, "invalid", 1, None, "unknown", "", Some(&msg), &[])
+                    format_snapshot_json(
+                        folder,
+                        "invalid",
+                        1,
+                        None,
+                        "unknown",
+                        "",
+                        Some(&msg),
+                        &[]
+                    )
                 );
             }
             return 1;
@@ -6767,8 +6808,12 @@ pub fn cmd_snapshot_full(folder: &Path, req: &SnapshotRequest) -> i32 {
         },
     };
     stage_line(json, "stage validate: running");
-    let verdict =
-        validate_folder_with_variables_strict_themed(folder, &overrides, req.strict_variables, req.theme.as_deref());
+    let verdict = validate_folder_with_variables_strict_themed(
+        folder,
+        &overrides,
+        req.strict_variables,
+        req.theme.as_deref(),
+    );
     match verdict.status {
         Status::Invalid => {
             let msg = format!(
@@ -7028,32 +7073,33 @@ pub fn cmd_snapshot_full(folder: &Path, req: &SnapshotRequest) -> i32 {
     // show the same pictures the render encodes.
     stage_line(json, "stage frames: running");
     let effective_backend = render::render::resolve_backend(backend);
-    let prep = match render::render::prepare_frames(&comp, &verdict.compositions, folder, &ffmpeg_bin) {
-        Ok(prep) => prep,
-        Err(e) => {
-            let msg = snapshotize(e);
-            stage_line(json, &format!("stage frames: failed: {msg}"));
-            note_log(folder, "error", "snapshot", &run, &msg, json);
-            if json {
-                println!(
-                    "{}",
-                    format_snapshot_json(
-                        folder,
-                        "failed",
-                        1,
-                        Some(&comp.name),
-                        backend.name(),
-                        "",
-                        Some(&msg),
-                        &[]
-                    )
-                );
-            } else {
-                println!("{msg}");
+    let prep =
+        match render::render::prepare_frames(&comp, &verdict.compositions, folder, &ffmpeg_bin) {
+            Ok(prep) => prep,
+            Err(e) => {
+                let msg = snapshotize(e);
+                stage_line(json, &format!("stage frames: failed: {msg}"));
+                note_log(folder, "error", "snapshot", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_snapshot_json(
+                            folder,
+                            "failed",
+                            1,
+                            Some(&comp.name),
+                            backend.name(),
+                            "",
+                            Some(&msg),
+                            &[]
+                        )
+                    );
+                } else {
+                    println!("{msg}");
+                }
+                return 1;
             }
-            return 1;
-        }
-    };
+        };
     let (canvas_w, canvas_h) = prep.canvas();
     let frames: Vec<u64> = picks.iter().map(|p| p.frame).collect();
     // Draw every requested frame through the same pipeline (and the
@@ -7089,7 +7135,10 @@ pub fn cmd_snapshot_full(folder: &Path, req: &SnapshotRequest) -> i32 {
     // still leaves no partial snapshot set behind.
     let mut encoded: Vec<(String, Vec<u8>)> = Vec::with_capacity(drawn.len());
     for (frame, rgb) in &drawn {
-        let pick = picks.iter().find(|p| p.frame == *frame).expect("drawn frame was requested");
+        let pick = picks
+            .iter()
+            .find(|p| p.frame == *frame)
+            .expect("drawn frame was requested");
         match render::outputs::encode_png_rgb8(canvas_w, canvas_h, rgb) {
             Ok(bytes) => encoded.push((snapshot_file_name(pick.time), bytes)),
             Err(msg) => {
@@ -7324,8 +7373,10 @@ fn ssim_luma(a: &[u8], b: &[u8], pixels: usize) -> f64 {
     let mut sum_b = 0.0f64;
     for i in 0..pixels {
         let o = i * 3;
-        sum_a += 0.299 * f64::from(a[o]) + 0.587 * f64::from(a[o + 1]) + 0.114 * f64::from(a[o + 2]);
-        sum_b += 0.299 * f64::from(b[o]) + 0.587 * f64::from(b[o + 1]) + 0.114 * f64::from(b[o + 2]);
+        sum_a +=
+            0.299 * f64::from(a[o]) + 0.587 * f64::from(a[o + 1]) + 0.114 * f64::from(a[o + 2]);
+        sum_b +=
+            0.299 * f64::from(b[o]) + 0.587 * f64::from(b[o + 1]) + 0.114 * f64::from(b[o + 2]);
     }
     let n = pixels as f64;
     let mean_a = sum_a / n;
@@ -7335,8 +7386,10 @@ fn ssim_luma(a: &[u8], b: &[u8], pixels: usize) -> f64 {
     let mut cov = 0.0f64;
     for i in 0..pixels {
         let o = i * 3;
-        let la = 0.299 * f64::from(a[o]) + 0.587 * f64::from(a[o + 1]) + 0.114 * f64::from(a[o + 2]);
-        let lb = 0.299 * f64::from(b[o]) + 0.587 * f64::from(b[o + 1]) + 0.114 * f64::from(b[o + 2]);
+        let la =
+            0.299 * f64::from(a[o]) + 0.587 * f64::from(a[o + 1]) + 0.114 * f64::from(a[o + 2]);
+        let lb =
+            0.299 * f64::from(b[o]) + 0.587 * f64::from(b[o + 1]) + 0.114 * f64::from(b[o + 2]);
         var_a += (la - mean_a) * (la - mean_a);
         var_b += (lb - mean_b) * (lb - mean_b);
         cov += (la - mean_a) * (lb - mean_b);
@@ -7369,8 +7422,7 @@ fn join_side_by_side(left: &[u8], right: &[u8], w: u32, h: u32) -> Vec<u8> {
     let mut out = vec![0u8; w * 2 * h as usize * 3];
     for y in 0..h as usize {
         out[y * row * 2..y * row * 2 + row].copy_from_slice(&left[y * row..(y + 1) * row]);
-        out[y * row * 2 + row..(y + 1) * row * 2]
-            .copy_from_slice(&right[y * row..(y + 1) * row]);
+        out[y * row * 2 + row..(y + 1) * row * 2].copy_from_slice(&right[y * row..(y + 1) * row]);
     }
     out
 }
@@ -7419,12 +7471,8 @@ fn draw_inspect_frame(
             ));
         }
     };
-    let verdict = validate_folder_with_variables_strict_themed(
-        folder,
-        overrides,
-        strict_variables,
-        theme,
-    );
+    let verdict =
+        validate_folder_with_variables_strict_themed(folder, overrides, strict_variables, theme);
     match verdict.status {
         Status::Invalid => {
             return Err(format!(
@@ -7567,10 +7615,7 @@ fn keyframe_hex(channels: [f64; 3]) -> String {
 /// Read one canonical property out of an evaluated motion state
 /// (Sprint 13 check, T006 / CAP-006): the same per-frame values the
 /// draw pass evaluates, so the listing matches rendered motion.
-fn keyframe_value(
-    property: &str,
-    ev: &render::motion_plan::Evaluated,
-) -> KeyframeValue {
+fn keyframe_value(property: &str, ev: &render::motion_plan::Evaluated) -> KeyframeValue {
     match property {
         "x" => KeyframeValue::Num(ev.x),
         "y" => KeyframeValue::Num(ev.y),
@@ -7744,16 +7789,13 @@ pub fn cmd_keyframes_full(folder: &Path, req: &KeyframesRequest) -> i32 {
         Ok(v) => v,
         Err(msg) => return fail(&msg),
     };
-    let motions = render::motion_plan::plan_motions(&comp, render::motion_plan::snap_fps(&comp.fps));
+    let motions =
+        render::motion_plan::plan_motions(&comp, render::motion_plan::snap_fps(&comp.fps));
     let frames_total = comp.fps.frame_count(comp.duration);
     if !json {
         println!(
             "keyframes for clip {:?} property {:?} in composition {:?} ({} frame(s) at {} fps).",
-            clip_label,
-            property,
-            comp.name,
-            frames_total,
-            comp.fps
+            clip_label, property, comp.name, frames_total, comp.fps
         );
     }
     let mut rows: Vec<(u64, f64, String, bool)> = Vec::new();
@@ -7765,7 +7807,13 @@ pub fn cmd_keyframes_full(folder: &Path, req: &KeyframesRequest) -> i32 {
         let text = keyframe_text(&value);
         let is_num = matches!(value, KeyframeValue::Num(_));
         if !json {
-            println!("frame {k} at {}s: {} {}={}", format_snap_time(time), clip_label, property, text);
+            println!(
+                "frame {k} at {}s: {} {}={}",
+                format_snap_time(time),
+                clip_label,
+                property,
+                text
+            );
         }
         rows.push((k, time, text, is_num));
     }
@@ -7858,8 +7906,14 @@ fn format_compare_json(
         }
         None => out.push_str("null"),
     }
-    let opt = |v: Option<u64>| v.map(|n| n.to_string()).unwrap_or_else(|| "null".to_string());
-    let optf = |v: Option<f64>| v.map(|n| n.to_string()).unwrap_or_else(|| "null".to_string());
+    let opt = |v: Option<u64>| {
+        v.map(|n| n.to_string())
+            .unwrap_or_else(|| "null".to_string())
+    };
+    let optf = |v: Option<f64>| {
+        v.map(|n| n.to_string())
+            .unwrap_or_else(|| "null".to_string())
+    };
     let _ = write!(
         out,
         ",\"frame_a\":{},\"time_a\":{},\"frame_b\":{},\"time_b\":{}",
@@ -7919,8 +7973,19 @@ pub fn cmd_compare_full(folder_a: &Path, folder_b: &Path, req: &CompareRequest) 
             println!(
                 "{}",
                 format_compare_json(
-                    folder_a, folder_b, status, exit, None, None, None, None, None, None, None,
-                    "", Some(msg)
+                    folder_a,
+                    folder_b,
+                    status,
+                    exit,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    "",
+                    Some(msg)
                 )
             );
         }
@@ -7968,7 +8033,11 @@ pub fn cmd_compare_full(folder_a: &Path, folder_b: &Path, req: &CompareRequest) 
     ) {
         Ok(d) => d,
         Err(msg) => {
-            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let status = if msg.contains("later-sprint") {
+                "unsupported"
+            } else {
+                "invalid"
+            };
             let exit = if status == "unsupported" { 2 } else { 1 };
             return fail(&msg, status, exit);
         }
@@ -7987,7 +8056,11 @@ pub fn cmd_compare_full(folder_a: &Path, folder_b: &Path, req: &CompareRequest) 
     ) {
         Ok(d) => d,
         Err(msg) => {
-            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let status = if msg.contains("later-sprint") {
+                "unsupported"
+            } else {
+                "invalid"
+            };
             let exit = if status == "unsupported" { 2 } else { 1 };
             return fail(&msg, status, exit);
         }
@@ -8010,7 +8083,10 @@ pub fn cmd_compare_full(folder_a: &Path, folder_b: &Path, req: &CompareRequest) 
         Ok(b) => b,
         Err(msg) => {
             return fail(
-                &format!("compare failed: cannot encode {}: {msg}; {TAIL}", out_path.display()),
+                &format!(
+                    "compare failed: cannot encode {}: {msg}; {TAIL}",
+                    out_path.display()
+                ),
                 "failed",
                 1,
             );
@@ -8077,7 +8153,10 @@ pub fn cmd_compare_full(folder_a: &Path, folder_b: &Path, req: &CompareRequest) 
         "info",
         "compare",
         &run,
-        &format!("compare ok: ssim {score} ({verdict}) in {}", out_path.display()),
+        &format!(
+            "compare ok: ssim {score} ({verdict}) in {}",
+            out_path.display()
+        ),
         json,
     );
     if json {
@@ -8196,7 +8275,11 @@ pub fn cmd_grade_compare_full(folder: &Path, req: &GradeCompareRequest) -> i32 {
     ) {
         Ok(d) => d,
         Err(msg) => {
-            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let status = if msg.contains("later-sprint") {
+                "unsupported"
+            } else {
+                "invalid"
+            };
             let exit = if status == "unsupported" { 2 } else { 1 };
             return fail(&msg, status, exit);
         }
@@ -8234,7 +8317,11 @@ pub fn cmd_grade_compare_full(folder: &Path, req: &GradeCompareRequest) -> i32 {
     ) {
         Ok(d) => d,
         Err(msg) => {
-            let status = if msg.contains("later-sprint") { "unsupported" } else { "invalid" };
+            let status = if msg.contains("later-sprint") {
+                "unsupported"
+            } else {
+                "invalid"
+            };
             let exit = if status == "unsupported" { 2 } else { 1 };
             return fail(&msg, status, exit);
         }
@@ -8244,7 +8331,10 @@ pub fn cmd_grade_compare_full(folder: &Path, req: &GradeCompareRequest) -> i32 {
         Ok(b) => b,
         Err(msg) => {
             return fail(
-                &format!("grade-compare failed: cannot encode {}: {msg}; {TAIL}", out_path.display()),
+                &format!(
+                    "grade-compare failed: cannot encode {}: {msg}; {TAIL}",
+                    out_path.display()
+                ),
                 "failed",
                 1,
             );
@@ -8365,7 +8455,11 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
     let _ = writeln!(
         out,
         "doctor: gpu renderer {}.",
-        if gpu { "available" } else { "unavailable (cpu draws every frame)" }
+        if gpu {
+            "available"
+        } else {
+            "unavailable (cpu draws every frame)"
+        }
     );
     match &default_face {
         Some(family) => {
@@ -8485,7 +8579,10 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
             if code == 0 { "info" } else { "warn" },
             "doctor",
             &run,
-            &format!("doctor {status_text}: {} composition(s)", verdict.compositions.len()),
+            &format!(
+                "doctor {status_text}: {} composition(s)",
+                verdict.compositions.len()
+            ),
             json,
         );
         return code;
@@ -8590,7 +8687,10 @@ pub fn cmd_benchmark(req: &BenchmarkRequest) -> i32 {
     };
     let finding = ffmpeg_mod::detect();
     let ffmpeg_text = finding.to_string();
-    let ffmpeg_version = finding.version.clone().unwrap_or_else(|| "not found".to_string());
+    let ffmpeg_version = finding
+        .version
+        .clone()
+        .unwrap_or_else(|| "not found".to_string());
     let ffmpeg_bin = finding
         .ffmpeg_path
         .clone()
@@ -8624,8 +8724,7 @@ pub fn cmd_benchmark(req: &BenchmarkRequest) -> i32 {
         }
         let verdict = validate_folder(&dir);
         if verdict.status != Status::Valid {
-            let problems: Vec<String> =
-                verdict.diagnostics.iter().map(|d| d.to_string()).collect();
+            let problems: Vec<String> = verdict.diagnostics.iter().map(|d| d.to_string()).collect();
             outcome = Err(format!(
                 "benchmark refused: bundled reference {:?} is unrunnable: {}; {TAIL}",
                 reference.name,
@@ -8644,14 +8743,14 @@ pub fn cmd_benchmark(req: &BenchmarkRequest) -> i32 {
                 break;
             }
         };
-        let prep = match render::render::prepare_frames(&comp, &verdict.compositions, &dir, &ffmpeg_bin)
-        {
-            Ok(prep) => prep,
-            Err(e) => {
-                outcome = Err(inspectize("benchmark", TAIL, e));
-                break;
-            }
-        };
+        let prep =
+            match render::render::prepare_frames(&comp, &verdict.compositions, &dir, &ffmpeg_bin) {
+                Ok(prep) => prep,
+                Err(e) => {
+                    outcome = Err(inspectize("benchmark", TAIL, e));
+                    break;
+                }
+            };
         let (w, h) = prep.canvas();
         let frames_total = comp.fps.frame_count(comp.duration);
         let frames: Vec<u64> = (0..frames_total).collect();
@@ -8957,7 +9056,13 @@ fn serve_log_path(port: u16) -> PathBuf {
 fn serve_log_tail(port: u16) -> String {
     let body = std::fs::read_to_string(serve_log_path(port)).unwrap_or_default();
     let lines: Vec<&str> = body.lines().collect();
-    let tail = lines.iter().rev().take(20).rev().cloned().collect::<Vec<_>>();
+    let tail = lines
+        .iter()
+        .rev()
+        .take(20)
+        .rev()
+        .cloned()
+        .collect::<Vec<_>>();
     tail.join("\n")
 }
 
@@ -9097,14 +9202,14 @@ fn cmd_start(
         });
     }
     for _ in 0..10 {
-        let mut child = match spawn_serve_child(candidate, &registry, folder, composition.as_deref())
-        {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("framesmith {cmd}: cannot start the preview server: {e}.");
-                return 1;
-            }
-        };
+        let mut child =
+            match spawn_serve_child(candidate, &registry, folder, composition.as_deref()) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("framesmith {cmd}: cannot start the preview server: {e}.");
+                    return 1;
+                }
+            };
         match wait_for_server(
             &registry,
             &dir,
@@ -9197,8 +9302,8 @@ pub fn cmd_preview_status(folder: Option<&Path>) -> i32 {
 /// when the entry is missing or dead.
 pub fn cmd_preview_stop(folder: &Path) -> i32 {
     let registry = preview::daemon::registry_path();
-    let dir =
-        preview::daemon::canonical_dir(folder).unwrap_or_else(|_| folder.to_string_lossy().into_owned());
+    let dir = preview::daemon::canonical_dir(folder)
+        .unwrap_or_else(|_| folder.to_string_lossy().into_owned());
     match preview::daemon::stop_server(&registry, &dir) {
         Ok(preview::daemon::StopOutcome::Stopped(entry)) => {
             println!("{}", preview::daemon::msg_stopped(&entry));
@@ -9316,9 +9421,8 @@ pub struct HistoryRequest {
 /// Parse raw `<seq>` text into a turn number (Sprint 15 history): a
 /// non-numeric sequence is a usage error naming the expected shape.
 fn parse_history_seq(raw: &str) -> Result<u64, String> {
-    raw.parse::<u64>().map_err(|_| {
-        format!("expected a turn number <seq>, found {raw:?}")
-    })
+    raw.parse::<u64>()
+        .map_err(|_| format!("expected a turn number <seq>, found {raw:?}"))
 }
 
 /// One refused `history` verb (Sprint 15, T008): the SDK refusal on
@@ -9606,10 +9710,7 @@ fn cmd_history_pin(req: &HistoryRequest, seq: u64) -> i32 {
                 "info",
                 "history",
                 &run,
-                &format!(
-                    "history pin: turn {} pinned={}",
-                    record.seq, record.pinned
-                ),
+                &format!("history pin: turn {} pinned={}", record.seq, record.pinned),
                 req.json,
             );
             0
@@ -9646,7 +9747,10 @@ fn cmd_history_begin(req: &HistoryRequest, who: &str) -> i32 {
                     handle.actor
                 );
             } else if handle.exclusive {
-                println!("began exclusive turn for {who:?} in {}.", req.folder.display());
+                println!(
+                    "began exclusive turn for {who:?} in {}.",
+                    req.folder.display()
+                );
             } else {
                 println!("began shared turn for {who:?} in {}.", req.folder.display());
             }
@@ -10027,6 +10131,42 @@ mod tests {
         {
             false
         }
+    }
+
+    #[test]
+    fn init_starter_project_validates_with_guide() {
+        let root = tmp_dir("starter-unit");
+        assert_eq!(cmd_init_with_example("card", &root, Some("title-card")), 0);
+        let target = root.join("card");
+        assert!(target.join(validate_mod::COMPOSITION_FILE).is_file());
+        assert!(target.join(crate::starters::AGENT_GUIDE_FILE).is_file());
+        assert_eq!(
+            validate_folder(&target).status,
+            Status::Valid,
+            "{:?}",
+            validate_folder(&target).diagnostics
+        );
+    }
+
+    #[test]
+    fn init_unknown_example_creates_nothing() {
+        let root = tmp_dir("starter-unknown");
+        assert_eq!(cmd_init_with_example("ghost", &root, Some("nope")), 1);
+        assert!(!root.join("ghost").exists());
+        // The empty-name gate runs first: bad names never reach lookup.
+        assert_eq!(cmd_init_with_example("", &root, Some("nope")), 1);
+    }
+
+    #[test]
+    fn init_starter_refuses_nonempty_target_untouched() {
+        let root = tmp_dir("starter-occupied");
+        let target = root.join("taken");
+        std::fs::create_dir_all(&target).unwrap();
+        write(&target, "keep.txt", "precious");
+        assert_eq!(cmd_init_with_example("taken", &root, Some("color-grid")), 1);
+        assert_eq!(std::fs::read(target.join("keep.txt")).unwrap(), b"precious");
+        assert!(!target.join(validate_mod::COMPOSITION_FILE).exists());
+        assert!(!target.join(crate::starters::AGENT_GUIDE_FILE).exists());
     }
 
     #[test]
@@ -11955,8 +12095,7 @@ mod tests {
             maxrate: Some("8M".to_string()),
             ..RenderRequest::default()
         };
-        let (_, _, _, _, encoder, keyint, maxrate, hdr) =
-            resolve_destination(&paced).unwrap();
+        let (_, _, _, _, encoder, keyint, maxrate, hdr) = resolve_destination(&paced).unwrap();
         assert_eq!(hdr, render::outputs::HdrMode::Auto);
         assert_eq!(encoder, EncoderChoice::Auto);
         assert_eq!(keyint, Some(60));
@@ -12028,8 +12167,7 @@ mod tests {
             assert_eq!(hdr.name(), raw);
         }
         // Absent means `auto`, so default renders decide from probes.
-        let (_, _, _, _, _, _, _, hdr) =
-            resolve_destination(&RenderRequest::default()).unwrap();
+        let (_, _, _, _, _, _, _, hdr) = resolve_destination(&RenderRequest::default()).unwrap();
         assert_eq!(hdr, HdrMode::Auto);
         // An unknown mode names the flag and the accepted values.
         let bad_hdr = RenderRequest {

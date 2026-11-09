@@ -96,9 +96,13 @@ fn lint_lines(text: &str) -> Vec<String> {
 
 /// Slice of one JSON report between two markers.
 fn json_between<'a>(json: &'a str, start: &str, end: &str) -> &'a str {
-    let s = json.find(start).unwrap_or_else(|| panic!("missing {start:?} in {json}"));
+    let s = json
+        .find(start)
+        .unwrap_or_else(|| panic!("missing {start:?} in {json}"));
     let rest = &json[s + start.len()..];
-    let e = rest.find(end).unwrap_or_else(|| panic!("missing {end:?} in {json}"));
+    let e = rest
+        .find(end)
+        .unwrap_or_else(|| panic!("missing {end:?} in {json}"));
     &rest[..e]
 }
 
@@ -304,10 +308,15 @@ fn motion_json_findings_carry_rule_source_location_and_fix() {
         assert!(array.contains(&format!("\"rule\":\"{rule}\"")), "{json}");
     }
     // Static and measured sources are labeled per rule.
-    assert!(array.contains("\"rule\":\"appear-by\",\"severity\":\"warning\",\"source\":\"static\""), "{json}");
+    assert!(
+        array.contains("\"rule\":\"appear-by\",\"severity\":\"warning\",\"source\":\"static\""),
+        "{json}"
+    );
     for rule in ["stay-inside", "keep-moving", "frozen-timeline"] {
         assert!(
-            array.contains(&format!("\"rule\":\"{rule}\",\"severity\":\"warning\",\"source\":\"measured\"")),
+            array.contains(&format!(
+                "\"rule\":\"{rule}\",\"severity\":\"warning\",\"source\":\"measured\""
+            )),
             "{json}"
         );
     }
@@ -370,7 +379,10 @@ fn motion_invalid_project_batches_diagnostics_without_motion() {
         "lint[keep-moving]",
         "lint[frozen-timeline]",
     ] {
-        assert!(!lint_out.contains(rule), "motion fires on invalid:\n{lint_out}");
+        assert!(
+            !lint_out.contains(rule),
+            "motion fires on invalid:\n{lint_out}"
+        );
     }
     assert_eq!(
         lint_lines(&lint_out),

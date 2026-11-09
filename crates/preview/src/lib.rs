@@ -29,6 +29,7 @@ mod reload;
 pub mod server;
 pub mod studio;
 pub mod studio_animate;
+pub mod studio_catalog;
 pub mod studio_renders;
 pub mod studio_assets;
 pub mod studio_audio;

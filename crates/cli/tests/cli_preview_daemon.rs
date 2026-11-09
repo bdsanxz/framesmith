@@ -117,7 +117,12 @@ fn full_daemon_lifecycle_through_the_binary() {
     // A busy preferred port falls forward with the new URL printed.
     let (code, out) = run(
         &reg,
-        &["preview", "--port", &port1.to_string(), p2.to_str().unwrap()],
+        &[
+            "preview",
+            "--port",
+            &port1.to_string(),
+            p2.to_str().unwrap(),
+        ],
     );
     assert_eq!(code, 0, "{out}");
     let (url2, port2) = extract_url(&out).expect("fall-forward prints its URL: {out}");
@@ -127,7 +132,10 @@ fn full_daemon_lifecycle_through_the_binary() {
     // List shows every live server.
     let (code, out) = run(&reg, &["preview-list"]);
     assert_eq!(code, 0, "{out}");
-    assert!(out.contains("proj-one") && out.contains("proj-two"), "{out}");
+    assert!(
+        out.contains("proj-one") && out.contains("proj-two"),
+        "{out}"
+    );
     assert!(out.contains(&url1) && out.contains(&url2), "{out}");
 
     // Stop ends exactly that server; the other is untouched.
@@ -242,11 +250,18 @@ fn killed_server_reports_already_stopped() {
     let pid = registry_number(&reg, &dir, "pid").expect("registry records the pid");
 
     // Kill the daemon behind the registry's back: the server is dead.
-    let status = Command::new("kill").arg("-9").arg(pid.to_string()).status().expect("kill runs");
+    let status = Command::new("kill")
+        .arg("-9")
+        .arg(pid.to_string())
+        .status()
+        .expect("kill runs");
     assert!(status.success());
     let start = Instant::now();
     while TcpStream::connect(format!("127.0.0.1:{port}")).is_ok() {
-        assert!(start.elapsed() < Duration::from_secs(5), "the killed port goes quiet");
+        assert!(
+            start.elapsed() < Duration::from_secs(5),
+            "the killed port goes quiet"
+        );
         std::thread::sleep(Duration::from_millis(50));
     }
 
