@@ -73,9 +73,10 @@ fn dir_is_empty(dir: &Path) -> std::io::Result<bool> {
 
 /// `init`: create the scaffold. Returns the process exit code.
 ///
-/// Every project also gains the agent guide file (`AGENTS.md`); pass
-/// `example` to start from a bundled starter instead of the minimal
-/// scaffold (Sprint 19, T008). Refusals change nothing.
+/// Every project also gains both agent guide files (`AGENTS.md` and
+/// `CLAUDE.md`); pass `example` to start from a bundled starter
+/// instead of the minimal scaffold (Sprint 19, T008; guides deepened
+/// by the agents sprint, T002). Refusals change nothing.
 pub fn cmd_init(name: &str, parent: &Path) -> i32 {
     cmd_init_with_example(name, parent, None)
 }
@@ -115,6 +116,7 @@ pub fn cmd_init_with_example(name: &str, parent: &Path, example: Option<&str>) -
         None => scaffold_composition(name),
     };
     let guide = crate::starters::agent_guide(name, starter);
+    let claude_guide = crate::starters::claude_guide(name, starter);
     let target = parent.join(name);
     if target.exists() {
         match dir_is_empty(&target) {
@@ -148,12 +150,15 @@ pub fn cmd_init_with_example(name: &str, parent: &Path, example: Option<&str>) -
     let _ = created_dir;
     let comp_path = target.join(validate_mod::COMPOSITION_FILE);
     let guide_path = target.join(crate::starters::AGENT_GUIDE_FILE);
-    if let Err(e) =
-        std::fs::write(&comp_path, &composition).and_then(|()| std::fs::write(&guide_path, &guide))
+    let claude_path = target.join(crate::starters::CLAUDE_GUIDE_FILE);
+    if let Err(e) = std::fs::write(&comp_path, &composition)
+        .and_then(|()| std::fs::write(&guide_path, &guide))
+        .and_then(|()| std::fs::write(&claude_path, &claude_guide))
     {
         // No partial folder on failure: remove what this run created.
         let _ = std::fs::remove_file(&comp_path);
         let _ = std::fs::remove_file(&guide_path);
+        let _ = std::fs::remove_file(&claude_path);
         // Only remove the directory when this run created it and it is
         // still empty (never touch pre-existing content).
         if dir_is_empty(&target).unwrap_or(false) {
@@ -4225,6 +4230,43 @@ fn output_stage_refusal(
 /// T002, T003, T006, T008). Every run appends its notable events to the
 /// run log. Refusals are logged too: no verdict ever skips the log.
 pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest) -> i32 {
+    // Storyboard approval gate (Sprint 20, T004 / CAP-004, REC-002):
+    // while a presented board awaits maker approval, the build is
+    // refused pointing at the pending gate — before batch routing,
+    // validation, or any frame renders, and with no MP4 written.
+    // Projects without a board behave exactly as before.
+    if let Some(refusal) = preview::studio_stills::gate_refusal(folder, "render") {
+        let run = log::run_id();
+        stage_line(req.json, &refusal);
+        note_log(folder, "warn", "render", &run, &refusal, req.json);
+        if req.json {
+            let enc = render::render::RenderOptions::default().encoder();
+            println!(
+                "{}",
+                format_render_json(&RenderJson {
+                    folder,
+                    status: "invalid",
+                    exit: 1,
+                    backend: "unknown",
+                    preset: "unknown",
+                    format: "unknown",
+                    resolution: "unknown",
+                    supersample: 0,
+                    enc: &enc,
+                    output: "",
+                    message: &refusal,
+                    cache_hits: 0,
+                    cache_misses: 0,
+                    peaks: None,
+                    normalize: None,
+                    diagnostics: &[],
+                    stages: &[],
+                    total_ms: 0
+                })
+            );
+        }
+        return 1;
+    }
     // Sprint 9 variables (CAP-006): a rows manifest renders one MP4
     // per row through the batch driver below; every other flag rides
     // along into each row render.
@@ -6041,6 +6083,14 @@ pub fn cmd_render_batch(folder: &Path, output: Option<&Path>, req: &RenderReques
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     let json = req.json;
     let run = log::run_id();
+    // Storyboard approval gate (Sprint 20, T004 / CAP-004, REC-002):
+    // batch rows render MP4s, so the same pending gate refuses them
+    // before any row starts, with no row rendered.
+    if let Some(refusal) = preview::studio_stills::gate_refusal(folder, "render") {
+        stage_line(json, &refusal);
+        note_log(folder, "warn", "render", &run, &refusal, json);
+        return 1;
+    }
     let batch_file = req.batch.as_deref().unwrap_or("rows.json");
     let batch_path = PathBuf::from(batch_file);
     if output.is_some() {

@@ -27,7 +27,11 @@
 
 mod catalog_cmd;
 mod commands;
+mod resume;
+mod router;
+mod skills;
 mod starters;
+mod storyboard;
 
 use std::path::{Path, PathBuf};
 
@@ -60,6 +64,16 @@ fn usage() -> ! {
          \x20 framesmith timeline [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith timeline move|trim|split|delete|set|duplicate|ids|plan|apply|undo ...  (timeline edit verbs; bare `timeline` still lists)\n\
          \x20 framesmith history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]\n\
+         \x20 framesmith skills list [--json]\n\
+         \x20 framesmith skills install --host <host> [--dest <dir>]\n\
+         \x20 framesmith skills check --host <host> [--dest <dir>] [--json]\n\
+         \x20 framesmith skills update (--all | --core | --skill <name>) --host <host> [--dest <dir>] [--yes]\n\
+         \x20 framesmith skills validate [--host <host>] [--dest <dir>] [--json]
+         \x20 framesmith storyboard board [--at <t,..> | --every <secs> | --from <s> --to <e>] [--out <dir>] [--title <text>] [--composition <name>] [--backend cpu|gpu|auto] [--actor <name>] <folder>
+         \x20 framesmith storyboard approve [--actor <name>] [--json] <folder>
+         \x20 framesmith storyboard status [--json] <folder>\n\
+         \x20 framesmith route --request <text> [<folder>] [--pref <k=v> ...] [--recipe <name>] [--shape single|batch|stills-only] [--workflow <name>] [--fresh] [--install --host <host> [--dest <dir>]] [--json]\n\
+         \x20 framesmith resume [--json] [--words <text>] [--who <name>] <folder>\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
          \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|mov|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080|4k] [--supersample 1|2|3|4] [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
@@ -516,6 +530,10 @@ fn main() {
             commands::cmd_errors(code.as_deref(), json)
         }
         "catalog" => catalog_cmd::cmd_catalog(&args[1..]),
+        "skills" => skills::cmd_skills(&args[1..]),
+        "storyboard" => storyboard::cmd_storyboard(&args[1..]),
+        "route" => router::cmd_route(&args[1..]),
+        "resume" => resume::cmd_resume(&args[1..]),
         "render" => {
             let mut folder: Option<String> = None;
             let mut output: Option<PathBuf> = None;
@@ -1894,6 +1912,15 @@ fn main() {
                  \x20 compositions [--json] <folder>  list every composition name plus the root\n\
                  \x20 timeline [--json] [--composition <name>] <folder> [<name>]  list every clip with id, track, label, hidden state, and window\n\
                  \x20 history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]  share one guarded history across writers\n\
+                 \x20 skills list [--json]  list every shipped skill with its purpose\n\
+                 \x20 skills install --host <host> [--dest <dir>]  install the core skill set\n\
+                 \x20 skills check --host <host> [--dest <dir>] [--json]  verify the install against the hashed manifest\n\
+                 \x20 skills update (--all | --core | --skill <name>) --host <host> [--dest <dir>] [--yes]  restore drifted or missing skills\n\
+                 \x20 skills validate [--host <host>] [--dest <dir>] [--json]  every skill document passes its own schema\n\
+                 \x20 route --request <text> [<folder>]  interview, pitch five concepts, and name the workflow (install on demand with --install)\n\
+                 \x20 storyboard board [--at <t,..> | --every <secs>] [--out <dir>] <folder>  present one board of locked stills in one page (film unchanged, gate armed)\n\
+                 \x20 storyboard approve [--actor <name>] [--json] <folder>  record the maker approval (gate lands, motion and render proceed)\n\
+                 \x20 storyboard status [--json] <folder>  read the gate back (missing reads as not approved)\n\
                  \x20 info [--json] [--composition <name>] <folder> [<name>]  summarize canvas, duration, and clip counts\n\
                  \x20 waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]  report per-bucket mix peaks plus the master peak\n\
                  \x20 render <folder> [-o <file>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format ..] [--resolution ..] [--supersample N] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]  validate, bootstrap FFmpeg, refuse or encode\n\

@@ -1048,6 +1048,49 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 Err(message) => respond_text(stream, "409 Conflict", &message),
             }
         }
+        // Agent tools (Sprint 20, T006): the twelve Studio tools agents
+        // drive. Reads answer current truth; writes stage one edit each
+        // with a staged receipt through the shared history. A refused
+        // tool stages nothing and names its cause.
+        ("POST", "/api/studio/agent") => {
+            let call = match crate::studio_agent::parse_agent_body(body) {
+                Ok(call) => call,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if call.tool.is_composition_write() && state.conflict.is_some() {
+                // STATE-04: editing pauses until the maker's pick lands.
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            match crate::studio_agent::dispatch_agent_tool(&state.folder, &call) {
+                Ok(out) => {
+                    if call.tool.is_composition_write() {
+                        let report = state.session.reload_keep_playhead(&mut state.transport);
+                        state.kdl_disk = crate::studio::disk_version_of(&state.folder);
+                        state.last_reload = Some(report.to_string());
+                        let rows = crate::studio::timeline_rows_json(state.session.composition());
+                        let out = format!(
+                            "{{\"applied\":true,\"receipt\":{},\"rows\":{},\"readout\":{{{}}},\"reload\":\"{}\"}}",
+                            out,
+                            rows,
+                            readout_json(state),
+                            json_escape(&report.message)
+                        );
+                        respond_json(stream, "200 OK", &out);
+                    } else {
+                        respond_json(stream, "200 OK", &out);
+                    }
+                }
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
         // Work area (Sprint 16, T004): the in/out bounds playback seeks
         // and export ranges. Saved per project in the hidden history
         // directory, next to the layout file.
@@ -3548,6 +3591,283 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
             match describe_selection(state, &selection) {
                 Ok(out) => respond_json(stream, "200 OK", &out),
                 Err((status, message)) => respond_text(stream, &status, &message),
+            }
+        }
+        // Selection context (Sprint 20, T007 / CAP-008, J-04, INT-003):
+        // a read-only readout naming the composition, the preview time,
+        // and the selected elements. No selection reads as an explicit
+        // empty selection, never the whole timeline; unknown entries
+        // refuse naming the holdings. Reading stages nothing and
+        // records no history turn.
+        ("GET", "/api/studio/context") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let want = query_get(query, "composition");
+            let composition = want
+                .clone()
+                .filter(|c| !c.trim().is_empty())
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            let base = match find_studio_composition(state, Some(&composition)) {
+                Some(comp) => comp,
+                None => {
+                    respond_text(
+                        stream,
+                        "404 Not Found",
+                        &unknown_composition(state, Some(composition)),
+                    );
+                    return;
+                }
+            };
+            let shown = readout_composition(state, &base, Some(&composition));
+            let rows = crate::studio::studio_rows_of(&shown);
+            let selection: Vec<String> = query_get(query, "selection")
+                .map(|raw| {
+                    raw.split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default();
+            match crate::studio_agent_context::resolve_agent_selection(&rows, &selection) {
+                Ok(clips) => {
+                    let frame = state.transport.position();
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_agent_context::agent_context_json(
+                            &composition,
+                            frame,
+                            state.session.fps().value(),
+                            state.session.duration_secs(),
+                            &clips,
+                        ),
+                    );
+                }
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Ask-agent handoff (Sprint 20, T007 / CAP-008, J-04, INT-003):
+        // a ready agent request from the current selection, voiced as
+        // the question the maker pastes to the agent. An empty
+        // selection refuses naming the need to pick; unknown entries
+        // refuse naming the holdings. Asking stages nothing.
+        ("GET", "/api/studio/ask-agent") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let want = query_get(query, "composition");
+            let composition = want
+                .clone()
+                .filter(|c| !c.trim().is_empty())
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            let base = match find_studio_composition(state, Some(&composition)) {
+                Some(comp) => comp,
+                None => {
+                    respond_text(
+                        stream,
+                        "404 Not Found",
+                        &unknown_composition(state, Some(composition)),
+                    );
+                    return;
+                }
+            };
+            let shown = readout_composition(state, &base, Some(&composition));
+            let rows = crate::studio::studio_rows_of(&shown);
+            let selection: Vec<String> = query_get(query, "selection")
+                .map(|raw| {
+                    raw.split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default();
+            if selection.is_empty() {
+                respond_text(
+                    stream,
+                    "400 Bad Request",
+                    "studio refused: the ask-agent handoff names no selection; pick one or more timeline clips first. Nothing was staged or recorded.",
+                );
+                return;
+            }
+            match crate::studio_agent_context::resolve_agent_selection(&rows, &selection) {
+                Ok(clips) => {
+                    let frame = state.transport.position();
+                    let fps = state.session.fps().value();
+                    let duration = state.session.duration_secs();
+                    let request = crate::studio_agent_context::ask_agent_text(
+                        &composition,
+                        frame,
+                        fps,
+                        duration,
+                        &clips,
+                    );
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_agent_context::handoff_json(
+                            "ask-agent",
+                            &composition,
+                            &clips,
+                            &request,
+                        ),
+                    );
+                }
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Copy-to-agent handoff (Sprint 20, T007 / CAP-008, J-04,
+        // INT-003): the same selection as clipboard-ready handoff text
+        // with the preview and Studio context up front. Refusals mirror
+        // the ask-agent handoff; copying stages nothing.
+        ("GET", "/api/studio/copy-agent") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let want = query_get(query, "composition");
+            let composition = want
+                .clone()
+                .filter(|c| !c.trim().is_empty())
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            let base = match find_studio_composition(state, Some(&composition)) {
+                Some(comp) => comp,
+                None => {
+                    respond_text(
+                        stream,
+                        "404 Not Found",
+                        &unknown_composition(state, Some(composition)),
+                    );
+                    return;
+                }
+            };
+            let shown = readout_composition(state, &base, Some(&composition));
+            let rows = crate::studio::studio_rows_of(&shown);
+            let selection: Vec<String> = query_get(query, "selection")
+                .map(|raw| {
+                    raw.split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default();
+            if selection.is_empty() {
+                respond_text(
+                    stream,
+                    "400 Bad Request",
+                    "studio refused: the copy-to-agent handoff names no selection; pick one or more timeline clips first. Nothing was staged or recorded.",
+                );
+                return;
+            }
+            match crate::studio_agent_context::resolve_agent_selection(&rows, &selection) {
+                Ok(clips) => {
+                    let frame = state.transport.position();
+                    let fps = state.session.fps().value();
+                    let duration = state.session.duration_secs();
+                    let request = crate::studio_shortcuts::describe_request_text(
+                        &composition,
+                        frame,
+                        fps,
+                        duration,
+                        &clips,
+                    );
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_agent_context::handoff_json(
+                            "copy-to-agent",
+                            &composition,
+                            &clips,
+                            &request,
+                        ),
+                    );
+                }
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Storyboard stills gate (Sprint 20, T004 / CAP-004, J-02,
+        // STATE-04, REC-002): the one-board approval state. The status
+        // read names the locked stills and whether they read as
+        // approved (a missing state reads as not approved); the
+        // approve toggle flips the gate and records the decision as a
+        // shared history turn with a staged receipt. Reads stage
+        // nothing; approval changes no film file.
+        ("GET", "/api/studio/stills") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            respond_json(
+                stream,
+                "200 OK",
+                &crate::studio_stills::stills_status_json(&state.folder),
+            );
+        }
+        ("POST", "/api/studio/stills/approve") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let value: serde_json::Value = match serde_json::from_str(body) {
+                Ok(v) => v,
+                Err(e) => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        &format!(
+                            "studio refused: the stills approval body is not JSON ({e}). Pass `{{\"actor\":\"maker\",\"approved\":true}}`. Nothing was staged or recorded."
+                        ),
+                    );
+                    return;
+                }
+            };
+            let actor = value
+                .get("actor")
+                .and_then(|a| a.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            if actor.is_empty() {
+                respond_text(
+                    stream,
+                    "400 Bad Request",
+                    "studio refused: the stills approval names no actor; persisted turns are named (human or agent). Pass a non-empty `actor`. Nothing was staged or recorded.",
+                );
+                return;
+            }
+            let approved = value
+                .get("approved")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
+            match crate::studio_stills::set_approval(&state.folder, &actor, approved) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_stills::approval_receipt_json(&receipt),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
             }
         }
         // Code panel (Sprint 18, T003 / CAP-003, J-03, REC-003):

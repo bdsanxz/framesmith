@@ -386,6 +386,13 @@ pub fn enqueue_job(
     req: &EnqueueRequest,
     path_value: Option<OsString>,
 ) -> Result<EnqueueReceipt, String> {
+    // Storyboard approval gate (Sprint 20, T004 / CAP-004, REC-002):
+    // while a presented board awaits maker approval, queueing a
+    // render refuses pointing at the pending gate. Nothing is queued
+    // and nothing renders.
+    if let Some(refusal) = crate::studio_stills::gate_refusal(folder, "studio") {
+        return Err(refusal);
+    }
     let ffmpeg_bin = resolve_queue_ffmpeg(path_value)?;
     let verdict = validate::validate::validate_folder(folder);
     if verdict.status != validate::validate::Status::Valid {

@@ -92,10 +92,52 @@ pub fn starter_composition(starter: &Starter, project: &str) -> String {
     starter.composition.replace("{name}", project)
 }
 
-/// Agent guide file written into every `init` project (Sprint 19, T008).
-/// The agents sprint deepens this content; here it names the layout, the
-/// starter (when one was used), and the commands that keep the project
-/// valid. Deterministic for a given project and starter.
+/// Shared guide body for both agent guide variants: layout, starter,
+/// and the commands that keep the project valid. Every command named
+/// here ships in the `framesmith` binary; unbuilt capabilities live
+/// only in the "Not in this build" section, never as promises.
+fn guide_body(project: &str) -> String {
+    format!(
+        "## Layout\n\n\
+         - `composition.kdl` is the project: compositions with clips (`box`, `text`, `video`, `audio`).\n\
+         - Keep style attributes hyphenated and CSS-like (`border-width`, `border-color`, `object-fit`, `object-position`, `line-height`, `letter-spacing`).\n\
+         - A `font-family` names usable families in try order and fails closed on unknown names.\n\
+         - Extra helper files are ignored by check and render.\n\n\
+         ## Commands\n\n\
+         - `framesmith check {project}` validates without rendering.\n\
+         - `framesmith snapshot --at 0 --out <dir> {project}` draws frame PNGs without writing any MP4.\n\
+         - `framesmith compositions {project}` lists compositions (what Studio opens).\n\
+         - `framesmith timeline {project}` lists clips; `timeline move|trim|split|delete|set|duplicate` edits with undo.\n\
+         - `framesmith keyframes --clip <id> --property <name> {project}` lists computed motion.\n\
+         - `framesmith history {project}` lists turns; `history undo {project}` undoes one turn.\n\
+         - `framesmith info {project}` summarizes the project; `framesmith waveform {project}` shows mix peaks.\n\
+         - `framesmith errors [CODE]` explains diagnostics; `framesmith doctor` checks machine health.\n\
+         - `framesmith preview {project}` serves the Studio review page; `play {project}` opens it for playback.\n\
+         - `framesmith catalog search <words>` finds bundled shelves; `catalog install {project} <name>` adds one.\n\
+         - `framesmith skills list` shows the 21 agent skills; `skills install --host <host>` installs the core set.\n\
+         - `framesmith render {project}` validates, then writes the standard MP4.\n\
+         - `framesmith storyboard board --at 0,1 --out <dir> {project}` presents one board of locked stills in one page; the film stays unchanged until approval.\n\
+         - `framesmith storyboard approve {project}` records the maker approval; `render` and agent motion edits refuse until it lands.\n\
+         - `framesmith init <name> --example <starter>` starts another project from a starter.\n\
+         - Available starters: {}.\n\n\
+         ## Working agreement\n\n\
+         - Run `check` before and after every edit; fix what it names by file, line, column, and code.\n\
+         - Agent edits travel the shared history, so the maker can undo any turn.\n\
+         - Nothing animates or renders while a presented board awaits the maker approval (`storyboard status` reads the gate).\n\
+         - Renders happen only after the maker approves the preview.\n\n\
+         ## Not in this build\n\n\
+         - No hosted connectors, no hosted generation, no accounts, and no paid plans.\n\
+         - No avatar presenters, no voice cloning, and no third-party media catalogs.\n\
+         - Narration and machine-learning steps are deferred to the caption and ML sprints; name the\n\
+           missing capability and stop at that step instead of simulating it.\n",
+        starter_list_line()
+    )
+}
+
+/// Agent guide file written into every `init` project (Sprint 19, T008;
+/// deepened by the agents sprint, T002). Names the layout, the starter
+/// when one was used, and the commands that keep the project valid.
+/// Deterministic for a given project and starter.
 pub fn agent_guide(project: &str, starter: Option<&Starter>) -> String {
     let from = match starter {
         Some(s) => format!(
@@ -105,25 +147,33 @@ pub fn agent_guide(project: &str, starter: Option<&Starter>) -> String {
         None => "Started from the minimal scaffold (no starter).\n".to_string(),
     };
     format!(
-        "# {project} — Framesmith project\n\n{from}\n\
-         ## Layout\n\n\
-         - `composition.kdl` is the project: compositions with clips (`box`, `text`, `video`, `audio`).\n\
-         - Keep style attributes hyphenated (`border-width`, `border-color`, `object-fit`, `font-family`).\n\
-         - A `font-family` names usable families in try order and fails closed on unknown names.\n\
-         - Extra helper files are ignored by check and render.\n\n\
-         ## Commands\n\n\
-         - `framesmith check {project}` validates without rendering.\n\
-         - `framesmith snapshot --at 0 --out <dir> {project}` draws frame PNGs without writing any MP4.\n\
-         - `framesmith compositions {project}` lists compositions (what Studio opens).\n\
-         - `framesmith render {project}` validates, then writes the standard MP4.\n\
-         - `framesmith init <name> --example <starter>` starts another project from a starter.\n\
-         - Available starters: {}.\n",
-        starter_list_line()
+        "# {project} — Framesmith project\n\nThis file guides any coding agent working in this project.\n\n{from}\n{}",
+        guide_body(project)
+    )
+}
+
+/// Claude Code guide file written into every `init` project alongside
+/// `AGENTS.md` (agents sprint, T002). Same project truth, addressed to
+/// Claude Code; deterministic for a given project and starter.
+pub fn claude_guide(project: &str, starter: Option<&Starter>) -> String {
+    let from = match starter {
+        Some(s) => format!(
+            "Started from the `{}` starter ({}).\nThe composition below renders unchanged: `snapshot --at 0 --out <dir>` matches its preview digest.\n",
+            s.name, s.title
+        ),
+        None => "Started from the minimal scaffold (no starter).\n".to_string(),
+    };
+    format!(
+        "# {project} — Framesmith project\n\nThis file guides Claude Code working in this project.\n\nInstall skills with `framesmith skills install --host claude-code`, then list them with `framesmith skills list`.\n\n{from}\n{}",
+        guide_body(project)
     )
 }
 
 /// Name of the agent guide file written by `init`.
 pub const AGENT_GUIDE_FILE: &str = "AGENTS.md";
+
+/// Name of the Claude Code guide file written by `init`.
+pub const CLAUDE_GUIDE_FILE: &str = "CLAUDE.md";
 
 #[cfg(test)]
 mod tests {
@@ -251,6 +301,33 @@ mod tests {
                 s.name
             );
         }
+    }
+
+    #[test]
+    fn claude_guide_names_project_starter_and_commands() {
+        for s in STARTERS {
+            let guide = claude_guide("demo", Some(s));
+            assert!(guide.contains("demo"), "{guide}");
+            assert!(guide.contains(s.name), "{guide}");
+            assert!(guide.contains("check"), "{guide}");
+            assert!(guide.contains("render"), "{guide}");
+            assert!(guide.contains("claude-code"), "{guide}");
+        }
+        let minimal = claude_guide("demo", None);
+        assert!(minimal.contains("demo"), "{minimal}");
+        assert!(minimal.contains("no starter"), "{minimal}");
+    }
+
+    #[test]
+    fn both_guides_share_one_body_and_stay_deterministic() {
+        for s in STARTERS {
+            let some = Some(s);
+            assert_eq!(agent_guide("p", some), agent_guide("p", some));
+            assert_eq!(claude_guide("p", some), claude_guide("p", some));
+            assert_ne!(agent_guide("p", some), claude_guide("p", some));
+        }
+        assert_eq!(agent_guide("p", None), agent_guide("p", None));
+        assert_eq!(claude_guide("p", None), claude_guide("p", None));
     }
 
     #[test]
