@@ -6,6 +6,7 @@ description = "Framesmith preview frame service (Sprint 14): on-demand exact fra
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+ffmpeg = { path = "../ffmpeg" }
 glyph = { path = "../glyph" }
 layout = { path = "../layout" }
 motion = { path = "../motion" }

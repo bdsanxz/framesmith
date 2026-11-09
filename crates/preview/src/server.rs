@@ -179,6 +179,11 @@ impl ServerState {
             transport.position(),
             std::time::Instant::now(),
         );
+        let shutdown = Arc::new(AtomicBool::new(false));
+        // Renders queue worker (Sprint 18, T006): one background
+        // thread per server running queued jobs in order while the
+        // handlers answer reads; it stops on shutdown.
+        crate::studio_renders::spawn_queue_worker(folder.clone(), Arc::clone(&shutdown));
         Self {
             session,
             transport,
@@ -188,7 +193,7 @@ impl ServerState {
             kdl_disk,
             conflict: None,
             last_reload: None,
-            shutdown: Arc::new(AtomicBool::new(false)),
+            shutdown,
             save_queue: crate::studio::SaveQueue::default(),
             studio_transport_live: live,
         }
@@ -1319,6 +1324,205 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 Err(message) => respond_text(stream, "409 Conflict", &message),
             }
         }
+        // Composition cards with live hover preview, drag-or-add
+        // placement, and render-one (Sprint 18, T001 / CAP-001, J-01,
+        // J-07, REC-001): cards read project truth with a generation,
+        // placements land as named history turns, render-one queues
+        // exactly one composition, and stale generations refresh with
+        // fresh cards instead of acting.
+        ("GET", "/api/studio/compositions") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let load = crate::studio_compositions::list_composition_cards(&state.folder);
+            respond_json(
+                stream,
+                "200 OK",
+                &crate::studio_compositions::cards_json(&load),
+            );
+        }
+        ("GET", "/api/studio/compositions/preview") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let name = match query_get(query, "composition") {
+                Some(n) if !n.trim().is_empty() => n,
+                _ => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        "studio refused: the hover preview needs `?composition=NAME` (a composition name); pass the card to preview. Nothing was drawn.",
+                    );
+                    return;
+                }
+            };
+            if let Some(raw) = query_get(query, "generation") {
+                match raw.parse::<u64>() {
+                    Ok(expected) => {
+                        let now = crate::studio_compositions::generation_of(&state.folder);
+                        if expected != now {
+                            respond_text(
+                                stream,
+                                "409 Conflict",
+                                "studio refused: the hover preview went stale (the project moved on); reload the cards and hover again. Nothing was drawn.",
+                            );
+                            return;
+                        }
+                    }
+                    Err(_) => {
+                        respond_text(
+                            stream,
+                            "400 Bad Request",
+                            "studio refused: the hover preview `generation` is not an integer; pass the card generation, or omit it. Nothing was drawn.",
+                        );
+                        return;
+                    }
+                }
+            }
+            match crate::studio_compositions::composition_preview_png(&state.folder, &name) {
+                Ok(png) => respond(stream, "200 OK", "image/png", &png),
+                Err(message) => {
+                    let status = if message.contains("unknown composition") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/compositions/place") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before compositions apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let req = match crate::studio_compositions::parse_place_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_compositions::place_composition(&state.folder, &req) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_compositions::place_receipt_json(&receipt),
+                ),
+                Err(crate::studio_compositions::PlaceError::Stale { message, fresh }) => {
+                    respond_json(
+                        stream,
+                        "409 Conflict",
+                        &crate::studio_compositions::stale_json(&message, &fresh),
+                    );
+                }
+                Err(crate::studio_compositions::PlaceError::Refused(message)) => {
+                    let status = if message.contains("unknown composition")
+                        || message.contains("unknown timeline")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/compositions/render-one") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            let req = match crate::studio_compositions::parse_render_one_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_compositions::queue_render_one(&state.folder, &req) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_compositions::render_one_receipt_json(&receipt),
+                ),
+                Err(crate::studio_compositions::RenderOneError::Stale { message, fresh }) => {
+                    respond_json(
+                        stream,
+                        "409 Conflict",
+                        &crate::studio_compositions::stale_json(&message, &fresh),
+                    );
+                }
+                Err(crate::studio_compositions::RenderOneError::Refused(message)) => {
+                    let status = if message.contains("unknown composition") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("GET", "/api/studio/compositions/queue") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            match crate::studio_compositions::list_render_queue(&state.folder) {
+                Ok(jobs) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_compositions::render_queue_json(&jobs),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
         // Clip visuals (Sprint 16, T007 / CAP-008, REC-005): filmstrips,
         // waveforms with peak marks, text content, badges, and fade
         // handles from composition data, with named placeholders where
@@ -1621,6 +1825,184 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                     &crate::studio_inspector::inspector_receipt_json(&receipt),
                 ),
                 Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        // Variables panel (Sprint 18, T005 / CAP-005, J-02,
+        // STATE-02, INT-001, REC-001): declared variables with
+        // defaults, bound state, and warnings; declare, edit, and
+        // remove validate like the SDK and record guarded history
+        // turns; binding writes the reference onto the selected
+        // element as a validated turn; copies place exact values
+        // text and a runnable render command. A refused action
+        // names its cause and stages nothing.
+        ("GET", "/api/studio/variables") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let want = query_get(query, "composition");
+            let view = query_get(query, "view").unwrap_or_default();
+            if view == "values" || view == "command" {
+                let raw = query_get(query, "overrides").unwrap_or_else(|| "{}".to_string());
+                let delta = match validate::validate::parse_variable_overrides(&raw) {
+                    Ok(delta) => delta,
+                    Err(e) => {
+                        respond_text(
+                            stream,
+                            "400 Bad Request",
+                            &format!(
+                                "studio refused: the variables copy `overrides` are not a variables map ({e}). Pass a JSON object of string keys to scalar values. Nothing was staged."
+                            ),
+                        );
+                        return;
+                    }
+                };
+                if view == "values" {
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_variables::copy_variable_values(&delta),
+                    );
+                } else {
+                    let command = crate::studio_variables::copy_render_command(
+                        &state.folder,
+                        want.as_deref(),
+                        &delta,
+                        None,
+                    );
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &format!(
+                            "{{\"command\":\"{}\"}}",
+                            crate::studio::json_escape(&command)
+                        ),
+                    );
+                }
+                return;
+            }
+            match crate::studio_variables::variables_json(&state.folder, want.as_deref()) {
+                Ok(out) => respond_json(stream, "200 OK", &out),
+                Err(message) => respond_text(stream, "404 Not Found", &message),
+            }
+        }
+        ("POST", "/api/studio/variables") => {
+            let action = match crate::studio_variables::parse_variables_action(body) {
+                Ok(action) => action,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let preview_only =
+                matches!(action, crate::studio_variables::VariablesAction::Preview { .. });
+            if !preview_only {
+                if state.conflict.is_some() {
+                    respond_text(
+                        stream,
+                        "409 Conflict",
+                        &conflict_blocker_message(state.save_queue.staged.len()),
+                    );
+                    return;
+                }
+                if state.save_queue.paused {
+                    respond_text(
+                        stream,
+                        "409 Conflict",
+                        "studio: the save queue is paused; resume it before variables edits apply. Nothing was applied or recorded.",
+                    );
+                    return;
+                }
+            }
+            let composition = state.session.composition_name().to_string();
+            let composition = Some(composition.as_str());
+            match action {
+                crate::studio_variables::VariablesAction::Declare { actor, input } => {
+                    match crate::studio_variables::declare_panel_variable(
+                        &state.folder,
+                        composition,
+                        &actor,
+                        input,
+                    ) {
+                        Ok(receipt) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_variables::declared_receipt_json(&receipt),
+                        ),
+                        Err(message) => respond_text(stream, "409 Conflict", &message),
+                    }
+                }
+                crate::studio_variables::VariablesAction::Edit { actor, id, input } => {
+                    match crate::studio_variables::edit_panel_variable(
+                        &state.folder,
+                        composition,
+                        &actor,
+                        &id,
+                        input,
+                    ) {
+                        Ok(receipt) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_variables::declared_receipt_json(&receipt),
+                        ),
+                        Err(message) => respond_text(stream, "409 Conflict", &message),
+                    }
+                }
+                crate::studio_variables::VariablesAction::Remove { actor, id } => {
+                    match crate::studio_variables::remove_panel_variable(
+                        &state.folder,
+                        composition,
+                        &actor,
+                        &id,
+                    ) {
+                        Ok(receipt) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_variables::removed_receipt_json(&receipt),
+                        ),
+                        Err(message) => respond_text(stream, "409 Conflict", &message),
+                    }
+                }
+                crate::studio_variables::VariablesAction::Bind(bind) => {
+                    match crate::studio_variables::apply_variable_bind(
+                        &state.folder,
+                        composition,
+                        &bind,
+                    ) {
+                        Ok(receipt) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_variables::bind_receipt_json(&receipt),
+                        ),
+                        Err(message) => respond_text(stream, "409 Conflict", &message),
+                    }
+                }
+                crate::studio_variables::VariablesAction::Preview { delta } => {
+                    match crate::studio_variables::preview_variable_overrides(
+                        &state.folder,
+                        composition,
+                        delta,
+                    ) {
+                        Ok(preview) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_variables::preview_json(&preview),
+                        ),
+                        Err(message) => respond_text(stream, "409 Conflict", &message),
+                    }
+                }
             }
         }
         // Animation catalog (Sprint 17, T008 / CAP-008, CAP-009,
@@ -2275,10 +2657,11 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
         // Canvas selection and layers (Sprint 17, T002 / CAP-002,
         // INT-003): click, Shift-toggle/add, marquee, and clear
         // resolve against authored element boxes, and the minimal
-        // layers readout lists elements by z-order with boxes,
-        // off-canvas indicators, and the synced selection echo.
-        // Selection is view state: it writes nothing, stages no
-        // patch, and records no turn.
+        // layers readout lists elements by z-order with kind icons,
+        // groups, scope marks, boxes, off-canvas indicators, and the
+        // synced selection echo (Sprint 18, T004 adds icons, groups,
+        // and `?scope=`). Selection is view state: it writes nothing,
+        // stages no patch, and records no turn.
         ("GET", "/api/studio/layers") => {
             if !crate::studio::project_reachable(&state.folder) {
                 respond_text(
@@ -2298,6 +2681,16 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 ),
                 Some(base) => {
                     let shown = readout_composition(state, &base, Some(&composition));
+                    let scope_raw = query_get(query, "scope").unwrap_or_default();
+                    let scope = match crate::studio_select::resolve_group_scope(
+                        &shown, &scope_raw,
+                    ) {
+                        Ok(scope) => scope,
+                        Err(message) => {
+                            respond_text(stream, "404 Not Found", &message);
+                            return;
+                        }
+                    };
                     let selection: Vec<String> = query_get(query, "selection")
                         .map(|raw| {
                             raw.split(',')
@@ -2319,8 +2712,101 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                             height as f64,
                             &kept,
                             &dropped,
+                            scope.as_deref(),
                         ),
                     );
+                }
+            }
+        }
+        // Full Layers panel (Sprint 18, T004 / CAP-004, J-04, INT-001,
+        // INT-002): drag reorder, group, and ungroup commit through
+        // the shared patch and history machinery as one named turn
+        // each; enter and exit scope selection to a group as view
+        // state with nothing staged. Every receipt echoes the synced
+        // selection so Layers, canvas, and timeline show the same
+        // selection at once.
+        ("POST", "/api/studio/layers") => {
+            let req = match crate::studio_select::parse_layers_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            let commits = match req.action.as_str() {
+                "reorder" | "ungroup" => true,
+                "group" => !req.keys.is_empty(),
+                _ => false,
+            };
+            if commits && state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before Layers reorder, group, or ungroup apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            let composition = query_get(query, "composition")
+                .unwrap_or_else(|| state.session.composition_name().to_string());
+            match find_studio_composition(state, Some(&composition)) {
+                None => respond_text(
+                    stream,
+                    "404 Not Found",
+                    &unknown_composition(state, Some(composition)),
+                ),
+                Some(base) => {
+                    let shown = readout_composition(state, &base, Some(&composition));
+                    let rows = crate::studio::studio_rows_of(&shown);
+                    let (kept, dropped) =
+                        crate::studio_canvas::sync_canvas_selection(&req.selection, &rows);
+                    match crate::studio_select::apply_layers(
+                        &state.folder,
+                        Some(&composition),
+                        &req,
+                        &shown,
+                    ) {
+                        Err(message) => {
+                            let status = if message.contains("names no clip")
+                                || message.contains("names nothing")
+                                || message.contains("names no layer group")
+                                || message.contains("names no grouped members")
+                                || message.contains("past the open composition")
+                            {
+                                "404 Not Found"
+                            } else if message.contains("not JSON")
+                                || message.contains("names no `")
+                                || message.contains("not a document index")
+                                || message.contains("is not a clip reference")
+                                || message.contains("unknown layers action")
+                            {
+                                "400 Bad Request"
+                            } else {
+                                "409 Conflict"
+                            };
+                            respond_text(stream, status, &message);
+                        }
+                        Ok(receipt) => respond_json(
+                            stream,
+                            "200 OK",
+                            &crate::studio_select::layers_receipt_json(&receipt, &kept, &dropped),
+                        ),
+                    }
                 }
             }
         }
@@ -3058,6 +3544,807 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
             match describe_selection(state, &selection) {
                 Ok(out) => respond_json(stream, "200 OK", &out),
                 Err((status, message)) => respond_text(stream, &status, &message),
+            }
+        }
+        // Code panel (Sprint 18, T003 / CAP-003, J-03, REC-003):
+        // the file tree, the notation editor, and jump to the
+        // selected element's source line. Reads never write and
+        // never block; mutations travel validated turns (tracked
+        // `*.kdl` sources) or direct writes with restore-on-failure,
+        // and refuse while a conflict pends or the save queue pauses
+        // — like every other composition-affecting Studio gesture.
+        ("GET", "/api/studio/code/tree") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            match crate::studio_code::list_tree(&state.folder) {
+                Ok(entries) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_code::tree_json(&entries),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        ("GET", "/api/studio/code/file") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let rel = match query_get(query, "path") {
+                Some(p) if !p.trim().is_empty() => p,
+                _ => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        "studio refused: the code file read needs `?path=<project-relative-file>`; pass the file to open. Nothing changed.",
+                    );
+                    return;
+                }
+            };
+            match crate::studio_code::read_code_file(&state.folder, &rel) {
+                Ok(file) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_code::code_file_json(&file),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        ("POST", "/api/studio/code/tree") => {
+            let action = match crate::studio_code::parse_tree_action_body(body) {
+                Ok(action) => action,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before tree changes apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            match crate::studio_code::apply_tree_action(&state.folder, &action) {
+                Ok(receipt) => {
+                    if receipt.path == validate::validate::COMPOSITION_FILE {
+                        state.kdl_disk = crate::studio::disk_version_of(&state.folder);
+                    }
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_code::tree_receipt_json(&receipt),
+                    )
+                }
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        ("POST", "/api/studio/code/save") => {
+            let save = match crate::studio_code::parse_save_body(body) {
+                Ok(save) => save,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before code saves apply. Nothing was applied or recorded.",
+                );
+                return;
+            }
+            match crate::studio_code::save_code_file(&state.folder, &save) {
+                Ok(receipt) => {
+                    if receipt.path == validate::validate::COMPOSITION_FILE {
+                        state.kdl_disk = crate::studio::disk_version_of(&state.folder);
+                    }
+                    respond_json(
+                        stream,
+                        "200 OK",
+                        &crate::studio_code::save_receipt_json(&receipt),
+                    )
+                }
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        ("GET", "/api/studio/code/jump") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let key = match query_get(query, "selection") {
+                Some(k) if !k.trim().is_empty() => k,
+                _ => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        "studio refused: the code jump needs `?selection=<id-or-#index>` from the canvas or timeline; pass the selected element. Nothing changed.",
+                    );
+                    return;
+                }
+            };
+            let composition = query_get(query, "composition");
+            match crate::studio_code::jump_to_selection(
+                &state.folder,
+                composition.as_deref(),
+                &key,
+            ) {
+                Ok(jump) => respond_json(stream, "200 OK", &crate::studio_code::jump_json(&jump)),
+                Err(message) => respond_text(stream, "404 Not Found", &message),
+            }
+        }
+        ("GET", "/api/studio/assets") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let parsed = match crate::studio_assets::parse_assets_query(query) {
+                Ok(parsed) => parsed,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            let comps = state.session.all_compositions().to_vec();
+            if parsed.scope == crate::studio_assets::AssetScope::All {
+                let projects =
+                    crate::studio_assets::discover_projects(&state.folder, &comps);
+                respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_assets::all_projects_json(&projects, &parsed),
+                );
+                return;
+            }
+            let listed = crate::studio_assets::list_assets(&state.folder, &comps);
+            let kept = crate::studio_assets::filter_assets(&listed, &parsed);
+            respond_json(
+                stream,
+                "200 OK",
+                &crate::studio_assets::assets_json(
+                    &crate::studio_assets::served_project_name(&state.folder),
+                    &kept,
+                ),
+            );
+        }
+        ("POST", "/api/studio/assets/import") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before assets import. Nothing was copied.",
+                );
+                return;
+            }
+            let req = match crate::studio_assets::parse_import_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_assets::import_asset(&state.folder, &req) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_assets::import_receipt_json(&receipt),
+                ),
+                Err(message) => {
+                    let status = if message.contains("does not exist") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/assets") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before assets act. Nothing was staged.",
+                );
+                return;
+            }
+            let served = crate::studio_assets::served_project_name(&state.folder);
+            if let Some(want) = query_get(query, "project") {
+                if want.trim() != served {
+                    respond_text(
+                        stream,
+                        "409 Conflict",
+                        &format!(
+                            "studio refused: project {want:?} is read-only in this view; only {served:?} accepts asset actions. Nothing was staged."
+                        ),
+                    );
+                    return;
+                }
+            }
+            let mut req = match crate::studio_assets::parse_action_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            // An insert without a named composition targets the
+            // served composition, never an arbitrary first project
+            // entry.
+            if req.action == "insert" && req.composition.is_none() {
+                req.composition = Some(state.session.composition_name().to_string());
+            }
+            let comps = state.session.all_compositions().to_vec();
+            let outcome = match req.action.as_str() {
+                "reveal" => crate::studio_assets::reveal_asset(&state.folder, &req.asset),
+                "rename" => crate::studio_assets::rename_asset(
+                    &state.folder,
+                    &comps,
+                    &req.asset,
+                    req.name.as_deref(),
+                ),
+                "remove" => {
+                    crate::studio_assets::remove_asset(&state.folder, &comps, &req.asset)
+                }
+                _ => crate::studio_assets::insert_asset(&state.folder, &comps, &req),
+            };
+            match outcome {
+                Ok(receipt) => respond_json(stream, "200 OK", &receipt),
+                Err(message) => {
+                    let status = if message.contains("is not in the project")
+                        || message.contains("unknown composition")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        // Clipboard and drop panel (Sprint 18, T008 / CAP-008, J-06,
+        // STATE-02, REC-001, REC-004): copy returns a self-contained
+        // payload, paste lands it at the playhead with renamed ids,
+        // cut removes only after its copy confirms, duplicate pastes
+        // in place, and drops place files, assets, and compositions
+        // at the drop point. Incompatible payloads and unsupported
+        // drops refuse by name staging nothing.
+        ("POST", "/api/studio/clipboard/copy") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            let req = match crate::studio_clipboard::parse_selection_body(body, true) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_clipboard::copy_clips(
+                &state.folder,
+                req.composition.as_deref(),
+                &req.targets,
+            ) {
+                Ok(payload) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_clipboard::clipboard_json(&payload),
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown clip")
+                        || message.contains("unknown composition")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/clipboard/paste") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before pasting. Nothing was staged.",
+                );
+                return;
+            }
+            let req = match crate::studio_clipboard::parse_paste_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_clipboard::paste_clips(
+                &state.folder,
+                req.composition.as_deref(),
+                &req.payload,
+                req.playhead,
+                &req.actor,
+                None,
+            ) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_clipboard::paste_receipt_json(&receipt),
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown composition")
+                        || message.contains("missing from the target project")
+                        || message.contains("does not hold")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/clipboard/cut") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before cutting. Nothing was staged.",
+                );
+                return;
+            }
+            let req = match crate::studio_clipboard::parse_selection_body(body, false) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_clipboard::cut_clips(
+                &state.folder,
+                req.composition.as_deref(),
+                &req.targets,
+                &req.actor,
+            ) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_clipboard::cut_receipt_json(&receipt),
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown clip")
+                        || message.contains("unknown composition")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/clipboard/duplicate") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before duplicating. Nothing was staged.",
+                );
+                return;
+            }
+            let req = match crate::studio_clipboard::parse_selection_body(body, false) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_clipboard::duplicate_clips(
+                &state.folder,
+                req.composition.as_deref(),
+                &req.targets,
+                &req.actor,
+            ) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_clipboard::duplicate_receipt_json(&receipt),
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown clip")
+                        || message.contains("unknown composition")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/clipboard/drop") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            if state.conflict.is_some() {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &conflict_blocker_message(state.save_queue.staged.len()),
+                );
+                return;
+            }
+            if state.save_queue.paused {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    "studio: the save queue is paused; resume it before dropping. Nothing was staged.",
+                );
+                return;
+            }
+            let req = match crate::studio_clipboard::parse_drop_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_clipboard::drop_onto_timeline(&state.folder, &req) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_clipboard::drop_receipt_json(&receipt),
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown composition")
+                        || message.contains("is not in the project")
+                        || message.contains("does not hold")
+                    {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        // Renders panel and queue (Sprint 18, T006 / CAP-006, CAP-009,
+        // J-05, STATE-03, STATE-04, REC-002, REC-003, REC-005): jobs
+        // queue with settings, run in order with measured progress
+        // and an ETA estimate, cancel with the stage reached,
+        // download byte-matches, delete refuses running jobs, and
+        // hide-finished clears completed rows only.
+        ("GET", "/api/studio/renders") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let (available, detail) = crate::studio_renders::ffmpeg_status(None);
+            match crate::studio_compositions::list_render_queue(&state.folder) {
+                Ok(jobs) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_renders::renders_queue_json(
+                        &jobs,
+                        available,
+                        &detail,
+                        crate::studio_renders::now_ms(),
+                    ),
+                ),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        ("POST", "/api/studio/renders") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let req = match crate::studio_renders::parse_enqueue_body(body) {
+                Ok(req) => req,
+                Err(message) => {
+                    respond_text(stream, "400 Bad Request", &message);
+                    return;
+                }
+            };
+            match crate::studio_renders::enqueue_job(&state.folder, &req, None) {
+                Ok(receipt) => respond_json(
+                    stream,
+                    "200 OK",
+                    &crate::studio_renders::enqueue_receipt_json(&receipt),
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown composition") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("POST", "/api/studio/renders/hide-finished") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            match crate::studio_renders::hide_finished(&state.folder) {
+                Ok(report) => respond_text(stream, "200 OK", &report),
+                Err(message) => respond_text(stream, "409 Conflict", &message),
+            }
+        }
+        ("POST", p) if p.starts_with("/api/studio/renders/") && p.ends_with("/cancel") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let seq = match p
+                .strip_prefix("/api/studio/renders/")
+                .and_then(|s| s.strip_suffix("/cancel"))
+                .and_then(|s| s.parse::<u64>().ok())
+            {
+                Some(seq) => seq,
+                None => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        "studio refused: cancel needs `/api/studio/renders/{seq}/cancel` (a job sequence); pass the row to cancel. Nothing changed.",
+                    );
+                    return;
+                }
+            };
+            match crate::studio_renders::cancel_job(&state.folder, seq) {
+                Ok(report) => respond_text(stream, "200 OK", &report),
+                Err(message) => {
+                    let status = if message.contains("unknown job") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("DELETE", p) if p.starts_with("/api/studio/renders/") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "409 Conflict",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let seq = match p
+                .strip_prefix("/api/studio/renders/")
+                .and_then(|s| s.parse::<u64>().ok())
+            {
+                Some(seq) => seq,
+                None => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        "studio refused: delete needs `/api/studio/renders/{seq}` (a job sequence); pass the row to delete. Nothing was deleted.",
+                    );
+                    return;
+                }
+            };
+            match crate::studio_renders::delete_job(&state.folder, seq) {
+                Ok(report) => respond_text(stream, "200 OK", &report),
+                Err(message) => {
+                    let status = if message.contains("unknown job") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
+            }
+        }
+        ("GET", p) if p.starts_with("/api/studio/renders/") && p.ends_with("/download") => {
+            if !crate::studio::project_reachable(&state.folder) {
+                respond_text(
+                    stream,
+                    "404 Not Found",
+                    &crate::studio::unreachable_notice(&state.folder),
+                );
+                return;
+            }
+            let seq = match p
+                .strip_prefix("/api/studio/renders/")
+                .and_then(|s| s.strip_suffix("/download"))
+                .and_then(|s| s.parse::<u64>().ok())
+            {
+                Some(seq) => seq,
+                None => {
+                    respond_text(
+                        stream,
+                        "400 Bad Request",
+                        "studio refused: download needs `/api/studio/renders/{seq}/download` (a job sequence); pass the row to download.",
+                    );
+                    return;
+                }
+            };
+            match crate::studio_renders::download_job(&state.folder, seq) {
+                Ok((output, bytes)) => respond(
+                    stream,
+                    "200 OK",
+                    crate::studio_renders::download_content_type(&output),
+                    &bytes,
+                ),
+                Err(message) => {
+                    let status = if message.contains("unknown job") {
+                        "404 Not Found"
+                    } else {
+                        "409 Conflict"
+                    };
+                    respond_text(stream, status, &message);
+                }
             }
         }
         _ => respond_text(

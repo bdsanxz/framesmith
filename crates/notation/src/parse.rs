@@ -6,14 +6,14 @@
 //! instead of being guessed at.
 
 /// A parsed scalar value with its 1-based source location.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RawValue {
     pub kind: ValueKind,
     pub line: usize,
     pub column: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ValueKind {
     Str(String),
     Int(i64),
@@ -24,7 +24,7 @@ pub enum ValueKind {
 }
 
 /// A parsed node: `name key=value ...` with optional `{ children }`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RawNode {
     pub name: String,
     pub name_line: usize,
@@ -34,7 +34,7 @@ pub struct RawNode {
 }
 
 /// A located parse failure.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ParseError {
     pub line: usize,
     pub column: usize,

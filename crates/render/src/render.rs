@@ -548,6 +548,9 @@ pub struct RenderOptions {
     /// and unit fixtures); the CLI always sets it, so every CLI render
     /// carries the tool name, the version, and the inputs digest.
     pub provenance: Option<crate::outputs::Provenance>,
+    /// GIF loop count (Sprint 18, T006): `0` means forever, the
+    /// historical default every existing caller keeps.
+    pub gif_loop: u32,
 }
 
 impl Default for RenderOptions {
@@ -569,6 +572,7 @@ impl Default for RenderOptions {
             hdr_transfer: crate::outputs::HdrTransfer::Sdr,
             hdr_tone_mapped: false,
             provenance: None,
+            gif_loop: 0,
         }
     }
 }
@@ -591,6 +595,7 @@ impl RenderOptions {
             hdr: self.hdr,
             hdr_transfer: self.hdr_transfer,
             provenance: self.provenance.clone(),
+            gif_loop: self.gif_loop,
         }
     }
 
@@ -687,6 +692,9 @@ pub struct ResolvedEncoder {
     /// Provenance stamp for this render (Sprint 12 outputs, T005):
     /// None emits no metadata, keeping the historical argv exactly.
     pub provenance: Option<crate::outputs::Provenance>,
+    /// GIF loop count (Sprint 18, T006): `0` means forever, the
+    /// historical default every existing caller keeps.
+    pub gif_loop: u32,
 }
 
 /// One staged progress entry (Sprint 3 T006): the stage name, its
@@ -3693,6 +3701,23 @@ pub fn render_staged(
     dest: &crate::outputs::ResolvedOutput,
     scale: &crate::scale::ScalePlan,
 ) -> Result<(String, u64, u64), String> {
+    render_staged_with_progress(prep, plan, opts, ffmpeg_bin, dest, scale, None)
+}
+
+/// Draw and encode with measured frame progress (Sprint 18, T006):
+/// after every emitted batch the hook observes `(frames_done,
+/// frames_total)` on the calling thread, so the Renders panel reports
+/// measured progress with an estimated remainder. `None` skips the
+/// hook, so every existing caller renders exactly as before.
+pub fn render_staged_with_progress(
+    prep: &Prepared,
+    plan: &AudioPlan,
+    opts: &RenderOptions,
+    ffmpeg_bin: &Path,
+    dest: &crate::outputs::ResolvedOutput,
+    scale: &crate::scale::ScalePlan,
+    progress: Option<&dyn Fn(u64, u64)>,
+) -> Result<(String, u64, u64), String> {
     use std::io::Write;
     use std::time::Instant;
     let comp = prep.composition();
@@ -3923,6 +3948,9 @@ pub fn render_staged(
             }
         }
         start = end;
+        if let Some(report) = progress {
+            report(end, total);
+        }
     }
     drop(stdin);
     let frames_ms = frames_start.elapsed().as_millis() as u64;
@@ -4138,6 +4166,22 @@ pub fn render_with_options(
     out: &Path,
     opts: &RenderOptions,
 ) -> Result<(String, u64, u64), String> {
+    render_with_options_progress(comp, all, folder, ffmpeg_bin, out, opts, None)
+}
+
+/// Render with measured frame progress (Sprint 18, T006): the hook
+/// observes `(frames_done, frames_total)` after every emitted batch,
+/// so the Renders panel reports measured progress. `None` renders
+/// exactly as [`render_with_options`].
+pub fn render_with_options_progress(
+    comp: &Composition,
+    all: &[Composition],
+    folder: &Path,
+    ffmpeg_bin: &Path,
+    out: &Path,
+    opts: &RenderOptions,
+    progress: Option<&dyn Fn(u64, u64)>,
+) -> Result<(String, u64, u64), String> {
     let prep = prepare_frames(comp, all, folder, ffmpeg_bin)?;
     let mix_path = mix_staging_path(out);
     let plan = match build_audio_plan(comp, folder, ffmpeg_bin, &prep, &mix_path) {
@@ -4154,7 +4198,7 @@ pub fn render_with_options(
         path: out.to_path_buf(),
     };
     let scale = crate::scale::ScalePlan::identity(comp.width, comp.height);
-    render_staged(&prep, &plan, opts, ffmpeg_bin, &dest, &scale)
+    render_staged_with_progress(&prep, &plan, opts, ffmpeg_bin, &dest, &scale, progress)
 }
 
 /// Success-line suffix naming the text origins, never silent: the

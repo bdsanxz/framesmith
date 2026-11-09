@@ -3625,141 +3625,6 @@ fn resolve_hdr_decision(
     }
 }
 
-/// Digest of the composition inputs for one render (Sprint 12
-/// outputs, CAP-005): a canonical encoding of every validated
-/// composition in the project (sorted by name, so `nest` targets ride
-/// along) plus the bytes of every media file they reference (video,
-/// image, audio, and SVG stills, keyed by project-relative path). The
-/// same inputs re-render the same digest; any input change re-stamps.
-/// Unreadable files are skipped here — preparation and the audio plan
-/// refuse those with their paths named before any output exists.
-/// One composition reduced to its render-effective inputs (Sprint 12
-/// outputs, CAP-005): the provenance digest hashes this, never the
-/// raw validated form. Every normalization below is proven
-/// render-neutral by an existing byte-identity contract, so forms that
-/// render byte-identically stamp one digest:
-/// - the `canvas` preset name (explicit dimensions win; the effective
-///   size already rides `width`/`height`),
-/// - `duration_inferred` (the model guarantees identical rendering for
-///   written and inferred lengths),
-/// - `label` on every clip (an editor note with no render effect),
-/// - clip `id` when the composition holds no transitions (transitions
-///   address clips by id; without them ids resolve nothing),
-/// - clip `track` when the composition holds no lane grades (the lane
-///   lookup is the only render read of a track),
-/// - hidden clips, dropped with their media (a hidden clip renders as
-///   if absent),
-/// - lone constant-at-base numeric tweens (constant motion draws the
-///   static layout).
-/// Anything else — geometry, media, motion, grades, variables — stays
-/// declared, so a real input change always re-stamps.
-fn effective_comp_for_digest(comp: &Composition) -> Composition {
-    let mut effective = comp.clone();
-    effective.canvas = None;
-    // Motion no-ops fold while document indices still address the
-    // validated clips (hidden clips drop below, shifting nothing yet).
-    let noop: Vec<(usize, String)> = effective
-        .tweens
-        .iter()
-        .filter(|t| render::motion_plan::tween_is_constant_noop(t, &effective))
-        .map(|t| (t.target, t.property.clone()))
-        .collect();
-    effective
-        .tweens
-        .retain(|t| !noop.contains(&(t.target, t.property.clone())));
-    effective.clips.retain(|c| !c.hidden());
-    let strip_ids = effective.transitions.is_empty();
-    let strip_tracks = effective.lane_grades.is_empty();
-    for clip in &mut effective.clips {
-        normalize_clip_for_digest(clip, strip_ids, strip_tracks);
-    }
-    effective
-}
-
-/// One clip reduced to its render-effective inputs (Sprint 12 outputs,
-/// CAP-005): see [`effective_comp_for_digest`] for the contract each
-/// arm serves.
-fn normalize_clip_for_digest(
-    clip: &mut notation::model::Clip,
-    strip_ids: bool,
-    strip_tracks: bool,
-) {
-    use notation::model::{Clip, TrackKind};
-    // (element name for the undeclared-track default, the clip)
-    let normalize = |element: &str,
-                         id: &mut Option<String>,
-                         track: &mut TrackKind,
-                         label: &mut Option<String>| {
-        *label = None;
-        if strip_ids {
-            *id = None;
-        }
-        if strip_tracks {
-            *track = TrackKind::default_for_clip(element);
-        }
-    };
-    match clip {
-        Clip::Text(c) => {
-            normalize("text", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Video(c) => {
-            normalize("video", &mut c.id, &mut c.track, &mut c.label);
-            c.duration_inferred = false;
-        }
-        Clip::Box(c) => {
-            normalize("box", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Flex(c) => {
-            normalize("flex", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Image(c) => {
-            normalize("image", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Path(c) => {
-            normalize("path", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Svg(c) => {
-            normalize("svg", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Audio(c) => {
-            normalize("audio", &mut c.id, &mut c.track, &mut c.label);
-        }
-        Clip::Nest(c) => {
-            // The nest target name stays: it resolves the nested
-            // composition, so it is a real input.
-            normalize("nest", &mut c.id, &mut c.track, &mut c.label);
-        }
-    }
-}
-
-fn composition_inputs_digest(all: &[Composition], folder: &Path) -> String {
-    let mut ordered: Vec<Composition> = all.iter().map(effective_comp_for_digest).collect();
-    ordered.sort_by(|a, b| a.name.cmp(&b.name));
-    let mut canonical = String::new();
-    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
-    for comp in &ordered {
-        canonical.push_str(&format!("{comp:?}\n"));
-        for clip in &comp.clips {
-            let rel: Option<&str> = match clip {
-                notation::model::Clip::Video(c) => Some(&c.path),
-                notation::model::Clip::Image(c) => Some(&c.path),
-                notation::model::Clip::Audio(c) => Some(&c.path),
-                notation::model::Clip::Svg(c) => Some(&c.path),
-                _ => None,
-            };
-            if let Some(rel) = rel {
-                if seen.insert(rel.to_string()) {
-                    if let Ok(bytes) = std::fs::read(folder.join(rel)) {
-                        files.push((rel.to_string(), bytes));
-                    }
-                }
-            }
-        }
-    }
-    render::outputs::provenance_digest(&canonical, &files)
-}
-
 /// One progress line: stdout for human renders, stderr for `--json`
 /// renders so stdout stays pure machine-readable JSON.
 fn stage_line(json: bool, line: &str) {
@@ -4400,6 +4265,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         hdr_transfer: render::outputs::HdrTransfer::Sdr,
         hdr_tone_mapped: false,
         provenance: None,
+        gif_loop: 0,
     };
     // `auto` resolves through the capability probe (T001): the GPU
     // renderer when one is available, else the CPU renderer. The chosen
@@ -5217,7 +5083,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // argv via `opts.encoder()`); the PNG sidecar, the HLS playlist
     // comment, and the GIF warning land after the encode succeeds, so
     // provenance never blocks pixels.
-    let digest = composition_inputs_digest(&verdict.compositions, folder);
+    let digest = render::outputs::composition_inputs_digest(&verdict.compositions, folder);
     opts.provenance = Some(render::outputs::Provenance {
         version: env!("CARGO_PKG_VERSION").to_string(),
         digest,
@@ -12011,7 +11877,7 @@ mod tests {
         let err = resolve_destination(&bad_format).unwrap_err();
         assert!(err.contains("--format"), "{err}");
         assert!(
-            err.contains("mp4, hevc, webm, prores, gif, pngseq, or hls"),
+            err.contains("mp4, hevc, webm, mov, prores, gif, pngseq, or hls"),
             "{err}"
         );
         let bad_combo = RenderRequest {
@@ -12045,13 +11911,13 @@ mod tests {
     fn scale_flags_refuse_unknown_preset_and_range_with_fixes() {
         // An unknown preset names the flag and the accepted values.
         let bad_preset = RenderRequest {
-            resolution: Some("4k".to_string()),
+            resolution: Some("8k".to_string()),
             ..RenderRequest::default()
         };
         let err = resolve_destination(&bad_preset).unwrap_err();
         assert!(err.contains("--resolution"), "{err}");
         assert!(
-            err.contains("source, 1080p, 720p, 480p, or square-1080"),
+            err.contains("source, 1080p, 720p, 480p, square-1080, or 4k"),
             "{err}"
         );
         assert!(err.contains("no output was written"), "{err}");
@@ -12069,7 +11935,7 @@ mod tests {
         // Every scale problem reports at once, alongside format ones.
         let all_bad = RenderRequest {
             format: Some("avi".to_string()),
-            resolution: Some("4k".to_string()),
+            resolution: Some("8k".to_string()),
             supersample: Some("9".to_string()),
             ..RenderRequest::default()
         };

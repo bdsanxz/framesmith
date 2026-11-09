@@ -23,7 +23,8 @@ use notation::model::{
     KeyDecl, PathClip, SetDecl, SvgClip, TextClip, TextSpan, Turn3D, TweenDecl, VideoClip, Wrap,
 };
 
-/// One `--resolution` preset (Sprint 12 outputs, CAP-002).
+/// One `--resolution` preset (Sprint 12 outputs, CAP-002; `4k`
+/// arrives in Sprint 18, T006 for the Renders panel).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Resolution {
     /// Keep the canvas size exactly.
@@ -37,10 +38,12 @@ pub enum Resolution {
     P480,
     /// Fit inside 1080x1080, aspect kept, even sides.
     Square1080,
+    /// Fit inside 3840x2160, aspect kept, even sides.
+    P2160,
 }
 
 impl Resolution {
-    /// Exactly the five accepted spellings; anything else is refused
+    /// Exactly the six accepted spellings; anything else is refused
     /// before the first frame with no output written.
     pub fn parse(raw: &str) -> Option<Self> {
         match raw {
@@ -49,6 +52,7 @@ impl Resolution {
             "720p" => Some(Resolution::P720),
             "480p" => Some(Resolution::P480),
             "square-1080" => Some(Resolution::Square1080),
+            "4k" => Some(Resolution::P2160),
             _ => None,
         }
     }
@@ -60,12 +64,13 @@ impl Resolution {
             Resolution::P720 => "720p",
             Resolution::P480 => "480p",
             Resolution::Square1080 => "square-1080",
+            Resolution::P2160 => "4k",
         }
     }
 
     /// The accepted-values wording every refusal names.
     pub fn accepted() -> &'static str {
-        "source, 1080p, 720p, 480p, or square-1080"
+        "source, 1080p, 720p, 480p, square-1080, or 4k"
     }
 
     /// True for the identity preset (the canvas renders as authored).
@@ -84,6 +89,7 @@ impl Resolution {
             Resolution::P720 => (1280.0, 720.0),
             Resolution::P480 => (854.0, 480.0),
             Resolution::Square1080 => (1080.0, 1080.0),
+            Resolution::P2160 => (3840.0, 2160.0),
         };
         let cw = canvas_w.max(1) as f64;
         let ch = canvas_h.max(1) as f64;
@@ -692,18 +698,19 @@ mod tests {
     }
 
     #[test]
-    fn presets_parse_to_exactly_five_spellings() {
+    fn presets_parse_to_exactly_six_spellings() {
         for (raw, name) in [
             ("source", "source"),
             ("1080p", "1080p"),
             ("720p", "720p"),
             ("480p", "480p"),
             ("square-1080", "square-1080"),
+            ("4k", "4k"),
         ] {
             let r = Resolution::parse(raw).unwrap();
             assert_eq!(r.name(), name, "{raw}");
         }
-        for bad in ["", "SOURCE", "4k", "1080", "720", "square", " 720p "] {
+        for bad in ["", "SOURCE", "8k", "1080", "720", "square", " 720p "] {
             assert_eq!(Resolution::parse(bad), None, "{bad:?}");
         }
         assert!(Resolution::accepted().contains("square-1080"));
@@ -731,6 +738,7 @@ mod tests {
         assert_eq!(Resolution::P720.output_size(160, 120), (960, 720));
         assert_eq!(Resolution::P480.output_size(160, 120), (640, 480));
         assert_eq!(Resolution::Square1080.output_size(160, 120), (1080, 810));
+        assert_eq!(Resolution::P2160.output_size(160, 120), (2880, 2160));
         // Square canvas on the square preset is exact.
         assert_eq!(Resolution::Square1080.output_size(100, 100), (1080, 1080));
         // Odd canvases still land even everywhere (except `source`,
@@ -740,6 +748,7 @@ mod tests {
             Resolution::P720,
             Resolution::P480,
             Resolution::Square1080,
+            Resolution::P2160,
         ] {
             for (cw, ch) in [(161u32, 121u32), (333, 200), (1920, 1081)] {
                 let (w, h) = preset.output_size(cw, ch);

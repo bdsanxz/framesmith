@@ -72,10 +72,13 @@ pub mod variables;
 
 pub use edits::{
     AppliedEdit, ClipRef, EditOp, EditPreview, EditRefusal, EditRefusalKind, KeyStopInput,
-    NewElement, Patch, PatchOffender, PersistReport, RedoReceipt, RevertOp, UndoEntry, UndoListing,
-    UndoReceipt, E_SDK_BAD_VALUE, E_SDK_BROKEN_TURN, E_SDK_GUARD_HELD, E_SDK_NOTHING_TO_REDO,
-    E_SDK_NOTHING_TO_UNDO, E_SDK_PREVIEW, E_SDK_READ_ONLY, E_SDK_UNKNOWN_TARGET, E_SDK_UNSUPPORTED,
-    E_SDK_UNWRITABLE, MAX_UNDO_ENTRIES, SDK_OVERRIDES_FILE, SDK_OVERRIDES_VERSION,
+    LaneEdit, NewElement, PastedKey, PastedSet, PastedTween, Patch, PatchOffender, PersistReport,
+    RedoReceipt, RevertOp, UndoEntry,
+    group_name_of_label,
+    UndoListing, UndoReceipt, E_SDK_BAD_VALUE, E_SDK_BROKEN_TURN, E_SDK_GUARD_HELD,
+    E_SDK_NOTHING_TO_REDO, E_SDK_NOTHING_TO_UNDO, E_SDK_PREVIEW, E_SDK_READ_ONLY,
+    E_SDK_UNKNOWN_TARGET, E_SDK_UNSUPPORTED, E_SDK_UNWRITABLE, MAX_UNDO_ENTRIES,
+    SDK_OVERRIDES_FILE, SDK_OVERRIDES_VERSION,
 };
 pub use rows::{
     canonical_row_property, row_availability, row_default_value, row_live_value, RowAvailability,
@@ -85,7 +88,7 @@ pub use history::{
     BeginOptions, HistoryListing, HistoryRefusal, HistoryRefusalKind, RestoreReceipt, TurnDetail,
     TurnHandle, TurnReceipt, TurnRecord, TurnSummary, UndoTurnReceipt, E_SDK_HISTORY_UNAVAILABLE,
     E_SDK_HISTORY_UNWRITABLE, E_SDK_MISSING_BACKUP, E_SDK_MISSING_TARGET, E_SDK_NO_TURN,
-    E_SDK_NO_TURN_IN_EFFECT,
+    E_SDK_NO_TURN_IN_EFFECT, record_file_turn,
 };
 pub use timeline::{
     format_rows_human, parse_set_property, parse_time_expr, rows_of, SetProperty, TimeExpr,
@@ -93,10 +96,11 @@ pub use timeline::{
 };
 pub use variables::{
     DeclaredVariable, OverrideDeltaReport, StagedVariable, VariableInput, VariableOffender,
-    VariablePersistReport, VariableRecord, VariableRefusal, VariableRefusalKind, VariableUse,
-    E_SDK_BAD_VARIABLE, E_SDK_INVALID_VARIABLES, E_SDK_UNKNOWN_VARIABLE, SDK_VARIABLES_FILE,
-    SDK_VARIABLES_VERSION, SDK_VARIABLE_OVERRIDES_FILE, STAGED_DECLARATIONS_FILE,
-    STAGED_OVERRIDES_FILE,
+    VariablePersistOutcome, VariablePersistReport, VariableRecord, VariableRefusal,
+    VariableRefusalKind, VariableUse, E_SDK_BAD_VARIABLE, E_SDK_INVALID_VARIABLES,
+    E_SDK_UNKNOWN_VARIABLE, SDK_VARIABLES_FILE, SDK_VARIABLES_VERSION,
+    SDK_VARIABLE_OVERRIDES_FILE, STAGED_DECLARATIONS_FILE, STAGED_OVERRIDES_FILE,
+    STRICT_DEFAULTLESS_MARKER, STRICT_UNUSED_MARKER,
 };
 
 use std::collections::BTreeMap;
@@ -256,10 +260,19 @@ pub struct SdkSession {
     dropped: u64,
     dirty: bool,
     next_seq: u64,
+    /// Delta operations replay-skipped at open because they scope to
+    /// another composition (Sprint 18, T008): persisting rewrites
+    /// these ahead of this session's own patches, so sibling
+    /// timelines keep their turns while this one records its own.
+    skipped: Vec<edits::EditOp>,
     pub(crate) variable_decls: Vec<variables::StagedVariable>,
     pub(crate) persisted_var_overrides: validate::validate::VariableOverrides,
     pub(crate) staged_var_overrides: validate::validate::VariableOverrides,
     pub(crate) last_verb_patches: usize,
+    /// True while a staged declaration was removed since the last
+    /// variable persist: the declaration delta rewrites even with
+    /// nothing newly staged, so removals land on disk.
+    pub(crate) variables_pruned: bool,
 }
 
 impl SdkSession {
@@ -375,7 +388,20 @@ impl SdkSession {
         let delta_ops = edits::read_overrides_file(folder)?;
         let mut comp = comp;
         let mut replayed: Vec<edits::Patch> = Vec::new();
+        let mut skipped: Vec<edits::EditOp> = Vec::new();
         for (i, op) in delta_ops.iter().enumerate() {
+            // Composition-scoped operations (Sprint 18, T008
+            // clipboard pastes and cuts) replay only while their own
+            // timeline is open: sibling timelines skip them, keeping
+            // cross-composition moves from leaking clips anywhere.
+            // Skipped operations persist back ahead of this session's
+            // own patches, so no timeline loses its turns.
+            if let Some(scope) = edits::op_composition_scope(op) {
+                if comp.name != scope && comp.id.as_deref() != Some(scope) {
+                    skipped.push(op.clone());
+                    continue;
+                }
+            }
             let inverse =
                 edits::apply_forward(&mut comp, op).map_err(|e| OpenRefusal {
                     kind: RefusalKind::Invalid,
@@ -551,10 +577,12 @@ impl SdkSession {
             dropped,
             dirty: false,
             next_seq,
+            skipped,
             variable_decls,
             persisted_var_overrides,
             staged_var_overrides: BTreeMap::new(),
             last_verb_patches: 0,
+            variables_pruned: false,
         })
     }
 
@@ -1021,7 +1049,11 @@ impl SdkSession {
             });
         }
         let staged = self.edits.iter().filter(|p| !p.persisted).count();
-        let ops: Vec<edits::EditOp> = self.edits.iter().map(|p| p.op.clone()).collect();
+        // Sibling-timeline operations skipped at open persist back
+        // ahead of this session's own patches (Sprint 18, T008), so
+        // recording one timeline never drops another's turns.
+        let mut ops: Vec<edits::EditOp> = self.skipped.clone();
+        ops.extend(self.edits.iter().map(|p| p.op.clone()));
         edits::write_overrides_file(&self.folder, &ops).map_err(|why| edits::EditRefusal {
             kind: edits::EditRefusalKind::Unwritable,
             code: edits::E_SDK_UNWRITABLE,

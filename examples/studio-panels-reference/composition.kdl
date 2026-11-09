@@ -1,0 +1,27 @@
+composition name="main" root=true width=320 height=180 duration=4 fps=10 background="#112233" version=1 {
+    variable id="accent" type="color" default="#ff3366"
+    variable id="tagline" type="string" default="Hello panels"
+    text id="hero" value="var(--tagline)" start=0 duration=4 x=10 y=10 size=24 color="var(--accent, #ffffff)" letter-spacing=2
+    image id="pic" path="media/card.png" start=0 duration=4 x=230 y=10 width=80 height=45
+    box id="card" x=10 y=100 width=120 height=50 fill="#ffffff" start=0 duration=4
+    box id="badge" x=150 y=100 width=100 height=50 fill="#00ff00" start=0 duration=4
+    audio id="music" path="s.wav" start=0 duration=2 volume=-6
+    tween target=0 property="opacity" kind="to" start=0 duration=2 to=0.5 ease="linear"
+    key target=0 property="opacity" {
+        frame at=0 value=0
+        frame at=4 value=1
+    }
+    key target=4 property="volume" {
+        frame at=0 value=1
+        frame at=1 value=0.8
+        frame at=2 value=0.6
+    }
+    set target=3 property="x" start=0 duration=1 value=15
+}
+composition name="b-roll" width=320 height=180 duration=2 fps=15 background="#223344" version=1 {
+    text id="yo" value="B roll" start=0 duration=2 x=10 y=40 size=24 color="#ffffff"
+    key target=0 property="opacity" {
+        frame at=0 value=0.2
+        frame at=2 value=1
+    }
+}

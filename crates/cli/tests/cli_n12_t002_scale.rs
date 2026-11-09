@@ -499,13 +499,13 @@ fn unknown_preset_fails_naming_accepted_values() {
     let root = tmp("bad-preset");
     project(&root);
     let (code, out) = run(
-        &["render", "proj", "--resolution", "4k", "-o", "x.mp4"],
+        &["render", "proj", "--resolution", "8k", "-o", "x.mp4"],
         &root,
     );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--resolution"), "{out}");
     assert!(
-        out.contains("source, 1080p, 720p, 480p, or square-1080"),
+        out.contains("source, 1080p, 720p, 480p, square-1080, or 4k"),
         "{out}"
     );
     assert!(out.contains("no output was written"), "{out}");

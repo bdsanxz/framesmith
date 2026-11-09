@@ -1,4 +1,4 @@
-//! Output destinations (Sprint 12 outputs, T001): the seven `--format`
+//! Output destinations (Sprint 12 outputs, T001): the eight `--format`
 //! values one composition can deliver, plus the `--prores-profile`
 //! choice for ProRes MOVs.
 //!
@@ -11,7 +11,8 @@
 
 use std::path::{Path, PathBuf};
 
-/// One `--format` destination (Sprint 12 outputs, CAP-001).
+/// One `--format` destination (Sprint 12 outputs, CAP-001; `mov` and
+/// the Renders panel surface arrive in Sprint 18, T006).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OutputFormat {
     /// H.264 MP4 (the historical default, unchanged).
@@ -21,6 +22,8 @@ pub enum OutputFormat {
     Hevc,
     /// VP9 WebM (keeps alpha when the composition has any).
     Webm,
+    /// H.264 MOV (QuickTime container, AAC audio; Sprint 18, T006).
+    Mov,
     /// ProRes MOV (`--prores-profile` picks the profile).
     Prores,
     /// Looping GIF (palette-fixed, deterministic).
@@ -32,13 +35,14 @@ pub enum OutputFormat {
 }
 
 impl OutputFormat {
-    /// Exactly the seven accepted spellings; anything else is refused
+    /// Exactly the eight accepted spellings; anything else is refused
     /// before the first frame with no output written.
     pub fn parse(raw: &str) -> Option<Self> {
         match raw {
             "mp4" => Some(OutputFormat::Mp4),
             "hevc" => Some(OutputFormat::Hevc),
             "webm" => Some(OutputFormat::Webm),
+            "mov" => Some(OutputFormat::Mov),
             "prores" => Some(OutputFormat::Prores),
             "gif" => Some(OutputFormat::Gif),
             "pngseq" => Some(OutputFormat::PngSeq),
@@ -52,6 +56,7 @@ impl OutputFormat {
             OutputFormat::Mp4 => "mp4",
             OutputFormat::Hevc => "hevc",
             OutputFormat::Webm => "webm",
+            OutputFormat::Mov => "mov",
             OutputFormat::Prores => "prores",
             OutputFormat::Gif => "gif",
             OutputFormat::PngSeq => "pngseq",
@@ -61,7 +66,7 @@ impl OutputFormat {
 
     /// The accepted-values wording every refusal names.
     pub fn accepted() -> &'static str {
-        "mp4, hevc, webm, prores, gif, pngseq, or hls"
+        "mp4, hevc, webm, mov, prores, gif, pngseq, or hls"
     }
 
     /// Default output file name (or directory name for sequences) when
@@ -71,6 +76,7 @@ impl OutputFormat {
             OutputFormat::Mp4 => "out.mp4",
             OutputFormat::Hevc => "out.mp4",
             OutputFormat::Webm => "out.webm",
+            OutputFormat::Mov => "out.mov",
             OutputFormat::Prores => "out.mov",
             OutputFormat::Gif => "out.gif",
             OutputFormat::PngSeq => "frames",
@@ -85,6 +91,7 @@ impl OutputFormat {
             OutputFormat::Mp4 => "mp4",
             OutputFormat::Hevc => "mp4",
             OutputFormat::Webm => "webm",
+            OutputFormat::Mov => "mov",
             OutputFormat::Prores => "mov",
             OutputFormat::Gif => "gif",
             OutputFormat::PngSeq => "png",
@@ -133,7 +140,7 @@ impl OutputFormat {
         match self {
             OutputFormat::Mp4 | OutputFormat::Hevc => "mp4",
             OutputFormat::Webm => "webm",
-            OutputFormat::Prores => "mov",
+            OutputFormat::Mov | OutputFormat::Prores => "mov",
             OutputFormat::Gif => "gif",
             OutputFormat::PngSeq => "image2",
             OutputFormat::Hls => "hls",
@@ -249,7 +256,7 @@ pub fn maxrate_bufsize(maxrate: &str) -> String {
 /// `videotoolbox` there refuses while `auto` quietly encodes software.
 pub fn hardware_encoder_for(format: OutputFormat) -> Option<&'static str> {
     match format {
-        OutputFormat::Mp4 | OutputFormat::Hls => Some("h264_videotoolbox"),
+        OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls => Some("h264_videotoolbox"),
         OutputFormat::Hevc => Some("hevc_videotoolbox"),
         OutputFormat::Webm | OutputFormat::Prores | OutputFormat::Gif | OutputFormat::PngSeq => {
             None
@@ -419,7 +426,7 @@ pub fn detect_transfer(text: &str) -> HdrTransfer {
 pub fn format_carries_hdr(format: OutputFormat) -> bool {
     matches!(
         format,
-        OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Hls
+        OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Mov | OutputFormat::Hls
     )
 }
 
@@ -584,7 +591,11 @@ pub fn provenance_digest(canonical: &str, files: &[(String, Vec<u8>)]) -> String
 pub fn format_embeds_provenance(format: OutputFormat) -> bool {
     matches!(
         format,
-        OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Webm | OutputFormat::Prores
+        OutputFormat::Mp4
+            | OutputFormat::Hevc
+            | OutputFormat::Webm
+            | OutputFormat::Mov
+            | OutputFormat::Prores
     )
 }
 
@@ -647,7 +658,7 @@ pub fn provenance_sidecar_for_seq(dir: &Path) -> PathBuf {
 /// or an HLS directory holding the playlist plus its segments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolvedOutput {
-    /// A single output file (mp4, hevc, webm, prores, gif).
+    /// A single output file (mp4, hevc, webm, mov, prores, gif).
     File { path: PathBuf },
     /// A directory holding `frame-%04d.png`.
     PngSeq { dir: PathBuf },
@@ -859,7 +870,7 @@ pub fn check_format_encoders(ffmpeg_bin: &Path, format: OutputFormat) -> Result<
 /// so the argv asks for the opaque format directly.
 pub fn video_pix_fmt(format: OutputFormat, profile: ProresProfile) -> Option<&'static str> {
     match format {
-        OutputFormat::Mp4 | OutputFormat::Hevc => Some("yuv420p"),
+        OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Mov => Some("yuv420p"),
         OutputFormat::Webm => Some("yuv420p"),
         OutputFormat::Prores => Some(profile.pix_fmt()),
         OutputFormat::Gif => None,
@@ -873,7 +884,9 @@ pub fn video_pix_fmt(format: OutputFormat, profile: ProresProfile) -> Option<&'s
 /// experimental on current FFmpeg builds), PCM in MOV.
 pub fn audio_codec(format: OutputFormat) -> Option<&'static str> {
     match format {
-        OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Hls => Some("aac"),
+        OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Mov | OutputFormat::Hls => {
+            Some("aac")
+        }
         OutputFormat::Webm => Some("libopus"),
         OutputFormat::Prores => Some("pcm_s16le"),
         OutputFormat::Gif | OutputFormat::PngSeq => None,
@@ -949,7 +962,7 @@ pub fn encode_args_for(
     // reaches this builder (never the pinned one), so it rides the
     // HEVC axes exactly like `--format hevc`.
     match format {
-        OutputFormat::Hevc | OutputFormat::Hls | OutputFormat::Mp4 => {
+        OutputFormat::Hevc | OutputFormat::Hls | OutputFormat::Mp4 | OutputFormat::Mov => {
             if software_quality {
                 args.push("-crf".into());
                 args.push(enc.crf.to_string());
@@ -1013,7 +1026,7 @@ pub fn encode_args_for(
     let pix_out = if hdr != HdrTransfer::Sdr
         && matches!(
             format,
-            OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Hls
+            OutputFormat::Mp4 | OutputFormat::Hevc | OutputFormat::Mov | OutputFormat::Hls
         ) {
         Some("yuv420p10le")
     } else {
@@ -1039,6 +1052,30 @@ pub fn encode_args_for(
                 ]);
             }
         }
+        OutputFormat::Mov => {
+            // QuickTime MOV (Sprint 18, T006): H.264 with AAC, like
+            // the MP4 default but in the MOV container; an HDR source
+            // rides HEVC Main10 BT.2020 exactly like HDR MP4.
+            if hdr != HdrTransfer::Sdr {
+                args.extend([
+                    "-c:v".into(),
+                    "libx265".into(),
+                    "-pix_fmt".into(),
+                    pix_out.unwrap_or("yuv420p10le").into(),
+                    "-tag:v".into(),
+                    "hvc1".into(),
+                    "-x265-params".into(),
+                    x265_hdr_params(hdr).into(),
+                ]);
+            } else {
+                args.extend([
+                    "-c:v".into(),
+                    hw_codec.unwrap_or("libx264").into(),
+                    "-pix_fmt".into(),
+                    pix_out.unwrap_or("yuv420p").into(),
+                ]);
+            }
+        }
         OutputFormat::Webm => {
             args.extend([
                 "-c:v".into(),
@@ -1058,11 +1095,13 @@ pub fn encode_args_for(
             ]);
         }
         OutputFormat::Gif => {
+            // The loop count rides the job (`0` means forever, the
+            // historical default when no count is chosen).
             args.extend([
                 "-vf".into(),
                 "split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse".into(),
                 "-loop".into(),
-                "0".into(),
+                enc.gif_loop.to_string(),
             ]);
         }
         OutputFormat::PngSeq => {
@@ -1132,10 +1171,11 @@ pub fn encode_args_for(
             }
             args.extend(["-t".into(), format!("{duration}")]);
             // Every MP4 reaching this builder is HDR (SDR returns
-            // pinned), so it faststarts exactly like HEVC.
+            // pinned), so it faststarts exactly like HEVC; MOV
+            // faststarts like its MP4 sibling.
             if matches!(
                 format,
-                OutputFormat::Hevc | OutputFormat::Prores | OutputFormat::Mp4
+                OutputFormat::Hevc | OutputFormat::Prores | OutputFormat::Mp4 | OutputFormat::Mov
             ) {
                 args.extend(["-movflags".into(), "+faststart".into()]);
             }
@@ -1176,6 +1216,146 @@ pub fn encode_args_for(
         }
     }
     args
+}
+
+/// Digest of the composition inputs for one render (Sprint 12
+/// outputs, CAP-005; shared with the Sprint 18 Renders panel): a
+/// canonical encoding of every validated composition in the project
+/// (sorted by name, so `nest` targets ride along) plus the bytes of
+/// every media file they reference (video, image, audio, and SVG
+/// stills, keyed by project-relative path). The same inputs re-render
+/// the same digest; any input change re-stamps. Unreadable files are
+/// skipped here — preparation and the audio plan refuse those with
+/// their paths named before any output exists.
+pub fn composition_inputs_digest(
+    all: &[notation::model::Composition],
+    folder: &Path,
+) -> String {
+    let mut ordered: Vec<notation::model::Composition> =
+        all.iter().map(effective_comp_for_digest).collect();
+    ordered.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut canonical = String::new();
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
+    for comp in &ordered {
+        canonical.push_str(&format!("{comp:?}\n"));
+        for clip in &comp.clips {
+            let rel: Option<&str> = match clip {
+                notation::model::Clip::Video(c) => Some(&c.path),
+                notation::model::Clip::Image(c) => Some(&c.path),
+                notation::model::Clip::Audio(c) => Some(&c.path),
+                notation::model::Clip::Svg(c) => Some(&c.path),
+                _ => None,
+            };
+            if let Some(rel) = rel {
+                if seen.insert(rel.to_string()) {
+                    if let Ok(bytes) = std::fs::read(folder.join(rel)) {
+                        files.push((rel.to_string(), bytes));
+                    }
+                }
+            }
+        }
+    }
+    provenance_digest(&canonical, &files)
+}
+
+/// One composition reduced to its render-effective inputs (Sprint 12
+/// outputs, CAP-005): the provenance digest hashes this, never the
+/// raw validated form. Every normalization below is proven
+/// render-neutral by an existing byte-identity contract, so forms that
+/// render byte-identically stamp one digest:
+/// - the `canvas` preset name (explicit dimensions win; the effective
+///   size already rides `width`/`height`),
+/// - `duration_inferred` (the model guarantees identical rendering for
+///   written and inferred lengths),
+/// - `label` on every clip (an editor note with no render effect),
+/// - clip `id` when the composition holds no transitions (transitions
+///   address clips by id; without them ids resolve nothing),
+/// - clip `track` when the composition holds no lane grades (the lane
+///   lookup is the only render read of a track),
+/// - hidden clips, dropped with their media (a hidden clip renders as
+///   if absent),
+/// - lone constant-at-base numeric tweens (constant motion draws the
+///   static layout).
+/// Anything else — geometry, media, motion, grades, variables — stays
+/// declared, so a real input change always re-stamps.
+pub fn effective_comp_for_digest(comp: &notation::model::Composition) -> notation::model::Composition {
+    let mut effective = comp.clone();
+    effective.canvas = None;
+    // Motion no-ops fold while document indices still address the
+    // validated clips (hidden clips drop below, shifting nothing yet).
+    let noop: Vec<(usize, String)> = effective
+        .tweens
+        .iter()
+        .filter(|t| crate::motion_plan::tween_is_constant_noop(t, &effective))
+        .map(|t| (t.target, t.property.clone()))
+        .collect();
+    effective
+        .tweens
+        .retain(|t| !noop.contains(&(t.target, t.property.clone())));
+    effective.clips.retain(|c| !c.hidden());
+    let strip_ids = effective.transitions.is_empty();
+    let strip_tracks = effective.lane_grades.is_empty();
+    for clip in &mut effective.clips {
+        normalize_clip_for_digest(clip, strip_ids, strip_tracks);
+    }
+    effective
+}
+
+/// One clip reduced to its render-effective inputs (Sprint 12 outputs,
+/// CAP-005): see [`effective_comp_for_digest`] for the contract each
+/// arm serves.
+pub fn normalize_clip_for_digest(
+    clip: &mut notation::model::Clip,
+    strip_ids: bool,
+    strip_tracks: bool,
+) {
+    use notation::model::{Clip, TrackKind};
+    // (element name for the undeclared-track default, the clip)
+    let normalize = |element: &str,
+                       id: &mut Option<String>,
+                       track: &mut TrackKind,
+                       label: &mut Option<String>| {
+        *label = None;
+        if strip_ids {
+            *id = None;
+        }
+        if strip_tracks {
+            *track = TrackKind::default_for_clip(element);
+        }
+    };
+    match clip {
+        Clip::Text(c) => {
+            normalize("text", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Video(c) => {
+            normalize("video", &mut c.id, &mut c.track, &mut c.label);
+            c.duration_inferred = false;
+        }
+        Clip::Box(c) => {
+            normalize("box", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Flex(c) => {
+            normalize("flex", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Image(c) => {
+            normalize("image", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Path(c) => {
+            normalize("path", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Svg(c) => {
+            normalize("svg", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Audio(c) => {
+            normalize("audio", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Nest(c) => {
+            // The nest target name stays: it resolves the nested
+            // composition, so it is a real input.
+            normalize("nest", &mut c.id, &mut c.track, &mut c.label);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1225,11 +1405,12 @@ mod tests {
     }
 
     #[test]
-    fn formats_parse_to_exactly_seven_spellings() {
+    fn formats_parse_to_exactly_eight_spellings() {
         for (raw, want) in [
             ("mp4", OutputFormat::Mp4),
             ("hevc", OutputFormat::Hevc),
             ("webm", OutputFormat::Webm),
+            ("mov", OutputFormat::Mov),
             ("prores", OutputFormat::Prores),
             ("gif", OutputFormat::Gif),
             ("pngseq", OutputFormat::PngSeq),
@@ -1238,7 +1419,7 @@ mod tests {
             assert_eq!(OutputFormat::parse(raw), Some(want), "{raw}");
             assert_eq!(OutputFormat::parse(raw).unwrap().name(), raw);
         }
-        for bad in ["", "MP4", "avi", "mov", "av1", " mp4 "] {
+        for bad in ["", "MP4", "avi", "av1", " mp4 "] {
             assert_eq!(OutputFormat::parse(bad), None, "{bad:?}");
         }
         assert!(OutputFormat::accepted().contains("pngseq"));
@@ -1476,6 +1657,55 @@ mod tests {
         assert!(!joined.contains("-c:a"), "{joined}");
         assert!(joined.contains("-an"), "{joined}");
         assert!(!joined.contains("anullsrc"), "{joined}");
+    }
+
+    #[test]
+    fn mov_argv_writes_h264_with_aac_in_mov() {
+        let comp = tiny_comp();
+        let target = file_target(OutputFormat::Mov);
+        let args = encode_args_for(
+            OutputFormat::Mov,
+            ProresProfile::Standard,
+            &comp,
+            &[],
+            None,
+            &target,
+            &standard_enc(),
+            comp.duration,
+            (comp.width, comp.height),
+        );
+        let joined = args.join(" ");
+        for flag in ["libx264", "yuv420p", "aac", "+faststart", "-f mov"] {
+            assert!(joined.contains(flag), "{joined}");
+        }
+        assert!(!joined.contains("libx265"), "{joined}");
+        assert!(!joined.contains("-f mp4"), "{joined}");
+    }
+
+    #[test]
+    fn gif_argv_honors_the_chosen_loop_count() {
+        use super::super::render::RenderOptions;
+        let comp = tiny_comp();
+        let target = file_target(OutputFormat::Gif);
+        let looping = RenderOptions {
+            gif_loop: 3,
+            ..RenderOptions::default()
+        }
+        .encoder();
+        let args = encode_args_for(
+            OutputFormat::Gif,
+            ProresProfile::Standard,
+            &comp,
+            &[],
+            None,
+            &target,
+            &looping,
+            comp.duration,
+            (comp.width, comp.height),
+        );
+        let joined = args.join(" ");
+        assert!(joined.contains("-loop 3"), "{joined}");
+        assert!(!joined.contains("-loop 0"), "{joined}");
     }
 
     #[test]

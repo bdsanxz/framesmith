@@ -8,7 +8,7 @@ use std::fmt;
 
 /// Frames per second: an integer or an exact rational (e.g. `30000/1001`).
 /// Decimal fps values are rejected by validation, never stored here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Fps {
     pub num: u64,
     pub den: u64,
@@ -42,7 +42,7 @@ impl fmt::Display for Fps {
 }
 
 /// 8-bit RGB color parsed from `#rgb` / `#rrggbb`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Rgb {
     pub r: u8,
     pub g: u8,
@@ -87,7 +87,7 @@ pub fn parse_color(s: &str) -> Option<Rgb> {
 
 /// Sprint 1 video placement modes. Unknown spellings are invalid (T003/T012
 /// boundary: never stretch silently on a misspelled fit).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Fit {
     Contain,
     Cover,
@@ -110,7 +110,7 @@ impl Fit {
 /// undeclared tracks default by element kind (video to video, audio
 /// to audio, everything else to graphics). Unknown spellings are
 /// refused, never guessed into a lane.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TrackKind {
     Video,
     Audio,
@@ -155,7 +155,7 @@ impl TrackKind {
 
 /// Horizontal alignment of wrapped text lines (Sprint 1 `align` key).
 /// Only these three spellings are valid; anything else is a diagnostic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Align {
     Left,
     Center,
@@ -176,7 +176,7 @@ impl Align {
 /// Font style (Sprint 1 `font-style` key): regular, bold, italic, or
 /// bold-italic. System faces resolve to the matching variant file;
 /// project and bitmap faces synthesize the style (faux bold/italic).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum FontStyle {
     Regular,
     Bold,
@@ -199,7 +199,7 @@ impl FontStyle {
 /// Word-wrap mode (Sprint 1 `wrap` key): off, or a positive wrap width
 /// in canvas pixels. Lines break at spaces; words longer than the
 /// width overflow rather than splitting mid-word.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Wrap {
     Off,
     Width(f64),
@@ -211,7 +211,7 @@ pub enum Wrap {
 /// Resolution (T002) turns this into an absolute `start`; validation
 /// refuses self-reference, cycles, unknown ids, before-zero results,
 /// and absolute-plus-relative ambiguity.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StartAfter {
     /// Referenced clip or composition id, as written.
     pub target: String,
@@ -226,7 +226,7 @@ pub struct StartAfter {
 /// (Sprint 7 motion, CAP-009): `chars` splits per Unicode scalar value,
 /// `words` splits on whitespace runs (joined with single spaces),
 /// `lines` splits on newlines. Only `text` clips carry a split.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SplitMode {
     Chars,
     Words,
@@ -258,7 +258,7 @@ impl SplitMode {
 /// A named composition instant (Sprint 7 motion, CAP-003): a `mark`
 /// element names one time in seconds that `start-after` accepts as a
 /// target, resolving to that instant plus any `start-offset`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MarkDecl {
     /// Mark name, unique across the project like an `id`.
     pub name: String,
@@ -274,7 +274,7 @@ pub struct MarkDecl {
 /// `perspective` (finite positive pixels; `None` renders flat with
 /// orthographic foreshortening). The identity (both angles zero) draws
 /// exactly as before, with or without a perspective.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Turn3D {
     pub rotation_x: f64,
     pub rotation_y: f64,
@@ -323,7 +323,7 @@ impl Turn3D {
 /// infers the direction from the first strong character. Only these
 /// three spellings are valid; anything else is a diagnostic naming
 /// this set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TextDirection {
     Ltr,
     Rtl,
@@ -362,7 +362,7 @@ impl TextDirection {
 /// its text in `value`, in nested `span` children (which inherit the
 /// span's own overrides), or both (the value paints first, then the
 /// children in order); a span with neither is refused.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TextSpan {
     pub value: String,
     pub font_family: Option<Vec<String>>,
@@ -384,7 +384,7 @@ pub struct TextSpan {
 /// not written; an unwritten assertion never fires. Audio clips carry
 /// no picture, so they carry no assertions (an assertion child on an
 /// audio clip is refused at validation).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct MotionAsserts {
     /// `assert-appear by=<seconds>`: the clip must first show no later
     /// than `by` seconds. `None` means unwritten.
@@ -409,7 +409,7 @@ impl MotionAsserts {
 /// One validated `assert-appear` child: the deadline in composition
 /// seconds plus the assertion site, so the finding names the element
 /// and the measured appearance time.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AssertAppear {
     /// The `by` deadline in composition seconds (finite, >= 0).
     pub by: f64,
@@ -421,7 +421,7 @@ pub struct AssertAppear {
 /// One validated `assert-inside` or `assert-moving` child: a flag
 /// assertion carrying only its site, so the finding names the element
 /// and the measured bounds or stillness.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AssertSite {
     /// Location of the assertion child node.
     pub line: usize,
@@ -432,7 +432,7 @@ pub struct AssertSite {
 /// line height and letter spacing, plus Sprint 6 id/track/label, plus
 /// Sprint 7 split/typewriter/count text effects, plus Sprint 8 styled
 /// `span` runs with a base `direction`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TextClip {
     /// Motion assertions of the clip (Sprint 13 check, T003): the
     /// validated `assert-appear`, `assert-inside`, and `assert-moving`
@@ -537,7 +537,7 @@ pub struct TextClip {
 /// `volume_db` (dB, `-inf` is exact silence) and linear
 /// `fade_in`/`fade_out` (seconds) applied, sample-aligned with
 /// the picture. Without declared keys the sound mixes at unity gain.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VideoClip {
     pub asserts: MotionAsserts,
     pub path: String,
@@ -625,7 +625,7 @@ pub struct VideoClip {
 /// pair, and `none` hard-cuts (the outgoing clip stops where the
 /// incoming starts). Written `crossfade`; default `constant-power`.
 /// Unknown spellings are refused, never guessed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum Crossfade {
     #[default]
     ConstantPower,
@@ -638,7 +638,7 @@ pub enum Crossfade {
 /// peak guarding, applied as one overall gain. Absent means the mix
 /// renders at its authored levels. Unknown spellings are refused,
 /// never guessed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum Normalize {
     #[default]
     None,
@@ -696,7 +696,7 @@ impl Crossfade {
 /// clip scales to `amount` (0..1); outside the window it plays full.
 /// Voice activity is read from timeline windows only, never from
 /// signal detection, so ducking is deterministic by construction.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DuckUnder {
     /// Voice clip id, as written.
     pub target: String,
@@ -713,7 +713,7 @@ pub struct DuckUnder {
 /// mixer, `reverb` a deterministic room tail, and `detect-silence`
 /// with its thresholds reports pauses in `check` without altering
 /// audio. Defaults render dry and detect nothing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SoundFx {
     /// Echo spacing in composition seconds (0..2); 0 bypasses delay.
     pub delay: f64,
@@ -859,7 +859,7 @@ impl SoundFx {
 /// within `waveform-from`/`waveform-to` (composition seconds,
 /// defaulting to the clip window). An empty or backward drawn range
 /// is refused; a range past the clip window clamps to it and reports.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WaveformDraw {
     /// Whether the clip's sound shape draws on the canvas.
     pub enabled: bool,
@@ -896,7 +896,7 @@ impl Default for WaveformDraw {
 /// A resolved on-canvas sound range (Sprint 10 sound, CAP-010): the
 /// written range plus its clamp to the audible clip window. The
 /// drawing spans `[eff_from, eff_to)` mapped across the canvas width.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WaveformRange {
     /// Written range start in composition seconds.
     pub raw_from: f64,
@@ -913,7 +913,7 @@ pub struct WaveformRange {
 /// Why one drawn range cannot render (Sprint 10 sound, CAP-010,
 /// REC-002): the clip has no audible window, the written range is
 /// empty or backward, or it lies fully outside the clip window.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum WaveformRangeError {
     EmptyWindow,
     EmptyOrBackward,
@@ -986,7 +986,7 @@ pub const MAX_NEST_DEPTH: usize = 8;
 /// amplitude ramps in seconds over the clip window. An omitted
 /// `duration` resolves to `(trim_end − trim_start) ÷ rate` using the
 /// probed source end, exactly like video inference.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AudioClip {
     pub path: String,
     pub start: f64,
@@ -1046,20 +1046,20 @@ pub struct AudioClip {
 
 /// Placement of an image (or video) inside its target rect, equivalent
 /// to `object-position`: horizontal plus vertical alignment.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Placement {
     pub x: PlaceH,
     pub y: PlaceV,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum PlaceH {
     Left,
     Center,
     Right,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum PlaceV {
     Top,
     Center,
@@ -1134,7 +1134,7 @@ impl Placement {
 /// CAP-001): `row` flows children left to right, `column` top to
 /// bottom. Only these two spellings are valid; anything else is a
 /// diagnostic naming this set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FlexDirection {
     Row,
     Column,
@@ -1164,7 +1164,7 @@ impl FlexDirection {
 /// CAP-001): `start` packs children at the cross start, `center`
 /// centers each child across the content box, `end` packs them at the
 /// cross end, and `stretch` grows each child across the content box.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FlexAlign {
     Start,
     Center,
@@ -1200,7 +1200,7 @@ impl FlexAlign {
 /// CAP-001): `start` packs children at the main start, `center`
 /// centers the row or column in the leftover space, and `end` packs
 /// it at the main end.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FlexJustify {
     Start,
     Center,
@@ -1233,7 +1233,7 @@ impl FlexJustify {
 /// child of a `linear-gradient` or `radial-gradient` fill. `offset`
 /// runs 0 (gradient start) to 1 (gradient end); `color` is the stop
 /// color. Neighboring stops interpolate in sRGB, channel by channel.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GradientStop {
     pub offset: f64,
     pub color: Rgb,
@@ -1244,7 +1244,7 @@ pub struct GradientStop {
 /// Non-solid fill of a `box` clip (Sprint 8 look, CAP-003/T003): one
 /// `linear-gradient`, `radial-gradient`, or `image-fill` child element.
 /// `Solid` keeps the authored `fill` color, exactly as before this task.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FillPaint {
     Solid,
     /// Linear gradient across the element box: `angle` in CSS degrees
@@ -1286,7 +1286,7 @@ impl FillPaint {
 /// border behavior, and the default, so existing boxes render
 /// byte-identically), `center` straddles the edge, and `outside` rings
 /// the outer edge. Only these three spellings are valid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum StrokePosition {
     Center,
     #[default]
@@ -1320,7 +1320,7 @@ impl StrokePosition {
 /// CAP-004/T004): `normal` paints source-over, `multiply`, `screen`,
 /// and `overlay` blend channel by channel before the element alpha
 /// composites. Only these four spellings are valid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum BlendMode {
     #[default]
     Normal,
@@ -1358,7 +1358,7 @@ impl BlendMode {
 /// edge, `hidden` and `clip` cut fill and stroke at the rounded-rect
 /// box (the shadow still paints outside). Only these three spellings
 /// are valid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum Overflow {
     #[default]
     Visible,
@@ -1392,7 +1392,7 @@ impl Overflow {
 /// CAP-005/T005): `nonzero` fills contours by nonzero winding (the
 /// SVG default), `evenodd` alternates fill across nested contours.
 /// Only these two spellings are valid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum FillRule {
     #[default]
     NonZero,
@@ -1425,7 +1425,7 @@ impl FillRule {
 /// pixels, blurred by `blur` sigma pixels, grown by `spread` pixels,
 /// in `color`. Written as one attribute:
 /// `box-shadow="8 8 12 0 #000000"`, or `box-shadow="none"`.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct BoxShadow {
     pub offset_x: f64,
     pub offset_y: f64,
@@ -1439,7 +1439,7 @@ pub struct BoxShadow {
 /// masks this element. Forward references are allowed; dangling
 /// references and cycles refuse before frame one. The referenced box
 /// still paints normally; it additionally lends its shape as a mask.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MaskRef {
     pub target: String,
     pub line: usize,
@@ -1450,7 +1450,7 @@ pub struct MaskRef {
 /// (Sprint 8 look, CAP-004/T004): the referenced box's authored box in
 /// canvas pixels. The masked element renders self-first, then its
 /// alpha multiplies by this shape's coverage exactly once.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MaskShape {
     pub x: f64,
     pub y: f64,
@@ -1469,7 +1469,7 @@ pub struct MaskShape {
 /// the stroke paints above the fill at its position, the blend
 /// composites with the layers beneath, overflow clips the body at the
 /// box, and the mask applies once over self-first content.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BoxClip {
     pub asserts: MotionAsserts,
     pub start: f64,
@@ -1554,7 +1554,7 @@ pub struct BoxClip {
 /// a box-sized item with its own paint. The position comes from the
 /// container layout, never from authored `x`/`y`; the window comes
 /// from the container, never from authored timing keys.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FlexChild {
     /// Base main-axis size in canvas pixels (width in a row, height
     /// in a column) before `flex-grow` shares the free space.
@@ -1585,7 +1585,7 @@ pub struct FlexChild {
 /// `align-items` places children across the content box and
 /// `justify-content` distributes leftover space along it. Children
 /// inherit the container window and are positioned by the layout.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FlexClip {
     pub asserts: MotionAsserts,
     pub start: f64,
@@ -1650,7 +1650,7 @@ pub struct FlexClip {
 /// about its own top-left and `rotation` turns it about its own
 /// center, exactly like a box about its box. Shadow offsets, blur,
 /// and spread stay in canvas pixels and never scale.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PathClip {
     pub asserts: MotionAsserts,
     pub start: f64,
@@ -1731,7 +1731,7 @@ pub struct PathClip {
 /// unreadable, or corrupt file is refused; animations inside the SVG
 /// (SMIL, script) never play — the first frame's still picture
 /// renders.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SvgClip {
     pub asserts: MotionAsserts,
     pub path: String,
@@ -1786,7 +1786,7 @@ pub struct SvgClip {
 /// still-GIF, or SVG source placed with a fit and a placement inside
 /// its target rect. Pointing `image` at an animated GIF is refused;
 /// animations play in a `video` clip.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ImageClip {
     pub asserts: MotionAsserts,
     pub path: String,
@@ -1837,7 +1837,7 @@ pub struct ImageClip {
 }
 
 /// A project `font` declaration. The file must exist when declared.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FontDecl {
     pub path: String,
     pub line: usize,
@@ -1847,7 +1847,7 @@ pub struct FontDecl {
 /// The form of a `tween` (T003): `to` moves from the authored value to
 /// the given value, `from` moves from the given value to the authored
 /// value, and `from-to` moves between the two given values.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TweenKind {
     To,
     From,
@@ -1877,7 +1877,7 @@ impl TweenKind {
 /// set): the nineteen named curves of `CAP-009`, parameterized
 /// `out-back(n)`, and the full curve set (`cubic-bezier`, `steps`,
 /// `spring`, `bounce`, `elastic`, `wiggle`, `hold`).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EaseDecl {
     Linear,
     InQuad,
@@ -1970,7 +1970,7 @@ impl EaseDecl {
 /// Where staggered piece delays are measured from (Sprint 7 motion,
 /// CAP-002): the first piece, the middle, or the last piece.
 /// Written `stagger-from` (or `stagger_from`); default `start`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StaggerOrigin {
     Start,
     Center,
@@ -1991,7 +1991,7 @@ impl StaggerOrigin {
 /// in `cols` columns (rows derived from the piece count, at least the
 /// declared `rows` when written `colsxrows`). Written `stagger-grid`
 /// (or `stagger_grid`) as `<columns>` or `<columns>x<rows>`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StaggerGrid {
     pub cols: usize,
     pub rows: Option<usize>,
@@ -2006,7 +2006,7 @@ pub const REPEAT_MAX: u32 = 1000;
 /// A validated `tween` directive (T003): smooth motion of one property
 /// of one clip over a half-open window. Drawing (T009/T010/T012)
 /// evaluates these; validation only guarantees they are well-defined.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TweenDecl {
     /// Document index of the target clip.
     pub target: usize,
@@ -2069,7 +2069,7 @@ pub struct TweenDecl {
 /// of one clip over a half-open window, with no easing and no blending.
 /// Drawing (T011) evaluates these; validation only guarantees they are
 /// well-defined.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SetDecl {
     /// Document index of the target clip.
     pub target: usize,
@@ -2087,7 +2087,7 @@ pub struct SetDecl {
 /// stop (none means the key easing, then linear). The last stop's easing
 /// is accepted and ignored: no segment leaves it. A path stop carries
 /// `path` instead of `value` (Sprint 7 motion, CAP-008).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct KeyStop {
     pub at: f64,
     pub value: f64,
@@ -2108,7 +2108,7 @@ pub struct KeyStop {
 /// property of one clip through at least two `frame` stops in time
 /// order. Drawing evaluates each stop-to-stop segment with its own
 /// easing; validation only guarantees the stops are well-defined.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct KeyDecl {
     /// Document index of the target clip.
     pub target: usize,
@@ -2241,7 +2241,7 @@ pub const SHAPE_NUMERIC_PROPERTIES: [&str; 4] = ["width", "height", "radius", "b
 /// the content end the picture holds the child's last state while its
 /// sound goes silent. The child's paint orders ride shifted by the
 /// nest's own `order`, so the use stacks as one unit.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NestClip {
     pub asserts: MotionAsserts,
     /// Name of the nested composition, as written.
@@ -2296,7 +2296,7 @@ pub struct NestClip {
 /// base look a `grade` applies before its adjust attributes. Only
 /// these six spellings are valid; anything else is refused, never
 /// guessed into a look.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum GradePreset {
     /// No preset look; the adjust attributes (if any) shape the pixels.
     #[default]
@@ -2390,7 +2390,7 @@ pub const GRADE_GRAIN_PEAK: f64 = 48.0;
 /// below middle gray, `highlights` above, `midtones` as a bell
 /// between); every band is optional and a missing band inherits the
 /// outer level, never zeroes.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct WheelGrade {
     /// Lift of dark tones; none means inherit.
     pub shadows: Option<f64>,
@@ -2412,7 +2412,7 @@ impl WheelGrade {
 /// (`"0,0 0.5,0.6 1,1"`: whitespace-separated `x,y` pairs) remapping
 /// that channel; `master` remaps every channel before the per-channel
 /// lists. A missing channel inherits the outer level.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct CurveGrade {
     /// Red-channel points; none means inherit.
     pub red: Option<Vec<(f64, f64)>>,
@@ -2476,7 +2476,7 @@ pub fn parse_curve_points(s: &str) -> Option<Vec<(f64, f64)>> {
 /// saturation reaches the `saturation` floor take the `lightness`
 /// shift; every other pixel passes through. Every key is optional and
 /// a missing key inherits the outer level.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct HslGrade {
     /// Hue window start in degrees; none means inherit.
     pub hue_min: Option<f64>,
@@ -2503,7 +2503,7 @@ impl HslGrade {
 /// black; `softness` widens the falloff from the corners toward the
 /// center (the center pixel itself never moves). Both keys are optional
 /// and a missing key inherits the outer level.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct VignetteGrade {
     /// Corner darkening strength; none means inherit.
     pub amount: Option<f64>,
@@ -2523,7 +2523,7 @@ impl VignetteGrade {
 /// pixels into square cells sharing one value, and `seed` picks the
 /// deterministic pattern (omitted seeds use [`GRADE_DEFAULT_GRAIN_SEED`]).
 /// Every key is optional and a missing key inherits the outer level.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct GrainGrade {
     /// Visibility amount; none means inherit.
     pub amount: Option<f64>,
@@ -2558,7 +2558,7 @@ pub const LUT_MAX_GRID_SIZE: usize = 33;
 /// grid (0 passes through, 1 applies fully). Both keys are optional
 /// and a missing key inherits the outer level, like every other
 /// stage; a bare `lut` is the identity.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct LutGrade {
     /// `.cube` file path; none means inherit.
     pub src: Option<String>,
@@ -2577,7 +2577,7 @@ impl LutGrade {
 /// `size` grid points per axis over the declared domain (unit by
 /// default), `values` in R-fastest order (`(b * size + g) * size + r`),
 /// absolute output triplets in the same domain.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LutTable {
     /// Grid points per axis (2 to [`LUT_MAX_GRID_SIZE`]).
     pub size: usize,
@@ -2845,7 +2845,7 @@ pub fn parse_cube(text: &str) -> Result<LutTable, String> {
 /// preset stage for that level inward; an omitted `preset` inherits it.
 /// Detail stages (`wheel`, `curve`, `hsl`, `vignette`, `grain`,
 /// `lut`) layer the same way, piece by piece.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Grade {
     pub preset: Option<GradePreset>,
     /// Exposure shift in EV (×2^exposure); none means inherit.
@@ -2901,7 +2901,7 @@ impl Grade {
 /// One lane-group grade (Sprint 11 grade, CAP-001/T001): a `lane`
 /// element naming one track whose clips all inherit `grade` between
 /// the composition grade (outer) and their own clip grade (inner).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LaneGrade {
     pub track: TrackKind,
     pub grade: Grade,
@@ -2910,7 +2910,7 @@ pub struct LaneGrade {
 /// One resolved `wheel` stage (Sprint 11 grade, CAP-001/T002): the
 /// inward-out merge of every level's `wheel` bands. All zeros is the
 /// identity: no tonal lift anywhere.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedWheel {
     /// Lift of dark tones.
     pub shadows: f64,
@@ -2950,7 +2950,7 @@ impl ResolvedWheel {
 /// inward-out merge of every level's `curve` channels. An inner level
 /// replaces a whole channel list; a missing channel inherits it. Empty
 /// lists everywhere are the identity: channels pass through.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedCurve {
     /// Red-channel points.
     pub red: Vec<(f64, f64)>,
@@ -2993,7 +2993,7 @@ impl ResolvedCurve {
 /// One resolved `hsl` stage (Sprint 11 grade, CAP-001/T002): the
 /// inward-out merge of every level's `hsl` keys. A zero `lightness` is
 /// the identity whatever the selection holds: nothing shifts.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedHsl {
     /// Hue window start in degrees.
     pub hue_min: f64,
@@ -3036,7 +3036,7 @@ impl ResolvedHsl {
 /// One resolved `vignette` stage (Sprint 11 grade, CAP-001/T002): the
 /// inward-out merge of every level's `vignette` knobs. A zero `amount`
 /// is the identity whatever `softness` holds: corners keep their light.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedVignette {
     /// Corner darkening strength.
     pub amount: f64,
@@ -3071,7 +3071,7 @@ impl ResolvedVignette {
 /// One resolved `grain` stage (Sprint 11 grade, CAP-001/T002): the
 /// inward-out merge of every level's `grain` knobs. A zero `amount` is
 /// the identity whatever `size` or `seed` hold: pixels stay clean.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedGrain {
     /// Visibility amount.
     pub amount: f64,
@@ -3115,7 +3115,7 @@ impl ResolvedGrain {
 /// materializes at frame time from the resolved `src`; an unloaded
 /// grid (`None`) also passes through, so only the render resolve
 /// step (which loads the grid before drawing) applies the file.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedLut {
     /// `.cube` file path; none means no import.
     pub src: Option<String>,
@@ -3162,7 +3162,7 @@ impl ResolvedLut {
 /// stages is the identity: pixels pass through untouched. Detail
 /// stages run after the T001 chain in the fixed spec order: wheels,
 /// curves, HSL, LUT, vignette, grain.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ResolvedGrade {
     pub preset: GradePreset,
     pub exposure: f64,
@@ -3699,7 +3699,7 @@ impl ResolvedGrade {
 /// the stylistic vocabulary (`effect preset="..."`) applied after the
 /// grade chain in document order. Only these eighteen spellings are
 /// valid; anything else is refused, never guessed into a look.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum EffectPreset {
     Grayscale,
     Sepia,
@@ -3882,7 +3882,7 @@ pub const EFFECT_KEYS: [&str; 14] = [
 /// at its documented default. Only the authoring preset's own keys
 /// are ever set; any other key on the preset is refused at check
 /// time, so render never reads a foreign field.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct EffectParams {
     /// `brightness` preset factor; none means the default.
     pub brightness: Option<f64>,
@@ -3977,7 +3977,7 @@ impl EffectParams {
 /// full-strength look (0 passes through pixel-identical to the effect
 /// removed, 1 applies it fully); unmentioned parameters render at
 /// their documented defaults.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Effect {
     pub preset: EffectPreset,
     /// Blend amount from 0 (pass-through) to 1 (full look).
@@ -4054,7 +4054,7 @@ pub const VFX_STAGES: [&str; 4] = ["noise", "warp", "displacement", "luma-matte"
 /// achromatic per-pixel noise scaled by `amount`, patterned by
 /// `seed` (absent means the fixed default seed, never wall-clock
 /// randomness).
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct VfxNoise {
     pub amount: f64,
     pub seed: Option<i64>,
@@ -4076,7 +4076,7 @@ impl VfxNoise {
 /// One authored `warp` VFX stage (Sprint 11 VFX, CAP-004/T005): a
 /// smooth deterministic warp field over `grid`-pixel cells peaking at
 /// `strength` canvas pixels of offset, blended by `amount`.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct VfxWarp {
     pub amount: f64,
     pub grid: Option<u32>,
@@ -4103,7 +4103,7 @@ impl VfxWarp {
 /// the `map` picture's channels steer the offset (red steers x, green
 /// steers y) peaking at `scale` canvas pixels, blended by `amount`.
 /// An omitted `map` steers by the layer's own luma on both axes.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct VfxDisplacement {
     pub amount: f64,
     pub map: Option<String>,
@@ -4127,7 +4127,7 @@ impl VfxDisplacement {
 /// the `src` picture's luma scales the layer alpha toward a cutout,
 /// blended by `amount` (0 passes through pixel-identical to the
 /// stage removed, 1 cuts fully to the matte).
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct VfxLumaMatte {
     pub amount: f64,
     pub src: String,
@@ -4149,7 +4149,7 @@ impl VfxLumaMatte {
 /// order. A missing stage is skipped, never zeroed; an inert stage
 /// (`amount` 0, or a zero `strength`/`scale`) renders
 /// pixel-identical to the chain written without it.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct VfxChain {
     pub noise: Option<VfxNoise>,
     pub warp: Option<VfxWarp>,
@@ -4255,7 +4255,7 @@ impl VfxChain {
 /// must fit inside both clips' ranges. Neither clip's range moves and
 /// the timeline length is unchanged; downstream start times render
 /// exactly as without the transition.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Transition {
     /// Outgoing clip id, as written.
     pub from: String,
@@ -4275,7 +4275,7 @@ pub struct Transition {
 /// moving shape (or a full-frame blend for the dissolve family); the
 /// `css-` gallery composites the incoming picture over the outgoing
 /// one while fading it in (opacity plus rise, sink, zoom, or slide).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TransitionKind {
     Fade,
     Dissolve,
@@ -4382,7 +4382,7 @@ impl TransitionKind {
 /// shutter window's own motion (fraction of pixels differing between
 /// the window endpoints) and scales the count to it, so a still window
 /// draws exactly once; the named tiers cap the count outright.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum MotionBlurTier {
     Auto,
     High,
@@ -4422,7 +4422,7 @@ impl MotionBlurTier {
 /// ending at frame time), so content moving along its motion vectors
 /// smears in its direction of travel. `None` on the composition means
 /// blur off: frames draw through the exact pre-blur path.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MotionBlur {
     /// Shutter angle in degrees, 0–360. 0 opens no window, so the
     /// frame draws sharp exactly like blur off.
@@ -4471,7 +4471,7 @@ impl MotionBlur {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Clip {
     Text(TextClip),
     Video(VideoClip),
@@ -4774,7 +4774,7 @@ pub const CONFIG_FILE: &str = "framesmith.toml";
 /// name. Names use expression identifier syntax (letters, digits,
 /// underscores, no leading digit), are unique per composition, and
 /// never collide with `t`, `i`, constants, or function names.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct InputDecl {
     /// Declared name, as written.
     pub name: String,
@@ -4789,7 +4789,7 @@ pub struct InputDecl {
 /// an optional default. Bindings (`var(--id)`, T002), caller
 /// overrides (T003), strict reporting (T004), themes (T005), and
 /// batch rows (T006) compose on top of this vocabulary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum VariableType {
     String,
     Number,
@@ -4836,7 +4836,7 @@ impl VariableType {
 /// the declared `default` coerced to the declaration's type.
 /// `None` on the declaration means default-less (a later slice
 /// requires a caller value for it under strict validation).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum VariableDefault {
     Str(String),
     Num(f64),
@@ -4852,7 +4852,7 @@ pub enum VariableDefault {
 }
 
 /// One `variable` declaration (Sprint 9 variables, CAP-001).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VariableDecl {
     /// Declared id, unique across the project.
     pub id: String,
@@ -4873,7 +4873,7 @@ pub struct VariableDecl {
 /// clones of one template clip, in document order starting at clip
 /// `first`. Clone `k` exposes piece index `i = k` to expressions
 /// (and to stagger distributions).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct ReplicateGroup {
     /// Document index of the first clone.
     pub first: usize,
@@ -4882,7 +4882,7 @@ pub struct ReplicateGroup {
 }
 
 /// Validated composition root (CAP-002 / T003).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Composition {
     pub name: String,
     /// Stable reference name (`id`), unique across the project when written.
@@ -5010,7 +5010,7 @@ pub fn clamped_window(start: f64, duration: f64, composition_duration: f64) -> O
 /// untouched. The effective overlap clamps the raw overlap to
 /// composition time; `clamped` marks a partial cut, reported in
 /// `check` for review.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SoundOverlap {
     /// Document index of the earlier-starting clip.
     pub early: usize,

@@ -115,6 +115,26 @@ fn refused(kind: VariableRefusalKind, code: &'static str, message: String) -> Va
     }
 }
 
+/// The shared blocked-persistence refusal: validation reports
+/// `offenders`, so nothing was saved — no partial save.
+fn invalid_variables_refusal(offenders: &[VariableOffender]) -> VariableRefusal {
+    let mut message = format!(
+        "sdk refused: variable validation reports {} offender(s); persistence is blocked with nothing saved.",
+        offenders.len()
+    );
+    for o in offenders {
+        message.push_str(&format!(
+            "\n{} {}:{}:{} {}",
+            o.rule, o.file, o.line, o.column, o.message
+        ));
+    }
+    refused(
+        VariableRefusalKind::Invalid,
+        E_SDK_INVALID_VARIABLES,
+        message,
+    )
+}
+
 /// One variable declaration authored through the SDK (Sprint 15,
 /// T004): the `id`, the `type` (one of the seven declared types), the
 /// `default` as authored text (a font default is one comma-separated
@@ -177,6 +197,66 @@ pub struct VariableUse {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OverrideDeltaReport {
     pub applied: Vec<String>,
+}
+
+/// Marker of the strict unused-variable diagnostic (`check`
+/// CAP-004): a pre-existing disk declaration with no binding.
+/// Panels list it as an unused warning, never a blocker.
+pub const STRICT_UNUSED_MARKER: &str = "`--strict-variables` refuses unused variable";
+
+/// Marker of the strict default-less diagnostic (`check`
+/// CAP-004): a pre-existing disk declaration with no value from
+/// any source. Panels list it as a warning, never a blocker.
+pub const STRICT_DEFAULTLESS_MARKER: &str = "`--strict-variables` refuses default-less variable";
+
+/// Whether one hard offender is pre-existing disk variable
+/// health (see markers): tolerated as a listed warning, never a
+/// persist blocker. Staged files never carry these markers.
+fn is_disk_health_advisory(offender: &VariableOffender) -> bool {
+    offender.file != STAGED_DECLARATIONS_FILE
+        && offender.file != STAGED_OVERRIDES_FILE
+        && (offender.message.starts_with(STRICT_UNUSED_MARKER)
+            || offender.message.starts_with(STRICT_DEFAULTLESS_MARKER))
+}
+
+/// Split hard offenders into persist blockers and tolerated disk
+/// health: failed rules, duplicates, and unknown or mistyped
+/// staged values block writing nothing; pre-existing disk
+/// unused and default-less diagnostics persist as warnings —
+/// callers list them but cannot fix them through the staged
+/// change (their declarations live in the KDL sources), so
+/// blocking the staged change on them would deadlock panel
+/// flows.
+fn partition_hard_offenders(
+    hard: Vec<VariableOffender>,
+) -> (Vec<VariableOffender>, Vec<VariableOffender>) {
+    let mut blocking = Vec::new();
+    let mut advisory = Vec::new();
+    for offender in hard {
+        if is_disk_health_advisory(&offender) {
+            advisory.push(offender);
+        } else {
+            blocking.push(offender);
+        }
+    }
+    advisory.sort_by(|a, b| {
+        (&a.file, a.line, a.column, &a.rule, &a.message)
+            .cmp(&(&b.file, b.line, b.column, &b.rule, &b.message))
+    });
+    (blocking, advisory)
+}
+
+/// What [`crate::SdkSession::persist_variables_with_warnings`] wrote
+/// and warned: the strict write report plus the advisory (soft)
+/// offenders the caller lists instead of blocking on — an unused
+/// declaration persists as a warning, never a refusal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VariablePersistOutcome {
+    /// Staged declarations and overrides written by this persist.
+    pub report: VariablePersistReport,
+    /// Advisory offenders (staged-but-never-bound and
+    /// default-less-without-value), sorted for display.
+    pub warnings: Vec<VariableOffender>,
 }
 
 /// What [`crate::SdkSession::persist_variables`] wrote.
@@ -1105,6 +1185,167 @@ impl crate::SdkSession {
         Ok(read_back)
     }
 
+    /// Edit one SDK-staged declaration (Sprint 18, variables panel):
+    /// the same rule checks as [`SdkSession::declare_variable`] run
+    /// first (id syntax, known type, options shape, default
+    /// type-checked with font try-order preserved and image presence
+    /// verified), then the staged record rewrites in memory and the
+    /// open composition entry follows. Nothing is written to disk;
+    /// [`SdkSession::persist_variables`](crate::SdkSession::persist_variables)
+    /// saves the rewrite later. A refused edit names
+    /// [`E_SDK_BAD_VARIABLE`] with the rule and the fix, changing
+    /// nothing. An id with no staged record refuses: an on-disk
+    /// declaration lives in its KDL source (edit the `variable`
+    /// element there), an unknown id names
+    /// [`E_SDK_UNKNOWN_VARIABLE`]. Renaming (an input id differing
+    /// from `id`) keeps uniqueness across the project. Read-only
+    /// sessions refuse with `E_SDK_READ_ONLY`; preview sessions edit
+    /// normally and refuse only at persist.
+    pub fn edit_variable(
+        &mut self,
+        id: &str,
+        input: VariableInput,
+    ) -> Result<DeclaredVariable, VariableRefusal> {
+        if !self.persist {
+            return Err(read_only_refusal());
+        }
+        let pos = self.variable_decls.iter().position(|s| s.raw.id == id);
+        let Some(pos) = pos else {
+            if self.disk_variable_ids().contains(id) {
+                return Err(refused(
+                    VariableRefusalKind::BadVariable,
+                    E_SDK_BAD_VARIABLE,
+                    format!(
+                        "sdk refused: variable `--{id}` lives in the project sources, not in the staged set; edit the `variable id=\"{id}\"` element in its KDL source. Nothing was staged, applied, or recorded."
+                    ),
+                ));
+            }
+            return Err(refused(
+                VariableRefusalKind::UnknownVariable,
+                E_SDK_UNKNOWN_VARIABLE,
+                format!(
+                    "sdk refused: the staged set declares no variable `--{id}`; no `variable` in the project declares it either. Declare it with `declare_variable` first. Nothing was staged, applied, or recorded."
+                ),
+            ));
+        };
+        let options_list = input
+            .options
+            .as_deref()
+            .map(split_list)
+            .filter(|l| !l.is_empty());
+        let record = VariableRecord {
+            id: input.id.clone(),
+            var_type: input.var_type.clone(),
+            default: input.default.clone(),
+            label: input.label.clone(),
+            options: options_list,
+        };
+        if record.id != id {
+            let mut taken = self.disk_variable_ids();
+            for (i, staged) in self.variable_decls.iter().enumerate() {
+                if i != pos {
+                    taken.insert(staged.raw.id.clone());
+                }
+            }
+            if taken.contains(&record.id) {
+                return Err(refused(
+                    VariableRefusalKind::BadVariable,
+                    E_SDK_BAD_VARIABLE,
+                    format!(
+                        "sdk refused: variable `--{}` is already declared in the project; `id` values stay unique across the project. Nothing was staged, applied, or recorded.",
+                        record.id
+                    ),
+                ));
+            }
+        }
+        let decl = record_to_decl(&self.folder, &record).map_err(|(rule, message, fix)| {
+            refused(
+                VariableRefusalKind::BadVariable,
+                E_SDK_BAD_VARIABLE,
+                format!("sdk refused: {message} (rule {rule}; fix: {fix}). Nothing was staged, applied, or recorded."),
+            )
+        })?;
+        let read_back = DeclaredVariable {
+            id: decl.id.clone(),
+            var_type: decl.var_type.name().to_string(),
+            default: decl.default.as_ref().map(canonical_default_text),
+            label: decl.label.clone(),
+        };
+        self.variable_decls[pos] = StagedVariable {
+            raw: record,
+            persisted: false,
+        };
+        if let Some(slot) = self.composition.variables.iter_mut().find(|d| d.id == id) {
+            *slot = decl;
+        } else {
+            self.composition.variables.push(decl);
+        }
+        Ok(read_back)
+    }
+
+    /// Remove one SDK-staged declaration (Sprint 18, variables
+    /// panel): the staged record drops in memory and the open
+    /// composition entry follows; [`SdkSession::persist_variables`](crate::SdkSession::persist_variables)
+    /// saves the removal later. A variable still referenced by
+    /// `var(--id)` in the project sources refuses with
+    /// [`E_SDK_BAD_VARIABLE`] listing every reference, removing
+    /// nothing. An id with no staged record refuses like
+    /// [`SdkSession::edit_variable`]: on-disk declarations live in
+    /// their KDL source, unknown ids name
+    /// [`E_SDK_UNKNOWN_VARIABLE`]. Read-only sessions refuse with
+    /// `E_SDK_READ_ONLY`; preview sessions remove normally and
+    /// refuse only at persist.
+    pub fn remove_variable(&mut self, id: &str) -> Result<VariableRecord, VariableRefusal> {
+        if !self.persist {
+            return Err(read_only_refusal());
+        }
+        let pos = self.variable_decls.iter().position(|s| s.raw.id == id);
+        let Some(pos) = pos else {
+            if self.disk_variable_ids().contains(id) {
+                return Err(refused(
+                    VariableRefusalKind::BadVariable,
+                    E_SDK_BAD_VARIABLE,
+                    format!(
+                        "sdk refused: variable `--{id}` lives in the project sources, not in the staged set; remove the `variable id=\"{id}\"` element in its KDL source. Nothing was staged, applied, or recorded."
+                    ),
+                ));
+            }
+            return Err(refused(
+                VariableRefusalKind::UnknownVariable,
+                E_SDK_UNKNOWN_VARIABLE,
+                format!(
+                    "sdk refused: the staged set declares no variable `--{id}`; no `variable` in the project declares it either, so there is nothing to remove. Nothing was staged, applied, or recorded."
+                ),
+            ));
+        };
+        let mut uses: Vec<VariableUse> = scan_folder(&self.folder)
+            .into_iter()
+            .filter(|u| u.variable == id)
+            .collect();
+        uses.sort_by(|a, b| {
+            (&a.file, a.line, a.column, &a.attribute).cmp(&(&b.file, b.line, b.column, &b.attribute))
+        });
+        if !uses.is_empty() {
+            let list = uses
+                .iter()
+                .map(|u| format!("{}:{}:{} (`{}`)", u.file, u.line, u.column, u.attribute))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(refused(
+                VariableRefusalKind::BadVariable,
+                E_SDK_BAD_VARIABLE,
+                format!(
+                    "sdk refused: variable `--{id}` is still in use by {}; unbind every reference first, then remove it. Nothing was staged, applied, or recorded.",
+                    list
+                ),
+            ));
+        }
+        let staged = self.variable_decls.remove(pos);
+        self.composition.variables.retain(|d| d.id != id);
+        self.variables_pruned = true;
+        Ok(staged.raw)
+    }
+
     /// Every variable declaration visible in this session: on-disk
     /// declarations plus staged records on the open composition, in
     /// that order. Override deltas never mutate these defaults.
@@ -1131,7 +1372,62 @@ impl crate::SdkSession {
     /// by file, line, column, rule, and message so repeated runs
     /// agree.
     pub fn validate_variables(&self) -> Vec<VariableOffender> {
+        let (mut hard, soft) = self.variable_offenders();
+        hard.extend(soft);
+        hard.sort_by(|a, b| {
+            (&a.file, a.line, a.column, &a.rule, &a.message)
+                .cmp(&(&b.file, b.line, b.column, &b.rule, &b.message))
+        });
+        hard
+    }
+
+    /// Blocking offenders only (Sprint 18, variables panel): failed
+    /// rules, duplicates, unknown or mistyped staged overrides, and
+    /// disk diagnostics — everything
+    /// [`SdkSession::persist_variables_with_warnings`](crate::SdkSession::persist_variables_with_warnings)
+    /// refuses on. Staged-but-never-bound and
+    /// default-less-without-value advisories are excluded: those
+    /// persist as warnings. Sorted by file, line, column, rule, and
+    /// message so repeated runs agree.
+    pub fn variable_hard_offenders(&self) -> Vec<VariableOffender> {
+        let (mut hard, _) = self.variable_offenders();
+        hard.sort_by(|a, b| {
+            (&a.file, a.line, a.column, &a.rule, &a.message)
+                .cmp(&(&b.file, b.line, b.column, &b.rule, &b.message))
+        });
+        hard
+    }
+
+    /// Persist-blocking offenders only (Sprint 18, variables
+    /// panel): [`SdkSession::variable_hard_offenders`](crate::SdkSession::variable_hard_offenders)
+    /// minus tolerated disk health (strict unused and default-less
+    /// diagnostics, which persist as listed warnings instead of
+    /// deadlocking panel flows). Sorted like the hard list.
+    pub fn variable_blocking_offenders(&self) -> Vec<VariableOffender> {
+        let (mut blocking, _) = partition_hard_offenders(self.variable_hard_offenders());
+        blocking.sort_by(|a, b| {
+            (&a.file, a.line, a.column, &a.rule, &a.message)
+                .cmp(&(&b.file, b.line, b.column, &b.rule, &b.message))
+        });
+        blocking
+    }
+
+    /// The same offender set as
+    /// [`SdkSession::validate_variables`](crate::SdkSession::validate_variables),
+    /// split into blocking (`hard`) and advisory (`soft`) offenders.
+    /// Hard offenders are failed rules: disk diagnostics, duplicate
+    /// or invalid staged declarations, and unknown or mistyped
+    /// staged override values — persistence is blocked while any
+    /// stands. Soft offenders are staged declarations that validate
+    /// yet have no effect yet: never-bound and default-less-without-
+    /// value. [`SdkSession::persist_variables`](crate::SdkSession::persist_variables)
+    /// blocks on both; panel persistence
+    /// ([`SdkSession::persist_variables_with_warnings`](crate::SdkSession::persist_variables_with_warnings))
+    /// blocks on hard offenders and returns soft ones as warnings to
+    /// list. Each list is unsorted; callers sort for display.
+    fn variable_offenders(&self) -> (Vec<VariableOffender>, Vec<VariableOffender>) {
         let mut out: Vec<VariableOffender> = Vec::new();
+        let mut soft: Vec<VariableOffender> = Vec::new();
         let merged = self.variable_overrides();
         let verdict = validate::validate::validate_folder_with_variables_strict_themed(
             &self.folder,
@@ -1199,7 +1495,7 @@ impl crate::SdkSession {
                 }),
                 Ok(decl) => {
                     if !bound.contains(&decl.id) && !merged.contains_key(&decl.id) {
-                        out.push(VariableOffender {
+                        soft.push(VariableOffender {
                             rule: "E_BAD_VARIABLE".to_string(),
                             file: STAGED_DECLARATIONS_FILE.to_string(),
                             line: 0,
@@ -1215,7 +1511,7 @@ impl crate::SdkSession {
                         });
                     }
                     if decl.default.is_none() && !merged.contains_key(&decl.id) {
-                        out.push(VariableOffender {
+                        soft.push(VariableOffender {
                             rule: "E_BAD_VARIABLE".to_string(),
                             file: STAGED_DECLARATIONS_FILE.to_string(),
                             line: 0,
@@ -1263,11 +1559,7 @@ impl crate::SdkSession {
                 }
             }
         }
-        out.sort_by(|a, b| {
-            (&a.file, a.line, a.column, &a.rule, &a.message)
-                .cmp(&(&b.file, b.line, b.column, &b.rule, &b.message))
-        });
-        out
+        (out, soft)
     }
 
     /// Scan every `var(--id)` reference across the project's KDL
@@ -1384,6 +1676,52 @@ impl crate::SdkSession {
     /// `E_SDK_READ_ONLY`, an unwritable hidden directory with
     /// `E_SDK_UNWRITABLE`.
     pub fn persist_variables(&mut self) -> Result<VariablePersistReport, VariableRefusal> {
+        self.check_persist_capability()?;
+        let offenders = self.validate_variables();
+        if !offenders.is_empty() {
+            return Err(invalid_variables_refusal(&offenders));
+        }
+        self.write_staged_variables()
+    }
+
+    /// Persist staged declarations and override deltas, returning
+    /// advisory warnings (Sprint 18, variables panel): blocking
+    /// offenders (failed rules, duplicates, unknown or mistyped
+    /// staged overrides, non-health disk diagnostics) refuse with
+    /// [`E_SDK_INVALID_VARIABLES`] writing nothing — exactly like
+    /// [`SdkSession::persist_variables`](crate::SdkSession::persist_variables).
+    /// Soft offenders (staged-but-never-bound and
+    /// default-less-without-value declarations) plus tolerated
+    /// disk health (strict unused and default-less diagnostics)
+    /// persist anyway and return as warnings for the caller to
+    /// list on the panel: an unused declaration is a warning,
+    /// never a second store and never a silent drop. Capability
+    /// refusals (`E_SDK_PREVIEW`, `E_SDK_READ_ONLY`,
+    /// `E_SDK_UNWRITABLE`) match the strict path.
+    pub fn persist_variables_with_warnings(
+        &mut self,
+    ) -> Result<VariablePersistOutcome, VariableRefusal> {
+        self.check_persist_capability()?;
+        let (hard, mut soft) = self.variable_offenders();
+        let (blocking, mut advisory) = partition_hard_offenders(hard);
+        if !blocking.is_empty() {
+            return Err(invalid_variables_refusal(&blocking));
+        }
+        soft.append(&mut advisory);
+        soft.sort_by(|a, b| {
+            (&a.file, a.line, a.column, &a.rule, &a.message)
+                .cmp(&(&b.file, b.line, b.column, &b.rule, &b.message))
+        });
+        let report = self.write_staged_variables()?;
+        Ok(VariablePersistOutcome {
+            report,
+            warnings: soft,
+        })
+    }
+
+    /// Capability gate shared by both persist paths: preview and
+    /// read-only sessions refuse before validation runs.
+    fn check_persist_capability(&self) -> Result<(), VariableRefusal> {
         if self.preview {
             return Err(refused(
                 VariableRefusalKind::Preview,
@@ -1394,24 +1732,15 @@ impl crate::SdkSession {
         if !self.persist {
             return Err(read_only_refusal());
         }
-        let offenders = self.validate_variables();
-        if !offenders.is_empty() {
-            let mut message = format!(
-                "sdk refused: variable validation reports {} offender(s); persistence is blocked with nothing saved.",
-                offenders.len()
-            );
-            for o in &offenders {
-                message.push_str(&format!(
-                    "\n{} {}:{}:{} {}",
-                    o.rule, o.file, o.line, o.column, o.message
-                ));
-            }
-            return Err(refused(
-                VariableRefusalKind::Invalid,
-                E_SDK_INVALID_VARIABLES,
-                message,
-            ));
-        }
+        Ok(())
+    }
+
+    /// Whole-log rewrite of the staged declaration and override
+    /// deltas, shared by both persist paths. Composition sources
+    /// stay byte-identical and no render output is produced.
+    /// A removal since the last persist rewrites the declaration
+    /// delta even with nothing newly staged, so removals land.
+    fn write_staged_variables(&mut self) -> Result<VariablePersistReport, VariableRefusal> {
         let staged_records: Vec<VariableRecord> = self
             .variable_decls
             .iter()
@@ -1419,7 +1748,8 @@ impl crate::SdkSession {
             .map(|s| s.raw.clone())
             .collect();
         let staged_overrides = self.staged_var_overrides.len();
-        if staged_records.is_empty() && staged_overrides == 0 {
+        let pruned = self.variables_pruned;
+        if staged_records.is_empty() && staged_overrides == 0 && !pruned {
             return Ok(VariablePersistReport {
                 declarations: 0,
                 overrides: 0,
@@ -1427,7 +1757,7 @@ impl crate::SdkSession {
             });
         }
         let mut paths = Vec::new();
-        if !staged_records.is_empty() {
+        if !staged_records.is_empty() || pruned {
             let all: Vec<VariableRecord> =
                 self.variable_decls.iter().map(|s| s.raw.clone()).collect();
             write_variables_file(&self.folder, &all).map_err(|why| {
@@ -1456,6 +1786,7 @@ impl crate::SdkSession {
         for staged in &mut self.variable_decls {
             staged.persisted = true;
         }
+        self.variables_pruned = false;
         let staged_map = std::mem::take(&mut self.staged_var_overrides);
         for (key, value) in staged_map {
             self.persisted_var_overrides.insert(key, value);

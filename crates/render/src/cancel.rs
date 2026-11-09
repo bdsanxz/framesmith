@@ -51,13 +51,16 @@ pub fn is_cancel_error(e: &str) -> bool {
     e.starts_with(PREFIX)
 }
 
-/// Request cancellation without a real signal (tests only): sets the
-/// same flag the SIGINT handler sets.
+/// Request cancellation without a real signal: sets the same flag
+/// the SIGINT handler sets. Tests use it to simulate Ctrl-C; the
+/// Studio render queue (Sprint 18, T006) uses it for panel cancel —
+/// the worker clears the flag before and after every job, so one
+/// process-wide flag stays exact with one render at a time.
 pub fn request() {
     CANCELLED.store(true, Ordering::SeqCst);
 }
 
-/// Clear a test-requested cancellation.
+/// Clear a requested cancellation (test-requested or queue-driven).
 pub fn clear() {
     CANCELLED.store(false, Ordering::SeqCst);
 }

@@ -53,7 +53,7 @@ fn usage() -> ! {
          \x20 framesmith history (list|show|undo|restore|peek|pin|begin|end) [--json] [--diff] [--who <name>] [--exclusive] [--if-open] [--unpin] <folder> [<seq>]\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
-         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080] [--supersample 1|2|3|4] [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
+         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|mov|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080|4k] [--supersample 1|2|3|4] [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
          \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row\n\
          \x20 framesmith grade-bake [--composition <name>] -o <out.cube> <folder>"
     );
@@ -567,7 +567,7 @@ fn main() {
                     "--format" => {
                         i += 1;
                         if i >= args.len() {
-                            eprintln!("framesmith render: --format needs a value (mp4, hevc, webm, prores, gif, pngseq, or hls).");
+                            eprintln!("framesmith render: --format needs a value (mp4, hevc, webm, mov, prores, gif, pngseq, or hls).");
                             std::process::exit(2);
                         }
                         if req.format.is_some() {
@@ -591,7 +591,7 @@ fn main() {
                     "--resolution" => {
                         i += 1;
                         if i >= args.len() {
-                            eprintln!("framesmith render: --resolution needs a value (source, 1080p, 720p, 480p, or square-1080).");
+                            eprintln!("framesmith render: --resolution needs a value (source, 1080p, 720p, 480p, square-1080, or 4k).");
                             std::process::exit(2);
                         }
                         if req.resolution.is_some() {

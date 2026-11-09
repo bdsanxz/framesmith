@@ -267,8 +267,103 @@ pub fn off_canvas_sides(b: &ElementBox, film_w: f64, film_h: f64) -> Vec<&'stati
     sides
 }
 
-/// One layers-readout entry: the element with its paint rank, box,
-/// off-canvas indicator, and whether the synced selection holds it.
+/// Kind icon of one Layers tree row (Sprint 18, T004 / CAP-004): a
+/// single glyph per element kind so the z-order tree scans by shape.
+pub fn layer_icon(kind: &str) -> &'static str {
+    match kind {
+        "text" => "T",
+        "video" => "▶",
+        "box" => "■",
+        "flex" => "▤",
+        "image" => "◈",
+        "path" => "✎",
+        "svg" => "S",
+        "audio" => "♪",
+        "nest" => "⧉",
+        _ => "?",
+    }
+}
+
+/// One Layers group (Sprint 18, T004 / CAP-004): the group name with
+/// its member keys in paint order, so the tree nests members under
+/// their group header.
+#[derive(Debug, Clone)]
+pub struct LayerGroup {
+    /// Group name (the `group:<name>` note minus the prefix).
+    pub name: String,
+    /// Member selection keys in paint order.
+    pub members: Vec<String>,
+}
+
+/// Groups of one composition in first-member paint order (Sprint 18,
+/// T004 / CAP-004): membership reads the render-neutral `group:<name>`
+/// editor notes, so grouping re-renders byte-identically.
+pub fn groups_of(comp: &notation::model::Composition) -> Vec<LayerGroup> {
+    let mut groups: Vec<LayerGroup> = Vec::new();
+    let mut entries: Vec<(usize, String, String)> = Vec::new();
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let key = clip
+            .id()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| format!("#{index}"));
+        if let Some(label) = clip.label() {
+            if let Some(name) = sdk::group_name_of_label(label) {
+                entries.push((index, name.to_string(), key));
+            }
+        }
+    }
+    entries.sort_by_key(|(index, _, _)| {
+        let clip = &comp.clips[*index];
+        (clip.order(), *index)
+    });
+    for (_, name, key) in entries {
+        match groups.iter_mut().find(|g| g.name == name) {
+            Some(group) => group.members.push(key),
+            None => groups.push(LayerGroup {
+                name,
+                members: vec![key],
+            }),
+        }
+    }
+    groups
+}
+
+/// Validate one entered-group scope (Sprint 18, T004 / CAP-004):
+/// entering scopes canvas selection to the group, so the scope must
+/// name a real group. An empty scope means no scoping. Unknown names
+/// refuse naming the holdings; nothing stages either way.
+pub fn resolve_group_scope(
+    comp: &notation::model::Composition,
+    scope: &str,
+) -> Result<Option<String>, String> {
+    let scope = scope.trim();
+    if scope.is_empty() {
+        return Ok(None);
+    }
+    let holdings: Vec<String> = groups_of(comp).into_iter().map(|g| g.name).collect();
+    if holdings.iter().any(|n| n == scope) {
+        return Ok(Some(scope.to_string()));
+    }
+    let holdings = if holdings.is_empty() {
+        "the open composition holds no layer groups".to_string()
+    } else {
+        format!(
+            "the open composition groups {}",
+            holdings
+                .iter()
+                .map(|n| format!("{n:?}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
+    Err(refused_select(format!(
+        "the entered group {scope:?} names no layer group; {holdings}. Enter a grouped name or exit the group. Nothing was staged."
+    )))
+}
+
+/// One layers-readout entry: the element with its paint rank, kind
+/// icon, group, box, off-canvas indicator, and whether the synced
+/// selection holds it.
 #[derive(Debug, Clone)]
 pub struct LayerEntry {
     /// Document index of the clip.
@@ -279,29 +374,37 @@ pub struct LayerEntry {
     pub id: Option<String>,
     /// Element kind (`box`, `text`, ...).
     pub kind: &'static str,
+    /// Kind icon glyph for the tree row.
+    pub icon: &'static str,
+    /// Layers group name, when the clip carries a `group:<name>` note.
+    pub group: Option<String>,
     /// Explicit paint order (`z-index`).
     pub order: i64,
     /// True while the clip skips picture and sound.
     pub hidden: bool,
     /// True while the synced selection holds the key.
     pub selected: bool,
+    /// True while the clip sits inside the entered-group scope (always
+    /// true while no group is entered).
+    pub in_scope: bool,
     /// Authored selection box, when the kind carries extents.
     pub bounds: Option<ElementBox>,
     /// Off-canvas sides pointing at the element, when fully outside.
     pub indicator: Vec<String>,
 }
 
-/// The minimal layers readout of one composition (Sprint 17, T002):
-/// every clip in paint order (`order`, ties in document order) with
-/// its box, hidden flag, synced selection mark, and off-canvas
-/// indicator. The full Layers panel with drag reorder and grouping
-/// stays deferred to the panels sprint; this readout selects and
-/// reports z-order only.
+/// The full layers readout of one composition (Sprint 17, T002 tree;
+/// Sprint 18, T004 groups and scope): every clip in paint order
+/// (`order`, ties in document order) with its kind icon, group, box,
+/// hidden flag, synced selection mark, entered-group scope mark, and
+/// off-canvas indicator. `scope` names the entered group, or `None`
+/// while no group is entered (every entry in scope then).
 pub fn layers_of(
     comp: &notation::model::Composition,
     film_w: f64,
     film_h: f64,
     selection: &[String],
+    scope: Option<&str>,
 ) -> Vec<LayerEntry> {
     let mut entries: Vec<LayerEntry> = comp
         .clips
@@ -310,6 +413,11 @@ pub fn layers_of(
         .map(|(index, clip)| {
             let id = clip.id().map(|s| s.to_string());
             let key = id.clone().unwrap_or_else(|| format!("#{index}"));
+            let kind = clip.kind();
+            let group = clip
+                .label()
+                .and_then(sdk::group_name_of_label)
+                .map(|s| s.to_string());
             let bounds = element_box_of(clip, film_w, film_h);
             let indicator = bounds
                 .map(|b| {
@@ -319,14 +427,21 @@ pub fn layers_of(
                         .collect()
                 })
                 .unwrap_or_default();
+            let in_scope = match scope {
+                None => true,
+                Some(name) => group.as_deref() == Some(name),
+            };
             LayerEntry {
                 index,
                 key: key.clone(),
                 id,
-                kind: clip.kind(),
+                kind,
+                icon: layer_icon(kind),
+                group,
                 order: clip.order(),
                 hidden: clip.hidden(),
                 selected: selection.iter().any(|s| s == &key),
+                in_scope,
                 bounds,
                 indicator,
             }
@@ -337,17 +452,19 @@ pub fn layers_of(
 }
 
 /// Render one layers readout as JSON: the composition, the entries
-/// in paint order with boxes and indicators, and the synced
-/// selection echo (`kept`/`dropped`) so canvas and timeline show the
-/// same selection at once. Every key is hyphenated.
+/// in paint order with kind icons, groups, boxes, and indicators, the
+/// group list, the entered scope, and the synced selection echo
+/// (`kept`/`dropped`) so Layers, canvas, and timeline show the same
+/// selection at once. Every key is hyphenated.
 pub fn layers_json(
     comp: &notation::model::Composition,
     film_w: f64,
     film_h: f64,
     kept: &[String],
     dropped: &[String],
+    scope: Option<&str>,
 ) -> String {
-    let entries = layers_of(comp, film_w, film_h, kept);
+    let entries = layers_of(comp, film_w, film_h, kept, scope);
     let mut layers = String::new();
     for entry in &entries {
         if !layers.is_empty() {
@@ -355,6 +472,10 @@ pub fn layers_json(
         }
         let id = match &entry.id {
             Some(id) => format!("\"{}\"", crate::studio::json_escape(id)),
+            None => "null".to_string(),
+        };
+        let group = match &entry.group {
+            Some(g) => format!("\"{}\"", crate::studio::json_escape(g)),
             None => "null".to_string(),
         };
         let bounds = match entry.bounds {
@@ -368,15 +489,37 @@ pub fn layers_json(
             .collect::<Vec<_>>()
             .join(",");
         layers.push_str(&format!(
-            "{{\"key\":\"{}\",\"id\":{id},\"index\":{},\"kind\":\"{}\",\"order\":{},\"hidden\":{},\"selected\":{},\"box\":{bounds},\"off-canvas\":[{indicator}]}}",
+            "{{\"key\":\"{}\",\"id\":{id},\"index\":{},\"kind\":\"{}\",\"icon\":\"{}\",\"group\":{group},\"order\":{},\"hidden\":{},\"selected\":{},\"in-scope\":{},\"box\":{bounds},\"off-canvas\":[{indicator}]}}",
             crate::studio::json_escape(&entry.key),
             entry.index,
             entry.kind,
+            entry.icon,
             entry.order,
             entry.hidden,
             entry.selected,
+            entry.in_scope,
         ));
     }
+    let mut groups = String::new();
+    for group in groups_of(comp) {
+        if !groups.is_empty() {
+            groups.push(',');
+        }
+        let members = group
+            .members
+            .iter()
+            .map(|m| format!("\"{}\"", crate::studio::json_escape(m)))
+            .collect::<Vec<_>>()
+            .join(",");
+        groups.push_str(&format!(
+            "{{\"name\":\"{}\",\"members\":[{members}]}}",
+            crate::studio::json_escape(&group.name),
+        ));
+    }
+    let scope_json = match scope {
+        Some(name) => format!("\"{}\"", crate::studio::json_escape(name)),
+        None => "null".to_string(),
+    };
     let kept_json = kept
         .iter()
         .map(|s| format!("\"{}\"", crate::studio::json_escape(s)))
@@ -402,14 +545,436 @@ pub fn layers_json(
             )
         })
         .collect();
+    let group_count = groups_of(comp).len();
+    let scope_note = match scope {
+        Some(name) => format!(" entered group {name:?};"),
+        None => String::new(),
+    };
+    let status = format!(
+        "layers list {} element(s) by z-order in {} group(s);{} {} off canvas.",
+        entries.len(),
+        group_count,
+        scope_note,
+        shown.len(),
+    );
     format!(
-        "{{\"composition\":\"{}\",\"film\":{{\"width\":{:.0},\"height\":{:.0}}},\"layers\":[{layers}],\"indicators\":{{{}}},\"selection\":{{\"kept\":[{kept_json}],\"dropped\":[{dropped_json}]}},\"status-line\":\"layers list {} element(s) by z-order; {} off canvas.\"}}",
+        "{{\"composition\":\"{}\",\"film\":{{\"width\":{:.0},\"height\":{:.0}}},\"layers\":[{layers}],\"groups\":[{groups}],\"scope\":{scope_json},\"indicators\":{{{}}},\"selection\":{{\"kept\":[{kept_json}],\"dropped\":[{dropped_json}]}},\"status-line\":\"{}\"}}",
         crate::studio::json_escape(&comp.name),
         film_w,
         film_h,
         shown.join(","),
-        entries.len(),
-        shown.len(),
+        crate::studio::json_escape(&status),
+    )
+}
+
+/// Why a Layers panel request refused: names the cause, stages nothing.
+fn refused_layers(message: String) -> String {
+    format!("studio refused: {message}")
+}
+
+/// One parsed Layers panel request (Sprint 18, T004 / CAP-004):
+/// `reorder` drag-moves one layer to a document index, `group`
+/// collects keys under a name, `ungroup` releases a name, `enter`
+/// scopes selection to a group, and `exit` clears the scope.
+/// Reorder, group, and ungroup commit through the shared patch and
+/// history machinery as one named turn; enter, exit, and the
+/// empty-group no-op stage nothing and record nothing.
+#[derive(Debug, Clone)]
+pub struct LayersRequest {
+    /// Actor the committed turn is recorded under (required exactly
+    /// for reorder, group, and ungroup — view actions record nothing).
+    pub actor: String,
+    /// Panel action (`reorder`, `group`, `ungroup`, `enter`, `exit`).
+    pub action: String,
+    /// Layer key the reorder drags, for `reorder`.
+    pub key: Option<String>,
+    /// Destination document index, for `reorder`: the dragged clip is
+    /// removed, then inserted here, so it lands immediately before the
+    /// clip occupying this index.
+    pub to: Option<usize>,
+    /// Paint order (`z-index`) the reorder assigns first, for
+    /// `reorder`: `None` keeps the dragged clip's order, so same-band
+    /// drags move by document index alone while cross-band drags
+    /// carry the drop row's order and land exactly there.
+    pub order: Option<i64>,
+    /// Selection keys the group collects, for `group`.
+    pub keys: Vec<String>,
+    /// Group name, for `group`, `ungroup`, and `enter`.
+    pub name: Option<String>,
+    /// Shared selection echoed back so Layers, canvas, and timeline
+    /// show the same selection at once.
+    pub selection: Vec<String>,
+}
+
+/// One clip reference from a Layers key: a declared `id`, or a
+/// `#index` entry. Anything else refuses naming the key.
+fn layers_clip_ref(key: &str) -> Result<sdk::ClipRef, String> {
+    let key = key.trim();
+    if key.is_empty() {
+        return Err(refused_layers(
+            "the layers request names an empty clip key; pass a declared `id` or a `#index` entry. Nothing was staged or recorded.".to_string(),
+        ));
+    }
+    if let Some(rest) = key.strip_prefix('#') {
+        match rest.trim().parse::<usize>() {
+            Ok(index) => Ok(sdk::ClipRef::by_index(index)),
+            Err(_) => Err(refused_layers(format!(
+                "the layers key {key:?} is not a clip reference; pass a declared `id` or a `#index` entry. Nothing was staged or recorded."
+            ))),
+        }
+    } else {
+        Ok(sdk::ClipRef::by_id(key.to_string()))
+    }
+}
+
+/// Parse one Layers panel body (`{"action":"reorder","key":"card",
+/// "to":0}`, `{"action":"reorder","key":"card","to":0,"order":2}`,
+/// `{"action":"group","keys":["a","b"],"name":"credits"}`,
+/// `{"action":"ungroup","name":"credits"}`,
+/// `{"action":"enter","name":"credits"}`, `{"action":"exit"}`).
+/// Unknown actions and missing action fields refuse naming the cause;
+/// nothing stages either way.
+pub fn parse_layers_body(body: &str) -> Result<LayersRequest, String> {
+    if body.trim().is_empty() {
+        return Err(refused_layers(
+            "the layers panel needs a JSON layers body (`{\"action\":\"reorder\",\"key\":\"card\",\"to\":0}`); pass the panel gesture. Nothing was staged or recorded.".to_string(),
+        ));
+    }
+    let value: serde_json::Value = serde_json::from_str(body).map_err(|e| {
+        refused_layers(format!(
+            "the layers body is not JSON ({e}). Pass `{{\"action\":\"reorder\",\"key\":\"card\",\"to\":0}}` or another panel gesture. Nothing was staged or recorded."
+        ))
+    })?;
+    if !value.is_object() {
+        return Err(refused_layers(
+            "the layers body is not a panel gesture; pass a JSON object with an `action`. Nothing was staged or recorded.".to_string(),
+        ));
+    }
+    let action = value
+        .get("action")
+        .and_then(|a| a.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    match action.as_str() {
+        "reorder" | "group" | "ungroup" | "enter" | "exit" => {}
+        _ => {
+            return Err(refused_layers(format!(
+                "unknown layers action {action:?}: drag `reorder`, `group`, `ungroup`, `enter`, or `exit`. Nothing was staged or recorded."
+            )));
+        }
+    }
+    let actor = value
+        .get("actor")
+        .and_then(|a| a.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    if matches!(action.as_str(), "reorder" | "group" | "ungroup") && actor.is_empty() {
+        return Err(refused_layers(
+            "the layers commit names no actor; persisted turns are named (human or agent). Pass a non-empty `actor`. Nothing was staged or recorded.".to_string(),
+        ));
+    }
+    let key = value
+        .get("key")
+        .and_then(|k| k.as_str())
+        .map(|k| k.trim().to_string())
+        .filter(|k| !k.is_empty());
+    let to = match value.get("to") {
+        None => None,
+        Some(v) => {
+            let n = v.as_u64().ok_or_else(|| {
+                refused_layers(format!(
+                    "the layers `to` value {v} is not a document index; pass the destination index from 0. Nothing was staged or recorded."
+                ))
+            })?;
+            Some(n as usize)
+        }
+    };
+    let order = match value.get("order") {
+        None => None,
+        Some(v) => {
+            let n = v.as_i64().ok_or_else(|| {
+                refused_layers(format!(
+                    "the layers `order` value {v} is not a paint order; pass the drop row's `z-index` as a whole number, or omit `order`. Nothing was staged or recorded."
+                ))
+            })?;
+            Some(n)
+        }
+    };
+    let keys = match value.get("keys") {
+        None => Vec::new(),
+        Some(v) => parse_selection_value(v, "keys").map_err(|message| {
+            message.replace("the canvas selection `keys`", "the layers `keys`")
+        })?,
+    };
+    let name = value
+        .get("name")
+        .and_then(|n| n.as_str())
+        .map(|n| n.trim().to_string())
+        .filter(|n| !n.is_empty());
+    let selection = match value.get("selection") {
+        None => Vec::new(),
+        Some(v) => parse_selection_value(v, "selection").map_err(|message| {
+            message.replace("the canvas selection `selection`", "the layers `selection`")
+        })?,
+    };
+    if action == "reorder" && key.is_none() {
+        return Err(refused_layers(
+            "the layers `reorder` names no `key`; pass the dragged layer key. Nothing was staged or recorded.".to_string(),
+        ));
+    }
+    if action == "reorder" && to.is_none() {
+        return Err(refused_layers(
+            "the layers `reorder` names no `to`; pass the destination document index from 0. Nothing was staged or recorded.".to_string(),
+        ));
+    }
+    if matches!(action.as_str(), "group" | "ungroup" | "enter") && name.is_none() {
+        return Err(refused_layers(format!(
+            "the layers `{action}` names no `name`; pass the group name. Nothing was staged or recorded."
+        )));
+    }
+    Ok(LayersRequest {
+        actor,
+        action,
+        key,
+        to,
+        order,
+        keys,
+        name,
+        selection,
+    })
+}
+
+/// The SDK patch operations one Layers commit stages, in order
+/// (Sprint 18, T004): a drag reorder assigns the drop row's paint
+/// order first (draw order follows `order`, ties in document order),
+/// then moves the document index, so the drop lands exactly at the
+/// tree position; a group collect is one group op, and a release is
+/// one ungroup op. `None` while the group names no clips: grouping
+/// an empty selection does nothing and the caller reports it with no
+/// turn recorded.
+fn layers_edit_ops(
+    req: &LayersRequest,
+    comp: &notation::model::Composition,
+) -> Result<Option<Vec<sdk::EditOp>>, String> {
+    match req.action.as_str() {
+        "reorder" => {
+            let raw = req.key.as_deref().expect("reorder carries a key");
+            let target = layers_clip_ref(raw)?;
+            let idx = resolve_key(comp, raw)?;
+            let mut ops = Vec::new();
+            // The drop row's paint order lands the dragged clip at the
+            // tree position even across `z-index` bands; a matching
+            // order stays untouched so same-band drags keep the row.
+            if let Some(order) = req.order {
+                if comp.clips[idx].order() != order {
+                    ops.push(sdk::EditOp::SetRow {
+                        target: target.clone(),
+                        property: "z-index".to_string(),
+                        value: order.to_string(),
+                    });
+                }
+            }
+            ops.push(sdk::EditOp::MoveElement {
+                target,
+                to: req.to.expect("reorder carries a destination"),
+            });
+            Ok(Some(ops))
+        }
+        "group" => {
+            if req.keys.is_empty() {
+                return Ok(None);
+            }
+            let mut targets = Vec::new();
+            for key in &req.keys {
+                targets.push(layers_clip_ref(key)?);
+            }
+            Ok(Some(vec![sdk::EditOp::GroupElements {
+                targets,
+                name: req.name.clone().expect("group carries a name"),
+            }]))
+        }
+        "ungroup" => Ok(Some(vec![sdk::EditOp::UngroupElements {
+            name: req.name.clone().expect("ungroup carries a name"),
+        }])),
+        _ => Err(refused_layers(format!(
+            "the layers `{}` stages no turn; only `reorder`, `group`, and `ungroup` commit. Nothing was staged or recorded.",
+            req.action
+        ))),
+    }
+}
+
+/// One applied Layers panel turn.
+#[derive(Debug, Clone)]
+pub struct LayersReceipt {
+    /// Panel action the receipt answers.
+    pub action: String,
+    /// Sequence of the recorded history turn (`None` while the action
+    /// stages nothing: `enter`, `exit`, and the empty-group no-op).
+    pub turn: Option<u64>,
+    /// Actor the turn was recorded under (empty while nothing records).
+    pub actor: String,
+    /// One-line summary per applied patch, in order.
+    pub summaries: Vec<String>,
+    /// One-line detail for the panel status line.
+    pub detail: String,
+    /// Entered-group scope the panel now shows (`None` after `exit`).
+    pub scope: Option<String>,
+}
+
+/// Apply one Layers panel request (Sprint 18, T004 / CAP-004 / INT-001):
+/// commits travel the Sprint 15 patch and history machinery
+/// ([`crate::studio::apply_studio_edit`]), so Layers shares one undo
+/// system with canvas, timeline, and headless edits. View actions
+/// (`enter`, `exit`) validate the scope and echo it without staging
+/// anything; grouping an empty selection reports the no-op with no
+/// turn. A refused commit names its cause and stages nothing.
+pub fn apply_layers(
+    folder: &std::path::Path,
+    composition: Option<&str>,
+    req: &LayersRequest,
+    comp: &notation::model::Composition,
+) -> Result<LayersReceipt, String> {
+    if !crate::studio::project_reachable(folder) {
+        return Err(refused_layers(format!(
+            "the project {} is unreachable (moved or deleted); the shell stays open read-only with every staged edit kept. Restore the folder and retry. Nothing was applied or recorded.",
+            folder.display()
+        )));
+    }
+    match req.action.as_str() {
+        "enter" => {
+            let name = req.name.clone().expect("enter carries a name");
+            let scope = resolve_group_scope(comp, &name)?;
+            let entered = scope.clone().unwrap_or_default();
+            let members = groups_of(comp)
+                .into_iter()
+                .find(|g| g.name == entered)
+                .map(|g| g.members.len())
+                .unwrap_or(0);
+            return Ok(LayersReceipt {
+                action: req.action.clone(),
+                turn: None,
+                actor: req.actor.clone(),
+                summaries: Vec::new(),
+                detail: format!(
+                    "layers entered group {entered:?} ({members} member(s)); selection scopes to its members. Nothing was staged or recorded."
+                ),
+                scope,
+            });
+        }
+        "exit" => {
+            return Ok(LayersReceipt {
+                action: req.action.clone(),
+                turn: None,
+                actor: req.actor.clone(),
+                summaries: Vec::new(),
+                detail: "layers exited the group scope; selection spans the composition. Nothing was staged or recorded.".to_string(),
+                scope: None,
+            });
+        }
+        _ => {}
+    }
+    let ops = match layers_edit_ops(req, comp)? {
+        Some(ops) => ops,
+        None => {
+            return Ok(LayersReceipt {
+                action: req.action.clone(),
+                turn: None,
+                actor: req.actor.clone(),
+                summaries: Vec::new(),
+                detail: format!(
+                    "layers group {:?} names no clips; grouping an empty selection does nothing. Nothing was staged or recorded.",
+                    req.name.clone().unwrap_or_default()
+                ),
+                scope: None,
+            });
+        }
+    };
+    let edit = crate::studio::StudioEdit {
+        actor: req.actor.clone(),
+        source: crate::studio::SaveSource::Visual,
+        ops,
+    };
+    match crate::studio::apply_studio_edit(folder, composition, &edit) {
+        Ok(receipt) => {
+            let detail = match req.action.as_str() {
+                "reorder" => match req.order {
+                    Some(order) => format!(
+                        "layers reorder {:?} to index {} order {} (turn {})",
+                        req.key.clone().expect("reorder carries a key"),
+                        req.to.expect("reorder carries a destination"),
+                        order,
+                        receipt.turn
+                    ),
+                    None => format!(
+                        "layers reorder {:?} to index {} (turn {})",
+                        req.key.clone().expect("reorder carries a key"),
+                        req.to.expect("reorder carries a destination"),
+                        receipt.turn
+                    ),
+                },
+                "group" => format!(
+                    "layers group {} as {:?} (turn {})",
+                    req.keys.join(", "),
+                    req.name.clone().expect("group carries a name"),
+                    receipt.turn
+                ),
+                "ungroup" => format!(
+                    "layers ungroup {:?} (turn {})",
+                    req.name.clone().expect("ungroup carries a name"),
+                    receipt.turn
+                ),
+                _ => format!("layers {} (turn {})", req.action, receipt.turn),
+            };
+            Ok(LayersReceipt {
+                action: req.action.clone(),
+                turn: Some(receipt.turn),
+                actor: receipt.actor,
+                summaries: receipt.summaries,
+                detail,
+                scope: None,
+            })
+        }
+        Err(message) => Err(message),
+    }
+}
+
+/// Render one Layers receipt as JSON: the action, the recorded turn
+/// (`null` while the action stages nothing), the summaries, the
+/// detail, the scope, and the synced selection echo (`kept`/
+/// `dropped`) so Layers, canvas, and timeline show the same
+/// selection at once. Every key is hyphenated.
+pub fn layers_receipt_json(receipt: &LayersReceipt, kept: &[String], dropped: &[String]) -> String {
+    let turn = match receipt.turn {
+        Some(t) => t.to_string(),
+        None => "null".to_string(),
+    };
+    let summaries = receipt
+        .summaries
+        .iter()
+        .map(|s| format!("\"{}\"", crate::studio::json_escape(s)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let scope = match &receipt.scope {
+        Some(name) => format!("\"{}\"", crate::studio::json_escape(name)),
+        None => "null".to_string(),
+    };
+    let kept_json = kept
+        .iter()
+        .map(|s| format!("\"{}\"", crate::studio::json_escape(s)))
+        .collect::<Vec<_>>()
+        .join(",");
+    let dropped_json = dropped
+        .iter()
+        .map(|s| format!("\"{}\"", crate::studio::json_escape(s)))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "{{\"action\":\"{}\",\"turn\":{turn},\"actor\":\"{}\",\"summaries\":[{summaries}],\"detail\":\"{}\",\"scope\":{scope},\"selection\":{{\"kept\":[{kept_json}],\"dropped\":[{dropped_json}]}}}}",
+        crate::studio::json_escape(&receipt.action),
+        crate::studio::json_escape(&receipt.actor),
+        crate::studio::json_escape(&receipt.detail),
     )
 }
 
@@ -467,6 +1032,11 @@ pub struct SelectRequest {
     /// Shared selection the shell scoped the gesture to, echoed back
     /// so canvas and timeline show the same selection at once.
     pub selection: Vec<String>,
+    /// Entered Layers group the gesture scopes to (Sprint 18, T004 /
+    /// CAP-004): `None` while no group is entered. Key gestures at
+    /// clips outside the group refuse naming the scope; point and
+    /// marquee gestures skip out-of-group clips.
+    pub scope: Option<String>,
 }
 
 /// Read one finite request number: present, numeric, and finite, or
@@ -584,6 +1154,22 @@ pub fn parse_select_body(body: &str) -> Result<SelectRequest, String> {
         None => Vec::new(),
         Some(v) => parse_selection_value(v, "selection")?,
     };
+    let scope = match value.get("scope") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(serde_json::Value::String(raw)) => {
+            let name = raw.trim().to_string();
+            if name.is_empty() {
+                None
+            } else {
+                Some(name)
+            }
+        }
+        Some(v) => {
+            return Err(refused_select(format!(
+                "the canvas selection `scope` value {v} is not a group name; pass the entered Layers group or omit `scope`. Nothing was staged."
+            )));
+        }
+    };
     if action == "click" && key.is_none() && at.is_none() {
         return Err(refused_select(
             "the canvas `click` names neither `key` nor `at`; pass a clip `key` or a film point `at: [x, y]`. Nothing was staged."
@@ -609,6 +1195,7 @@ pub fn parse_select_body(body: &str) -> Result<SelectRequest, String> {
         current,
         rect,
         selection,
+        scope,
     })
 }
 
@@ -658,17 +1245,41 @@ pub fn resolve_selection(
     film_w: f64,
     film_h: f64,
 ) -> Result<Vec<String>, String> {
+    // An entered group scopes canvas selection to its members (Sprint
+    // 18, T004 / CAP-004): unknown scopes refuse naming the holdings;
+    // key gestures at out-of-group clips refuse naming the scope,
+    // while point and marquee gestures skip them. Nothing stages.
+    let scope = match &req.scope {
+        None => None,
+        Some(name) => resolve_group_scope(comp, name)?,
+    };
+    let in_scope = |idx: usize| match &scope {
+        None => true,
+        Some(name) => {
+            comp.clips[idx].label().and_then(sdk::group_name_of_label) == Some(name.as_str())
+        }
+    };
+    let check_key_scope = |idx: usize, key: &str| {
+        match &scope {
+            None => Ok(()),
+            Some(name) if in_scope(idx) => Ok(()),
+            Some(name) => Err(refused_select(format!(
+                "canvas selection key {key:?} sits outside entered group {name:?}; exit the group or pick one of its members. Nothing was staged."
+            ))),
+        }
+    };
     match req.action.as_str() {
         "clear" => Ok(Vec::new()),
         "click" => {
             if let Some(key) = &req.key {
                 let idx = resolve_key(comp, key)?;
+                check_key_scope(idx, key)?;
                 return Ok(vec![clip_key(comp, idx)]);
             }
             let (px, py) = req.at.expect("click carries key or point");
             let mut best: Option<(i64, usize)> = None;
             for (index, clip) in comp.clips.iter().enumerate() {
-                if clip.hidden() {
+                if clip.hidden() || !in_scope(index) {
                     continue;
                 }
                 let Some(b) = element_box_of(clip, film_w, film_h) else {
@@ -694,6 +1305,7 @@ pub fn resolve_selection(
             let mut out = req.current.clone();
             for key in &req.keys {
                 let idx = resolve_key(comp, key)?;
+                check_key_scope(idx, key)?;
                 let canonical = clip_key(comp, idx);
                 if req.action == "add" {
                     if !out.iter().any(|s| s == &canonical) {
@@ -719,12 +1331,13 @@ pub fn resolve_selection(
                     current: Vec::new(),
                     rect: None,
                     selection: req.selection.clone(),
+                    scope: req.scope.clone(),
                 };
                 return resolve_selection(comp, &point, film_w, film_h);
             }
             let mut hits: Vec<(i64, usize)> = Vec::new();
             for (index, clip) in comp.clips.iter().enumerate() {
-                if clip.hidden() {
+                if clip.hidden() || !in_scope(index) {
                     continue;
                 }
                 let Some(b) = element_box_of(clip, film_w, film_h) else {
@@ -1724,20 +2337,33 @@ pub fn select_css() -> String {
         #canvas-layers li{padding:2px 8px;font-variant-numeric:tabular-nums;cursor:pointer}
         #canvas-layers li[data-selected="1"]{background-color:var(--accent-color)}
         #canvas-layers li[data-off="1"]{border-left:3px solid var(--accent-color)}
+        #canvas-layers li[data-dim="1"]{opacity:0.45}
+        #canvas-layers li.group-head{font-weight:bold;cursor:pointer}
         #canvas-layers .off-badge{display:inline-block;margin-left:8px;border:1px solid var(--line-color);border-radius:4px;padding:0 6px}
+        #canvas-layers .group-badge{display:inline-block;margin-left:8px;border:1px solid var(--line-color);border-radius:4px;padding:0 6px}
+        #canvas-layers-bar input{margin-left:8px}
+        #canvas-layers-bar button{margin-left:4px}
+        #canvas-scope{margin:4px 0;font-variant-numeric:tabular-nums}
         #canvas-nudge{margin-top:8px;display:flex;gap:4px;align-items:center}
         #canvas-nudge button{margin-right:4px}
         #canvas-transform-status{font-variant-numeric:tabular-nums;z-index:1}"#.to_string()
 }
 
-/// The selection control block (Sprint 17, T002): the layers readout
-/// listing elements by z-order for selection with off-canvas
-/// badges, the nudge pad (Shift scales tenfold), and the transform
-/// status line.
+/// The selection control block (Sprint 17, T002 readout; Sprint 18,
+/// T004 full panel): the layers tree listing elements by z-order
+/// with kind icons, group headers, and drag reorder, the group
+/// collect/release/enter/exit controls, the nudge pad (Shift scales
+/// tenfold), and the transform status line.
 pub fn select_html() -> String {
     r#"<div class="dock-bar" id="canvas-layers-bar">
         <span>layers</span>
+        <input id="canvas-group-name" type="text" placeholder="group name" aria-label="group name">
+        <button id="canvas-group" type="button" title="collect the selection into a group">group</button>
+        <button id="canvas-ungroup" type="button" title="release the named group">ungroup</button>
+        <button id="canvas-enter" type="button" title="scope selection to the named group">enter</button>
+        <button id="canvas-exit" type="button" title="clear the group scope">exit</button>
         <ul id="canvas-layers"></ul>
+        <p id="canvas-scope">scope: all</p>
         </div>
         <div id="canvas-nudge">
         <button id="canvas-nudge-left" type="button" title="nudge left 1px (Shift: 10px)">&#8592;</button>
@@ -1748,13 +2374,17 @@ pub fn select_html() -> String {
         <p id="canvas-transform-status" role="status">no transform staged</p>"#.to_string()
 }
 
-/// The selection panel script (Sprint 17, T002): paints the layers
-/// readout from the z-order API, selects from the readout, nudges
-/// the shared selection (Shift scales tenfold), and keeps the
-/// canvas and timeline selections in sync through the shared
-/// `selection` array.
+/// The selection panel script (Sprint 17, T002 readout; Sprint 18,
+/// T004 full panel): paints the layers tree with kind icons, group
+/// headers, and drag reorder from the z-order API, collects and
+/// releases groups, enters and exits group scope, selects from the
+/// readout, nudges the shared selection (Shift scales tenfold), and
+/// keeps the canvas and timeline selections in sync through the
+/// shared `selection` array.
 pub fn select_js() -> String {
     r#"        function transformStatus(t) { const s = document.getElementById('canvas-transform-status'); if (s) s.textContent = t; }
+        let layerScope = null;
+        let lastSeen = [];
         async function paintLayers() {
           const box = document.getElementById('canvas-layers');
           if (!box) return;
@@ -1762,15 +2392,38 @@ pub fn select_js() -> String {
             const q = new URLSearchParams();
             q.set('composition', (rows && rows.composition) || boot.composition);
             if (selection.length) q.set('selection', selection.join(','));
+            if (layerScope) q.set('scope', layerScope);
             const r = await fetch('/api/studio/layers?' + q.toString());
             if (!r.ok) { box.textContent = await r.text(); return; }
             const j = await r.json();
+            const scopeLine = document.getElementById('canvas-scope');
+            if (scopeLine) scopeLine.textContent = 'scope: ' + (j.scope || 'all');
             box.innerHTML = '';
-            for (const layer of (j.layers || [])) {
+            for (const group of (j.groups || [])) {
+              const head = document.createElement('li');
+              head.className = 'group-head';
+              head.textContent = '⧉ ' + group.name + ' (' + group.members.length + ')';
+              head.title = 'enter group ' + group.name;
+              head.addEventListener('click', async () => {
+                await postLayers({action: 'enter', name: group.name});
+              });
+              box.appendChild(head);
+            }
+            const seen = j.layers || [];
+            lastSeen = seen;
+            for (const layer of seen) {
               const li = document.createElement('li');
-              li.textContent = layer.kind + ' ' + layer.key + ' z:' + layer.order + (layer.hidden ? ' hidden' : '');
+              li.textContent = (layer.icon || layer.kind) + ' ' + layer.key + ' z:' + layer.order + (layer.hidden ? ' hidden' : '');
               li.dataset.selected = layer.selected ? '1' : '0';
-              li.dataset.off = ((layer['off-canvas'] || []).length || layer.box === null && false) ? '1' : '0';
+              li.dataset.off = ((layer['off-canvas'] || []).length) ? '1' : '0';
+              li.dataset.dim = (layer['in-scope'] === false) ? '1' : '0';
+              li.draggable = true;
+              if (layer.group) {
+                const badge = document.createElement('span');
+                badge.className = 'group-badge';
+                badge.textContent = 'group: ' + layer.group;
+                li.appendChild(badge);
+              }
               if ((layer['off-canvas'] || []).length) {
                 const badge = document.createElement('span');
                 badge.className = 'off-badge';
@@ -1779,13 +2432,72 @@ pub fn select_js() -> String {
               }
               li.addEventListener('click', async (e) => {
                 const keys = e.shiftKey ? selection.concat([layer.key]) : [layer.key];
-                await postSelect({action: e.shiftKey ? 'add' : 'click', keys: keys, current: selection});
+                const body = {action: e.shiftKey ? 'add' : 'click', keys: keys, current: selection};
+                if (layerScope) body.scope = layerScope;
+                await postSelect(body);
+              });
+              li.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/studio-layer', layer.key);
+              });
+              li.addEventListener('dragover', (e) => e.preventDefault());
+              li.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const dragged = e.dataTransfer.getData('text/studio-layer');
+                if (!dragged || dragged === layer.key) return;
+                const draggedRow = seen.find((l) => l.key === dragged);
+                if (!draggedRow) return;
+                const targetDoc = layer.index;
+                const to = (draggedRow.index < targetDoc) ? Math.max(0, targetDoc - 1) : targetDoc;
+                if (draggedRow.index === to && draggedRow.order === layer.order) return;
+                await postLayers({action: 'reorder', key: dragged, to: to, order: layer.order});
               });
               box.appendChild(li);
+            }
+            if (!box.dataset.dropWired) {
+              box.dataset.dropWired = '1';
+              box.addEventListener('dragover', (e) => e.preventDefault());
+              box.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                if (e.target !== box || !lastSeen.length) return;
+                const dragged = e.dataTransfer.getData('text/studio-layer');
+                if (!dragged) return;
+                const last = lastSeen[lastSeen.length - 1];
+                if (dragged === last.key) return;
+                const draggedRow = lastSeen.find((l) => l.key === dragged);
+                if (!draggedRow) return;
+                if (draggedRow.index === lastSeen.length - 1 && draggedRow.order === last.order) return;
+                await postLayers({action: 'reorder', key: dragged, to: lastSeen.length - 1, order: last.order});
+              });
             }
             transformStatus(j['status-line'] || 'layers ready');
           } catch (e) { transformStatus('layers unavailable: ' + e); }
         }
+        async function postLayers(payload) {
+          try {
+            const body = Object.assign({actor: 'maker', selection: selection.join(',')}, payload);
+            const r = await fetch('/api/studio/layers', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+            const t = await r.text();
+            if (!r.ok) { transformStatus(t); banner(t); return; }
+            const j = JSON.parse(t);
+            if (j.selection && j.selection.kept) selection = j.selection.kept.slice();
+            if (j.action === 'enter') layerScope = j.scope || null;
+            if (j.action === 'exit') layerScope = null;
+            transformStatus((j.detail || 'layers ready') + ((j.turn !== undefined && j.turn !== null) ? ' (turn ' + j.turn + ')' : ''));
+            paintRows(); paintCanvasSelection(); syncLink(); paintLayers(); show(cur);
+          } catch (e) { transformStatus('layers failed: ' + e); }
+        }
+        function groupName() { const el = document.getElementById('canvas-group-name'); return el ? el.value.trim() : ''; }
+        function wireLayers(id, fn) {
+          const el = document.getElementById(id);
+          if (el && !el.dataset.wired) {
+            el.dataset.wired = '1';
+            el.addEventListener('click', fn);
+          }
+        }
+        wireLayers('canvas-group', () => postLayers({action: 'group', keys: selection.slice(), name: groupName()}));
+        wireLayers('canvas-ungroup', () => postLayers({action: 'ungroup', name: groupName()}));
+        wireLayers('canvas-enter', () => postLayers({action: 'enter', name: groupName()}));
+        wireLayers('canvas-exit', () => postLayers({action: 'exit'}));
         async function postSelect(payload) {
           try {
             const r = await fetch('/api/studio/select', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
@@ -2027,5 +2739,277 @@ mod tests {
         };
         let why = propose_transform(&comp, &req, 320.0, 180.0).expect_err("hidden refuses");
         assert!(why.contains("no handles"), "names the lock: {why}");
+    }
+
+    /// Two boxes sharing authored geometry: `card` (`order` 2,
+    /// note-free) and `panel` (`order` 0, grouped in `g`).
+    fn two_box_comp() -> notation::model::Composition {
+        use notation::model::Clip;
+        let mut comp = test_comp();
+        let mut panel = match comp.clips[0].clone() {
+            Clip::Box(b) => b,
+            _ => unreachable!("fixture opens with a box"),
+        };
+        panel.id = Some("panel".to_string());
+        panel.order = 0;
+        panel.label = Some("group:g".to_string());
+        comp.clips.push(Clip::Box(panel));
+        comp
+    }
+
+    #[test]
+    fn layers_kind_icons_cover_every_kind() {
+        assert_eq!(layer_icon("text"), "T");
+        assert_eq!(layer_icon("video"), "▶");
+        assert_eq!(layer_icon("box"), "■");
+        assert_eq!(layer_icon("flex"), "▤");
+        assert_eq!(layer_icon("image"), "◈");
+        assert_eq!(layer_icon("path"), "✎");
+        assert_eq!(layer_icon("svg"), "S");
+        assert_eq!(layer_icon("audio"), "♪");
+        assert_eq!(layer_icon("nest"), "⧉");
+        assert_eq!(layer_icon("mystery"), "?");
+    }
+
+    #[test]
+    fn layers_groups_collect_members_in_paint_order() {
+        let comp = two_box_comp();
+        let groups = groups_of(&comp);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].name, "g");
+        assert_eq!(groups[0].members, vec!["panel".to_string()]);
+        // Grouping the topmost box too lists members in paint order.
+        let mut both = comp.clone();
+        if let notation::model::Clip::Box(c) = &mut both.clips[0] {
+            c.label = Some("group:g".to_string());
+        }
+        let groups = groups_of(&both);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(
+            groups[0].members,
+            vec!["panel".to_string(), "card".to_string()],
+            "paint order, not document order"
+        );
+    }
+
+    #[test]
+    fn layers_scope_marks_entries_and_rejects_unknown() {
+        let comp = two_box_comp();
+        let scoped = layers_of(&comp, 320.0, 180.0, &[], Some("g"));
+        let panel = scoped.iter().find(|e| e.key == "panel").unwrap();
+        assert!(panel.in_scope);
+        assert_eq!(panel.group.as_deref(), Some("g"));
+        assert_eq!(panel.icon, "■");
+        let card = scoped.iter().find(|e| e.key == "card").unwrap();
+        assert!(!card.in_scope);
+        assert_eq!(card.group, None);
+        // No scope marks everything in scope.
+        assert!(layers_of(&comp, 320.0, 180.0, &[], None)
+            .iter()
+            .all(|e| e.in_scope));
+        // Unknown scopes refuse naming the holdings.
+        let why = resolve_group_scope(&comp, "nope").expect_err("unknown scope refuses");
+        assert!(why.contains("no layer group"), "names the failure: {why}");
+        assert!(why.contains("\"g\""), "names the holdings: {why}");
+        assert_eq!(resolve_group_scope(&comp, "  ").expect("blank clears"), None);
+        let bare = test_comp();
+        let why = resolve_group_scope(&bare, "nope").expect_err("groupless refuses");
+        assert!(why.contains("holds no layer groups"), "{why}");
+    }
+
+    #[test]
+    fn layers_parse_accepts_panel_gestures_and_refuses_garbage() {
+        let req = parse_layers_body(
+            r#"{"actor":"maker","action":"reorder","key":"card","to":0,"order":2}"#,
+        )
+        .expect("reorder parses");
+        assert_eq!(req.action, "reorder");
+        assert_eq!(req.key.as_deref(), Some("card"));
+        assert_eq!(req.to, Some(0));
+        assert_eq!(req.order, Some(2));
+        let req = parse_layers_body(
+            r#"{"actor":"maker","action":"group","keys":["a","b"],"name":"g"}"#,
+        )
+        .expect("group parses");
+        assert_eq!(req.keys, vec!["a".to_string(), "b".to_string()]);
+        for body in [
+            r#"{"actor":"maker","action":"enter","name":"g"}"#,
+            r#"{"actor":"maker","action":"exit"}"#,
+            r#"{"actor":"maker","action":"ungroup","name":"g"}"#,
+        ] {
+            parse_layers_body(body).expect("view and release actions parse");
+        }
+        // Unknown actions, missing fields, and bad numbers refuse.
+        let why = parse_layers_body(r#"{"actor":"maker","action":"fly"}"#)
+            .expect_err("unknown action refuses");
+        assert!(why.contains("unknown layers action"), "{why}");
+        let why = parse_layers_body(r#"{"actor":"maker","action":"reorder","to":0}"#)
+            .expect_err("missing key refuses");
+        assert!(why.contains("names no `key`"), "{why}");
+        let why = parse_layers_body(r#"{"action":"reorder","key":"card","to":0}"#)
+            .expect_err("missing actor refuses");
+        assert!(why.contains("names no actor"), "{why}");
+        let why = parse_layers_body(r#"{"actor":"maker","action":"reorder","key":"card","to":-1}"#)
+            .expect_err("negative index refuses");
+        assert!(why.contains("not a document index"), "{why}");
+        let why = parse_layers_body(
+            r#"{"actor":"maker","action":"reorder","key":"card","to":0,"order":1.5}"#,
+        )
+        .expect_err("fractional order refuses");
+        assert!(why.contains("not a paint order"), "{why}");
+        let why = parse_layers_body(r#"{"actor":"maker","action":"group","keys":["a"]}"#)
+            .expect_err("missing name refuses");
+        assert!(why.contains("names no `name`"), "{why}");
+        let why = parse_layers_body(r#"{"actor":"maker","action":"group","keys":[7],"name":"g"}"#)
+            .expect_err("non-string key refuses");
+        assert!(why.contains("the layers `keys`"), "{why}");
+    }
+
+    #[test]
+    fn layers_edit_ops_builds_reorder_group_and_ungroup() {
+        let comp = two_box_comp();
+        // A same-band drag moves the document index alone.
+        let req = parse_layers_body(r#"{"actor":"maker","action":"reorder","key":"card","to":1}"#)
+            .expect("reorder parses");
+        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        assert_eq!(ops.len(), 1);
+        match &ops[0] {
+            sdk::EditOp::MoveElement { target, to } => {
+                assert_eq!(target, &sdk::ClipRef::by_id("card"));
+                assert_eq!(*to, 1);
+            }
+            other => panic!("same-band drag moves alone: {other:?}"),
+        }
+        // A cross-band drag carries the drop row's paint order first.
+        let req = parse_layers_body(
+            r#"{"actor":"maker","action":"reorder","key":"card","to":0,"order":0}"#,
+        )
+        .expect("reorder parses");
+        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        assert_eq!(ops.len(), 2);
+        match &ops[0] {
+            sdk::EditOp::SetRow {
+                target,
+                property,
+                value,
+            } => {
+                assert_eq!(target, &sdk::ClipRef::by_id("card"));
+                assert_eq!(property, "z-index");
+                assert_eq!(value, "0");
+            }
+            other => panic!("cross-band drag assigns order first: {other:?}"),
+        }
+        // A matching order stays untouched.
+        let req = parse_layers_body(
+            r#"{"actor":"maker","action":"reorder","key":"panel","to":0,"order":0}"#,
+        )
+        .expect("reorder parses");
+        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        assert_eq!(ops.len(), 1, "matching order skips the row op");
+        // An empty group stages nothing.
+        let req = parse_layers_body(r#"{"actor":"maker","action":"group","name":"g"}"#)
+            .expect("empty group parses");
+        assert!(
+            layers_edit_ops(&req, &comp)
+                .expect("empty group builds")
+                .is_none(),
+            "empty grouping stages nothing"
+        );
+        // Group and ungroup map to the SDK ops.
+        let req = parse_layers_body(
+            r#"{"actor":"maker","action":"group","keys":["card"],"name":"h"}"#,
+        )
+        .expect("group parses");
+        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        match &ops[0] {
+            sdk::EditOp::GroupElements { targets, name } => {
+                assert_eq!(targets, &vec![sdk::ClipRef::by_id("card")]);
+                assert_eq!(name, "h");
+            }
+            other => panic!("group collects: {other:?}"),
+        }
+        let req = parse_layers_body(r#"{"actor":"maker","action":"ungroup","name":"g"}"#)
+            .expect("ungroup parses");
+        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        match &ops[0] {
+            sdk::EditOp::UngroupElements { name } => assert_eq!(name, "g"),
+            other => panic!("ungroup releases: {other:?}"),
+        }
+        // A reorder of nothing known refuses.
+        let req = parse_layers_body(r#"{"actor":"maker","action":"reorder","key":"ghost","to":0}"#)
+            .expect("reorder parses");
+        let why = layers_edit_ops(&req, &comp).expect_err("unknown key refuses");
+        assert!(why.contains("names nothing"), "{why}");
+    }
+
+    #[test]
+    fn layers_scope_restricts_selection_to_members() {
+        let comp = two_box_comp();
+        // Key gestures outside the entered group refuse naming it.
+        let req = SelectRequest {
+            action: "click".to_string(),
+            key: Some("card".to_string()),
+            at: None,
+            keys: Vec::new(),
+            current: Vec::new(),
+            rect: None,
+            selection: Vec::new(),
+            scope: Some("g".to_string()),
+        };
+        let why = resolve_selection(&comp, &req, 320.0, 180.0).expect_err("outside refuses");
+        assert!(why.contains("sits outside entered group"), "{why}");
+        assert!(why.contains("\"g\""), "{why}");
+        // Members still select by key.
+        let inside = SelectRequest {
+            scope: Some("g".to_string()),
+            key: Some("panel".to_string()),
+            ..req.clone()
+        };
+        assert_eq!(
+            resolve_selection(&comp, &inside, 320.0, 180.0).expect("member selects"),
+            vec!["panel".to_string()]
+        );
+        // Point and marquee gestures skip out-of-group clips instead.
+        let point = SelectRequest {
+            action: "click".to_string(),
+            key: None,
+            at: Some((15.0, 25.0)),
+            keys: Vec::new(),
+            current: Vec::new(),
+            rect: None,
+            selection: Vec::new(),
+            scope: Some("g".to_string()),
+        };
+        assert_eq!(
+            resolve_selection(&comp, &point, 320.0, 180.0).expect("point selects"),
+            vec!["panel".to_string()],
+            "the grouped twin wins the shared box"
+        );
+        let marquee = SelectRequest {
+            action: "marquee".to_string(),
+            key: None,
+            at: None,
+            keys: Vec::new(),
+            current: Vec::new(),
+            rect: Some(ElementBox {
+                x: 0.0,
+                y: 0.0,
+                w: 320.0,
+                h: 180.0,
+            }),
+            selection: Vec::new(),
+            scope: Some("g".to_string()),
+        };
+        assert_eq!(
+            resolve_selection(&comp, &marquee, 320.0, 180.0).expect("marquee selects"),
+            vec!["panel".to_string()]
+        );
+        // An unknown scope refuses naming the holdings.
+        let scoped = SelectRequest {
+            scope: Some("nope".to_string()),
+            ..point.clone()
+        };
+        let why = resolve_selection(&comp, &scoped, 320.0, 180.0).expect_err("bad scope refuses");
+        assert!(why.contains("names no layer group"), "{why}");
     }
 }

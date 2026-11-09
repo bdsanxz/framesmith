@@ -915,6 +915,40 @@ pub(crate) fn record_turn(
     Ok(record)
 }
 
+/// Record one guarded file turn around non-patch SDK state
+/// (Sprints 18, code and variables panels): file writes that ride
+/// no patch operation (code text saves, variable declaration
+/// deltas) still record the same guarded history turn a patch
+/// persist records. The guard check runs first, the tracked files
+/// snapshot before and after `work`, and the turn records the
+/// summary with the targets `work` returns — so `undo_turn`
+/// reverses the change whole and one undo system keeps serving
+/// every writer alike. `work` runs the mutation plus its
+/// persistence and returns the turn summary with its targets; a
+/// failed `work` records nothing, and the failure reports the
+/// history reason with the wrapped cause.
+pub fn record_file_turn<F>(
+    folder: &Path,
+    actor: &str,
+    work: F,
+) -> Result<TurnRecord, HistoryRefusal>
+where
+    F: FnOnce() -> Result<(String, Vec<String>), String>,
+{
+    let name = check_actor(actor)?;
+    check_guard_for_persist(folder, &name)?;
+    let before = snapshot(folder);
+    let (summary, targets) = work().map_err(|why| {
+        refused(
+            HistoryRefusalKind::Unwritable,
+            E_SDK_HISTORY_UNWRITABLE,
+            format!("history refused: {why} Nothing was recorded."),
+        )
+    })?;
+    let after = snapshot(folder);
+    record_turn(folder, &name, summary, targets, &before, &after)
+}
+
 /// Apply one backup snapshot to the project tree: files in the
 /// snapshot are written back byte-identical, tracked files absent
 /// from the snapshot are removed. Every read happens before the

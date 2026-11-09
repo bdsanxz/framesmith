@@ -29,9 +29,16 @@ mod reload;
 pub mod server;
 pub mod studio;
 pub mod studio_animate;
+pub mod studio_renders;
+pub mod studio_assets;
+pub mod studio_audio;
+pub mod studio_variables;
 pub mod studio_canvas;
 pub mod studio_canvas_snap;
 pub mod studio_clips;
+pub mod studio_clipboard;
+pub mod studio_code;
+pub mod studio_compositions;
 pub mod studio_crop;
 pub mod studio_inspector;
 pub mod studio_select;
@@ -70,6 +77,24 @@ pub use studio::{
     StudioConflict, StudioEdit, StudioEditReceipt, StudioLayout, StudioPageModel, StudioRow,
     StudioRowList, StudioTheme, ThemeLoad, STUDIO_DOCKS, STUDIO_LAYOUT_FILE, STUDIO_LAYOUT_VERSION,
     STUDIO_PANELS, STUDIO_THEME_FILE, STUDIO_THEME_VERSION,
+};
+pub use studio_audio::{
+    apply_preset, audition_preset, copy_lane, define_audio_group, disband_audio_group,
+    load_audio_groups, paste_lane, preset_named, preset_ops, rack_presets, read_master_meter,
+    rewrite_lane, studio_audio_path_for, AuditionReport, AudioGroups, AudioGroupsLoad,
+    LaneClipboard, MeterLevel, PresetReceipt, RackPreset, RackRefusal, RackRefusalKind, RackStage,
+    RackTurnReceipt, E_RACK_BAD_GROUP, E_RACK_BAD_VALUE, E_RACK_EMPTY_CLIPBOARD,
+    E_RACK_EMPTY_RANGE, E_RACK_SILENT_TARGET, E_RACK_STAGE_FAILED, E_RACK_UNAVAILABLE,
+    E_RACK_UNDECODABLE, E_RACK_UNKNOWN_PRESET, E_RACK_UNKNOWN_TARGET, STUDIO_AUDIO_FILE,
+    STUDIO_AUDIO_VERSION,
+};
+pub use studio_code::{
+    apply_tree_action, code_css, code_file_json, code_html, code_js, jump_json, jump_to_selection,
+    language_of, list_tree, parse_save_body, parse_tree_action_body, read_code_file, referrers_of,
+    resolve_code_path, save_code_file, save_receipt_json, tree_json, tree_receipt_json,
+    CodeEntry, CodeFile, CodeJump, CodeSave, SaveReceipt, TreeAction, TreeReceipt,
+    CODE_COMPOSITION_FILE, CODE_COMPOSITION_STARTER, CODE_CONFIG_STARTER, CODE_JSON_STARTER,
+    CODE_MARKDOWN_STARTER,
 };
 pub use studio_shortcuts::{
     default_shortcuts, describe_request_text, load_shortcuts, normalize_chord, parse_dispatch_body,

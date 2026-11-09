@@ -594,7 +594,7 @@ fn unknown_format_fails_naming_the_accepted_values() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--format"), "{out}");
     assert!(
-        out.contains("mp4, hevc, webm, prores, gif, pngseq, or hls"),
+        out.contains("mp4, hevc, webm, mov, prores, gif, pngseq, or hls"),
         "{out}"
     );
     assert!(!root.join("x.mp4").exists(), "nothing written");

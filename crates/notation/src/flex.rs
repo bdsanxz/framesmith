@@ -12,7 +12,7 @@
 use super::model::{FlexAlign, FlexDirection, FlexJustify};
 
 /// One child input: base size plus its share of free main-axis space.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FlexItem {
     /// Base width in canvas pixels.
     pub base_w: f64,
@@ -23,7 +23,7 @@ pub struct FlexItem {
 }
 
 /// One laid-out child rectangle in canvas pixels.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FlexRect {
     pub x: f64,
     pub y: f64,
