@@ -2,6 +2,7 @@
 
 pub mod blur;
 pub mod cancel;
+pub mod captions;
 pub mod chart;
 pub mod custom_source;
 pub mod effects;

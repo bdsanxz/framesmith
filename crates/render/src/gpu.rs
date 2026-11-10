@@ -417,6 +417,44 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     desc.grade_for(r.doc).fingerprint(),
                 );
             }
+            FrameItem::Caption(r) => {
+                // Sprint 22 captions: the cue, its clip-local time,
+                // its words, and the resolved look fingerprint the
+                // same pixels the painter draws on both backends.
+                let words = r
+                    .words
+                    .iter()
+                    .map(|w| format!("{:?}[{},{}]", w.text, num(w.start), num(w.end)))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let _ = write!(
+                    out,
+                    "captions#{} order={} cue={} t={} x={} y={} size={} op={} style={}/{}/{}/{}/{} presets={}/{}/{} matte={:?} behind={} words=[{}] g={};",
+                    r.doc,
+                    r.order,
+                    r.cue,
+                    num(r.local_t),
+                    num(r.x),
+                    num(r.y),
+                    num(r.size),
+                    num(r.opacity),
+                    hex((r.style.color.r, r.style.color.g, r.style.color.b)),
+                    num(r.style.font_size),
+                    num(r.style.font_weight),
+                    r.style.position.name(),
+                    r.style
+                        .background
+                        .map(|c| hex((c.r, c.g, c.b)))
+                        .unwrap_or_else(|| "-".to_string()),
+                    r.entrance.as_deref().unwrap_or("none"),
+                    r.highlight.as_deref().unwrap_or("none"),
+                    r.exit.as_deref().unwrap_or("none"),
+                    r.matte,
+                    r.behind_subject,
+                    words,
+                    desc.grade_for(r.doc).fingerprint(),
+                );
+            }
         }
     }
     out.push(']');
@@ -455,6 +493,7 @@ pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> 
         lotties,
         layouts,
         dyn_layouts,
+        caption_layouts,
         bitmap_fallback,
         raster,
         paths,
@@ -468,6 +507,7 @@ pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> 
         lotties,
         layouts,
         dyn_layouts,
+        caption_layouts,
         *bitmap_fallback,
         raster,
         paths,
@@ -494,6 +534,7 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         lotties,
         layouts,
         dyn_layouts,
+        caption_layouts,
         bitmap_fallback,
         raster,
         paths,
@@ -507,6 +548,7 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         lotties,
         layouts,
         dyn_layouts,
+        caption_layouts,
         *bitmap_fallback,
         raster,
         paths,
@@ -526,6 +568,7 @@ pub(crate) fn render_description_split(
     lotties: &[crate::render::PreparedLottie],
     layouts: &[Option<layout::Block>],
     dyn_layouts: &crate::render::DynLayouts,
+    captions: &crate::captions::CaptionLayouts,
     bitmap_fallback: bool,
     raster: &mut crate::render::RasterCache,
     paths: &crate::path_paint::PathCache,
@@ -969,6 +1012,16 @@ pub(crate) fn render_description_split(
                 } else {
                     draw_image(&mut frame, cw, chh, &im, &decoded);
                 }
+            }
+            FrameItem::Caption(rc) => {
+                // Sprint 22 captions: the GPU picture path draws the
+                // same prepared word blocks through the same caption
+                // painter, so both backends agree byte for byte. The
+                // look resolves first for vanish parity with the CPU
+                // blitter (a lost LUT refuses before any word paints).
+                let _ = luts.grade(folder, &desc.grade_for(rc.doc))?;
+                crate::captions::draw_caption(&mut frame, cw, chh, raster, captions, images, rc)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
             }
         }
     }
@@ -1993,6 +2046,7 @@ mod tests {
             &mut raster,
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &[],
             &[],
@@ -2011,6 +2065,7 @@ mod tests {
             &[],
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &mut raster,
             &crate::path_paint::PathCache::new(),
@@ -2089,6 +2144,7 @@ mod tests {
             &mut raster,
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &[],
             &[],
@@ -2108,6 +2164,7 @@ mod tests {
             &[],
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &mut raster,
             &crate::path_paint::PathCache::new(),

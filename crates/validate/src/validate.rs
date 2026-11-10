@@ -12,11 +12,12 @@ use crate::lint::{LintFinding, LintNote};
 use crate::readiness::AdapterReadiness;
 use notation::model::{
     parse_color, parse_cube, parse_curve_points, resolve_waveform_range, AssertAppear, AssertSite,
-    AudioClip, BlendMode, BoxClip, BoxShadow, ChartClip, ChartKind, ChartPoint, Clip, Composition,
-    Crossfade, CurveGrade, DuckUnder, EaseDecl, Effect, EffectParams, EffectPreset, FillPaint,
-    FillRule, Fit, FlexAlign, FlexChild, FlexClip, FlexDirection, FlexJustify, FontDecl, Fps,
-    Grade, GradePreset, GradientStop, GrainGrade, HslGrade, ImageClip, InputDecl, KeyDecl, KeyStop,
-    LaneGrade, LoopMode, LottieClip, LutGrade, MapClip, MapLabel, MapMarker, MapPolygon,
+    AudioClip, BlendMode, BoxClip, BoxShadow, CaptionClip, CaptionCue, CaptionPosition,
+    CaptionStyle, CaptionWord, CaptionWordOverride, ChartClip, ChartKind, ChartPoint, Clip,
+    Composition, Crossfade, CurveGrade, DuckUnder, EaseDecl, Effect, EffectParams, EffectPreset,
+    FillPaint, FillRule, Fit, FlexAlign, FlexChild, FlexClip, FlexDirection, FlexJustify, FontDecl,
+    Fps, Grade, GradePreset, GradientStop, GrainGrade, HslGrade, ImageClip, InputDecl, KeyDecl,
+    KeyStop, LaneGrade, LoopMode, LottieClip, LutGrade, MapClip, MapLabel, MapMarker, MapPolygon,
     MapPolyline, MarkDecl, MaskRef, MotionAsserts, MotionBlur, MotionBlurTier, NestClip, Normalize,
     Overflow, PathClip, Placement, ReplicateGroup, Rgb, Scene3dCamera, Scene3dCameraKey,
     Scene3dCameraMode, Scene3dClip, Scene3dGeometry, Scene3dLight, Scene3dLightKind, Scene3dObject,
@@ -1742,6 +1743,64 @@ fn check_caption_lint(
     }
 }
 
+/// Report every captions-track note (Sprint 22 captions, T001/T002 /
+/// `caption-notes`): decode drops (zero-length words), empty cues,
+/// dangling overrides, and cues past the film range. Notes ride the
+/// clip from validation; findings here name the cue and the cause so
+/// the maker can review them. Notes never block validation or
+/// rendering: the track still shows every live word.
+fn check_caption_notes_lint(ctx: &mut Ctx, compositions: &[Composition]) {
+    let multi = compositions.len() > 1;
+    for comp in compositions {
+        for (index, clip) in comp.clips.iter().enumerate() {
+            let Clip::Caption(c) = clip else { continue };
+            let (line, column) = (c.line, c.column);
+            let name = clip_display(clip, index);
+            let scope = if multi {
+                format!(" in composition {:?}", comp.name)
+            } else {
+                String::new()
+            };
+            for note in &c.notes {
+                if let Some(finding) = LintFinding::new(
+                "caption-notes",
+                &ctx.file.clone(),
+                line,
+                column,
+                format!("{name}{scope}: {note}"),
+                "remove the empty or dangling content, or keep the note when the drop is intended",
+            ) {
+                ctx.lint_findings.push(finding);
+            }
+            }
+            // Cues past the film range never show (the clip window gates
+            // first, then the cue window): name each one with its range.
+            for (cue_idx, cue) in c.cues.iter().enumerate() {
+                let film_start = c.start + cue.start;
+                let film_end = c.start + cue.end;
+                if film_start >= comp.duration || film_end <= 0.0 {
+                    if let Some(finding) = LintFinding::new(
+                    "caption-notes",
+                    &ctx.file.clone(),
+                    cue.line,
+                    cue.column,
+                    format!(
+                        "{name}{scope} cue {} [{:.3}s, {:.3}s) of the clip window lies past the {:.3}s film and never shows",
+                        cue_idx + 1,
+                        film_start,
+                        film_end,
+                        comp.duration
+                    ),
+                    "move the cue inside the film, or keep the note when the silence is intended",
+                ) {
+                    ctx.lint_findings.push(finding);
+                }
+                }
+            }
+        }
+    }
+}
+
 /// Caption band top as a fraction of the frame height: the caption
 /// band is the bottom 12% of the frame.
 const CAPTION_BAND_TOP: f64 = 0.88;
@@ -1851,6 +1910,7 @@ fn layout_rect(clip: &Clip, canvas_w: f64, canvas_h: f64) -> Option<LayoutRect> 
         Clip::Nest(_) => rect(0.0, 0.0, canvas_w, canvas_h),
         Clip::Path(p) => path_rect(&p.d, p.x, p.y),
         Clip::Text(t) => text_rect(t),
+        Clip::Caption(c) => caption_rect(c, canvas_w, canvas_h),
     }
 }
 
@@ -1951,6 +2011,62 @@ fn path_rect(d: &str, x: f64, y: f64) -> Option<LayoutRect> {
         })
     } else {
         None
+    }
+}
+
+/// Estimated static rectangle of one captions clip (Sprint 22
+/// captions, T001): rail captions estimate to the bottom band their
+/// words paint in; embedded captions estimate from their longest cue
+/// at the clip `x`/`y`, text-style. Empty tracks estimate to nothing.
+fn caption_rect(
+    c: &notation::model::CaptionClip,
+    canvas_w: f64,
+    canvas_h: f64,
+) -> Option<LayoutRect> {
+    use notation::model::CaptionPosition;
+    match c.style.position {
+        CaptionPosition::Rail => {
+            if c.cues.iter().all(|cue| cue.words.is_empty()) {
+                return None;
+            }
+            let band = (c.style.font_size * 2.6 + 16.0).min(canvas_h.max(0.0));
+            if band <= 0.0 || canvas_w <= 0.0 || canvas_h <= 0.0 {
+                return None;
+            }
+            Some(LayoutRect {
+                x0: 0.0,
+                y0: (canvas_h - band).max(0.0),
+                x1: canvas_w,
+                y1: canvas_h,
+            })
+        }
+        CaptionPosition::Embed => {
+            let longest = c
+                .cues
+                .iter()
+                .map(|cue| {
+                    cue.words
+                        .iter()
+                        .map(|w| w.text.chars().count())
+                        .sum::<usize>()
+                })
+                .max()
+                .unwrap_or(0);
+            if longest == 0 {
+                return None;
+            }
+            let w = longest as f64 * c.style.font_size * TEXT_ADVANCE;
+            let h = c.style.font_size * 1.3;
+            if w <= 0.0 || h <= 0.0 {
+                return None;
+            }
+            Some(LayoutRect {
+                x0: c.x,
+                y0: c.y,
+                x1: c.x + w,
+                y1: c.y + h,
+            })
+        }
     }
 }
 
@@ -3900,6 +4016,7 @@ pub fn validate_folder_with_variables_strict_themed(
     // notes — into the same batch, under the same valid-only gate.
     if !ctx.invalid {
         check_layout_lint(&mut ctx, &compositions);
+        check_caption_notes_lint(&mut ctx, &compositions);
         check_motion_lint(&mut ctx, &compositions);
         check_contrast_audio_lint(&mut ctx, &compositions);
     }
@@ -4314,8 +4431,7 @@ fn validate_replicate(
     // the template reports one entry per source, never per clone.
     let template_d0 = ctx.diags.len();
     let template_is_lottie = template.name.as_str() == "lottie";
-    let template_source =
-        node_str_prop(template, "path").unwrap_or_else(|| "?".to_string());
+    let template_source = node_str_prop(template, "path").unwrap_or_else(|| "?".to_string());
     let clip = match template.name.as_str() {
         "text" => validate_text(ctx, template, styles).map(Clip::Text),
         "box" => validate_box(ctx, template, styles).map(Clip::Box),
@@ -5333,6 +5449,7 @@ fn validate_composition_parts<'n>(
     // T004): maps render one viewport per film, so the second one
     // refuses in the `map` dispatch arm below.
     let mut map_seen = false;
+    let mut captions_seen = false;
     // Motion directives validate after the clip pass so `target`
     // indexes resolve against the declared clip count (T003).
     let mut motion_nodes: Vec<(bool, &RawNode)> = Vec::new();
@@ -5616,6 +5733,64 @@ fn validate_composition_parts<'n>(
                         "map",
                         source,
                         refusal_cause(&ctx, d0, "map"),
+                        line,
+                        column,
+                    ));
+                }
+            }
+            // One captions track (Sprint 22 captions, T001 /
+            // CAP-001): a second visible `captions` clip refuses
+            // naming the element and the one-track boundary. Hidden
+            // caption tracks render nothing and never count toward
+            // the limit.
+            "captions" => {
+                // Readiness (Sprint 21 adapters, T007 / CAP-007): one
+                // entry per source, `ready` on decode or `failed`
+                // with the refusal cause (including the one-track
+                // refusal below).
+                let doc_idx = clips.len();
+                let d0 = ctx.diags.len();
+                let id = node_str_prop(child, "id").filter(|s| !s.is_empty());
+                let source =
+                    node_str_prop(child, "src").unwrap_or_else(|| "inline cues".to_string());
+                let (line, column) = (child.name_line, child.name_column);
+                if let Some(c) = validate_captions(&mut ctx, child) {
+                    if !c.hidden {
+                        if captions_seen {
+                            ctx.push(
+                                child.name_line,
+                                child.name_column,
+                                "E_BAD_CAPTIONS",
+                                "composition holds two `captions` clips; captions render one track per film today",
+                                "keep one `captions` clip on the composition, or remove the extra clip",
+                            );
+                            ctx.readiness.push(AdapterReadiness::failed(
+                                doc_idx,
+                                id.clone(),
+                                "captions",
+                                source.clone(),
+                                refusal_cause(&ctx, d0, "captions"),
+                                line,
+                                column,
+                            ));
+                            continue;
+                        }
+                        captions_seen = true;
+                    }
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Caption(c));
+                    ctx.readiness.push(AdapterReadiness::ready(
+                        doc_idx, id, "captions", source, line, column,
+                    ));
+                } else {
+                    ctx.readiness.push(AdapterReadiness::failed(
+                        doc_idx,
+                        id,
+                        "captions",
+                        source,
+                        refusal_cause(&ctx, d0, "captions"),
                         line,
                         column,
                     ));
@@ -12418,6 +12593,385 @@ fn lottie_element(identity_id: &Option<String>) -> String {
     }
 }
 
+/// Caption source file kinds (Sprint 22 captions, T001 / CAP-002):
+/// `.srt`, `.vtt`, and transcript `.json`. Anything else refuses
+/// naming the file — the decoders never guess a format.
+fn caption_format_supported(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    lower.ends_with(".srt") || lower.ends_with(".vtt") || lower.ends_with(".json")
+}
+
+/// Decode-check one subject matte (Sprint 22 captions, T003 /
+/// CAP-005): the file must be a readable still PNG. Alpha drives the
+/// cover: opaque matte pixels cover caption pixels, transparent ones
+/// show through. Any failure names the file and the cause, so
+/// validation refuses unreadable mattes before any render work
+/// (REC-003). The matte is a plain file path, never a URL: a network
+/// source refuses at the caller, never fetched at render time.
+fn matte_png_decodes(path: &std::path::Path) -> Result<(), String> {
+    let file = std::fs::File::open(path).map_err(|e| format!("cannot be read: {e}"))?;
+    let mut decoder = png::Decoder::new(file);
+    decoder.set_transformations(png::Transformations::normalize_to_color8());
+    let mut reader = decoder
+        .read_info()
+        .map_err(|e| format!("is not a readable PNG picture ({e})"))?;
+    if reader.info().is_animated() {
+        return Err("is an animated PNG; subject mattes are still pictures".to_string());
+    }
+    let mut buf = vec![0u8; reader.output_buffer_size()];
+    reader
+        .next_frame(&mut buf)
+        .map_err(|e| format!("cannot be decoded ({e})"))?;
+    Ok(())
+}
+
+/// One `font-family` try-order list (Sprint 22 captions, T002): a
+/// quoted comma-separated list with at least one name. Fail-closed
+/// starts here: an empty list refuses naming the key, and a list
+/// nothing resolves refuses at render time naming the family.
+fn caption_font_family(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<Vec<String>>> {
+    let key = if find(node, "font-family").is_some() {
+        "font-family"
+    } else {
+        "font_family"
+    };
+    match find(node, key) {
+        None => Some(None),
+        Some(v) => match as_str(v) {
+            Some(s) => {
+                let names: Vec<String> = s
+                    .split(',')
+                    .map(|n| n.trim().to_string())
+                    .filter(|n| !n.is_empty())
+                    .collect();
+                if names.is_empty() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CAPTIONS",
+                        format!("{what} `{key}` names no family"),
+                        format!("set {what} `{key}=\"Family Name\"` or `{key}=\"First, Fallback\"`, or remove the key for the project font"),
+                    );
+                    return None;
+                }
+                Some(Some(names))
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{what} `{key}` must be a quoted family list"),
+                    format!("set {what} `{key}=\"Family Name\"` or `{key}=\"First, Fallback\"`, or remove the key for the project font"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One caption number with a range rule (Sprint 22 captions, T002):
+/// absent means `default`, present must be a finite number inside
+/// `[min, max]`. Anything else refuses with `E_BAD_CAPTIONS` naming
+/// the property.
+fn caption_num(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+    what: &str,
+    default: f64,
+    min: f64,
+    max: f64,
+) -> Option<f64> {
+    match find_either(node, hyphen, underscore) {
+        None => Some(default),
+        Some(v) => match as_f64(v) {
+            Some(n) if n.is_finite() && n >= min && n <= max => Some(n),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{what} `{hyphen}` must be a number from {min} to {max}"),
+                    format!("set `{hyphen}=<number {min}..={max}>` on {what}, or remove the key"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One caption color (Sprint 22 captions, T002): absent means
+/// `default`, present must read `#rgb`/`#rrggbb`. Anything else
+/// refuses with `E_BAD_CAPTIONS` naming the written spelling.
+fn caption_color(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    keys: &[&str],
+    what: &str,
+    default: Rgb,
+) -> Option<Rgb> {
+    let mut actual: Option<&str> = None;
+    for key in keys {
+        if find(node, key).is_some() {
+            actual = Some(key);
+            break;
+        }
+    }
+    match actual.and_then(|key| find(node, key)) {
+        None => Some(default),
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{what} `{}` is not a `#rgb` or `#rrggbb` color", keys[0]),
+                    format!("use a hex color like `{}=\"#ffffff\"`", keys[0]),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One caption outline width (Sprint 22 captions, T002): the bare
+/// `outline` spells the same width as `outline-width` (both
+/// underscore aliases accepted); absent means no outline. Anything
+/// else refuses with `E_BAD_CAPTIONS` naming the property.
+fn caption_outline_width(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<f64> {
+    for key in ["outline-width", "outline_width", "outline"] {
+        if let Some(v) = find(node, key) {
+            return match as_f64(v) {
+                Some(n) if n.is_finite() && n >= 0.0 && n <= 1e6 => Some(n),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CAPTIONS",
+                        format!("{what} `outline-width` must be a number from 0 to 1000000"),
+                        "set `outline-width=<pixels >= 0>` on the captions clip, or remove the key",
+                    );
+                    None
+                }
+            };
+        }
+    }
+    Some(0.0)
+}
+
+/// One optional caption fill (Sprint 22 captions, T002): absent means
+/// no fill, present must read `#rgb`/`#rrggbb` under any alias
+/// spelling. Anything else refuses with `E_BAD_CAPTIONS`.
+fn caption_fill(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Option<Rgb>> {
+    let mut actual: Option<&str> = None;
+    for candidate in ["background", "background-color", "background_color"] {
+        if find(node, candidate).is_some() {
+            actual = Some(candidate);
+            break;
+        }
+    }
+    match actual {
+        None => Some(None),
+        Some(key) => match find(node, key).and_then(as_str).and_then(parse_color) {
+            Some(c) => Some(Some(c)),
+            None => {
+                let v = find(node, key).unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{what} `{key}` is not a `#rgb` or `#rrggbb` color"),
+                    format!("use a hex color like `{key}=\"#000000\"`, or remove the key for no backing"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `cue` child of a `captions` clip (Sprint 22 captions, T001):
+/// required `start`/`end` plus either `word` children with explicit
+/// times or a `value` whose words spread uniformly. Word times must
+/// sit inside the cue; a word child with unusable times refuses
+/// naming the cue and the word.
+fn validate_caption_cue(
+    ctx: &mut Ctx,
+    child: &RawNode,
+    cue_no: usize,
+    notes: &mut Vec<String>,
+) -> Option<CaptionCue> {
+    const WHAT: &str = "captions cue";
+    let start = match find(child, "start").and_then(as_f64) {
+        Some(s) if s.is_finite() && s >= 0.0 => s,
+        _ => {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{WHAT} {cue_no} needs a `start=<seconds >= 0>`"),
+                "add `start=<seconds>` to the `cue` child",
+            );
+            return None;
+        }
+    };
+    let end = match find(child, "end").and_then(as_f64) {
+        Some(e) if e.is_finite() => e,
+        _ => {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{WHAT} {cue_no} needs an `end=<seconds>`"),
+                "add `end=<seconds>` past the cue `start` to the `cue` child",
+            );
+            return None;
+        }
+    };
+    if end <= start {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_CAPTIONS",
+            format!("{WHAT} {cue_no} ends at {end:.3}s, not past its {start:.3}s start"),
+            "order the cue window so `end` sits past `start`",
+        );
+        return None;
+    }
+    for (k, v) in &child.props {
+        if !["start", "end", "value"].contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown captions cue key {k:?}"),
+                "keep `start`, `end`, and `value` on the `cue` child, with `word` grandchildren for explicit times",
+            );
+        }
+    }
+    let mut words = Vec::new();
+    let mut word_no = 0usize;
+    for grand in &child.children {
+        if grand.name != "word" {
+            ctx.push(
+                grand.name_line,
+                grand.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{WHAT} {cue_no} holds `{}`; a cue carries `word` grandchildren only", grand.name),
+                "keep `word value=\"...\" start=<seconds> end=<seconds>` grandchildren on the `cue`, or remove the child",
+            );
+            return None;
+        }
+        word_no += 1;
+        let text = match find(grand, "value").and_then(as_str) {
+            Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+            _ => {
+                ctx.push(
+                    grand.name_line,
+                    grand.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} {cue_no} word {word_no} needs a non-empty `value`"),
+                    "add `value=\"...\"` to the `word` grandchild",
+                );
+                return None;
+            }
+        };
+        let ws = match find(grand, "start").and_then(as_f64) {
+            Some(s) if s.is_finite() => notation::captions::quantize_ms(s),
+            _ => {
+                ctx.push(
+                    grand.name_line,
+                    grand.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} {cue_no} word {word_no} {text:?} needs a `start=<seconds>`"),
+                    "add `start=<seconds>` to the `word` grandchild",
+                );
+                return None;
+            }
+        };
+        let we = match find(grand, "end").and_then(as_f64) {
+            Some(e) if e.is_finite() => notation::captions::quantize_ms(e),
+            _ => {
+                ctx.push(
+                    grand.name_line,
+                    grand.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} {cue_no} word {word_no} {text:?} needs an `end=<seconds>`"),
+                    "add `end=<seconds>` past the word `start` to the `word` grandchild",
+                );
+                return None;
+            }
+        };
+        for (k, v) in &grand.props {
+            if !["value", "start", "end"].contains(&k.as_str()) {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_UNKNOWN_KEY",
+                    format!("unknown captions word key {k:?}"),
+                    "keep `value`, `start`, and `end` on the `word` grandchild",
+                );
+            }
+        }
+        if we <= ws {
+            notes.push(format!(
+                "cue {cue_no} word {word_no} {text:?} has zero length and was dropped"
+            ));
+            continue;
+        }
+        if ws < start - 1e-9 || we > end + 1e-9 {
+            ctx.push(
+                grand.name_line,
+                grand.name_column,
+                "E_BAD_CAPTIONS",
+                format!(
+                    "{WHAT} {cue_no} word {word_no} {text:?} [{ws:.3}s, {we:.3}s) falls outside its cue [{start:.3}s, {end:.3}s)"
+                ),
+                "keep word times inside the cue window",
+            );
+            return None;
+        }
+        words.push(CaptionWord {
+            text,
+            start: ws,
+            end: we,
+        });
+    }
+    if words.is_empty() {
+        let value = find(child, "value").and_then(as_str).unwrap_or("");
+        words = {
+            let mut local_notes = Vec::new();
+            let spread = notation::captions::uniform_words(
+                value,
+                notation::captions::quantize_ms(start),
+                notation::captions::quantize_ms(end),
+                cue_no,
+                &mut local_notes,
+            );
+            notes.extend(local_notes);
+            spread
+        };
+        if words.is_empty() {
+            notes.push(format!("cue {cue_no} keeps no words and renders nothing"));
+        }
+    }
+    let mut cue = CaptionCue {
+        start: notation::captions::quantize_ms(start),
+        end: notation::captions::quantize_ms(end),
+        words,
+        line: child.name_line,
+        column: child.name_column,
+    };
+    cue.words.sort_by(|a, b| {
+        a.start
+            .total_cmp(&b.start)
+            .then_with(|| a.end.total_cmp(&b.end))
+    });
+    Some(cue)
+}
+
 /// Validate one `lottie` clip (Sprint 21 adapters, T001 / CAP-001): a
 /// `.json` Lottie file or a `.lottie` dotLottie pack played natively.
 /// A missing file names the file; an undecodable file names the file
@@ -12427,6 +12981,628 @@ fn lottie_element(identity_id: &Option<String>) -> String {
 /// animation length and echoes in `check`; in-window file markers
 /// ride the clip as named ranges while out-of-window markers drop
 /// into the verdict notes.
+
+/// One `override` child of a `captions` clip (Sprint 22 captions,
+/// T002): `cue`/`word` indexes plus a subset of style properties.
+/// Unknown keys refuse with `E_BAD_CAPTIONS` naming the property
+/// (REC-005); dangling addresses never refuse — the caller drops
+/// them with a named note (REC-004).
+fn validate_caption_override(ctx: &mut Ctx, child: &RawNode) -> Option<CaptionWordOverride> {
+    const WHAT: &str = "captions override";
+    let mut unsigned = |key: &str| -> Option<usize> {
+        match find(child, key).and_then(as_f64) {
+            Some(n) if n.is_finite() && n >= 0.0 && n.fract() == 0.0 => Some(n as usize),
+            _ => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} needs `{key}=<whole number >= 0>` addressing its word"),
+                    format!("add `{key}=<cue or word index from 0>` to the `override` child"),
+                );
+                None
+            }
+        }
+    };
+    let cue = unsigned("cue")?;
+    let word = unsigned("word")?;
+    for (k, v) in &child.props {
+        if ![
+            "cue",
+            "word",
+            "dx",
+            "dy",
+            "scale",
+            "rotation",
+            "color",
+            "opacity",
+            "font-size",
+            "font_size",
+            "font-weight",
+            "font_weight",
+            "font-family",
+            "font_family",
+        ]
+        .contains(&k.as_str())
+        {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_CAPTIONS",
+                format!("{WHAT} property {k:?} is unknown"),
+                "keep `dx`, `dy`, `scale`, `rotation`, `color`, `opacity`, `font-size`, `font-weight`, and `font-family` on the `override` child",
+            );
+        }
+    }
+    if !child.children.is_empty() {
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_CAPTIONS",
+            format!(
+                "{WHAT} holds `{}`; an override carries properties only",
+                child.children[0].name
+            ),
+            "remove the child; per-word styling lives in the override properties",
+        );
+        return None;
+    }
+    let mut opt_num = |hyphen: &str, underscore: &str, min: f64, max: f64| -> Option<Option<f64>> {
+        match find_either(child, hyphen, underscore) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(n) if n.is_finite() && n >= min && n <= max => Some(Some(n)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CAPTIONS",
+                        format!("{WHAT} `{hyphen}` must be a number from {min} to {max}"),
+                        format!("set `{hyphen}=<number {min}..={max}>` on the `override`, or remove the key"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let color = match find(child, "color") {
+        None => None,
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} `color` is not a `#rgb` or `#rrggbb` color"),
+                    "use a hex color like `color=\"#ffd60a\"`",
+                );
+                return None;
+            }
+        },
+    };
+    Some(CaptionWordOverride {
+        cue,
+        word,
+        dx: opt_num("dx", "dx", f64::NEG_INFINITY, f64::INFINITY)?,
+        dy: opt_num("dy", "dy", f64::NEG_INFINITY, f64::INFINITY)?,
+        scale: opt_num("scale", "scale", 1e-9, 1e9)?,
+        rotation: opt_num("rotation", "rotation", f64::NEG_INFINITY, f64::INFINITY)?,
+        color,
+        opacity: opt_num("opacity", "opacity", 0.0, 1.0)?,
+        font_size: opt_num("font-size", "font_size", 1e-9, 1e9)?,
+        font_weight: opt_num("font-weight", "font_weight", 100.0, 900.0)?,
+        font_family: caption_font_family(ctx, child, WHAT)?,
+        line: child.name_line,
+        column: child.name_column,
+    })
+}
+
+/// Validate one `captions` clip (Sprint 22 captions, T001/T002/T003 /
+/// CAP-001..CAP-005): one captions track per composition whose cues
+/// carry per-word times, decoded from a caption file (`src`) or
+/// authored as inline `cue` children, styled at the track level with
+/// per-word overrides, animated by pure film-time presets, and
+/// optionally composited behind a file-backed subject matte. An
+/// unreadable file refuses naming the file and cause (REC-001);
+/// overlapping cues refuse naming the cue indexes (REC-002); a
+/// behind-subject order with no matte refuses naming the missing
+/// matte (REC-003); an unknown preset or property refuses naming it
+/// (REC-005). Dangling overrides and range notes ride the clip for
+/// lint, never as refusals (REC-004).
+fn validate_captions(ctx: &mut Ctx, node: &RawNode) -> Option<CaptionClip> {
+    const WHAT: &str = "captions clip";
+    const KEYS: &[&str] = &[
+        "src",
+        "start",
+        "end",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "font-family",
+        "font_family",
+        "font-size",
+        "font_size",
+        "font-weight",
+        "font_weight",
+        "color",
+        "opacity",
+        "outline",
+        "outline-width",
+        "outline_width",
+        "outline-color",
+        "outline_color",
+        "background",
+        "background-color",
+        "background_color",
+        "position",
+        "max-lines",
+        "max_lines",
+        "entrance",
+        "highlight",
+        "exit",
+        "matte",
+        "behind-subject",
+        "behind_subject",
+        "order",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && *k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown captions key {k:?}"),
+                "remove the key or check the spelling against `src`, `start`, `duration`, `font-size`, `color`, `position`, `entrance`, `highlight`, `exit`, and `matte`",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, WHAT) {
+        return None;
+    }
+    if reject_spans(ctx, node, WHAT) {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "captions", WHAT)?;
+    let start = clip_start_relaxed(ctx, node, WHAT);
+    let duration_parsed = clip_optional_duration(ctx, node, WHAT);
+    // Like stills (T003): an omitted `duration` runs to the
+    // composition end (`NAN` marks the omission for the inference
+    // loop below).
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    let el = format!(
+        "captions{}",
+        match &identity.id {
+            Some(id) => format!(" {id:?}"),
+            None => String::new(),
+        }
+    );
+    // Embed origin (the rail ignores these); finite numbers only.
+    let mut origin = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => Some(0.0),
+            Some(v) => match as_f64(v) {
+                Some(n) if n.is_finite() => Some(n),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CAPTIONS",
+                        format!("{WHAT} `{key}` must be a finite number of canvas pixels"),
+                        format!("set `{key}=<pixels>` on the captions clip, or remove the key"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let (x, y) = (origin("x")?, origin("y")?);
+    let order = parse_order(ctx, node)?;
+    // Track style: every property validated here (REC-005 refuses
+    // unknown values naming the property).
+    let style = CaptionStyle {
+        font_family: caption_font_family(ctx, node, WHAT)?,
+        font_size: caption_num(ctx, node, "font-size", "font_size", WHAT, 48.0, 1.0, 1e6)?,
+        font_weight: caption_num(
+            ctx,
+            node,
+            "font-weight",
+            "font_weight",
+            WHAT,
+            400.0,
+            100.0,
+            900.0,
+        )?,
+        color: caption_color(
+            ctx,
+            node,
+            &["color"],
+            WHAT,
+            Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
+        )?,
+        opacity: caption_num(ctx, node, "opacity", "opacity", WHAT, 1.0, 0.0, 1.0)?,
+        outline_width: caption_outline_width(ctx, node, WHAT)?,
+        outline_color: caption_color(
+            ctx,
+            node,
+            &["outline-color", "outline_color"],
+            WHAT,
+            Rgb { r: 0, g: 0, b: 0 },
+        )?,
+        background: caption_fill(ctx, node, WHAT)?,
+        position: match find_either(node, "position", "position") {
+            None => CaptionPosition::Rail,
+            Some(v) => match as_str(v).and_then(CaptionPosition::parse) {
+                Some(p) => p,
+                None => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CAPTIONS",
+                        format!(
+                            "{WHAT} `position` {:?} is unknown; the position is exactly one of {}",
+                            as_str(v).unwrap_or(""),
+                            CaptionPosition::ACCEPTED
+                                .iter()
+                                .map(|s| format!("`{s}`"))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        ),
+                        "set `position=\"rail\"` for the bottom band or `position=\"embed\"` to paint at `x`/`y`",
+                    );
+                    return None;
+                }
+            },
+        },
+        max_lines: match find_either(node, "max-lines", "max_lines") {
+            None => 2,
+            Some(v) => match as_f64(v) {
+                Some(n) if n.is_finite() && n >= 1.0 && n.fract() == 0.0 => n as u32,
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CAPTIONS",
+                        format!("{WHAT} `max-lines` must be a whole number of at least 1"),
+                        "set `max-lines=<lines >= 1>` on the captions clip, or remove the key",
+                    );
+                    return None;
+                }
+            },
+        },
+    };
+    // Animation presets: known names only (REC-005).
+    let mut preset =
+        |key: &str, known: &[&str]| -> Option<Option<String>> {
+            match find(node, key) {
+                None => Some(None),
+                Some(v) => {
+                    match as_str(v) {
+                        Some(name) if known.contains(&name) => Some(Some(name.to_string())),
+                        _ => {
+                            ctx.push(
+                                v.line,
+                                v.column,
+                                "E_BAD_CAPTIONS",
+                                format!(
+                            "{WHAT} `{key}` {:?} is unknown; the preset is exactly one of {}",
+                            as_str(v).unwrap_or(""),
+                            known.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(", ")
+                        ),
+                                format!("pick a known `{key}` preset, or remove the key"),
+                            );
+                            None
+                        }
+                    }
+                }
+            }
+        };
+    let entrance = preset("entrance", &notation::captions::ENTRANCE_PRESETS)?;
+    let highlight = preset("highlight", &notation::captions::HIGHLIGHT_PRESETS)?;
+    let exit = preset("exit", &notation::captions::EXIT_PRESETS)?;
+    // Matte contract (T003): behind-subject needs a matte file, and
+    // the matte is a plain project-relative PNG, never a URL.
+    let behind_subject = match find_either(node, "behind-subject", "behind_subject") {
+        None => false,
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => *b,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} `behind-subject` must be `true` or `false`"),
+                    "set `behind-subject=true` with a `matte`, or remove the key",
+                );
+                return None;
+            }
+        },
+    };
+    let matte = match find(node, "matte") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(m) if !m.is_empty() => Some(m.to_string()),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} `matte` must be a quoted project folder path to a PNG picture"),
+                    "set `matte=\"media/subject-matte.png\"` on the captions clip, or remove the key",
+                );
+                return None;
+            }
+        },
+    };
+    if let Some(m) = &matte {
+        if m.starts_with("http://") || m.starts_with("https://") {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{el} matte {m:?} names a network source; subject mattes are project files, never fetched"),
+                "point `matte` at a project-relative `.png` file",
+            );
+            return None;
+        }
+        let abs = ctx.folder.join(m);
+        if !abs.is_file() {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FILE",
+                format!("{el} matte {m:?} does not exist or is not readable"),
+                "provide the matte file at the referenced path or fix the `matte`",
+            );
+            return None;
+        }
+        if !m.to_lowercase().ends_with(".png") {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{el} matte {m:?} must be a `.png` still picture"),
+                "point `matte` at a still `.png` file carrying the subject alpha",
+            );
+            return None;
+        }
+        if let Err(detail) = matte_png_decodes(&abs) {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{el} matte {m:?} {detail}"),
+                "restore a readable still PNG at the referenced path",
+            );
+            return None;
+        }
+    }
+    if behind_subject && matte.is_none() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_CAPTIONS",
+            format!("{el} orders behind-subject with no `matte`; the subject has no cover to paint"),
+            "attach `matte=\"media/subject-matte.png\"` to the captions clip, or remove `behind-subject`",
+        );
+        return None;
+    }
+    // Caption source: a file, inline `cue` children, or both (file
+    // cues first, then inline cues, overlap-checked together).
+    let src = match find(node, "src") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) if !s.is_empty() => Some(s.to_string()),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} `src` must be a quoted project folder path to a caption file"),
+                    "set `src=\"captions/dialogue.srt\"` on the captions clip, or author inline `cue` children",
+                );
+                return None;
+            }
+        },
+    };
+    let mut notes: Vec<String> = Vec::new();
+    let mut cues: Vec<CaptionCue> = Vec::new();
+    if let Some(path) = &src {
+        if path.starts_with("http://") || path.starts_with("https://") {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{el} source {path:?} names a network source; caption files are project files, never fetched"),
+                "point `src` at a project-relative `.srt`, `.vtt`, or transcript `.json` file",
+            );
+            return None;
+        }
+        if !caption_format_supported(path) {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CAPTIONS",
+                format!("{el} source {path:?} names no caption format (`.srt`, `.vtt`, or transcript `.json`)"),
+                "point `src` at an `.srt`, `.vtt`, or transcript `.json` file",
+            );
+            return None;
+        }
+        let abs = ctx.folder.join(path);
+        if !abs.is_file() {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FILE",
+                format!("{el} source {path:?} does not exist or is not readable"),
+                "provide the caption file at the referenced path or fix the `src`",
+            );
+            return None;
+        }
+        let body = match std::fs::read(&abs) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_UNREADABLE",
+                    format!("{el} source {path:?} cannot be read: {e}"),
+                    "make the caption file readable or fix the `src`",
+                );
+                return None;
+            }
+        };
+        let text = match String::from_utf8(body) {
+            Ok(t) => t,
+            Err(_) => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{el} source {path:?} is not UTF-8 text"),
+                    "save the caption file as UTF-8 text",
+                );
+                return None;
+            }
+        };
+        match notation::captions::decode_named(path, &text) {
+            Ok(decoded) => {
+                notes.extend(decoded.notes);
+                cues.extend(decoded.cues);
+            }
+            Err(parse) => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{el} source {path:?} is undecodable ({parse})"),
+                    "fix the caption file at the reported line, or fix the `src`",
+                );
+                return None;
+            }
+        }
+    }
+    // Children: `cue` and `override` carry the track; `grade`,
+    // `effect`, `vfx`, and assertion children layer the shared
+    // look; anything else refuses naming the child.
+    let mut overrides = Vec::new();
+    let mut cue_no = cues.len();
+    for child in &node.children {
+        match child.name.as_str() {
+            "grade" | "effect" | "vfx" => {}
+            _ if is_assert_child(&child.name) => {}
+            "cue" => {
+                cue_no += 1;
+                match validate_caption_cue(ctx, child, cue_no, &mut notes) {
+                    Some(cue) => cues.push(cue),
+                    None => return None,
+                }
+            }
+            "override" => match validate_caption_override(ctx, child) {
+                Some(o) => overrides.push(o),
+                None => return None,
+            },
+            other => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_CAPTIONS",
+                    format!("{WHAT} holds `{other}`; a captions clip carries `cue` and `override` children (plus shared `grade`/`effect`/`vfx` and assertion children)"),
+                    "keep `cue` and `override` children on the captions clip, or remove the child",
+                );
+                return None;
+            }
+        }
+    }
+    if src.is_none() && !node.children.iter().any(|c| c.name == "cue") {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FIELD",
+            format!("{WHAT} names no caption source: neither `src` nor inline `cue` children"),
+            "add `src=\"captions/dialogue.srt\"` to the captions clip, or author inline `cue` children",
+        );
+        return None;
+    }
+    // Merged cues overlap-check together (REC-002 refuses naming
+    // both cue indexes); inline words were already ordered above.
+    cues.sort_by(|a, b| {
+        a.start
+            .total_cmp(&b.start)
+            .then_with(|| a.end.total_cmp(&b.end))
+    });
+    if let Err(parse) = notation::captions::check_cues(&cues) {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_CAPTIONS",
+            format!("{el} {parse}"),
+            "separate the cue windows so no two cues claim one instant",
+        );
+        return None;
+    }
+    // Dangling overrides drop with a named note (REC-004); live
+    // ones ride the clip for the render.
+    overrides.retain(|o| {
+        let live = cues.get(o.cue).is_some_and(|cue| o.word < cue.words.len());
+        if !live {
+            notes.push(format!(
+                "override at cue {} word {} dangles (the word no longer exists) and was dropped",
+                o.cue, o.word
+            ));
+        }
+        live
+    });
+    let asserts = parse_clip_asserts(ctx, node, WHAT)?;
+    let grade = parse_clip_grade(ctx, node, WHAT)?;
+    let effects = parse_clip_effects(ctx, node, WHAT)?;
+    let vfx = parse_clip_vfx(ctx, node, WHAT)?;
+    Some(CaptionClip {
+        asserts,
+        src,
+        cues,
+        style,
+        overrides,
+        entrance,
+        highlight,
+        exit,
+        matte,
+        behind_subject,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        label: identity.label,
+        start_after: identity.start_after,
+        x,
+        y,
+        order,
+        grade,
+        effects,
+        vfx,
+        notes,
+        hidden: identity.hidden,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
 fn validate_lottie(
     ctx: &mut Ctx,
     node: &RawNode,
@@ -15693,6 +16869,7 @@ fn mask_clip_kind(clip: &Clip) -> &'static str {
         Clip::Nest(_) => "nest",
         Clip::Map(_) => "map",
         Clip::Scene3d(_) => "scene3d",
+        Clip::Caption(_) => "captions",
     }
 }
 

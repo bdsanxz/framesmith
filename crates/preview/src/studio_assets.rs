@@ -216,6 +216,7 @@ fn clip_vfx(clip: &notation::model::Clip) -> &notation::model::VfxChain {
         notation::model::Clip::Chart(c) => &c.vfx,
         notation::model::Clip::Map(c) => &c.vfx,
         notation::model::Clip::Scene3d(c) => &c.vfx,
+        notation::model::Clip::Caption(c) => &c.vfx,
         notation::model::Clip::Lottie(c) => &c.vfx,
         notation::model::Clip::Audio(c) => &c.vfx,
         notation::model::Clip::Nest(c) => &c.vfx,
@@ -363,6 +364,29 @@ pub fn reference_map(comps: &[notation::model::Composition]) -> BTreeMap<String,
                     clip_owner("map", index, c.id.as_deref())
                 }
                 notation::model::Clip::Scene3d(c) => clip_owner("scene3d", index, c.id.as_deref()),
+                notation::model::Clip::Caption(c) => {
+                    if let Some(src) = c.src.as_deref() {
+                        push_ref(
+                            &mut map,
+                            src,
+                            format!(
+                                "composition {cname:?} {}",
+                                clip_owner("captions", index, c.id.as_deref())
+                            ),
+                        );
+                    }
+                    if let Some(matte) = c.matte.as_deref() {
+                        push_ref(
+                            &mut map,
+                            matte,
+                            format!(
+                                "composition {cname:?} {} matte",
+                                clip_owner("captions", index, c.id.as_deref())
+                            ),
+                        );
+                    }
+                    clip_owner("captions", index, c.id.as_deref())
+                }
                 notation::model::Clip::Text(c) => clip_owner("text", index, c.id.as_deref()),
                 notation::model::Clip::Box(c) => {
                     if let notation::model::FillPaint::Image { src, .. } = &c.fill_paint {

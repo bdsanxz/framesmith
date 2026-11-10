@@ -63,36 +63,70 @@ fn scan_vanished(folder: &Path, comps: &[&Composition]) -> Vec<(VanishedSource, 
     let mut out = Vec::new();
     for comp in comps {
         for (index, clip) in comp.clips.iter().enumerate() {
-            let (kind, source) = match clip {
-                Clip::Lottie(lo) => ("lottie", lo.path.clone()),
+            // One entry per file-backed source of the clip: caption
+            // tracks resolve both their source file and their subject
+            // matte (Sprint 22 captions, T001/T003); every other
+            // file-backed kind resolves its single source.
+            let mut sources: Vec<(&'static str, String)> = Vec::new();
+            match clip {
+                Clip::Lottie(lo) => sources.push(("lottie", lo.path.clone())),
                 Clip::Chart(ch) => match ch.data_file.clone() {
-                    Some(data) => ("chart", data),
+                    Some(data) => sources.push(("chart", data)),
                     None => continue,
                 },
-                Clip::Map(m) => ("map", m.pack.clone()),
+                Clip::Map(m) => sources.push(("map", m.pack.clone())),
+                Clip::Caption(cc) => {
+                    if let Some(src) = &cc.src {
+                        sources.push(("captions", src.clone()));
+                    }
+                    if let Some(matte) = &cc.matte {
+                        sources.push(("captions", matte.clone()));
+                    }
+                    if sources.is_empty() {
+                        continue;
+                    }
+                }
                 _ => continue,
             };
-            if let Err(e) = std::fs::metadata(folder.join(&source)) {
-                // Deduplicate repeat references to one file: one
-                // entry per source, never per clip or per frame.
-                if out
-                    .iter()
-                    .any(|(v, _): &(VanishedSource, String)| v.source == source)
-                {
-                    continue;
-                }
-                out.push((
-                    VanishedSource {
-                        kind,
-                        name: clip_name(&comp.clips, index, kind),
-                        source,
-                    },
-                    e.to_string(),
-                ));
+            for (kind, source) in sources {
+                push_vanished(folder, &comp.clips, index, kind, source, &mut out);
             }
         }
     }
     out
+}
+
+/// Probe one file-backed adapter source for the vanished-source scan
+/// (Sprint 22 captions, T001/T003): a source lost after validation is
+/// recorded with the operating-system cause, deduplicated per source.
+/// Both public queries below read the same scan, so the inspector
+/// listing and the render gate always agree on the same sources.
+fn push_vanished(
+    folder: &Path,
+    clips: &[Clip],
+    index: usize,
+    kind: &'static str,
+    source: String,
+    out: &mut Vec<(VanishedSource, String)>,
+) {
+    if let Err(e) = std::fs::metadata(folder.join(&source)) {
+        // Deduplicate repeat references to one file: one entry per
+        // source, never per clip or per frame.
+        if out
+            .iter()
+            .any(|(v, _): &(VanishedSource, String)| v.source == source)
+        {
+            return;
+        }
+        out.push((
+            VanishedSource {
+                kind,
+                name: clip_name(clips, index, kind),
+                source,
+            },
+            e.to_string(),
+        ));
+    }
 }
 
 /// File-backed adapter sources of these compositions that are no

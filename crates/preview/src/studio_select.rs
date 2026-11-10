@@ -227,6 +227,29 @@ pub fn element_box_of(
             h: c.height.unwrap_or(film_h),
         }),
         notation::model::Clip::Path(c) => path_token_bounds(&c.d, c.x, c.y),
+        // Captions select like they paint (Sprint 22 captions): the
+        // rail estimates to its bottom band, embed to its origin.
+        notation::model::Clip::Caption(c) => match c.style.position {
+            notation::model::CaptionPosition::Rail => {
+                let band = (c.style.font_size * 2.6 + 16.0).min(film_h.max(0.0));
+                if band <= 0.0 || film_w <= 0.0 {
+                    None
+                } else {
+                    Some(ElementBox {
+                        x: 0.0,
+                        y: (film_h - band).max(0.0),
+                        w: film_w,
+                        h: band,
+                    })
+                }
+            }
+            notation::model::CaptionPosition::Embed => Some(ElementBox {
+                x: c.x,
+                y: c.y,
+                w: film_w.max(0.0),
+                h: (c.style.font_size * 1.3).max(0.0),
+            }),
+        },
         notation::model::Clip::Text(_)
         | notation::model::Clip::Video(_)
         | notation::model::Clip::Audio(_)
@@ -249,6 +272,12 @@ pub fn clip_origin(clip: &notation::model::Clip) -> Option<(f64, f64)> {
         notation::model::Clip::Lottie(c) => Some((c.x, c.y)),
         notation::model::Clip::Path(c) => Some((c.x, c.y)),
         notation::model::Clip::Flex(c) => Some((c.x, c.y)),
+        // Embedded captions carry an authored origin; rail captions
+        // position themselves, so they report no origin.
+        notation::model::Clip::Caption(c) => match c.style.position {
+            notation::model::CaptionPosition::Embed => Some((c.x, c.y)),
+            notation::model::CaptionPosition::Rail => None,
+        },
         notation::model::Clip::Video(_)
         | notation::model::Clip::Audio(_)
         | notation::model::Clip::Nest(_) => None,
@@ -272,6 +301,7 @@ pub fn clip_size(clip: &notation::model::Clip) -> Option<(Option<f64>, Option<f6
         notation::model::Clip::Image(c) => Some((c.width, c.height)),
         notation::model::Clip::Text(_)
         | notation::model::Clip::Path(_)
+        | notation::model::Clip::Caption(_)
         | notation::model::Clip::Video(_)
         | notation::model::Clip::Audio(_)
         | notation::model::Clip::Nest(_) => None,

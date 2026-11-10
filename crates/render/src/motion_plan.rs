@@ -172,6 +172,18 @@ pub fn own_values(clip: &Clip, canvas: (f64, f64)) -> [f64; PROP_COUNT] {
             own[Prop::Width.index()] = fc.width;
             own[Prop::Height.index()] = fc.height;
         }
+        // A captions track owns its embed origin and word metrics
+        // like a text clip (Sprint 22 captions, T001): motion tweens
+        // ride the offset and the track size, while cue and word
+        // times stay authored.
+        Clip::Caption(cc) => {
+            own[Prop::X.index()] = cc.x;
+            own[Prop::Y.index()] = cc.y;
+            own[Prop::FontSize.index()] = cc.style.font_size;
+            own[Prop::RotateX.index()] = 0.0;
+            own[Prop::RotateY.index()] = 0.0;
+            own[Prop::Blur.index()] = 0.0;
+        }
         Clip::Audio(_) | Clip::Nest(_) => {}
     }
     own

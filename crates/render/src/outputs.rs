@@ -1361,6 +1361,12 @@ pub fn normalize_clip_for_digest(
         Clip::Audio(c) => {
             normalize("audio", &mut c.id, &mut c.track, &mut c.label);
         }
+        // A captions track normalizes like a picture clip (Sprint 22
+        // captions, T001): duration and order ride along, cues and
+        // word times stay authored.
+        Clip::Caption(c) => {
+            normalize("captions", &mut c.id, &mut c.track, &mut c.label);
+        }
         Clip::Nest(c) => {
             // The nest target name stays: it resolves the nested
             // composition, so it is a real input.

@@ -946,6 +946,75 @@ pub fn inspector_json(
     ))
 }
 
+/// Caption state for the Studio inspector (Sprint 22 captions,
+/// INT-003): one entry per `captions` clip with its cue inventory,
+/// the active cue at the playhead (number, window, words) through
+/// the same seek the painter uses, and the per-source readiness the
+/// render path gates on. `film_t` is the playhead in composition
+/// seconds; a non-finite playhead reports no active cue, never an
+/// invented one. Empty when the composition carries no captions
+/// track.
+pub fn caption_inspector_json(
+    comp: &notation::model::Composition,
+    readiness: &[validate::readiness::AdapterReadiness],
+    film_t: f64,
+) -> String {
+    let mut clips = String::new();
+    for (index, clip) in comp.clips.iter().enumerate() {
+        let notation::model::Clip::Caption(cc) = clip else {
+            continue;
+        };
+        let cue_count = cc.cues.len();
+        let word_count: usize = cc.cues.iter().map(|c| c.words.len()).sum();
+        let active = render::captions::inspector_cue(cc, film_t);
+        let active_json = match &active {
+            Some((no, start, end, words)) => {
+                let painted = render::captions::inspector_words(cc, no - 1);
+                let words_json = words
+                    .iter()
+                    .zip(painted.iter())
+                    .map(|(w, (_, (r, g, b)))| {
+                        format!(
+                            "{{\"text\":\"{}\",\"ink\":\"#{r:02x}{g:02x}{b:02x}\"}}",
+                            crate::studio::json_escape(w)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!("{{\"cue\":{no},\"start\":{start},\"end\":{end},\"words\":[{words_json}]}}",)
+            }
+            None => "null".to_string(),
+        };
+        let ready = readiness
+            .iter()
+            .find(|r| r.kind == "captions" && r.clip == index)
+            .map(|r| match &r.cause {
+                Some(cause) => format!(
+                    "{{\"state\":\"{}\",\"cause\":\"{}\"}}",
+                    r.state.as_str(),
+                    crate::studio::json_escape(cause)
+                ),
+                None => format!("{{\"state\":\"{}\",\"cause\":null}}", r.state.as_str()),
+            })
+            .unwrap_or_else(|| "{\"state\":\"unknown\",\"cause\":null}".to_string());
+        clips.push_str(&format!(
+            "{{\"index\":{index},\"id\":{},\"src\":{},\"cues\":{cue_count},\"words\":{word_count},\"active\":{active_json},\"readiness\":{ready}}},",
+            cc.id
+                .as_deref()
+                .map(|id| format!("\"{}\"", crate::studio::json_escape(id)))
+                .unwrap_or_else(|| "null".to_string()),
+            cc.src
+                .as_deref()
+                .map(|s| format!("\"{}\"", crate::studio::json_escape(s)))
+                .unwrap_or_else(|| "\"inline cues\"".to_string()),
+        ));
+    }
+    if clips.ends_with(',') {
+        clips.pop();
+    }
+    format!("{{\"film_time\":{film_t},\"tracks\":[{clips}]}}")
+}
+
 /// Parse one inspector target query (`?target=<id-or-index>`): a
 /// whole number reads as a document index, anything else as a
 /// stable `id`.

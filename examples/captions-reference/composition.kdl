@@ -1,0 +1,5 @@
+composition name="main" width=160 height=90 fps=30 duration=4 background="#101010" version=1 {
+    captions src="talk.srt" start=0 duration=4 font-size=16 color="#ffd60a" outline-width=2 outline-color="#000000" background="#141414" max-lines=2 entrance="fade-up" highlight="pop" exit="fade-out" {
+        override cue=0 word=1 color="#ff3366" scale=1.25
+    }
+}

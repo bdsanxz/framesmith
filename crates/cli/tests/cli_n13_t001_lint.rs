@@ -1,6 +1,6 @@
 //! Sprint 13 check, T001: lint with named rules end-to-end.
 //!
-//! Covers every acceptance criterion: the thirteen rule ids exist with
+//! Covers every acceptance criterion: the fourteen rule ids exist with
 //! stable meanings, every finding carries rule id, severity, file,
 //! line, column, source, and fix, a clean project reports zero findings
 //! explicitly, findings batch together in one run, `lint` reports the
@@ -87,7 +87,7 @@ fn lint_clean_project_reports_zero_findings_explicitly() {
     let (code, out) = run(&["lint", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     assert!(
-        out.contains("lint: 0 findings across 13 rules"),
+        out.contains("lint: 0 findings across 14 rules"),
         "clean projects name the explicit zero:\n{out}"
     );
     let (code, json) = run(&["lint", "--json", "proj"], &root);
@@ -95,7 +95,7 @@ fn lint_clean_project_reports_zero_findings_explicitly() {
     assert!(json.contains("\"command\":\"lint\""), "{json}");
     assert!(json.contains("\"lint\":[]"), "{json}");
     assert!(json.contains("\"lint_notes\":[]"), "{json}");
-    assert!(json.contains("\"lint_rules\":13"), "{json}");
+    assert!(json.contains("\"lint_rules\":14"), "{json}");
 }
 
 #[test]
@@ -125,7 +125,7 @@ fn lint_seeded_project_batches_every_finding_with_rule_and_fix() {
         assert!(l.contains("(fix:"), "{l}");
     }
     assert!(
-        out.contains("lint: 3 finding(s) and 0 note(s) across 13 rules"),
+        out.contains("lint: 3 finding(s) and 0 note(s) across 14 rules"),
         "{out}"
     );
 }

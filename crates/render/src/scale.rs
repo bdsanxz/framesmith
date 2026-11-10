@@ -19,9 +19,9 @@
 //! sequences) therefore keep it through the scale step.
 
 use notation::model::{
-    BoxClip, ChartClip, Clip, Composition, Effect, EffectParams, FillPaint, FlexChild, FlexClip,
-    ImageClip, KeyDecl, LottieClip, MapClip, PathClip, Scene3dClip, SetDecl, SvgClip, TextClip,
-    TextSpan, Turn3D, TweenDecl, VideoClip, Wrap,
+    BoxClip, CaptionClip, ChartClip, Clip, Composition, Effect, EffectParams, FillPaint, FlexChild,
+    FlexClip, ImageClip, KeyDecl, LottieClip, MapClip, PathClip, Scene3dClip, SetDecl, SvgClip,
+    TextClip, TextSpan, Turn3D, TweenDecl, VideoClip, Wrap,
 };
 
 /// One `--resolution` preset (Sprint 12 outputs, CAP-002; `4k`
@@ -283,6 +283,7 @@ fn scale_clip(clip: &mut Clip, plan: ScalePlan) {
         Clip::Chart(c) => scale_chart(c, plan),
         Clip::Map(m) => scale_map(m, plan),
         Clip::Scene3d(s) => scale_scene3d(s, plan),
+        Clip::Caption(c) => scale_caption(c, plan),
         Clip::Audio(_) => {}
         Clip::Nest(_) => unreachable!("handled above"),
     }
@@ -298,6 +299,7 @@ fn scale_clip(clip: &mut Clip, plan: ScalePlan) {
         Clip::Chart(c) => &mut c.effects,
         Clip::Map(c) => &mut c.effects,
         Clip::Scene3d(c) => &mut c.effects,
+        Clip::Caption(c) => &mut c.effects,
         Clip::Audio(c) => &mut c.effects,
         Clip::Nest(_) => unreachable!("handled above"),
     };
@@ -513,6 +515,28 @@ fn scale_scene3d(s: &mut Scene3dClip, plan: ScalePlan) {
     s.height *= plan.ky;
     scale_turn(&mut s.turn, plan);
     s.filter_blur *= plan.kx;
+}
+
+/// Scale one captions track to the internal size (Sprint 22
+/// captions, T002): pixel geometry (origins, sizes, outline, word
+/// offsets) scales with the axes; times, weights, colors, and preset
+/// names ride untouched, so scaled renders match byte for byte.
+fn scale_caption(c: &mut CaptionClip, plan: ScalePlan) {
+    c.x *= plan.kx;
+    c.y *= plan.ky;
+    c.style.font_size *= plan.kx;
+    c.style.outline_width *= plan.kx;
+    for o in &mut c.overrides {
+        if let Some(dx) = o.dx.as_mut() {
+            *dx *= plan.kx;
+        }
+        if let Some(dy) = o.dy.as_mut() {
+            *dy *= plan.ky;
+        }
+        if let Some(size) = o.font_size.as_mut() {
+            *size *= plan.kx;
+        }
+    }
 }
 
 /// Scale one SVG-subset path data string to the internal size

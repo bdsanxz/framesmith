@@ -154,6 +154,7 @@ impl TrackKind {
         match element {
             "video" => TrackKind::Video,
             "audio" => TrackKind::Audio,
+            "captions" => TrackKind::Caption,
             _ => TrackKind::Graphics,
         }
     }
@@ -5081,6 +5082,230 @@ impl MotionBlur {
     }
 }
 
+/// One word of a caption cue (Sprint 22 captions, T001 / CAP-001):
+/// plain text with its own half-open clip-local window
+/// (`start <= t < end`, seconds from the clip start). Words carry no
+/// markup, never syllable timing: the word is the finest unit.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CaptionWord {
+    /// Word text, never empty after validation (zero-length words
+    /// are dropped at decode with a named note, never rendered).
+    pub text: String,
+    /// Clip-local start in seconds.
+    pub start: f64,
+    /// Clip-local end in seconds (strictly past `start`).
+    pub end: f64,
+}
+
+/// One caption cue (Sprint 22 captions, T001 / CAP-001): a half-open
+/// clip-local window carrying per-word times. The active cue at a
+/// film time renders its time-correct words; an empty cue (no words)
+/// renders nothing and never invents words.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CaptionCue {
+    /// Clip-local start in seconds.
+    pub start: f64,
+    /// Clip-local end in seconds (strictly past `start`).
+    pub end: f64,
+    /// Word times in document order, non-overlapping after decode.
+    pub words: Vec<CaptionWord>,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Caption placement (Sprint 22 captions, T002 / CAP-003): `rail`
+/// centers the cue in the bottom safe band, `embed` paints it at the
+/// clip `x`/`y`. Only these two spellings are valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CaptionPosition {
+    Rail,
+    Embed,
+}
+
+impl CaptionPosition {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "rail" => Some(CaptionPosition::Rail),
+            "embed" => Some(CaptionPosition::Embed),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            CaptionPosition::Rail => "rail",
+            CaptionPosition::Embed => "embed",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 2] = ["rail", "embed"];
+}
+
+/// Track-level caption style (Sprint 22 captions, T002 / CAP-003):
+/// the coherent look every cue paints in unless a per-word override
+/// replaces a field. Attribute names mirror CSS style attributes
+/// (hyphenated, underscore aliases accepted at validation).
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CaptionStyle {
+    /// Explicit `font-family` list in try order (CSS-like, comma
+    /// separated); none means the project font, else the machine
+    /// style fallback. Fail-closed: at least one name must resolve
+    /// at render time, or the render refuses naming the family.
+    pub font_family: Option<Vec<String>>,
+    /// Word height in canvas pixels (positive).
+    pub font_size: f64,
+    /// Weight from 100 to 900 (default 400, regular).
+    pub font_weight: f64,
+    /// Ink color (default white).
+    pub color: Rgb,
+    /// Track opacity from 0 to 1 (default 1).
+    pub opacity: f64,
+    /// Outline width in canvas pixels (default 0, no outline).
+    pub outline_width: f64,
+    /// Outline ink (default black).
+    pub outline_color: Rgb,
+    /// Cue backing fill; none means no backing.
+    pub background: Option<Rgb>,
+    /// Cue placement: bottom rail or embedded at `x`/`y`.
+    pub position: CaptionPosition,
+    /// Word-wrap line cap (at least 1; default 2). Overflow words
+    /// stay on the last line rather than vanishing.
+    pub max_lines: u32,
+}
+
+impl CaptionStyle {
+    /// Track defaults: white regular words on the bottom rail, two
+    /// lines, no outline, no backing.
+    pub fn default_style() -> Self {
+        Self {
+            font_family: None,
+            font_size: 48.0,
+            font_weight: 400.0,
+            color: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
+            opacity: 1.0,
+            outline_width: 0.0,
+            outline_color: Rgb { r: 0, g: 0, b: 0 },
+            background: None,
+            position: CaptionPosition::Rail,
+            max_lines: 2,
+        }
+    }
+}
+
+/// One per-word override (Sprint 22 captions, T002 / CAP-003):
+/// project-local styling for the word at (`cue`, `word`), persisted
+/// in the project file, never in the source transcript. `None`
+/// fields inherit the track style. Dangling overrides (the word no
+/// longer exists) are dropped with a named note, never rendered.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CaptionWordOverride {
+    /// Cue index in document order.
+    pub cue: usize,
+    /// Word index inside the cue in document order.
+    pub word: usize,
+    /// Extra canvas-pixel offset added to the word origin.
+    pub dx: Option<f64>,
+    pub dy: Option<f64>,
+    /// Word scale factor (positive).
+    pub scale: Option<f64>,
+    /// Word rotation in degrees.
+    pub rotation: Option<f64>,
+    /// Replacement ink color.
+    pub color: Option<Rgb>,
+    /// Replacement opacity from 0 to 1.
+    pub opacity: Option<f64>,
+    /// Replacement word height in canvas pixels (positive).
+    pub font_size: Option<f64>,
+    /// Replacement weight from 100 to 900.
+    pub font_weight: Option<f64>,
+    /// Replacement `font-family` try-order list.
+    pub font_family: Option<Vec<String>>,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// A `captions` clip (Sprint 22 captions, T001/T002/T003): one
+/// captions track per composition whose cues carry per-word times,
+/// decoded from a caption file (`src`) or authored as inline `cue`
+/// children. The clip renders its time-correct words through the
+/// normal layer stack; with `behind-subject` the words paint between
+/// the background plate and the file-backed subject `matte`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CaptionClip {
+    /// Motion assertions of the clip (Sprint 13 check, T003).
+    pub asserts: MotionAsserts,
+    /// Caption source file, project-relative (`.srt`, `.vtt`, or
+    /// transcript `.json`); none means inline `cue` children carry
+    /// the cues.
+    pub src: Option<String>,
+    /// Cues in document order with per-word times.
+    pub cues: Vec<CaptionCue>,
+    /// Track-level style every cue paints in.
+    pub style: CaptionStyle,
+    /// Per-word overrides in document order, addressed by cue and
+    /// word index.
+    pub overrides: Vec<CaptionWordOverride>,
+    /// Entrance preset name (pure function of film time); none
+    /// means words appear with no entrance.
+    pub entrance: Option<String>,
+    /// Word-highlight preset name (pure function of film time);
+    /// none means no highlight.
+    pub highlight: Option<String>,
+    /// Exit preset name (pure function of film time); none means
+    /// words vanish with no exit.
+    pub exit: Option<String>,
+    /// Subject matte file, project-relative (validated like
+    /// footage, never fetched over the network); required with
+    /// `behind-subject`, absent otherwise.
+    pub matte: Option<String>,
+    /// Behind-subject order: words paint between the plate and the
+    /// subject matte, so subject pixels cover caption pixels where
+    /// the matte is opaque.
+    pub behind_subject: bool,
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to caption when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    /// Embed origin in canvas pixels (`position="embed"`); the rail
+    /// ignores these.
+    pub x: f64,
+    pub y: f64,
+    /// Explicit paint order (default 0); ties fall back to document order.
+    pub order: i64,
+    /// Color grade of the clip (Sprint 11 grade, CAP-001/T001).
+    /// Empty by default, so ungraded captions render exactly like
+    /// graded ones with the identity look.
+    pub grade: Grade,
+    /// Named media effects of the clip (Sprint 11 effects,
+    /// CAP-003/T004). Empty by default.
+    pub effects: Vec<Effect>,
+    /// Ordered VFX chain of the clip (Sprint 11 VFX, CAP-004/T005).
+    /// Empty by default.
+    pub vfx: VfxChain,
+    /// Decode and range notes that ride with the clip so lint can
+    /// report them by name (Sprint 22 captions, T001/T002): dropped
+    /// zero-length words, cues past the film range, dangling
+    /// overrides. Notes never block validation or rendering.
+    pub notes: Vec<String>,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture as if
+    /// absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Clip {
     Text(TextClip),
@@ -5096,6 +5321,7 @@ pub enum Clip {
     Nest(NestClip),
     Map(MapClip),
     Scene3d(Scene3dClip),
+    Caption(CaptionClip),
 }
 
 impl Clip {
@@ -5114,6 +5340,7 @@ impl Clip {
             Clip::Nest(c) => c.start,
             Clip::Map(c) => c.start,
             Clip::Scene3d(c) => c.start,
+            Clip::Caption(c) => c.start,
         }
     }
 
@@ -5134,6 +5361,7 @@ impl Clip {
             Clip::Nest(c) => c.start = start,
             Clip::Map(c) => c.start = start,
             Clip::Scene3d(c) => c.start = start,
+            Clip::Caption(c) => c.start = start,
         }
     }
 
@@ -5153,6 +5381,7 @@ impl Clip {
             Clip::Nest(c) => c.id.as_deref(),
             Clip::Map(c) => c.id.as_deref(),
             Clip::Scene3d(c) => c.id.as_deref(),
+            Clip::Caption(c) => c.id.as_deref(),
         }
     }
 
@@ -5172,6 +5401,7 @@ impl Clip {
             Clip::Nest(c) => c.start_after.as_ref(),
             Clip::Map(c) => c.start_after.as_ref(),
             Clip::Scene3d(c) => c.start_after.as_ref(),
+            Clip::Caption(c) => c.start_after.as_ref(),
         }
     }
 
@@ -5190,6 +5420,7 @@ impl Clip {
             Clip::Nest(c) => c.duration,
             Clip::Map(c) => c.duration,
             Clip::Scene3d(c) => c.duration,
+            Clip::Caption(c) => c.duration,
         }
     }
 
@@ -5213,6 +5444,7 @@ impl Clip {
             Clip::Nest(c) => c.duration = duration,
             Clip::Map(c) => c.duration = duration,
             Clip::Scene3d(c) => c.duration = duration,
+            Clip::Caption(c) => c.duration = duration,
         }
     }
 
@@ -5232,6 +5464,7 @@ impl Clip {
             Clip::Nest(_) => "nest clip",
             Clip::Map(_) => "map clip",
             Clip::Scene3d(_) => "scene3d clip",
+            Clip::Caption(_) => "captions clip",
         }
     }
 
@@ -5251,6 +5484,7 @@ impl Clip {
             Clip::Nest(c) => (c.line, c.column),
             Clip::Map(c) => (c.line, c.column),
             Clip::Scene3d(c) => (c.line, c.column),
+            Clip::Caption(c) => (c.line, c.column),
         }
     }
 
@@ -5274,6 +5508,7 @@ impl Clip {
             Clip::Nest(c) => c.order,
             Clip::Map(c) => c.order,
             Clip::Scene3d(c) => c.order,
+            Clip::Caption(c) => c.order,
         }
     }
 
@@ -5295,6 +5530,7 @@ impl Clip {
             Clip::Nest(c) => c.hidden,
             Clip::Map(c) => c.hidden,
             Clip::Scene3d(c) => c.hidden,
+            Clip::Caption(c) => c.hidden,
         }
     }
 
@@ -5314,6 +5550,7 @@ impl Clip {
             Clip::Nest(c) => c.track,
             Clip::Map(c) => c.track,
             Clip::Scene3d(c) => c.track,
+            Clip::Caption(c) => c.track,
         }
     }
 
@@ -5337,6 +5574,7 @@ impl Clip {
             Clip::Nest(c) => &c.effects,
             Clip::Map(c) => &c.effects,
             Clip::Scene3d(c) => &c.effects,
+            Clip::Caption(c) => &c.effects,
         }
     }
 
@@ -5360,6 +5598,7 @@ impl Clip {
             Clip::Nest(c) => &c.vfx,
             Clip::Map(c) => &c.vfx,
             Clip::Scene3d(c) => &c.vfx,
+            Clip::Caption(c) => &c.vfx,
         }
     }
 
@@ -5382,6 +5621,7 @@ impl Clip {
             Clip::Nest(c) => &c.grade,
             Clip::Map(c) => &c.grade,
             Clip::Scene3d(c) => &c.grade,
+            Clip::Caption(c) => &c.grade,
         }
     }
 
@@ -5401,6 +5641,7 @@ impl Clip {
             Clip::Nest(c) => c.label.as_deref(),
             Clip::Map(c) => c.label.as_deref(),
             Clip::Scene3d(c) => c.label.as_deref(),
+            Clip::Caption(c) => c.label.as_deref(),
         }
     }
 
@@ -5422,6 +5663,7 @@ impl Clip {
             Clip::Nest(_) => "nest",
             Clip::Map(_) => "map",
             Clip::Scene3d(_) => "scene3d",
+            Clip::Caption(_) => "captions",
         }
     }
 
@@ -5444,6 +5686,7 @@ impl Clip {
             Clip::Nest(c) => Some(&c.asserts),
             Clip::Map(c) => Some(&c.asserts),
             Clip::Scene3d(c) => Some(&c.asserts),
+            Clip::Caption(c) => Some(&c.asserts),
         }
     }
 }

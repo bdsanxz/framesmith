@@ -215,9 +215,9 @@ fn check_and_lint_json_carry_the_same_readiness() {
             && text.contains("\"state\":\"ready\""),
         "lint --json carries the same readiness:\n{text}"
     );
-    // The lint registry is unchanged: thirteen stable rules.
+    // The lint registry holds fourteen stable rules.
     assert!(
-        text.contains("\"lint_rules\":13"),
+        text.contains("\"lint_rules\":14"),
         "no rule was invented for adapters:\n{text}"
     );
 }
@@ -235,7 +235,7 @@ fn lint_accepts_valid_adapter_project() {
         "lint lists the same readiness as check:\n{text}"
     );
     assert!(
-        text.contains("lint: 0 findings across 13 rules"),
+        text.contains("lint: 0 findings across 14 rules"),
         "the engine is unchanged for adapters:\n{text}"
     );
 }

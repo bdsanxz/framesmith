@@ -379,6 +379,48 @@ pub enum FrameItem {
     Image(ResolvedImage),
     Lottie(ResolvedLottie),
     Scene3d(ResolvedScene3d),
+    Caption(ResolvedCaption),
+}
+
+/// One visible captions cue at one frame time (Sprint 22 captions,
+/// T001/T002/T003): the active cue index plus its clip-local film
+/// time, the evaluated cue origin and metrics, and owned copies of
+/// the cue words, the track style, the live per-word overrides, the
+/// preset names, and the matte contract. The painter shapes nothing:
+/// preparation pre-shapes every word block, and drawing resolves the
+/// same inputs to the same pixels on every run.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedCaption {
+    pub doc: usize,
+    pub order: i64,
+    /// Active cue index in the clip's document order.
+    pub cue: usize,
+    /// Clip-local film time (film time minus the clip start).
+    pub local_t: f64,
+    /// Evaluated cue origin (authored plus motion offset).
+    pub x: f64,
+    pub y: f64,
+    /// Evaluated track size (authored, or animated when a
+    /// `font-size` tween or set names the clip).
+    pub size: f64,
+    /// Evaluated motion opacity 0 to 1.
+    pub opacity: f64,
+    /// Active cue's words in document order.
+    pub words: Vec<notation::model::CaptionWord>,
+    /// Active cue window, clip-local seconds.
+    pub cue_start: f64,
+    pub cue_end: f64,
+    /// Track style every word paints in unless overridden.
+    pub style: notation::model::CaptionStyle,
+    /// Live per-word overrides for the active cue only.
+    pub overrides: Vec<notation::model::CaptionWordOverride>,
+    /// Preset names (pure functions of film time); none means rest.
+    pub entrance: Option<String>,
+    pub highlight: Option<String>,
+    pub exit: Option<String>,
+    /// Subject matte path plus the behind-subject order.
+    pub matte: Option<String>,
+    pub behind_subject: bool,
 }
 
 impl FrameItem {
@@ -391,6 +433,7 @@ impl FrameItem {
             FrameItem::Box(r) => r.doc,
             FrameItem::Path(r) => r.doc,
             FrameItem::Image(r) => r.doc,
+            FrameItem::Caption(r) => r.doc,
         }
     }
 
@@ -403,6 +446,7 @@ impl FrameItem {
             FrameItem::Box(r) => r.order,
             FrameItem::Path(r) => r.order,
             FrameItem::Image(r) => r.order,
+            FrameItem::Caption(r) => r.order,
         }
     }
 
@@ -418,6 +462,7 @@ impl FrameItem {
             FrameItem::Box(r) => r.order = r.order.saturating_add(by),
             FrameItem::Path(r) => r.order = r.order.saturating_add(by),
             FrameItem::Image(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Caption(r) => r.order = r.order.saturating_add(by),
         }
     }
 }
@@ -1240,6 +1285,58 @@ fn collect_items(
                     rotate_y: eval.rotate_y,
                     blur: eval.blur,
                     turn: lo.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
+            }
+            // A `captions` clip resolves to a caption item (Sprint 22
+            // captions, T001): the active cue at the clip-local
+            // instant, or no item when no cue holds this instant. The
+            // item owns the cue words, the track style, the live
+            // per-word overrides, the preset names, and the matte
+            // contract, so the painters draw from owned data alone.
+            // Animated `font-size` wins when a tween or set names the
+            // clip; otherwise the authored track size stands.
+            Clip::Caption(cc) => {
+                let local_t = (t - cc.start).max(0.0);
+                let Some(cue_idx) = notation::captions::active_cue(&cc.cues, local_t) else {
+                    continue;
+                };
+                let cue = &cc.cues[cue_idx];
+                items.push(FrameItem::Caption(ResolvedCaption {
+                    doc,
+                    order: cc.order,
+                    cue: cue_idx,
+                    local_t,
+                    x: eval.x,
+                    y: eval.y,
+                    size: match touches(Prop::FontSize) {
+                        true => eval.font_size,
+                        false => cc.style.font_size,
+                    },
+                    opacity: eval.opacity,
+                    words: cue.words.clone(),
+                    cue_start: cue.start,
+                    cue_end: cue.end,
+                    style: cc.style.clone(),
+                    overrides: cc
+                        .overrides
+                        .iter()
+                        .filter(|o| {
+                            o.cue == cue_idx
+                                && cc.cues.get(o.cue).is_some_and(|c| o.word < c.words.len())
+                        })
+                        .cloned()
+                        .collect(),
+                    entrance: cc.entrance.clone(),
+                    highlight: cc.highlight.clone(),
+                    exit: cc.exit.clone(),
+                    matte: cc.matte.clone(),
+                    behind_subject: cc.behind_subject,
                 }));
                 grades.push(FrameGrade {
                     doc,

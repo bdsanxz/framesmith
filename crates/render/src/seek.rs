@@ -108,6 +108,41 @@ pub fn lottie_instant(
     })
 }
 
+/// Caption cue index at one film time (Sprint 22 captions, T001):
+/// the clip-local instant (`film_t` minus the clip `start`) mapped
+/// through the cue windows, so seeking any film time shows the
+/// time-correct words through the normal layer stack. `None` shows
+/// no words (before the first cue, between cues, or past the last).
+/// A non-finite film time is unsatisfiable — hold last good instead.
+pub fn caption_cue_at(
+    cues: &[notation::model::CaptionCue],
+    film_t: f64,
+    clip_start: f64,
+) -> Option<usize> {
+    // No clamping: a film time before the clip start maps to a
+    // negative local instant, which no cue holds (the frame stage
+    // gates the clip window before this seek ever runs).
+    if !film_t.is_finite() || !clip_start.is_finite() {
+        return None;
+    }
+    notation::captions::active_cue(cues, film_t - clip_start)
+}
+
+/// Spoken word index inside one cue at one film time (Sprint 22
+/// captions, T002): the word holding the clip-local instant, which
+/// the highlight presets address. `None` while no word holds this
+/// instant.
+pub fn caption_word_at(
+    cue: &notation::model::CaptionCue,
+    film_t: f64,
+    clip_start: f64,
+) -> Option<usize> {
+    if !film_t.is_finite() || !clip_start.is_finite() {
+        return None;
+    }
+    notation::captions::active_word(cue, film_t - clip_start)
+}
+
 /// 3D camera instant for one film time (Sprint 21, T006): the
 /// clip-local seconds the camera keys lerp at (ends clamp downstream
 /// in [`crate::scene3d::resolve_camera`], so an overrunning seek

@@ -212,6 +212,12 @@ pub struct Prepared {
     /// these, keyed by document id, string, font size, and letter
     /// spacing. Empty for still-only projects.
     pub(crate) dyn_layouts: DynLayouts,
+    /// Pre-shaped caption word blocks (Sprint 22 captions, T001):
+    /// every word of every `captions` clip in its resolved paint
+    /// (track style plus live overrides), keyed by document id, cue,
+    /// and word. Empty for caption-free projects, which prepare
+    /// exactly as before.
+    pub(crate) caption_layouts: crate::captions::CaptionLayouts,
     pub(crate) bitmap_fallback: bool,
     pub(crate) videos: Vec<ProbedVideo>,
     pub(crate) ranges: Vec<DecodedRange>,
@@ -360,6 +366,7 @@ impl Prepared {
             &mut self.raster,
             &self.layouts,
             &self.dyn_layouts,
+            &self.caption_layouts,
             self.bitmap_fallback,
             &self.videos,
             &self.ranges,
@@ -1622,6 +1629,17 @@ pub fn prepare_frames_ranged(
         prepare_comp_videos(order[0], 0, 0, folder, ffmpeg_bin, &mut footage_cache)?;
     let mut images: Vec<DecodedImage> = Vec::new();
     prepare_comp_images(order[0], folder, ffmpeg_bin, &mut images)?;
+    crate::captions::prepare_caption_mattes(order[0], folder, &mut images)?;
+    let mut caption_layouts = crate::captions::CaptionLayouts::new();
+    let captions_fallback = crate::captions::shape_caption_layouts(
+        order[0],
+        0,
+        &mut fonts,
+        &project_family,
+        ffmpeg_bin,
+        &mut caption_layouts,
+    )?;
+    bitmap_fallback |= captions_fallback;
     let mut lotties = prepare_comp_lotties(order[0], 0, folder)?;
     // Nested compositions append their media at their global document
     // base, so nested items address the unified tables.
@@ -1637,6 +1655,14 @@ pub fn prepare_frames_ranged(
         let nested_motions = plan_motions(nested, snap_fps(&nested.fps));
         let (nested_layouts, nested_fallback) =
             shape_comp_layouts(nested, &mut nested_fonts, &nested_family, ffmpeg_bin)?;
+        bitmap_fallback |= crate::captions::shape_caption_layouts(
+            nested,
+            base,
+            &mut nested_fonts,
+            &nested_family,
+            ffmpeg_bin,
+            &mut caption_layouts,
+        )?;
         nested_font_store.push((nested_fonts, nested_family));
         let video_base = videos.len();
         let (mut nested_videos, nested_ranges) = prepare_comp_videos(
@@ -1648,6 +1674,7 @@ pub fn prepare_frames_ranged(
             &mut footage_cache,
         )?;
         prepare_comp_images(nested, folder, ffmpeg_bin, &mut images)?;
+        crate::captions::prepare_caption_mattes(nested, folder, &mut images)?;
         lotties.extend(prepare_comp_lotties(nested, base, folder)?);
         layouts.extend(nested_layouts);
         bitmap_fallback |= nested_fallback;
@@ -1775,6 +1802,7 @@ pub fn prepare_frames_ranged(
         project_family,
         layouts,
         dyn_layouts,
+        caption_layouts,
         bitmap_fallback,
         videos,
         ranges,
@@ -3039,6 +3067,7 @@ pub(crate) struct DrawView<'a> {
     paths: &'a crate::path_paint::PathCache,
     layouts: &'a [Option<layout::Block>],
     dyn_layouts: &'a DynLayouts,
+    captions: &'a crate::captions::CaptionLayouts,
     bitmap_fallback: bool,
     /// The render tree (Sprint 6 T007): the root plus every nested
     /// composition, so one frame description resolves every `nest`.
@@ -3062,6 +3091,7 @@ impl Prepared {
             paths: &self.paths,
             layouts: &self.layouts,
             dyn_layouts: &self.dyn_layouts,
+            captions: &self.caption_layouts,
             bitmap_fallback: self.bitmap_fallback,
             nest: self.nest_view(),
             time_offset: self.range_start,
@@ -3118,6 +3148,7 @@ fn draw_sharp_frame_view(
         view.lotties,
         view.layouts,
         view.dyn_layouts,
+        view.captions,
         view.bitmap_fallback,
         raster,
         view.paths,
@@ -3145,6 +3176,7 @@ pub(crate) fn draw_plain_frame_view(
             view.lotties,
             view.layouts,
             view.dyn_layouts,
+            view.captions,
             view.bitmap_fallback,
             raster,
             view.paths,
@@ -3158,6 +3190,7 @@ pub(crate) fn draw_plain_frame_view(
                 raster,
                 view.layouts,
                 view.dyn_layouts,
+                view.captions,
                 view.bitmap_fallback,
                 view.videos,
                 view.ranges,
@@ -3268,6 +3301,7 @@ pub(crate) fn draw_planned_transition(
     lotties: &[PreparedLottie],
     layouts: &[Option<layout::Block>],
     dyn_layouts: &DynLayouts,
+    captions: &crate::captions::CaptionLayouts,
     bitmap_fallback: bool,
     raster: &mut RasterCache,
     paths: &crate::path_paint::PathCache,
@@ -3284,6 +3318,7 @@ pub(crate) fn draw_planned_transition(
                 lotties,
                 layouts,
                 dyn_layouts,
+                captions,
                 bitmap_fallback,
                 raster,
                 paths,
@@ -3297,6 +3332,7 @@ pub(crate) fn draw_planned_transition(
                     raster,
                     layouts,
                     dyn_layouts,
+                    captions,
                     bitmap_fallback,
                     videos,
                     ranges,
@@ -4826,6 +4862,22 @@ pub(crate) struct DecodedImage {
     /// the render, so a changed file can never read stale.
     pub(crate) scaled:
         std::sync::Arc<std::sync::Mutex<HashMap<ImageScaleKey, std::sync::Arc<CachedScale>>>>,
+}
+
+impl DecodedImage {
+    /// Build one prepared still from already-decoded straight RGBA
+    /// rows (Sprint 22 captions, T003): subject mattes decode through
+    /// the `png` crate rather than FFmpeg, but share the table, the
+    /// path key, and the empty scale cache with every other still.
+    pub(crate) fn from_rgba(path: PathBuf, width: u32, height: u32, rgba: Vec<u8>) -> Self {
+        Self {
+            path,
+            width,
+            height,
+            rgba,
+            scaled: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+        }
+    }
 }
 
 /// Sampling geometry behind one cached resampled dest rect (T004): the
@@ -6748,6 +6800,7 @@ pub(crate) fn draw_description(
     raster: &mut RasterCache,
     layouts: &[Option<layout::Block>],
     dyn_layouts: &DynLayouts,
+    captions: &crate::captions::CaptionLayouts,
     bitmap_fallback: bool,
     videos: &[ProbedVideo],
     ranges: &[DecodedRange],
@@ -7126,6 +7179,24 @@ pub(crate) fn draw_description(
                 } else {
                     draw_image(frame, cw, chh, &im, &decoded);
                 }
+            }
+            FrameItem::Caption(rc) => {
+                // Caption words paint through the caption painter
+                // (Sprint 22 captions, T001/T002/T003): the track
+                // style, overrides, and presets resolve the word
+                // pixels, and the matte covers them behind the
+                // subject. The look resolves here like every other
+                // layer (a vanished LUT refuses naming the file
+                // before any word paints); grade, effect, and VFX
+                // chains ride the item for the fingerprint and for
+                // later slices, and word paint in this slice draws
+                // the resolved caption style directly.
+                let _look = (
+                    luts.grade(folder, &desc.grade_for(rc.doc))?,
+                    desc.effects_for(rc.doc),
+                    desc.vfx_for(rc.doc),
+                );
+                crate::captions::draw_caption(frame, cw, chh, raster, captions, images, rc)?;
             }
         }
     }
@@ -7797,7 +7868,7 @@ pub(crate) fn blit_fit(
 /// style replays its verdict (embolden → faux bold, skew → faux
 /// oblique) through the same blitter the old path used, so weight and
 /// style keep their ink.
-fn draw_block_scaled(
+pub(crate) fn draw_block_scaled(
     frame: &mut [u8],
     cw: u32,
     chh: u32,
@@ -7850,7 +7921,7 @@ fn draw_block_scaled(
 /// Draw one shaped text block into an RGBA `layer` instead of the
 /// frame, for the rotation/fade path: same pens and faces as
 /// [`draw_block_scaled`], carrying `global_alpha` in the layer alpha.
-fn draw_block_layer(
+pub(crate) fn draw_block_layer(
     layer: &mut [u8],
     cw: u32,
     chh: u32,
@@ -8296,7 +8367,7 @@ pub(crate) fn layer_ink_bbox(layer: &[u8], cw: u32, chh: u32) -> Option<(i64, i6
 /// the rotated extent of the box grown by one texel plus a two-pixel
 /// guard; every canvas pixel outside that extent can only sample
 /// transparent texels, so skipping it changes no byte.
-fn composite_layer_bbox(
+pub(crate) fn composite_layer_bbox(
     frame: &mut [u8],
     cw: u32,
     chh: u32,
@@ -9595,6 +9666,7 @@ mod tests {
                 &mut raster,
                 &[],
                 &DynLayouts::default(),
+                &crate::captions::CaptionLayouts::new(),
                 false,
                 &[],
                 &[],
@@ -9728,6 +9800,7 @@ mod tests {
             &mut raster,
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &[],
             &[],
@@ -10379,6 +10452,7 @@ mod tests {
             &mut raster,
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &[],
             &[],
@@ -10716,6 +10790,7 @@ mod tests {
             paths: &paths,
             layouts: &[],
             dyn_layouts: &dyn_layouts,
+            captions: &crate::captions::CaptionLayouts::new(),
             bitmap_fallback: false,
             nest,
             time_offset: timebase::Time::ZERO,
@@ -10895,6 +10970,7 @@ mod tests {
             &mut raster,
             &[],
             &DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &[],
             &[],
@@ -11338,6 +11414,7 @@ mod tests {
             project_family: None,
             layouts,
             dyn_layouts: DynLayouts::default(),
+            caption_layouts: crate::captions::CaptionLayouts::new(),
             bitmap_fallback: true,
             videos: Vec::new(),
             ranges: Vec::new(),

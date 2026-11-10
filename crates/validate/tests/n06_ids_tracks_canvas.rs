@@ -356,6 +356,7 @@ fn tracks_default_by_kind() {
             Clip::Lottie(l) => l.track,
             Clip::Map(m) => m.track,
             Clip::Scene3d(s) => s.track,
+            Clip::Caption(s) => s.track,
         })
         .collect();
     assert_eq!(

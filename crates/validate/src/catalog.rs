@@ -51,6 +51,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Set `width` and `height` to positive integers (e.g. `width=1280 height=720`), or set `canvas` to one of `1080p` (alias `fullhd`), `720p`, `square`, `portrait`, `4k` (alias `uhd`); explicit dimensions override the preset.",
     },
     CatalogEntry {
+        code: "E_BAD_CAPTIONS",
+        meaning: "A `captions` clip cannot build: a `src` naming no caption format (`.srt`, `.vtt`, or transcript `.json`), a missing or unreadable source or matte file, an undecodable body (bad timestamps, no cues), overlapping cues, a word outside its cue, an unknown style property or value (`position`, `font-weight`, `max-lines`, colors, opacities), an unknown `entrance`, `highlight`, or `exit` preset, a second `captions` track on one composition, a `behind-subject` order with no `matte`, or a matte that is not a readable still `.png` picture.",
+        example: "captions src=\"talk.srt\" start=0 duration=4 entrance=\"whoosh\"   // unknown entrance preset",
+        fix: "Point `src` at a project-relative `.srt`, `.vtt`, or transcript `.json` file (or author inline `cue` children with `start`, `end`, and `value` or `word` grandchildren); keep cue windows ordered and non-overlapping with word times inside their cue; set `position` to `rail` or `embed`, `font-weight` from 100 to 900, `max-lines` to a whole number of at least 1, and colors to `#rgb`/`#rrggbb`; pick `entrance` from the 13 entrance families, `highlight` from the 7 highlight families, and `exit` from the 11 exit families; keep one `captions` clip per composition; pair `behind-subject=true` with a readable still-PNG `matte`.",
+    },
+    CatalogEntry {
         code: "E_BAD_CHART",
         meaning: "A `chart` clip cannot build: an unknown `kind` (or none), an unreadable or non-UTF-8 `data` file, a data row with a missing `label` or non-finite `value`, a row child with a missing `label`, a non-finite `value`/`x`, an `x` on a non-scatter row, an unknown key, `min`/`max` off a gauge (or a `min` at or above `max`), a multi-series pie or donut, a gauge without exactly one row, a negative pie slice, or an unreadable `colors`, `background-color`, `border-width`, `border-color`, `title`, or show switch.",
         example: "chart kind=\"histogram\" start=0 duration=2 { row label=\"Q1\" value=1 }   // unknown kind",
@@ -380,6 +386,7 @@ mod tests {
         "E_BAD_BLUR",
         "E_BAD_BOX",
         "E_BAD_CANVAS",
+        "E_BAD_CAPTIONS",
         "E_BAD_CHART",
         "E_BAD_COLOR",
         "E_BAD_CONFIG",

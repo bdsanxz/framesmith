@@ -368,6 +368,7 @@ mod tests {
             &mut raster,
             &[],
             &crate::render::DynLayouts::default(),
+            &crate::captions::CaptionLayouts::new(),
             false,
             &[],
             &[],

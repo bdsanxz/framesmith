@@ -3,7 +3,7 @@
 //! The rule registry, severity plumbing, and report shape every later
 //! check speaks. Individual rule packs (layout, motion, contrast, audio)
 //! plug their detections into [`LintReport`] with their own tasks; this
-//! module owns the thirteen stable rule ids, their meanings, their
+//! module owns the fourteen stable rule ids, their meanings, their
 //! static-vs-measured sources, and the batched report `check` and `lint`
 //! both print.
 //!
@@ -18,10 +18,11 @@
 /// Every lint rule id, in specification order. Ids are stable across
 /// releases: renaming a rule is a breaking change surfaced in the
 /// changelog.
-pub const RULE_IDS: [&str; 13] = [
+pub const RULE_IDS: [&str; 14] = [
     "overlap",
     "off-canvas",
     "caption-zone",
+    "caption-notes",
     "appear-by",
     "stay-inside",
     "keep-moving",
@@ -54,6 +55,7 @@ pub fn rule_description(id: &str) -> Option<&'static str> {
         "overlap" => "two opaque clips share one track and time with overlapping pixels",
         "off-canvas" => "an element lies fully outside the canvas bounds",
         "caption-zone" => "text touches the caption band (bottom 12% of the frame)",
+        "caption-notes" => "a captions track drops content by note (zero-length words, empty cues, dangling overrides, cues past the film range)",
         "appear-by" => "an element with `assert-appear` is not visible by its deadline",
         "stay-inside" => "an element with `assert-inside` leaves the frame while visible",
         "keep-moving" => "an element with `assert-moving` shows no pixel change across its range",
@@ -102,8 +104,10 @@ impl std::fmt::Display for LintSource {
 /// Evidence source of one rule id.
 pub fn rule_source(id: &str) -> Option<LintSource> {
     Some(match id {
-        "overlap" | "off-canvas" | "caption-zone" | "appear-by" | "unused-variable"
-        | "unused-style" | "unused-theme" | "discarded-audio" => LintSource::Static,
+        "overlap" | "off-canvas" | "caption-zone" | "caption-notes" | "appear-by"
+        | "unused-variable" | "unused-style" | "unused-theme" | "discarded-audio" => {
+            LintSource::Static
+        }
         "stay-inside" | "keep-moving" | "frozen-timeline" | "contrast" | "silent-audio" => {
             LintSource::Measured
         }
@@ -374,8 +378,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn registry_holds_thirteen_unique_rules_with_stable_meanings() {
-        assert_eq!(RULE_IDS.len(), 13);
+    fn registry_holds_fourteen_unique_rules_with_stable_meanings() {
+        assert_eq!(RULE_IDS.len(), 14);
         let mut seen = std::collections::BTreeSet::new();
         for id in RULE_IDS {
             assert!(seen.insert(id), "duplicate rule id {id:?}");
