@@ -78,10 +78,7 @@ fn detail_stages_validate_on_clip_lane_and_composition() {
     assert_eq!(comp.grade.wheel.shadows, Some(0.2));
     assert_eq!(comp.grade.wheel.highlights, Some(-0.1));
     assert_eq!(comp.grade.wheel.midtones, None);
-    assert_eq!(
-        comp.grade.curve.master,
-        Some(vec![(0.0, 0.0), (1.0, 1.0)])
-    );
+    assert_eq!(comp.grade.curve.master, Some(vec![(0.0, 0.0), (1.0, 1.0)]));
     assert_eq!(comp.lane_grades.len(), 2);
     assert_eq!(
         comp.lane_grades[0].grade.curve.red,
@@ -221,7 +218,10 @@ fn malformed_curve_lists_fail_naming_element_and_shape() {
             "{label} names the shape: {message}"
         );
         assert!(!fix.is_empty(), "{label} carries a fix: {fix}");
-        assert!(fix.contains("curve"), "{label} fix names the element: {fix}");
+        assert!(
+            fix.contains("curve"),
+            "{label} fix names the element: {fix}"
+        );
     }
 }
 
@@ -322,7 +322,12 @@ fn stage_keys_and_children_fail() {
              }}\n"
         ),
     );
-    assert_eq!(codes(&dir), vec!["E_UNKNOWN_KEY"], "{:?}", codes_messages(&dir));
+    assert_eq!(
+        codes(&dir),
+        vec!["E_UNKNOWN_KEY"],
+        "{:?}",
+        codes_messages(&dir)
+    );
 
     // An unknown `grade` child (not a stage) fails naming the element.
     let dir = tmp("grade-bad-stage");
@@ -337,7 +342,11 @@ fn stage_keys_and_children_fail() {
     );
     let all = codes_messages(&dir);
     assert_eq!(codes(&dir), vec!["E_BAD_GRADE"], "{all:?}");
-    assert!(all[0].1.contains("grade"), "names the element: {}", all[0].1);
+    assert!(
+        all[0].1.contains("grade"),
+        "names the element: {}",
+        all[0].1
+    );
     assert!(all[0].1.contains("span"), "names the child: {}", all[0].1);
     assert!(!all[0].2.is_empty(), "fix is concrete: {}", all[0].2);
 

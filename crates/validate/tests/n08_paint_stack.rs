@@ -92,10 +92,7 @@ fn stroke_positions_validate_with_defaults() {
         )));
         assert_eq!(b.stroke_position, want);
         assert_eq!(b.border_width, 6.0);
-        assert_eq!(
-            b.border_color,
-            notation::model::Rgb { r: 255, g: 0, b: 0 }
-        );
+        assert_eq!(b.border_color, notation::model::Rgb { r: 255, g: 0, b: 0 });
     }
 }
 
@@ -105,14 +102,8 @@ fn stroke_aliases_validate_like_hyphens() {
         "stroke_width=4 stroke_color=\"#00ff00\" stroke_position=\"outside\"\n",
     ));
     assert_eq!(b.border_width, 4.0);
-    assert_eq!(
-        b.border_color,
-        notation::model::Rgb { r: 0, g: 255, b: 0 }
-    );
-    assert_eq!(
-        b.stroke_position,
-        notation::model::StrokePosition::Outside
-    );
+    assert_eq!(b.border_color, notation::model::Rgb { r: 0, g: 255, b: 0 });
+    assert_eq!(b.stroke_position, notation::model::StrokePosition::Outside);
 }
 
 #[test]
@@ -126,7 +117,11 @@ fn shadow_blend_backdrop_overflow_validate() {
     assert_eq!((sh.blur, sh.spread), (12.0, 0.0));
     assert_eq!(
         sh.color,
-        notation::model::Rgb { r: 0x11, g: 0x22, b: 0x33 }
+        notation::model::Rgb {
+            r: 0x11,
+            g: 0x22,
+            b: 0x33
+        }
     );
     assert_eq!(b.blend_mode, BlendMode::Multiply);
     assert_eq!((b.backdrop_blur, b.backdrop_brightness), (2.0, 0.5));
@@ -288,7 +283,11 @@ fn non_box_mask_target_fails_naming_kind() {
         ),
     );
     let v = validate_folder(&dir);
-    assert_refusal(&v.diagnostics, "E_BAD_PAINT", &["mask", "\"words\"", "text"]);
+    assert_refusal(
+        &v.diagnostics,
+        "E_BAD_PAINT",
+        &["mask", "\"words\"", "text"],
+    );
 }
 
 #[test]

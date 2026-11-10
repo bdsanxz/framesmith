@@ -188,13 +188,7 @@ fn layer_keys(value: &serde_json::Value) -> Vec<String> {
         .and_then(|l| l.as_array())
         .expect("layers array")
         .iter()
-        .map(|l| {
-            l.get("key")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_string()
-        })
+        .map(|l| l.get("key").unwrap().as_str().unwrap().to_string())
         .collect()
 }
 
@@ -236,11 +230,9 @@ fn effective(folder: &Path) -> notation::model::Composition {
 /// render pipeline with no session and no cache — the independent
 /// oracle proving what the paint order really draws.
 fn pixel_of(folder: &Path, comp: &notation::model::Composition, x: usize, y: usize) -> [u8; 3] {
-    let prep =
-        render::render::prepare_frames(comp, &[], folder, &ffmpeg()).expect("prepares");
-    let drawn =
-        render::render::draw_batch_parallel(&prep, render::render::Backend::Cpu, &[0])
-            .expect("draws");
+    let prep = render::render::prepare_frames(comp, &[], folder, &ffmpeg()).expect("prepares");
+    let drawn = render::render::draw_batch_parallel(&prep, render::render::Backend::Cpu, &[0])
+        .expect("draws");
     let (_, rgb) = drawn.iter().find(|(k, _)| *k == 0).unwrap();
     let at = (y * 320 + x) * 3;
     [rgb[at], rgb[at + 1], rgb[at + 2]]
@@ -298,7 +290,10 @@ fn layers_tree_lists_z_order_with_icons_and_syncs_selection() {
         // Timeline rows address the same key too.
         let (code, rows) = body_str(port, "GET", "/api/studio/timeline", None);
         assert_eq!(code, 200, "{rows}");
-        assert!(rows.contains("\"id\":\"a\""), "timeline names the key: {rows}");
+        assert!(
+            rows.contains("\"id\":\"a\""),
+            "timeline names the key: {rows}"
+        );
         assert_eq!(kdl_bytes(folder), sources, "reads write nothing");
     });
 }
@@ -346,7 +341,9 @@ fn layers_reorder_moves_draw_order_as_a_named_turn() {
         assert_eq!(listing.turns.len(), 1);
         assert_eq!(listing.turns[0].actor, "maker");
         assert!(
-            listing.turns[0].summary.contains("move clip id \"c\" to index 0"),
+            listing.turns[0]
+                .summary
+                .contains("move clip id \"c\" to index 0"),
             "turn named: {}",
             listing.turns[0].summary
         );
@@ -379,7 +376,10 @@ fn layers_reorder_crosses_bands_with_order_assist() {
             .collect();
         assert_eq!(summaries.len(), 2, "{summaries:?}");
         assert!(summaries[0].contains("z-index"), "{summaries:?}");
-        assert!(summaries[1].contains("move clip id \"card\""), "{summaries:?}");
+        assert!(
+            summaries[1].contains("move clip id \"card\""),
+            "{summaries:?}"
+        );
         let (code, j) = json(port, "GET", "/api/studio/layers", None);
         assert_eq!(code, 200, "{j}");
         assert_eq!(layer_keys(&j), vec!["title", "ghost", "card", "panel"]);
@@ -445,7 +445,11 @@ fn layers_group_collects_ungroup_restores_as_named_turns() {
             &serde_json::json!(["group clip id \"a\", clip id \"b\" as \"credits\""])
         );
         assert!(
-            j.get("detail").unwrap().as_str().unwrap().contains("turn 0"),
+            j.get("detail")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .contains("turn 0"),
             "{j}"
         );
         let (code, j) = json(port, "GET", "/api/studio/layers", None);
@@ -456,7 +460,10 @@ fn layers_group_collects_ungroup_restores_as_named_turns() {
         );
         let layers = j.get("layers").unwrap().as_array().unwrap();
         for key in ["a", "b"] {
-            let row = layers.iter().find(|l| l.get("key").unwrap() == key).unwrap();
+            let row = layers
+                .iter()
+                .find(|l| l.get("key").unwrap() == key)
+                .unwrap();
             assert_eq!(row.get("group").unwrap(), &serde_json::json!("credits"));
         }
         let line = j.get("status-line").unwrap().as_str().unwrap();
@@ -512,7 +519,11 @@ fn layers_group_empty_selection_noops_without_a_turn() {
                 .contains("empty selection does nothing"),
             "{j}"
         );
-        assert_eq!(snapshot(folder), before, "the no-op stages nothing anywhere");
+        assert_eq!(
+            snapshot(folder),
+            before,
+            "the no-op stages nothing anywhere"
+        );
         let listing = sdk::history::list_turns(folder).expect("history lists");
         assert_eq!(listing.turns.len(), 0, "no turn recorded");
     });
@@ -593,19 +604,33 @@ fn layers_enter_scopes_selection_across_views() {
         assert_eq!(code, 200, "enter validates: {j}");
         assert_eq!(j.get("turn").unwrap(), &serde_json::Value::Null);
         assert_eq!(j.get("scope").unwrap(), &serde_json::json!("g"));
-        assert!(j.get("detail").unwrap().as_str().unwrap().contains("2 member(s)"));
+        assert!(j
+            .get("detail")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .contains("2 member(s)"));
         // The scoped readout dims outsiders.
         let (code, j) = json(port, "GET", "/api/studio/layers?scope=g", None);
         assert_eq!(code, 200, "{j}");
         assert_eq!(j.get("scope").unwrap(), &serde_json::json!("g"));
         let layers = j.get("layers").unwrap().as_array().unwrap();
         for key in ["a", "b"] {
-            let row = layers.iter().find(|l| l.get("key").unwrap() == key).unwrap();
+            let row = layers
+                .iter()
+                .find(|l| l.get("key").unwrap() == key)
+                .unwrap();
             assert_eq!(row.get("in-scope").unwrap(), &serde_json::Value::Bool(true));
         }
         for key in ["c", "title"] {
-            let row = layers.iter().find(|l| l.get("key").unwrap() == key).unwrap();
-            assert_eq!(row.get("in-scope").unwrap(), &serde_json::Value::Bool(false));
+            let row = layers
+                .iter()
+                .find(|l| l.get("key").unwrap() == key)
+                .unwrap();
+            assert_eq!(
+                row.get("in-scope").unwrap(),
+                &serde_json::Value::Bool(false)
+            );
         }
         // Key selection outside the entered group refuses naming it.
         let (code, text) = body_str(
@@ -674,11 +699,11 @@ fn layers_parse_refusals_are_bad_requests() {
     with_server("parse", layers_project, |folder, _reg, _entry, port| {
         let before = snapshot(folder);
         for (body, needle) in [
-            (r#"{"actor":"maker","action":"fly"}"#, "unknown layers action"),
             (
-                r#"{"action":"reorder","key":"a","to":0}"#,
-                "names no actor",
+                r#"{"actor":"maker","action":"fly"}"#,
+                "unknown layers action",
             ),
+            (r#"{"action":"reorder","key":"a","to":0}"#, "names no actor"),
             (
                 r#"{"actor":"maker","action":"reorder","key":"a","to":"x"}"#,
                 "not a document index",

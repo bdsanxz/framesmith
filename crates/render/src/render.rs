@@ -95,6 +95,19 @@ pub(crate) struct DecodedRange {
     pub(crate) pts: Vec<f64>,
 }
 
+/// One decoded Lottie animation ready to rasterize (Sprint 21
+/// adapters, T001): the file decoded once before the first frame
+/// (fail-closed, naming the file), then rasterized per output frame
+/// at its loop-mapped instant. Decoding once keeps reruns
+/// byte-identical without re-reading the file per frame.
+#[derive(Debug, Clone)]
+pub(crate) struct PreparedLottie {
+    /// Global document id of the owning clip.
+    pub(crate) clip_idx: usize,
+    /// The decoded animation: timing, markers, loop default, layers.
+    pub(crate) doc: lottie::LottieDoc,
+}
+
 // ---------------------------------------------------------------------------
 // Verification surface (T013–T015): prepared media, single frames, workers.
 // ---------------------------------------------------------------------------
@@ -203,6 +216,10 @@ pub struct Prepared {
     pub(crate) videos: Vec<ProbedVideo>,
     pub(crate) ranges: Vec<DecodedRange>,
     pub(crate) images: Vec<DecodedImage>,
+    /// Decoded Lottie animations (Sprint 21 adapters, T001): one per
+    /// `lottie` clip at its global document id, decoded before the
+    /// first frame, rasterized once per drawn frame.
+    pub(crate) lotties: Vec<PreparedLottie>,
     pub(crate) raster: RasterCache,
     /// Shared path-data parse cache (Sprint 8 look, T005): every frame
     /// reuses the cached contours and recomputes only numbers. Shared
@@ -347,6 +364,7 @@ impl Prepared {
             &self.videos,
             &self.ranges,
             &self.images,
+            &self.lotties,
             &self.paths,
             self.folder.as_path(),
             &mut out,
@@ -1361,6 +1379,56 @@ fn prepare_comp_images(
                     images.push(decode_image(ffmpeg_bin, folder, &im.path)?);
                 }
             }
+            // A `map` clip pre-renders its offline viewport (Sprint 21
+            // adapters, T004): tiles composite at the authored center
+            // and zoom with overlays, scale bar, and attribution baked
+            // in, under the canonical key the frame stage resolves.
+            // Local reads and PNG decodes only, never the network. A
+            // vanished or replaced tile refuses before frame one,
+            // naming the file, like any undecodable still.
+            Clip::Map(m) => {
+                let (vw_px, vh_px) = crate::map::viewport_px(m, (comp.width, comp.height));
+                let key = crate::map::viewport_key(m, vw_px, vh_px);
+                if images
+                    .iter()
+                    .any(|d: &DecodedImage| d.path == folder.join(&key))
+                {
+                    continue;
+                }
+                let (mw, mh, rgba) = crate::map::render_viewport(folder, m, vw_px, vh_px)?;
+                images.push(DecodedImage {
+                    path: folder.join(key),
+                    width: mw,
+                    height: mh,
+                    rgba,
+                    scaled: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+                });
+            }
+            // A `chart` clip pre-renders its data and style (Sprint 21
+            // adapters, CAP-002/T002): the validated rows baked to
+            // straight RGBA at the authored size under the canonical
+            // key the frame stage resolves. Pure pixels, no browser,
+            // no network, no per-frame work — reruns share the entry
+            // and byte-match. Infallible here: validation already
+            // refused undecodable sources and malformed rows.
+            Clip::Chart(ch) => {
+                let (vw_px, vh_px) = crate::chart::viewport_px(ch, (comp.width, comp.height));
+                let key = crate::chart::viewport_key(ch, vw_px, vh_px);
+                if images
+                    .iter()
+                    .any(|d: &DecodedImage| d.path == folder.join(&key))
+                {
+                    continue;
+                }
+                let (mw, mh, rgba) = crate::chart::render_viewport(ch, vw_px, vh_px);
+                images.push(DecodedImage {
+                    path: folder.join(key),
+                    width: mw,
+                    height: mh,
+                    rgba,
+                    scaled: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+                });
+            }
             // An `svg` clip decodes its standalone file pre-composed
             // at the declared `width`/`height` (Sprint 8 look, T005),
             // so the shared blitter draws it with `fill` placement.
@@ -1529,6 +1597,11 @@ pub fn prepare_frames_ranged(
     // breadth-first document order. Nest-free projects prepare exactly
     // the root, as before.
     let order = nest_render_order(comp, all)?;
+    // Adapter readiness (Sprint 21 adapters, T007 / CAP-007): every
+    // file-backed adapter source re-resolves before the first frame,
+    // so a source lost after validation refuses naming its file and
+    // cause instead of decoding a guess or writing a partial MP4.
+    crate::readiness::gate_adapter_sources(folder, &order)?;
     let mut footage_cache = crate::footage_cache::FootageCache::open(folder);
     let raster: RasterCache = HashMap::new();
     // The root keeps the preparation's font set (its origins are named
@@ -1549,6 +1622,7 @@ pub fn prepare_frames_ranged(
         prepare_comp_videos(order[0], 0, 0, folder, ffmpeg_bin, &mut footage_cache)?;
     let mut images: Vec<DecodedImage> = Vec::new();
     prepare_comp_images(order[0], folder, ffmpeg_bin, &mut images)?;
+    let mut lotties = prepare_comp_lotties(order[0], 0, folder)?;
     // Nested compositions append their media at their global document
     // base, so nested items address the unified tables.
     let mut tree: Vec<TreeComp> = Vec::new();
@@ -1574,6 +1648,7 @@ pub fn prepare_frames_ranged(
             &mut footage_cache,
         )?;
         prepare_comp_images(nested, folder, ffmpeg_bin, &mut images)?;
+        lotties.extend(prepare_comp_lotties(nested, base, folder)?);
         layouts.extend(nested_layouts);
         bitmap_fallback |= nested_fallback;
         videos.append(&mut nested_videos);
@@ -1704,6 +1779,7 @@ pub fn prepare_frames_ranged(
         videos,
         ranges,
         images,
+        lotties,
         raster,
         paths: crate::path_paint::PathCache::new(),
         tree,
@@ -2959,6 +3035,7 @@ pub(crate) struct DrawView<'a> {
     videos: &'a [ProbedVideo],
     ranges: &'a [DecodedRange],
     images: &'a [DecodedImage],
+    lotties: &'a [PreparedLottie],
     paths: &'a crate::path_paint::PathCache,
     layouts: &'a [Option<layout::Block>],
     dyn_layouts: &'a DynLayouts,
@@ -2981,6 +3058,7 @@ impl Prepared {
             videos: &self.videos,
             ranges: &self.ranges,
             images: &self.images,
+            lotties: &self.lotties,
             paths: &self.paths,
             layouts: &self.layouts,
             dyn_layouts: &self.dyn_layouts,
@@ -3037,6 +3115,7 @@ fn draw_sharp_frame_view(
         view.videos,
         view.ranges,
         view.images,
+        view.lotties,
         view.layouts,
         view.dyn_layouts,
         view.bitmap_fallback,
@@ -3063,6 +3142,7 @@ pub(crate) fn draw_plain_frame_view(
             view.videos,
             view.ranges,
             view.images,
+            view.lotties,
             view.layouts,
             view.dyn_layouts,
             view.bitmap_fallback,
@@ -3082,6 +3162,7 @@ pub(crate) fn draw_plain_frame_view(
                 view.videos,
                 view.ranges,
                 view.images,
+                view.lotties,
                 view.paths,
                 view.folder,
                 &mut out,
@@ -3184,6 +3265,7 @@ pub(crate) fn draw_planned_transition(
     videos: &[ProbedVideo],
     ranges: &[DecodedRange],
     images: &[DecodedImage],
+    lotties: &[PreparedLottie],
     layouts: &[Option<layout::Block>],
     dyn_layouts: &DynLayouts,
     bitmap_fallback: bool,
@@ -3199,6 +3281,7 @@ pub(crate) fn draw_planned_transition(
                 videos,
                 ranges,
                 images,
+                lotties,
                 layouts,
                 dyn_layouts,
                 bitmap_fallback,
@@ -3218,6 +3301,7 @@ pub(crate) fn draw_planned_transition(
                     videos,
                     ranges,
                     images,
+                    lotties,
                     paths,
                     folder,
                     &mut out,
@@ -4285,7 +4369,11 @@ fn stderr_tail(stderr: &[u8], n: usize) -> String {
 /// re-rasterize at the internal size, then downscale to this size
 /// before piping). Every destination pipes `rgb24`: alpha composites
 /// at draw time, so pictures match the MP4 on every format.
-pub(crate) fn encode_input_args(comp: &Composition, pix_fmt: &str, frame: (u32, u32)) -> Vec<String> {
+pub(crate) fn encode_input_args(
+    comp: &Composition,
+    pix_fmt: &str,
+    frame: (u32, u32),
+) -> Vec<String> {
     vec![
         "-y".into(),
         "-v".into(),
@@ -6664,6 +6752,7 @@ pub(crate) fn draw_description(
     videos: &[ProbedVideo],
     ranges: &[DecodedRange],
     images: &[DecodedImage],
+    lotties: &[PreparedLottie],
     paths: &crate::path_paint::PathCache,
     folder: &Path,
     frame: &mut [u8],
@@ -6926,9 +7015,159 @@ pub(crate) fn draw_description(
                     draw_image(frame, cw, chh, im, decoded);
                 }
             }
+            // A native Lottie animation (Sprint 21 adapters, T001):
+            // the prepared doc rasterizes at the loop-mapped instant
+            // pre-composed at the declared size, then rides the
+            // shared image blitter with `fill` placement. A looping
+            // animation repeats its window; a non-looping one holds
+            // its edge frame past the window, exactly like footage.
+            FrameItem::Lottie(lo) => {
+                // Inward-out look for this clip (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(lo.doc))?;
+                let effects = desc.effects_for(lo.doc);
+                let vfx = desc.vfx_for(lo.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
+                let prep = lotties
+                    .iter()
+                    .find(|d| d.clip_idx == lo.doc)
+                    .ok_or_else(|| {
+                        format!(
+                            "render failed: lottie source {:?} was not decoded (decode stage)",
+                            lo.path
+                        )
+                    })?;
+                let select_t = lottie::sample_time(prep.doc.len_secs(), lo.loop_mode, lo.src_t);
+                let decoded = crate::lottie::rasterize(
+                    &prep.doc,
+                    select_t,
+                    lo.width,
+                    lo.height,
+                    lo.fit,
+                    lo.placement,
+                    &lo.path,
+                )?;
+                // The raster is pre-composed at the declared size
+                // (like an `svg` clip), so the blitter draws it with
+                // `fill` placement.
+                let im = crate::frame::ResolvedImage {
+                    doc: lo.doc,
+                    order: lo.order,
+                    path: lo.path.clone(),
+                    x: lo.x,
+                    y: lo.y,
+                    width: Some(lo.width),
+                    height: Some(lo.height),
+                    fit: notation::model::Fit::Fill,
+                    placement: notation::model::Placement::center(),
+                    scale: lo.scale,
+                    rotation: lo.rotation,
+                    opacity: lo.opacity,
+                    rotate_x: lo.rotate_x,
+                    rotate_y: lo.rotate_y,
+                    blur: lo.blur,
+                    turn: lo.turn,
+                };
+                let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
+                if blur_on(im.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_image_advanced(frame, cw, chh, &im, &decoded, &grade, effects, vfx, &maps);
+                } else {
+                    draw_image(frame, cw, chh, &im, &decoded);
+                }
+            }
+            FrameItem::Scene3d(s3) => {
+                // Inward-out look for this scene (Sprint 11 grade T001, effects T004).
+                let grade = luts.grade(folder, &desc.grade_for(s3.doc))?;
+                let effects = desc.effects_for(s3.doc);
+                let vfx = desc.vfx_for(s3.doc);
+                let maps = resolve_vfx_maps(images, folder, vfx)?;
+                let (rw, rh) = crate::scene3d::raster_px(s3.width, s3.height);
+                let decoded = crate::scene3d::render_scene(
+                    s3.doc,
+                    &s3.objects,
+                    &s3.camera,
+                    &s3.lights,
+                    rw,
+                    rh,
+                );
+                // The raster is pre-composed at the evaluated size
+                // (like an `svg` clip), so the blitter draws it with
+                // `fill` placement.
+                let im = crate::frame::ResolvedImage {
+                    doc: s3.doc,
+                    order: s3.order,
+                    path: decoded.path.display().to_string(),
+                    x: s3.x,
+                    y: s3.y,
+                    width: Some(s3.width),
+                    height: Some(s3.height),
+                    fit: notation::model::Fit::Fill,
+                    placement: notation::model::Placement::center(),
+                    scale: s3.scale,
+                    rotation: s3.rotation,
+                    opacity: s3.opacity,
+                    rotate_x: s3.rotate_x,
+                    rotate_y: s3.rotate_y,
+                    blur: s3.blur,
+                    turn: s3.turn,
+                };
+                let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
+                if blur_on(im.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_image_advanced(frame, cw, chh, &im, &decoded, &grade, effects, vfx, &maps);
+                } else {
+                    draw_image(frame, cw, chh, &im, &decoded);
+                }
+            }
         }
     }
     Ok(())
+}
+
+/// Decode one composition's Lottie animations (Sprint 21 adapters,
+/// T001): every `lottie` clip re-decodes its file here, so a file
+/// validation accepted but the decoder cannot read refuses before
+/// the first frame, naming the file — never a partial MP4. An empty
+/// clip list decodes nothing. Docs accumulate in document order at
+/// their global document ids; the decoded bytes stay in memory, so a
+/// source deleted mid-render still draws the prepared picture.
+fn prepare_comp_lotties(
+    comp: &Composition,
+    clip_base: usize,
+    folder: &Path,
+) -> Result<Vec<PreparedLottie>, String> {
+    let mut out = Vec::new();
+    for (idx, clip) in comp.clips.iter().enumerate() {
+        let notation::model::Clip::Lottie(lo) = clip else {
+            continue;
+        };
+        let abs = folder.join(&lo.path);
+        let bytes = std::fs::read(&abs).map_err(|e| {
+            format!(
+                "render refused: lottie source {:?} cannot be read ({e}); no MP4 was written",
+                lo.path
+            )
+        })?;
+        let doc = lottie::decode_source(&lo.path, &bytes).map_err(|detail| {
+            format!(
+                "render refused: lottie source {:?} is undecodable ({detail}); no MP4 was written",
+                lo.path
+            )
+        })?;
+        out.push(PreparedLottie {
+            clip_idx: clip_base + idx,
+            doc,
+        });
+    }
+    Ok(out)
 }
 
 /// Visible clip window clamped to the composition, as composition seconds.
@@ -9360,6 +9599,7 @@ mod tests {
                 &[],
                 &[],
                 &[],
+                &[],
                 &crate::path_paint::PathCache::new(),
                 std::path::Path::new("."),
                 &mut frame,
@@ -9489,6 +9729,7 @@ mod tests {
             &[],
             &DynLayouts::default(),
             false,
+            &[],
             &[],
             &[],
             &[],
@@ -10142,6 +10383,7 @@ mod tests {
             &[],
             &[],
             images,
+            &[],
             &crate::path_paint::PathCache::new(),
             folder,
             &mut frame,
@@ -10470,6 +10712,7 @@ mod tests {
             videos: &[],
             ranges: &[],
             images: &[],
+            lotties: &[],
             paths: &paths,
             layouts: &[],
             dyn_layouts: &dyn_layouts,
@@ -10656,6 +10899,7 @@ mod tests {
             &[],
             &[],
             &[],
+            &[],
             &crate::path_paint::PathCache::new(),
             &dir,
             &mut frame,
@@ -10776,7 +11020,15 @@ mod tests {
         };
         let tmp = PathBuf::from("/tmp/x.framesmith-part");
         let standard = RenderOptions::default().encoder();
-        let no_audio = encode_args(&comp, &[], None, &tmp, &standard, comp.duration, (comp.width, comp.height));
+        let no_audio = encode_args(
+            &comp,
+            &[],
+            None,
+            &tmp,
+            &standard,
+            comp.duration,
+            (comp.width, comp.height),
+        );
         let joined = no_audio.join(" ");
         for flag in [
             "libx264", "yuv420p", "aac", "48000", "rawvideo", "-f", "mp4",
@@ -10800,9 +11052,16 @@ mod tests {
             trim_len: 1.0,
             delay_ms: 500,
         };
-        let with_audio =
-            encode_args(&comp, &[seg], None, &tmp, &standard, comp.duration, (comp.width, comp.height))
-                .join(" ");
+        let with_audio = encode_args(
+            &comp,
+            &[seg],
+            None,
+            &tmp,
+            &standard,
+            comp.duration,
+            (comp.width, comp.height),
+        )
+        .join(" ");
         assert!(with_audio.contains("adelay=500"), "{with_audio}");
         assert!(with_audio.contains("atrim"), "{with_audio}");
         assert!(!with_audio.contains("volume"), "{with_audio}");
@@ -10915,9 +11174,16 @@ mod tests {
             ..RenderOptions::default()
         }
         .encoder();
-        let joined =
-            encode_args(&comp, &[], None, &tmp, &draft, comp.duration, (comp.width, comp.height))
-                .join(" ");
+        let joined = encode_args(
+            &comp,
+            &[],
+            None,
+            &tmp,
+            &draft,
+            comp.duration,
+            (comp.width, comp.height),
+        )
+        .join(" ");
         assert!(joined.contains("-crf 30"), "{joined}");
         assert!(joined.contains("-preset veryfast"), "{joined}");
         let high = RenderOptions {
@@ -10925,9 +11191,16 @@ mod tests {
             ..RenderOptions::default()
         }
         .encoder();
-        let joined =
-            encode_args(&comp, &[], None, &tmp, &high, comp.duration, (comp.width, comp.height))
-                .join(" ");
+        let joined = encode_args(
+            &comp,
+            &[],
+            None,
+            &tmp,
+            &high,
+            comp.duration,
+            (comp.width, comp.height),
+        )
+        .join(" ");
         assert!(joined.contains("-crf 18"), "{joined}");
         assert!(joined.contains("-preset slow"), "{joined}");
         // A staged mix joins the encoder as a raw 48 kHz stereo input.
@@ -11069,6 +11342,7 @@ mod tests {
             videos: Vec::new(),
             ranges: Vec::new(),
             images: Vec::new(),
+            lotties: Vec::new(),
             raster: RasterCache::new(),
             paths: crate::path_paint::PathCache::new(),
             tree: Vec::new(),
@@ -11117,6 +11391,145 @@ mod tests {
             effects: Vec::new(),
             vfx: Default::default(),
         })
+    }
+
+    // --- Sprint 21 adapters (T002): native charts in the stack ---
+
+    fn chart_clip(
+        kind: notation::model::ChartKind,
+        data: Vec<notation::model::ChartPoint>,
+    ) -> notation::model::Clip {
+        use notation::model::{ChartClip, Rgb, TrackKind};
+        notation::model::Clip::Chart(ChartClip {
+            asserts: Default::default(),
+            kind,
+            title: Some("sales".to_string()),
+            data,
+            data_file: None,
+            start: 0.0,
+            duration: 1.0,
+            id: None,
+            track: TrackKind::Graphics,
+            label: None,
+            start_after: None,
+            hidden: false,
+            x: 0.0,
+            y: 0.0,
+            width: Some(64.0),
+            height: Some(48.0),
+            background: Rgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
+            border_width: 0.0,
+            border_color: Rgb { r: 0, g: 0, b: 0 },
+            palette: vec![Rgb {
+                r: 78,
+                g: 121,
+                b: 167,
+            }],
+            show_legend: true,
+            show_gridlines: true,
+            show_value_labels: true,
+            min: None,
+            max: None,
+            order: 0,
+            turn: notation::model::Turn3D::flat(),
+            filter_blur: 0.0,
+            grade: notation::model::Grade::default(),
+            effects: Vec::new(),
+            vfx: Default::default(),
+            line: 1,
+            column: 1,
+        })
+    }
+
+    fn chart_point(label: &str, value: f64) -> notation::model::ChartPoint {
+        notation::model::ChartPoint {
+            series: None,
+            label: label.to_string(),
+            value,
+            x: None,
+        }
+    }
+
+    /// Stage one chart raster exactly like `prepare_comp_images` does,
+    /// so the frame below draws through the shared image blitter.
+    fn stage_chart(prep: &mut Prepared, ch: &notation::model::ChartClip) {
+        let (w, h) = crate::chart::viewport_px(ch, (prep.comp.width, prep.comp.height));
+        let key = crate::chart::viewport_key(ch, w, h);
+        let (mw, mh, rgba) = crate::chart::render_viewport(ch, w, h);
+        prep.images.push(DecodedImage {
+            path: std::path::PathBuf::from(".").join(key),
+            width: mw,
+            height: mh,
+            rgba,
+            scaled: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+        });
+    }
+
+    fn draw_cpu(prep: &Prepared, frame: u64) -> Vec<u8> {
+        let mut raster = RasterCache::new();
+        draw_one_frame(prep, &mut raster, Backend::Cpu, frame).expect("chart frame draws")
+    }
+
+    /// A chart clip enters the same composition stack as media: the
+    /// pre-rendered raster composites over the background, and reruns
+    /// (plus later frames, charts being static per film time) land
+    /// byte-identical frames.
+    #[test]
+    fn chart_enters_the_composition_stack_deterministically() {
+        for kind in [
+            notation::model::ChartKind::Bar,
+            notation::model::ChartKind::Pie,
+            notation::model::ChartKind::Gauge,
+        ] {
+            let data = match kind {
+                notation::model::ChartKind::Pie => {
+                    vec![chart_point("a", 30.0), chart_point("b", 70.0)]
+                }
+                notation::model::ChartKind::Gauge => vec![chart_point("load", 62.0)],
+                _ => vec![chart_point("Q1", 12.0), chart_point("Q2", 19.0)],
+            };
+            let clip = chart_clip(kind, data);
+            let ch = match &clip {
+                notation::model::Clip::Chart(c) => c.clone(),
+                _ => unreachable!(),
+            };
+            let mut prep = box_prep(vec![clip]);
+            stage_chart(&mut prep, &ch);
+            let first = draw_cpu(&prep, 0);
+            let rerun = draw_cpu(&prep, 0);
+            assert_eq!(first, rerun, "{kind:?} reruns byte-identically");
+            // Charts are static per film time: a later frame matches.
+            let later = draw_cpu(&prep, 15);
+            assert_eq!(first, later, "{kind:?} holds still across film time");
+            // The white panel composites over the black background.
+            assert!(
+                first.iter().any(|&b| b > 0),
+                "{kind:?} paints into the composition stack"
+            );
+        }
+    }
+
+    /// An empty chart draws its named axes into the stack: the frame
+    /// is not the flat background, and reruns match.
+    #[test]
+    fn empty_chart_draws_named_axes_in_the_stack() {
+        let clip = chart_clip(notation::model::ChartKind::Bar, Vec::new());
+        let ch = match &clip {
+            notation::model::Clip::Chart(c) => c.clone(),
+            _ => unreachable!(),
+        };
+        let mut prep = box_prep(vec![clip]);
+        stage_chart(&mut prep, &ch);
+        let first = draw_cpu(&prep, 0);
+        assert_eq!(first, draw_cpu(&prep, 0));
+        assert!(
+            first.iter().any(|&b| b > 0),
+            "empty chart still names its axes"
+        );
     }
 
     // --- Sprint 7 motion (T005/T006): 3D turns and visual blur ---

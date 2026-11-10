@@ -203,22 +203,26 @@ impl LatencyTracker {
     /// Per-session report under custom bars (same shape, different
     /// thresholds; custom bars never relabel samples).
     pub fn report_with(&self, bars: &LatencyBars) -> SessionLatencyReport {
-        let actions = [TransportAction::Step, TransportAction::Scrub, TransportAction::Jump]
-            .iter()
-            .map(|action| {
-                let bar = action.bar_ms(bars);
-                let warm_median_ms = self.median_ms(*action, Warmth::Warm);
-                ActionLatency {
-                    action: *action,
-                    bar_ms: bar,
-                    warm_median_ms,
-                    warm_samples: self.count(*action, Warmth::Warm),
-                    cold_median_ms: self.median_ms(*action, Warmth::Cold),
-                    cold_samples: self.count(*action, Warmth::Cold),
-                    meets_bar: warm_median_ms.map(|m| m <= bar),
-                }
-            })
-            .collect();
+        let actions = [
+            TransportAction::Step,
+            TransportAction::Scrub,
+            TransportAction::Jump,
+        ]
+        .iter()
+        .map(|action| {
+            let bar = action.bar_ms(bars);
+            let warm_median_ms = self.median_ms(*action, Warmth::Warm);
+            ActionLatency {
+                action: *action,
+                bar_ms: bar,
+                warm_median_ms,
+                warm_samples: self.count(*action, Warmth::Warm),
+                cold_median_ms: self.median_ms(*action, Warmth::Cold),
+                cold_samples: self.count(*action, Warmth::Cold),
+                meets_bar: warm_median_ms.map(|m| m <= bar),
+            }
+        })
+        .collect();
         SessionLatencyReport {
             bars: *bars,
             actions,
@@ -328,7 +332,11 @@ impl SessionLatencyReport {
                 None => {}
             }
         }
-        if any { Some(true) } else { None }
+        if any {
+            Some(true)
+        } else {
+            None
+        }
     }
 }
 

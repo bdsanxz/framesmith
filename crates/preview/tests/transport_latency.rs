@@ -153,7 +153,11 @@ fn cold_samples_never_count_toward_the_bar() {
         );
     }
     for _ in 0..3 {
-        tracker.record(TransportAction::Step, Warmth::Warm, Duration::from_millis(5));
+        tracker.record(
+            TransportAction::Step,
+            Warmth::Warm,
+            Duration::from_millis(5),
+        );
     }
     let report = tracker.report();
     let row = report.action(TransportAction::Step).unwrap();
@@ -198,8 +202,16 @@ fn missed_bar_reports_the_measured_median_against_the_bar() {
 fn jump_bar_is_100ms_while_step_and_scrub_are_50ms() {
     let mut tracker = LatencyTracker::new();
     for _ in 0..3 {
-        tracker.record(TransportAction::Jump, Warmth::Warm, Duration::from_millis(80));
-        tracker.record(TransportAction::Step, Warmth::Warm, Duration::from_millis(80));
+        tracker.record(
+            TransportAction::Jump,
+            Warmth::Warm,
+            Duration::from_millis(80),
+        );
+        tracker.record(
+            TransportAction::Step,
+            Warmth::Warm,
+            Duration::from_millis(80),
+        );
     }
     let report = tracker.report();
     assert_eq!(

@@ -54,7 +54,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use crate::studio::json_escape;
 use crate::studio_compositions::{
-    RENDER_QUEUE_VERSION, RenderJob, render_queue_path_for, renders_dir_for,
+    render_queue_path_for, renders_dir_for, RenderJob, RENDER_QUEUE_VERSION,
 };
 
 /// Frame rate the queue accepts (Sprint 18, T006): the panel offers
@@ -218,10 +218,7 @@ pub fn parse_enqueue_body(body: &str) -> Result<EnqueueRequest, String> {
             "unknown queue resolution {resolution:?}: expected auto, 1080p, or 4k; pass one of those to `resolution`. Nothing was queued."
         )));
     }
-    let gpu = value
-        .get("gpu")
-        .and_then(|g| g.as_bool())
-        .unwrap_or(false);
+    let gpu = value.get("gpu").and_then(|g| g.as_bool()).unwrap_or(false);
     let loop_count = match value.get("loop_count") {
         None => 0,
         Some(v) if v.is_null() => 0,
@@ -328,7 +325,11 @@ fn write_jobs(folder: &Path, jobs: &[RenderJob]) -> Result<(), String> {
 /// Update one job in place, persisting under the guard (Sprint 18,
 /// T006): no-ops when the row is gone, so a delete racing a progress
 /// tick never resurrects the row.
-fn update_job(folder: &Path, seq: u64, update: impl FnOnce(&mut RenderJob)) -> Result<bool, String> {
+fn update_job(
+    folder: &Path,
+    seq: u64,
+    update: impl FnOnce(&mut RenderJob),
+) -> Result<bool, String> {
     let _guard = QUEUE_LOCK.lock().map_err(|_| {
         refused_renders("the render queue is busy; retry the update. Nothing changed.".to_string())
     })?;
@@ -443,7 +444,9 @@ pub fn enqueue_job(
         return Err(refused_renders(format!("{message} Nothing was queued.")));
     }
     let _guard = QUEUE_LOCK.lock().map_err(|_| {
-        refused_renders("the render queue is busy; retry the queue. Nothing was queued.".to_string())
+        refused_renders(
+            "the render queue is busy; retry the queue. Nothing was queued.".to_string(),
+        )
     })?;
     let mut jobs = read_jobs(folder)?;
     let seq = jobs.iter().map(|j| j.seq).max().unwrap_or(0) + 1;
@@ -587,8 +590,7 @@ pub fn run_next_queued(folder: &Path, hooks: &RunHooks) -> Option<RunResult> {
     let seq = {
         let _guard = QUEUE_LOCK.lock().ok()?;
         let jobs = read_jobs(folder).ok()?;
-        jobs
-            .iter()
+        jobs.iter()
             .filter(|j| j.status == "queued")
             .min_by_key(|j| j.seq)
             .map(|j| j.seq)
@@ -611,9 +613,11 @@ pub fn run_next_queued(folder: &Path, hooks: &RunHooks) -> Option<RunResult> {
     });
     let claimed = {
         let _guard = QUEUE_LOCK.lock().ok()?;
-        read_jobs(folder).ok()?.into_iter().find(|j| j.seq == seq).is_some_and(|j| {
-            j.status == "running" && j.started_ms == started_ms
-        })
+        read_jobs(folder)
+            .ok()?
+            .into_iter()
+            .find(|j| j.seq == seq)
+            .is_some_and(|j| j.status == "running" && j.started_ms == started_ms)
     };
     if !claimed {
         return None;
@@ -721,7 +725,8 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
             Err(_) => {
                 return failed(
                     "validate",
-                    "render failed: the render queue is busy (validate stage); re-queue the job.".to_string(),
+                    "render failed: the render queue is busy (validate stage); re-queue the job."
+                        .to_string(),
                 );
             }
         };
@@ -740,8 +745,15 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
             Err(e) => return failed("validate", format!("render failed: {e}")),
         }
     };
-    let Some((composition_name, format_name, quality_name, fps_want, resolution_name, gpu, loop_count)) =
-        tracked
+    let Some((
+        composition_name,
+        format_name,
+        quality_name,
+        fps_want,
+        resolution_name,
+        gpu,
+        loop_count,
+    )) = tracked
     else {
         return failed(
             "validate",
@@ -802,7 +814,9 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
             );
         }
     };
-    let mut fps = fps_want.unwrap_or_else(|| base.fps.value().round() as u32).max(1);
+    let mut fps = fps_want
+        .unwrap_or_else(|| base.fps.value().round() as u32)
+        .max(1);
     if format == render::outputs::OutputFormat::Gif && fps > GIF_MAX_FPS {
         note(&format!(
             "frame rate capped at {GIF_MAX_FPS} fps for GIF (requested {fps})."
@@ -862,7 +876,8 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
     if render::cancel::is_cancelled() {
         return cancelled_before_frames(seq, "prepare");
     }
-    let prep = match render::render::prepare_frames(&scaled_comp, &scaled_all, folder, &ffmpeg_bin) {
+    let prep = match render::render::prepare_frames(&scaled_comp, &scaled_all, folder, &ffmpeg_bin)
+    {
         Ok(prep) => prep,
         Err(e) => {
             if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
@@ -915,29 +930,34 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
             Err(_) => {
                 return failed(
                     "audio",
-                    "render failed: the render queue is busy (audio stage); re-queue the job.".to_string(),
+                    "render failed: the render queue is busy (audio stage); re-queue the job."
+                        .to_string(),
                 );
             }
         };
         match read_jobs(folder) {
-            Ok(jobs) => jobs.into_iter().find(|j| j.seq == seq).map(|j| j.output.clone()),
+            Ok(jobs) => jobs
+                .into_iter()
+                .find(|j| j.seq == seq)
+                .map(|j| j.output.clone()),
             Err(e) => return failed("audio", format!("render failed: {e}")),
         }
     }
     .unwrap_or_default();
     let output = PathBuf::from(&output_path);
     let mix_path = render::render::mix_staging_path(&output);
-    let plan = match render::render::build_audio_plan(&scaled_comp, folder, &ffmpeg_bin, &prep, &mix_path)
-    {
-        Ok(plan) => plan,
-        Err(e) => {
-            let _ = std::fs::remove_file(&mix_path);
-            if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
-                return cancelled_before_frames(seq, "audio");
+    let plan =
+        match render::render::build_audio_plan(&scaled_comp, folder, &ffmpeg_bin, &prep, &mix_path)
+        {
+            Ok(plan) => plan,
+            Err(e) => {
+                let _ = std::fs::remove_file(&mix_path);
+                if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
+                    return cancelled_before_frames(seq, "audio");
+                }
+                return failed("audio", e);
             }
-            return failed("audio", e);
-        }
-    };
+        };
     if render::cancel::is_cancelled() {
         let _ = std::fs::remove_file(&mix_path);
         return cancelled_before_frames(seq, "audio");
@@ -972,7 +992,11 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
         Ok(outcome) => outcome,
         Err(e) => {
             if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
-                let stage = if e.contains("encode") { "encode" } else { "frames" };
+                let stage = if e.contains("encode") {
+                    "encode"
+                } else {
+                    "frames"
+                };
                 remove_partial_output(&output, Some(&mix_path));
                 return JobOutcome::Cancelled {
                     stage: stage.to_string(),
@@ -1043,14 +1067,7 @@ fn resolve_queue_hdr(
     format: render::outputs::OutputFormat,
     detected: render::outputs::HdrTransfer,
     sources: &[(PathBuf, render::outputs::HdrTransfer)],
-) -> Result<
-    (
-        render::outputs::HdrTransfer,
-        bool,
-        Option<String>,
-    ),
-    String,
-> {
+) -> Result<(render::outputs::HdrTransfer, bool, Option<String>), String> {
     use render::outputs::HdrTransfer;
     if detected == HdrTransfer::Sdr {
         return Ok((HdrTransfer::Sdr, false, None));
@@ -1147,7 +1164,9 @@ pub fn cancel_job(folder: &Path, seq: u64) -> Result<String, String> {
 /// was removed.
 pub fn delete_job(folder: &Path, seq: u64) -> Result<String, String> {
     let _guard = QUEUE_LOCK.lock().map_err(|_| {
-        refused_renders("the render queue is busy; retry the delete. Nothing was deleted.".to_string())
+        refused_renders(
+            "the render queue is busy; retry the delete. Nothing was deleted.".to_string(),
+        )
     })?;
     let mut jobs = read_jobs(folder)?;
     let pos = jobs.iter().position(|j| j.seq == seq).ok_or_else(|| {
@@ -1196,7 +1215,9 @@ pub fn delete_job(folder: &Path, seq: u64) -> Result<String, String> {
 /// jobs stay exactly as they are.
 pub fn hide_finished(folder: &Path) -> Result<String, String> {
     let _guard = QUEUE_LOCK.lock().map_err(|_| {
-        refused_renders("the render queue is busy; retry hiding finished rows. Nothing changed.".to_string())
+        refused_renders(
+            "the render queue is busy; retry hiding finished rows. Nothing changed.".to_string(),
+        )
     })?;
     let mut jobs = read_jobs(folder)?;
     let finished: Vec<RenderJob> = jobs
@@ -1261,8 +1282,7 @@ fn job_seqs(jobs: &[RenderJob]) -> String {
     }
     let mut seqs: Vec<u64> = jobs.iter().map(|j| j.seq).collect();
     seqs.sort_unstable();
-    seqs
-        .iter()
+    seqs.iter()
         .map(|s| s.to_string())
         .collect::<Vec<_>>()
         .join(", ")
@@ -1381,7 +1401,10 @@ pub fn renders_queue_json(
 /// Jobs keep advancing past failures; each pump iteration holds the
 /// queue guard only around file reads and writes, never across a
 /// render, so progress polls never block on a running job.
-pub fn spawn_queue_worker(folder: PathBuf, shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>) {
+pub fn spawn_queue_worker(
+    folder: PathBuf,
+    shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) {
     // A previous server may have died mid-render: its running rows can
     // never complete, so they fail naming the interrupted stage before
     // this worker picks up anything queued.
@@ -1551,4 +1574,3 @@ pub fn renders_js() -> String {
         wireRenders(); paintRenders();"#
         .to_string()
 }
-

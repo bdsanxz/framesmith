@@ -61,14 +61,21 @@ fn stub_server() -> (u16, std::thread::JoinHandle<()>) {
                 );
                 break;
             }
-            let _ = s.write_all(b"HTTP/1.0 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+            let _ =
+                s.write_all(b"HTTP/1.0 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
         }
     });
     (port, handle)
 }
 
 fn entry_for(dir: &str, port: u16) -> ServerEntry {
-    ServerEntry::new(dir.to_string(), "proj".to_string(), "t".to_string(), port, 12345)
+    ServerEntry::new(
+        dir.to_string(),
+        "proj".to_string(),
+        "t".to_string(),
+        port,
+        12345,
+    )
 }
 
 #[test]
@@ -113,7 +120,13 @@ fn start_plans_a_free_port_and_prints_its_url() {
     text_project(&folder);
     let reg = root.join("servers.json");
     match plan_start(&reg, &folder, None).expect("valid project plans") {
-        StartPlan::ToStart { port, url, name, composition, dir } => {
+        StartPlan::ToStart {
+            port,
+            url,
+            name,
+            composition,
+            dir,
+        } => {
             assert_eq!(url, url_for_port(port));
             assert_eq!(url, format!("http://127.0.0.1:{port}/"));
             assert_eq!(name, "proj");
@@ -189,10 +202,22 @@ fn broken_project_refuses_before_any_server_starts() {
     broken_project(&folder);
     let reg = root.join("servers.json");
     let refusal = plan_start(&reg, &folder, None).unwrap_err();
-    assert!(refusal.message.contains("preview refused"), "{}", refusal.message);
-    assert!(refusal.message.contains("composition.kdl"), "{}", refusal.message);
+    assert!(
+        refusal.message.contains("preview refused"),
+        "{}",
+        refusal.message
+    );
+    assert!(
+        refusal.message.contains("composition.kdl"),
+        "{}",
+        refusal.message
+    );
     assert!(refusal.message.contains("fix"), "{}", refusal.message);
-    assert!(refusal.message.contains("No preview was started"), "{}", refusal.message);
+    assert!(
+        refusal.message.contains("No preview was started"),
+        "{}",
+        refusal.message
+    );
     assert!(!reg.exists(), "a refusal must record nothing");
 }
 
@@ -201,8 +226,16 @@ fn missing_directory_refuses_before_any_server_starts() {
     let root = tmp("missing");
     let reg = root.join("servers.json");
     let refusal = plan_start(&reg, &root.join("absent"), None).unwrap_err();
-    assert!(refusal.message.contains("no project directory"), "{}", refusal.message);
-    assert!(refusal.message.contains("No preview was started"), "{}", refusal.message);
+    assert!(
+        refusal.message.contains("no project directory"),
+        "{}",
+        refusal.message
+    );
+    assert!(
+        refusal.message.contains("No preview was started"),
+        "{}",
+        refusal.message
+    );
     assert!(!reg.exists());
 }
 

@@ -40,9 +40,9 @@ fn codes_messages(dir: &Path) -> Vec<(String, String, String)> {
 }
 
 fn has(dir: &Path, code: &str, needles: &[&str]) -> bool {
-    codes_messages(dir).iter().any(|(c, m, f)| {
-        c == code && needles.iter().all(|n| m.contains(n) || f.contains(n))
-    })
+    codes_messages(dir)
+        .iter()
+        .any(|(c, m, f)| c == code && needles.iter().all(|n| m.contains(n) || f.contains(n)))
 }
 
 /// Two abutting one-second boxes plus a bridge of `duration`/`kind`.
@@ -79,7 +79,9 @@ fn every_kind_bridges() {
         let dir = tmp("kinds");
         write_comp(
             &dir,
-            &body(&format!("transition from=\"a\" to=\"b\" duration=1 kind=\"{kind}\"")),
+            &body(&format!(
+                "transition from=\"a\" to=\"b\" duration=1 kind=\"{kind}\""
+            )),
         );
         let v = validate_folder(&dir);
         assert_eq!(v.status, Status::Valid, "kind {kind}: {:?}", v.diagnostics);
@@ -159,7 +161,11 @@ fn unknown_clip_ids_fail_naming_the_transition_and_the_id() {
     let v = validate_folder(&dir);
     assert_eq!(v.status, Status::Invalid, "{:?}", v.diagnostics);
     assert!(
-        has(&dir, "E_UNKNOWN_REF", &["transition", "`from`", "\"ghost\""]),
+        has(
+            &dir,
+            "E_UNKNOWN_REF",
+            &["transition", "`from`", "\"ghost\""]
+        ),
         "{:?}",
         codes_messages(&dir)
     );
@@ -327,7 +333,10 @@ fn malformed_transitions_fail_with_a_fix() {
 
     // Missing `from`.
     let dir = tmp("missing-from");
-    write_comp(&dir, &body("transition to=\"b\" duration=0.5 kind=\"fade\""));
+    write_comp(
+        &dir,
+        &body("transition to=\"b\" duration=0.5 kind=\"fade\""),
+    );
     assert_eq!(validate_folder(&dir).status, Status::Invalid);
     assert!(
         has(&dir, "E_BAD_TRANSITION", &["transition", "`from`"]),

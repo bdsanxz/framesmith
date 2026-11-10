@@ -46,7 +46,11 @@ fn tree_bytes(folder: &Path) -> BTreeMap<String, Vec<u8>> {
             if path.is_dir() {
                 stack.push(path);
             } else {
-                let key = path.strip_prefix(folder).unwrap().to_string_lossy().into_owned();
+                let key = path
+                    .strip_prefix(folder)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned();
                 out.insert(key, std::fs::read(&path).unwrap());
             }
         }
@@ -75,13 +79,10 @@ fn oracle_png(folder: &Path, backend: render::render::Backend, index: u64) -> Ve
         false,
         None,
     );
-    assert!(matches!(
-        verdict.status,
-        validate::validate::Status::Valid
-    ));
+    assert!(matches!(verdict.status, validate::validate::Status::Valid));
     let comp = verdict.composition.clone().unwrap();
-    let prep =
-        render::render::prepare_frames(&comp, &verdict.compositions, folder, &ffmpeg()).expect("prepares");
+    let prep = render::render::prepare_frames(&comp, &verdict.compositions, folder, &ffmpeg())
+        .expect("prepares");
     let drawn = render::render::draw_batch_parallel(&prep, backend, &[index]).expect("draws");
     let (_, rgb) = drawn.iter().find(|(k, _)| *k == index).unwrap();
     render::outputs::encode_png_rgb8(320, 180, rgb).unwrap()
@@ -163,7 +164,9 @@ fn playhead_is_kept_across_a_valid_reload() {
     assert_eq!(readout.frame, 7);
     assert_eq!(readout.frame_count, 10);
     // The kept playhead serves the new look.
-    let frame = session.frame_png(transport.position()).expect("frame serves");
+    let frame = session
+        .frame_png(transport.position())
+        .expect("frame serves");
     assert_eq!(frame.served_from, CacheSource::Rendered);
 }
 
@@ -218,7 +221,10 @@ fn broken_edit_lists_diagnostics_with_last_good_kept() {
     assert!(!report.diagnostics.is_empty(), "diagnostics are listed");
     let first = &report.diagnostics[0];
     assert!(first.file.ends_with("composition.kdl"), "{first:?}");
-    assert!(!first.message.is_empty() && !first.fix.is_empty(), "{first:?}");
+    assert!(
+        !first.message.is_empty() && !first.fix.is_empty(),
+        "{first:?}"
+    );
     assert!(report.message.contains("composition.kdl"), "{report}");
     assert!(report.message.contains("last good"), "{report}");
     // The timeline facts are untouched.
@@ -250,7 +256,11 @@ fn playhead_never_resets_on_a_failed_edit() {
     write(&folder, "composition.kdl", "this is not kdl {{{{\n");
     let report = session.reload_keep_playhead(&mut transport);
     assert!(!report.applied);
-    assert_eq!(report.playhead, Some(7), "the failed edit keeps the playhead");
+    assert_eq!(
+        report.playhead,
+        Some(7),
+        "the failed edit keeps the playhead"
+    );
     assert_eq!(transport.position(), 7, "never reset to zero");
     assert!(transport.is_playing(), "a failed edit never pauses either");
 }
@@ -274,7 +284,11 @@ fn plain_reload_moves_no_playhead_by_itself() {
     let report = session.reload();
     assert!(report.applied, "valid edit applies: {report}");
     assert_eq!(report.playhead, None, "plain reload names no playhead");
-    assert_eq!(transport.position(), 5, "a transport the caller kept back is untouched");
+    assert_eq!(
+        transport.position(),
+        5,
+        "a transport the caller kept back is untouched"
+    );
 }
 
 #[test]

@@ -78,13 +78,7 @@ pub struct ServerEntry {
 }
 
 impl ServerEntry {
-    pub fn new(
-        dir: String,
-        name: String,
-        composition: String,
-        port: u16,
-        pid: u32,
-    ) -> Self {
+    pub fn new(dir: String, name: String, composition: String, port: u16, pid: u32) -> Self {
         let url = url_for_port(port);
         Self {
             dir,
@@ -188,7 +182,10 @@ fn parse_json_string(bytes: &[u8], mut i: usize) -> Result<(String, usize), Stri
 
 /// Skip JSON whitespace at `i`.
 fn skip_ws(bytes: &[u8], mut i: usize) -> usize {
-    while matches!(bytes.get(i), Some(b' ') | Some(b'\t') | Some(b'\n') | Some(b'\r')) {
+    while matches!(
+        bytes.get(i),
+        Some(b' ') | Some(b'\t') | Some(b'\n') | Some(b'\r')
+    ) {
         i += 1;
     }
     i
@@ -313,7 +310,10 @@ pub fn parse_registry(body: &str) -> Result<Vec<ServerEntry>, String> {
 pub fn load_registry(path: &Path) -> Result<Vec<ServerEntry>, String> {
     match std::fs::read_to_string(path) {
         Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Vec::new()),
-        Err(e) => Err(format!("preview registry {} cannot be read: {e}", path.display())),
+        Err(e) => Err(format!(
+            "preview registry {} cannot be read: {e}",
+            path.display()
+        )),
         Ok(body) => parse_registry(&body)
             .map_err(|why| format!("preview registry {} is malformed: {why}", path.display())),
     }
@@ -354,7 +354,11 @@ pub fn is_live(port: u16) -> bool {
 
 /// Drop every dead entry, keeping only live servers.
 pub fn live_only(entries: &[ServerEntry]) -> Vec<ServerEntry> {
-    entries.iter().filter(|e| is_live(e.port)).cloned().collect()
+    entries
+        .iter()
+        .filter(|e| is_live(e.port))
+        .cloned()
+        .collect()
 }
 
 /// Canonical project directory string for registry keys.
@@ -421,14 +425,17 @@ pub fn validate_project(folder: &Path) -> Result<ValidatedProject, DaemonRefusal
             return Err(DaemonRefusal { message });
         }
         validate::validate::Status::Unsupported => {
-            let names: Vec<String> =
-                verdict.diagnostics.iter().map(|d| d.message.clone()).collect();
+            let names: Vec<String> = verdict
+                .diagnostics
+                .iter()
+                .map(|d| d.message.clone())
+                .collect();
             return Err(DaemonRefusal {
                 message: format!(
                     "preview refused: {dir} uses later-sprint element(s): {}. No preview was started.",
                     names.join("; ")
                 ),
-            })
+            });
         }
         validate::validate::Status::Valid => {}
     }
@@ -445,7 +452,11 @@ pub fn validate_project(folder: &Path) -> Result<ValidatedProject, DaemonRefusal
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| dir.clone());
-    Ok(ValidatedProject { dir, name, composition })
+    Ok(ValidatedProject {
+        dir,
+        name,
+        composition,
+    })
 }
 
 /// Pick a loopback port to serve on (Sprint 14, T006 / REC-003): no
@@ -513,12 +524,19 @@ pub fn plan_start(
 ) -> Result<StartPlan, DaemonRefusal> {
     let project = validate_project(folder)?;
     let entries = load_registry(registry_path).map_err(|message| DaemonRefusal { message })?;
-    let live: Vec<ServerEntry> = entries.iter().filter(|e| is_live(e.port)).cloned().collect();
+    let live: Vec<ServerEntry> = entries
+        .iter()
+        .filter(|e| is_live(e.port))
+        .cloned()
+        .collect();
     if let Some(existing) = live.iter().find(|e| e.dir == project.dir) {
         return Ok(StartPlan::AlreadyRunning(existing.clone()));
     }
     let port = pick_port(preferred_port).map_err(|e| DaemonRefusal {
-        message: format!("{}; no preview was started", previewize_daemon(e.to_string())),
+        message: format!(
+            "{}; no preview was started",
+            previewize_daemon(e.to_string())
+        ),
     })?;
     Ok(StartPlan::ToStart {
         url: url_for_port(port),
@@ -549,8 +567,12 @@ pub fn add_entry(registry_path: &Path, entry: &ServerEntry) -> Result<(), String
     let mut entries = load_registry(registry_path)?;
     entries.retain(|e| e.dir != entry.dir);
     entries.push(entry.clone());
-    save_registry(registry_path, &entries)
-        .map_err(|e| format!("preview registry {} cannot be written: {e}", registry_path.display()))
+    save_registry(registry_path, &entries).map_err(|e| {
+        format!(
+            "preview registry {} cannot be written: {e}",
+            registry_path.display()
+        )
+    })
 }
 
 /// Forget one directory's entry, if present.
@@ -560,7 +582,10 @@ pub fn remove_entry(registry_path: &Path, dir: &str) -> Result<(), String> {
     entries.retain(|e| e.dir != dir);
     if entries.len() != before {
         save_registry(registry_path, &entries).map_err(|e| {
-            format!("preview registry {} cannot be written: {e}", registry_path.display())
+            format!(
+                "preview registry {} cannot be written: {e}",
+                registry_path.display()
+            )
         })?;
     }
     Ok(())
@@ -645,11 +670,15 @@ pub fn stop_server(registry_path: &Path, dir: &str) -> Result<StopOutcome, Strin
     let entries = load_registry(registry_path)?;
     let hit = entries.iter().find(|e| e.dir == dir).cloned();
     let Some(entry) = hit else {
-        return Ok(StopOutcome::AlreadyStopped { dir: dir.to_string() });
+        return Ok(StopOutcome::AlreadyStopped {
+            dir: dir.to_string(),
+        });
     };
     if !is_live(entry.port) {
         let _ = remove_entry(registry_path, dir);
-        return Ok(StopOutcome::AlreadyStopped { dir: dir.to_string() });
+        return Ok(StopOutcome::AlreadyStopped {
+            dir: dir.to_string(),
+        });
     }
     request_shutdown(entry.port);
     if is_live(entry.port) {
@@ -701,8 +730,12 @@ pub fn stop_all_servers(registry_path: &Path) -> Result<StopAllOutcome, String> 
             outcome.stopped.push(entry.clone());
         }
     }
-    save_registry(registry_path, &failed)
-    .map_err(|e| format!("preview registry {} cannot be written: {e}", registry_path.display()))?;
+    save_registry(registry_path, &failed).map_err(|e| {
+        format!(
+            "preview registry {} cannot be written: {e}",
+            registry_path.display()
+        )
+    })?;
     if let Some(first) = failed.first() {
         return Err(format!(
             "preview stop-all stopped {} server(s) but {} at {} (port {}) is still answering; stop it manually and re-run",
@@ -784,7 +817,9 @@ pub fn find_ready(registry_path: &Path, dir: &str, port: u16) -> Option<ServerEn
 /// Any live entry for this directory, whatever its port.
 pub fn find_live_for(registry_path: &Path, dir: &str) -> Option<ServerEntry> {
     let entries = load_registry(registry_path).ok()?;
-    entries.into_iter().find(|e| e.dir == dir && is_live(e.port))
+    entries
+        .into_iter()
+        .find(|e| e.dir == dir && is_live(e.port))
 }
 
 /// Bind a loopback listener, used by tests to hold ports live or

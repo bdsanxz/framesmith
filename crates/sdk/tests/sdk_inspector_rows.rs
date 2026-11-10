@@ -148,7 +148,10 @@ fn rows_cover_every_group() {
     }
     let session = open(&dir);
     let comp = session.effective_composition();
-    assert_eq!(sdk::row_live_value(&comp.clips[0], "font-size").as_deref(), Some("32"));
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[0], "font-size").as_deref(),
+        Some("32")
+    );
     assert_eq!(
         sdk::row_live_value(&comp.clips[1], "background-color").as_deref(),
         Some("#00ff00")
@@ -193,7 +196,10 @@ fn row_keys_are_css_like() {
     row(&dir, card(), "border_radius", "8").expect("underscores read as hyphens");
     let session = open(&dir);
     let comp = session.effective_composition();
-    assert_eq!(sdk::row_live_value(&comp.clips[0], "font-size").as_deref(), Some("40"));
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[0], "font-size").as_deref(),
+        Some("40")
+    );
     assert_eq!(
         sdk::row_live_value(&comp.clips[1], "border-radius").as_deref(),
         Some("8")
@@ -230,8 +236,14 @@ fn clearing_optional_rows_inherits() {
     row(&dir, title(), "line-height", "").expect("clear inherits");
     let session = open(&dir);
     let comp = session.effective_composition();
-    assert_eq!(sdk::row_live_value(&comp.clips[0], "font-family").as_deref(), Some(""));
-    assert_eq!(sdk::row_live_value(&comp.clips[0], "line-height").as_deref(), Some(""));
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[0], "font-family").as_deref(),
+        Some("")
+    );
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[0], "line-height").as_deref(),
+        Some("")
+    );
 }
 
 /// Render-deferred rows refuse naming their milestone.
@@ -239,14 +251,17 @@ fn clearing_optional_rows_inherits() {
 fn deferred_rows_refuse_with_milestone() {
     let dir = tmp("deferred");
     project(&dir);
-    for property in ["filter", "transform-3d", "rotate-x", "perspective", "origin"] {
+    for property in [
+        "filter",
+        "transform-3d",
+        "rotate-x",
+        "perspective",
+        "origin",
+    ] {
         let before = tree_bytes(&dir);
         let err = row(&dir, card(), property, "1").expect_err("deferred refuses");
         assert!(err.contains("E_SDK_UNSUPPORTED"), "rule: {err}");
-        assert!(
-            err.contains("milestone"),
-            "milestone named: {err}"
-        );
+        assert!(err.contains("milestone"), "milestone named: {err}");
         assert_eq!(tree_bytes(&dir), before, "nothing staged");
     }
 }
@@ -309,9 +324,16 @@ fn bad_values_refuse_per_family() {
     for (target, property, value) in cases {
         let before = tree_bytes(&dir);
         let err = row(&dir, target, property, value).expect_err("bad value refuses");
-        assert!(err.contains("E_SDK_BAD_VALUE"), "rule for {property}: {err}");
+        assert!(
+            err.contains("E_SDK_BAD_VALUE"),
+            "rule for {property}: {err}"
+        );
         assert!(err.contains(property), "location for {property}: {err}");
-        assert_eq!(tree_bytes(&dir), before, "prior kept for {property}={value}");
+        assert_eq!(
+            tree_bytes(&dir),
+            before,
+            "prior kept for {property}={value}"
+        );
     }
 }
 
@@ -374,12 +396,18 @@ fn select_rows_accept_vocabularies() {
     row(&dir, card(), "mix-blend-mode", "multiply").expect("multiply");
     let session = open(&dir);
     let comp = session.effective_composition();
-    assert_eq!(sdk::row_live_value(&comp.clips[0], "text-align").as_deref(), Some("center"));
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[0], "text-align").as_deref(),
+        Some("center")
+    );
     assert_eq!(
         sdk::row_live_value(&comp.clips[0], "font-style").as_deref(),
         Some("bold-italic")
     );
-    assert_eq!(sdk::row_live_value(&comp.clips[2], "object-fit").as_deref(), Some("cover"));
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[2], "object-fit").as_deref(),
+        Some("cover")
+    );
     assert_eq!(
         sdk::row_live_value(&comp.clips[1], "mix-blend-mode").as_deref(),
         Some("multiply")

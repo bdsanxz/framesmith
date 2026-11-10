@@ -97,21 +97,18 @@ fn pathd(d: &str, extra: &str) -> String {
 #[test]
 fn filled_and_stroked_paths_validate_in_each_fill_rule() {
     use notation::model::{FillRule, StrokePosition};
-    for (spell, want) in [("nonzero", FillRule::NonZero), ("evenodd", FillRule::EvenOdd)] {
+    for (spell, want) in [
+        ("nonzero", FillRule::NonZero),
+        ("evenodd", FillRule::EvenOdd),
+    ] {
         let p = first_path(&pathd(
             "M10,10 L110,10 L110,90 L10,90 Z",
             &format!("fill=\"#00ff00\" fill-rule=\"{spell}\" stroke-width=4 stroke-color=\"#ff0000\" stroke-position=\"center\""),
         ));
         assert_eq!(p.fill_rule, want);
-        assert_eq!(
-            p.fill,
-            notation::model::Rgb { r: 0, g: 255, b: 0 }
-        );
+        assert_eq!(p.fill, notation::model::Rgb { r: 0, g: 255, b: 0 });
         assert_eq!(p.border_width, 4.0);
-        assert_eq!(
-            p.border_color,
-            notation::model::Rgb { r: 255, g: 0, b: 0 }
-        );
+        assert_eq!(p.border_color, notation::model::Rgb { r: 255, g: 0, b: 0 });
         assert_eq!(p.stroke_position, StrokePosition::Center);
         assert_eq!(p.d, "M10,10 L110,10 L110,90 L10,90 Z");
     }
@@ -236,7 +233,11 @@ fn missing_d_is_refused() {
 #[test]
 fn unknown_fill_rule_names_the_accepted_set() {
     let ds = diags(&pathd("M0,0 L10,0", "fill-rule=\"winding\""));
-    assert_refusal(&ds, "E_BAD_PATH", &["`fill-rule`", "`nonzero`", "`evenodd`"]);
+    assert_refusal(
+        &ds,
+        "E_BAD_PATH",
+        &["`fill-rule`", "`nonzero`", "`evenodd`"],
+    );
 }
 
 #[test]
@@ -284,7 +285,11 @@ fn zero_svg_width_names_the_rule_with_the_fix() {
         &format!("{OPEN}svg path=\"logo.svg\" width=0 height=32 start=0 duration=2\n}}\n"),
     );
     let ds = validate_folder(&dir).diagnostics;
-    assert_refusal(&ds, "E_BAD_IMAGE", &["`width`", "positive number", "canvas pixels"]);
+    assert_refusal(
+        &ds,
+        "E_BAD_IMAGE",
+        &["`width`", "positive number", "canvas pixels"],
+    );
 }
 
 #[test]

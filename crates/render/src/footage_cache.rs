@@ -808,7 +808,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&folder);
         std::fs::create_dir_all(&folder).unwrap();
         // No override: the project-local log dir, exactly as before.
-        assert_eq!(cache_dir_for(&folder), folder.join("logs").join("framesmith-footage-cache"));
+        assert_eq!(
+            cache_dir_for(&folder),
+            folder.join("logs").join("framesmith-footage-cache")
+        );
         let _ = std::fs::remove_dir_all(&folder);
     }
 
@@ -882,6 +885,9 @@ mod tests {
     fn cache_dir_empty_override_keeps_the_default() {
         let (_lock, _restore) = DirEnvGuard::set("   ");
         let folder = Path::new("/tmp/framesmith-footage-cache-empty-probe");
-        assert_eq!(cache_dir_for(folder), folder.join("logs").join("framesmith-footage-cache"));
+        assert_eq!(
+            cache_dir_for(folder),
+            folder.join("logs").join("framesmith-footage-cache")
+        );
     }
 }

@@ -2,9 +2,7 @@
 //! every acceptance criterion of `T001-serve-any-frame-exactly.md`,
 //! including refusal variants.
 
-use preview::{
-    CacheSource, FrameErrorKind, PreviewOptions, PreviewSession, RefusalKind,
-};
+use preview::{CacheSource, FrameErrorKind, PreviewOptions, PreviewSession, RefusalKind};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -64,7 +62,11 @@ fn tree_bytes(folder: &Path) -> BTreeMap<String, Vec<u8>> {
             if path.is_dir() {
                 stack.push(path);
             } else {
-                let key = path.strip_prefix(folder).unwrap().to_string_lossy().into_owned();
+                let key = path
+                    .strip_prefix(folder)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned();
                 out.insert(key, std::fs::read(&path).unwrap());
             }
         }
@@ -100,21 +102,13 @@ fn scattered_frames_equal_the_full_render_byte_identically() {
         false,
         None,
     );
-    assert!(matches!(
-        verdict.status,
-        validate::validate::Status::Valid
-    ));
+    assert!(matches!(verdict.status, validate::validate::Status::Valid));
     let comp = verdict.composition.clone().unwrap();
-    let prep = render::render::prepare_frames(
-        &comp,
-        &verdict.compositions,
-        &folder,
-        &ffmpeg(),
-    )
-    .expect("prepares");
+    let prep = render::render::prepare_frames(&comp, &verdict.compositions, &folder, &ffmpeg())
+        .expect("prepares");
     let frames: Vec<u64> = served.iter().map(|(i, _)| *i).collect();
-    let drawn = render::render::draw_batch_parallel(&prep, session.backend(), &frames)
-        .expect("draws");
+    let drawn =
+        render::render::draw_batch_parallel(&prep, session.backend(), &frames).expect("draws");
     for (index, bytes) in &served {
         let (_, rgb) = drawn.iter().find(|(k, _)| k == index).unwrap();
         let expected = render::outputs::encode_png_rgb8(320, 180, rgb).unwrap();
@@ -137,7 +131,10 @@ fn repeated_requests_serve_from_cache_with_identical_bytes() {
     assert_eq!(first.served_from, CacheSource::Rendered);
     let second = session.frame_png(4).expect("repeat serves");
     assert_eq!(second.served_from, CacheSource::Memory);
-    assert_eq!(first.png, second.png, "cache repeats must be identical bytes");
+    assert_eq!(
+        first.png, second.png,
+        "cache repeats must be identical bytes"
+    );
     let stats = session.stats();
     assert_eq!(stats.rendered, 1);
     assert_eq!(stats.memory_hits, 1);
@@ -276,7 +273,10 @@ fn broken_project_refuses_before_anything_starts_naming_the_cause() {
     assert!(!err.diagnostics.is_empty(), "refusal names its diagnostics");
     let first = &err.diagnostics[0];
     assert!(first.file.ends_with("composition.kdl"), "{first:?}");
-    assert!(!first.message.is_empty() && !first.fix.is_empty(), "{first:?}");
+    assert!(
+        !first.message.is_empty() && !first.fix.is_empty(),
+        "{first:?}"
+    );
     // Refusal starts nothing: the project is untouched and no outside
     // cache directory was even created for the attempt.
     assert_eq!(tree_bytes(&folder), before);

@@ -68,10 +68,7 @@ fn asset_project(folder: &Path) {
     // bytes would refuse the open exactly like production.
     std::fs::create_dir_all(folder.join("media")).unwrap();
     for (dest, src) in [
-        (
-            "media/card.png",
-            "reference-1-title-card/media/card.png",
-        ),
+        ("media/card.png", "reference-1-title-card/media/card.png"),
         ("media/clip.mp4", "text-on-video/clip.mp4"),
         ("media/bed.wav", "sound-reference/media/vox.wav"),
     ] {
@@ -221,11 +218,17 @@ fn listing_reports_truthful_used_state() {
     let card = by_name("media/card.png");
     assert_eq!(card.kind, studio_assets::AssetKind::Image);
     assert!(card.used);
-    assert_eq!(card.used_by, vec!["composition \"a\" image clip id \"hero\""]);
+    assert_eq!(
+        card.used_by,
+        vec!["composition \"a\" image clip id \"hero\""]
+    );
     let clip = by_name("media/clip.mp4");
     assert_eq!(clip.kind, studio_assets::AssetKind::Video);
     assert!(clip.used);
-    assert_eq!(clip.used_by, vec!["composition \"a\" video clip id \"clip\""]);
+    assert_eq!(
+        clip.used_by,
+        vec!["composition \"a\" video clip id \"clip\""]
+    );
     let bed = by_name("media/bed.wav");
     assert_eq!(bed.kind, studio_assets::AssetKind::Audio);
     assert!(bed.used);
@@ -312,23 +315,22 @@ fn filters_narrow_by_search_type_and_used() {
     };
     assert_eq!(run(""), names(&listed));
     assert_eq!(run("search=card"), vec!["media/card.png"]);
-    assert_eq!(
-        run("type=image"),
-        vec!["media/card.png", "media/extra.png"]
-    );
+    assert_eq!(run("type=image"), vec!["media/card.png", "media/extra.png"]);
     assert_eq!(run("type=font"), vec!["fonts/Body.ttf"]);
-    assert_eq!(run("used=unused"), vec!["fonts/Body.ttf", "media/extra.png", "media/idle.mp3"]);
     assert_eq!(
-        run("type=video&used=used"),
-        vec!["media/clip.mp4"]
+        run("used=unused"),
+        vec!["fonts/Body.ttf", "media/extra.png", "media/idle.mp3"]
     );
+    assert_eq!(run("type=video&used=used"), vec!["media/clip.mp4"]);
     assert_eq!(run("search=CARD"), vec!["media/card.png"]);
     let bad_type = studio_assets::parse_assets_query("type=nope");
     assert!(bad_type.is_err());
     assert!(bad_type.unwrap_err().contains("unknown asset `type`"));
     let bad_used = studio_assets::parse_assets_query("used=sometimes");
     assert!(bad_used.is_err());
-    assert!(bad_used.unwrap_err().contains("unknown asset `used` filter"));
+    assert!(bad_used
+        .unwrap_err()
+        .contains("unknown asset `used` filter"));
     let bad_scope = studio_assets::parse_assets_query("scope=everywhere");
     assert!(bad_scope.is_err());
     assert!(bad_scope.unwrap_err().contains("unknown asset `scope`"));
@@ -343,18 +345,39 @@ fn import_stores_each_type_and_reports_its_stored_name() {
     let drop = root.join("drop");
     std::fs::create_dir_all(&drop).unwrap();
     let cases = [
-        ("shot.png", b"png-bytes".as_slice(), "media/shot.png", "image"),
-        ("clip.mov", b"mov-bytes".as_slice(), "media/clip.mov", "video"),
-        ("sting.mp3", b"mp3-bytes".as_slice(), "media/sting.mp3", "audio"),
-        ("Body.ttf", b"ttf-bytes".as_slice(), "fonts/Body-2.ttf", "font"),
+        (
+            "shot.png",
+            b"png-bytes".as_slice(),
+            "media/shot.png",
+            "image",
+        ),
+        (
+            "clip.mov",
+            b"mov-bytes".as_slice(),
+            "media/clip.mov",
+            "video",
+        ),
+        (
+            "sting.mp3",
+            b"mp3-bytes".as_slice(),
+            "media/sting.mp3",
+            "audio",
+        ),
+        (
+            "Body.ttf",
+            b"ttf-bytes".as_slice(),
+            "fonts/Body-2.ttf",
+            "font",
+        ),
         ("look.cube", b"cube-bytes".as_slice(), "look-2.cube", "lut"),
     ];
     for (file, bytes, stored, kind) in cases {
         let source = drop.join(file);
         std::fs::write(&source, bytes).unwrap();
-        let req = studio_assets::parse_import_body(
-            &format!("{{\"source\":{}}}", serde_json::to_string(source.to_str().unwrap()).unwrap()),
-        )
+        let req = studio_assets::parse_import_body(&format!(
+            "{{\"source\":{}}}",
+            serde_json::to_string(source.to_str().unwrap()).unwrap()
+        ))
         .expect("import parses");
         let receipt = studio_assets::import_asset(&folder, &req).expect("import applies");
         // `fonts/Body.ttf` and `look.cube` already exist in the
@@ -378,9 +401,10 @@ fn import_unsupported_type_refuses_naming_accepted_types() {
     asset_project(&folder);
     let source = root.join("run.exe");
     std::fs::write(&source, b"nope").unwrap();
-    let req = studio_assets::parse_import_body(
-        &format!("{{\"source\":{}}}", serde_json::to_string(source.to_str().unwrap()).unwrap()),
-    )
+    let req = studio_assets::parse_import_body(&format!(
+        "{{\"source\":{}}}",
+        serde_json::to_string(source.to_str().unwrap()).unwrap()
+    ))
     .unwrap();
     let err = studio_assets::import_asset(&folder, &req).expect_err("unsupported refuses");
     assert!(err.contains("names no accepted asset type"), "{err}");
@@ -477,8 +501,8 @@ fn remove_and_rename_refuse_while_referenced() {
     assert!(out.contains("\"renamed\":true"));
     assert!(out.contains("media/spare.png"));
     assert!(!folder.join("media/extra.png").exists());
-    let out = studio_assets::remove_asset(&folder, &comps, "media/spare.png")
-        .expect("remove applies");
+    let out =
+        studio_assets::remove_asset(&folder, &comps, "media/spare.png").expect("remove applies");
     assert!(out.contains("\"removed\":true"));
     assert!(!folder.join("media/spare.png").exists());
     // Rename onto an existing name refuses; an unsupported target
@@ -509,10 +533,13 @@ fn insert_applies_as_a_history_turn() {
     assert!(out.contains("image element"), "{out}");
     // The composition sources stay byte-identical: the turn lands in
     // the hidden delta and history, never beside the sources.
-    assert_eq!(std::fs::read(folder.join("composition.kdl")).unwrap(), kdl_before);
+    assert_eq!(
+        std::fs::read(folder.join("composition.kdl")).unwrap(),
+        kdl_before
+    );
     // The effective composition carries the new image clip.
-    let shown = preview::studio::effective_composition_for_session(&folder, None)
-        .expect("effective opens");
+    let shown =
+        preview::studio::effective_composition_for_session(&folder, None).expect("effective opens");
     assert!(shown.clips.iter().any(|c| match c {
         notation::model::Clip::Image(img) => img.path == "media/extra.png",
         _ => false,
@@ -523,9 +550,9 @@ fn insert_applies_as_a_history_turn() {
         ("media/clip.mp4", "video element"),
         ("media/bed.wav", "audio element"),
     ] {
-        let req = studio_assets::parse_action_body(
-            &format!("{{\"action\":\"insert\",\"asset\":\"{asset}\",\"actor\":\"maker\"}}"),
-        )
+        let req = studio_assets::parse_action_body(&format!(
+            "{{\"action\":\"insert\",\"asset\":\"{asset}\",\"actor\":\"maker\"}}"
+        ))
         .unwrap();
         let out = studio_assets::insert_asset(&folder, &comps, &req).expect("insert applies");
         assert!(out.contains(check), "{out}");
@@ -544,9 +571,9 @@ fn insert_refuses_with_reasons() {
         ("fonts/Body.ttf", "declarations in the notation"),
         ("look.cube", "grade `lut` source"),
     ] {
-        let req = studio_assets::parse_action_body(
-            &format!("{{\"action\":\"insert\",\"asset\":\"{asset}\",\"actor\":\"maker\"}}"),
-        )
+        let req = studio_assets::parse_action_body(&format!(
+            "{{\"action\":\"insert\",\"asset\":\"{asset}\",\"actor\":\"maker\"}}"
+        ))
         .unwrap();
         let err = studio_assets::insert_asset(&folder, &comps, &req).expect_err("refuses");
         assert!(err.contains(why), "{err}");
@@ -639,7 +666,10 @@ fn http_lists_filters_and_refusals() {
             .iter()
             .map(|a| a["name"].as_str().unwrap().to_string())
             .collect();
-        assert_eq!(got, vec!["fonts/Body.ttf", "media/extra.png", "media/idle.mp3"]);
+        assert_eq!(
+            got,
+            vec!["fonts/Body.ttf", "media/extra.png", "media/idle.mp3"]
+        );
         let (code, value) = json(
             port,
             "GET",
@@ -663,110 +693,119 @@ fn http_lists_filters_and_refusals() {
 
 #[test]
 fn http_import_reports_stored_name_and_duplicate() {
-    with_server("http-import", asset_project, |folder, _reg, _entry, port| {
-        let drop = folder.parent().unwrap().join("drop");
-        std::fs::create_dir_all(&drop).unwrap();
-        let source = drop.join("fresh.png");
-        std::fs::write(&source, b"\x89PNG\r\n\x1a\nfresh").unwrap();
-        let body = format!(
-            "{{\"source\":{}}}",
-            serde_json::to_string(source.to_str().unwrap()).unwrap()
-        );
-        let (code, value) = json(port, "POST", "/api/studio/assets/import", Some(&body));
-        assert_eq!(code, 200);
-        assert_eq!(value["imported"], true);
-        assert_eq!(value["stored-name"], "media/fresh.png");
-        assert_eq!(value["duplicate"], false);
-        assert!(folder.join("media/fresh.png").is_file());
-        // Importing the same bytes again keeps the existing file.
-        let (code, value) = json(port, "POST", "/api/studio/assets/import", Some(&body));
-        assert_eq!(code, 200);
-        assert_eq!(value["duplicate"], true);
-        assert_eq!(value["stored-name"], "media/fresh.png");
-        // Unsupported types refuse naming the accepted types.
-        let bad = drop.join("run.exe");
-        std::fs::write(&bad, b"nope").unwrap();
-        let body = format!(
-            "{{\"source\":{}}}",
-            serde_json::to_string(bad.to_str().unwrap()).unwrap()
-        );
-        let (code, text) = body_str(port, "POST", "/api/studio/assets/import", Some(&body));
-        assert_eq!(code, 409);
-        assert!(text.contains("accepted types are"), "{text}");
-        assert!(text.contains("image") && text.contains("lut"), "{text}");
-    });
+    with_server(
+        "http-import",
+        asset_project,
+        |folder, _reg, _entry, port| {
+            let drop = folder.parent().unwrap().join("drop");
+            std::fs::create_dir_all(&drop).unwrap();
+            let source = drop.join("fresh.png");
+            std::fs::write(&source, b"\x89PNG\r\n\x1a\nfresh").unwrap();
+            let body = format!(
+                "{{\"source\":{}}}",
+                serde_json::to_string(source.to_str().unwrap()).unwrap()
+            );
+            let (code, value) = json(port, "POST", "/api/studio/assets/import", Some(&body));
+            assert_eq!(code, 200);
+            assert_eq!(value["imported"], true);
+            assert_eq!(value["stored-name"], "media/fresh.png");
+            assert_eq!(value["duplicate"], false);
+            assert!(folder.join("media/fresh.png").is_file());
+            // Importing the same bytes again keeps the existing file.
+            let (code, value) = json(port, "POST", "/api/studio/assets/import", Some(&body));
+            assert_eq!(code, 200);
+            assert_eq!(value["duplicate"], true);
+            assert_eq!(value["stored-name"], "media/fresh.png");
+            // Unsupported types refuse naming the accepted types.
+            let bad = drop.join("run.exe");
+            std::fs::write(&bad, b"nope").unwrap();
+            let body = format!(
+                "{{\"source\":{}}}",
+                serde_json::to_string(bad.to_str().unwrap()).unwrap()
+            );
+            let (code, text) = body_str(port, "POST", "/api/studio/assets/import", Some(&body));
+            assert_eq!(code, 409);
+            assert!(text.contains("accepted types are"), "{text}");
+            assert!(text.contains("image") && text.contains("lut"), "{text}");
+        },
+    );
 }
 
 #[test]
 fn http_actions_apply_and_refuse() {
-    with_server("http-actions", asset_project, |folder, _reg, _entry, port| {
-        // Insert lands as a history turn through the patch machinery.
-        let (code, value) = json(
-            port,
-            "POST",
-            "/api/studio/assets",
-            Some("{\"action\":\"insert\",\"asset\":\"media/extra.png\",\"actor\":\"maker\"}"),
-        );
-        assert_eq!(code, 200);
-        assert_eq!(value["inserted"], true);
-        assert_eq!(value["turn"], 0);
-        // Reveal reports the stored path.
-        let (code, value) = json(
-            port,
-            "POST",
-            "/api/studio/assets",
-            Some("{\"action\":\"reveal\",\"asset\":\"media/card.png\"}"),
-        );
-        assert_eq!(code, 200);
-        assert_eq!(value["path"], "media/card.png");
-        // Removing a referenced asset refuses naming its referrers.
-        let (code, text) = body_str(
-            port,
-            "POST",
-            "/api/studio/assets",
-            Some("{\"action\":\"remove\",\"asset\":\"media/card.png\"}"),
-        );
-        assert_eq!(code, 409);
-        assert!(text.contains("still referenced"), "{text}");
-        assert!(text.contains("hero"), "{text}");
-        assert!(folder.join("media/card.png").is_file());
-        // Removing an unused asset applies.
-        let (code, value) = json(
-            port,
-            "POST",
-            "/api/studio/assets",
-            Some("{\"action\":\"remove\",\"asset\":\"media/idle.mp3\"}"),
-        );
-        assert_eq!(code, 200);
-        assert_eq!(value["removed"], true);
-        assert!(!folder.join("media/idle.mp3").exists());
-        // Renaming an unused asset applies.
-        let (code, value) = json(
-            port,
-            "POST",
-            "/api/studio/assets",
-            Some("{\"action\":\"rename\",\"asset\":\"media/extra.png\",\"name\":\"spare.png\"}"),
-        );
-        assert_eq!(code, 200);
-        assert_eq!(value["to"], "media/spare.png");
-        // Actions naming another project refuse read-only.
-        let (code, text) = body_str(
-            port,
-            "POST",
-            "/api/studio/assets?project=other",
-            Some("{\"action\":\"remove\",\"asset\":\"media/card.png\"}"),
-        );
-        assert_eq!(code, 409);
-        assert!(text.contains("read-only"), "{text}");
-        // Inserting a font refuses naming how fonts join.
-        let (code, text) = body_str(
-            port,
-            "POST",
-            "/api/studio/assets",
-            Some("{\"action\":\"insert\",\"asset\":\"fonts/Body.ttf\"}"),
-        );
-        assert_eq!(code, 409, "{text}");
-        assert!(text.contains("declarations in the notation"), "{text}");
-    });
+    with_server(
+        "http-actions",
+        asset_project,
+        |folder, _reg, _entry, port| {
+            // Insert lands as a history turn through the patch machinery.
+            let (code, value) = json(
+                port,
+                "POST",
+                "/api/studio/assets",
+                Some("{\"action\":\"insert\",\"asset\":\"media/extra.png\",\"actor\":\"maker\"}"),
+            );
+            assert_eq!(code, 200);
+            assert_eq!(value["inserted"], true);
+            assert_eq!(value["turn"], 0);
+            // Reveal reports the stored path.
+            let (code, value) = json(
+                port,
+                "POST",
+                "/api/studio/assets",
+                Some("{\"action\":\"reveal\",\"asset\":\"media/card.png\"}"),
+            );
+            assert_eq!(code, 200);
+            assert_eq!(value["path"], "media/card.png");
+            // Removing a referenced asset refuses naming its referrers.
+            let (code, text) = body_str(
+                port,
+                "POST",
+                "/api/studio/assets",
+                Some("{\"action\":\"remove\",\"asset\":\"media/card.png\"}"),
+            );
+            assert_eq!(code, 409);
+            assert!(text.contains("still referenced"), "{text}");
+            assert!(text.contains("hero"), "{text}");
+            assert!(folder.join("media/card.png").is_file());
+            // Removing an unused asset applies.
+            let (code, value) = json(
+                port,
+                "POST",
+                "/api/studio/assets",
+                Some("{\"action\":\"remove\",\"asset\":\"media/idle.mp3\"}"),
+            );
+            assert_eq!(code, 200);
+            assert_eq!(value["removed"], true);
+            assert!(!folder.join("media/idle.mp3").exists());
+            // Renaming an unused asset applies.
+            let (code, value) = json(
+                port,
+                "POST",
+                "/api/studio/assets",
+                Some(
+                    "{\"action\":\"rename\",\"asset\":\"media/extra.png\",\"name\":\"spare.png\"}",
+                ),
+            );
+            assert_eq!(code, 200);
+            assert_eq!(value["to"], "media/spare.png");
+            // Actions naming another project refuse read-only.
+            let (code, text) = body_str(
+                port,
+                "POST",
+                "/api/studio/assets?project=other",
+                Some("{\"action\":\"remove\",\"asset\":\"media/card.png\"}"),
+            );
+            assert_eq!(code, 409);
+            assert!(text.contains("read-only"), "{text}");
+            // Inserting a font refuses naming how fonts join.
+            let (code, text) = body_str(
+                port,
+                "POST",
+                "/api/studio/assets",
+                Some("{\"action\":\"insert\",\"asset\":\"fonts/Body.ttf\"}"),
+            );
+            assert_eq!(code, 409, "{text}");
+            assert!(text.contains("declarations in the notation"), "{text}");
+        },
+    );
 }
-

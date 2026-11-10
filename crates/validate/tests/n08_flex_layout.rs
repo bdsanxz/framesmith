@@ -141,10 +141,7 @@ fn every_layout_attribute_accepts_underscored_spellings() {
         notation::model::Clip::Flex(f) => {
             assert_eq!(f.direction, notation::model::FlexDirection::Column);
             assert_eq!(f.align_items, notation::model::FlexAlign::Center);
-            assert_eq!(
-                f.justify_content,
-                notation::model::FlexJustify::End
-            );
+            assert_eq!(f.justify_content, notation::model::FlexJustify::End);
             assert!((f.padding - 2.0).abs() < 1e-9);
             assert!((f.margin - 1.0).abs() < 1e-9);
             assert!((f.children[0].flex_grow - 1.0).abs() < 1e-9);
@@ -192,7 +189,10 @@ fn empty_and_single_child_containers_are_valid_both_directions() {
 // --- refusals --------------------------------------------------------------
 
 fn assert_refusal(ds: &[Diagnostic], code: &str, property: &str) {
-    assert!(!ds.is_empty(), "expected a `{code}` refusal for `{property}`");
+    assert!(
+        !ds.is_empty(),
+        "expected a `{code}` refusal for `{property}`"
+    );
     for d in ds {
         assert_eq!(d.code, code, "unexpected code in {d}");
         assert!(
@@ -388,10 +388,7 @@ fn non_box_children_and_nested_flex_fail() {
          }}\n"
     ));
     assert!(!ds.is_empty(), "a text child must fail");
-    assert!(
-        ds.iter().all(|d| d.code == "E_BAD_FLEX"),
-        "{ds:?}"
-    );
+    assert!(ds.iter().all(|d| d.code == "E_BAD_FLEX"), "{ds:?}");
     let ds = diags(&format!(
         "{OPEN}\
          flex display=\"flex\" flex-direction=\"row\" x=0 y=0 width=200 height=100 start=0 duration=2 {{\n\

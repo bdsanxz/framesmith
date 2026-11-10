@@ -51,9 +51,7 @@ pub const STRICT_RULES: [&str; 6] = [
 /// reading a finding knows what was checked without opening the spec.
 pub fn rule_description(id: &str) -> Option<&'static str> {
     Some(match id {
-        "overlap" => {
-            "two opaque clips share one track and time with overlapping pixels"
-        }
+        "overlap" => "two opaque clips share one track and time with overlapping pixels",
         "off-canvas" => "an element lies fully outside the canvas bounds",
         "caption-zone" => "text touches the caption band (bottom 12% of the frame)",
         "appear-by" => "an element with `assert-appear` is not visible by its deadline",
@@ -259,8 +257,14 @@ impl std::fmt::Display for LintFinding {
         write!(
             f,
             "lint[{}] {}:{}:{}: {} ({}): {} (fix: {})",
-            self.rule, self.file, self.line, self.column, self.severity, self.source,
-            self.message, self.fix
+            self.rule,
+            self.file,
+            self.line,
+            self.column,
+            self.severity,
+            self.source,
+            self.message,
+            self.fix
         )
     }
 }
@@ -500,14 +504,20 @@ mod tests {
         report.push("overlap", "f", 2, 3, "m2", "x2");
         report.note_blocked("contrast", "f", 1, 1, "c", "w");
         assert_eq!(apply_strictness(&mut report, StrictMode::Off), 0);
-        assert!(report.findings.iter().all(|f| f.severity == LintSeverity::Warning));
+        assert!(report
+            .findings
+            .iter()
+            .all(|f| f.severity == LintSeverity::Warning));
         assert_eq!(apply_strictness(&mut report, StrictMode::Named), 1);
         assert_eq!(report.finding_count(), 2);
         assert_eq!(report.notes.len(), 1);
         assert_eq!(report.findings[0].severity, LintSeverity::Error);
         assert_eq!(report.findings[1].severity, LintSeverity::Warning);
         assert_eq!(apply_strictness(&mut report, StrictMode::All), 1);
-        assert!(report.findings.iter().all(|f| f.severity == LintSeverity::Error));
+        assert!(report
+            .findings
+            .iter()
+            .all(|f| f.severity == LintSeverity::Error));
         assert_eq!(report.finding_count(), 2);
         // Re-applying never double counts.
         assert_eq!(apply_strictness(&mut report, StrictMode::All), 0);
@@ -519,7 +529,14 @@ mod tests {
         assert!(report.is_clean());
         report.push("overlap", "f", 1, 1, "m1", "x1");
         report.push("contrast", "f", 2, 3, "m2", "x2");
-        report.note_blocked("frozen-timeline", "f", 1, 1, "no frames decoded", "fix the media");
+        report.note_blocked(
+            "frozen-timeline",
+            "f",
+            1,
+            1,
+            "no frames decoded",
+            "fix the media",
+        );
         assert!(!report.is_clean());
         assert_eq!(report.finding_count(), 2);
         assert_eq!(report.findings[0].rule, "overlap");

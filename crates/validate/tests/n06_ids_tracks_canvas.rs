@@ -352,6 +352,10 @@ fn tracks_default_by_kind() {
             Clip::Path(p) => p.track,
             Clip::Svg(s) => s.track,
             Clip::Nest(n) => n.track,
+            Clip::Chart(c) => c.track,
+            Clip::Lottie(l) => l.track,
+            Clip::Map(m) => m.track,
+            Clip::Scene3d(s) => s.track,
         })
         .collect();
     assert_eq!(

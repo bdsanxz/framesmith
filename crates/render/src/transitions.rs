@@ -1021,6 +1021,7 @@ mod tests {
                 &[],
                 &[],
                 &[],
+                &[],
                 &paths,
                 std::path::Path::new("."),
                 &mut out,
@@ -1030,6 +1031,7 @@ mod tests {
         }
         let planned = plan_transition_frame(&nest, 0, frame, &desc, &active);
         draw_planned_transition(
+            &[],
             &[],
             &[],
             &[],
@@ -1134,6 +1136,7 @@ mod tests {
             &[],
             &[],
             &[],
+            &[],
             &crate::render::DynLayouts::default(),
             false,
             &mut raster,
@@ -1145,6 +1148,7 @@ mod tests {
         .unwrap();
         let mut raster = std::collections::HashMap::new();
         let gpu = draw_planned_transition(
+            &[],
             &[],
             &[],
             &[],

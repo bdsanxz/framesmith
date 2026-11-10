@@ -176,7 +176,11 @@ mod tests {
 
     #[test]
     fn row_of_three_boxes_with_gap() {
-        let rects = row(&[item(100.0, 50.0, 0.0), item(100.0, 50.0, 0.0), item(100.0, 50.0, 0.0)]);
+        let rects = row(&[
+            item(100.0, 50.0, 0.0),
+            item(100.0, 50.0, 0.0),
+            item(100.0, 50.0, 0.0),
+        ]);
         assert_eq!(rects.len(), 3);
         assert!((rects[0].x - 10.0).abs() <= 1.0, "{rects:?}");
         assert!((rects[1].x - 120.0).abs() <= 1.0, "{rects:?}");
@@ -201,7 +205,11 @@ mod tests {
             0.0,
             FlexAlign::Start,
             FlexJustify::Start,
-            &[item(100.0, 50.0, 1.0), item(100.0, 50.0, 2.0), item(100.0, 50.0, 1.0)],
+            &[
+                item(100.0, 50.0, 1.0),
+                item(100.0, 50.0, 2.0),
+                item(100.0, 50.0, 1.0),
+            ],
         );
         // Content height 290, gaps 20, base 150: free 120 over 4 shares.
         assert!((rects[0].h - 80.0).abs() <= 1.0, "{rects:?}");

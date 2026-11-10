@@ -143,7 +143,12 @@ fn bare_and_partial_luts_are_identity_or_inherit() {
             ),
         );
         let v = validate_folder(&dir);
-        assert_eq!(v.status, Status::Valid, "amount={amount}: {:?}", v.diagnostics);
+        assert_eq!(
+            v.status,
+            Status::Valid,
+            "amount={amount}: {:?}",
+            v.diagnostics
+        );
     }
 }
 
@@ -161,10 +166,7 @@ fn lut_missing_file_refuses_naming_the_file() {
         ),
     );
     let all = codes_messages(&dir);
-    assert!(
-        all.iter().any(|(c, _, _)| c == "E_MISSING_FILE"),
-        "{all:?}"
-    );
+    assert!(all.iter().any(|(c, _, _)| c == "E_MISSING_FILE"), "{all:?}");
     let hit = all
         .iter()
         .find(|(c, _, _)| c == "E_MISSING_FILE")
@@ -254,7 +256,12 @@ fn lut_duplicate_unknown_child_and_key_refused() {
              }}\n"
         ),
     );
-    assert_eq!(codes(&dir), vec!["E_BAD_GRADE"], "{:?}", codes_messages(&dir));
+    assert_eq!(
+        codes(&dir),
+        vec!["E_BAD_GRADE"],
+        "{:?}",
+        codes_messages(&dir)
+    );
     // A non-lut child of `lut`.
     let dir = tmp("child");
     write_identity_cube(&dir, "look.cube");
@@ -266,7 +273,12 @@ fn lut_duplicate_unknown_child_and_key_refused() {
              }}\n"
         ),
     );
-    assert_eq!(codes(&dir), vec!["E_BAD_GRADE"], "{:?}", codes_messages(&dir));
+    assert_eq!(
+        codes(&dir),
+        vec!["E_BAD_GRADE"],
+        "{:?}",
+        codes_messages(&dir)
+    );
     // An unknown key on `lut`.
     let dir = tmp("key");
     write_identity_cube(&dir, "look.cube");

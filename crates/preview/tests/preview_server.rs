@@ -40,9 +40,11 @@ fn text_project(folder: &Path) {
 /// Minimal HTTP exchange over loopback: returns (status code, body).
 fn http(port: u16, method: &str, target: &str) -> (u16, Vec<u8>) {
     let addr = format!("127.0.0.1:{port}");
-    let mut stream =
-        TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_secs(5)).expect("connect");
-    stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+    let mut stream = TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_secs(5))
+        .expect("connect");
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .unwrap();
     let request = format!(
         "{method} {target} HTTP/1.0\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     );
@@ -91,13 +93,19 @@ fn with_server(
     let start = Instant::now();
     let entry = loop {
         let entries = daemon::load_registry(&reg).unwrap_or_default();
-        if let Some(e) = entries.into_iter().find(|e| e.dir == dir && daemon::is_live(e.port)) {
+        if let Some(e) = entries
+            .into_iter()
+            .find(|e| e.dir == dir && daemon::is_live(e.port))
+        {
             break e;
         }
         if handle.is_finished() {
             panic!("server exited before serving");
         }
-        assert!(start.elapsed() < Duration::from_secs(20), "server never became ready");
+        assert!(
+            start.elapsed() < Duration::from_secs(20),
+            "server never became ready"
+        );
         std::thread::sleep(Duration::from_millis(100));
     };
     f(&folder, &reg, entry.clone(), entry.port);
@@ -134,7 +142,11 @@ fn frames_serve_stable_png_and_time_into_latency() {
         assert_eq!(code_b, 200);
         assert_eq!(a, b, "repeats serve identical bytes");
         assert!(a.len() > 8);
-        assert_eq!(&a[..8], &[137, 80, 78, 71, 13, 10, 26, 10], "exact PNG bytes");
+        assert_eq!(
+            &a[..8],
+            &[137, 80, 78, 71, 13, 10, 26, 10],
+            "exact PNG bytes"
+        );
         // The repeat filed a warm sample under the step bar.
         let (code, status) = body_str(port, "GET", "/api/status");
         assert_eq!(code, 200);
@@ -225,5 +237,8 @@ fn broken_project_refuses_before_any_server_starts() {
     });
     assert_eq!(code, 1, "refusal exits 1");
     let entries = daemon::load_registry(&reg).unwrap_or_default();
-    assert!(entries.is_empty(), "a refusal records no server: {entries:?}");
+    assert!(
+        entries.is_empty(),
+        "a refusal records no server: {entries:?}"
+    );
 }

@@ -79,7 +79,11 @@ fn sounding_project(folder: &Path) {
 }
 
 fn undecodable_project(folder: &Path) {
-    std::fs::write(folder.join("bad.wav"), b"this is not audio, only text garbage").unwrap();
+    std::fs::write(
+        folder.join("bad.wav"),
+        b"this is not audio, only text garbage",
+    )
+    .unwrap();
     std::fs::write(
         folder.join("composition.kdl"),
         "composition name=\"t\" width=320 height=180 duration=1 fps=10 background=\"#112233\" version=1 {\n    text value=\"Hi\" start=0 duration=1 x=10 y=40 size=24 color=\"#ffffff\"\n    audio path=\"bad.wav\" start=0 duration=1\n}\n",
@@ -100,7 +104,11 @@ fn tree_bytes(folder: &Path) -> BTreeMap<String, Vec<u8>> {
             if path.is_dir() {
                 stack.push(path);
             } else {
-                let key = path.strip_prefix(folder).unwrap().to_string_lossy().into_owned();
+                let key = path
+                    .strip_prefix(folder)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned();
                 out.insert(key, std::fs::read(&path).unwrap());
             }
         }
@@ -125,7 +133,11 @@ fn play_sounds_the_same_mix_the_render_mixes() {
     let mut session =
         PreviewSession::open(&folder, PreviewOptions::default()).expect("valid project opens");
 
-    let pcm = session.mix_pcm().expect("mix serves").expect("project sounds").to_vec();
+    let pcm = session
+        .mix_pcm()
+        .expect("mix serves")
+        .expect("project sounds")
+        .to_vec();
     assert_eq!(MIX_RATE, 48000);
     assert_eq!(MIX_CHANNELS, 2);
     assert_eq!(pcm.len(), 48000 * 2, "one second of stereo mix");
@@ -139,21 +151,21 @@ fn play_sounds_the_same_mix_the_render_mixes() {
         false,
         None,
     );
-    assert!(matches!(
-        verdict.status,
-        validate::validate::Status::Valid
-    ));
+    assert!(matches!(verdict.status, validate::validate::Status::Valid));
     let comp = verdict.composition.clone().unwrap();
-    let expected = render::render::build_mix_preview(&comp, &verdict.compositions, &folder, &ffmpeg())
-        .expect("mix builds")
-        .expect("project sounds");
-    assert_eq!(pcm, expected, "served mix must equal the render mix exactly");
+    let expected =
+        render::render::build_mix_preview(&comp, &verdict.compositions, &folder, &ffmpeg())
+            .expect("mix builds")
+            .expect("project sounds");
+    assert_eq!(
+        pcm, expected,
+        "served mix must equal the render mix exactly"
+    );
 
     // Independent oracle 2: the staged render mix — the bytes the MP4
     // encodes — through the audio-stage path with a real preparation.
-    let prep =
-        render::render::prepare_frames(&comp, &verdict.compositions, &folder, &ffmpeg())
-            .expect("prepares");
+    let prep = render::render::prepare_frames(&comp, &verdict.compositions, &folder, &ffmpeg())
+        .expect("prepares");
     let stage = root.join("stage.pcm");
     render::render::build_audio_plan(&comp, &folder, &ffmpeg(), &prep, &stage).expect("stages");
     let staged = std::fs::read(&stage).unwrap();
@@ -164,7 +176,10 @@ fn play_sounds_the_same_mix_the_render_mixes() {
     );
 
     // Mix facts behind the page clock.
-    let info = session.mix_info().expect("info serves").expect("project sounds");
+    let info = session
+        .mix_info()
+        .expect("info serves")
+        .expect("project sounds");
     assert_eq!(info.sample_rate, 48000);
     assert_eq!(info.channels, 2);
     assert_eq!(info.sample_frames, 48000);
@@ -172,7 +187,11 @@ fn play_sounds_the_same_mix_the_render_mixes() {
     assert!((info.mix_secs() - 1.0).abs() < 1e-9);
 
     // The mix is cached: a repeat serves identical bytes.
-    let again = session.mix_pcm().expect("mix repeats").expect("project sounds").to_vec();
+    let again = session
+        .mix_pcm()
+        .expect("mix repeats")
+        .expect("project sounds")
+        .to_vec();
     assert_eq!(pcm, again);
 }
 
@@ -183,10 +202,18 @@ fn playback_position_follows_the_mix_clock() {
     assert_eq!(MixInfo::frame_for_mix_time(fps, 10, 0.0), 0);
     assert_eq!(MixInfo::frame_for_mix_time(fps, 10, 0.35), 3);
     assert_eq!(MixInfo::frame_for_mix_time(fps, 10, 0.9), 9);
-    assert_eq!(MixInfo::frame_for_mix_time(fps, 10, 5.0), 9, "parks on the last frame");
+    assert_eq!(
+        MixInfo::frame_for_mix_time(fps, 10, 5.0),
+        9,
+        "parks on the last frame"
+    );
     assert_eq!(MixInfo::frame_for_mix_time(fps, 10, -1.0), 0);
     assert_eq!(MixInfo::frame_for_mix_time(fps, 10, f64::NAN), 0);
-    assert_eq!(MixInfo::frame_for_mix_time(fps, 0, 0.5), 0, "empty timeline points nowhere");
+    assert_eq!(
+        MixInfo::frame_for_mix_time(fps, 0, 0.5),
+        0,
+        "empty timeline points nowhere"
+    );
     assert!((MixInfo::mix_time_for_frame(fps, 3) - 0.3).abs() < 1e-9);
 
     // Session mapping matches the session timeline.
@@ -205,7 +232,10 @@ fn playback_position_follows_the_mix_clock() {
     t.play().expect("play acts");
     t.sync_to_mix_time(0.35);
     assert_eq!(t.position(), 3);
-    assert!(t.is_playing(), "sync never pauses the audio-driven playhead");
+    assert!(
+        t.is_playing(),
+        "sync never pauses the audio-driven playhead"
+    );
     t.sync_to_mix_time(5.0);
     assert_eq!(t.position(), 9);
     assert!(t.is_playing(), "clamping at the end never stops the mix");
@@ -231,8 +261,15 @@ fn mute_and_volume_ride_the_page_without_touching_the_project() {
     let before = tree_bytes(&folder);
     let mut session =
         PreviewSession::open(&folder, PreviewOptions::default()).expect("valid project opens");
-    let pcm = session.mix_pcm().expect("mix serves").expect("project sounds").to_vec();
-    assert!(pcm.iter().any(|&s| s.abs() > 1000), "needs loud samples to scale");
+    let pcm = session
+        .mix_pcm()
+        .expect("mix serves")
+        .expect("project sounds")
+        .to_vec();
+    assert!(
+        pcm.iter().any(|&s| s.abs() > 1000),
+        "needs loud samples to scale"
+    );
 
     // Full volume sounds the served mix untouched.
     let mut gain = PlaybackGain::new();
@@ -255,7 +292,10 @@ fn mute_and_volume_ride_the_page_without_touching_the_project() {
     assert_eq!(half.len(), pcm.len());
     for (&full, &scaled) in pcm.iter().zip(half.iter()) {
         let want = ((full as f32 * 0.5).round() as i16).abs();
-        assert!((scaled.abs() - want).abs() <= 1, "half volume halves amplitude");
+        assert!(
+            (scaled.abs() - want).abs() <= 1,
+            "half volume halves amplitude"
+        );
     }
     assert!(half.iter().any(|&s| s != 0), "half volume still sounds");
 
@@ -263,7 +303,11 @@ fn mute_and_volume_ride_the_page_without_touching_the_project() {
     gain.set_volume(0.0).expect("0 acts");
     assert_eq!(gain.apply(&pcm), vec![0i16; pcm.len()]);
 
-    assert_eq!(tree_bytes(&folder), before, "gain never touches the project");
+    assert_eq!(
+        tree_bytes(&folder),
+        before,
+        "gain never touches the project"
+    );
 }
 
 #[test]
@@ -289,9 +333,18 @@ fn soundless_project_plays_video_silently_with_no_error() {
     let mut session =
         PreviewSession::open(&folder, PreviewOptions::default()).expect("valid project opens");
 
-    assert!(session.mix_pcm().expect("silence is not an error").is_none());
-    assert!(session.mix_info().expect("silence is not an error").is_none());
-    assert!(session.mix_wav().expect("silence is not an error").is_none());
+    assert!(session
+        .mix_pcm()
+        .expect("silence is not an error")
+        .is_none());
+    assert!(session
+        .mix_info()
+        .expect("silence is not an error")
+        .is_none());
+    assert!(session
+        .mix_wav()
+        .expect("silence is not an error")
+        .is_none());
 
     let mut t = session.transport();
     let play = session.play_with_audio(&mut t).expect("silent play acts");
@@ -317,7 +370,9 @@ fn undecodable_mix_blocks_play_naming_the_cause() {
     assert!(err.message.contains("bad.wav"), "{err}");
 
     let mut t = session.transport();
-    let blocked = session.play_with_audio(&mut t).expect_err("play is blocked");
+    let blocked = session
+        .play_with_audio(&mut t)
+        .expect_err("play is blocked");
     assert_eq!(blocked.kind, PlayAudioErrorKind::MixBlocked);
     assert!(blocked.message.contains("bad.wav"), "{blocked}");
     assert!(!t.is_playing(), "blocked play never starts");
@@ -345,7 +400,10 @@ fn loud_normalization_without_sound_previews_silently_like_check() {
     // treats as valid — so review-time playback stays silent with no
     // error. The loudness refusal fires later, at render time, where
     // silence cannot scale to target.
-    assert!(session.mix_pcm().expect("silence is not an error").is_none());
+    assert!(session
+        .mix_pcm()
+        .expect("silence is not an error")
+        .is_none());
 
     let mut t = session.transport();
     let play = session.play_with_audio(&mut t).expect("silent play acts");
@@ -365,7 +423,9 @@ fn sound_play_on_an_empty_timeline_refuses_naming_the_reason() {
     // The mix is fine, but there is no frame to point at: the
     // transport refusal names its reason and nothing moves.
     let mut empty = preview::Transport::new(0, Fps::from_int(10), 0.0);
-    let refused = session.play_with_audio(&mut empty).expect_err("empty play refuses");
+    let refused = session
+        .play_with_audio(&mut empty)
+        .expect_err("empty play refuses");
     assert_eq!(refused.kind, PlayAudioErrorKind::TransportRefused);
     assert!(refused.message.contains("empty"), "{refused}");
 }
@@ -392,7 +452,9 @@ fn silent_loud_mix_blocks_play_naming_normalize() {
     assert!(err.message.contains("normalize"), "{err}");
 
     let mut t = session.transport();
-    let blocked = session.play_with_audio(&mut t).expect_err("play is blocked");
+    let blocked = session
+        .play_with_audio(&mut t)
+        .expect_err("play is blocked");
     assert_eq!(blocked.kind, PlayAudioErrorKind::MixBlocked);
     assert!(blocked.message.contains("normalize"), "{blocked}");
     assert!(!t.is_playing(), "blocked play never starts");
@@ -412,7 +474,11 @@ fn fixed_mix_heals_after_reload_invalidation() {
     // refusal and the same computation serves the fixed mix.
     write_wav(&folder, "bad.wav", 1.0);
     session.invalidate();
-    let pcm = session.mix_pcm().expect("fixed mix serves").expect("project sounds").to_vec();
+    let pcm = session
+        .mix_pcm()
+        .expect("fixed mix serves")
+        .expect("project sounds")
+        .to_vec();
     assert_eq!(pcm.len(), 48000 * 2);
     assert!(pcm.iter().any(|&s| s != 0));
 
@@ -430,17 +496,31 @@ fn mix_wav_encodes_a_playable_header() {
     sounding_project(&folder);
     let mut session =
         PreviewSession::open(&folder, PreviewOptions::default()).expect("valid project opens");
-    let pcm = session.mix_pcm().expect("mix serves").expect("project sounds").to_vec();
-    let wav = session.mix_wav().expect("wav serves").expect("project sounds");
+    let pcm = session
+        .mix_pcm()
+        .expect("mix serves")
+        .expect("project sounds")
+        .to_vec();
+    let wav = session
+        .mix_wav()
+        .expect("wav serves")
+        .expect("project sounds");
 
     assert_eq!(&wav[0..4], b"RIFF");
     assert_eq!(&wav[8..16], b"WAVEfmt ");
     assert_eq!(u16::from_le_bytes([wav[20], wav[21]]), 1, "PCM");
     assert_eq!(u16::from_le_bytes([wav[22], wav[23]]), 2, "stereo");
-    assert_eq!(u32::from_le_bytes([wav[24], wav[25], wav[26], wav[27]]), 48000);
+    assert_eq!(
+        u32::from_le_bytes([wav[24], wav[25], wav[26], wav[27]]),
+        48000
+    );
     assert_eq!(&wav[36..40], b"data");
     let data_len = u32::from_le_bytes([wav[40], wav[41], wav[42], wav[43]]) as usize;
     assert_eq!(data_len, pcm.len() * 2);
     assert_eq!(wav.len(), 44 + data_len);
-    assert_eq!(&wav[44..], &to_bytes(&pcm)[..], "samples ride little-endian after the header");
+    assert_eq!(
+        &wav[44..],
+        &to_bytes(&pcm)[..],
+        "samples ride little-endian after the header"
+    );
 }

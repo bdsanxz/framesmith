@@ -190,6 +190,30 @@ pub fn element_box_of(
             w: c.width,
             h: c.height,
         }),
+        notation::model::Clip::Lottie(c) => Some(ElementBox {
+            x: c.x,
+            y: c.y,
+            w: c.width,
+            h: c.height,
+        }),
+        notation::model::Clip::Scene3d(c) => Some(ElementBox {
+            x: c.x,
+            y: c.y,
+            w: c.width,
+            h: c.height,
+        }),
+        notation::model::Clip::Chart(c) => Some(ElementBox {
+            x: c.x,
+            y: c.y,
+            w: c.width.unwrap_or(film_w),
+            h: c.height.unwrap_or(film_h),
+        }),
+        notation::model::Clip::Map(c) => Some(ElementBox {
+            x: c.x,
+            y: c.y,
+            w: c.width.unwrap_or(film_w),
+            h: c.height.unwrap_or(film_h),
+        }),
         notation::model::Clip::Flex(c) => Some(ElementBox {
             x: c.x,
             y: c.y,
@@ -219,6 +243,10 @@ pub fn clip_origin(clip: &notation::model::Clip) -> Option<(f64, f64)> {
         notation::model::Clip::Box(c) => Some((c.x, c.y)),
         notation::model::Clip::Image(c) => Some((c.x, c.y)),
         notation::model::Clip::Svg(c) => Some((c.x, c.y)),
+        notation::model::Clip::Chart(c) => Some((c.x, c.y)),
+        notation::model::Clip::Map(c) => Some((c.x, c.y)),
+        notation::model::Clip::Scene3d(c) => Some((c.x, c.y)),
+        notation::model::Clip::Lottie(c) => Some((c.x, c.y)),
         notation::model::Clip::Path(c) => Some((c.x, c.y)),
         notation::model::Clip::Flex(c) => Some((c.x, c.y)),
         notation::model::Clip::Video(_)
@@ -236,6 +264,10 @@ pub fn clip_size(clip: &notation::model::Clip) -> Option<(Option<f64>, Option<f6
     match clip {
         notation::model::Clip::Box(c) => Some((Some(c.width), Some(c.height))),
         notation::model::Clip::Svg(c) => Some((Some(c.width), Some(c.height))),
+        notation::model::Clip::Lottie(c) => Some((Some(c.width), Some(c.height))),
+        notation::model::Clip::Scene3d(c) => Some((Some(c.width), Some(c.height))),
+        notation::model::Clip::Chart(c) => Some((c.width, c.height)),
+        notation::model::Clip::Map(c) => Some((c.width, c.height)),
         notation::model::Clip::Flex(c) => Some((Some(c.width), Some(c.height))),
         notation::model::Clip::Image(c) => Some((c.width, c.height)),
         notation::model::Clip::Text(_)
@@ -2811,7 +2843,10 @@ mod tests {
         let why = resolve_group_scope(&comp, "nope").expect_err("unknown scope refuses");
         assert!(why.contains("no layer group"), "names the failure: {why}");
         assert!(why.contains("\"g\""), "names the holdings: {why}");
-        assert_eq!(resolve_group_scope(&comp, "  ").expect("blank clears"), None);
+        assert_eq!(
+            resolve_group_scope(&comp, "  ").expect("blank clears"),
+            None
+        );
         let bare = test_comp();
         let why = resolve_group_scope(&bare, "nope").expect_err("groupless refuses");
         assert!(why.contains("holds no layer groups"), "{why}");
@@ -2827,10 +2862,9 @@ mod tests {
         assert_eq!(req.key.as_deref(), Some("card"));
         assert_eq!(req.to, Some(0));
         assert_eq!(req.order, Some(2));
-        let req = parse_layers_body(
-            r#"{"actor":"maker","action":"group","keys":["a","b"],"name":"g"}"#,
-        )
-        .expect("group parses");
+        let req =
+            parse_layers_body(r#"{"actor":"maker","action":"group","keys":["a","b"],"name":"g"}"#)
+                .expect("group parses");
         assert_eq!(req.keys, vec!["a".to_string(), "b".to_string()]);
         for body in [
             r#"{"actor":"maker","action":"enter","name":"g"}"#,
@@ -2871,7 +2905,9 @@ mod tests {
         // A same-band drag moves the document index alone.
         let req = parse_layers_body(r#"{"actor":"maker","action":"reorder","key":"card","to":1}"#)
             .expect("reorder parses");
-        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        let ops = layers_edit_ops(&req, &comp)
+            .expect("ops build")
+            .expect("commits");
         assert_eq!(ops.len(), 1);
         match &ops[0] {
             sdk::EditOp::MoveElement { target, to } => {
@@ -2885,7 +2921,9 @@ mod tests {
             r#"{"actor":"maker","action":"reorder","key":"card","to":0,"order":0}"#,
         )
         .expect("reorder parses");
-        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        let ops = layers_edit_ops(&req, &comp)
+            .expect("ops build")
+            .expect("commits");
         assert_eq!(ops.len(), 2);
         match &ops[0] {
             sdk::EditOp::SetRow {
@@ -2904,7 +2942,9 @@ mod tests {
             r#"{"actor":"maker","action":"reorder","key":"panel","to":0,"order":0}"#,
         )
         .expect("reorder parses");
-        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        let ops = layers_edit_ops(&req, &comp)
+            .expect("ops build")
+            .expect("commits");
         assert_eq!(ops.len(), 1, "matching order skips the row op");
         // An empty group stages nothing.
         let req = parse_layers_body(r#"{"actor":"maker","action":"group","name":"g"}"#)
@@ -2916,11 +2956,12 @@ mod tests {
             "empty grouping stages nothing"
         );
         // Group and ungroup map to the SDK ops.
-        let req = parse_layers_body(
-            r#"{"actor":"maker","action":"group","keys":["card"],"name":"h"}"#,
-        )
-        .expect("group parses");
-        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        let req =
+            parse_layers_body(r#"{"actor":"maker","action":"group","keys":["card"],"name":"h"}"#)
+                .expect("group parses");
+        let ops = layers_edit_ops(&req, &comp)
+            .expect("ops build")
+            .expect("commits");
         match &ops[0] {
             sdk::EditOp::GroupElements { targets, name } => {
                 assert_eq!(targets, &vec![sdk::ClipRef::by_id("card")]);
@@ -2930,7 +2971,9 @@ mod tests {
         }
         let req = parse_layers_body(r#"{"actor":"maker","action":"ungroup","name":"g"}"#)
             .expect("ungroup parses");
-        let ops = layers_edit_ops(&req, &comp).expect("ops build").expect("commits");
+        let ops = layers_edit_ops(&req, &comp)
+            .expect("ops build")
+            .expect("commits");
         match &ops[0] {
             sdk::EditOp::UngroupElements { name } => assert_eq!(name, "g"),
             other => panic!("ungroup releases: {other:?}"),

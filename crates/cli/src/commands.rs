@@ -306,6 +306,94 @@ fn format_waveform_clamp_human(f: &validate_mod::WaveformClamp) -> String {
     out
 }
 
+/// One dropped file marker as human text (Sprint 21 adapters,
+/// T001): the lottie clip, the marker name and range, and why it
+/// names no range, so the drop is reviewable while the verdict
+/// stays valid.
+fn format_marker_drop_human(f: &validate_mod::MarkerDrop) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let name = match &f.id {
+        Some(id) => format!("{id:?}"),
+        None => format!("#{}", f.clip),
+    };
+    let _ = writeln!(
+        out,
+        "note: lottie {:?} {} ({}:{}): marker {:?} {:.3}s..{:.3}s dropped ({}).",
+        f.path, name, f.line, f.column, f.name, f.start, f.end, f.detail
+    );
+    out
+}
+
+/// One adapter source readiness as human text (Sprint 21 adapters,
+/// T007 / CAP-007): the source kind, name, state, and — for failed
+/// sources — the cause validation refused with, so `check` lists the
+/// same readiness the render path gates on: per source, never per
+/// frame.
+fn format_readiness_human(f: &validate::readiness::AdapterReadiness) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    let _ = writeln!(out, "{f}");
+    out
+}
+
+/// Per-source adapter readiness as human text (Sprint 21 adapters,
+/// T007 / CAP-007): every entry plus the ready/loading/failed tally,
+/// so a mixed film lists each source once. Empty for projects with
+/// no adapter clips, so default output is byte-identical.
+fn format_readiness_section_human(verdict: &Verdict) -> String {
+    use std::fmt::Write;
+    if verdict.readiness.is_empty() {
+        return String::new();
+    }
+    let mut out = String::new();
+    for f in &verdict.readiness {
+        out.push_str(&format_readiness_human(f));
+    }
+    let mut ready = 0;
+    let mut loading = 0;
+    let mut failed = 0;
+    for f in &verdict.readiness {
+        match f.state {
+            validate::readiness::AdapterState::Ready => ready += 1,
+            validate::readiness::AdapterState::Loading => loading += 1,
+            validate::readiness::AdapterState::Failed => failed += 1,
+        }
+    }
+    let _ = writeln!(
+        out,
+        "readiness: {} source(s): {ready} ready, {loading} loading, {failed} failed.",
+        verdict.readiness.len()
+    );
+    out
+}
+
+/// Every in-window file marker as human text (Sprint 21 adapters,
+/// T001): the marker name plus its named range on the owning lottie
+/// clip, so marker ranges are reviewable before rendering.
+fn format_lottie_markers_human(comp: &Composition) -> String {
+    use std::fmt::Write;
+    let mut out = String::new();
+    for clip in &comp.clips {
+        if let notation::model::Clip::Lottie(lo) = clip {
+            for m in &lo.markers {
+                let _ = writeln!(
+                    out,
+                    "marker {:?} on lottie {:?} ({}:{}): range {:.3}s..{:.3}s, loop {}.",
+                    m.name,
+                    lo.path,
+                    lo.line,
+                    lo.column,
+                    m.start,
+                    m.end,
+                    lo.loop_mode.name()
+                );
+            }
+        }
+    }
+    out
+}
+
 /// One pause map as human text (Sprint 10 sound, CAP-006): the opted-in
 /// clip with its ceiling and minimum plus every silent range in time
 /// order, so pauses are reviewable without opening an audio editor.
@@ -490,6 +578,10 @@ fn preview_master_peak(folder: &Path, verdict: &Verdict) -> Option<u32> {
 pub fn format_lint_human(folder: &Path, verdict: &Verdict) -> String {
     use std::fmt::Write;
     let mut out = String::new();
+    // Sprint 21 adapters (T007 / CAP-007): `lint` lists the same
+    // per-source readiness `check` lists, so adapter projects read
+    // identically under both commands.
+    out.push_str(&format_readiness_section_human(verdict));
     for f in &verdict.lint_findings {
         let _ = writeln!(out, "{f}");
     }
@@ -577,6 +669,42 @@ fn push_lint_json(out: &mut String, verdict: &Verdict) {
             n.column,
             json_escape(&n.cause),
             json_escape(&n.workaround)
+        );
+    }
+    out.push(']');
+}
+
+/// Per-source adapter readiness as a JSON array (Sprint 21 adapters,
+/// T007 / CAP-007): the same entries the human `check` lists, so
+/// `check --json` and `lint --json` agree with the human listing.
+/// Empty for adapter-free projects. `cause` is null unless failed.
+fn push_readiness_json(out: &mut String, verdict: &Verdict) {
+    use std::fmt::Write;
+    out.push_str("\"readiness\":[");
+    for (i, f) in verdict.readiness.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let id = match &f.id {
+            Some(v) => format!("\"{}\"", json_escape(v)),
+            None => "null".to_string(),
+        };
+        let cause = match &f.cause {
+            Some(v) => format!("\"{}\"", json_escape(v)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"clip\":{},\"id\":{},\"kind\":\"{}\",\"name\":\"{}\",\"source\":\"{}\",\"state\":\"{}\",\"cause\":{},\"line\":{},\"column\":{}}}",
+            f.clip,
+            id,
+            json_escape(f.kind),
+            json_escape(&f.display_name()),
+            json_escape(&f.source),
+            f.state.as_str(),
+            cause,
+            f.line,
+            f.column,
         );
     }
     out.push(']');
@@ -729,7 +857,13 @@ pub fn format_lint_json(folder: &Path, verdict: &Verdict) -> String {
     push_diagnostics_json(&mut out, verdict);
     out.push_str("],");
     push_lint_json(&mut out, verdict);
-    let _ = write!(out, ",\"lint_rules\":{}}}", lint::RULE_IDS.len());
+    // Sprint 21 adapters (T007 / CAP-007): per-source readiness rides
+    // after `lint_rules`, so the long-pinned `lint_notes`-to-`lint_rules`
+    // adjacency the agreement tests slice between stays intact.
+    let _ = write!(out, ",\"lint_rules\":{}", lint::RULE_IDS.len());
+    out.push_str(",");
+    push_readiness_json(&mut out, verdict);
+    out.push('}');
     out
 }
 
@@ -771,6 +905,16 @@ pub fn format_check_human(folder: &Path, verdict: &Verdict, master: Option<u32>)
     for f in &verdict.waveform_clamps {
         out.push_str(&format_waveform_clamp_human(f));
     }
+    for comp in &verdict.compositions {
+        out.push_str(&format_lottie_markers_human(comp));
+    }
+    for f in &verdict.marker_drops {
+        out.push_str(&format_marker_drop_human(f));
+    }
+    // Sprint 21 adapters (T007 / CAP-007): per-source readiness
+    // across adapter kinds, with the same values the render path
+    // gates on. Empty for adapter-free projects.
+    out.push_str(&format_readiness_section_human(verdict));
     // Sprint 10 sound (CAP-011): the master peak is always reported
     // when measurable; a hot master additionally warns naming the
     // peak, without changing the exit code.
@@ -1109,10 +1253,41 @@ pub fn format_verdict_json(
             f.column,
         );
     }
+    // Sprint 21 adapters (T001): every dropped file marker as
+    // reviewable numbers, so marker drops are machine-readable like
+    // waveform-range cuts.
+    out.push_str("],\"marker_drops\":[");
+    for (i, f) in verdict.marker_drops.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let id = match &f.id {
+            Some(v) => format!("\"{}\"", json_escape(v)),
+            None => "null".to_string(),
+        };
+        let _ = write!(
+            out,
+            "{{\"clip\":{},\"id\":{},\"path\":\"{}\",\"name\":\"{}\",\"start\":{},\"end\":{},\"detail\":\"{}\",\"line\":{},\"column\":{}}}",
+            f.clip,
+            id,
+            json_escape(&f.path),
+            json_escape(&f.name),
+            num(Some(f.start)),
+            num(Some(f.end)),
+            json_escape(&f.detail),
+            f.line,
+            f.column,
+        );
+    }
+    // Sprint 21 adapters (T007 / CAP-007): per-source readiness as
+    // reviewable values, so the machine listing agrees with the
+    // human one and with the render gate.
+    out.push_str("],");
+    push_readiness_json(&mut out, verdict);
     // Sprint 10 sound (CAP-011): the preview master peak plus the hot
     // warning, in the same numbers the human lines carry; nulls when
     // no peak was measurable, so refusal shapes stay identical.
-    out.push_str("],\"master_peak\":");
+    out.push_str(",\"master_peak\":");
     match master {
         Some(p) => {
             let db = match render::peaks::dbfs_of(p) {

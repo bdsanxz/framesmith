@@ -2,20 +2,27 @@
 
 pub mod blur;
 pub mod cancel;
+pub mod chart;
+pub mod custom_source;
 pub mod effects;
 pub mod envelope;
 pub mod footage_cache;
 pub mod frame;
 pub mod gpu;
+pub mod lottie;
 pub mod loudness;
+pub mod map;
 pub mod motion_blur;
 pub mod motion_plan;
 pub mod outputs;
 pub mod paint;
 pub mod path_paint;
 pub mod peaks;
+pub mod readiness;
 pub mod render;
 pub mod scale;
+pub mod scene3d;
+pub mod seek;
 pub mod textfx;
 pub mod transitions;
 pub mod turn;

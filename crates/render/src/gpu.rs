@@ -19,8 +19,8 @@
 //! CPU-to-GPU comparison uses tolerance.
 
 use crate::frame::{
-    FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedPath, ResolvedText,
-    ResolvedVideo,
+    FrameDescription, FrameItem, ResolvedBox, ResolvedImage, ResolvedLottie, ResolvedPath,
+    ResolvedScene3d, ResolvedText, ResolvedVideo,
 };
 use crate::render::Prepared;
 use std::fmt::Write;
@@ -196,6 +196,98 @@ pub fn fingerprint(desc: &FrameDescription) -> String {
                     desc.grade_for(r.doc).fingerprint(),
                 );
             }
+            // Sprint 21 T001 Lottie (shape owned by the Lottie slice,
+            // which refines it): the identity fields mirror the
+            // video arm so seeks fingerprint deterministically.
+            FrameItem::Lottie(r) => {
+                let _ = write!(
+                    out,
+                    "lottie#{} order={} {:?} src_t={} loop={:?} x={} y={} w={} h={} fit={:?} place={:?}/{:?} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?} g={};",
+                    r.doc,
+                    r.order,
+                    r.path,
+                    num(r.src_t),
+                    r.loop_mode,
+                    num(r.x),
+                    num(r.y),
+                    num(r.width),
+                    num(r.height),
+                    r.fit,
+                    r.placement.x,
+                    r.placement.y,
+                    num(r.scale),
+                    num(r.rotation),
+                    num(r.opacity),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
+                    desc.grade_for(r.doc).fingerprint(),
+                );
+            }
+            // Sprint 21 T003 scene (shape owned by the 3D slice): the
+            // clip-local instant plus the full authored scene ride
+            // the fingerprint, so seeks and edits verify
+            // deterministically.
+            FrameItem::Scene3d(r) => {
+                let _ = write!(
+                    out,
+                    "scene3d#{} order={} local_t={} x={} y={} w={} h={} fit={:?} place={:?}/{:?} scale={} rot={} op={} rx={} ry={} blur={} pers={} org={:?} cam={:?}|{:?}|{} objs=[{}] lights=[{}] g={};",
+                    r.doc,
+                    r.order,
+                    num(r.local_t),
+                    num(r.x),
+                    num(r.y),
+                    num(r.width),
+                    num(r.height),
+                    r.fit,
+                    r.placement.x,
+                    r.placement.y,
+                    num(r.scale),
+                    num(r.rotation),
+                    num(r.opacity),
+                    num(r.rotate_x),
+                    num(r.rotate_y),
+                    num(r.blur),
+                    r.turn.perspective.map(num).unwrap_or_else(|| "-".to_string()),
+                    r.turn.origin,
+                    r.camera.position,
+                    r.camera.target,
+                    num(r.camera.fov_deg),
+                    r.objects
+                        .iter()
+                        .map(|o| format!(
+                            "{:?}:{}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}",
+                            o.name,
+                            o.kind.name(),
+                            o.position,
+                            o.rotation,
+                            o.size,
+                            (o.radius, o.height, o.segments),
+                            (o.color.r, o.color.g, o.color.b),
+                            (o.metalness, o.roughness),
+                            o.vertices,
+                            o.faces,
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(";"),
+                    r.lights
+                        .iter()
+                        .map(|l| format!(
+                            "{:?}:{}:{:?}:{:?}:{:?}:{:?}",
+                            l.name,
+                            l.kind.name(),
+                            l.position,
+                            l.direction,
+                            (l.color.r, l.color.g, l.color.b),
+                            l.intensity,
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(";"),
+                    desc.grade_for(r.doc).fingerprint(),
+                );
+            }
             FrameItem::Box(r) => {
                 let _ = write!(
                     out,
@@ -360,6 +452,7 @@ pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> 
         videos,
         ranges,
         images,
+        lotties,
         layouts,
         dyn_layouts,
         bitmap_fallback,
@@ -372,6 +465,7 @@ pub fn render_frame(prep: &mut Prepared, frame: u64) -> Result<Vec<u8>, String> 
         videos,
         ranges,
         images,
+        lotties,
         layouts,
         dyn_layouts,
         *bitmap_fallback,
@@ -397,6 +491,7 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         videos,
         ranges,
         images,
+        lotties,
         layouts,
         dyn_layouts,
         bitmap_fallback,
@@ -409,6 +504,7 @@ pub fn render_description(prep: &mut Prepared, desc: &FrameDescription) -> Resul
         videos,
         ranges,
         images,
+        lotties,
         layouts,
         dyn_layouts,
         *bitmap_fallback,
@@ -427,6 +523,7 @@ pub(crate) fn render_description_split(
     videos: &[crate::render::ProbedVideo],
     ranges: &[crate::render::DecodedRange],
     images: &[crate::render::DecodedImage],
+    lotties: &[crate::render::PreparedLottie],
     layouts: &[Option<layout::Block>],
     dyn_layouts: &crate::render::DynLayouts,
     bitmap_fallback: bool,
@@ -742,6 +839,135 @@ pub(crate) fn render_description_split(
                     );
                 } else {
                     draw_image(&mut frame, cw, chh, &q, &decoded);
+                }
+            }
+            FrameItem::Lottie(lo) => {
+                // Sprint 21 adapters (T001): the GPU picture path
+                // rasterizes the same prepared doc at the same
+                // loop-mapped instant, then rides the shared image
+                // path with quantized placement, exactly like images.
+                let grade = luts.grade(folder, &desc.grade_for(lo.doc))?;
+                let effects = desc.effects_for(lo.doc);
+                let vfx = desc.vfx_for(lo.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
+                let prep = lotties
+                    .iter()
+                    .find(|d| d.clip_idx == lo.doc)
+                    .ok_or_else(|| {
+                        format!(
+                            "gpu render failed: lottie source {:?} was not decoded (decode stage)",
+                            lo.path
+                        )
+                    })?;
+                let select_t = lottie::sample_time(prep.doc.len_secs(), lo.loop_mode, lo.src_t);
+                let decoded = crate::lottie::rasterize(
+                    &prep.doc,
+                    select_t,
+                    lo.width,
+                    lo.height,
+                    lo.fit,
+                    lo.placement,
+                    &lo.path,
+                )
+                .map_err(|e| format!("gpu render failed: {e}"))?;
+                let q = ResolvedLottie {
+                    x: quantize(lo.x),
+                    y: quantize(lo.y),
+                    scale: quantize(lo.scale),
+                    rotation: quantize(lo.rotation),
+                    opacity: quantize(lo.opacity),
+                    ..lo.clone()
+                };
+                let im = ResolvedImage {
+                    doc: q.doc,
+                    order: q.order,
+                    path: q.path.clone(),
+                    x: q.x,
+                    y: q.y,
+                    width: Some(q.width),
+                    height: Some(q.height),
+                    fit: notation::model::Fit::Fill,
+                    placement: notation::model::Placement::center(),
+                    scale: q.scale,
+                    rotation: q.rotation,
+                    opacity: q.opacity,
+                    rotate_x: q.rotate_x,
+                    rotate_y: q.rotate_y,
+                    blur: q.blur,
+                    turn: q.turn,
+                };
+                let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
+                if blur_on(im.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_image_advanced(
+                        &mut frame, cw, chh, &im, &decoded, &grade, effects, vfx, &maps,
+                    );
+                } else {
+                    draw_image(&mut frame, cw, chh, &im, &decoded);
+                }
+            }
+            FrameItem::Scene3d(s3) => {
+                // Sprint 21 adapters (T003): the GPU picture path
+                // rasterizes the same scene at the same clip-local
+                // instant, then rides the shared image path with
+                // quantized placement, exactly like images.
+                let grade = luts.grade(folder, &desc.grade_for(s3.doc))?;
+                let effects = desc.effects_for(s3.doc);
+                let vfx = desc.vfx_for(s3.doc);
+                let maps = crate::render::resolve_vfx_maps(images, folder, vfx)
+                    .map_err(|e| format!("gpu render failed: {e}"))?;
+                let (rw, rh) = crate::scene3d::raster_px(s3.width, s3.height);
+                let decoded = crate::scene3d::render_scene(
+                    s3.doc,
+                    &s3.objects,
+                    &s3.camera,
+                    &s3.lights,
+                    rw,
+                    rh,
+                );
+                let q = ResolvedScene3d {
+                    x: quantize(s3.x),
+                    y: quantize(s3.y),
+                    scale: quantize(s3.scale),
+                    rotation: quantize(s3.rotation),
+                    opacity: quantize(s3.opacity),
+                    ..s3.clone()
+                };
+                let im = ResolvedImage {
+                    doc: q.doc,
+                    order: q.order,
+                    path: decoded.path.display().to_string(),
+                    x: q.x,
+                    y: q.y,
+                    width: Some(q.width),
+                    height: Some(q.height),
+                    fit: notation::model::Fit::Fill,
+                    placement: notation::model::Placement::center(),
+                    scale: q.scale,
+                    rotation: q.rotation,
+                    opacity: q.opacity,
+                    rotate_x: q.rotate_x,
+                    rotate_y: q.rotate_y,
+                    blur: q.blur,
+                    turn: q.turn,
+                };
+                let probe = turn_probe(im.rotate_x, im.rotate_y, im.turn.perspective);
+                if blur_on(im.blur)
+                    || probe.is_some()
+                    || !grade.is_empty()
+                    || !effects.is_empty()
+                    || !vfx.is_empty()
+                {
+                    draw_image_advanced(
+                        &mut frame, cw, chh, &im, &decoded, &grade, effects, vfx, &maps,
+                    );
+                } else {
+                    draw_image(&mut frame, cw, chh, &im, &decoded);
                 }
             }
         }
@@ -1771,6 +1997,7 @@ mod tests {
             &[],
             &[],
             &images,
+            &[],
             &crate::path_paint::PathCache::new(),
             dir.as_path(),
             &mut cpu,
@@ -1781,6 +2008,7 @@ mod tests {
             &[],
             &[],
             &images,
+            &[],
             &[],
             &DynLayouts::default(),
             false,
@@ -1865,6 +2093,7 @@ mod tests {
             &[],
             &[],
             &[],
+            &[],
             &crate::path_paint::PathCache::new(),
             dir.as_path(),
             &mut cpu,
@@ -1873,6 +2102,7 @@ mod tests {
         assert!(err.contains("gone.png"), "{err}");
         let mut raster = RasterCache::new();
         let err = render_description_split(
+            &[],
             &[],
             &[],
             &[],

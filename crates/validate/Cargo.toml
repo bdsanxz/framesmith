@@ -11,3 +11,8 @@ glyph = { path = "../glyph" }
 motion = { path = "../motion" }
 usvg = "0.46"
 serde_json = "1"
+lottie = { path = "../lottie" }
+png = "0.17"
+
+[dev-dependencies]
+zip = "2"

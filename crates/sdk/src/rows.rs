@@ -36,9 +36,7 @@ use notation::model::{
     GRADE_TINT_RANGE,
 };
 
-use crate::edits::{
-    ClipRef, EditRefusal, EditRefusalKind, E_SDK_BAD_VALUE, E_SDK_UNSUPPORTED,
-};
+use crate::edits::{ClipRef, EditRefusal, EditRefusalKind, E_SDK_BAD_VALUE, E_SDK_UNSUPPORTED};
 
 /// Milestone naming the render work that unlocks 3D rows: the
 /// `transform-3d`, `rotate`, `perspective`, and `origin` keys stay
@@ -322,6 +320,10 @@ fn clip_grade_mut(clip: &mut Clip) -> Option<&mut Grade> {
         Clip::Image(c) => Some(&mut c.grade),
         Clip::Path(c) => Some(&mut c.grade),
         Clip::Svg(c) => Some(&mut c.grade),
+        Clip::Chart(c) => Some(&mut c.grade),
+        Clip::Map(c) => Some(&mut c.grade),
+        Clip::Scene3d(c) => Some(&mut c.grade),
+        Clip::Lottie(c) => Some(&mut c.grade),
         Clip::Audio(_) => None,
         Clip::Nest(c) => Some(&mut c.grade),
     }
@@ -338,6 +340,10 @@ fn clip_grade(clip: &Clip) -> Option<&Grade> {
         Clip::Image(c) => Some(&c.grade),
         Clip::Path(c) => Some(&c.grade),
         Clip::Svg(c) => Some(&c.grade),
+        Clip::Chart(c) => Some(&c.grade),
+        Clip::Map(c) => Some(&c.grade),
+        Clip::Scene3d(c) => Some(&c.grade),
+        Clip::Lottie(c) => Some(&c.grade),
         Clip::Audio(_) => None,
         Clip::Nest(c) => Some(&c.grade),
     }
@@ -957,6 +963,10 @@ pub(crate) fn apply_row_value(
                 Clip::Image(c) => c.order = next,
                 Clip::Path(c) => c.order = next,
                 Clip::Svg(c) => c.order = next,
+                Clip::Chart(c) => c.order = next,
+                Clip::Map(c) => c.order = next,
+                Clip::Scene3d(c) => c.order = next,
+                Clip::Lottie(c) => c.order = next,
                 Clip::Nest(c) => c.order = next,
                 Clip::Audio(_) => unreachable!("audio refused above"),
             }
@@ -1069,6 +1079,10 @@ pub(crate) fn apply_row_value(
                 Clip::Image(c) => &mut c.effects[0],
                 Clip::Path(c) => &mut c.effects[0],
                 Clip::Svg(c) => &mut c.effects[0],
+                Clip::Chart(c) => &mut c.effects[0],
+                Clip::Map(c) => &mut c.effects[0],
+                Clip::Scene3d(c) => &mut c.effects[0],
+                Clip::Lottie(c) => &mut c.effects[0],
                 Clip::Nest(c) => &mut c.effects[0],
                 Clip::Audio(_) => unreachable!("audio refused above"),
             };
@@ -1098,6 +1112,10 @@ pub(crate) fn apply_row_value(
                 Clip::Image(c) => c.hidden = hidden,
                 Clip::Path(c) => c.hidden = hidden,
                 Clip::Svg(c) => c.hidden = hidden,
+                Clip::Chart(c) => c.hidden = hidden,
+                Clip::Map(c) => c.hidden = hidden,
+                Clip::Scene3d(c) => c.hidden = hidden,
+                Clip::Lottie(c) => c.hidden = hidden,
                 Clip::Audio(c) => c.hidden = hidden,
                 Clip::Nest(c) => c.hidden = hidden,
             }
@@ -1266,8 +1284,8 @@ fn row_kinds(property: &str) -> &'static str {
         "grade-exposure" | "grade-contrast" | "grade-saturation" | "grade-temperature"
         | "grade-tint" => "picture clips",
         "effect-amount" => "picture clips carrying an `effect`",
-        "waveform" | "volume" | "fade-in" | "fade-out" | "delay" | "delay-feedback" | "delay-mix"
-        | "reverb" => "`video` and `audio` clips",
+        "waveform" | "volume" | "fade-in" | "fade-out" | "delay" | "delay-feedback"
+        | "delay-mix" | "reverb" => "`video` and `audio` clips",
         "visible" => "every clip",
         "loop" => "`video` clips",
         "rate" => "`video`, `audio`, and `nest` clips",
@@ -1275,4 +1293,3 @@ fn row_kinds(property: &str) -> &'static str {
         _ => "its clips",
     }
 }
-

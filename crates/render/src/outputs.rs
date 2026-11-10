@@ -633,12 +633,12 @@ pub fn encode_png_rgb8(width: u32, height: u32, rgb: &[u8]) -> Result<Vec<u8>, S
     let mut encoder = png::Encoder::new(&mut out, width, height);
     encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = encoder.write_header().map_err(|e| {
-        format!("snapshot failed: cannot encode the PNG ({e}); no PNG was written")
-    })?;
-    writer.write_image_data(rgb).map_err(|e| {
-        format!("snapshot failed: cannot encode the PNG ({e}); no PNG was written")
-    })?;
+    let mut writer = encoder
+        .write_header()
+        .map_err(|e| format!("snapshot failed: cannot encode the PNG ({e}); no PNG was written"))?;
+    writer
+        .write_image_data(rgb)
+        .map_err(|e| format!("snapshot failed: cannot encode the PNG ({e}); no PNG was written"))?;
     drop(writer);
     Ok(out)
 }
@@ -1046,10 +1046,7 @@ pub fn encode_args_for(
             // transfer's `color_transfer` with BT.2020 primaries and
             // matrix. SDR emits nothing here, keeping bytes identical.
             if hdr != HdrTransfer::Sdr {
-                args.extend([
-                    "-x265-params".into(),
-                    x265_hdr_params(hdr).into(),
-                ]);
+                args.extend(["-x265-params".into(), x265_hdr_params(hdr).into()]);
             }
         }
         OutputFormat::Mov => {
@@ -1227,10 +1224,7 @@ pub fn encode_args_for(
 /// the same digest; any input change re-stamps. Unreadable files are
 /// skipped here — preparation and the audio plan refuse those with
 /// their paths named before any output exists.
-pub fn composition_inputs_digest(
-    all: &[notation::model::Composition],
-    folder: &Path,
-) -> String {
+pub fn composition_inputs_digest(all: &[notation::model::Composition], folder: &Path) -> String {
     let mut ordered: Vec<notation::model::Composition> =
         all.iter().map(effective_comp_for_digest).collect();
     ordered.sort_by(|a, b| a.name.cmp(&b.name));
@@ -1279,7 +1273,9 @@ pub fn composition_inputs_digest(
 ///   static layout).
 /// Anything else — geometry, media, motion, grades, variables — stays
 /// declared, so a real input change always re-stamps.
-pub fn effective_comp_for_digest(comp: &notation::model::Composition) -> notation::model::Composition {
+pub fn effective_comp_for_digest(
+    comp: &notation::model::Composition,
+) -> notation::model::Composition {
     let mut effective = comp.clone();
     effective.canvas = None;
     // Motion no-ops fold while document indices still address the
@@ -1313,9 +1309,9 @@ pub fn normalize_clip_for_digest(
     use notation::model::{Clip, TrackKind};
     // (element name for the undeclared-track default, the clip)
     let normalize = |element: &str,
-                       id: &mut Option<String>,
-                       track: &mut TrackKind,
-                       label: &mut Option<String>| {
+                     id: &mut Option<String>,
+                     track: &mut TrackKind,
+                     label: &mut Option<String>| {
         *label = None;
         if strip_ids {
             *id = None;
@@ -1346,6 +1342,21 @@ pub fn normalize_clip_for_digest(
         }
         Clip::Svg(c) => {
             normalize("svg", &mut c.id, &mut c.track, &mut c.label);
+        }
+        // A native Lottie animation normalizes like a picture clip
+        // (Sprint 21 adapters, T001): its duration is always
+        // resolved, so no inference flag resets here.
+        Clip::Lottie(c) => {
+            normalize("lottie", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Chart(c) => {
+            normalize("chart", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Map(c) => {
+            normalize("map", &mut c.id, &mut c.track, &mut c.label);
+        }
+        Clip::Scene3d(c) => {
+            normalize("scene3d", &mut c.id, &mut c.track, &mut c.label);
         }
         Clip::Audio(c) => {
             normalize("audio", &mut c.id, &mut c.track, &mut c.label);
@@ -1958,7 +1969,8 @@ mod tests {
 
     #[test]
     fn transfer_detects_pq_hlg_and_sdr_from_probe_text() {
-        let pq = "Stream #0:0: Video: hevc (Main 10), yuv420p10le(tv, bt2020nc/bt2020/smpte2084), 64x48";
+        let pq =
+            "Stream #0:0: Video: hevc (Main 10), yuv420p10le(tv, bt2020nc/bt2020/smpte2084), 64x48";
         let hlg = "Stream #0:0: Video: hevc (Main 10), yuv420p10le(tv, bt2020nc/bt2020/arib-std-b67), 64x48";
         let sdr = "Stream #0:0: Video: h264 (High), yuv420p, 160x120";
         let mastering_only =
@@ -1978,11 +1990,7 @@ mod tests {
 
     #[test]
     fn only_mp4_family_and_hls_carry_hdr() {
-        for format in [
-            OutputFormat::Mp4,
-            OutputFormat::Hevc,
-            OutputFormat::Hls,
-        ] {
+        for format in [OutputFormat::Mp4, OutputFormat::Hevc, OutputFormat::Hls] {
             assert!(format_carries_hdr(format), "{}", format.name());
             assert!(!format_tone_maps_hdr(format), "{}", format.name());
         }
@@ -2010,7 +2018,11 @@ mod tests {
         let comp = tiny_comp();
         for (format, transfer, want_trc) in [
             (OutputFormat::Hevc, HdrTransfer::Pq, "transfer=smpte2084"),
-            (OutputFormat::Hevc, HdrTransfer::Hlg, "transfer=arib-std-b67"),
+            (
+                OutputFormat::Hevc,
+                HdrTransfer::Hlg,
+                "transfer=arib-std-b67",
+            ),
             (OutputFormat::Mp4, HdrTransfer::Pq, "transfer=smpte2084"),
             (OutputFormat::Hls, HdrTransfer::Hlg, "transfer=arib-std-b67"),
         ] {
@@ -2138,7 +2150,10 @@ mod tests {
         let sidecar = prov.sidecar_json();
         assert!(sidecar.contains("\"tool\":\"framesmith\""), "{sidecar}");
         assert!(sidecar.contains("\"version\":\"0.1.0\""), "{sidecar}");
-        assert!(sidecar.contains("\"digest\":\"9e3779b97f4a7c15\""), "{sidecar}");
+        assert!(
+            sidecar.contains("\"digest\":\"9e3779b97f4a7c15\""),
+            "{sidecar}"
+        );
         assert_eq!(
             provenance_sidecar_for_seq(Path::new("proj/frames")),
             PathBuf::from("proj/frames.provenance.json")
@@ -2182,11 +2197,7 @@ mod tests {
         ] {
             assert!(format_embeds_provenance(format), "{}", format.name());
         }
-        for format in [
-            OutputFormat::Gif,
-            OutputFormat::PngSeq,
-            OutputFormat::Hls,
-        ] {
+        for format in [OutputFormat::Gif, OutputFormat::PngSeq, OutputFormat::Hls] {
             assert!(!format_embeds_provenance(format), "{}", format.name());
         }
         let args = provenance_metadata_args("framesmith 0.1.0 inputs=abc");

@@ -6,6 +6,15 @@
 
 use std::fmt;
 
+/// Loop modes of a `lottie` clip (Sprint 21 adapters, T001 / CAP-001):
+/// the single vocabulary shared by notation, validation, and render,
+/// re-exported from the `lottie` decode crate so the file setting,
+/// the authored key, and the sampler agree.
+pub use lottie::LoopMode;
+/// One marker as a named range in animation seconds (Sprint 21
+/// adapters, T001 / CAP-001): shared with the decode crate.
+pub use lottie::LottieMarker;
+
 /// Frames per second: an integer or an exact rational (e.g. `30000/1001`).
 /// Decimal fps values are rejected by validation, never stored here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -1781,6 +1790,215 @@ pub struct SvgClip {
     pub column: usize,
 }
 
+/// One chart family of a `chart` clip (Sprint 21 adapters, CAP-002):
+/// the eight natively drawn kinds. Only these spellings are valid;
+/// anything else is refused, never guessed into a picture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ChartKind {
+    Bar,
+    Line,
+    Area,
+    Pie,
+    Donut,
+    Scatter,
+    Radar,
+    Gauge,
+}
+
+impl ChartKind {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "bar" => Some(ChartKind::Bar),
+            "line" => Some(ChartKind::Line),
+            "area" => Some(ChartKind::Area),
+            "pie" => Some(ChartKind::Pie),
+            "donut" => Some(ChartKind::Donut),
+            "scatter" => Some(ChartKind::Scatter),
+            "radar" => Some(ChartKind::Radar),
+            "gauge" => Some(ChartKind::Gauge),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            ChartKind::Bar => "bar",
+            ChartKind::Line => "line",
+            ChartKind::Area => "area",
+            ChartKind::Pie => "pie",
+            ChartKind::Donut => "donut",
+            ChartKind::Scatter => "scatter",
+            ChartKind::Radar => "radar",
+            ChartKind::Gauge => "gauge",
+        }
+    }
+
+    /// Accepted spellings, for diagnostics.
+    pub const ACCEPTED: [&'static str; 8] = [
+        "bar", "line", "area", "pie", "donut", "scatter", "radar", "gauge",
+    ];
+}
+
+/// One resolved chart datum (Sprint 21 adapters, CAP-002): the series
+/// name (none means the single unnamed series), the category label,
+/// and the finite value. Validation builds these from the data file
+/// rows plus the inline `row` children, in that order; the renderer
+/// draws exactly these, never invented points.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ChartPoint {
+    pub series: Option<String>,
+    pub label: String,
+    pub value: f64,
+    /// Extra x coordinate for `scatter` (`x` on the `row`, else the
+    /// point's index within its series). `None` for every other kind.
+    pub x: Option<f64>,
+}
+
+/// A `chart` clip (Sprint 21 adapters, CAP-002/T002): one of eight
+/// natively drawn kinds fed by a data file, inline `row` children, or
+/// both (file rows first, then inline rows). Charts are static per
+/// film time: only motion tweens/sets/keys on the shared geometric
+/// properties move the picture. An empty `data` vector is valid and
+/// renders named empty axes, never invented curves.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ChartClip {
+    pub asserts: MotionAsserts,
+    pub kind: ChartKind,
+    /// Panel heading; none paints the kind name, so empty axes still
+    /// carry a name.
+    pub title: Option<String>,
+    /// Resolved rows in draw order (file rows, then inline rows).
+    pub data: Vec<ChartPoint>,
+    /// Data file as written, for diagnostics and provenance digests.
+    pub data_file: Option<String>,
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    pub x: f64,
+    pub y: f64,
+    /// Target rect size; defaults to the composition canvas.
+    pub width: Option<f64>,
+    pub height: Option<f64>,
+    /// Panel fill (`background-color`); default white.
+    pub background: Rgb,
+    /// Panel stroke (`border-width`/`border-color`); width 0 paints none.
+    pub border_width: f64,
+    pub border_color: Rgb,
+    /// Series palette (`colors`); default the built-in palette.
+    pub palette: Vec<Rgb>,
+    /// Whether the series legend paints (`show-legend`).
+    pub show_legend: bool,
+    /// Whether gridlines paint (`show-gridlines`).
+    pub show_gridlines: bool,
+    /// Whether per-datum values paint (`show-value-labels`).
+    pub show_value_labels: bool,
+    /// Gauge range floor (`min`); gauge only.
+    pub min: Option<f64>,
+    /// Gauge range ceiling (`max`); gauge only.
+    pub max: Option<f64>,
+    pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
+    /// Color grade of the clip (Sprint 11 grade, CAP-001/T001).
+    pub grade: Grade,
+    /// Named media effects of the clip (Sprint 11 effects, CAP-003/T004).
+    pub effects: Vec<Effect>,
+    /// Ordered VFX chain of the clip (Sprint 11 VFX, CAP-004/T005).
+    pub vfx: VfxChain,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// A `lottie` clip (Sprint 21 adapters, T001 / CAP-001): a `.json`
+/// Lottie animation or a `.lottie` dotLottie pack played natively —
+/// no browser, no JavaScript, no network. The clip seeks by film
+/// time: the source instant is `(t - start)` clamped or wrapped per
+/// `loop-mode`, and every seek renders the time-correct frame. An
+/// authored `loop-mode` wins; without one the file setting applies
+/// (a dotLottie manifest `loop` repeats, plain Lottie holds its edge
+/// frame). Markers decoded from the file ride along as named ranges
+/// (`markers`), out-of-window file markers never reach the clip
+/// (validation reports them instead). Expressions in the file bake
+/// to their stored values and never run. Like `svg`, the declared
+/// `width`/`height` are both required positive: the animation
+/// rasterizes into that rect with `fit` and `placement`, then draws
+/// at `x`/`y` through the shared image blitter.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LottieClip {
+    pub asserts: MotionAsserts,
+    pub path: String,
+    pub start: f64,
+    /// Clip length in composition seconds: the written `duration`, or
+    /// the intrinsic animation length when omitted (validation fills
+    /// it in and echoes it in `check`, exactly like footage
+    /// inference). A looping animation with an explicit `duration`
+    /// repeats its window for the whole clip window.
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    pub x: f64,
+    pub y: f64,
+    /// Declared raster size in canvas pixels; both required positive.
+    pub width: f64,
+    pub height: f64,
+    pub fit: Fit,
+    pub placement: Placement,
+    /// Loop behavior for source times past the animation window
+    /// (`loop-mode`, default from the file): `none` holds the edge
+    /// frame, `loop` repeats the window, `ping-pong` alternates
+    /// direction every pass.
+    pub loop_mode: LoopMode,
+    /// In-window file markers as named ranges in animation seconds.
+    pub markers: Vec<LottieMarker>,
+    pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
+    /// Color grade of the clip (Sprint 11 grade, CAP-001/T001): the
+    /// authored `grade` child, resolved with the lane and
+    /// composition grades at frame time. Empty by default, so
+    /// ungraded clips render exactly as before.
+    pub grade: Grade,
+    /// Named media effects of the clip (Sprint 11 effects, CAP-003/T004):
+    /// authored `effect` children in document order, applied after the
+    /// grade chain in that same order. Empty by default, so clips
+    /// without effects render exactly as before.
+    pub effects: Vec<Effect>,
+    /// Ordered VFX chain of the clip (Sprint 11 VFX, CAP-004/T005):
+    /// the authored `vfx` child, applied after the effects stack in
+    /// the fixed order noise, warp, displacement, luma matte. Empty
+    /// by default, so clips without VFX render exactly as before.
+    pub vfx: VfxChain,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
 /// An `image` clip (Sprint 2 element, plus Sprint 5 HEIC and still-GIF
 /// sources, plus Sprint 8 SVG sources): a PNG, JPEG, HEIC/HEIF,
 /// still-GIF, or SVG source placed with a fit and a placement inside
@@ -1832,6 +2050,406 @@ pub struct ImageClip {
     /// Visibility switch (Sprint 6 T009): `true` skips picture and
     /// sound as if absent, while the id stays referenceable.
     pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Name of the placeholder a `map` clip paints over uncovered areas
+/// (Sprint 21 adapters, T004 / CAP-004): tiles the pack does not
+/// cover render this named fill, never fetched tiles. The name is
+/// part of the contract so makers can spot it in a frame.
+pub const MAP_PLACEHOLDER_NAME: &str = "no-tiles";
+
+/// Web Mercator bounds of a `map` clip (Sprint 21 adapters, T004 /
+/// CAP-004): latitude clamps to the projection limit, zoom to the
+/// tile pyramid. Anything outside refuses at validation, never
+/// guesses into a viewport.
+pub const MAP_MAX_LAT: f64 = 85.05112878;
+pub const MAP_MIN_ZOOM: u32 = 0;
+pub const MAP_MAX_ZOOM: u32 = 22;
+/// Edge of one square map tile, in pixels. Tiles are 256x256 PNGs.
+pub const MAP_TILE_PX: u32 = 256;
+
+/// World pixels of one longitude/latitude at `zoom` (Sprint 21
+/// adapters, T004): the standard Web Mercator slippy-map projection
+/// shared by validation (coverage) and render (compositing), so both
+/// agree on every tile. Pure float math, deterministic across runs.
+pub fn map_world_px(lat: f64, lon: f64, zoom: u32) -> (f64, f64) {
+    let n = 2u64.pow(zoom.min(32)) as f64;
+    let world = n * MAP_TILE_PX as f64;
+    let x = (lon + 180.0) / 360.0 * world;
+    let lat_r = lat
+        .to_radians()
+        .clamp(-1.4844222297453324, 1.4844222297453324);
+    let y = (1.0 - ((lat_r.tan() + 1.0 / lat_r.cos()).ln() / std::f64::consts::PI)) / 2.0 * world;
+    (x, y)
+}
+
+/// Inclusive tile column/row range covering a `w_px` by `h_px`
+/// viewport centered at `center_lat`/`center_lon` at `zoom` (Sprint 21
+/// adapters, T004): `(x0, x1, y0, y1)` clamped to the pyramid, so an
+/// edge viewport narrows instead of wrapping. Assumes positive
+/// extents; validation refuses the rest before this runs.
+pub fn map_tile_range(
+    center_lat: f64,
+    center_lon: f64,
+    zoom: u32,
+    w_px: f64,
+    h_px: f64,
+) -> (u32, u32, u32, u32) {
+    let n = 2u64.pow(zoom.min(32));
+    let (cx, cy) = map_world_px(center_lat, center_lon, zoom);
+    let tile = MAP_TILE_PX as f64;
+    let edge = |v: f64| (v / tile).floor().clamp(0.0, (n - 1) as f64) as u32;
+    let far = |v: f64| ((v - 1.0) / tile).floor().clamp(0.0, (n - 1) as f64) as u32;
+    let x0 = edge(cx - w_px / 2.0);
+    let x1 = far(cx + w_px / 2.0).max(x0);
+    let y0 = edge(cy - h_px / 2.0);
+    let y1 = far(cy + h_px / 2.0).max(y0);
+    (x0, x1, y0, y1)
+}
+
+/// One `marker` child of a `map` clip (Sprint 21 adapters, T004):
+/// a pin at `lat`/`lon` with an optional text `label` beside it,
+/// drawn in `color`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MapMarker {
+    pub lat: f64,
+    pub lon: f64,
+    pub label: Option<String>,
+    pub color: Rgb,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One `label` child of a `map` clip (Sprint 21 adapters, T004):
+/// bare text at `lat`/`lon`, drawn in `color` at `size` pixels.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MapLabel {
+    pub lat: f64,
+    pub lon: f64,
+    pub value: String,
+    pub size: f64,
+    pub color: Rgb,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One `polyline` child of a `map` clip (Sprint 21 adapters, T004):
+/// a `lat,lon` point list (at least two points) stroked at `width`
+/// pixels in `color`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MapPolyline {
+    pub points: Vec<(f64, f64)>,
+    pub width: f64,
+    pub color: Rgb,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One `polygon` child of a `map` clip (Sprint 21 adapters, T004):
+/// a `lat,lon` ring (at least three points) filled with `fill` and
+/// stroked at `border-width` pixels in `border-color`.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MapPolygon {
+    pub points: Vec<(f64, f64)>,
+    pub fill: Rgb,
+    pub border_width: f64,
+    pub border_color: Rgb,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// A `map` clip (Sprint 21 adapters, T004 / CAP-004): an offline
+/// raster map viewport from a local tile directory or offline pack
+/// (`pack`), composited at `center` (`"lat,lon"`) and `zoom` in Web
+/// Mercator. Markers, labels, polylines, and polygons overlay the
+/// tiles; a scale bar and `attribution` text always render on the
+/// frame; uncovered areas show the named [`MAP_PLACEHOLDER_NAME`]
+/// placeholder. One viewport per composition; never touches the
+/// network at render time.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MapClip {
+    /// Motion assertions of the clip (Sprint 13 check, T003).
+    pub asserts: MotionAsserts,
+    /// Tile directory or offline pack, as written (relative to the
+    /// project folder). Must exist with an attribution source.
+    pub pack: String,
+    /// Viewport center: latitude (-85.05112878..=85.05112878) and
+    /// longitude (-180..=180).
+    pub center_lat: f64,
+    pub center_lon: f64,
+    /// Tile pyramid zoom (0..=22).
+    pub zoom: u32,
+    /// Attribution text on the frame: the authored `attribution`
+    /// override, else the pack manifest's own text. Never empty
+    /// after validation (an attribution-less pack refuses).
+    pub attribution: String,
+    /// Overlay pins, texts, lines, and areas in document order.
+    pub markers: Vec<MapMarker>,
+    pub labels: Vec<MapLabel>,
+    pub polylines: Vec<MapPolyline>,
+    pub polygons: Vec<MapPolygon>,
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    pub x: f64,
+    pub y: f64,
+    /// Viewport size; defaults to the composition canvas.
+    pub width: Option<f64>,
+    pub height: Option<f64>,
+    pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
+    /// Color grade of the clip (Sprint 11 grade, CAP-001/T001).
+    /// Empty by default, so ungraded maps render exactly as decoded.
+    pub grade: Grade,
+    /// Named media effects of the clip (Sprint 11 effects, CAP-003/T004).
+    /// Empty by default.
+    pub effects: Vec<Effect>,
+    /// Ordered VFX chain of the clip (Sprint 11 VFX, CAP-004/T005).
+    /// Empty by default.
+    pub vfx: VfxChain,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture
+    /// as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Geometry of a `scene3d` object (Sprint 21 adapters, CAP-003): four
+/// authored primitives plus embedded triangle meshes. External model
+/// file formats stay out: a `mesh` carries its vertices and faces
+/// inline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum Scene3dGeometry {
+    Box,
+    Sphere,
+    Plane,
+    Cylinder,
+    Mesh,
+}
+
+impl Scene3dGeometry {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "box" => Some(Scene3dGeometry::Box),
+            "sphere" => Some(Scene3dGeometry::Sphere),
+            "plane" => Some(Scene3dGeometry::Plane),
+            "cylinder" => Some(Scene3dGeometry::Cylinder),
+            "mesh" => Some(Scene3dGeometry::Mesh),
+            _ => None,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Scene3dGeometry::Box => "box",
+            Scene3dGeometry::Sphere => "sphere",
+            Scene3dGeometry::Plane => "plane",
+            Scene3dGeometry::Cylinder => "cylinder",
+            Scene3dGeometry::Mesh => "mesh",
+        }
+    }
+}
+
+/// One `object` child of a `scene3d` clip (Sprint 21 adapters,
+/// CAP-003): a named placed primitive or embedded mesh with a
+/// PBR-ish material. Only the owning kind's size fields apply
+/// (`size` for boxes, `radius` for spheres, `size` width/height for
+/// planes, `radius`/`height` for cylinders, `vertices`/`faces` for
+/// meshes); the rest ride at their defaults.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Scene3dObject {
+    /// Authored name, naming every refusal about this object.
+    pub name: String,
+    pub kind: Scene3dGeometry,
+    /// World-space translation.
+    pub position: [f64; 3],
+    /// Euler degrees applied `Rx`, then `Ry`, then `Rz`.
+    pub rotation: [f64; 3],
+    /// Box extents (`size="w,h,d"`); plane width/height in `size[0]`/`size[1]`.
+    pub size: [f64; 3],
+    /// Sphere radius, cylinder radius.
+    pub radius: f64,
+    /// Cylinder height.
+    pub height: f64,
+    /// Sphere/cylinder tessellation (whole segments, at least 3).
+    pub segments: u32,
+    /// Albedo color of the material.
+    pub color: Rgb,
+    /// Metalness and roughness of the PBR-ish material (0 to 1).
+    pub metalness: f64,
+    pub roughness: f64,
+    /// Embedded mesh vertices (`vertices="x,y,z; ..."`).
+    pub vertices: Vec<[f64; 3]>,
+    /// Embedded mesh faces (`faces="a,b,c; ..."`, 0-based).
+    pub faces: Vec<[usize; 3]>,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// Camera mode of a `scene3d` clip (Sprint 21 adapters, CAP-003).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum Scene3dCameraMode {
+    Orbit,
+    Fixed,
+}
+
+impl Scene3dCameraMode {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "orbit" => Some(Scene3dCameraMode::Orbit),
+            "fixed" => Some(Scene3dCameraMode::Fixed),
+            _ => None,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Scene3dCameraMode::Orbit => "orbit",
+            Scene3dCameraMode::Fixed => "fixed",
+        }
+    }
+}
+
+/// One `key` child of a `scene3d` camera (Sprint 21 adapters,
+/// CAP-003): the camera snapshot at clip-local time `at` seconds.
+/// Every `Some` property overrides the camera base for that key;
+/// `None` inherits it. Snapshots lerp linearly between keys.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Scene3dCameraKey {
+    pub at: f64,
+    pub distance: Option<f64>,
+    pub azimuth: Option<f64>,
+    pub elevation: Option<f64>,
+    pub position: Option<[f64; 3]>,
+    pub target: Option<[f64; 3]>,
+    pub fov: Option<f64>,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// The `camera` child of a `scene3d` clip (Sprint 21 adapters,
+/// CAP-003): an orbit camera circling `target` or a fixed camera at
+/// `position`, both looking at `target` with vertical `fov` degrees.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Scene3dCamera {
+    pub mode: Scene3dCameraMode,
+    pub distance: f64,
+    pub azimuth: f64,
+    pub elevation: f64,
+    pub position: [f64; 3],
+    pub target: [f64; 3],
+    pub fov: f64,
+    pub keys: Vec<Scene3dCameraKey>,
+}
+
+/// Light kind of a `scene3d` light (Sprint 21 adapters, CAP-003).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum Scene3dLightKind {
+    Point,
+    Directional,
+}
+
+impl Scene3dLightKind {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "point" => Some(Scene3dLightKind::Point),
+            "directional" => Some(Scene3dLightKind::Directional),
+            _ => None,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            Scene3dLightKind::Point => "point",
+            Scene3dLightKind::Directional => "directional",
+        }
+    }
+}
+
+/// One `light` child of a `scene3d` clip (Sprint 21 adapters,
+/// CAP-003): a point light at `position` with distance falloff, or a
+/// directional light along `direction` with uniform intensity.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Scene3dLight {
+    /// Authored name, naming every refusal about this light.
+    pub name: String,
+    pub kind: Scene3dLightKind,
+    pub position: [f64; 3],
+    pub direction: [f64; 3],
+    pub color: Rgb,
+    pub intensity: f64,
+    pub line: usize,
+    pub column: usize,
+}
+
+/// A `scene3d` clip (Sprint 21 adapters, CAP-003): a natively
+/// rendered 3D scene entering the same composition stack as any
+/// picture clip. Geometry is authored primitives plus embedded mesh
+/// data; a missing light rig renders with the named default light;
+/// the camera interpolates between keys at film time. Like `svg`,
+/// the scene rasterizes at its declared `width`/`height` (both
+/// required and positive) with `fit` and `placement` composing it
+/// into the target rect.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Scene3dClip {
+    pub asserts: MotionAsserts,
+    pub start: f64,
+    pub duration: f64,
+    /// Stable reference name (`id`), unique across the project when written.
+    pub id: Option<String>,
+    /// Display lane (`track`); defaults to graphics when undeclared.
+    pub track: TrackKind,
+    /// Editor display note (`label`); rides along with no render effect.
+    pub label: Option<String>,
+    /// Relative start, resolved to `start` by validation (T002); none
+    /// means the absolute `start` stands as written.
+    pub start_after: Option<StartAfter>,
+    pub x: f64,
+    pub y: f64,
+    /// Raster size in canvas pixels; both required positive.
+    pub width: f64,
+    pub height: f64,
+    pub fit: Fit,
+    pub placement: Placement,
+    pub order: i64,
+    /// 3D turn of the clip (Sprint 7 motion, CAP-005). Identity default.
+    pub turn: Turn3D,
+    /// Static Gaussian blur sigma in canvas pixels (Sprint 7 motion,
+    /// CAP-006): 0 draws sharp.
+    pub filter_blur: f64,
+    /// Color grade of the clip (Sprint 11 grade, CAP-001/T001).
+    /// Empty by default, so ungraded clips render exactly as before.
+    pub grade: Grade,
+    /// Named media effects of the clip (Sprint 11 effects, CAP-003/T004).
+    /// Empty by default, so clips without effects render exactly as before.
+    pub effects: Vec<Effect>,
+    /// Ordered VFX chain of the clip (Sprint 11 VFX, CAP-004/T005).
+    /// Empty by default, so clips without VFX render exactly as before.
+    pub vfx: VfxChain,
+    /// Visibility switch (Sprint 6 T009): `true` skips picture and
+    /// sound as if absent, while the id stays referenceable.
+    pub hidden: bool,
+    /// Placed objects; at least one, else the scene cannot build.
+    pub objects: Vec<Scene3dObject>,
+    /// Scene camera (defaults to an orbit framing the origin when
+    /// the clip carries no `camera` child).
+    pub camera: Scene3dCamera,
+    /// Authored lights; empty renders with the named default light.
+    pub lights: Vec<Scene3dLight>,
     pub line: usize,
     pub column: usize,
 }
@@ -2338,14 +2956,8 @@ impl GradePreset {
     }
 
     /// Accepted spellings, in spec order.
-    pub const ACCEPTED: [&'static str; 6] = [
-        "none",
-        "filmic",
-        "noir",
-        "teal-orange",
-        "pastel",
-        "bleach",
-    ];
+    pub const ACCEPTED: [&'static str; 6] =
+        ["none", "filmic", "noir", "teal-orange", "pastel", "bleach"];
 }
 
 /// Accepted `grade` adjust ranges (Sprint 11 grade, CAP-001/T001):
@@ -2730,30 +3342,28 @@ pub fn parse_cube(text: &str) -> Result<LutTable, String> {
             .collect::<Vec<_>>()
             .join(" ");
         match keyword.as_str() {
-            "LUT_3D_SIZE" => {
-                match rest.trim().parse::<usize>() {
-                    Ok(n) if n > LUT_MAX_GRID_SIZE => {
-                        return Err(format!(
+            "LUT_3D_SIZE" => match rest.trim().parse::<usize>() {
+                Ok(n) if n > LUT_MAX_GRID_SIZE => {
+                    return Err(format!(
                             "`LUT_3D_SIZE {n}` on line {line_no} exceeds the {max} grid limit; a `.cube` grid is {max} or smaller per axis",
                             max = LUT_MAX_GRID_SIZE
                         ));
-                    }
-                    Ok(n) if n >= 2 => {
-                        if size.is_some() {
-                            return Err(format!(
+                }
+                Ok(n) if n >= 2 => {
+                    if size.is_some() {
+                        return Err(format!(
                                 "line {line_no} repeats `LUT_3D_SIZE`; a `.cube` names its grid size once"
                             ));
-                        }
-                        size = Some(n);
                     }
-                    _ => {
-                        return Err(format!(
+                    size = Some(n);
+                }
+                _ => {
+                    return Err(format!(
                             "line {line_no} sets `LUT_3D_SIZE` to {rest:?}; a `.cube` grid runs 2 to {max} points per axis",
                             max = LUT_MAX_GRID_SIZE
                         ));
-                    }
                 }
-            }
+            },
             "LUT_1D_SIZE" => {
                 return Err(format!(
                     "line {line_no} declares a 1D LUT (`LUT_1D_SIZE`); Framesmith imports 3D `.cube` files only (`LUT_3D_SIZE` 2 to {max})",
@@ -2800,8 +3410,10 @@ pub fn parse_cube(text: &str) -> Result<LutTable, String> {
                         "line {line_no} holds data before any `LUT_3D_SIZE`; a `.cube` names its grid size before its triplets"
                     ));
                 }
-                let v: Vec<f64> =
-                    parts.iter().map(|p| p.parse::<f64>().unwrap_or(0.0)).collect();
+                let v: Vec<f64> = parts
+                    .iter()
+                    .map(|p| p.parse::<f64>().unwrap_or(0.0))
+                    .collect();
                 values.push([v[0] as f32, v[1] as f32, v[2] as f32]);
             }
         }
@@ -2975,7 +3587,10 @@ impl ResolvedCurve {
 
     /// True when no channel remaps.
     pub fn is_empty(&self) -> bool {
-        self.red.is_empty() && self.green.is_empty() && self.blue.is_empty() && self.master.is_empty()
+        self.red.is_empty()
+            && self.green.is_empty()
+            && self.blue.is_empty()
+            && self.master.is_empty()
     }
 
     /// Layer one authored stage: every channel list the level authors
@@ -3589,7 +4204,11 @@ impl ResolvedGrade {
         let d = (x + 0.5 - cx).hypot(y + 0.5 - cy) / max_d;
         let e0 = 1.0 - self.vignette.softness.clamp(0.0, 1.0);
         let t = if e0 >= 1.0 {
-            if d >= 1.0 { 1.0 } else { 0.0 }
+            if d >= 1.0 {
+                1.0
+            } else {
+                0.0
+            }
         } else {
             let t = ((d - e0) / (1.0 - e0)).clamp(0.0, 1.0);
             t * t * (3.0 - 2.0 * t)
@@ -3680,7 +4299,11 @@ impl ResolvedGrade {
                 }
             }
             GradePreset::Pastel => {
-                let lifted = [rgb[0] * 0.82 + 0.10, rgb[1] * 0.82 + 0.10, rgb[2] * 0.82 + 0.10];
+                let lifted = [
+                    rgb[0] * 0.82 + 0.10,
+                    rgb[1] * 0.82 + 0.10,
+                    rgb[2] * 0.82 + 0.10,
+                ];
                 desat(lifted, 0.7)
             }
             GradePreset::Bleach => {
@@ -4169,10 +4792,7 @@ impl VfxChain {
     pub fn is_empty(&self) -> bool {
         let noise_empty = self.noise.as_ref().is_none_or(|s| s.is_empty());
         let warp_empty = self.warp.as_ref().is_none_or(|s| s.is_empty());
-        let displacement_empty = self
-            .displacement
-            .as_ref()
-            .is_none_or(|s| s.is_empty());
+        let displacement_empty = self.displacement.as_ref().is_none_or(|s| s.is_empty());
         let matte_empty = self.luma_matte.as_ref().is_none_or(|s| s.is_empty());
         noise_empty && warp_empty && displacement_empty && matte_empty
     }
@@ -4189,10 +4809,7 @@ impl VfxChain {
                 .displacement
                 .clone()
                 .or_else(|| outer.displacement.clone()),
-            luma_matte: self
-                .luma_matte
-                .clone()
-                .or_else(|| outer.luma_matte.clone()),
+            luma_matte: self.luma_matte.clone().or_else(|| outer.luma_matte.clone()),
         }
     }
 
@@ -4215,14 +4832,7 @@ impl VfxChain {
         let warp = self
             .warp
             .as_ref()
-            .map(|s| {
-                format!(
-                    "w:{:.6}:{}:{}",
-                    s.amount,
-                    uint(s.grid),
-                    num(s.strength)
-                )
-            })
+            .map(|s| format!("w:{:.6}:{}:{}", s.amount, uint(s.grid), num(s.strength)))
             .unwrap_or_default();
         let displacement = self
             .displacement
@@ -4480,8 +5090,12 @@ pub enum Clip {
     Image(ImageClip),
     Path(PathClip),
     Svg(SvgClip),
+    Chart(ChartClip),
+    Lottie(LottieClip),
     Audio(AudioClip),
     Nest(NestClip),
+    Map(MapClip),
+    Scene3d(Scene3dClip),
 }
 
 impl Clip {
@@ -4494,8 +5108,12 @@ impl Clip {
             Clip::Image(c) => c.start,
             Clip::Path(c) => c.start,
             Clip::Svg(c) => c.start,
+            Clip::Lottie(c) => c.start,
+            Clip::Chart(c) => c.start,
             Clip::Audio(c) => c.start,
             Clip::Nest(c) => c.start,
+            Clip::Map(c) => c.start,
+            Clip::Scene3d(c) => c.start,
         }
     }
 
@@ -4510,8 +5128,12 @@ impl Clip {
             Clip::Image(c) => c.start = start,
             Clip::Path(c) => c.start = start,
             Clip::Svg(c) => c.start = start,
+            Clip::Lottie(c) => c.start = start,
+            Clip::Chart(c) => c.start = start,
             Clip::Audio(c) => c.start = start,
             Clip::Nest(c) => c.start = start,
+            Clip::Map(c) => c.start = start,
+            Clip::Scene3d(c) => c.start = start,
         }
     }
 
@@ -4525,8 +5147,12 @@ impl Clip {
             Clip::Image(c) => c.id.as_deref(),
             Clip::Path(c) => c.id.as_deref(),
             Clip::Svg(c) => c.id.as_deref(),
+            Clip::Lottie(c) => c.id.as_deref(),
+            Clip::Chart(c) => c.id.as_deref(),
             Clip::Audio(c) => c.id.as_deref(),
             Clip::Nest(c) => c.id.as_deref(),
+            Clip::Map(c) => c.id.as_deref(),
+            Clip::Scene3d(c) => c.id.as_deref(),
         }
     }
 
@@ -4540,8 +5166,12 @@ impl Clip {
             Clip::Image(c) => c.start_after.as_ref(),
             Clip::Path(c) => c.start_after.as_ref(),
             Clip::Svg(c) => c.start_after.as_ref(),
+            Clip::Lottie(c) => c.start_after.as_ref(),
+            Clip::Chart(c) => c.start_after.as_ref(),
             Clip::Audio(c) => c.start_after.as_ref(),
             Clip::Nest(c) => c.start_after.as_ref(),
+            Clip::Map(c) => c.start_after.as_ref(),
+            Clip::Scene3d(c) => c.start_after.as_ref(),
         }
     }
 
@@ -4554,8 +5184,12 @@ impl Clip {
             Clip::Image(c) => c.duration,
             Clip::Path(c) => c.duration,
             Clip::Svg(c) => c.duration,
+            Clip::Lottie(c) => c.duration,
+            Clip::Chart(c) => c.duration,
             Clip::Audio(c) => c.duration,
             Clip::Nest(c) => c.duration,
+            Clip::Map(c) => c.duration,
+            Clip::Scene3d(c) => c.duration,
         }
     }
 
@@ -4573,8 +5207,12 @@ impl Clip {
             Clip::Image(c) => c.duration = duration,
             Clip::Path(c) => c.duration = duration,
             Clip::Svg(c) => c.duration = duration,
+            Clip::Lottie(c) => c.duration = duration,
+            Clip::Chart(c) => c.duration = duration,
             Clip::Audio(c) => c.duration = duration,
             Clip::Nest(c) => c.duration = duration,
+            Clip::Map(c) => c.duration = duration,
+            Clip::Scene3d(c) => c.duration = duration,
         }
     }
 
@@ -4588,8 +5226,12 @@ impl Clip {
             Clip::Image(_) => "image clip",
             Clip::Path(_) => "path clip",
             Clip::Svg(_) => "svg clip",
+            Clip::Lottie(_) => "lottie clip",
+            Clip::Chart(_) => "chart clip",
             Clip::Audio(_) => "audio track",
             Clip::Nest(_) => "nest clip",
+            Clip::Map(_) => "map clip",
+            Clip::Scene3d(_) => "scene3d clip",
         }
     }
 
@@ -4603,8 +5245,12 @@ impl Clip {
             Clip::Image(c) => (c.line, c.column),
             Clip::Path(c) => (c.line, c.column),
             Clip::Svg(c) => (c.line, c.column),
+            Clip::Lottie(c) => (c.line, c.column),
+            Clip::Chart(c) => (c.line, c.column),
             Clip::Audio(c) => (c.line, c.column),
             Clip::Nest(c) => (c.line, c.column),
+            Clip::Map(c) => (c.line, c.column),
+            Clip::Scene3d(c) => (c.line, c.column),
         }
     }
 
@@ -4622,8 +5268,12 @@ impl Clip {
             Clip::Image(c) => c.order,
             Clip::Path(c) => c.order,
             Clip::Svg(c) => c.order,
+            Clip::Lottie(c) => c.order,
+            Clip::Chart(c) => c.order,
             Clip::Audio(_) => 0,
             Clip::Nest(c) => c.order,
+            Clip::Map(c) => c.order,
+            Clip::Scene3d(c) => c.order,
         }
     }
 
@@ -4639,8 +5289,12 @@ impl Clip {
             Clip::Image(c) => c.hidden,
             Clip::Path(c) => c.hidden,
             Clip::Svg(c) => c.hidden,
+            Clip::Lottie(c) => c.hidden,
+            Clip::Chart(c) => c.hidden,
             Clip::Audio(c) => c.hidden,
             Clip::Nest(c) => c.hidden,
+            Clip::Map(c) => c.hidden,
+            Clip::Scene3d(c) => c.hidden,
         }
     }
 
@@ -4654,8 +5308,12 @@ impl Clip {
             Clip::Image(c) => c.track,
             Clip::Path(c) => c.track,
             Clip::Svg(c) => c.track,
+            Clip::Lottie(c) => c.track,
+            Clip::Chart(c) => c.track,
             Clip::Audio(c) => c.track,
             Clip::Nest(c) => c.track,
+            Clip::Map(c) => c.track,
+            Clip::Scene3d(c) => c.track,
         }
     }
 
@@ -4673,8 +5331,12 @@ impl Clip {
             Clip::Image(c) => &c.effects,
             Clip::Path(c) => &c.effects,
             Clip::Svg(c) => &c.effects,
+            Clip::Lottie(c) => &c.effects,
+            Clip::Chart(c) => &c.effects,
             Clip::Audio(c) => &c.effects,
             Clip::Nest(c) => &c.effects,
+            Clip::Map(c) => &c.effects,
+            Clip::Scene3d(c) => &c.effects,
         }
     }
 
@@ -4692,8 +5354,12 @@ impl Clip {
             Clip::Image(c) => &c.vfx,
             Clip::Path(c) => &c.vfx,
             Clip::Svg(c) => &c.vfx,
+            Clip::Lottie(c) => &c.vfx,
+            Clip::Chart(c) => &c.vfx,
             Clip::Audio(c) => &c.vfx,
             Clip::Nest(c) => &c.vfx,
+            Clip::Map(c) => &c.vfx,
+            Clip::Scene3d(c) => &c.vfx,
         }
     }
 
@@ -4710,8 +5376,12 @@ impl Clip {
             Clip::Image(c) => &c.grade,
             Clip::Path(c) => &c.grade,
             Clip::Svg(c) => &c.grade,
+            Clip::Lottie(c) => &c.grade,
+            Clip::Chart(c) => &c.grade,
             Clip::Audio(c) => &c.grade,
             Clip::Nest(c) => &c.grade,
+            Clip::Map(c) => &c.grade,
+            Clip::Scene3d(c) => &c.grade,
         }
     }
 
@@ -4725,8 +5395,12 @@ impl Clip {
             Clip::Image(c) => c.label.as_deref(),
             Clip::Path(c) => c.label.as_deref(),
             Clip::Svg(c) => c.label.as_deref(),
+            Clip::Lottie(c) => c.label.as_deref(),
+            Clip::Chart(c) => c.label.as_deref(),
             Clip::Audio(c) => c.label.as_deref(),
             Clip::Nest(c) => c.label.as_deref(),
+            Clip::Map(c) => c.label.as_deref(),
+            Clip::Scene3d(c) => c.label.as_deref(),
         }
     }
 
@@ -4742,8 +5416,12 @@ impl Clip {
             Clip::Image(_) => "image",
             Clip::Path(_) => "path",
             Clip::Svg(_) => "svg",
+            Clip::Lottie(_) => "lottie",
+            Clip::Chart(_) => "chart",
             Clip::Audio(_) => "audio",
             Clip::Nest(_) => "nest",
+            Clip::Map(_) => "map",
+            Clip::Scene3d(_) => "scene3d",
         }
     }
 
@@ -4760,8 +5438,12 @@ impl Clip {
             Clip::Image(c) => Some(&c.asserts),
             Clip::Path(c) => Some(&c.asserts),
             Clip::Svg(c) => Some(&c.asserts),
+            Clip::Lottie(c) => Some(&c.asserts),
+            Clip::Chart(c) => Some(&c.asserts),
             Clip::Audio(_) => None,
             Clip::Nest(c) => Some(&c.asserts),
+            Clip::Map(c) => Some(&c.asserts),
+            Clip::Scene3d(c) => Some(&c.asserts),
         }
     }
 }
@@ -5349,25 +6031,50 @@ mod tests {
         assert!(VfxChain::default().is_empty());
         // Every stage at full strength keeps the chain active.
         let full = VfxChain {
-            noise: Some(VfxNoise { amount: 1.0, seed: None }),
-            warp: Some(VfxWarp { amount: 1.0, grid: None, strength: None }),
-            displacement: Some(VfxDisplacement { amount: 1.0, map: None, scale: None }),
-            luma_matte: Some(VfxLumaMatte { amount: 1.0, src: "m.png".to_string() }),
+            noise: Some(VfxNoise {
+                amount: 1.0,
+                seed: None,
+            }),
+            warp: Some(VfxWarp {
+                amount: 1.0,
+                grid: None,
+                strength: None,
+            }),
+            displacement: Some(VfxDisplacement {
+                amount: 1.0,
+                map: None,
+                scale: None,
+            }),
+            luma_matte: Some(VfxLumaMatte {
+                amount: 1.0,
+                src: "m.png".to_string(),
+            }),
         };
         assert!(!full.is_empty());
         // An inert stage matches the chain written without it.
         let quiet = VfxChain {
-            noise: Some(VfxNoise { amount: 0.0, seed: None }),
+            noise: Some(VfxNoise {
+                amount: 0.0,
+                seed: None,
+            }),
             ..VfxChain::empty()
         };
         assert!(quiet.is_empty());
         let flat_warp = VfxChain {
-            warp: Some(VfxWarp { amount: 1.0, grid: None, strength: Some(0.0) }),
+            warp: Some(VfxWarp {
+                amount: 1.0,
+                grid: None,
+                strength: Some(0.0),
+            }),
             ..VfxChain::empty()
         };
         assert!(flat_warp.is_empty());
         let flat_displacement = VfxChain {
-            displacement: Some(VfxDisplacement { amount: 1.0, map: None, scale: Some(0.0) }),
+            displacement: Some(VfxDisplacement {
+                amount: 1.0,
+                map: None,
+                scale: Some(0.0),
+            }),
             ..VfxChain::empty()
         };
         assert!(flat_displacement.is_empty());
@@ -5379,12 +6086,23 @@ mod tests {
     #[test]
     fn vfx_chain_layers_inner_wins_per_stage() {
         let inner = VfxChain {
-            warp: Some(VfxWarp { amount: 0.5, grid: Some(8), strength: None }),
+            warp: Some(VfxWarp {
+                amount: 0.5,
+                grid: Some(8),
+                strength: None,
+            }),
             ..VfxChain::empty()
         };
         let outer = VfxChain {
-            warp: Some(VfxWarp { amount: 1.0, grid: None, strength: None }),
-            noise: Some(VfxNoise { amount: 1.0, seed: Some(3) }),
+            warp: Some(VfxWarp {
+                amount: 1.0,
+                grid: None,
+                strength: None,
+            }),
+            noise: Some(VfxNoise {
+                amount: 1.0,
+                seed: Some(3),
+            }),
             ..VfxChain::empty()
         };
         let merged = inner.layer_outer(&outer);
@@ -5464,7 +6182,10 @@ mod tests {
             ..ResolvedGrade::identity()
         };
         let (r, g, b) = up.apply(mid.0, mid.1, mid.2);
-        assert!((r - 255.0).abs() < 1.0 && (g - 255.0).abs() < 1.0, "{r},{g},{b}");
+        assert!(
+            (r - 255.0).abs() < 1.0 && (g - 255.0).abs() < 1.0,
+            "{r},{g},{b}"
+        );
         let down = ResolvedGrade {
             exposure: -1.0,
             ..ResolvedGrade::identity()
@@ -5550,7 +6271,10 @@ mod tests {
             ..ResolvedGrade::identity()
         };
         let (r, g, b) = bleach.apply(px.0, px.1, px.2);
-        assert!((r + g + b) / 3.0 > (px.0 + px.1 + px.2) / 3.0, "{r},{g},{b}");
+        assert!(
+            (r + g + b) / 3.0 > (px.0 + px.1 + px.2) / 3.0,
+            "{r},{g},{b}"
+        );
     }
 
     // --- Sprint 11 grade detail stages (T002) ---
@@ -5663,9 +6387,15 @@ mod tests {
         // Red sits inside the wrapping window: lightness lifts it pink.
         let (r, gg, b) = g.apply_at(255.0, 0.0, 0.0, 0.0, 0.0, 64.0, 64.0);
         assert!((r - 255.0).abs() < 1.0, "{r}");
-        assert!(gg > 90.0 && gg < 115.0 && (gg - b).abs() < 1e-6, "{r},{gg},{b}");
+        assert!(
+            gg > 90.0 && gg < 115.0 && (gg - b).abs() < 1e-6,
+            "{r},{gg},{b}"
+        );
         // Green sits outside the window: byte-identical.
-        assert_eq!(g.apply_at(0.0, 255.0, 0.0, 0.0, 0.0, 64.0, 64.0), (0.0, 255.0, 0.0));
+        assert_eq!(
+            g.apply_at(0.0, 255.0, 0.0, 0.0, 0.0, 64.0, 64.0),
+            (0.0, 255.0, 0.0)
+        );
         // Gray fails the saturation floor: byte-identical.
         assert_eq!(
             g.apply_at(128.0, 128.0, 128.0, 0.0, 0.0, 64.0, 64.0),
@@ -5676,7 +6406,10 @@ mod tests {
         g.hsl.hue_min = 90.0;
         g.hsl.hue_max = 270.0;
         g.hsl.lightness = 0.2;
-        assert_eq!(g.apply_at(255.0, 0.0, 0.0, 0.0, 0.0, 64.0, 64.0), (255.0, 0.0, 0.0));
+        assert_eq!(
+            g.apply_at(255.0, 0.0, 0.0, 0.0, 0.0, 64.0, 64.0),
+            (255.0, 0.0, 0.0)
+        );
         let (r, gg, b) = g.apply_at(0.0, 255.0, 0.0, 0.0, 0.0, 64.0, 64.0);
         assert!((gg - 255.0).abs() < 1.0 && r > 90.0, "{r},{gg},{b}");
         // A zero shift is the identity look whatever the window holds.
@@ -5694,7 +6427,10 @@ mod tests {
         assert!(!g.is_empty());
         assert!(g.is_spatial());
         // The center pixel never moves, whatever the knobs hold.
-        assert_eq!(g.apply_at(200.0, 200.0, 200.0, 31.0, 31.0, 64.0, 64.0), (200.0, 200.0, 200.0));
+        assert_eq!(
+            g.apply_at(200.0, 200.0, 200.0, 31.0, 31.0, 64.0, 64.0),
+            (200.0, 200.0, 200.0)
+        );
         let mut full = detail();
         full.vignette.amount = 1.0;
         full.vignette.softness = 1.0;
@@ -5751,7 +6487,10 @@ mod tests {
         g.grain.size = 4;
         assert!(g.is_empty());
         assert!(!g.is_spatial());
-        assert_eq!(g.apply_at(10.0, 128.0, 250.0, 3.0, 3.0, 64.0, 64.0), (10.0, 128.0, 250.0));
+        assert_eq!(
+            g.apply_at(10.0, 128.0, 250.0, 3.0, 3.0, 64.0, 64.0),
+            (10.0, 128.0, 250.0)
+        );
     }
 
     #[test]
@@ -5811,7 +6550,11 @@ mod tests {
         // keeps its historic head.
         let mut preset = detail();
         preset.preset = GradePreset::Filmic;
-        assert!(preset.fingerprint().starts_with("filmic:"), "{}", preset.fingerprint());
+        assert!(
+            preset.fingerprint().starts_with("filmic:"),
+            "{}",
+            preset.fingerprint()
+        );
     }
 
     #[test]
@@ -5980,7 +6723,10 @@ mod tests {
         full.lut.grid = Some(grid.clone());
         assert!(!full.is_empty());
         let (r, g, b) = full.apply(255.0, 0.0, 0.0);
-        assert!((r - 0.0).abs() < 1e-6 && (g - 0.0).abs() < 1e-6 && (b - 255.0).abs() < 1e-6, "{r},{g},{b}");
+        assert!(
+            (r - 0.0).abs() < 1e-6 && (g - 0.0).abs() < 1e-6 && (b - 255.0).abs() < 1e-6,
+            "{r},{g},{b}"
+        );
         // Zero amount passes through (pixel-identical to no LUT).
         let mut zero = full.clone();
         zero.lut.amount = 0.0;
@@ -6126,10 +6872,7 @@ mod tests {
         );
         assert_eq!(StrokePosition::parse("middle"), None);
         assert_eq!(StrokePosition::parse("Center"), None);
-        assert_eq!(
-            StrokePosition::ACCEPTED,
-            ["center", "inside", "outside"]
-        );
+        assert_eq!(StrokePosition::ACCEPTED, ["center", "inside", "outside"]);
         assert_eq!(StrokePosition::default(), StrokePosition::Inside);
         assert_eq!(BlendMode::parse("multiply"), Some(BlendMode::Multiply));
         assert_eq!(BlendMode::parse("screen"), Some(BlendMode::Screen));
@@ -6137,7 +6880,10 @@ mod tests {
         assert_eq!(BlendMode::parse("normal"), Some(BlendMode::Normal));
         assert_eq!(BlendMode::parse("darken"), None);
         assert_eq!(BlendMode::parse("Multiply"), None);
-        assert_eq!(BlendMode::ACCEPTED, ["normal", "multiply", "screen", "overlay"]);
+        assert_eq!(
+            BlendMode::ACCEPTED,
+            ["normal", "multiply", "screen", "overlay"]
+        );
         assert_eq!(BlendMode::default(), BlendMode::Normal);
         assert_eq!(Overflow::parse("hidden"), Some(Overflow::Hidden));
         assert_eq!(Overflow::parse("clip"), Some(Overflow::Clip));

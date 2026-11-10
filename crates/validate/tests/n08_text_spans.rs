@@ -45,7 +45,10 @@ fn diags(body: &str) -> Vec<Diagnostic> {
 }
 
 fn assert_refusal(ds: &[Diagnostic], code: &str, property: &str) {
-    assert!(!ds.is_empty(), "expected a `{code}` refusal for `{property}`");
+    assert!(
+        !ds.is_empty(),
+        "expected a `{code}` refusal for `{property}`"
+    );
     for d in ds {
         assert_eq!(d.code, code, "unexpected code in {d}");
         assert!(

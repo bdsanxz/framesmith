@@ -213,6 +213,10 @@ fn clip_vfx(clip: &notation::model::Clip) -> &notation::model::VfxChain {
         notation::model::Clip::Image(c) => &c.vfx,
         notation::model::Clip::Path(c) => &c.vfx,
         notation::model::Clip::Svg(c) => &c.vfx,
+        notation::model::Clip::Chart(c) => &c.vfx,
+        notation::model::Clip::Map(c) => &c.vfx,
+        notation::model::Clip::Scene3d(c) => &c.vfx,
+        notation::model::Clip::Lottie(c) => &c.vfx,
         notation::model::Clip::Audio(c) => &c.vfx,
         notation::model::Clip::Nest(c) => &c.vfx,
     }
@@ -241,9 +245,7 @@ fn push_ref(map: &mut BTreeMap<String, Vec<String>>, path: &str, referrer: Strin
 /// `font` declarations, grade `lut` sources (composition, lane, and
 /// clip grades), box image fills, VFX matte and displacement maps,
 /// and image variable defaults.
-pub fn reference_map(
-    comps: &[notation::model::Composition],
-) -> BTreeMap<String, Vec<String>> {
+pub fn reference_map(comps: &[notation::model::Composition]) -> BTreeMap<String, Vec<String>> {
     let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for comp in comps {
         let cname = comp.name.clone();
@@ -282,28 +284,95 @@ pub fn reference_map(
         for (index, clip) in comp.clips.iter().enumerate() {
             let owner = match clip {
                 notation::model::Clip::Video(c) => {
-                    push_ref(&mut map, &c.path, format!("composition {cname:?} {}", clip_owner("video", index, c.id.as_deref())));
+                    push_ref(
+                        &mut map,
+                        &c.path,
+                        format!(
+                            "composition {cname:?} {}",
+                            clip_owner("video", index, c.id.as_deref())
+                        ),
+                    );
                     clip_owner("video", index, c.id.as_deref())
                 }
                 notation::model::Clip::Audio(c) => {
-                    push_ref(&mut map, &c.path, format!("composition {cname:?} {}", clip_owner("audio", index, c.id.as_deref())));
+                    push_ref(
+                        &mut map,
+                        &c.path,
+                        format!(
+                            "composition {cname:?} {}",
+                            clip_owner("audio", index, c.id.as_deref())
+                        ),
+                    );
                     clip_owner("audio", index, c.id.as_deref())
                 }
                 notation::model::Clip::Image(c) => {
-                    push_ref(&mut map, &c.path, format!("composition {cname:?} {}", clip_owner("image", index, c.id.as_deref())));
+                    push_ref(
+                        &mut map,
+                        &c.path,
+                        format!(
+                            "composition {cname:?} {}",
+                            clip_owner("image", index, c.id.as_deref())
+                        ),
+                    );
                     clip_owner("image", index, c.id.as_deref())
                 }
                 notation::model::Clip::Svg(c) => {
-                    push_ref(&mut map, &c.path, format!("composition {cname:?} {}", clip_owner("svg", index, c.id.as_deref())));
+                    push_ref(
+                        &mut map,
+                        &c.path,
+                        format!(
+                            "composition {cname:?} {}",
+                            clip_owner("svg", index, c.id.as_deref())
+                        ),
+                    );
                     clip_owner("svg", index, c.id.as_deref())
                 }
+                notation::model::Clip::Lottie(c) => {
+                    push_ref(
+                        &mut map,
+                        &c.path,
+                        format!(
+                            "composition {cname:?} {}",
+                            clip_owner("lottie", index, c.id.as_deref())
+                        ),
+                    );
+                    clip_owner("lottie", index, c.id.as_deref())
+                }
+                notation::model::Clip::Chart(c) => {
+                    if let Some(data_file) = c.data_file.as_deref() {
+                        push_ref(
+                            &mut map,
+                            data_file,
+                            format!(
+                                "composition {cname:?} {}",
+                                clip_owner("chart", index, c.id.as_deref())
+                            ),
+                        );
+                    }
+                    clip_owner("chart", index, c.id.as_deref())
+                }
+                notation::model::Clip::Map(c) => {
+                    push_ref(
+                        &mut map,
+                        &c.pack,
+                        format!(
+                            "composition {cname:?} {}",
+                            clip_owner("map", index, c.id.as_deref())
+                        ),
+                    );
+                    clip_owner("map", index, c.id.as_deref())
+                }
+                notation::model::Clip::Scene3d(c) => clip_owner("scene3d", index, c.id.as_deref()),
                 notation::model::Clip::Text(c) => clip_owner("text", index, c.id.as_deref()),
                 notation::model::Clip::Box(c) => {
                     if let notation::model::FillPaint::Image { src, .. } = &c.fill_paint {
                         push_ref(
                             &mut map,
                             src,
-                            format!("composition {cname:?} {} fill", clip_owner("box", index, c.id.as_deref())),
+                            format!(
+                                "composition {cname:?} {} fill",
+                                clip_owner("box", index, c.id.as_deref())
+                            ),
                         );
                     }
                     clip_owner("box", index, c.id.as_deref())
@@ -373,10 +442,7 @@ fn rel_name(folder: &Path, path: &Path) -> Option<String> {
 /// used state, in name order. Hidden files and directories (names
 /// starting with `.`, including the hidden SDK history directory)
 /// never list: panel browsing never reads the undo record.
-pub fn list_assets(
-    folder: &Path,
-    comps: &[notation::model::Composition],
-) -> Vec<AssetEntry> {
+pub fn list_assets(folder: &Path, comps: &[notation::model::Composition]) -> Vec<AssetEntry> {
     let refs = reference_map(comps);
     let mut out = Vec::new();
     let mut stack = vec![folder.to_path_buf()];
@@ -527,9 +593,7 @@ fn percent_decode(raw: &str) -> String {
     let mut i = 0;
     while i < bytes.len() {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            if let (Some(h), Some(l)) =
-                (hex_val(bytes[i + 1]), hex_val(bytes[i + 2]))
-            {
+            if let (Some(h), Some(l)) = (hex_val(bytes[i + 1]), hex_val(bytes[i + 2])) {
                 out.push((h * 16 + l) as char);
                 i += 3;
                 continue;
@@ -615,14 +679,16 @@ pub fn all_projects_json(projects: &[ProjectAssets], query: &AssetQuery) -> Stri
             "{{\"project\":\"{}\",\"read-only\":{},\"assets\":[{}]}}",
             json_escape(&p.project),
             if p.read_only { "true" } else { "false" },
-            kept
-                .iter()
+            kept.iter()
                 .map(|e| asset_entry_json(e))
                 .collect::<Vec<_>>()
                 .join(",")
         ));
     }
-    format!("{{\"scope\":\"all-projects\",\"projects\":[{}]}}", rows.join(","))
+    format!(
+        "{{\"scope\":\"all-projects\",\"projects\":[{}]}}",
+        rows.join(",")
+    )
 }
 
 /// Discover the projects for the all-projects view: the served
@@ -794,11 +860,7 @@ pub fn import_asset(folder: &Path, req: &ImportRequest) -> Result<ImportReceipt,
     let wanted = req
         .name
         .as_deref()
-        .or_else(|| {
-            source
-                .file_name()
-                .and_then(|s| s.to_str())
-        })
+        .or_else(|| source.file_name().and_then(|s| s.to_str()))
         .unwrap_or("");
     let Some(file_name) = safe_file_name(wanted) else {
         return Err(refused_assets(format!(

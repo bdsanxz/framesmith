@@ -66,10 +66,19 @@ fn multi_run_paragraph_paints_each_run_with_own_style() {
     assert_eq!(visual_ltr(&block), "Hi there");
     let sizes: Vec<f32> = block.runs.iter().map(|r| r.size).collect();
     assert!(sizes.contains(&24.0), "first run keeps its size: {sizes:?}");
-    assert!(sizes.contains(&48.0), "second run keeps its size: {sizes:?}");
+    assert!(
+        sizes.contains(&48.0),
+        "second run keeps its size: {sizes:?}"
+    );
     let colours: Vec<[u8; 4]> = block.runs.iter().map(|r| r.colour).collect();
-    assert!(colours.contains(&[255, 0, 0, 255]), "first run keeps its color");
-    assert!(colours.contains(&[0, 255, 0, 255]), "second run keeps its color");
+    assert!(
+        colours.contains(&[255, 0, 0, 255]),
+        "first run keeps its color"
+    );
+    assert!(
+        colours.contains(&[0, 255, 0, 255]),
+        "second run keeps its color"
+    );
 }
 
 #[test]
@@ -78,10 +87,7 @@ fn missing_first_family_falls_through_to_next_available() {
     let block = layout_runs(
         &mut fonts,
         &[RunStyle {
-            families: vec![
-                "no-such-family-xyz".to_string(),
-                "sans-serif".to_string(),
-            ],
+            families: vec!["no-such-family-xyz".to_string(), "sans-serif".to_string()],
             ..run("Hello")
         }],
         Align::Left,
@@ -106,17 +112,34 @@ fn rtl_mixed_script_shapes_correct_visual_order() {
     let chars: Vec<char> = visual.chars().collect();
     // Digits keep their native order at the visual left, latin at the
     // visual right, arabic between them.
-    assert_eq!(&chars[..3], &['1', '2', '3'], "digits stay ordered leftmost: {visual:?}");
-    assert_eq!(&chars[chars.len() - 5..], &['H', 'e', 'l', 'l', 'o'], "latin stays ordered rightmost: {visual:?}");
+    assert_eq!(
+        &chars[..3],
+        &['1', '2', '3'],
+        "digits stay ordered leftmost: {visual:?}"
+    );
+    assert_eq!(
+        &chars[chars.len() - 5..],
+        &['H', 'e', 'l', 'l', 'o'],
+        "latin stays ordered rightmost: {visual:?}"
+    );
     assert!(
-        chars[3..chars.len() - 5].iter().all(|c| *c != 'H' && !c.is_ascii_digit()),
+        chars[3..chars.len() - 5]
+            .iter()
+            .all(|c| *c != 'H' && !c.is_ascii_digit()),
         "arabic sits between the runs: {visual:?}"
     );
     // The ltr base orders the same runs differently: latin leftmost.
     let ltr = layout_runs(&mut fonts, &runs, Align::Left, Direction::Ltr, None, None)
         .expect("ltr must lay out");
-    assert!(visual_ltr(&ltr).starts_with("Hello"), "ltr keeps latin leftmost");
-    assert_ne!(visual_ltr(&ltr), visual, "direction changes the visual order");
+    assert!(
+        visual_ltr(&ltr).starts_with("Hello"),
+        "ltr keeps latin leftmost"
+    );
+    assert_ne!(
+        visual_ltr(&ltr),
+        visual,
+        "direction changes the visual order"
+    );
 }
 
 #[test]
@@ -148,8 +171,15 @@ fn auto_direction_follows_first_strong_character() {
 #[test]
 fn arabic_lam_alef_shapes_mandatory_ligature() {
     let mut fonts = Fonts::new();
-    let block = layout_runs(&mut fonts, &[run("لا")], Align::Left, Direction::Rtl, None, None)
-        .expect("arabic must lay out");
+    let block = layout_runs(
+        &mut fonts,
+        &[run("لا")],
+        Align::Left,
+        Direction::Rtl,
+        None,
+        None,
+    )
+    .expect("arabic must lay out");
     assert_eq!(
         glyph_count(&block),
         1,
@@ -161,8 +191,15 @@ fn arabic_lam_alef_shapes_mandatory_ligature() {
 fn arabic_word_shapes_fewer_glyphs_than_characters() {
     let mut fonts = Fonts::new();
     let word = "السلام";
-    let block = layout_runs(&mut fonts, &[run(word)], Align::Left, Direction::Rtl, None, None)
-        .expect("arabic must lay out");
+    let block = layout_runs(
+        &mut fonts,
+        &[run(word)],
+        Align::Left,
+        Direction::Rtl,
+        None,
+        None,
+    )
+    .expect("arabic must lay out");
     assert!(
         glyph_count(&block) < word.chars().count(),
         "ligatures must merge glyphs below the character count"
@@ -172,10 +209,24 @@ fn arabic_word_shapes_fewer_glyphs_than_characters() {
 #[test]
 fn hebrew_final_forms_shape_positionally() {
     let mut fonts = Fonts::new();
-    let kaf = layout_runs(&mut fonts, &[run("כ")], Align::Left, Direction::Rtl, None, None)
-        .expect("hebrew must lay out");
-    let final_kaf = layout_runs(&mut fonts, &[run("ך")], Align::Left, Direction::Rtl, None, None)
-        .expect("hebrew must lay out");
+    let kaf = layout_runs(
+        &mut fonts,
+        &[run("כ")],
+        Align::Left,
+        Direction::Rtl,
+        None,
+        None,
+    )
+    .expect("hebrew must lay out");
+    let final_kaf = layout_runs(
+        &mut fonts,
+        &[run("ך")],
+        Align::Left,
+        Direction::Rtl,
+        None,
+        None,
+    )
+    .expect("hebrew must lay out");
     let id = |b: &layout::Block| {
         b.runs
             .iter()
@@ -184,9 +235,20 @@ fn hebrew_final_forms_shape_positionally() {
     };
     assert_eq!(id(&kaf).len(), 1);
     assert_eq!(id(&final_kaf).len(), 1);
-    assert_ne!(id(&kaf), id(&final_kaf), "final kaf must shape positionally");
-    let word = layout_runs(&mut fonts, &[run("מלך")], Align::Left, Direction::Rtl, None, None)
-        .expect("hebrew must lay out");
+    assert_ne!(
+        id(&kaf),
+        id(&final_kaf),
+        "final kaf must shape positionally"
+    );
+    let word = layout_runs(
+        &mut fonts,
+        &[run("מלך")],
+        Align::Left,
+        Direction::Rtl,
+        None,
+        None,
+    )
+    .expect("hebrew must lay out");
     assert_eq!(glyph_count(&word), 3);
 }
 
@@ -196,11 +258,24 @@ fn hebrew_final_forms_shape_positionally() {
 fn long_unbreakable_word_overflows_with_glyphs_unchanged() {
     let mut fonts = Fonts::new();
     let word = "supercalifragilisticexpialidocious";
-    let narrow =
-        layout_runs(&mut fonts, &[run(word)], Align::Left, Direction::Ltr, Some(120.0), None)
-            .expect("long word must lay out");
-    let wide = layout_runs(&mut fonts, &[run(word)], Align::Left, Direction::Ltr, None, None)
-        .expect("long word must lay out");
+    let narrow = layout_runs(
+        &mut fonts,
+        &[run(word)],
+        Align::Left,
+        Direction::Ltr,
+        Some(120.0),
+        None,
+    )
+    .expect("long word must lay out");
+    let wide = layout_runs(
+        &mut fonts,
+        &[run(word)],
+        Align::Left,
+        Direction::Ltr,
+        None,
+        None,
+    )
+    .expect("long word must lay out");
     assert_eq!(narrow.lines.len(), 1, "no silent mid-word split");
     assert!(
         narrow.lines[0].width > 120.0,
@@ -219,7 +294,6 @@ fn explicit_soft_break_splits_long_word() {
     let block = layout_runs(
         &mut fonts,
         &[run("supercali\u{200b}fragilistic")], // "supercali\u{200b}fragilistic": explicit soft break
-
         Align::Left,
         Direction::Ltr,
         Some(220.0),
@@ -315,7 +389,10 @@ fn newline_only_run_refuses_naming_span() {
     )
     .expect_err("a run shaping to no glyphs must refuse");
     assert_eq!(err, TextError::NoGlyphs { run: 1 });
-    assert!(err.to_string().contains("span 2"), "refusal names the span: {err}");
+    assert!(
+        err.to_string().contains("span 2"),
+        "refusal names the span: {err}"
+    );
 }
 
 #[test]

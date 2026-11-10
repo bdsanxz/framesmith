@@ -12,7 +12,7 @@
 
 use crate::motion_plan::ClipMotion;
 use motion::Prop;
-use notation::model::{Clip, Composition, Fit, Placement, ResolvedGrade, Rgb};
+use notation::model::{Clip, Composition, Fit, LoopMode, Placement, ResolvedGrade, Rgb};
 use timebase::Time;
 
 /// One visible item's resolved look (Sprint 11 grade, CAP-001/T001+T002):
@@ -264,6 +264,80 @@ pub struct ResolvedImage {
     pub turn: notation::model::Turn3D,
 }
 
+/// One visible Lottie element at one frame time (Sprint 21 adapters,
+/// T001): the source instant in animation seconds plus the declared
+/// raster rect. Paint rasterizes the decoded animation at `src_t`
+/// (already loop-mapped) pre-composed at `width`/`height`, then draws
+/// through the shared image blitter.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedLottie {
+    pub doc: usize,
+    pub order: i64,
+    pub path: String,
+    /// Unwrapped source instant in animation seconds (`t - start`).
+    pub src_t: f64,
+    /// Loop behavior for instants past the animation window.
+    pub loop_mode: LoopMode,
+    pub x: f64,
+    pub y: f64,
+    /// Evaluated target extents (authored, or animated when a
+    /// `width`/`height` tween or set names the clip).
+    pub width: f64,
+    pub height: f64,
+    pub fit: Fit,
+    pub placement: Placement,
+    /// Evaluated motion (T010): uniform scale about the top-left of
+    /// the target rect, rotation in degrees about its center, opacity
+    /// 0 to 1.
+    pub scale: f64,
+    pub rotation: f64,
+    pub opacity: f64,
+    /// Evaluated 3D turn plus static perspective/origin (CAP-005) and
+    /// blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
+}
+
+/// One visible 3D scene at one frame time (Sprint 21 adapters, T003 /
+/// CAP-003): the authored objects and lights plus the camera resolved
+/// at the clip-local instant. Paint rasterizes the scene through the
+/// pure-Rust `threed` core pre-composed at `width`/`height`, then
+/// draws through the shared image blitter.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedScene3d {
+    pub doc: usize,
+    pub order: i64,
+    pub x: f64,
+    pub y: f64,
+    /// Evaluated target extents (authored, or animated when a
+    /// `width`/`height` tween or set names the clip): the raster
+    /// paints pre-composed at exactly this size.
+    pub width: f64,
+    pub height: f64,
+    pub fit: Fit,
+    pub placement: Placement,
+    /// Evaluated motion (T010): uniform scale about the top-left of
+    /// the target rect, rotation in degrees about its center, opacity
+    /// 0 to 1.
+    pub scale: f64,
+    pub rotation: f64,
+    pub opacity: f64,
+    /// Evaluated 3D turn plus static perspective/origin (CAP-005) and
+    /// blur sigma (CAP-006).
+    pub rotate_x: f64,
+    pub rotate_y: f64,
+    pub blur: f64,
+    pub turn: notation::model::Turn3D,
+    /// Clip-local instant in seconds (`frame time - clip start`): the
+    /// camera resolves here, so seeks show the time-correct view.
+    pub local_t: f64,
+    pub objects: Vec<notation::model::Scene3dObject>,
+    pub camera: threed::Camera,
+    pub lights: Vec<notation::model::Scene3dLight>,
+}
+
 /// Round one straight-RGBA channel to a byte, deterministically.
 pub fn channel_byte(v: f64) -> u8 {
     v.round().clamp(0.0, 255.0) as u8
@@ -303,6 +377,8 @@ pub enum FrameItem {
     Box(ResolvedBox),
     Path(ResolvedPath),
     Image(ResolvedImage),
+    Lottie(ResolvedLottie),
+    Scene3d(ResolvedScene3d),
 }
 
 impl FrameItem {
@@ -310,6 +386,8 @@ impl FrameItem {
         match self {
             FrameItem::Text(r) => r.doc,
             FrameItem::Video(r) => r.doc,
+            FrameItem::Lottie(r) => r.doc,
+            FrameItem::Scene3d(r) => r.doc,
             FrameItem::Box(r) => r.doc,
             FrameItem::Path(r) => r.doc,
             FrameItem::Image(r) => r.doc,
@@ -320,6 +398,8 @@ impl FrameItem {
         match self {
             FrameItem::Text(r) => r.order,
             FrameItem::Video(r) => r.order,
+            FrameItem::Lottie(r) => r.order,
+            FrameItem::Scene3d(r) => r.order,
             FrameItem::Box(r) => r.order,
             FrameItem::Path(r) => r.order,
             FrameItem::Image(r) => r.order,
@@ -333,6 +413,8 @@ impl FrameItem {
         match self {
             FrameItem::Text(r) => r.order = r.order.saturating_add(by),
             FrameItem::Video(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Lottie(r) => r.order = r.order.saturating_add(by),
+            FrameItem::Scene3d(r) => r.order = r.order.saturating_add(by),
             FrameItem::Box(r) => r.order = r.order.saturating_add(by),
             FrameItem::Path(r) => r.order = r.order.saturating_add(by),
             FrameItem::Image(r) => r.order = r.order.saturating_add(by),
@@ -947,6 +1029,54 @@ fn collect_items(
                     vfx: clip.vfx().clone(),
                 });
             }
+            // A `map` clip resolves to an image item (Sprint 21
+            // adapters, T004): the prepare stage pre-renders the
+            // viewport under its canonical key (a synthetic
+            // `map-viewports/` path no real file can collide with),
+            // so the shared blitter draws it with `fill` placement
+            // and the clip rides the full image stack (order,
+            // opacity, motion, grade, effects, VFX).
+            Clip::Map(m) => {
+                let (vw_px, vh_px) = crate::map::viewport_px(m, (comp.width, comp.height));
+                let key = crate::map::viewport_key(m, vw_px, vh_px);
+                let map_width = match (m.width, touches(Prop::Width)) {
+                    (None, false) => Some(f64::from(vw_px)),
+                    (Some(_), false) => m.width,
+                    (_, true) => Some(eval.width),
+                };
+                let map_height = match (m.height, touches(Prop::Height)) {
+                    (None, false) => Some(f64::from(vh_px)),
+                    (Some(_), false) => m.height,
+                    (_, true) => Some(eval.height),
+                };
+                items.push(FrameItem::Image(ResolvedImage {
+                    doc,
+                    order: m.order,
+                    path: key,
+                    x: eval.x,
+                    y: eval.y,
+                    // Animated extents win when a `width`/`height` tween
+                    // or set names the clip (resampling the viewport);
+                    // otherwise the authored size stands, as decoded.
+                    width: map_width,
+                    height: map_height,
+                    fit: Fit::Fill,
+                    placement: Placement::center(),
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: m.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
+            }
             // An `svg` clip resolves to an image item: validation
             // guarantees `width`/`height`, and preparation decodes the
             // source pre-composed at that declared size, so the shared
@@ -975,6 +1105,141 @@ fn collect_items(
                     rotate_y: eval.rotate_y,
                     blur: eval.blur,
                     turn: sv.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
+            }
+            // A `chart` clip resolves to an image item (Sprint 21
+            // adapters, CAP-002/T002): the prepare stage pre-renders
+            // the data and style at the authored size under its
+            // canonical key (a synthetic `chart-pictures/` path no
+            // real file can collide with), so the shared blitter
+            // draws it with `fill` placement and the clip rides the
+            // full image stack (order, opacity, motion, grade,
+            // effects, VFX). Charts stay static per film time: the
+            // baked raster never re-reads per frame.
+            Clip::Chart(ch) => {
+                let (vw_px, vh_px) = crate::chart::viewport_px(ch, (comp.width, comp.height));
+                let key = crate::chart::viewport_key(ch, vw_px, vh_px);
+                let chart_width = match (ch.width, touches(Prop::Width)) {
+                    (None, false) => Some(f64::from(vw_px)),
+                    (Some(_), false) => ch.width,
+                    (_, true) => Some(eval.width),
+                };
+                let chart_height = match (ch.height, touches(Prop::Height)) {
+                    (None, false) => Some(f64::from(vh_px)),
+                    (Some(_), false) => ch.height,
+                    (_, true) => Some(eval.height),
+                };
+                items.push(FrameItem::Image(ResolvedImage {
+                    doc,
+                    order: ch.order,
+                    path: key,
+                    x: eval.x,
+                    y: eval.y,
+                    // Animated extents win when a `width`/`height` tween
+                    // or set names the clip (resampling the raster);
+                    // otherwise the authored size stands, as decoded.
+                    width: chart_width,
+                    height: chart_height,
+                    fit: Fit::Fill,
+                    placement: Placement::center(),
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: ch.turn,
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
+            }
+            // A `scene3d` clip resolves to a scene item (Sprint 21
+            // adapters, T003 / CAP-003): the camera resolves at the
+            // clip-local instant, so seeks show the time-correct view
+            // and keys lerp deterministically. Animated extents win
+            // when a `width`/`height` tween or set names the clip;
+            // otherwise the authored fields stand, exactly like the
+            // `svg` clip.
+            Clip::Scene3d(sc) => {
+                let local_t = (t - sc.start).max(0.0);
+                let camera = crate::scene3d::resolve_camera(&sc.camera, local_t);
+                items.push(FrameItem::Scene3d(ResolvedScene3d {
+                    doc,
+                    order: sc.order,
+                    x: eval.x,
+                    y: eval.y,
+                    width: match touches(Prop::Width) {
+                        true => eval.width,
+                        false => sc.width,
+                    },
+                    height: match touches(Prop::Height) {
+                        true => eval.height,
+                        false => sc.height,
+                    },
+                    fit: sc.fit,
+                    placement: sc.placement,
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: sc.turn,
+                    local_t,
+                    objects: sc.objects.clone(),
+                    camera,
+                    lights: sc.lights.clone(),
+                }));
+                grades.push(FrameGrade {
+                    doc,
+                    grade,
+                    effects: clip.effects().to_vec(),
+                    vfx: clip.vfx().clone(),
+                });
+            }
+            // A `lottie` clip resolves to a lottie item (Sprint 21
+            // adapters, T001): the source instant counts animation
+            // seconds from the clip start, and the loop mode rides
+            // along for the painter to map. Animated extents win when
+            // a `width`/`height` tween or set names the clip;
+            // otherwise the authored fields stand, exactly like the
+            // `svg` clip.
+            Clip::Lottie(lo) => {
+                items.push(FrameItem::Lottie(ResolvedLottie {
+                    doc,
+                    order: lo.order,
+                    path: lo.path.clone(),
+                    src_t: (t - lo.start).max(0.0),
+                    loop_mode: lo.loop_mode,
+                    x: eval.x,
+                    y: eval.y,
+                    width: match touches(Prop::Width) {
+                        true => eval.width,
+                        false => lo.width,
+                    },
+                    height: match touches(Prop::Height) {
+                        true => eval.height,
+                        false => lo.height,
+                    },
+                    fit: lo.fit,
+                    placement: lo.placement,
+                    scale: eval.scale,
+                    rotation: eval.rotation,
+                    opacity: eval.opacity,
+                    rotate_x: eval.rotate_x,
+                    rotate_y: eval.rotate_y,
+                    blur: eval.blur,
+                    turn: lo.turn,
                 }));
                 grades.push(FrameGrade {
                     doc,

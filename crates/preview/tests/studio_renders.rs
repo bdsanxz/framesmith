@@ -12,15 +12,15 @@
 //! rate with no audio.
 
 use preview::daemon;
-use preview::server::{ServeOptions, run_serve};
+use preview::server::{run_serve, ServeOptions};
 use preview::studio_compositions;
 use preview::studio_renders;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
-use std::cell::RefCell;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
@@ -187,9 +187,7 @@ fn ffprobe_show(path: &Path, entries: &str) -> String {
 /// little-endian `u16` (`0` means forever).
 fn gif_loop_count(bytes: &[u8]) -> Option<u16> {
     let marker = b"NETSCAPE2.0";
-    let at = bytes
-        .windows(marker.len())
-        .position(|w| w == marker)?;
+    let at = bytes.windows(marker.len()).position(|w| w == marker)?;
     let mut i = at + marker.len();
     while i + 2 < bytes.len() {
         // Sub-block: size byte, id byte, count LE u16.
@@ -228,10 +226,7 @@ fn enqueue_body_refusals_name_the_cause_and_queue_nothing() {
             "{\"actor\":\"maker\",\"fps\":25}",
             "unknown queue frame rate",
         ),
-        (
-            "{\"actor\":\"maker\",\"fps\":\"fast\"}",
-            "not a frame rate",
-        ),
+        ("{\"actor\":\"maker\",\"fps\":\"fast\"}", "not a frame rate"),
         (
             "{\"actor\":\"maker\",\"resolution\":\"8k\"}",
             "unknown queue resolution",
@@ -271,13 +266,21 @@ fn enqueue_validates_settings_and_plans_hidden_output() {
     let folder = tmp("enqueue");
     tiny_project(&folder);
     let before_kdl = std::fs::read(folder.join("composition.kdl")).unwrap();
-    let receipt = studio_renders::enqueue_job(&folder, &enqueue_req("mp4"), None)
-        .expect("mp4 enqueues");
+    let receipt =
+        studio_renders::enqueue_job(&folder, &enqueue_req("mp4"), None).expect("mp4 enqueues");
     assert_eq!(receipt.seq, 1);
     assert_eq!(receipt.composition, "t");
     assert_eq!(receipt.format, "mp4");
-    assert!(receipt.output.contains(".framesmith"), "got {}", receipt.output);
-    assert!(receipt.output.ends_with("t-1.mp4"), "got {}", receipt.output);
+    assert!(
+        receipt.output.contains(".framesmith"),
+        "got {}",
+        receipt.output
+    );
+    assert!(
+        receipt.output.ends_with("t-1.mp4"),
+        "got {}",
+        receipt.output
+    );
     let jobs = queue_of(&folder);
     assert_eq!(jobs.len(), 1);
     assert_eq!(jobs[0].status, "queued");
@@ -308,14 +311,22 @@ fn enqueue_honors_every_setting_combination() {
     req.gpu = true;
     let receipt = studio_renders::enqueue_job(&folder, &req, None).expect("webm enqueues");
     assert_eq!(receipt.seq, 1);
-    assert!(receipt.output.ends_with("t-1.webm"), "got {}", receipt.output);
+    assert!(
+        receipt.output.ends_with("t-1.webm"),
+        "got {}",
+        receipt.output
+    );
     let mut gif = enqueue_req("gif");
     gif.fps = Some(60);
     gif.loop_count = 3;
     let gif_receipt = studio_renders::enqueue_job(&folder, &gif, None).expect("gif enqueues");
     assert_eq!(gif_receipt.seq, 2);
     assert_eq!(gif_receipt.fps, 30, "GIF clamps to 30 fps at enqueue");
-    assert!(gif_receipt.output.ends_with("t-2.gif"), "got {}", gif_receipt.output);
+    assert!(
+        gif_receipt.output.ends_with("t-2.gif"),
+        "got {}",
+        gif_receipt.output
+    );
     let jobs = queue_of(&folder);
     assert_eq!(jobs.len(), 2);
     assert_eq!(jobs[0].format, "webm");
@@ -333,7 +344,11 @@ fn enqueue_honors_every_setting_combination() {
     let mut mov = enqueue_req("mov");
     mov.resolution = "4k".to_string();
     let mov_receipt = studio_renders::enqueue_job(&folder, &mov, None).expect("mov enqueues");
-    assert!(mov_receipt.output.ends_with("t-3.mov"), "got {}", mov_receipt.output);
+    assert!(
+        mov_receipt.output.ends_with("t-3.mov"),
+        "got {}",
+        mov_receipt.output
+    );
 }
 
 #[test]
@@ -426,9 +441,14 @@ fn queue_runs_jobs_in_order_with_measured_progress() {
             seen_second.borrow_mut().push((done, total));
         }),
     };
-    let second_result = studio_renders::run_next_queued(&folder, &hooks_second).expect("the queue advances");
+    let second_result =
+        studio_renders::run_next_queued(&folder, &hooks_second).expect("the queue advances");
     assert_eq!(second_result.seq, 2);
-    assert_eq!(second_result.status, "succeeded", "{}", second_result.detail);
+    assert_eq!(
+        second_result.status, "succeeded",
+        "{}",
+        second_result.detail
+    );
     assert!(
         studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default()).is_none(),
         "no queued job remains"
@@ -436,7 +456,10 @@ fn queue_runs_jobs_in_order_with_measured_progress() {
     let seen_first = seen_first.borrow();
     let seen_second = seen_second.borrow();
     for (seen, total) in [(&*seen_first, 120), (&*seen_second, 96)] {
-        assert!(seen.len() >= 2, "progress measured at least twice: {seen:?}");
+        assert!(
+            seen.len() >= 2,
+            "progress measured at least twice: {seen:?}"
+        );
         assert!(
             seen.windows(2).all(|w| w[1].0 >= w[0].0),
             "frames done never go backward: {seen:?}"
@@ -537,8 +560,15 @@ fn failed_job_names_its_stage_while_the_queue_advances() {
     let jobs = queue_of(&folder);
     assert_eq!(jobs[0].status, "failed");
     assert_eq!(jobs[0].stage, "validate");
-    assert!(jobs[0].error.clone().unwrap_or_default().contains("validate"));
-    assert_eq!(jobs[1].status, "queued", "the failure never blocks the queue");
+    assert!(jobs[0]
+        .error
+        .clone()
+        .unwrap_or_default()
+        .contains("validate"));
+    assert_eq!(
+        jobs[1].status, "queued",
+        "the failure never blocks the queue"
+    );
     tiny_project(&folder);
     let revived = studio_renders::run_next_queued(&folder, &hooks).expect("job 2 runs");
     assert_eq!(revived.seq, 2, "the queue advanced past the failure");
@@ -574,13 +604,15 @@ fn delete_says_what_was_removed_and_refuses_running_jobs() {
     assert!(report.contains("no output existed"), "{report}");
     assert!(queue_of(&folder).is_empty());
     studio_renders::enqueue_job(&folder, &enqueue_req("mp4"), None).expect("queues again");
-    studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default())
-        .expect("runs");
+    studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default()).expect("runs");
     let output = queue_of(&folder)[0].output.clone();
     assert!(Path::new(&output).exists());
     let report = studio_renders::delete_job(&folder, 1).expect("finished deletes");
     assert!(report.contains(&output), "{report}");
-    assert!(!Path::new(&output).exists(), "the output file goes with the row");
+    assert!(
+        !Path::new(&output).exists(),
+        "the output file goes with the row"
+    );
     assert!(queue_of(&folder).is_empty());
     let unknown = studio_renders::delete_job(&folder, 7).expect_err("unknown refuses");
     assert!(unknown.contains("unknown job"), "{unknown}");
@@ -618,7 +650,10 @@ fn hide_finished_clears_only_completed_rows_with_their_outputs() {
     assert!(Path::new(&output).exists());
     let report = studio_renders::hide_finished(&folder).expect("hides");
     assert!(report.contains('1') && report.contains('2'), "{report}");
-    assert!(!Path::new(&output).exists(), "finished outputs go with their rows");
+    assert!(
+        !Path::new(&output).exists(),
+        "finished outputs go with their rows"
+    );
     let jobs = queue_of(&folder);
     assert_eq!(jobs.len(), 1);
     assert_eq!(jobs[0].seq, 3);
@@ -635,8 +670,7 @@ fn download_byte_matches_the_rendered_file() {
     studio_renders::enqueue_job(&folder, &enqueue_req("mp4"), None).expect("queues");
     let queued = studio_renders::download_job(&folder, 1).expect_err("queued never downloads");
     assert!(queued.contains("queued"), "{queued}");
-    studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default())
-        .expect("runs");
+    studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default()).expect("runs");
     let (output, bytes) = studio_renders::download_job(&folder, 1).expect("downloads");
     assert_eq!(bytes, std::fs::read(&output).unwrap());
     assert!(!bytes.is_empty());
@@ -666,8 +700,16 @@ fn gif_exports_loop_as_chosen_at_the_capped_rate_with_no_audio() {
     let jobs = queue_of(&folder);
     let first = std::fs::read(&jobs[0].output).unwrap();
     let second = std::fs::read(&jobs[1].output).unwrap();
-    assert_eq!(gif_loop_count(&first), Some(1), "the chosen loop count lands in the file");
-    assert_eq!(gif_loop_count(&second), Some(0), "loop count zero means forever");
+    assert_eq!(
+        gif_loop_count(&first),
+        Some(1),
+        "the chosen loop count lands in the file"
+    );
+    assert_eq!(
+        gif_loop_count(&second),
+        Some(0),
+        "loop count zero means forever"
+    );
     for (job, bytes) in [&jobs[0], &jobs[1]].iter().zip([&first, &second]) {
         assert_eq!(bytes[0..6], *b"GIF89a", "a real GIF encodes");
         // GIF timestamps quantize to centiseconds, so the container
@@ -688,7 +730,11 @@ fn gif_exports_loop_as_chosen_at_the_capped_rate_with_no_audio() {
             .unwrap_or(-1.0);
         assert!((duration - 2.0).abs() < 0.3, "{probe}");
         let streams = ffprobe_show(Path::new(&job.output), "stream=index");
-        assert_eq!(streams.lines().count(), 1, "GIF carries no audio: {streams}");
+        assert_eq!(
+            streams.lines().count(),
+            1,
+            "GIF carries no audio: {streams}"
+        );
     }
     assert!(
         jobs.iter().all(|j| j.kind == "gif"),
@@ -706,8 +752,7 @@ fn gif_over_fps_request_clamps_to_thirty_with_a_note() {
     req.loop_count = 2;
     let receipt = studio_renders::enqueue_job(&folder, &req, None).expect("queues");
     assert_eq!(receipt.fps, 30);
-    studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default())
-        .expect("runs");
+    studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default()).expect("runs");
     let jobs = queue_of(&folder);
     assert_eq!(jobs[0].status, "succeeded");
     assert!(
@@ -807,9 +852,8 @@ fn resolution_4k_delivers_ultra_high_definition() {
     let mut req = enqueue_req("mp4");
     req.resolution = "4k".to_string();
     studio_renders::enqueue_job(&folder, &req, None).expect("queues");
-    let result =
-        studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default())
-            .expect("runs");
+    let result = studio_renders::run_next_queued(&folder, &studio_renders::RunHooks::default())
+        .expect("runs");
     assert_eq!(result.status, "succeeded", "{}", result.detail);
     let jobs = queue_of(&folder);
     let probe = ffprobe_show(Path::new(&jobs[0].output), "stream=width,height");
@@ -879,7 +923,10 @@ fn renders_panel_controls_cover_every_setting() {
     ] {
         assert!(html.contains(needle), "the panel shows {needle}");
     }
-    for option in ["mp4", "mov", "webm", "gif", "draft", "standard", "high", "24", "30", "60", "auto", "1080p", "4k"] {
+    for option in [
+        "mp4", "mov", "webm", "gif", "draft", "standard", "high", "24", "30", "60", "auto",
+        "1080p", "4k",
+    ] {
         assert!(html.contains(option), "the panel offers {option}");
     }
     let js = studio_renders::renders_js();
@@ -948,11 +995,7 @@ fn json(port: u16, method: &str, target: &str, body: Option<&str>) -> (u16, serd
 
 /// Run one real server for this test: `setup` writes the project,
 /// `f` drives it, then the server shuts down and the thread joins.
-fn with_server(
-    tag: &str,
-    setup: impl FnOnce(&Path),
-    f: impl FnOnce(&Path, u16),
-) {
+fn with_server(tag: &str, setup: impl FnOnce(&Path), f: impl FnOnce(&Path, u16)) {
     let root = tmp(tag);
     let folder = root.join("proj");
     std::fs::create_dir_all(&folder).unwrap();
@@ -1003,10 +1046,7 @@ fn wait_for_status(port: u16, seq: u64, timeout: Duration) -> serde_json::Value 
             .unwrap_or_else(|| panic!("job {seq} lists: {state}"))
             .clone();
         if job["status"] == "queued" || job["status"] == "running" {
-            assert!(
-                start.elapsed() < timeout,
-                "job {seq} never finished: {job}"
-            );
+            assert!(start.elapsed() < timeout, "job {seq} never finished: {job}");
             std::thread::sleep(Duration::from_millis(500));
             continue;
         }
@@ -1109,7 +1149,11 @@ fn http_renders_flow_queues_runs_downloads_and_deletes() {
         let output = job["output"].as_str().unwrap().to_string();
         let (code, bytes) = http(port, "GET", "/api/studio/renders/1/download", None);
         assert_eq!(code, 200, "download answers");
-        assert_eq!(bytes, std::fs::read(&output).unwrap(), "download byte-matches");
+        assert_eq!(
+            bytes,
+            std::fs::read(&output).unwrap(),
+            "download byte-matches"
+        );
         assert!(!bytes.is_empty());
         let (code, report) = body_str(port, "DELETE", "/api/studio/renders/1", None);
         assert_eq!(code, 200, "{report}");
@@ -1124,7 +1168,10 @@ fn http_renders_flow_queues_runs_downloads_and_deletes() {
             "serving and rendering never touch sources"
         );
         assert!(
-            folder.join(".framesmith").join("studio-render-queue.json").exists(),
+            folder
+                .join(".framesmith")
+                .join("studio-render-queue.json")
+                .exists(),
             "the queue persists as hidden studio state"
         );
         assert_eq!(

@@ -50,7 +50,13 @@ fn target_id(id: &str) -> sdk::ClipRef {
     sdk::ClipRef::by_id(id)
 }
 
-fn edit(actor: &str, target: sdk::ClipRef, property: &str, value: Option<&str>, reset: bool) -> studio_inspector::InspectorEdit {
+fn edit(
+    actor: &str,
+    target: sdk::ClipRef,
+    property: &str,
+    value: Option<&str>,
+    reset: bool,
+) -> studio_inspector::InspectorEdit {
     studio_inspector::InspectorEdit {
         actor: actor.to_string(),
         target,
@@ -81,19 +87,55 @@ fn every_group_exposes_live_rows() {
         "Text", "Style", "Layout", "Motion", "Grade", "Effects", "Overlays", "Media", "Audio FX",
         "Timing",
     ] {
-        assert!(out.contains(&format!("\"group\":\"{group}\"")), "group {group}");
+        assert!(
+            out.contains(&format!("\"group\":\"{group}\"")),
+            "group {group}"
+        );
     }
-    assert!(out.contains("\"property\":\"value\",\"kind\":\"text\",\"value\":\"Hello\""), "text live: {out}");
-    assert!(out.contains("\"property\":\"font-size\",\"kind\":\"number\",\"value\":\"24\",\"default\":\"48\""), "font-size live+default: {out}");
-    assert!(out.contains("\"property\":\"start\",\"kind\":\"number\",\"value\":\"0\",\"default\":\"0\""), "timing live: {out}");
-    assert!(out.contains("\"property\":\"duration\",\"kind\":\"number\",\"value\":\"6\",\"default\":\"6\""), "duration reset default: {out}");
+    assert!(
+        out.contains("\"property\":\"value\",\"kind\":\"text\",\"value\":\"Hello\""),
+        "text live: {out}"
+    );
+    assert!(
+        out.contains(
+            "\"property\":\"font-size\",\"kind\":\"number\",\"value\":\"24\",\"default\":\"48\""
+        ),
+        "font-size live+default: {out}"
+    );
+    assert!(
+        out.contains(
+            "\"property\":\"start\",\"kind\":\"number\",\"value\":\"0\",\"default\":\"0\""
+        ),
+        "timing live: {out}"
+    );
+    assert!(
+        out.contains(
+            "\"property\":\"duration\",\"kind\":\"number\",\"value\":\"6\",\"default\":\"6\""
+        ),
+        "duration reset default: {out}"
+    );
     let card = studio_inspector::inspector_json(&comp, &target_id("card"), &[]).expect("box rows");
     assert!(card.contains("\"property\":\"background-color\",\"kind\":\"color\",\"value\":\"#ff0000\",\"default\":\"#ffffff\""), "style live: {card}");
-    assert!(card.contains("\"property\":\"effect-amount\",\"kind\":\"number\",\"value\":\"1\",\"default\":\"1\""), "effects live: {card}");
-    let clip = studio_inspector::inspector_json(&comp, &target_id("clip"), &[]).expect("video rows");
-    assert!(clip.contains("\"property\":\"object-fit\",\"kind\":\"select\",\"value\":\"contain\""), "layout live: {clip}");
-    assert!(clip.contains("\"property\":\"volume\",\"kind\":\"number\",\"value\":\"0\""), "audio fx live: {clip}");
-    assert!(clip.contains("\"property\":\"trim-start\",\"kind\":\"number\",\"value\":\"0\""), "timing trim live: {clip}");
+    assert!(
+        card.contains(
+            "\"property\":\"effect-amount\",\"kind\":\"number\",\"value\":\"1\",\"default\":\"1\""
+        ),
+        "effects live: {card}"
+    );
+    let clip =
+        studio_inspector::inspector_json(&comp, &target_id("clip"), &[]).expect("video rows");
+    assert!(
+        clip.contains("\"property\":\"object-fit\",\"kind\":\"select\",\"value\":\"contain\""),
+        "layout live: {clip}"
+    );
+    assert!(
+        clip.contains("\"property\":\"volume\",\"kind\":\"number\",\"value\":\"0\""),
+        "audio fx live: {clip}"
+    );
+    assert!(
+        clip.contains("\"property\":\"trim-start\",\"kind\":\"number\",\"value\":\"0\""),
+        "timing trim live: {clip}"
+    );
 }
 
 /// Kinds the clip cannot support are skipped, never faked: a text
@@ -103,12 +145,25 @@ fn inapplicable_rows_are_skipped() {
     let dir = tmp("skip");
     project(&dir);
     let comp = shown(&dir);
-    let text = studio_inspector::inspector_json(&comp, &target_id("title"), &[]).expect("text rows");
-    assert!(!text.contains("\"property\":\"background-color\""), "no style leak: {text}");
-    assert!(!text.contains("\"property\":\"volume\""), "no audio leak: {text}");
+    let text =
+        studio_inspector::inspector_json(&comp, &target_id("title"), &[]).expect("text rows");
+    assert!(
+        !text.contains("\"property\":\"background-color\""),
+        "no style leak: {text}"
+    );
+    assert!(
+        !text.contains("\"property\":\"volume\""),
+        "no audio leak: {text}"
+    );
     let card = studio_inspector::inspector_json(&comp, &target_id("card"), &[]).expect("box rows");
-    assert!(!card.contains("\"property\":\"font-size\""), "no text leak: {card}");
-    assert!(!card.contains("\"property\":\"volume\""), "no audio leak: {card}");
+    assert!(
+        !card.contains("\"property\":\"font-size\""),
+        "no text leak: {card}"
+    );
+    assert!(
+        !card.contains("\"property\":\"volume\""),
+        "no audio leak: {card}"
+    );
 }
 
 /// Render-deferred rows mark unavailable with the milestone named.
@@ -123,12 +178,22 @@ fn deferred_rows_mark_unavailable_with_milestone() {
         "filter unavailable: {out}"
     );
     assert!(
-        out.contains("\"property\":\"transform-3d\"") && out.contains("\"milestone\":\"3D milestone\""),
+        out.contains("\"property\":\"transform-3d\"")
+            && out.contains("\"milestone\":\"3D milestone\""),
         "3d unavailable: {out}"
     );
-    assert!(out.contains("\"property\":\"rotate-x\"") , "rotate-x listed: {out}");
-    assert!(out.contains("\"property\":\"perspective\""), "perspective listed: {out}");
-    assert!(out.contains("\"property\":\"origin\""), "origin listed: {out}");
+    assert!(
+        out.contains("\"property\":\"rotate-x\""),
+        "rotate-x listed: {out}"
+    );
+    assert!(
+        out.contains("\"property\":\"perspective\""),
+        "perspective listed: {out}"
+    );
+    assert!(
+        out.contains("\"property\":\"origin\""),
+        "origin listed: {out}"
+    );
 }
 
 /// One row edit per group writes a validated patch turn: edit, turn
@@ -160,12 +225,26 @@ fn one_row_edit_per_group_records_a_turn() {
         .unwrap_or_else(|e| panic!("row {property} refused: {e}"));
         assert_eq!(receipt.actor, "maker");
         assert!(!receipt.summaries.is_empty(), "receipt names the turn");
-        assert_eq!(receipt.selection, vec!["title".to_string(), "card".to_string()], "selection echoes");
+        assert_eq!(
+            receipt.selection,
+            vec!["title".to_string(), "card".to_string()],
+            "selection echoes"
+        );
     }
-    assert_eq!(turn_count(&dir), before + edits.len(), "one validated turn per row");
+    assert_eq!(
+        turn_count(&dir),
+        before + edits.len(),
+        "one validated turn per row"
+    );
     let comp = shown(&dir);
-    assert_eq!(sdk::row_live_value(&comp.clips[0], "font-size").as_deref(), Some("32"));
-    assert_eq!(sdk::row_live_value(&comp.clips[1], "background-color").as_deref(), Some("#00ff00"));
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[0], "font-size").as_deref(),
+        Some("32")
+    );
+    assert_eq!(
+        sdk::row_live_value(&comp.clips[1], "background-color").as_deref(),
+        Some("#00ff00")
+    );
     assert_eq!(comp.clips[0].start(), 1.0);
     assert_eq!(comp.clips[0].duration(), 4.0);
     assert!(comp.clips[1].hidden());
@@ -242,7 +321,10 @@ fn per_row_reset_restores_default_as_undoable_turn() {
         &edit("maker", target_id("card"), "width", None, true),
     )
     .expect_err("default-less reset refuses");
-    assert!(err.contains("required") && err.contains("width"), "rule+location: {err}");
+    assert!(
+        err.contains("required") && err.contains("width"),
+        "rule+location: {err}"
+    );
 }
 
 /// An unsupportable value refuses with rule and location keeping the
@@ -269,8 +351,7 @@ fn bad_row_values_refuse_located_keeping_prior() {
         ("music-missing", "font-size", "10"),
     ];
     for (id, property, value) in cases {
-        let before = sdk::row_live_value(&shown(&dir).clips[0], "font-size")
-            .expect("live reads");
+        let before = sdk::row_live_value(&shown(&dir).clips[0], "font-size").expect("live reads");
         let err = studio_inspector::apply_inspector_edit(
             &dir,
             Some("t"),
@@ -316,7 +397,10 @@ fn malformed_bodies_refuse() {
             }
             Err(message) => message,
         };
-        assert!(err.contains("Nothing was staged") || err.contains("Nothing was applied"), "refusal: {err}");
+        assert!(
+            err.contains("Nothing was staged") || err.contains("Nothing was applied"),
+            "refusal: {err}"
+        );
     }
     // An unknown target refuses even when parsed.
     let dir = tmp("unknown-target");
@@ -343,7 +427,11 @@ fn inspector_shares_the_undo_system_and_selection() {
         &edit("maker", target_id("card"), "x", Some("25"), false),
     )
     .expect("row applies");
-    assert!(receipt.target.contains("card"), "target echoes: {}", receipt.target);
+    assert!(
+        receipt.target.contains("card"),
+        "target echoes: {}",
+        receipt.target
+    );
     let mut session = sdk::SdkSession::open(
         &dir,
         sdk::OpenOptions {
@@ -457,7 +545,9 @@ fn inspector_routes_answer_over_http() {
             port,
             "POST",
             "/api/studio/inspector",
-            Some(r#"{"actor":"maker","target":{"id":"title"},"property":"font-size","value":"36"}"#),
+            Some(
+                r#"{"actor":"maker","target":{"id":"title"},"property":"font-size","value":"36"}"#,
+            ),
         );
         assert_eq!(code, 200, "row edit: {out}");
         assert!(out.contains("\"saved\":true"), "receipt: {out}");
@@ -467,7 +557,9 @@ fn inspector_routes_answer_over_http() {
             port,
             "POST",
             "/api/studio/inspector",
-            Some(r#"{"actor":"maker","target":{"id":"title"},"property":"font-size","value":"huge"}"#),
+            Some(
+                r#"{"actor":"maker","target":{"id":"title"},"property":"font-size","value":"huge"}"#,
+            ),
         );
         assert_eq!(code, 409, "bad value refuses: {out}");
         assert!(out.contains("font-size"), "rule+location: {out}");
@@ -477,7 +569,9 @@ fn inspector_routes_answer_over_http() {
             port,
             "POST",
             "/api/studio/inspector",
-            Some(r#"{"actor":"maker","target":{"id":"title"},"property":"font-size","reset":true}"#),
+            Some(
+                r#"{"actor":"maker","target":{"id":"title"},"property":"font-size","reset":true}"#,
+            ),
         );
         assert_eq!(code, 200, "reset: {out}");
         let (_, out) = body_str(port, "GET", "/api/studio/inspector?target=title", None);

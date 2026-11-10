@@ -104,6 +104,10 @@ fn presets_land_on_every_clip_kind() {
             Clip::Svg(t) => t.grade.preset,
             Clip::Audio(t) => t.grade.preset,
             Clip::Nest(t) => t.grade.preset,
+            Clip::Chart(t) => t.grade.preset,
+            Clip::Lottie(t) => t.grade.preset,
+            Clip::Map(t) => t.grade.preset,
+            Clip::Scene3d(t) => t.grade.preset,
         })
         .map(|p| p.expect("preset written"))
         .collect();

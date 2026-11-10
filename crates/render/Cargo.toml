@@ -9,8 +9,14 @@ license = "MIT OR Apache-2.0"
 notation = { path = "../notation" }
 glyph = { path = "../glyph" }
 motion = { path = "../motion" }
+threed = { path = "../threed" }
 timebase = { path = "../timebase" }
 layout = { path = "../layout" }
 libc = "0.2"
 resvg = "0.46"
 png = "0.17"
+lottie = { path = "../lottie" }
+
+[dev-dependencies]
+serde_json = "1"
+validate = { path = "../validate" }

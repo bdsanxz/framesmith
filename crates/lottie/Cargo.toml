@@ -1,0 +1,11 @@
+[package]
+name = "lottie"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith native Lottie/dotLottie decoder and film-time sampler (Sprint 21, T001): pure-Rust decode, seek, loop modes, markers, baked expressions"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zip = "2"

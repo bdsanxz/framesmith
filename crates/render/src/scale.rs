@@ -19,8 +19,9 @@
 //! sequences) therefore keep it through the scale step.
 
 use notation::model::{
-    BoxClip, Clip, Composition, Effect, EffectParams, FillPaint, FlexChild, FlexClip, ImageClip,
-    KeyDecl, PathClip, SetDecl, SvgClip, TextClip, TextSpan, Turn3D, TweenDecl, VideoClip, Wrap,
+    BoxClip, ChartClip, Clip, Composition, Effect, EffectParams, FillPaint, FlexChild, FlexClip,
+    ImageClip, KeyDecl, LottieClip, MapClip, PathClip, Scene3dClip, SetDecl, SvgClip, TextClip,
+    TextSpan, Turn3D, TweenDecl, VideoClip, Wrap,
 };
 
 /// One `--resolution` preset (Sprint 12 outputs, CAP-002; `4k`
@@ -162,7 +163,12 @@ impl ScalePlan {
     /// Plan one render from its flags and canvas: fit the preset,
     /// multiply by the supersample for the internal size. `source`
     /// at 1x is the identity path (no scaling work, byte-identical).
-    pub fn from_flags(resolution: Resolution, supersample: u8, canvas_w: u32, canvas_h: u32) -> Self {
+    pub fn from_flags(
+        resolution: Resolution,
+        supersample: u8,
+        canvas_w: u32,
+        canvas_h: u32,
+    ) -> Self {
         let (out_w, out_h) = resolution.output_size(canvas_w, canvas_h);
         let ss = u32::from(supersample.max(1));
         let internal_w = out_w.saturating_mul(ss).max(2);
@@ -216,8 +222,12 @@ pub fn scale_composition(comp: &Composition, plan: ScalePlan) -> Composition {
     // exactly on the internal size, nested compositions ride the same
     // multipliers (their frames composite into the root buffer, so
     // only the root needs encoder-even sides).
-    out.width = (f64::from(comp.width) * plan.kx).round().clamp(1.0, 16384.0) as u32;
-    out.height = (f64::from(comp.height) * plan.ky).round().clamp(1.0, 16384.0) as u32;
+    out.width = (f64::from(comp.width) * plan.kx)
+        .round()
+        .clamp(1.0, 16384.0) as u32;
+    out.height = (f64::from(comp.height) * plan.ky)
+        .round()
+        .clamp(1.0, 16384.0) as u32;
     for clip in &mut out.clips {
         scale_clip(clip, plan);
     }
@@ -269,6 +279,10 @@ fn scale_clip(clip: &mut Clip, plan: ScalePlan) {
         Clip::Image(i) => scale_image(i, plan),
         Clip::Path(p) => scale_path_clip(p, plan),
         Clip::Svg(s) => scale_svg(s, plan),
+        Clip::Lottie(l) => scale_lottie(l, plan),
+        Clip::Chart(c) => scale_chart(c, plan),
+        Clip::Map(m) => scale_map(m, plan),
+        Clip::Scene3d(s) => scale_scene3d(s, plan),
         Clip::Audio(_) => {}
         Clip::Nest(_) => unreachable!("handled above"),
     }
@@ -280,6 +294,10 @@ fn scale_clip(clip: &mut Clip, plan: ScalePlan) {
         Clip::Image(c) => &mut c.effects,
         Clip::Path(c) => &mut c.effects,
         Clip::Svg(c) => &mut c.effects,
+        Clip::Lottie(c) => &mut c.effects,
+        Clip::Chart(c) => &mut c.effects,
+        Clip::Map(c) => &mut c.effects,
+        Clip::Scene3d(c) => &mut c.effects,
         Clip::Audio(c) => &mut c.effects,
         Clip::Nest(_) => unreachable!("handled above"),
     };
@@ -296,10 +314,7 @@ fn scale_turn(turn: &mut Turn3D, plan: ScalePlan) {
     }
 }
 
-fn scale_shadow(
-    shadow: &mut notation::model::BoxShadow,
-    plan: ScalePlan,
-) {
+fn scale_shadow(shadow: &mut notation::model::BoxShadow, plan: ScalePlan) {
     shadow.offset_x *= plan.kx;
     shadow.offset_y *= plan.ky;
     shadow.blur *= plan.kx;
@@ -436,7 +451,62 @@ fn scale_path_clip(p: &mut PathClip, plan: ScalePlan) {
     p.filter_blur *= plan.kx;
 }
 
+/// Scale one Lottie rect (Sprint 21 T001 shape; owned by the Lottie
+/// slice, which refines it).
+fn scale_lottie(l: &mut LottieClip, plan: ScalePlan) {
+    l.x *= plan.kx;
+    l.y *= plan.ky;
+    l.width *= plan.kx;
+    l.height *= plan.ky;
+    scale_turn(&mut l.turn, plan);
+    l.filter_blur *= plan.kx;
+}
+
 fn scale_svg(s: &mut SvgClip, plan: ScalePlan) {
+    s.x *= plan.kx;
+    s.y *= plan.ky;
+    s.width *= plan.kx;
+    s.height *= plan.ky;
+    scale_turn(&mut s.turn, plan);
+    s.filter_blur *= plan.kx;
+}
+
+/// Scale one chart clip to the internal size (Sprint 21 adapters,
+/// CAP-002/T002): the target rect scales like an image rect, and the
+/// panel stroke plus blur scale with it. Data values never scale —
+/// they are chart units, not pixels.
+fn scale_chart(c: &mut ChartClip, plan: ScalePlan) {
+    c.x *= plan.kx;
+    c.y *= plan.ky;
+    if let Some(w) = c.width.as_mut() {
+        *w *= plan.kx;
+    }
+    if let Some(h) = c.height.as_mut() {
+        *h *= plan.ky;
+    }
+    c.border_width *= plan.kx;
+    scale_turn(&mut c.turn, plan);
+    c.filter_blur *= plan.kx;
+}
+
+/// Scale one map viewport like an image rect (Sprint 21 adapters,
+/// T004 shape; owned by the maps slice, which refines it).
+fn scale_map(m: &mut MapClip, plan: ScalePlan) {
+    m.x *= plan.kx;
+    m.y *= plan.ky;
+    if let Some(w) = m.width.as_mut() {
+        *w *= plan.kx;
+    }
+    if let Some(h) = m.height.as_mut() {
+        *h *= plan.ky;
+    }
+    scale_turn(&mut m.turn, plan);
+    m.filter_blur *= plan.kx;
+}
+
+/// Scale one 3D scene rect (Sprint 21 adapters, T003 shape; owned by
+/// the 3D slice, which refines it).
+fn scale_scene3d(s: &mut Scene3dClip, plan: ScalePlan) {
     s.x *= plan.kx;
     s.y *= plan.ky;
     s.width *= plan.kx;
@@ -566,13 +636,7 @@ fn scale_set(s: &mut SetDecl, plan: ScalePlan) {
 /// (1x renders skip it entirely). Alpha arrives already composited
 /// at draw time, so semi-transparent sources keep their blended
 /// colors exactly like the unscaled path.
-pub fn downscale_rgb24(
-    src: &[u8],
-    src_w: u32,
-    src_h: u32,
-    dst_w: u32,
-    dst_h: u32,
-) -> Vec<u8> {
+pub fn downscale_rgb24(src: &[u8], src_w: u32, src_h: u32, dst_w: u32, dst_h: u32) -> Vec<u8> {
     assert_eq!(src.len(), src_w as usize * src_h as usize * 3);
     assert!(dst_w >= 1 && dst_h >= 1);
     if src_w == dst_w && src_h == dst_h {
@@ -612,9 +676,8 @@ pub fn downscale_rgb24(
 mod tests {
     use super::*;
     use notation::model::{
-        Align, Clip, Composition, EaseDecl, FontStyle, Fps, KeyDecl, KeyStop, Rgb,
-        SetDecl, StaggerOrigin, TextClip, TextDirection, TrackKind, Turn3D, TweenDecl,
-        TweenKind, Wrap,
+        Align, Clip, Composition, EaseDecl, FontStyle, Fps, KeyDecl, KeyStop, Rgb, SetDecl,
+        StaggerOrigin, TextClip, TextDirection, TrackKind, Turn3D, TweenDecl, TweenKind, Wrap,
     };
 
     fn rgb() -> Rgb {

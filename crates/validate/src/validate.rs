@@ -8,36 +8,36 @@
 //! * only `E_UNSUPPORTED` diagnostics → `Unsupported` (check exit 2,
 //!   render refuses before the first frame and writes no MP4)
 
+use crate::lint::{LintFinding, LintNote};
+use crate::readiness::AdapterReadiness;
 use notation::model::{
-    parse_color, parse_cube, parse_curve_points, resolve_waveform_range, AudioClip, BlendMode,
-    BoxClip, BoxShadow, Clip,
-    Composition, Crossfade, DuckUnder, EaseDecl, Effect, EffectParams, EffectPreset, FillPaint,
-    FillRule, Fit, FlexAlign, FlexChild,
-    FlexClip, FlexDirection, FlexJustify, FontDecl, Fps, Grade, GradePreset, GradientStop,
-    ImageClip, InputDecl, KeyDecl, KeyStop, LaneGrade, MarkDecl, MaskRef, AssertAppear, AssertSite,
-    MotionAsserts, MotionBlur, MotionBlurTier, NestClip, Normalize,
-    Overflow, PathClip, Placement, ReplicateGroup, Rgb, SetDecl, SoundFx, SplitMode, StaggerGrid,
-    StaggerOrigin, StartAfter, StrokePosition, SvgClip, TextClip, TextDirection, TextSpan,
-    TrackKind, Transition, TransitionKind, Turn3D, TweenDecl, TweenKind, VariableDecl,
-    VariableDefault, VariableType,
-    VideoClip, WaveformDraw, WaveformRangeError, CONFIG_FILE, EFFECT_AMOUNT_RANGE, MOTION_PROPERTIES,
-    EFFECT_BLUR_RADIUS_RANGE, EFFECT_BRIGHTNESS_RANGE, EFFECT_CHROMA_DISTANCE_RANGE,
-    EFFECT_CONTRAST_RANGE, EFFECT_HUE_ANGLE_RANGE, EFFECT_PIXEL_SIZE_RANGE,
-    EFFECT_POSTERIZE_LEVELS_RANGE, EFFECT_SATURATE_RANGE, EFFECT_STRENGTH_RANGE,
-    EFFECT_THRESHOLD_RANGE, EFFECT_VIGNETTE_SOFTNESS_RANGE, EFFECT_KEYS,
-    VfxChain, VfxDisplacement, VfxLumaMatte, VfxNoise, VfxWarp, VFX_AMOUNT_RANGE,
-    VFX_DEFAULT_AMOUNT, VFX_DISPLACEMENT_SCALE_RANGE, VFX_WARP_GRID_RANGE,
-    VFX_WARP_STRENGTH_RANGE,
-    GRADE_CONTRAST_RANGE,
-    GRADE_EXPOSURE_RANGE, GRADE_GRAIN_AMOUNT_RANGE, GRADE_GRAIN_SIZE_RANGE,
-    GRADE_HSL_HUE_RANGE, GRADE_HSL_LIGHTNESS_RANGE, GRADE_HSL_SATURATION_RANGE,
-    GRADE_LUT_AMOUNT_RANGE, GRADE_SATURATION_RANGE, GRADE_TEMPERATURE_RANGE, GRADE_TINT_RANGE,
-    GRADE_VIGNETTE_AMOUNT_RANGE, GRADE_VIGNETTE_SOFTNESS_RANGE, GRADE_WHEEL_BAND_RANGE,
-    CurveGrade, GrainGrade, HslGrade, LutGrade, VignetteGrade, WheelGrade, LUT_MAX_GRID_SIZE,
-    MIN_DURATION_SECS, REPEAT_MAX, REPEAT_MIN,
+    parse_color, parse_cube, parse_curve_points, resolve_waveform_range, AssertAppear, AssertSite,
+    AudioClip, BlendMode, BoxClip, BoxShadow, ChartClip, ChartKind, ChartPoint, Clip, Composition,
+    Crossfade, CurveGrade, DuckUnder, EaseDecl, Effect, EffectParams, EffectPreset, FillPaint,
+    FillRule, Fit, FlexAlign, FlexChild, FlexClip, FlexDirection, FlexJustify, FontDecl, Fps,
+    Grade, GradePreset, GradientStop, GrainGrade, HslGrade, ImageClip, InputDecl, KeyDecl, KeyStop,
+    LaneGrade, LoopMode, LottieClip, LutGrade, MapClip, MapLabel, MapMarker, MapPolygon,
+    MapPolyline, MarkDecl, MaskRef, MotionAsserts, MotionBlur, MotionBlurTier, NestClip, Normalize,
+    Overflow, PathClip, Placement, ReplicateGroup, Rgb, Scene3dCamera, Scene3dCameraKey,
+    Scene3dCameraMode, Scene3dClip, Scene3dGeometry, Scene3dLight, Scene3dLightKind, Scene3dObject,
+    SetDecl, SoundFx, SplitMode, StaggerGrid, StaggerOrigin, StartAfter, StrokePosition, SvgClip,
+    TextClip, TextDirection, TextSpan, TrackKind, Transition, TransitionKind, Turn3D, TweenDecl,
+    TweenKind, VariableDecl, VariableDefault, VariableType, VfxChain, VfxDisplacement,
+    VfxLumaMatte, VfxNoise, VfxWarp, VideoClip, VignetteGrade, WaveformDraw, WaveformRangeError,
+    WheelGrade, CONFIG_FILE, EFFECT_AMOUNT_RANGE, EFFECT_BLUR_RADIUS_RANGE,
+    EFFECT_BRIGHTNESS_RANGE, EFFECT_CHROMA_DISTANCE_RANGE, EFFECT_CONTRAST_RANGE,
+    EFFECT_HUE_ANGLE_RANGE, EFFECT_KEYS, EFFECT_PIXEL_SIZE_RANGE, EFFECT_POSTERIZE_LEVELS_RANGE,
+    EFFECT_SATURATE_RANGE, EFFECT_STRENGTH_RANGE, EFFECT_THRESHOLD_RANGE,
+    EFFECT_VIGNETTE_SOFTNESS_RANGE, GRADE_CONTRAST_RANGE, GRADE_EXPOSURE_RANGE,
+    GRADE_GRAIN_AMOUNT_RANGE, GRADE_GRAIN_SIZE_RANGE, GRADE_HSL_HUE_RANGE,
+    GRADE_HSL_LIGHTNESS_RANGE, GRADE_HSL_SATURATION_RANGE, GRADE_LUT_AMOUNT_RANGE,
+    GRADE_SATURATION_RANGE, GRADE_TEMPERATURE_RANGE, GRADE_TINT_RANGE, GRADE_VIGNETTE_AMOUNT_RANGE,
+    GRADE_VIGNETTE_SOFTNESS_RANGE, GRADE_WHEEL_BAND_RANGE, LUT_MAX_GRID_SIZE, MAP_MAX_LAT,
+    MAP_MAX_ZOOM, MAP_MIN_ZOOM, MAP_TILE_PX, MIN_DURATION_SECS, MOTION_PROPERTIES, REPEAT_MAX,
+    REPEAT_MIN, VFX_AMOUNT_RANGE, VFX_DEFAULT_AMOUNT, VFX_DISPLACEMENT_SCALE_RANGE,
+    VFX_WARP_GRID_RANGE, VFX_WARP_STRENGTH_RANGE,
 };
 use notation::parse::{parse_document, RawNode, RawValue, ValueKind};
-use crate::lint::{LintFinding, LintNote};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -150,6 +150,10 @@ pub struct Verdict {
     /// clip window (Sprint 10 sound, CAP-010). `check` shows every
     /// entry for review; rendering draws the clamped range.
     pub waveform_clamps: Vec<WaveformClamp>,
+    /// One entry per file marker dropped from a `lottie` clip
+    /// (Sprint 21 adapters, T001): `check` shows every entry for
+    /// review; rendering plays the surviving markers.
+    pub marker_drops: Vec<MarkerDrop>,
     /// Batched lint findings of this run (Sprint 13 check, T001 /
     /// CAP-001): one entry per fired named rule, each carrying its
     /// rule id, severity, file, line, column, and fix. Warnings that
@@ -161,6 +165,12 @@ pub struct Verdict {
     /// undecodable frame), with the cause and the workaround. The run
     /// continues; every runnable finding is still reported.
     pub lint_notes: Vec<LintNote>,
+    /// Per-source adapter readiness of this run (Sprint 21 adapters,
+    /// T007 / CAP-007): one entry per adapter clip, `ready` once its
+    /// source decodes or `failed` with the cause validation refused
+    /// with. Survives invalid verdicts (unlike `compositions`), so a
+    /// failed source stays listed with its cause.
+    pub readiness: Vec<AdapterReadiness>,
 }
 
 /// One reviewable inferred length (Sprint 6 T003): the resolved value
@@ -247,6 +257,30 @@ pub struct WaveformClamp {
     /// Clamped (drawn) range start/end in composition seconds.
     pub eff_from: f64,
     pub eff_to: f64,
+    /// Clip location the entry sorts by (the clip's own node).
+    pub line: usize,
+    pub column: usize,
+}
+
+/// One reviewable marker drop (Sprint 21 adapters, T001): a file
+/// marker outside the animation window, so it names no range on the
+/// `lottie` clip. Reported here with its numbers, never as a
+/// diagnostic, so dropping stays a valid verdict.
+#[derive(Debug, Clone)]
+pub struct MarkerDrop {
+    /// Document index of the owning clip.
+    pub clip: usize,
+    /// The clip's `id`, when declared.
+    pub id: Option<String>,
+    /// Source path as written, for the human line.
+    pub path: String,
+    /// Marker name as written in the file.
+    pub name: String,
+    /// Marker range in animation seconds.
+    pub start: f64,
+    pub end: f64,
+    /// Why the marker cannot name a range.
+    pub detail: String,
     /// Clip location the entry sorts by (the clip's own node).
     pub line: usize,
     pub column: usize,
@@ -919,6 +953,16 @@ struct Ctx<'a> {
     effect_tails: Vec<EffectTail>,
     silences: Vec<SilenceReport>,
     waveform_clamps: Vec<WaveformClamp>,
+    /// One entry per file marker dropped from a `lottie` clip
+    /// (Sprint 21 adapters, T001): the marker lies outside the
+    /// animation window, so it names no range. Reported here with
+    /// its numbers, never as a diagnostic, so a dropped marker stays
+    /// a valid verdict.
+    marker_drops: Vec<MarkerDrop>,
+    /// Per-source adapter readiness collected for the verdict
+    /// (Sprint 21 adapters, T007 / CAP-007): one entry per adapter
+    /// clip, recorded at each adapter dispatch arm.
+    readiness: Vec<AdapterReadiness>,
     /// Index of the composition currently validating, in document
     /// order (Sprint 6 T006). Id and reference entries stamp this so
     /// cross-composition `start-after` targets can refuse.
@@ -1495,7 +1539,11 @@ fn parse_clip_asserts(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Motio
             _ => {}
         }
     }
-    if ok { Some(out) } else { None }
+    if ok {
+        Some(out)
+    } else {
+        None
+    }
 }
 
 /// Static layout lint (Sprint 13 check, T002 / `overlap`, `off-canvas`,
@@ -1585,8 +1633,7 @@ fn check_overlap_lint(
             let name_b = clip_display(clip_b, ib);
             let (line, column) = comp.clips[ib].line_col();
             let start = clip_a.start().max(clip_b.start());
-            let end =
-                (clip_a.start() + clip_a.duration()).min(clip_b.start() + clip_b.duration());
+            let end = (clip_a.start() + clip_a.duration()).min(clip_b.start() + clip_b.duration());
             if let Some(finding) = LintFinding::new(
                 "overlap",
                 &ctx.file.clone(),
@@ -1786,6 +1833,20 @@ fn layout_rect(clip: &Clip, canvas_w: f64, canvas_h: f64) -> Option<LayoutRect> 
             i.y + i.height.unwrap_or(canvas_h),
         ),
         Clip::Svg(s) => rect(s.x, s.y, s.x + s.width, s.y + s.height),
+        Clip::Lottie(l) => rect(l.x, l.y, l.x + l.width, l.y + l.height),
+        Clip::Chart(c) => rect(
+            c.x,
+            c.y,
+            c.x + c.width.unwrap_or(canvas_w),
+            c.y + c.height.unwrap_or(canvas_h),
+        ),
+        Clip::Map(m) => rect(
+            m.x,
+            m.y,
+            m.x + m.width.unwrap_or(canvas_w),
+            m.y + m.height.unwrap_or(canvas_h),
+        ),
+        Clip::Scene3d(s) => rect(s.x, s.y, s.x + s.width, s.y + s.height),
         Clip::Video(_) => rect(0.0, 0.0, canvas_w, canvas_h),
         Clip::Nest(_) => rect(0.0, 0.0, canvas_w, canvas_h),
         Clip::Path(p) => path_rect(&p.d, p.x, p.y),
@@ -1869,8 +1930,12 @@ fn path_rect(d: &str, x: f64, y: f64) -> Option<LayoutRect> {
     if points.is_empty() {
         return None;
     }
-    let (mut x0, mut y0, mut x1, mut y1) =
-        (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+    let (mut x0, mut y0, mut x1, mut y1) = (
+        f64::INFINITY,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::NEG_INFINITY,
+    );
     for [px, py] in points {
         x0 = x0.min(px);
         y0 = y0.min(py);
@@ -2110,14 +2175,18 @@ fn check_moving_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
             continue;
         }
         let name = clip_display(clip, index);
-        if matches!(clip, Clip::Video(_) | Clip::Nest(_)) {
+        // Video, nest, and lottie pixels come from outside the static
+        // picture (decoded footage, another composition, or an
+        // animation file), so `assert-moving` on them leaves a named
+        // note (REC-001) instead of a sampled finding.
+        if matches!(clip, Clip::Video(_) | Clip::Nest(_) | Clip::Lottie(_)) {
             if let Some(note) = LintNote::new(
                 "keep-moving",
                 &ctx.file.clone(),
                 moving.line,
                 moving.column,
                 format!(
-                    "{name} carries `assert-moving`, but its pixels come from decoded footage (video) or another composition (nest), which static analysis cannot sample for change"
+                    "{name} carries `assert-moving`, but its pixels come from decoded footage (video), another composition (nest), or an animation file (lottie), which static analysis cannot sample for change"
                 ),
                 "render the composition and compare frames across the clip window to confirm motion, or remove the `assert-moving` child",
             ) {
@@ -2179,7 +2248,10 @@ fn check_frozen_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
         if !(end > start) {
             continue;
         }
-        let moves = matches!(clip, Clip::Video(_) | Clip::Nest(_))
+        // Video, nest, and lottie windows always count as changing:
+        // their pixels advance (footage, another composition, or an
+        // animation file) or may advance, exactly like footage.
+        let moves = matches!(clip, Clip::Video(_) | Clip::Nest(_) | Clip::Lottie(_))
             || clip_has_visual_motion(comp, index);
         if moves {
             changing.push((start, end));
@@ -2189,7 +2261,11 @@ fn check_frozen_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
     // from the incoming clip start for the bridge duration, the same
     // window the link checker overlaps), so they count as changing too.
     for t in &comp.transitions {
-        if let Some(to_idx) = comp.clips.iter().position(|c| c.id() == Some(t.to.as_str())) {
+        if let Some(to_idx) = comp
+            .clips
+            .iter()
+            .position(|c| c.id() == Some(t.to.as_str()))
+        {
             let start = comp.clips[to_idx].start();
             changing.push((start, start + t.duration));
         }
@@ -2402,9 +2478,8 @@ fn gradient_at(paint: &FillPaint, b: &BoxClip, x: f64, y: f64) -> Option<Rgb> {
         } else {
             ((t - below.offset) / span).clamp(0.0, 1.0)
         };
-        let mix = |a: u8, o: u8| -> u8 {
-            (f64::from(a) * (1.0 - f) + f64::from(o) * f).round() as u8
-        };
+        let mix =
+            |a: u8, o: u8| -> u8 { (f64::from(a) * (1.0 - f) + f64::from(o) * f).round() as u8 };
         Some(Rgb {
             r: mix(below.color.r, above.color.r),
             g: mix(below.color.g, above.color.g),
@@ -2434,10 +2509,12 @@ fn gradient_at(paint: &FillPaint, b: &BoxClip, x: f64, y: f64) -> Option<Rgb> {
             let oy = cy.unwrap_or(b.height / 2.0);
             let center = (b.x + ox, b.y + oy);
             let reach = radius.unwrap_or_else(|| {
-                [(b.x, b.y), (b.x + b.width, b.y), (b.x, b.y + b.height), (
-                    b.x + b.width,
-                    b.y + b.height,
-                )]
+                [
+                    (b.x, b.y),
+                    (b.x + b.width, b.y),
+                    (b.x, b.y + b.height),
+                    (b.x + b.width, b.y + b.height),
+                ]
                 .into_iter()
                 .map(|(px, py)| (px - center.0).hypot(py - center.1))
                 .fold(0.0, f64::max)
@@ -2445,10 +2522,7 @@ fn gradient_at(paint: &FillPaint, b: &BoxClip, x: f64, y: f64) -> Option<Rgb> {
             if !reach.is_finite() || reach <= 0.0 {
                 return None;
             }
-            lerp_stops(
-                stops,
-                (x - center.0).hypot(y - center.1) / reach,
-            )
+            lerp_stops(stops, (x - center.0).hypot(y - center.1) / reach)
         }
     }
 }
@@ -2529,8 +2603,7 @@ fn check_contrast_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
                 && urect.y0 <= rect.y0
                 && urect.x1 >= rect.x1
                 && urect.y1 >= rect.y1;
-            let spans_window =
-                other.start() <= start && other.start() + other.duration() >= end;
+            let spans_window = other.start() <= start && other.start() + other.duration() >= end;
             let name = clip_display(other, ui);
             match other {
                 Clip::Box(b) => {
@@ -2702,7 +2775,10 @@ fn ducked_to_zero(comp: &Composition, index: usize) -> Option<String> {
         .clips
         .iter()
         .find(|c| c.id() == Some(duck.target.as_str()))?;
-    let (start, end) = (comp.clips[index].start(), comp.clips[index].start() + comp.clips[index].duration());
+    let (start, end) = (
+        comp.clips[index].start(),
+        comp.clips[index].start() + comp.clips[index].duration(),
+    );
     if voice.start() <= start && voice.start() + voice.duration() >= end {
         Some(duck.target.clone())
     } else {
@@ -2817,7 +2893,44 @@ fn check_audio_lint(ctx: &mut Ctx, comp: &Composition, scope: &str) {
 /// targets the clip, a text reveal or count runs, or a path motion
 /// travels. Sound-only envelopes (`volume`, `pan`) never change
 /// pixels and do not count.
+/// A `scene3d` camera counts as moving when any key snapshot differs
+/// from the base (or from a sibling snapshot): the view lerps between
+/// distinct snapshots, so motion-aware rules (`frozen-timeline`,
+/// `assert-moving`) sample an orbiting scene as changing. Snapshots
+/// resolve with base fallback here exactly like the renderer maps
+/// them, without a `threed` dependency.
+fn scene3d_camera_moves(camera: &Scene3dCamera) -> bool {
+    let mut snaps = Vec::with_capacity(camera.keys.len() + 1);
+    snaps.push((
+        camera.distance,
+        camera.azimuth,
+        camera.elevation,
+        camera.position,
+        camera.target,
+        camera.fov,
+    ));
+    for k in &camera.keys {
+        snaps.push((
+            k.distance.unwrap_or(camera.distance),
+            k.azimuth.unwrap_or(camera.azimuth),
+            k.elevation.unwrap_or(camera.elevation),
+            k.position.unwrap_or(camera.position),
+            k.target.unwrap_or(camera.target),
+            k.fov.unwrap_or(camera.fov),
+        ));
+    }
+    snaps.windows(2).any(|w| w[0] != w[1])
+}
+
 fn clip_has_visual_motion(comp: &Composition, index: usize) -> bool {
+    // A 3D scene interpolates its camera between key snapshots
+    // (Sprint 21 adapters, T003): distinct snapshots move the view
+    // exactly like a tween.
+    if let Clip::Scene3d(s) = &comp.clips[index] {
+        if scene3d_camera_moves(&s.camera) {
+            return true;
+        }
+    }
     if let Clip::Text(t) = &comp.clips[index] {
         if t.typewriter {
             return true;
@@ -3360,6 +3473,8 @@ pub fn validate_folder_with_variables_strict_themed(
             effect_tails: Vec::new(),
             silences: Vec::new(),
             waveform_clamps: Vec::new(),
+            marker_drops: Vec::new(),
+            readiness: Vec::new(),
         };
     }
 
@@ -3399,6 +3514,8 @@ pub fn validate_folder_with_variables_strict_themed(
                 effect_tails: Vec::new(),
                 silences: Vec::new(),
                 waveform_clamps: Vec::new(),
+                marker_drops: Vec::new(),
+                readiness: Vec::new(),
             };
         }
     };
@@ -3432,6 +3549,8 @@ pub fn validate_folder_with_variables_strict_themed(
                 effect_tails: Vec::new(),
                 silences: Vec::new(),
                 waveform_clamps: Vec::new(),
+                marker_drops: Vec::new(),
+                readiness: Vec::new(),
             };
         }
     };
@@ -3448,6 +3567,8 @@ pub fn validate_folder_with_variables_strict_themed(
         effect_tails: Vec::new(),
         silences: Vec::new(),
         waveform_clamps: Vec::new(),
+        marker_drops: Vec::new(),
+        readiness: Vec::new(),
         ids: Vec::new(),
         refs: Vec::new(),
         bindings: Vec::new(),
@@ -4188,6 +4309,13 @@ fn validate_replicate(
         );
         return;
     }
+    // Readiness (Sprint 21 adapters, T007 / CAP-007): a replicated
+    // lottie template resolves one shared file for every clone, so
+    // the template reports one entry per source, never per clone.
+    let template_d0 = ctx.diags.len();
+    let template_is_lottie = template.name.as_str() == "lottie";
+    let template_source =
+        node_str_prop(template, "path").unwrap_or_else(|| "?".to_string());
     let clip = match template.name.as_str() {
         "text" => validate_text(ctx, template, styles).map(Clip::Text),
         "box" => validate_box(ctx, template, styles).map(Clip::Box),
@@ -4195,13 +4323,14 @@ fn validate_replicate(
         "path" => validate_path(ctx, template, styles).map(Clip::Path),
         "svg" => validate_svg(ctx, template, styles).map(Clip::Svg),
         "video" => validate_video(ctx, template).map(Clip::Video),
+        "lottie" => validate_lottie(ctx, template, clips.len(), styles).map(Clip::Lottie),
         "audio" | "nest" | "font" | "flex" => {
             ctx.push(
                 template.name_line,
                 template.name_column,
                 "E_BAD_MOTION",
                 format!(
-                    "replicate template is `{}`; a `replicate` clones one picture clip (`text`, `box`, `image`, `path`, `svg`, or `video`)",
+                    "replicate template is `{}`; a `replicate` clones one picture clip (`text`, `box`, `image`, `path`, `svg`, `video`, or `lottie`)",
                     template.name
                 ),
                 "template a picture clip inside the replicate",
@@ -4214,7 +4343,7 @@ fn validate_replicate(
                 template.name_column,
                 "E_BAD_MOTION",
                 format!(
-                    "replicate template is `{other}`; a `replicate` clones one `text`, `box`, `image`, `path`, `svg`, or `video` child, never motion or another replicate"
+                    "replicate template is `{other}`; a `replicate` clones one `text`, `box`, `image`, `path`, `svg`, `video`, or `lottie` child, never motion or another replicate"
                 ),
                 "template one picture clip inside the replicate",
             );
@@ -4222,8 +4351,29 @@ fn validate_replicate(
         }
     };
     let Some(clip) = clip else {
+        if template_is_lottie {
+            ctx.readiness.push(AdapterReadiness::failed(
+                clips.len(),
+                None,
+                "lottie",
+                template_source,
+                refusal_cause(&ctx, template_d0, "lottie"),
+                template.name_line,
+                template.name_column,
+            ));
+        }
         return;
     };
+    if template_is_lottie {
+        ctx.readiness.push(AdapterReadiness::ready(
+            clips.len(),
+            None,
+            "lottie",
+            template_source,
+            template.name_line,
+            template.name_column,
+        ));
+    }
     let count = count.unwrap();
     let first = clips.len();
     let still_omitted = clip.duration().is_nan();
@@ -4603,11 +4753,7 @@ fn style_available_names(styles: &[StyleDecl]) -> String {
 /// `style` key of its own (styles never nest), and only vocabulary
 /// keys. Every bad property reports with the valid set; the block is
 /// registered only when fully usable.
-fn validate_style_block(
-    ctx: &mut Ctx,
-    node: &RawNode,
-    styles: &[StyleDecl],
-) -> Option<StyleDecl> {
+fn validate_style_block(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<StyleDecl> {
     let name = match find(node, "name").and_then(as_str) {
         Some(s) if valid_id_syntax(s) => s.to_string(),
         _ => {
@@ -4633,7 +4779,9 @@ fn validate_style_block(
                 "style {name:?} is declared more than once; available styles are: {}",
                 style_available_names(styles)
             ),
-            format!("rename this block to a unique name, or remove it and use the declared `{name}`"),
+            format!(
+                "rename this block to a unique name, or remove it and use the declared `{name}`"
+            ),
         );
         return None;
     }
@@ -4791,6 +4939,32 @@ fn styled_node<'a>(
         props: merged,
         children: node.children.clone(),
     }))
+}
+
+/// String value of one node property (Sprint 21 adapters, T007): the
+/// written source a readiness entry names even when its clip
+/// refuses before resolving.
+fn node_str_prop(child: &RawNode, key: &str) -> Option<String> {
+    child
+        .props
+        .iter()
+        .find(|(k, _)| k == key)
+        .and_then(|(_, v)| match &v.kind {
+            ValueKind::Str(s) => Some(s.clone()),
+            _ => None,
+        })
+}
+
+/// Cause validation just refused with (Sprint 21 adapters, T007):
+/// the first diagnostic message pushed since `d0`, so a failed
+/// adapter source lists the same cause its refusal names.
+/// Fail-closed: a generic cause when the arm pushed nothing.
+fn refusal_cause(ctx: &Ctx, d0: usize, kind: &str) -> String {
+    ctx.diags
+        .get(d0..)
+        .and_then(|fresh| fresh.first())
+        .map(|d| d.message.clone())
+        .unwrap_or_else(|| format!("validation refused the `{kind}` source"))
 }
 
 fn validate_composition_parts<'n>(
@@ -5155,6 +5329,10 @@ fn validate_composition_parts<'n>(
     // omitted `duration` still waits for the composition end. Kept
     // per composition (T006) so indexes stay valid for this `clips`.
     let mut pending_stills: Vec<usize> = Vec::new();
+    // Visible `map` viewports in this composition (Sprint 21 adapters,
+    // T004): maps render one viewport per film, so the second one
+    // refuses in the `map` dispatch arm below.
+    let mut map_seen = false;
     // Motion directives validate after the clip pass so `target`
     // indexes resolve against the declared clip count (T003).
     let mut motion_nodes: Vec<(bool, &RawNode)> = Vec::new();
@@ -5272,6 +5450,106 @@ fn validate_composition_parts<'n>(
                     clips.push(Clip::Svg(c));
                 }
             }
+            // A native 3D scene (Sprint 21 adapters, T003 / CAP-003):
+            // authored primitives plus embedded meshes with orbit or
+            // fixed cameras and point plus directional lights. An
+            // omitted duration runs like any still to the composition
+            // end; a missing light rig renders with the named default
+            // light, never darkness.
+            "scene3d" => {
+                // Readiness (Sprint 21 adapters, T007 / CAP-007): one
+                // entry per source, `ready` on decode or `failed`
+                // with the refusal cause, so `check` lists the same
+                // readiness the render path gates on.
+                let doc_idx = clips.len();
+                let d0 = ctx.diags.len();
+                let id = node_str_prop(child, "id").filter(|s| !s.is_empty());
+                let (line, column) = (child.name_line, child.name_column);
+                if let Some(c) = validate_scene3d(&mut ctx, child, &styles) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Scene3d(c));
+                    ctx.readiness.push(AdapterReadiness::ready(
+                        doc_idx,
+                        id,
+                        "scene3d",
+                        "authored scene",
+                        line,
+                        column,
+                    ));
+                } else {
+                    ctx.readiness.push(AdapterReadiness::failed(
+                        doc_idx,
+                        id,
+                        "scene3d",
+                        "authored scene",
+                        refusal_cause(&ctx, d0, "scene3d"),
+                        line,
+                        column,
+                    ));
+                }
+            }
+            "chart" => {
+                // Readiness (Sprint 21 adapters, T007 / CAP-007): one
+                // entry per source, `ready` on decode or `failed`
+                // with the refusal cause.
+                let doc_idx = clips.len();
+                let d0 = ctx.diags.len();
+                let id = node_str_prop(child, "id").filter(|s| !s.is_empty());
+                let source =
+                    node_str_prop(child, "data").unwrap_or_else(|| "inline rows".to_string());
+                let (line, column) = (child.name_line, child.name_column);
+                if let Some(c) = validate_chart(&mut ctx, child, &styles) {
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Chart(c));
+                    ctx.readiness.push(AdapterReadiness::ready(
+                        doc_idx, id, "chart", source, line, column,
+                    ));
+                } else {
+                    ctx.readiness.push(AdapterReadiness::failed(
+                        doc_idx,
+                        id,
+                        "chart",
+                        source,
+                        refusal_cause(&ctx, d0, "chart"),
+                        line,
+                        column,
+                    ));
+                }
+            }
+            // A native Lottie/dotLottie animation (Sprint 21 adapters,
+            // T001 / CAP-001): always resolves to a finite duration
+            // (written, or the intrinsic animation length), so it never
+            // joins `pending_stills`.
+            "lottie" => {
+                // Readiness (Sprint 21 adapters, T007 / CAP-007): one
+                // entry per source, `ready` on decode or `failed`
+                // with the refusal cause.
+                let doc_idx = clips.len();
+                let d0 = ctx.diags.len();
+                let id = node_str_prop(child, "id").filter(|s| !s.is_empty());
+                let source = node_str_prop(child, "path").unwrap_or_else(|| "?".to_string());
+                let (line, column) = (child.name_line, child.name_column);
+                if let Some(c) = validate_lottie(&mut ctx, child, doc_idx, &styles) {
+                    clips.push(Clip::Lottie(c));
+                    ctx.readiness.push(AdapterReadiness::ready(
+                        doc_idx, id, "lottie", source, line, column,
+                    ));
+                } else {
+                    ctx.readiness.push(AdapterReadiness::failed(
+                        doc_idx,
+                        id,
+                        "lottie",
+                        source,
+                        refusal_cause(&ctx, d0, "lottie"),
+                        line,
+                        column,
+                    ));
+                }
+            }
             "audio" => {
                 if let Some(c) = validate_audio(&mut ctx, child) {
                     clips.push(Clip::Audio(c));
@@ -5280,6 +5558,67 @@ fn validate_composition_parts<'n>(
             "nest" => {
                 if let Some(c) = validate_nest(&mut ctx, child) {
                     clips.push(Clip::Nest(c));
+                }
+            }
+            // An offline map viewport (Sprint 21 adapters, T004 /
+            // CAP-004): one rendering viewport per composition, so a
+            // second visible `map` refuses naming the element and the
+            // one-viewport boundary. Hidden maps render nothing and
+            // never count toward the limit.
+            "map" => {
+                // Readiness (Sprint 21 adapters, T007 / CAP-007): one
+                // entry per source, `ready` on decode or `failed`
+                // with the refusal cause (including the one-viewport
+                // refusal below).
+                let doc_idx = clips.len();
+                let d0 = ctx.diags.len();
+                let id = node_str_prop(child, "id").filter(|s| !s.is_empty());
+                let source = node_str_prop(child, "pack").unwrap_or_else(|| "?".to_string());
+                let (line, column) = (child.name_line, child.name_column);
+                if let Some(c) = validate_map(
+                    &mut ctx,
+                    child,
+                    (width.unwrap_or(0.0), height.unwrap_or(0.0)),
+                ) {
+                    if !c.hidden {
+                        if map_seen {
+                            ctx.push(
+                                child.name_line,
+                                child.name_column,
+                                "E_BAD_MAP",
+                                "composition holds two `map` clips; maps render one viewport per film today",
+                                "keep one `map` clip on the composition, or remove the extra clip",
+                            );
+                            ctx.readiness.push(AdapterReadiness::failed(
+                                doc_idx,
+                                id.clone(),
+                                "map",
+                                source.clone(),
+                                refusal_cause(&ctx, d0, "map"),
+                                line,
+                                column,
+                            ));
+                            continue;
+                        }
+                        map_seen = true;
+                    }
+                    if c.duration.is_nan() {
+                        pending_stills.push(clips.len());
+                    }
+                    clips.push(Clip::Map(c));
+                    ctx.readiness.push(AdapterReadiness::ready(
+                        doc_idx, id, "map", source, line, column,
+                    ));
+                } else {
+                    ctx.readiness.push(AdapterReadiness::failed(
+                        doc_idx,
+                        id,
+                        "map",
+                        source,
+                        refusal_cause(&ctx, d0, "map"),
+                        line,
+                        column,
+                    ));
                 }
             }
             // Composition-wide grade (Sprint 11 grade, CAP-001/T001):
@@ -5388,7 +5727,7 @@ fn validate_composition_parts<'n>(
                     child.name_column,
                     "E_UNKNOWN_ELEMENT",
                     format!("unknown element `{other}`"),
-                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `audio`, `style`, `tween`, `key`, `set`, `mark`, `input`, `variable`, `replicate`, `grade`, `lane`, `transition`, or `motion-blur`, or remove the element",
+                    "use `text`, `font`, `video`, `box`, `flex`, `image`, `path`, `svg`, `scene3d`, `chart`, `lottie`, `audio`, `map`, `style`, `tween`, `key`, `set`, `mark`, `input`, `variable`, `replicate`, `grade`, `lane`, `transition`, or `motion-blur`, or remove the element",
                 );
             }
         }
@@ -5793,6 +6132,8 @@ fn finish(
         effect_tails: ctx.effect_tails,
         silences: ctx.silences,
         waveform_clamps: ctx.waveform_clamps,
+        marker_drops: ctx.marker_drops,
+        readiness: ctx.readiness,
     }
 }
 
@@ -6454,11 +6795,7 @@ const SPAN_KEYS: &[&str] = &[
 /// One span `font-family` list (Sprint 8 look, CAP-002/T002): the same
 /// comma try-order syntax as the clip key. An empty or unquoted list
 /// fails with `E_BAD_FONT` naming the span.
-fn span_font_family(
-    ctx: &mut Ctx,
-    node: &RawNode,
-    label: &str,
-) -> Option<Option<Vec<String>>> {
+fn span_font_family(ctx: &mut Ctx, node: &RawNode, label: &str) -> Option<Option<Vec<String>>> {
     match find(node, "font-family").or_else(|| find(node, "font_family")) {
         None => Some(None),
         Some(v) => match as_str(v) {
@@ -6734,7 +7071,11 @@ fn parse_text_spans(ctx: &mut Ctx, node: &RawNode) -> Option<Vec<TextSpan>> {
             None => ok = false,
         }
     }
-    if ok { Some(spans) } else { None }
+    if ok {
+        Some(spans)
+    } else {
+        None
+    }
 }
 
 fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<TextClip> {
@@ -7135,10 +7476,7 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
     // addressable text is ambiguous, so the combination is refused
     // naming the runs instead of animating the wrong text.
     if !spans.is_empty()
-        && (fx.split.is_some()
-            || fx.typewriter
-            || fx.count_from.is_some()
-            || fx.count_to.is_some())
+        && (fx.split.is_some() || fx.typewriter || fx.count_from.is_some() || fx.count_to.is_some())
     {
         let (line, column) = find(node, "split")
             .or_else(|| find(node, "typewriter"))
@@ -8907,12 +9245,7 @@ fn validate_gradient_stop(
 /// from offset 0 to offset 1 in strictly rising order with no repeats.
 /// Every refusal names its stop and the rule. `node` is the gradient
 /// element, located only when no stop exists to name.
-fn check_stop_order(
-    ctx: &mut Ctx,
-    kind: &str,
-    node: &RawNode,
-    stops: &[GradientStop],
-) -> bool {
+fn check_stop_order(ctx: &mut Ctx, kind: &str, node: &RawNode, stops: &[GradientStop]) -> bool {
     if stops.is_empty() {
         ctx.push(
             node.name_line,
@@ -9000,19 +9333,10 @@ fn check_stop_order(
 /// non-`stop` children. Returns `None` when any stop is unusable; the
 /// order rules in [`check_stop_order`] run only over cleanly parsed
 /// stops so one bad value never cascades into ordering noise.
-fn collect_gradient_stops(
-    ctx: &mut Ctx,
-    kind: &str,
-    node: &RawNode,
-) -> Option<Vec<GradientStop>> {
+fn collect_gradient_stops(ctx: &mut Ctx, kind: &str, node: &RawNode) -> Option<Vec<GradientStop>> {
     let mut stops: Vec<GradientStop> = Vec::new();
     let mut ok = true;
-    for (i, child) in node
-        .children
-        .iter()
-        .enumerate()
-        .map(|(i, c)| (i + 1, c))
-    {
+    for (i, child) in node.children.iter().enumerate().map(|(i, c)| (i + 1, c)) {
         if child.name != "stop" {
             ctx.push(
                 child.name_line,
@@ -9171,7 +9495,10 @@ fn validate_image_fill(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
             child.name_line,
             child.name_column,
             "E_BAD_FILL",
-            format!("{KIND} holds `{}`; an image-fill carries no children", child.name),
+            format!(
+                "{KIND} holds `{}`; an image-fill carries no children",
+                child.name
+            ),
             format!("remove the child from the {KIND}; the picture comes from `src`"),
         );
     }
@@ -9259,7 +9586,9 @@ fn validate_image_fill(ctx: &mut Ctx, node: &RawNode) -> Option<FillPaint> {
                         node.name_line,
                         node.name_column,
                         "E_BAD_IMAGE",
-                        format!("image-fill source {src:?} is corrupt or not a readable GIF picture"),
+                        format!(
+                            "image-fill source {src:?} is corrupt or not a readable GIF picture"
+                        ),
                         "restore an undamaged still GIF file at the referenced path",
                     );
                     return None;
@@ -9496,7 +9825,9 @@ fn flex_unknown_key(ctx: &mut Ctx, v: &RawValue, key: &str, what: &str, candidat
         v.line,
         v.column,
         "STYLE-NAME-UNKNOWN",
-        format!("{what} has unknown layout property `{key}`; the closest valid property is `{near}`"),
+        format!(
+            "{what} has unknown layout property `{key}`; the closest valid property is `{near}`"
+        ),
         format!(
             "remove `{key}`, use `{near}`, or pick one of: {}",
             candidates
@@ -9712,11 +10043,7 @@ fn flex_grow(ctx: &mut Ctx, node: &RawNode) -> Option<f64> {
 /// names fail with `STYLE-NAME-UNKNOWN` naming the closest valid
 /// property; timing, identity, and position keys fail as inherited
 /// from the container; text-effect keys fail as text-only.
-fn validate_flex_child(
-    ctx: &mut Ctx,
-    node: &RawNode,
-    styles: &[StyleDecl],
-) -> Option<FlexChild> {
+fn validate_flex_child(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<FlexChild> {
     let merged = styled_node(ctx, node, "flex child box", styles)?;
     let node = merged.as_ref();
     // T003 fills apply to `box` clips: a laid-out child box paints one
@@ -9828,7 +10155,9 @@ fn validate_flex_child(
                         v.line,
                         v.column,
                         "E_BAD_FLEX",
-                        format!("flex child box `{key}` must be a positive number of canvas pixels"),
+                        format!(
+                            "flex child box `{key}` must be a positive number of canvas pixels"
+                        ),
                         format!("set `{key}=<positive pixels>` on the child box"),
                     );
                     None
@@ -9920,9 +10249,7 @@ fn validate_flex_child(
                     v.line,
                     v.column,
                     "E_BAD_COLOR",
-                    format!(
-                        "flex child box `{color_key}` is not a `#rgb` or `#rrggbb` color"
-                    ),
+                    format!("flex child box `{color_key}` is not a `#rgb` or `#rrggbb` color"),
                     format!("use a hex color like `{color_key}=\"#000000\"`"),
                 );
                 return None;
@@ -10081,7 +10408,9 @@ fn validate_flex(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
                         v.line,
                         v.column,
                         "E_BAD_FLEX",
-                        format!("flex container `{key}` must be a positive number of canvas pixels"),
+                        format!(
+                            "flex container `{key}` must be a positive number of canvas pixels"
+                        ),
                         format!("set `{key}=<positive pixels>` on the flex container"),
                     );
                     None
@@ -10763,6 +11092,769 @@ fn path_stroke_color(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<Rgb> {
     }
 }
 
+/// Decode-check one map tile (Sprint 21 adapters, T004): the file
+/// must be a readable still PNG exactly [`MAP_TILE_PX`] square. Any
+/// failure names the file and the cause, so validation refuses
+/// undecodable sources before any render work (REC-001). Animated
+/// PNGs refuse like animated GIFs in `image` clips: tiles are stills.
+fn map_tile_decodes(path: &std::path::Path) -> Result<(), String> {
+    let file = std::fs::File::open(path).map_err(|e| format!("cannot be read: {e}"))?;
+    let mut decoder = png::Decoder::new(file);
+    decoder.set_transformations(png::Transformations::normalize_to_color8());
+    let mut reader = decoder
+        .read_info()
+        .map_err(|e| format!("is not a readable PNG picture ({e})"))?;
+    if reader.info().is_animated() {
+        return Err("is an animated PNG; map tiles are still pictures".to_string());
+    }
+    let (w, h) = (reader.info().width, reader.info().height);
+    if w != MAP_TILE_PX || h != MAP_TILE_PX {
+        return Err(format!(
+            "is {w}x{h}, but map tiles are {}x{} pictures",
+            MAP_TILE_PX, MAP_TILE_PX
+        ));
+    }
+    let mut buf = vec![0u8; reader.output_buffer_size()];
+    reader
+        .next_frame(&mut buf)
+        .map_err(|e| format!("cannot be decoded ({e})"))?;
+    Ok(())
+}
+
+/// Parse one `lat,lon` pair (Sprint 21 adapters, T004): two finite
+/// floats with latitude inside Web Mercator and longitude inside
+/// -180..=180. Anything else is `None` (the caller refuses it
+/// naming the element and the key).
+fn map_latlon_pair(s: &str) -> Option<(f64, f64)> {
+    let (a, b) = s.split_once(',')?;
+    if a.is_empty() || b.is_empty() || a.contains(',') || b.contains(',') {
+        return None;
+    }
+    let lat: f64 = a.trim().parse().ok()?;
+    let lon: f64 = b.trim().parse().ok()?;
+    if !lat.is_finite() || !lon.is_finite() {
+        return None;
+    }
+    if lat.abs() > MAP_MAX_LAT || lon.abs() > 180.0 {
+        return None;
+    }
+    Some((lat, lon))
+}
+
+/// Parse a whitespace-separated `lat,lon` list (Sprint 21 adapters,
+/// T004): every entry must read like [`map_latlon_pair`] and the list
+/// must hold at least `min` points. `None` means the caller refuses
+/// it naming the element and `points`.
+fn map_points_list(s: &str, min: usize) -> Option<Vec<(f64, f64)>> {
+    let mut pts = Vec::new();
+    for tok in s.split_whitespace() {
+        pts.push(map_latlon_pair(tok)?);
+    }
+    if pts.len() < min {
+        return None;
+    }
+    Some(pts)
+}
+
+/// One `#rgb`/`#rrggbb` color of a map overlay (Sprint 21 adapters,
+/// T004): absent means `default`; present must parse. A bad value
+/// fails with `E_BAD_COLOR` naming the element and the key.
+fn map_overlay_color(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    el: &str,
+    key: &str,
+    default: Rgb,
+) -> Option<Rgb> {
+    let found = find(node, key);
+    match found {
+        None => Some(default),
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_COLOR",
+                    format!("{el} `{key}` is not a `#rgb` or `#rrggbb` color"),
+                    format!("use a hex color like `{key}=\"#000000\"`"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One finite `lat`/`lon` of a map overlay (Sprint 21 adapters, T004):
+/// required, inside the Web Mercator bounds. Anything else fails with
+/// `E_BAD_MAP` naming the element and the key.
+fn map_overlay_coord(ctx: &mut Ctx, node: &RawNode, el: &str, key: &str) -> Option<f64> {
+    let v = match find(node, key) {
+        Some(v) => v,
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MAP",
+                format!("{el} is missing required `{key}`"),
+                format!("add `{key}=<number>` to the {el}"),
+            );
+            return None;
+        }
+    };
+    match as_f64(v) {
+        Some(x) if x.is_finite() => Some(x),
+        _ => {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_MAP",
+                format!("{el} `{key}` must be a number of degrees"),
+                format!("set `{key}=<number>` on the {el}"),
+            );
+            None
+        }
+    }
+}
+
+/// Validate one `map` clip (Sprint 21 adapters, T004 / CAP-004): an
+/// offline raster viewport from a local tile directory or offline
+/// pack at `center` and `zoom`, with `marker`, `label`, `polyline`,
+/// and `polygon` children, an always-rendered scale bar and
+/// attribution, and the named placeholder over uncovered areas. The
+/// pack must exist and carry attribution (or the clip overrides it);
+/// the requested zoom must sit inside the pack range; required tiles
+/// must exist and decode, or the viewport refuses with path and zoom.
+/// Nothing here touches the network: only local directory reads and
+/// PNG decodes. `canvas` is the composition size for the default
+/// viewport when `width`/`height` are omitted.
+fn validate_map(ctx: &mut Ctx, node: &RawNode, canvas: (f64, f64)) -> Option<MapClip> {
+    const KEYS: &[&str] = &[
+        "pack",
+        "center",
+        "zoom",
+        "attribution",
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "width",
+        "height",
+        "fit",
+        "placement",
+        "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown map key {k:?}"),
+                "remove the key or check the spelling",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, "map clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "map clip") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "map", "map clip")?;
+    let start = clip_start_relaxed(ctx, node, "map clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "map clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    // The tile directory or offline pack: presence and kind come
+    // before format, so a missing pack names the path (REC-002).
+    let pack = match find(node, "pack").and_then(as_str) {
+        Some(s) => s.to_string(),
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "map clip is missing required `pack`",
+                "add `pack=\"tiles/downtown\"` to the map clip",
+            );
+            return None;
+        }
+    };
+    let abs = ctx.folder.join(&pack);
+    if !abs.exists() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FILE",
+            format!("map pack {pack:?} does not exist or is not readable"),
+            "provide the tile directory at the referenced path or fix the `pack`",
+        );
+        return None;
+    }
+    if !abs.is_dir() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_MAP",
+            format!("map pack {pack:?} is not a tile directory"),
+            "point `pack` at a directory of `{z}/{x}/{y}.png` tiles",
+        );
+        return None;
+    }
+    // The pack manifest: optional `pack.json` with the license text
+    // and the covered zoom range. Malformed JSON refuses naming the
+    // file and the cause, like any undecodable source (REC-001).
+    let mut manifest_attribution: Option<String> = None;
+    let mut manifest_min: Option<u32> = None;
+    let mut manifest_max: Option<u32> = None;
+    let manifest_path = abs.join("pack.json");
+    if manifest_path.is_file() {
+        match std::fs::read_to_string(&manifest_path) {
+            Err(e) => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_UNREADABLE",
+                    format!("map pack {pack:?} manifest cannot be read: {e}"),
+                    "make `pack.json` readable or remove it",
+                );
+                return None;
+            }
+            Ok(text) => match serde_json::from_str::<serde_json::Value>(&text) {
+                Err(e) => {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_MAP",
+                        format!("map pack {pack:?} manifest `pack.json` cannot be decoded ({e})"),
+                        "restore a readable JSON manifest at `pack.json`",
+                    );
+                    return None;
+                }
+                Ok(value) => {
+                    if let Some(att) = value
+                        .get("attribution")
+                        .and_then(|v| v.as_str())
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                    {
+                        manifest_attribution = Some(att.to_string());
+                    }
+                    let num = |key: &str, under: &str| {
+                        value
+                            .get(key)
+                            .or_else(|| value.get(under))
+                            .and_then(|v| v.as_u64())
+                            .and_then(|n| u32::try_from(n).ok())
+                    };
+                    manifest_min = num("min-zoom", "min_zoom");
+                    manifest_max = num("max-zoom", "max_zoom");
+                }
+            },
+        }
+    }
+    // Attribution is a license gate (REC-005): the clip override wins,
+    // else the manifest text; neither means refusal naming the pack.
+    let attribution = match find(node, "attribution").and_then(as_str) {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ => match manifest_attribution {
+            Some(a) => a,
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_MAP",
+                    format!(
+                        "map pack {pack:?} carries no attribution text; maps render attribution on every frame"
+                    ),
+                    "add an `attribution` key to `pack.json`, or set `attribution=\"...\"` on the map clip",
+                );
+                return None;
+            }
+        },
+    };
+    // Viewport center and zoom: required, inside Web Mercator, with
+    // the zoom inside the manifest range when one is declared.
+    let (center_lat, center_lon) = match find(node, "center").and_then(as_str) {
+        Some(s) => match map_latlon_pair(s) {
+            Some(p) => p,
+            None => {
+                let v = find(node, "center").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MAP",
+                    format!(
+                        "map `center` {s:?} is invalid; want `\"lat,lon\"` inside ±{} latitude and ±180 longitude",
+                        MAP_MAX_LAT
+                    ),
+                    "set `center=\"<lat>,<lon>\"` on the map clip",
+                );
+                return None;
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "map clip is missing required `center`",
+                "add `center=\"<lat>,<lon>\"` to the map clip",
+            );
+            return None;
+        }
+    };
+    let zoom = match find(node, "zoom") {
+        Some(v) => match as_int(v) {
+            Some(z) if z >= MAP_MIN_ZOOM as i64 && z <= MAP_MAX_ZOOM as i64 => z as u32,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_MAP",
+                    format!(
+                        "map `zoom` must be a whole number from {} to {}",
+                        MAP_MIN_ZOOM, MAP_MAX_ZOOM
+                    ),
+                    "set `zoom=<integer>` on the map clip",
+                );
+                return None;
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "map clip is missing required `zoom`",
+                "add `zoom=<integer>` to the map clip",
+            );
+            return None;
+        }
+    };
+    if let Some(min) = manifest_min {
+        if zoom < min {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MAP",
+                format!("map pack {pack:?} covers zooms {min} and up; requested zoom {zoom}"),
+                "raise `zoom` into the pack range or extend the pack",
+            );
+            return None;
+        }
+    }
+    if let Some(max) = manifest_max {
+        if zoom > max {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MAP",
+                format!("map pack {pack:?} covers zooms up to {max}; requested zoom {zoom}"),
+                "lower `zoom` into the pack range or extend the pack",
+            );
+            return None;
+        }
+    }
+    let mut pos = |key: &str, default: f64| -> Option<f64> {
+        match find(node, key) {
+            None => Some(default),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(x),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MAP",
+                        format!("map `{key}` must be a number of canvas pixels"),
+                        format!("set `{key}=<number>` on the map clip"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let x = pos("x", 0.0)?;
+    let y = pos("y", 0.0)?;
+    let mut extent = |key: &str| -> Option<Option<f64>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(Some(val)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_MAP",
+                        format!("map `{key}` must be a positive number of canvas pixels"),
+                        format!("set `{key}=<positive pixels>` on the map clip or remove the key"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = extent("width")?;
+    let height = extent("height")?;
+    // Viewport coverage (REC-002): the tiles the viewport needs must
+    // exist and decode; a viewport with no covered tiles refuses with
+    // path and zoom, while partial cover renders the named
+    // placeholder over the gaps at render time.
+    let vw = width.unwrap_or(canvas.0);
+    let vh = height.unwrap_or(canvas.1);
+    if vw > 0.0 && vh > 0.0 && vw.is_finite() && vh.is_finite() {
+        let (x0, x1, y0, y1) =
+            notation::model::map_tile_range(center_lat, center_lon, zoom, vw, vh);
+        let mut covered = 0u32;
+        let mut needed = 0u32;
+        let mut first_missing: Option<String> = None;
+        for ty in y0..=y1 {
+            for tx in x0..=x1 {
+                needed += 1;
+                let rel = format!("{zoom}/{tx}/{ty}.png");
+                let tile_abs = abs.join(&rel);
+                if !tile_abs.is_file() {
+                    if first_missing.is_none() {
+                        first_missing = Some(format!("{pack}/{rel}"));
+                    }
+                    continue;
+                }
+                if let Err(detail) = map_tile_decodes(&tile_abs) {
+                    ctx.push(
+                        node.name_line,
+                        node.name_column,
+                        "E_BAD_MAP",
+                        format!("map tile {pack}/{rel} cannot be decoded ({detail})"),
+                        "restore a readable 256x256 PNG tile at the referenced path",
+                    );
+                    return None;
+                }
+                covered += 1;
+            }
+        }
+        if covered == 0 {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_MAP",
+                format!(
+                    "map pack {pack:?} covers no tiles for zoom {zoom} over the requested viewport (first missing {})",
+                    first_missing.unwrap_or_else(|| "unknown".to_string())
+                ),
+                "narrow the viewport (`center`, `zoom`, `width`, `height`) into the pack coverage, or extend the pack",
+            );
+            return None;
+        }
+        let _ = needed;
+    }
+    // Overlays: `marker`, `label`, `polyline`, and `polygon` children
+    // in document order. Anything else (including `span`) refuses.
+    let mut markers = Vec::new();
+    let mut labels = Vec::new();
+    let mut polylines = Vec::new();
+    let mut polygons = Vec::new();
+    for child in &node.children {
+        match child.name.as_str() {
+            "marker" => {
+                let el = "marker";
+                let lat = map_overlay_coord(ctx, child, el, "lat")?;
+                let lon = map_overlay_coord(ctx, child, el, "lon")?;
+                if lat.abs() > MAP_MAX_LAT || lon.abs() > 180.0 {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_MAP",
+                        format!(
+                            "{el} sits outside Web Mercator (want ±{} latitude, ±180 longitude)",
+                            MAP_MAX_LAT
+                        ),
+                        "move the marker inside the map bounds",
+                    );
+                    return None;
+                }
+                let label = find(child, "label").and_then(as_str).map(str::to_string);
+                let color = map_overlay_color(ctx, child, el, "color", Rgb { r: 255, g: 0, b: 0 })?;
+                markers.push(MapMarker {
+                    lat,
+                    lon,
+                    label,
+                    color,
+                    line: child.name_line,
+                    column: child.name_column,
+                });
+            }
+            "label" => {
+                let el = "map label";
+                let lat = map_overlay_coord(ctx, child, el, "lat")?;
+                let lon = map_overlay_coord(ctx, child, el, "lon")?;
+                if lat.abs() > MAP_MAX_LAT || lon.abs() > 180.0 {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_MAP",
+                        format!(
+                            "{el} sits outside Web Mercator (want ±{} latitude, ±180 longitude)",
+                            MAP_MAX_LAT
+                        ),
+                        "move the label inside the map bounds",
+                    );
+                    return None;
+                }
+                let value = match find(child, "value").and_then(as_str) {
+                    Some(s) if !s.is_empty() => s.to_string(),
+                    _ => {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_MAP",
+                            format!("{el} is missing required `value` text"),
+                            "add `value=\"...\"` to the label",
+                        );
+                        return None;
+                    }
+                };
+                let size = match find(child, "size") {
+                    None => 12.0,
+                    Some(v) => match as_f64(v) {
+                        Some(s) if s.is_finite() && s > 0.0 => s,
+                        _ => {
+                            ctx.push(
+                                v.line,
+                                v.column,
+                                "E_BAD_MAP",
+                                format!("{el} `size` must be a positive number of pixels"),
+                                "set `size=<positive pixels>` on the label",
+                            );
+                            return None;
+                        }
+                    },
+                };
+                let color = map_overlay_color(ctx, child, el, "color", Rgb { r: 0, g: 0, b: 0 })?;
+                labels.push(MapLabel {
+                    lat,
+                    lon,
+                    value,
+                    size,
+                    color,
+                    line: child.name_line,
+                    column: child.name_column,
+                });
+            }
+            "polyline" => {
+                let el = "polyline";
+                let raw = match find(child, "points").and_then(as_str) {
+                    Some(s) => s,
+                    None => {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_MAP",
+                            format!("{el} is missing required `points`"),
+                            "add `points=\"lat,lon lat,lon ...\"` to the polyline",
+                        );
+                        return None;
+                    }
+                };
+                let points = match map_points_list(raw, 2) {
+                    Some(p) => p,
+                    None => {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_MAP",
+                            format!(
+                                "{el} `points` must list at least two `lat,lon` pairs inside Web Mercator"
+                            ),
+                            "set `points=\"lat,lon lat,lon ...\"` on the polyline",
+                        );
+                        return None;
+                    }
+                };
+                let width = match find(child, "width") {
+                    None => 3.0,
+                    Some(v) => match as_f64(v) {
+                        Some(w) if w.is_finite() && w > 0.0 => w,
+                        _ => {
+                            ctx.push(
+                                v.line,
+                                v.column,
+                                "E_BAD_MAP",
+                                format!("{el} `width` must be a positive number of pixels"),
+                                "set `width=<positive pixels>` on the polyline",
+                            );
+                            return None;
+                        }
+                    },
+                };
+                let color = map_overlay_color(ctx, child, el, "color", Rgb { r: 0, g: 0, b: 255 })?;
+                polylines.push(MapPolyline {
+                    points,
+                    width,
+                    color,
+                    line: child.name_line,
+                    column: child.name_column,
+                });
+            }
+            "polygon" => {
+                let el = "polygon";
+                let raw = match find(child, "points").and_then(as_str) {
+                    Some(s) => s,
+                    None => {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_MAP",
+                            format!("{el} is missing required `points`"),
+                            "add `points=\"lat,lon lat,lon ...\"` to the polygon",
+                        );
+                        return None;
+                    }
+                };
+                let points = match map_points_list(raw, 3) {
+                    Some(p) => p,
+                    None => {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_MAP",
+                            format!(
+                                "{el} `points` must list at least three `lat,lon` pairs inside Web Mercator"
+                            ),
+                            "set `points=\"lat,lon lat,lon ...\"` on the polygon",
+                        );
+                        return None;
+                    }
+                };
+                let fill = map_overlay_color(
+                    ctx,
+                    child,
+                    el,
+                    "fill",
+                    Rgb {
+                        r: 51,
+                        g: 136,
+                        b: 255,
+                    },
+                )?;
+                let border_width = match find_either(child, "border-width", "border_width") {
+                    None => 2.0,
+                    Some(v) => match as_f64(v) {
+                        Some(w) if w.is_finite() && w >= 0.0 => w,
+                        _ => {
+                            ctx.push(
+                                v.line,
+                                v.column,
+                                "E_BAD_MAP",
+                                format!("{el} `border-width` must be zero or more pixels"),
+                                "set `border-width=<pixels >= 0>` on the polygon",
+                            );
+                            return None;
+                        }
+                    },
+                };
+                let border_color =
+                    map_overlay_color(ctx, child, el, "border-color", Rgb { r: 0, g: 0, b: 255 })?;
+                // `border_color` also accepts the CSS-vocabulary alias.
+                let border_color = match find(child, "border_color") {
+                    Some(_) => map_overlay_color(ctx, child, el, "border_color", border_color)?,
+                    None => border_color,
+                };
+                polygons.push(MapPolygon {
+                    points,
+                    fill,
+                    border_width,
+                    border_color,
+                    line: child.name_line,
+                    column: child.name_column,
+                });
+            }
+            "span" => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_TEXT",
+                    "map clip holds a `span`; styled runs live in `text` clips only",
+                    "move the `span` into a `text` clip, or remove it",
+                );
+                return None;
+            }
+            other => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_MAP",
+                    format!(
+                        "map clip holds unknown `{other}` child; maps overlay `marker`, `label`, `polyline`, and `polygon` only"
+                    ),
+                    "remove the child or check the spelling",
+                );
+                return None;
+            }
+        }
+    }
+    let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "map clip")?;
+    let filter_blur = clip_filter(ctx, node, "map clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "map clip")?;
+    let grade = parse_clip_grade(ctx, node, "map clip")?;
+    let effects = parse_clip_effects(ctx, node, "map clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "map clip")?;
+    Some(MapClip {
+        asserts,
+        pack,
+        center_lat,
+        center_lon,
+        zoom,
+        attribution,
+        markers,
+        labels,
+        polylines,
+        polygons,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        width,
+        height,
+        order,
+        turn,
+        filter_blur,
+        grade,
+        effects,
+        vfx,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
 /// Validate one `path` clip (Sprint 8 look, CAP-005/T005): an
 /// SVG-subset vector shape with a fill rule and the shared stroke
 /// set, routed through the shared paint stack. Unparsable `d` fails
@@ -10957,7 +12049,9 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
             line,
             col,
             "E_BAD_PATH",
-            format!("{el} `opacity` {opacity} is invalid; opacity runs 0 (transparent) to 1 (opaque)"),
+            format!(
+                "{el} `opacity` {opacity} is invalid; opacity runs 0 (transparent) to 1 (opaque)"
+            ),
             format!("set `opacity=<number from 0 to 1>` on {el}"),
         );
         return None;
@@ -10978,7 +12072,10 @@ fn validate_path(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
             child.name_line,
             child.name_column,
             "E_BAD_PATH",
-            format!("path clip holds `{}`; a path carries no children", child.name),
+            format!(
+                "path clip holds `{}`; a path carries no children",
+                child.name
+            ),
             "remove the child; the shape draws its `d` data",
         );
     }
@@ -11148,7 +12245,9 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
                     node.name_line,
                     node.name_column,
                     "E_BAD_IMAGE",
-                    format!("svg source {path:?} is corrupt or not a readable SVG picture ({detail})"),
+                    format!(
+                        "svg source {path:?} is corrupt or not a readable SVG picture ({detail})"
+                    ),
                     "restore a readable SVG picture at the referenced path",
                 );
                 return None;
@@ -11192,7 +12291,9 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
                     node.name_line,
                     node.name_column,
                     "E_BAD_IMAGE",
-                    format!("{el} is missing required `{key}`; an svg rasterizes at its declared size"),
+                    format!(
+                        "{el} is missing required `{key}`; an svg rasterizes at its declared size"
+                    ),
                     format!("add `{key}=<positive pixels>` to {el}"),
                 );
                 None
@@ -11262,7 +12363,10 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
             child.name_line,
             child.name_column,
             "E_BAD_IMAGE",
-            format!("svg clip holds `{}`; an svg carries no children", child.name),
+            format!(
+                "svg clip holds `{}`; an svg carries no children",
+                child.name
+            ),
             "remove the child; the picture comes from `path`",
         );
     }
@@ -11300,6 +12404,2398 @@ fn validate_svg(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<S
         grade,
         effects,
         vfx,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Display name of a `lottie` clip for diagnostics (Sprint 21
+/// adapters, T001): the clip kind plus its `id` when declared.
+fn lottie_element(identity_id: &Option<String>) -> String {
+    match identity_id {
+        Some(id) => format!("lottie clip {id:?}"),
+        None => "lottie clip".to_string(),
+    }
+}
+
+/// Validate one `lottie` clip (Sprint 21 adapters, T001 / CAP-001): a
+/// `.json` Lottie file or a `.lottie` dotLottie pack played natively.
+/// A missing file names the file; an undecodable file names the file
+/// and the cause; an unknown `loop-mode` names the mode; a missing,
+/// zero, or negative extent names the rule and the fix — all before
+/// frame one. An omitted `duration` resolves to the intrinsic
+/// animation length and echoes in `check`; in-window file markers
+/// ride the clip as named ranges while out-of-window markers drop
+/// into the verdict notes.
+fn validate_lottie(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    clip_idx: usize,
+    styles: &[StyleDecl],
+) -> Option<LottieClip> {
+    let merged = styled_node(ctx, node, "lottie clip", styles)?;
+    let node = merged.as_ref();
+    const KEYS: &[&str] = &[
+        "path",
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "width",
+        "height",
+        "fit",
+        "placement",
+        "loop-mode",
+        "loop_mode",
+        "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown lottie key {k:?}"),
+                "remove the key or check the spelling against `path`, `width`, `height`, `fit`, `placement`, and `loop-mode`",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, "lottie clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "lottie clip") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "lottie", "lottie clip")?;
+    let start = clip_start_relaxed(ctx, node, "lottie clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "lottie clip");
+    let (start, duration_written) = match (start, duration_parsed) {
+        (Some(s), Some(d)) => (s, d),
+        _ => return None,
+    };
+    let el = lottie_element(&identity.id);
+    let path = match find(node, "path").and_then(as_str) {
+        Some(s) => s.to_string(),
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_MISSING_FIELD",
+                "lottie clip is missing required `path`",
+                "add `path=\"media/anim.json\"` (or a `.lottie` pack) to the lottie clip",
+            );
+            return None;
+        }
+    };
+    let lower = path.to_lowercase();
+    if !lower.ends_with(".json") && !lower.ends_with(".lottie") {
+        let v = find(node, "path").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_LOTTIE",
+            format!("{el} source {path:?} must name a `.json` Lottie file or a `.lottie` dotLottie pack"),
+            "point `path` at a `.json` animation or a `.lottie` pack on the lottie clip",
+        );
+        return None;
+    }
+    let abs = ctx.folder.join(&path);
+    if !abs.is_file() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_MISSING_FILE",
+            format!("lottie source {path:?} does not exist or is not readable"),
+            "provide the file at the referenced path or fix the `path`",
+        );
+        return None;
+    }
+    let doc = match std::fs::read(&abs) {
+        Ok(bytes) => match lottie::decode_source(&path, &bytes) {
+            Ok(doc) => doc,
+            Err(detail) => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_LOTTIE",
+                    format!("lottie source {path:?} is undecodable ({detail})"),
+                    "restore a readable animation at the referenced path",
+                );
+                return None;
+            }
+        },
+        Err(e) => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_UNREADABLE",
+                format!("lottie source {path:?} cannot be read: {e}"),
+                "make the animation file readable or fix the `path`",
+            );
+            return None;
+        }
+    };
+    let intrinsic = doc.len_secs();
+    let duration = match duration_written {
+        Some(d) => d,
+        None => {
+            ctx.inferred.push(InferredLength {
+                kind: "lottie",
+                label: Some(path.clone()),
+                line: node.name_line,
+                column: node.name_column,
+                duration: intrinsic,
+                detail: "intrinsic animation length".to_string(),
+            });
+            intrinsic
+        }
+    };
+    let loop_mode = match find_either(node, "loop-mode", "loop_mode") {
+        None => {
+            if doc.loop_default {
+                LoopMode::Loop
+            } else {
+                LoopMode::None
+            }
+        }
+        Some(v) => match as_str(v).and_then(LoopMode::parse) {
+            Some(m) => m,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_LOTTIE",
+                    format!(
+                        "{el} `loop-mode` {:?} is unknown; the loop mode is exactly one of {}",
+                        as_str(v).unwrap_or(""),
+                        LoopMode::ACCEPTED
+                            .iter()
+                            .map(|s| format!("`{s}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    "set `loop-mode=\"none\"`, `\"loop\"`, or `\"ping-pong\"` on the lottie clip, or remove it to keep the file setting",
+                );
+                return None;
+            }
+        },
+    };
+    let mut pos = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => Some(0.0),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(x),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_LOTTIE",
+                        format!("{el} `{key}` must be a number of canvas pixels"),
+                        format!("set `{key}=<number>` on {el}"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let x = pos("x")?;
+    let y = pos("y")?;
+    let mut extent = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_LOTTIE",
+                    format!("{el} is missing required `{key}`; a lottie rasterizes at its declared size"),
+                    format!("add `{key}=<positive pixels>` to {el}"),
+                );
+                None
+            }
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(val),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_LOTTIE",
+                        format!("{el} `{key}` must be a positive number of canvas pixels"),
+                        format!("set `{key}=<positive pixels>` on {el}"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = extent("width")?;
+    let height = extent("height")?;
+    let fit = match find(node, "fit") {
+        None => Fit::Contain,
+        Some(v) => match as_str(v).and_then(Fit::parse) {
+            Some(f) => f,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_FIT",
+                    format!("{el} `fit` must be exactly one of `contain`, `cover`, `fill`"),
+                    format!("set `fit=\"contain\"`, `\"cover\"`, or `\"fill\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let placement = match find(node, "placement") {
+        None => Placement::center(),
+        Some(v) => match as_str(v).and_then(Placement::parse) {
+            Some(p) => p,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_LOTTIE",
+                    format!("{el} `placement` must be a horizontal and vertical placement like `\"center\"`, `\"top-left\"`, or `\"left top\"`"),
+                    format!("set `placement=\"center\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    for child in &node.children {
+        // The `grade` and `effect` children validate with the clip
+        // (Sprint 11 grade T001, effects T004), not with the picture.
+        // Assertion children validate through `parse_clip_asserts`
+        // (Sprint 13 check, T003), not with the picture either.
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
+            continue;
+        }
+        ctx.push(
+            child.name_line,
+            child.name_column,
+            "E_BAD_LOTTIE",
+            format!(
+                "lottie clip holds `{}`; a lottie carries no children",
+                child.name
+            ),
+            "remove the child; the picture comes from `path`",
+        );
+    }
+    if node.children.iter().any(|c| {
+        c.name != "grade" && c.name != "effect" && c.name != "vfx" && !is_assert_child(&c.name)
+    }) {
+        return None;
+    }
+    for drop in &doc.dropped_markers {
+        ctx.marker_drops.push(MarkerDrop {
+            clip: clip_idx,
+            id: identity.id.clone(),
+            path: path.clone(),
+            name: drop.name.clone(),
+            start: drop.start,
+            end: drop.end,
+            detail: drop.detail.clone(),
+            line: node.name_line,
+            column: node.name_column,
+        });
+    }
+    let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "lottie clip")?;
+    let filter_blur = clip_filter(ctx, node, "lottie clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "lottie clip")?;
+    let grade = parse_clip_grade(ctx, node, "lottie clip")?;
+    let effects = parse_clip_effects(ctx, node, "lottie clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "lottie clip")?;
+    Some(LottieClip {
+        asserts,
+        path,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        width,
+        height,
+        fit,
+        placement,
+        loop_mode,
+        markers: doc.markers,
+        order,
+        turn,
+        filter_blur,
+        grade,
+        effects,
+        vfx,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Default chart series palette (Sprint 21 adapters, CAP-002/T002):
+/// eight distinct hues cycled across series in first-appearance
+/// order, so an unwritten `colors` still paints deterministically.
+const CHART_DEFAULT_PALETTE: [Rgb; 8] = [
+    Rgb {
+        r: 0x4e,
+        g: 0x79,
+        b: 0xa7,
+    },
+    Rgb {
+        r: 0xf2,
+        g: 0x8e,
+        b: 0x1e,
+    },
+    Rgb {
+        r: 0xe1,
+        g: 0x57,
+        b: 0x59,
+    },
+    Rgb {
+        r: 0x76,
+        g: 0xb7,
+        b: 0xb2,
+    },
+    Rgb {
+        r: 0x59,
+        g: 0xa1,
+        b: 0x4f,
+    },
+    Rgb {
+        r: 0xed,
+        g: 0xc9,
+        b: 0x48,
+    },
+    Rgb {
+        r: 0xaf,
+        g: 0x7a,
+        b: 0xa1,
+    },
+    Rgb {
+        r: 0xff,
+        g: 0x9d,
+        b: 0xa7,
+    },
+];
+
+/// One parsed chart boolean switch (Sprint 21 adapters, CAP-002/T002):
+/// absent means `default`; present must be a bare `true`/`false`
+/// (either spelling), never a quoted string or number. Returns None
+/// on a parse failure after reporting it.
+fn chart_flag(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    hyphen: &str,
+    underscore: &str,
+    what: &str,
+    default: bool,
+) -> Option<bool> {
+    match find_either(node, hyphen, underscore) {
+        None => Some(default),
+        Some(v) => match &v.kind {
+            ValueKind::Bool(b) => Some(*b),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} `{hyphen}` must be `true` or `false`; found {}",
+                        raw_text(v)
+                    ),
+                    format!("set `{hyphen}=true` or `{hyphen}=false`, or remove the key"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one chart `colors` list (Sprint 21 adapters, CAP-002/T002):
+/// absent means the built-in palette; present must be a quoted
+/// comma-separated list of `#rgb`/`#rrggbb` colors with at least one
+/// entry. An unparsable entry fails naming the key and the entry.
+fn chart_palette(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Vec<Rgb>> {
+    match find(node, "colors") {
+        None => Some(CHART_DEFAULT_PALETTE.to_vec()),
+        Some(v) => match as_str(v) {
+            Some(list) => {
+                let mut out = Vec::new();
+                for entry in list.split(',') {
+                    let entry = entry.trim();
+                    match parse_color(entry) {
+                        Some(c) => out.push(c),
+                        None => {
+                            ctx.push(
+                                v.line,
+                                v.column,
+                                "E_BAD_CHART",
+                                format!(
+                                    "{what} `colors` entry {entry:?} is not a `#rgb` or `#rrggbb` color"
+                                ),
+                                "use a comma-separated list like `colors=\"#4e79a7,#f28e1e\"`",
+                            );
+                            return None;
+                        }
+                    }
+                }
+                if out.is_empty() {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CHART",
+                        format!("{what} `colors` names no color; the palette needs at least one entry"),
+                        "use a comma-separated list like `colors=\"#4e79a7,#f28e1e\"`, or remove the key for the built-in palette",
+                    );
+                    return None;
+                }
+                Some(out)
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} `colors` must be a quoted comma-separated color list; found {}",
+                        raw_text(v)
+                    ),
+                    "use a comma-separated list like `colors=\"#4e79a7,#f28e1e\"`",
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Parse one chart data file (Sprint 21 adapters, CAP-002/T002): the
+/// `data` path read relative to the project folder before any render
+/// work. Each non-empty line reads `label,value` or
+/// `series,label,value` (comma-separated, trimmed). A missing file
+/// refuses naming the file; an unreadable or non-UTF-8 file refuses
+/// naming the file and the cause; a malformed row refuses naming the
+/// file, the 1-based row, and the field. Every bad row reports, so
+/// one file names all of its problems at once.
+fn parse_chart_data_file(
+    ctx: &mut Ctx,
+    folder: &std::path::Path,
+    path: &str,
+    line: usize,
+    column: usize,
+    what: &str,
+) -> Option<Vec<ChartPoint>> {
+    let abs = folder.join(path);
+    if !abs.is_file() {
+        ctx.push(
+            line,
+            column,
+            "E_MISSING_FILE",
+            format!("chart data file {path:?} does not exist or is not readable"),
+            "provide the CSV file at the referenced path or fix the `data` key",
+        );
+        return None;
+    }
+    let bytes = match std::fs::read(&abs) {
+        Ok(b) => b,
+        Err(e) => {
+            ctx.push(
+                line,
+                column,
+                "E_UNREADABLE",
+                format!("chart data file {path:?} cannot be read: {e}"),
+                "make the data file readable or fix the `data` key",
+            );
+            return None;
+        }
+    };
+    let text = match String::from_utf8(bytes) {
+        Ok(t) => t,
+        Err(e) => {
+            ctx.push(
+                line,
+                column,
+                "E_BAD_CHART",
+                format!("chart data file {path:?} is not valid UTF-8 text ({e})"),
+                "save the data file as UTF-8 CSV with `label,value` or `series,label,value` rows",
+            );
+            return None;
+        }
+    };
+    let mut out = Vec::new();
+    let mut bad = false;
+    for (i, raw) in text.lines().enumerate() {
+        let row_no = i + 1;
+        if raw.trim().is_empty() {
+            continue;
+        }
+        let cols: Vec<&str> = raw.split(',').map(str::trim).collect();
+        let (series, label, value_text) = match cols.as_slice() {
+            [label, value] => (None, *label, *value),
+            [series, label, value] => (Some((*series).to_string()), *label, *value),
+            _ => {
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} data file {path:?} row {row_no} has {} columns; each row reads `label,value` or `series,label,value`",
+                        cols.len()
+                    ),
+                    "rewrite the row with two columns (`Q1,12`) or three (`a,Q1,12`)",
+                );
+                bad = true;
+                continue;
+            }
+        };
+        if label.is_empty() {
+            ctx.push(
+                line,
+                column,
+                "E_BAD_CHART",
+                format!("{what} data file {path:?} row {row_no} names no `label`; chart labels are never invented"),
+                "write a label in the row (`Q1,12`), or drop the row",
+            );
+            bad = true;
+            continue;
+        }
+        match value_text.parse::<f64>() {
+            Ok(v) if v.is_finite() => out.push(ChartPoint {
+                series,
+                label: label.to_string(),
+                value: v,
+                x: None,
+            }),
+            _ => {
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} data file {path:?} row {row_no} field `value` is not a finite number; found {value_text:?}"
+                    ),
+                    "write a finite number in the row (`Q1,12`), or drop the row",
+                );
+                bad = true;
+            }
+        }
+    }
+    if bad {
+        return None;
+    }
+    Some(out)
+}
+
+/// Validate one inline chart `row` child (Sprint 21 adapters,
+/// CAP-002/T002): `label` names the category, `value` the finite
+/// number, `series` the optional series, and `x` the scatter
+/// x-coordinate (scatter rows only). Row numbering is 1-based among
+/// the `row` children, so refusals name the offending row and field.
+fn validate_chart_row(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    row_no: usize,
+    kind: ChartKind,
+    what: &str,
+) -> Option<ChartPoint> {
+    const KEYS: &[&str] = &["label", "value", "series", "x"];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("{what} row {row_no} carries unknown key {k:?}"),
+                "use `label`, `value`, `series`, and (scatter only) `x` on chart rows",
+            );
+        }
+    }
+    let label = match find(node, "label").and_then(as_str) {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CHART",
+                format!("{what} row {row_no} names no `label`; chart labels are never invented"),
+                "add `label=\"Q1\"` to the row, or drop the row",
+            );
+            return None;
+        }
+    };
+    let value = match find(node, "value").and_then(as_f64) {
+        Some(v) if v.is_finite() => v,
+        _ => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CHART",
+                format!("{what} row {row_no} field `value` is not a finite number"),
+                "set `value=<number>` on the row, or drop the row",
+            );
+            return None;
+        }
+    };
+    let series = match find(node, "series") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) => Some(s.to_string()),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} row {row_no} field `series` must be a quoted name"),
+                    "set `series=\"a\"` on the row, or remove the key",
+                );
+                return None;
+            }
+        },
+    };
+    let x = match find(node, "x") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => {
+                if kind != ChartKind::Scatter {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CHART",
+                        format!("{what} row {row_no} sets `x`, which only `scatter` rows read"),
+                        "remove `x` from the row, or switch the chart to `kind=\"scatter\"`",
+                    );
+                    return None;
+                }
+                Some(x)
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} row {row_no} field `x` is not a finite number"),
+                    "set `x=<number>` on the row, or remove the key for the row index",
+                );
+                return None;
+            }
+        },
+    };
+    Some(ChartPoint {
+        series,
+        label,
+        value,
+        x,
+    })
+}
+
+/// Validate one `chart` clip (Sprint 21 adapters, CAP-002/T002): one
+/// of eight natively drawn kinds fed by a `data` CSV file, inline
+/// `row` children, or both (file rows first, then inline rows). Data
+/// files refuse before any render work naming the file and cause;
+/// malformed rows refuse naming the row and field; an empty series
+/// validates clean and renders named empty axes. `min`/`max` bound
+/// the `gauge` range only; multi-series pies and multi-point gauges
+/// refuse naming the kind and the count.
+fn validate_chart(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<ChartClip> {
+    let merged = styled_node(ctx, node, "chart clip", styles)?;
+    let node = merged.as_ref();
+    const KEYS: &[&str] = &[
+        "kind",
+        "data",
+        "title",
+        "colors",
+        "background-color",
+        "background_color",
+        "border-width",
+        "border_width",
+        "border-color",
+        "border_color",
+        "show-legend",
+        "show_legend",
+        "show-gridlines",
+        "show_gridlines",
+        "show-value-labels",
+        "show_value_labels",
+        "min",
+        "max",
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "width",
+        "height",
+        "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown chart key {k:?}"),
+                "remove the key or check the spelling against `kind`, `data`, `title`, `colors`, `background-color`, `border-width`, `border-color`, `show-legend`, `show-gridlines`, and `show-value-labels`",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, "chart clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "chart clip") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "chart", "chart clip")?;
+    let start = clip_start_relaxed(ctx, node, "chart clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "chart clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    let kind = match find(node, "kind")
+        .and_then(as_str)
+        .and_then(ChartKind::parse)
+    {
+        Some(k) => k,
+        None => {
+            let at = find(node, "kind");
+            ctx.push(
+                at.map(|v| v.line).unwrap_or(node.name_line),
+                at.map(|v| v.column).unwrap_or(node.name_column),
+                "E_BAD_CHART",
+                match find(node, "kind").and_then(as_str) {
+                    Some(s) => format!(
+                        "chart `kind` {s:?} is unknown; accepted kinds are: {}",
+                        ChartKind::ACCEPTED
+                            .iter()
+                            .map(|k| format!("`{k}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    None => "chart clip is missing required `kind`".to_string(),
+                },
+                "set `kind` to one of `bar`, `line`, `area`, `pie`, `donut`, `scatter`, `radar`, or `gauge`",
+            );
+            return None;
+        }
+    };
+    let what = format!("chart {}", kind.name());
+    let mut data: Vec<ChartPoint> = Vec::new();
+    if let Some(v) = find(node, "data") {
+        match as_str(v) {
+            Some(path) => {
+                match parse_chart_data_file(ctx, &ctx.folder, path, v.line, v.column, &what) {
+                    Some(mut rows) => data.append(&mut rows),
+                    None => return None,
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} `data` must be a quoted file path; found {}",
+                        raw_text(v)
+                    ),
+                    "set `data=\"sales.csv\"` to a project-relative CSV file",
+                );
+                return None;
+            }
+        }
+    }
+    let data_file: Option<String> = find(node, "data").and_then(as_str).map(str::to_string);
+    let mut row_no = 0;
+    let mut rows_ok = true;
+    for child in &node.children {
+        if child.name != "row" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_UNKNOWN_ELEMENT",
+                format!(
+                    "unknown chart child `{}`; a `chart` holds `row` children",
+                    child.name
+                ),
+                "use `row label=\"Q1\" value=12` children, or remove the element",
+            );
+            rows_ok = false;
+            continue;
+        }
+        row_no += 1;
+        match validate_chart_row(ctx, child, row_no, kind, &what) {
+            Some(p) => data.push(p),
+            None => rows_ok = false,
+        }
+    }
+    if !rows_ok {
+        return None;
+    }
+    // Kind-specific shape rules (fail closed, never guessed).
+    if matches!(kind, ChartKind::Pie | ChartKind::Donut) {
+        let mut series: Vec<&str> = Vec::new();
+        for p in &data {
+            let name = p.series.as_deref().unwrap_or("");
+            if !series.contains(&name) {
+                series.push(name);
+            }
+        }
+        if series.len() > 1 {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CHART",
+                format!(
+                    "{what} carries {} series; pies render one series (slices share one whole)",
+                    series.len()
+                ),
+                "keep one series for pie and donut charts, or switch to `kind=\"bar\"` for grouped series",
+            );
+            return None;
+        }
+        for (i, p) in data.iter().enumerate() {
+            if p.value < 0.0 {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} row {} field `value` is negative ({}); pie slices share one non-negative whole",
+                        i + 1,
+                        p.value
+                    ),
+                    "write a non-negative `value` for pie and donut rows, or drop the row",
+                );
+                return None;
+            }
+        }
+    }
+    if kind == ChartKind::Gauge && data.len() != 1 {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_CHART",
+            format!(
+                "{what} carries {} rows; a gauge renders one value against its range",
+                data.len()
+            ),
+            "keep exactly one row for gauge charts, or switch kinds for multi-row data",
+        );
+        return None;
+    }
+    // `min`/`max` bound the gauge range only; anywhere else they refuse.
+    let min = match find(node, "min") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => {
+                if kind != ChartKind::Gauge {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CHART",
+                        format!("{what} sets `min`, which only `gauge` charts read"),
+                        "remove `min`, or switch the chart to `kind=\"gauge\"`",
+                    );
+                    return None;
+                }
+                Some(x)
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} `min` must be a finite number"),
+                    "set `min=<number>` or remove the key",
+                );
+                return None;
+            }
+        },
+    };
+    let max = match find(node, "max") {
+        None => None,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => {
+                if kind != ChartKind::Gauge {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CHART",
+                        format!("{what} sets `max`, which only `gauge` charts read"),
+                        "remove `max`, or switch the chart to `kind=\"gauge\"`",
+                    );
+                    return None;
+                }
+                Some(x)
+            }
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} `max` must be a finite number"),
+                    "set `max=<number>` or remove the key",
+                );
+                return None;
+            }
+        },
+    };
+    if let (Some(lo), Some(hi)) = (min, max) {
+        if !(lo < hi) {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_CHART",
+                format!(
+                    "{what} range `min` ({lo}) is not below `max` ({hi}); a gauge range must rise"
+                ),
+                "set `min=<below max>` and `max=<above min>`, or remove the keys",
+            );
+            return None;
+        }
+    }
+    let title = match find(node, "title") {
+        None => None,
+        Some(v) => match as_str(v) {
+            Some(s) => Some(s.to_string()),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!(
+                        "{what} `title` must be a quoted string; found {}",
+                        raw_text(v)
+                    ),
+                    "set `title=\"Sales\"` or remove the key",
+                );
+                return None;
+            }
+        },
+    };
+    let palette = chart_palette(ctx, node, &what)?;
+    let background = match find_either(node, "background-color", "background_color") {
+        None => Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => c,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} `background-color` is not a `#rgb` or `#rrggbb` color"),
+                    "use a hex color like `background-color=\"#ffffff\"`",
+                );
+                return None;
+            }
+        },
+    };
+    let border_width = match find_either(node, "border-width", "border_width") {
+        None => Some(0.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} `border-width` must be canvas pixels >= 0"),
+                    "set `border-width=<pixels >= 0>` or remove the key",
+                );
+                None
+            }
+        },
+    }?;
+    let border_color = match find_either(node, "border-color", "border_color") {
+        None => Some(Rgb { r: 0, g: 0, b: 0 }),
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_CHART",
+                    format!("{what} `border-color` is not a `#rgb` or `#rrggbb` color"),
+                    "use a hex color like `border-color=\"#000000\"`",
+                );
+                None
+            }
+        },
+    }?;
+    let show_legend = chart_flag(ctx, node, "show-legend", "show_legend", &what, true)?;
+    let show_gridlines = chart_flag(ctx, node, "show-gridlines", "show_gridlines", &what, true)?;
+    let show_value_labels = chart_flag(
+        ctx,
+        node,
+        "show-value-labels",
+        "show_value_labels",
+        &what,
+        true,
+    )?;
+    let mut pos = |key: &str, default: f64| -> Option<f64> {
+        match find(node, key) {
+            None => Some(default),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(x),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CHART",
+                        format!("{what} `{key}` must be a number of canvas pixels"),
+                        format!("set `{key}=<number>` on the chart clip"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let x = pos("x", 0.0)?;
+    let y = pos("y", 0.0)?;
+    let mut extent = |key: &str| -> Option<Option<f64>> {
+        match find(node, key) {
+            None => Some(None),
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(Some(val)),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_CHART",
+                        format!("{what} `{key}` must be a positive number of canvas pixels"),
+                        format!(
+                            "set `{key}=<positive pixels>` on the chart clip or remove the key"
+                        ),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = extent("width")?;
+    let height = extent("height")?;
+    let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "chart clip")?;
+    let filter_blur = clip_filter(ctx, node, "chart clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "chart clip")?;
+    let grade = parse_clip_grade(ctx, node, "chart clip")?;
+    let effects = parse_clip_effects(ctx, node, "chart clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "chart clip")?;
+    Some(ChartClip {
+        asserts,
+        kind,
+        title,
+        data,
+        data_file,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        width,
+        height,
+        background,
+        border_width,
+        border_color,
+        palette,
+        show_legend,
+        show_gridlines,
+        show_value_labels,
+        min,
+        max,
+        order,
+        turn,
+        filter_blur,
+        grade,
+        effects,
+        vfx,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Display name of a `scene3d` clip for diagnostics (Sprint 21
+/// adapters, T003): the clip kind plus its `id` when declared, so
+/// every refusal names the scene element.
+fn scene3d_element(identity_id: &Option<String>) -> String {
+    match identity_id {
+        Some(id) => format!("scene3d clip {id:?}"),
+        None => "scene3d clip".to_string(),
+    }
+}
+
+/// One `scene3d` triplet (`position`, `rotation`, `target`,
+/// `direction`, `size`): a quoted `"x,y,z"` of three finite numbers.
+/// Anything else is refused, never guessed component-wise.
+fn scene3d_triplet(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    el: &str,
+    key: &str,
+    default: [f64; 3],
+) -> Option<[f64; 3]> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_str(v) {
+            Some(s) => {
+                let parts: Vec<&str> = s.split(',').map(str::trim).collect();
+                let nums: Vec<f64> = parts.iter().filter_map(|p| p.parse::<f64>().ok()).collect();
+                if parts.len() == 3 && nums.len() == 3 && nums.iter().all(|x| x.is_finite()) {
+                    Some([nums[0], nums[1], nums[2]])
+                } else {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_SCENE3D",
+                        format!(
+                            "{el} `{key}` must be three finite numbers as `\"x,y,z\"`; found {s:?}"
+                        ),
+                        format!("set `{key}=\"0,0,0\"` (or another `x,y,z` triplet) on {el}"),
+                    );
+                    None
+                }
+            }
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `{key}` must be three finite numbers as `\"x,y,z\"`"),
+                    format!("set `{key}=\"0,0,0\"` (or another `x,y,z` triplet) on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One finite `scene3d` number with a default (Sprint 21 adapters,
+/// T003): present must be finite, else the refusal names the element
+/// and the key.
+fn scene3d_num(ctx: &mut Ctx, node: &RawNode, el: &str, key: &str, default: f64) -> Option<f64> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `{key}` must be a finite number"),
+                    format!("set `{key}=<number>` on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One positive `scene3d` length (`size` components, `radius`,
+/// `height`, `distance`): finite and above zero, else refused.
+fn scene3d_len(ctx: &mut Ctx, node: &RawNode, el: &str, key: &str, default: f64) -> Option<f64> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x > 0.0 => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `{key}` must be a positive number"),
+                    format!("set `{key}=<positive number>` on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `scene3d` color: a `#rgb`/`#rrggbb` hex string, else refused.
+/// Absent means the default.
+fn scene3d_color(ctx: &mut Ctx, node: &RawNode, el: &str, key: &str, default: Rgb) -> Option<Rgb> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_str(v).and_then(parse_color) {
+            Some(c) => Some(c),
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `{key}` must be a `#rgb` or `#rrggbb` color"),
+                    format!("set `{key}=\"#ff0000\"` (or another hex color) on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// One `scene3d` unit factor (`metalness`, `roughness`): finite from
+/// 0 to 1, else refused.
+fn scene3d_unit(ctx: &mut Ctx, node: &RawNode, el: &str, key: &str, default: f64) -> Option<f64> {
+    match find(node, key) {
+        None => Some(default),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && (0.0..=1.0).contains(&x) => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `{key}` must be a number from 0 to 1"),
+                    format!("set `{key}=<0 to 1>` on {el}"),
+                );
+                None
+            }
+        },
+    }
+}
+
+/// Validate one `scene3d` `object` child (Sprint 21 adapters, T003):
+/// a named authored primitive or embedded mesh. Every refusal names
+/// the object and the cause, so an unbuildable scene never renders
+/// silently wrong.
+fn validate_scene3d_object(ctx: &mut Ctx, node: &RawNode) -> Option<Scene3dObject> {
+    const KEYS: &[&str] = &[
+        "name",
+        "kind",
+        "position",
+        "rotation",
+        "size",
+        "radius",
+        "height",
+        "segments",
+        "color",
+        "metalness",
+        "roughness",
+        "vertices",
+        "faces",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown scene3d object key {k:?}"),
+                "remove the key or check the spelling against `name`, `kind`, `position`, `rotation`, `size`, `radius`, `height`, `segments`, `color`, `metalness`, `roughness`, `vertices`, and `faces`",
+            );
+        }
+    }
+    if !node.children.is_empty() {
+        let extra = &node.children[0];
+        ctx.push(
+            extra.name_line,
+            extra.name_column,
+            "E_BAD_SCENE3D",
+            format!(
+                "scene3d object holds `{}`; an object carries attributes only",
+                extra.name
+            ),
+            "move the values onto the `object` attributes",
+        );
+        return None;
+    }
+    let name = match find(node, "name").and_then(as_str) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => {
+            let (line, column) = find(node, "name")
+                .map(|v| (v.line, v.column))
+                .unwrap_or((node.name_line, node.name_column));
+            ctx.push(
+                line,
+                column,
+                "E_BAD_SCENE3D",
+                "scene3d object is missing required `name`; every refusal names its object",
+                "add `name=\"cube\"` (or another non-empty name) to the object",
+            );
+            return None;
+        }
+    };
+    let el = format!("scene3d object {name:?}");
+    let kind = match find(node, "kind").and_then(as_str) {
+        Some(s) => match Scene3dGeometry::parse(s) {
+            Some(k) => k,
+            None => {
+                let v = find(node, "kind").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} has unknown kind {s:?}; authored geometry is `box`, `sphere`, `plane`, `cylinder`, or `mesh`"),
+                    format!("set `kind=\"box\"` (or another authored kind) on {el}"),
+                );
+                return None;
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_SCENE3D",
+                format!("{el} is missing required `kind`"),
+                format!("set `kind=\"box\"` (or another authored kind) on {el}"),
+            );
+            return None;
+        }
+    };
+    let position = scene3d_triplet(ctx, node, &el, "position", [0.0, 0.0, 0.0])?;
+    let rotation = scene3d_triplet(ctx, node, &el, "rotation", [0.0, 0.0, 0.0])?;
+    let size = scene3d_triplet(ctx, node, &el, "size", [1.0, 1.0, 1.0])?;
+    if size.iter().any(|x| !x.is_finite() || *x <= 0.0) {
+        let v = find(node, "size").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_SCENE3D",
+            format!("{el} `size` must be three positive numbers as `\"w,h,d\"`"),
+            format!("set `size=\"1,1,1\"` (or other positive extents) on {el}"),
+        );
+        return None;
+    }
+    let radius = scene3d_len(ctx, node, &el, "radius", 1.0)?;
+    let height = scene3d_len(ctx, node, &el, "height", 1.0)?;
+    let segments = match find(node, "segments") {
+        None => 16u32,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x.fract() == 0.0 && (3.0..=64.0).contains(&x) => x as u32,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `segments` must be a whole number from 3 to 64"),
+                    format!("set `segments=16` (or another whole tessellation) on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let color = scene3d_color(
+        ctx,
+        node,
+        &el,
+        "color",
+        Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
+    )?;
+    let metalness = scene3d_unit(ctx, node, &el, "metalness", 0.0)?;
+    let roughness = scene3d_unit(ctx, node, &el, "roughness", 0.6)?;
+    // Size keys outside the owning kind are refused, never silently
+    // ignored: a `radius` on a box would otherwise do nothing.
+    let mut kind_only = |key: &str, kinds: &[Scene3dGeometry]| {
+        if find(node, key).is_some() && !kinds.contains(&kind) {
+            let v = find(node, key).unwrap();
+            let want: Vec<&str> = kinds.iter().map(|k| k.name()).collect();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_SCENE3D",
+                format!(
+                    "{el} of kind `{}` carries `{key}`; `{key}` applies to {}",
+                    kind.name(),
+                    want.join("`, `")
+                ),
+                format!("remove `{key}` from {el}, or change its `kind`"),
+            );
+            return false;
+        }
+        true
+    };
+    if !kind_only("size", &[Scene3dGeometry::Box, Scene3dGeometry::Plane]) {
+        return None;
+    }
+    if !kind_only(
+        "radius",
+        &[Scene3dGeometry::Sphere, Scene3dGeometry::Cylinder],
+    ) {
+        return None;
+    }
+    if !kind_only("height", &[Scene3dGeometry::Cylinder]) {
+        return None;
+    }
+    if !kind_only(
+        "segments",
+        &[Scene3dGeometry::Sphere, Scene3dGeometry::Cylinder],
+    ) {
+        return None;
+    }
+    if !kind_only("vertices", &[Scene3dGeometry::Mesh]) {
+        return None;
+    }
+    if !kind_only("faces", &[Scene3dGeometry::Mesh]) {
+        return None;
+    }
+    let (vertices, faces) = if kind == Scene3dGeometry::Mesh {
+        let vertices = scene3d_vertices(ctx, node, &el)?;
+        let faces = scene3d_faces(ctx, node, &el, &vertices)?;
+        (vertices, faces)
+    } else {
+        (Vec::new(), Vec::new())
+    };
+    Some(Scene3dObject {
+        name,
+        kind,
+        position,
+        rotation,
+        size,
+        radius,
+        height,
+        segments,
+        color,
+        metalness,
+        roughness,
+        vertices,
+        faces,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Parse one mesh `vertices` list (`"x,y,z; ..."`): at least three
+/// finite vertices, else the refusal names the object and the cause.
+fn scene3d_vertices(ctx: &mut Ctx, node: &RawNode, el: &str) -> Option<Vec<[f64; 3]>> {
+    let raw = match find(node, "vertices").and_then(as_str) {
+        Some(s) => s,
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_SCENE3D",
+                format!("{el} of kind `mesh` is missing required `vertices`"),
+                "add `vertices=\"x,y,z; ...\"` with at least three vertices to the mesh",
+            );
+            return None;
+        }
+    };
+    let mut out = Vec::new();
+    for chunk in raw.split(';') {
+        let chunk = chunk.trim();
+        if chunk.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = chunk.split(',').map(str::trim).collect();
+        let nums: Vec<f64> = parts.iter().filter_map(|p| p.parse::<f64>().ok()).collect();
+        if parts.len() != 3 || nums.len() != 3 || nums.iter().any(|x| !x.is_finite()) {
+            let v = find(node, "vertices").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_SCENE3D",
+                format!("{el} `vertices` holds {chunk:?}; every vertex is three finite numbers as `x,y,z`"),
+                format!("write `vertices=\"0,0,0; 1,0,0; 0,1,0\"` (semicolons between vertices) on {el}"),
+            );
+            return None;
+        }
+        out.push([nums[0], nums[1], nums[2]]);
+    }
+    if out.len() < 3 {
+        let v = find(node, "vertices").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_SCENE3D",
+            format!(
+                "{el} `vertices` holds {} vertices; a mesh needs at least three",
+                out.len()
+            ),
+            format!("add at least three `x,y,z` vertices to {el}"),
+        );
+        return None;
+    }
+    Some(out)
+}
+
+/// Parse one mesh `faces` list (`"a,b,c; ..."`, 0-based): every face
+/// names three distinct in-range vertices and spans a non-degenerate
+/// triangle, else the refusal names the object and the cause.
+fn scene3d_faces(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    el: &str,
+    vertices: &[[f64; 3]],
+) -> Option<Vec<[usize; 3]>> {
+    let vertex_count = vertices.len();
+    let raw = match find(node, "faces").and_then(as_str) {
+        Some(s) => s,
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_SCENE3D",
+                format!("{el} of kind `mesh` is missing required `faces`"),
+                "add `faces=\"0,1,2; ...\"` with 0-based triples to the mesh",
+            );
+            return None;
+        }
+    };
+    let bad = |ctx: &mut Ctx, cause: String, fix: &str| {
+        let v = find(node, "faces").unwrap();
+        ctx.push(v.line, v.column, "E_BAD_SCENE3D", cause, fix);
+    };
+    let mut out: Vec<[usize; 3]> = Vec::new();
+    let mut any = false;
+    for chunk in raw.split(';') {
+        let chunk = chunk.trim();
+        if chunk.is_empty() {
+            continue;
+        }
+        any = true;
+        let parts: Vec<&str> = chunk.split(',').map(str::trim).collect();
+        if parts.len() != 3 {
+            bad(
+                ctx,
+                format!(
+                    "{el} `faces` holds {chunk:?}; every face is three 0-based indices as `a,b,c`"
+                ),
+                "write `faces=\"0,1,2; ...\"` (commas inside faces, semicolons between them)",
+            );
+            return None;
+        }
+        let mut idx = [0usize; 3];
+        for (i, part) in parts.iter().enumerate() {
+            match part.parse::<usize>() {
+                Ok(n) if n < vertex_count => idx[i] = n,
+                _ => {
+                    bad(
+                        ctx,
+                        format!(
+                            "{el} `faces` holds {chunk:?}; indices run 0 to {} for {} vertices",
+                            vertex_count.saturating_sub(1),
+                            vertex_count
+                        ),
+                        "point every face index at a declared vertex",
+                    );
+                    return None;
+                }
+            }
+        }
+        if idx[0] == idx[1] || idx[1] == idx[2] || idx[0] == idx[2] {
+            bad(
+                ctx,
+                format!("{el} `faces` holds {chunk:?}; every face names three distinct vertices"),
+                "give the face three different vertex indices",
+            );
+            return None;
+        }
+        // Degenerate triangles (zero area, including collinear
+        // vertices) render nothing: they refuse here, naming the
+        // object and the face, instead of vanishing silently.
+        let (a, b, c) = (vertices[idx[0]], vertices[idx[1]], vertices[idx[2]]);
+        let cross = [
+            (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]),
+            (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]),
+            (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]),
+        ];
+        let area2 = cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2];
+        if !(area2 > 1e-24) {
+            bad(
+                ctx,
+                format!("{el} `faces` holds {chunk:?}; the triangle spans no area"),
+                "spread the three vertices into a real triangle",
+            );
+            return None;
+        }
+        out.push(idx);
+    }
+    if !any {
+        bad(
+            ctx,
+            format!("{el} `faces` holds no faces; a mesh needs at least one triangle"),
+            "add at least one `a,b,c` face triple to the mesh",
+        );
+        return None;
+    }
+    Some(out)
+}
+
+/// Validate one `scene3d` `camera` child (Sprint 21 adapters, T003):
+/// an orbit camera circling `target` or a fixed camera at `position`,
+/// with `key` snapshots lerping between clip-local times. A second
+/// `camera` child refuses; mode-mismatched keys refuse rather than
+/// sit inert.
+fn validate_scene3d_camera(ctx: &mut Ctx, node: &RawNode) -> Option<Scene3dCamera> {
+    const KEYS: &[&str] = &[
+        "mode",
+        "target",
+        "position",
+        "distance",
+        "azimuth",
+        "elevation",
+        "fov",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown scene3d camera key {k:?}"),
+                "remove the key or check the spelling against `mode`, `target`, `position`, `distance`, `azimuth`, `elevation`, and `fov`",
+            );
+        }
+    }
+    let el = "scene3d camera";
+    let mode = match find(node, "mode") {
+        None => Scene3dCameraMode::Orbit,
+        Some(v) => match as_str(v).and_then(Scene3dCameraMode::parse) {
+            Some(m) => m,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `mode` must be exactly one of `orbit`, `fixed`"),
+                    format!("set `mode=\"orbit\"` or `mode=\"fixed\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let target = scene3d_triplet(ctx, node, el, "target", [0.0, 0.0, 0.0])?;
+    let position = scene3d_triplet(ctx, node, el, "position", [0.0, 0.0, 5.0])?;
+    let distance = scene3d_len(ctx, node, el, "distance", 5.0)?;
+    let azimuth = scene3d_num(ctx, node, el, "azimuth", 0.0)?;
+    let elevation = scene3d_num(ctx, node, el, "elevation", 0.0)?;
+    let fov = match find(node, "fov") {
+        None => Some(45.0),
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x > 0.0 && x < 180.0 => Some(x),
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `fov` must be vertical degrees above 0 and below 180"),
+                    format!("set `fov=45` (or another vertical field of view) on {el}"),
+                );
+                None
+            }
+        },
+    }?;
+    // Mode-mismatched framing refuses: an orbit `position` (or fixed
+    // orbital keys) would otherwise sit inert.
+    match mode {
+        Scene3dCameraMode::Orbit => {
+            if find(node, "position").is_some() {
+                let v = find(node, "position").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} of mode `orbit` carries `position`; an orbit camera frames from `distance`, `azimuth`, and `elevation`"),
+                    format!("remove `position` from {el}, or switch to `mode=\"fixed\"`"),
+                );
+                return None;
+            }
+        }
+        Scene3dCameraMode::Fixed => {
+            for key in ["distance", "azimuth", "elevation"] {
+                if find(node, key).is_some() {
+                    let v = find(node, key).unwrap();
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_SCENE3D",
+                        format!("{el} of mode `fixed` carries `{key}`; a fixed camera frames from `position` and `target`"),
+                        format!("remove `{key}` from {el}, or switch to `mode=\"orbit\"`"),
+                    );
+                    return None;
+                }
+            }
+        }
+    }
+    if mode == Scene3dCameraMode::Fixed && position == target {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_SCENE3D",
+            format!("{el} of mode `fixed` sits its `position` on its `target`; a fixed camera looks from somewhere toward somewhere"),
+            format!("move `position` off `target` on {el}"),
+        );
+        return None;
+    }
+    let mut keys = Vec::new();
+    let mut seen_at = Vec::new();
+    for child in &node.children {
+        if child.name != "key" {
+            ctx.push(
+                child.name_line,
+                child.name_column,
+                "E_BAD_SCENE3D",
+                format!(
+                    "{el} holds `{}`; a camera carries `key` snapshots only",
+                    child.name
+                ),
+                "move the values onto `key at=<seconds> ...` children of the camera",
+            );
+            return None;
+        }
+        let at = match find(child, "at").and_then(as_f64) {
+            Some(x) if x.is_finite() && x >= 0.0 => x,
+            _ => {
+                let (line, column) = find(child, "at")
+                    .map(|v| (v.line, v.column))
+                    .unwrap_or((child.name_line, child.name_column));
+                ctx.push(
+                    line,
+                    column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `key` is missing required `at`; every snapshot names its clip-local time"),
+                    format!("set `at=<seconds >= 0>` on the camera `key`"),
+                );
+                return None;
+            }
+        };
+        if seen_at.contains(&at) {
+            let v = find(child, "at").unwrap();
+            ctx.push(
+                v.line,
+                v.column,
+                "E_BAD_SCENE3D",
+                format!("{el} holds two `key` snapshots at {at}s; key times never repeat"),
+                "merge the snapshots or move one to a distinct time",
+            );
+            return None;
+        }
+        seen_at.push(at);
+        const KEY_KEYS: &[&str] = &[
+            "at",
+            "distance",
+            "azimuth",
+            "elevation",
+            "position",
+            "target",
+            "fov",
+        ];
+        for (k, v) in &child.props {
+            if !KEY_KEYS.contains(&k.as_str()) {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_UNKNOWN_KEY",
+                    format!("unknown scene3d camera key property {k:?}"),
+                    "remove the key or check the spelling against `at`, `distance`, `azimuth`, `elevation`, `position`, `target`, and `fov`",
+                );
+            }
+        }
+        let kel = format!("{el} `key` at {at}s");
+        let distance = match find(child, "distance") {
+            None => None,
+            Some(_) => Some(scene3d_len(ctx, child, &kel, "distance", 5.0)?),
+        };
+        let azimuth = match find(child, "azimuth") {
+            None => None,
+            Some(_) => Some(scene3d_num(ctx, child, &kel, "azimuth", 0.0)?),
+        };
+        let elevation = match find(child, "elevation") {
+            None => None,
+            Some(_) => Some(scene3d_num(ctx, child, &kel, "elevation", 0.0)?),
+        };
+        let position = match find(child, "position") {
+            None => None,
+            Some(_) => Some(scene3d_triplet(
+                ctx,
+                child,
+                &kel,
+                "position",
+                [0.0, 0.0, 5.0],
+            )?),
+        };
+        let target = match find(child, "target") {
+            None => None,
+            Some(_) => Some(scene3d_triplet(
+                ctx,
+                child,
+                &kel,
+                "target",
+                [0.0, 0.0, 0.0],
+            )?),
+        };
+        let fov = match find(child, "fov") {
+            None => None,
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() && x > 0.0 && x < 180.0 => Some(x),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_SCENE3D",
+                        format!("{kel} `fov` must be vertical degrees above 0 and below 180"),
+                        format!("set `fov=45` (or another vertical field of view) on {kel}"),
+                    );
+                    return None;
+                }
+            },
+        };
+        match mode {
+            Scene3dCameraMode::Orbit => {
+                if position.is_some() {
+                    let v = find(child, "position").unwrap();
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_SCENE3D",
+                        format!("{kel} carries `position` on a mode `orbit` camera; orbit snapshots frame with `distance`, `azimuth`, and `elevation`"),
+                        format!("remove `position` from {kel}, or switch the camera to `mode=\"fixed\"`"),
+                    );
+                    return None;
+                }
+            }
+            Scene3dCameraMode::Fixed => {
+                for key in ["distance", "azimuth", "elevation"] {
+                    if find(child, key).is_some() {
+                        let v = find(child, key).unwrap();
+                        ctx.push(
+                            v.line,
+                            v.column,
+                            "E_BAD_SCENE3D",
+                            format!("{kel} carries `{key}` on a mode `fixed` camera; fixed snapshots frame with `position` and `target`"),
+                            format!("remove `{key}` from {kel}, or switch the camera to `mode=\"orbit\"`"),
+                        );
+                        return None;
+                    }
+                }
+            }
+        }
+        keys.push(Scene3dCameraKey {
+            at,
+            distance,
+            azimuth,
+            elevation,
+            position,
+            target,
+            fov,
+            line: child.name_line,
+            column: child.name_column,
+        });
+    }
+    Some(Scene3dCamera {
+        mode,
+        distance,
+        azimuth,
+        elevation,
+        position,
+        target,
+        fov,
+        keys,
+    })
+}
+
+/// Validate one `scene3d` `light` child (Sprint 21 adapters, T003):
+/// a named point light with distance falloff or a named directional
+/// light with uniform intensity. Every refusal names the light and
+/// the cause.
+fn validate_scene3d_light(ctx: &mut Ctx, node: &RawNode) -> Option<Scene3dLight> {
+    const KEYS: &[&str] = &[
+        "name",
+        "kind",
+        "position",
+        "direction",
+        "color",
+        "intensity",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown scene3d light key {k:?}"),
+                "remove the key or check the spelling against `name`, `kind`, `position`, `direction`, `color`, and `intensity`",
+            );
+        }
+    }
+    if !node.children.is_empty() {
+        let extra = &node.children[0];
+        ctx.push(
+            extra.name_line,
+            extra.name_column,
+            "E_BAD_SCENE3D",
+            format!(
+                "scene3d light holds `{}`; a light carries attributes only",
+                extra.name
+            ),
+            "move the values onto the `light` attributes",
+        );
+        return None;
+    }
+    let name = match find(node, "name").and_then(as_str) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => {
+            let (line, column) = find(node, "name")
+                .map(|v| (v.line, v.column))
+                .unwrap_or((node.name_line, node.name_column));
+            ctx.push(
+                line,
+                column,
+                "E_BAD_SCENE3D",
+                "scene3d light is missing required `name`; every refusal names its light",
+                "add `name=\"key\"` (or another non-empty name) to the light",
+            );
+            return None;
+        }
+    };
+    let el = format!("scene3d light {name:?}");
+    let kind = match find(node, "kind").and_then(as_str) {
+        Some(s) => match Scene3dLightKind::parse(s) {
+            Some(k) => k,
+            None => {
+                let v = find(node, "kind").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} has unknown kind {s:?}; lights are `point` or `directional`"),
+                    format!("set `kind=\"point\"` or `kind=\"directional\"` on {el}"),
+                );
+                return None;
+            }
+        },
+        None => {
+            ctx.push(
+                node.name_line,
+                node.name_column,
+                "E_BAD_SCENE3D",
+                format!("{el} is missing required `kind`"),
+                format!("set `kind=\"point\"` or `kind=\"directional\"` on {el}"),
+            );
+            return None;
+        }
+    };
+    let position = scene3d_triplet(ctx, node, &el, "position", [2.0, 3.0, 4.0])?;
+    let direction = scene3d_triplet(ctx, node, &el, "direction", [-0.35, -1.0, -0.55])?;
+    // Kind-mismatched placement refuses: a point light's `direction`
+    // (or a directional light's `position`) would otherwise sit
+    // inert.
+    match kind {
+        Scene3dLightKind::Point => {
+            if find(node, "direction").is_some() {
+                let v = find(node, "direction").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} of kind `point` carries `direction`; a point light radiates from `position`"),
+                    format!("remove `direction` from {el}, or switch to `kind=\"directional\"`"),
+                );
+                return None;
+            }
+        }
+        Scene3dLightKind::Directional => {
+            if find(node, "position").is_some() {
+                let v = find(node, "position").unwrap();
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} of kind `directional` carries `position`; a directional light shines along `direction`"),
+                    format!("remove `position` from {el}, or switch to `kind=\"point\"`"),
+                );
+                return None;
+            }
+        }
+    }
+    if kind == Scene3dLightKind::Directional && direction.iter().all(|x| *x == 0.0) {
+        let v = find(node, "direction").unwrap();
+        ctx.push(
+            v.line,
+            v.column,
+            "E_BAD_SCENE3D",
+            format!("{el} `direction` is `0,0,0`; a directional light travels somewhere"),
+            format!("set `direction=\"-0.35,-1,-0.55\"` (or another nonzero direction) on {el}"),
+        );
+        return None;
+    }
+    let color = scene3d_color(
+        ctx,
+        node,
+        &el,
+        "color",
+        Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
+    )?;
+    let intensity = match find(node, "intensity") {
+        None => 1.0,
+        Some(v) => match as_f64(v) {
+            Some(x) if x.is_finite() && x >= 0.0 => x,
+            _ => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `intensity` must be a number at zero or above"),
+                    format!("set `intensity=<number >= 0>` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    Some(Scene3dLight {
+        name,
+        kind,
+        position,
+        direction,
+        color,
+        intensity,
+        line: node.name_line,
+        column: node.name_column,
+    })
+}
+
+/// Validate one Sprint 21 `scene3d` clip (T003 / CAP-003): a natively
+/// rendered 3D scene with an object list, an orbit or fixed camera
+/// with key snapshots, and point plus directional lights. Geometry
+/// is authored primitives plus embedded mesh data; a missing light
+/// rig renders with the named default light, never darkness. Every
+/// unbuildable scene refuses naming the object (or light, or camera)
+/// and the cause, before any render work.
+fn validate_scene3d(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<Scene3dClip> {
+    let merged = styled_node(ctx, node, "scene3d clip", styles)?;
+    let node = merged.as_ref();
+    const KEYS: &[&str] = &[
+        "start",
+        "duration",
+        "id",
+        "track",
+        "label",
+        "hidden",
+        "start-after",
+        "start_after",
+        "start-offset",
+        "start_offset",
+        "x",
+        "y",
+        "width",
+        "height",
+        "fit",
+        "placement",
+        "order",
+        "rotation-x",
+        "rotation_x",
+        "rotate-x",
+        "rotate_x",
+        "rotation-y",
+        "rotation_y",
+        "rotate-y",
+        "rotate_y",
+        "perspective",
+        "origin",
+        "filter",
+    ];
+    for (k, v) in &node.props {
+        if !KEYS.contains(&k.as_str()) && !TEXT_FX_KEYS.contains(&k.as_str()) && k != "end" {
+            ctx.push(
+                v.line,
+                v.column,
+                "E_UNKNOWN_KEY",
+                format!("unknown scene3d key {k:?}"),
+                "remove the key or check the spelling against `width`, `height`, `fit`, and `placement`",
+            );
+        }
+    }
+    if reject_text_fx(ctx, node, "scene3d clip") {
+        return None;
+    }
+    if reject_spans(ctx, node, "scene3d clip") {
+        return None;
+    }
+    let identity = parse_clip_identity(ctx, node, "scene3d", "scene3d clip")?;
+    let start = clip_start_relaxed(ctx, node, "scene3d clip");
+    let duration_parsed = clip_optional_duration(ctx, node, "scene3d clip");
+    let (start, duration) = match (start, duration_parsed) {
+        (Some(s), Some(Some(d))) => (s, d),
+        (Some(s), Some(None)) => (s, f64::NAN),
+        _ => return None,
+    };
+    let el = scene3d_element(&identity.id);
+    let mut pos = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => Some(0.0),
+            Some(v) => match as_f64(v) {
+                Some(x) if x.is_finite() => Some(x),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_SCENE3D",
+                        format!("{el} `{key}` must be a number of canvas pixels"),
+                        format!("set `{key}=<number>` on {el}"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let x = pos("x")?;
+    let y = pos("y")?;
+    let mut extent = |key: &str| -> Option<f64> {
+        match find(node, key) {
+            None => {
+                ctx.push(
+                    node.name_line,
+                    node.name_column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} is missing required `{key}`; a scene3d rasterizes at its declared size"),
+                    format!("add `{key}=<positive pixels>` to {el}"),
+                );
+                None
+            }
+            Some(v) => match as_f64(v) {
+                Some(val) if val.is_finite() && val > 0.0 => Some(val),
+                _ => {
+                    ctx.push(
+                        v.line,
+                        v.column,
+                        "E_BAD_SCENE3D",
+                        format!("{el} `{key}` must be a positive number of canvas pixels"),
+                        format!("set `{key}=<positive pixels>` on {el}"),
+                    );
+                    None
+                }
+            },
+        }
+    };
+    let width = extent("width")?;
+    let height = extent("height")?;
+    let fit = match find(node, "fit") {
+        None => Fit::Contain,
+        Some(v) => match as_str(v).and_then(Fit::parse) {
+            Some(f) => f,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `fit` must be exactly one of `contain`, `cover`, `fill`"),
+                    format!("set `fit=\"contain\"`, `\"cover\"`, or `\"fill\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let placement = match find(node, "placement") {
+        None => Placement::center(),
+        Some(v) => match as_str(v).and_then(Placement::parse) {
+            Some(p) => p,
+            None => {
+                ctx.push(
+                    v.line,
+                    v.column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} `placement` must be a horizontal and vertical placement like `\"center\"`, `\"top-left\"`, or `\"left top\"`"),
+                    format!("set `placement=\"center\"` on {el}"),
+                );
+                return None;
+            }
+        },
+    };
+    let mut objects = Vec::new();
+    let mut object_names = Vec::new();
+    let mut camera: Option<Scene3dCamera> = None;
+    let mut lights = Vec::new();
+    let mut light_names = Vec::new();
+    // A broken child fails the whole scene (fail-closed): the
+    // sub-validators already named the object, light, or camera and
+    // the cause, so the scene builds only on clean parts.
+    let mut ok = true;
+    for child in &node.children {
+        if child.name == "grade"
+            || child.name == "effect"
+            || child.name == "vfx"
+            || is_assert_child(&child.name)
+        {
+            continue;
+        }
+        match child.name.as_str() {
+            "object" => match validate_scene3d_object(ctx, child) {
+                Some(o) => {
+                    if object_names.contains(&o.name) {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_SCENE3D",
+                            format!(
+                                "{el} holds two objects named {:?}; object names never repeat",
+                                o.name
+                            ),
+                            "rename one of the objects",
+                        );
+                        ok = false;
+                    } else {
+                        object_names.push(o.name.clone());
+                        objects.push(o);
+                    }
+                }
+                None => ok = false,
+            },
+            "camera" => {
+                if camera.is_some() {
+                    ctx.push(
+                        child.name_line,
+                        child.name_column,
+                        "E_BAD_SCENE3D",
+                        format!(
+                            "{el} holds two `camera` children; a scene frames through one camera"
+                        ),
+                        "merge the cameras into one `camera` child, or remove the extra child",
+                    );
+                    ok = false;
+                } else {
+                    match validate_scene3d_camera(ctx, child) {
+                        Some(c) => camera = Some(c),
+                        None => ok = false,
+                    }
+                }
+            }
+            "light" => match validate_scene3d_light(ctx, child) {
+                Some(l) => {
+                    if light_names.contains(&l.name) {
+                        ctx.push(
+                            child.name_line,
+                            child.name_column,
+                            "E_BAD_SCENE3D",
+                            format!(
+                                "{el} holds two lights named {:?}; light names never repeat",
+                                l.name
+                            ),
+                            "rename one of the lights",
+                        );
+                        ok = false;
+                    } else {
+                        light_names.push(l.name.clone());
+                        lights.push(l);
+                    }
+                }
+                None => ok = false,
+            },
+            other => {
+                ctx.push(
+                    child.name_line,
+                    child.name_column,
+                    "E_BAD_SCENE3D",
+                    format!("{el} holds `{other}`; a scene3d carries `object`, `camera`, and `light` children only"),
+                    "remove the child, or move the values onto `object`, `camera`, or `light` attributes",
+                );
+                ok = false;
+            }
+        }
+    }
+    if !ok {
+        return None;
+    }
+    // An object-less scene cannot build: there is nothing to shade.
+    if objects.is_empty() {
+        ctx.push(
+            node.name_line,
+            node.name_column,
+            "E_BAD_SCENE3D",
+            format!(
+                "{el} holds no `object`; a scene renders at least one placed primitive or mesh"
+            ),
+            format!("add an `object name=\"cube\" kind=\"box\" ...` child to {el}"),
+        );
+        return None;
+    }
+    let order = parse_order(ctx, node)?;
+    let turn = clip_turn(ctx, node, "scene3d clip")?;
+    let filter_blur = clip_filter(ctx, node, "scene3d clip")?;
+    let asserts = parse_clip_asserts(ctx, node, "scene3d clip")?;
+    let grade = parse_clip_grade(ctx, node, "scene3d clip")?;
+    let effects = parse_clip_effects(ctx, node, "scene3d clip")?;
+    let vfx = parse_clip_vfx(ctx, node, "scene3d clip")?;
+    Some(Scene3dClip {
+        asserts,
+        start,
+        duration,
+        id: identity.id,
+        track: identity.track,
+        start_after: identity.start_after,
+        label: identity.label,
+        hidden: identity.hidden,
+        x,
+        y,
+        width,
+        height,
+        fit,
+        placement,
+        order,
+        turn,
+        filter_blur,
+        grade,
+        effects,
+        vfx,
+        objects,
+        camera: camera.unwrap_or(Scene3dCamera {
+            mode: Scene3dCameraMode::Orbit,
+            distance: 5.0,
+            azimuth: 0.0,
+            elevation: 15.0,
+            position: [0.0, 0.0, 5.0],
+            target: [0.0, 0.0, 0.0],
+            fov: 45.0,
+            keys: Vec::new(),
+        }),
+        lights,
         line: node.name_line,
         column: node.name_column,
     })
@@ -12190,9 +15686,13 @@ fn mask_clip_kind(clip: &Clip) -> &'static str {
         Clip::Image(_) => "image",
         Clip::Path(_) => "path",
         Clip::Svg(_) => "svg",
+        Clip::Lottie(_) => "lottie",
+        Clip::Chart(_) => "chart",
         Clip::Flex(_) => "flex",
         Clip::Audio(_) => "audio",
         Clip::Nest(_) => "nest",
+        Clip::Map(_) => "map",
+        Clip::Scene3d(_) => "scene3d",
     }
 }
 
@@ -12307,10 +15807,8 @@ fn check_mask_graph(ctx: &mut Ctx, compositions: &[Composition]) {
                         .chain(std::iter::once(ti))
                         .collect();
                     if reported.insert(cycle.clone()) {
-                        let chain: Vec<String> = cycle
-                            .iter()
-                            .map(|&j| mask_clip_name(comp, j))
-                            .collect();
+                        let chain: Vec<String> =
+                            cycle.iter().map(|&j| mask_clip_name(comp, j)).collect();
                         ctx.push(
                             line,
                             column,
@@ -12331,7 +15829,15 @@ fn check_mask_graph(ctx: &mut Ctx, compositions: &[Composition]) {
         }
         for root in 0..comp.clips.len() {
             if matches!(comp.clips[root], Clip::Box(_)) {
-                dfs(ctx, comp, &adj, &mut reported, &mut stack, &mut in_stack, root);
+                dfs(
+                    ctx,
+                    comp,
+                    &adj,
+                    &mut reported,
+                    &mut stack,
+                    &mut in_stack,
+                    root,
+                );
             }
         }
     }
@@ -12672,14 +16178,22 @@ fn sound_directive_guards(ctx: &mut Ctx, node: &RawNode, what: &str, property: &
 /// (Sprint 7 motion, CAP-005/006, plus Sprint 10 sound envelopes): the
 /// geometric properties, the 3D turns, and blur ride every clip like
 /// before, but attribute properties need the clip carrying them —
-/// sizes on boxes and images, fill/radius/border on boxes, font
+/// sizes on boxes, images, and maps, fill/radius/border on boxes, font
 /// metrics on text, and sound envelopes (`volume`, `pan`) on
 /// sound-bearing clips (`audio` tracks and `video` clips). Anything
 /// else is a refusal naming the clip kind, never a silent no-op.
 fn property_kind_ok(property: &str, clip: &Clip) -> bool {
     match property {
         "width" | "height" => {
-            matches!(clip, Clip::Box(_) | Clip::Image(_) | Clip::Flex(_) | Clip::Svg(_))
+            matches!(
+                clip,
+                Clip::Box(_)
+                    | Clip::Image(_)
+                    | Clip::Flex(_)
+                    | Clip::Svg(_)
+                    | Clip::Scene3d(_)
+                    | Clip::Map(_)
+            )
         }
         "fill" | "border-width" | "border-color" => {
             matches!(clip, Clip::Box(_) | Clip::Path(_))
@@ -12745,7 +16259,7 @@ fn motion_property(
                         format!(
                             "{what} property {raw:?} needs {} clip; target {idx} is {}",
                             match canonical {
-                                "width" | "height" => "a box, image, flex, or svg",
+                                "width" | "height" => "a box, image, flex, svg, scene3d, or map",
                                 "fill" | "border-width" | "border-color" => "a box or path",
                                 "radius" => "a box",
                                 "volume" | "pan" => "an audio or video",
@@ -13321,7 +16835,10 @@ fn stage_shape(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, keys: &[&
                 v.line,
                 v.column,
                 "E_UNKNOWN_KEY",
-                format!("unknown {stage} key {k:?} on {what}; a `{stage}` carries {}", keys.join(", ")),
+                format!(
+                    "unknown {stage} key {k:?} on {what}; a `{stage}` carries {}",
+                    keys.join(", ")
+                ),
                 "remove the key or check the spelling",
             );
             ok = false;
@@ -13348,13 +16865,26 @@ fn stage_shape(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, keys: &[&
 /// `shadows`, `midtones`, `highlights` lifts in -1 to 1. Every band is
 /// optional; a missing band inherits the outer level.
 fn validate_wheel(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<WheelGrade> {
-    if !stage_shape(ctx, node, what, "wheel", &["shadows", "midtones", "highlights"]) {
+    if !stage_shape(
+        ctx,
+        node,
+        what,
+        "wheel",
+        &["shadows", "midtones", "highlights"],
+    ) {
         return None;
     }
     Some(WheelGrade {
         shadows: stage_number(ctx, node, what, "wheel", "shadows", GRADE_WHEEL_BAND_RANGE)?,
         midtones: stage_number(ctx, node, what, "wheel", "midtones", GRADE_WHEEL_BAND_RANGE)?,
-        highlights: stage_number(ctx, node, what, "wheel", "highlights", GRADE_WHEEL_BAND_RANGE)?,
+        highlights: stage_number(
+            ctx,
+            node,
+            what,
+            "wheel",
+            "highlights",
+            GRADE_WHEEL_BAND_RANGE,
+        )?,
     })
 }
 
@@ -13428,8 +16958,22 @@ fn validate_hsl(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<HslGrade> {
     Some(HslGrade {
         hue_min: stage_number(ctx, node, what, "hsl", "hue-min", GRADE_HSL_HUE_RANGE)?,
         hue_max: stage_number(ctx, node, what, "hsl", "hue-max", GRADE_HSL_HUE_RANGE)?,
-        saturation: stage_number(ctx, node, what, "hsl", "saturation", GRADE_HSL_SATURATION_RANGE)?,
-        lightness: stage_number(ctx, node, what, "hsl", "lightness", GRADE_HSL_LIGHTNESS_RANGE)?,
+        saturation: stage_number(
+            ctx,
+            node,
+            what,
+            "hsl",
+            "saturation",
+            GRADE_HSL_SATURATION_RANGE,
+        )?,
+        lightness: stage_number(
+            ctx,
+            node,
+            what,
+            "hsl",
+            "lightness",
+            GRADE_HSL_LIGHTNESS_RANGE,
+        )?,
     })
 }
 
@@ -13441,7 +16985,14 @@ fn validate_vignette(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Vignet
         return None;
     }
     Some(VignetteGrade {
-        amount: stage_number(ctx, node, what, "vignette", "amount", GRADE_VIGNETTE_AMOUNT_RANGE)?,
+        amount: stage_number(
+            ctx,
+            node,
+            what,
+            "vignette",
+            "amount",
+            GRADE_VIGNETTE_AMOUNT_RANGE,
+        )?,
         softness: stage_number(
             ctx,
             node,
@@ -13832,12 +17383,7 @@ fn validate_effect(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Effect> 
     // seed, present must be a whole number (never wall-clock
     // randomness; an empty or unreadable seed is refused). Failures
     // name the `effect` preset and the expected shape.
-    fn effect_seed(
-        ctx: &mut Ctx,
-        node: &RawNode,
-        what: &str,
-        preset: &str,
-    ) -> Option<Option<i64>> {
+    fn effect_seed(ctx: &mut Ctx, node: &RawNode, what: &str, preset: &str) -> Option<Option<i64>> {
         match find(node, "seed") {
             None => Some(None),
             Some(v) => match as_f64(v) {
@@ -13904,8 +17450,7 @@ fn validate_effect(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Effect> 
                 effect_number(ctx, node, what, name, "saturate", EFFECT_SATURATE_RANGE)?;
         }
         EffectPreset::HueRotate => {
-            params.angle =
-                effect_number(ctx, node, what, name, "angle", EFFECT_HUE_ANGLE_RANGE)?;
+            params.angle = effect_number(ctx, node, what, name, "angle", EFFECT_HUE_ANGLE_RANGE)?;
         }
         EffectPreset::Blur => {
             params.radius =
@@ -13970,14 +17515,8 @@ fn validate_effect(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<Effect> 
             };
         }
         EffectPreset::Threshold => {
-            params.threshold = effect_number(
-                ctx,
-                node,
-                what,
-                name,
-                "threshold",
-                EFFECT_THRESHOLD_RANGE,
-            )?;
+            params.threshold =
+                effect_number(ctx, node, what, name, "threshold", EFFECT_THRESHOLD_RANGE)?;
         }
         EffectPreset::ChromaticAberration => {
             params.distance = effect_number(
@@ -14021,9 +17560,7 @@ fn parse_clip_vfx(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxChain>
                 child.name_line,
                 child.name_column,
                 "E_BAD_VFX",
-                format!(
-                    "{what} holds two `vfx` children; a clip carries at most one `vfx`"
-                ),
+                format!("{what} holds two `vfx` children; a clip carries at most one `vfx`"),
                 "keep one `vfx` child on the element, or remove the extra child",
             );
             return None;
@@ -14078,10 +17615,7 @@ fn validate_vfx(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<VfxChain> {
                         "`vfx` on {what} holds unknown stage `{stage}`; a `vfx` holds {} only",
                         vfx_stage_list()
                     ),
-                    format!(
-                        "use {} on the `vfx`, or remove the child",
-                        vfx_stage_list()
-                    ),
+                    format!("use {} on the `vfx`, or remove the child", vfx_stage_list()),
                 );
                 ok = false;
                 continue;
@@ -14187,7 +17721,10 @@ fn vfx_stage_shape(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, keys:
                 v.line,
                 v.column,
                 "E_UNKNOWN_KEY",
-                format!("unknown {stage} key {k:?} on {what}; a `{stage}` carries {}", keys.join(", ")),
+                format!(
+                    "unknown {stage} key {k:?} on {what}; a `{stage}` carries {}",
+                    keys.join(", ")
+                ),
                 "remove the key or check the spelling",
             );
             ok = false;
@@ -14330,7 +17867,13 @@ fn vfx_amount(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str) -> Option<
 /// A missing file fails with `E_MISSING_FILE` naming the file;
 /// decodability is proven at render prep, which refuses a corrupt
 /// file naming it before frame one.
-fn vfx_picture_src(ctx: &mut Ctx, node: &RawNode, what: &str, stage: &str, key: &str) -> Option<String> {
+fn vfx_picture_src(
+    ctx: &mut Ctx,
+    node: &RawNode,
+    what: &str,
+    stage: &str,
+    key: &str,
+) -> Option<String> {
     let v = match find(node, key) {
         None => return Some(String::new()),
         Some(v) => v,
@@ -14405,7 +17948,14 @@ fn validate_vfx_displacement(ctx: &mut Ctx, node: &RawNode, what: &str) -> Optio
     Some(VfxDisplacement {
         amount: vfx_amount(ctx, node, what, "displacement")?,
         map,
-        scale: vfx_number(ctx, node, what, "displacement", "scale", VFX_DISPLACEMENT_SCALE_RANGE)?,
+        scale: vfx_number(
+            ctx,
+            node,
+            what,
+            "displacement",
+            "scale",
+            VFX_DISPLACEMENT_SCALE_RANGE,
+        )?,
     })
 }
 
@@ -14566,11 +18116,7 @@ fn validate_transition(ctx: &mut Ctx, node: &RawNode) -> Option<Transition> {
     }
     // One endpoint id: absent, unquoted, or mis-shaped values fail
     // naming the endpoint and the id shape.
-    fn transition_endpoint(
-        ctx: &mut Ctx,
-        node: &RawNode,
-        key: &str,
-    ) -> Option<String> {
+    fn transition_endpoint(ctx: &mut Ctx, node: &RawNode, key: &str) -> Option<String> {
         match find(node, key) {
             None => {
                 ctx.push(
@@ -14687,12 +18233,7 @@ fn validate_transition(ctx: &mut Ctx, node: &RawNode) -> Option<Transition> {
 /// ranges. Failures name the transition and the fix: unknown ids fail
 /// with `E_UNKNOWN_REF` naming the missing id; every other link
 /// failure uses `E_BAD_TRANSITION`.
-fn validate_transition_links(
-    ctx: &mut Ctx,
-    clips: &[Clip],
-    transitions: &[Transition],
-    fps: &Fps,
-) {
+fn validate_transition_links(ctx: &mut Ctx, clips: &[Clip], transitions: &[Transition], fps: &Fps) {
     if transitions.is_empty() {
         return;
     }
@@ -18621,16 +22162,36 @@ mod layout_lint_tests {
     #[test]
     fn caption_band_catches_only_band_reach() {
         let band_top = 480.0 * CAPTION_BAND_TOP; // 422.4
-        // Reaches into the band: touches.
-        assert!(caption_touches(rect(100.0, 410.0, 200.0, 458.0), band_top, 480.0));
+                                                 // Reaches into the band: touches.
+        assert!(caption_touches(
+            rect(100.0, 410.0, 200.0, 458.0),
+            band_top,
+            480.0
+        ));
         // Starts inside the band: touches.
-        assert!(caption_touches(rect(0.0, 450.0, 640.0, 480.0), band_top, 480.0));
+        assert!(caption_touches(
+            rect(0.0, 450.0, 640.0, 480.0),
+            band_top,
+            480.0
+        ));
         // Ends exactly at the band top: silent.
-        assert!(!caption_touches(rect(0.0, 0.0, 640.0, 422.4), band_top, 480.0));
+        assert!(!caption_touches(
+            rect(0.0, 0.0, 640.0, 422.4),
+            band_top,
+            480.0
+        ));
         // Fully above: silent.
-        assert!(!caption_touches(rect(0.0, 0.0, 100.0, 100.0), band_top, 480.0));
+        assert!(!caption_touches(
+            rect(0.0, 0.0, 100.0, 100.0),
+            band_top,
+            480.0
+        ));
         // Fully below the canvas (past the end): silent.
-        assert!(!caption_touches(rect(0.0, 480.0, 100.0, 500.0), band_top, 480.0));
+        assert!(!caption_touches(
+            rect(0.0, 480.0, 100.0, 500.0),
+            band_top,
+            480.0
+        ));
     }
 
     #[test]
@@ -18663,7 +22224,10 @@ mod layout_lint_tests {
         assert_eq!(px(-0.0), "0");
         assert_eq!(px(422.4), "422.4");
         assert_eq!(area_text(2500.0, 50.0, 50.0), "2500px² (50x50px)");
-        assert_eq!(bounds_text(rect(100.0, 410.0, 200.0, 458.0)), "100,410-200,458px");
+        assert_eq!(
+            bounds_text(rect(100.0, 410.0, 200.0, 458.0)),
+            "100,410-200,458px"
+        );
     }
 
     #[test]

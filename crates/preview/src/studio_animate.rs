@@ -1011,9 +1011,17 @@ fn unroll_numeric_tween(
     })?;
     if tween.property == "fill" || tween.property == "border-color" {
         let channels = if tween.property == "fill" {
-            [motion::Prop::FillR, motion::Prop::FillG, motion::Prop::FillB]
+            [
+                motion::Prop::FillR,
+                motion::Prop::FillG,
+                motion::Prop::FillB,
+            ]
         } else {
-            [motion::Prop::BorderR, motion::Prop::BorderG, motion::Prop::BorderB]
+            [
+                motion::Prop::BorderR,
+                motion::Prop::BorderG,
+                motion::Prop::BorderB,
+            ]
         };
         let own_ch = [
             own[channels[0].index()],
@@ -1088,7 +1096,9 @@ fn unroll_numeric_tween(
     let (from_v, to_v) = match tween.kind {
         notation::model::TweenKind::To => (base, tween.to.unwrap_or(base)),
         notation::model::TweenKind::From => (tween.from.unwrap_or(base), base),
-        notation::model::TweenKind::FromTo => (tween.from.unwrap_or(base), tween.to.unwrap_or(base)),
+        notation::model::TweenKind::FromTo => {
+            (tween.from.unwrap_or(base), tween.to.unwrap_or(base))
+        }
     };
     let ease = engine_ease(&tween.ease);
     let mut out = String::new();

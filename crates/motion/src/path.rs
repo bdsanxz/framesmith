@@ -348,8 +348,7 @@ fn parse_impl(data: &str) -> Result<Path, (PathError, usize)> {
             let relative = raw.is_ascii_lowercase();
             match upper {
                 'M' => {
-                    let (j, pair) = next_pair(bytes, i, 'M')
-                        .map_err(|e| (e, cmds.len() + 1))?;
+                    let (j, pair) = next_pair(bytes, i, 'M').map_err(|e| (e, cmds.len() + 1))?;
                     i = j;
                     let to = if relative {
                         [cur[0] + pair[0], cur[1] + pair[1]]

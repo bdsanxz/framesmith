@@ -330,7 +330,8 @@ pub fn copy_clips(
 ) -> Result<ClipboardPayload, String> {
     if targets.is_empty() {
         return Err(refused_clipboard(
-            "the copy names no clips; pass at least one clip `id` or index. Nothing was staged.".to_string(),
+            "the copy names no clips; pass at least one clip `id` or index. Nothing was staged."
+                .to_string(),
         ));
     }
     let verdict = validate::validate::validate_folder(folder);
@@ -373,8 +374,10 @@ pub fn copy_clips(
         }
     }
     indices.sort_unstable();
-    let clips: Vec<notation::model::Clip> =
-        indices.iter().map(|&i| effective.clips[i].clone()).collect();
+    let clips: Vec<notation::model::Clip> = indices
+        .iter()
+        .map(|&i| effective.clips[i].clone())
+        .collect();
     let base_start = clips
         .iter()
         .map(notation::model::Clip::start)
@@ -618,19 +621,15 @@ pub fn paste_clips(
         sets: payload.sets.clone(),
         at,
     };
-    let applied = session.apply(op).map_err(|e| {
-        refused_clipboard(format!("{e} Nothing was persisted or recorded."))
-    })?;
+    let applied = session
+        .apply(op)
+        .map_err(|e| refused_clipboard(format!("{e} Nothing was persisted or recorded.")))?;
     let renamed: Vec<String> = session.effective_composition().clips[before..]
         .iter()
         .filter_map(|c| c.id().map(str::to_string))
         .collect();
     let summaries = vec![applied.op.summary()];
-    let motion = [
-        payload.tweens.len(),
-        payload.keys.len(),
-        payload.sets.len(),
-    ];
+    let motion = [payload.tweens.len(), payload.keys.len(), payload.sets.len()];
     let pasted = payload.clips.len();
     match session.persist_turn(&actor) {
         Ok(turn) => Ok(PasteReceipt {
@@ -728,7 +727,10 @@ pub fn cut_clips(
             )
         })?;
         let id = staged[idx].id().map(str::to_string);
-        let one = sdk::ClipRef { id, index: Some(idx) };
+        let one = sdk::ClipRef {
+            id,
+            index: Some(idx),
+        };
         if !refs.iter().any(|r: &sdk::ClipRef| r == &one) {
             refs.push(one);
         }
@@ -738,9 +740,9 @@ pub fn cut_clips(
         composition: composition_name.clone(),
         targets: refs,
     };
-    let applied = session.apply(op).map_err(|e| {
-        refused_clipboard(format!("{e} Nothing was persisted or recorded."))
-    })?;
+    let applied = session
+        .apply(op)
+        .map_err(|e| refused_clipboard(format!("{e} Nothing was persisted or recorded.")))?;
     let summaries = vec![applied.op.summary()];
     match session.persist_turn(&actor) {
         Ok(turn) => Ok(CutReceipt {
@@ -813,12 +815,7 @@ pub fn duplicate_clips(
         actor,
         None,
     )
-    .map_err(|e| {
-        e.replace(
-            "the paste ",
-            "the duplicate ",
-        )
-    })?;
+    .map_err(|e| e.replace("the paste ", "the duplicate "))?;
     Ok(DuplicateReceipt {
         turn: receipt.turn,
         composition: receipt.composition,
@@ -1143,9 +1140,7 @@ pub fn drop_onto_timeline(folder: &Path, req: &DropRequest) -> Result<DropReceip
             // A file outside the project is an import, not a drop:
             // the Assets panel owns that copy with its stored-name
             // receipt, so the drop refuses and names it.
-            if std::path::Path::new(rel).is_absolute()
-                || !folder.join(rel).starts_with(folder)
-            {
+            if std::path::Path::new(rel).is_absolute() || !folder.join(rel).starts_with(folder) {
                 return Err(refused_clipboard(format!(
                     "the drop file {rel:?} sits outside the project; import it through the Assets panel first, then drop the stored asset. Nothing was staged."
                 )));
@@ -1160,9 +1155,8 @@ pub fn drop_onto_timeline(folder: &Path, req: &DropRequest) -> Result<DropReceip
                 composition: Some(target_name.clone()),
             };
             let comps: Vec<notation::model::Composition> = verdict.compositions.clone();
-            let receipt = crate::studio_assets::insert_asset(folder, &comps, &action).map_err(|e| {
-                refused_clipboard(format!("{e} Nothing else was staged."))
-            })?;
+            let receipt = crate::studio_assets::insert_asset(folder, &comps, &action)
+                .map_err(|e| refused_clipboard(format!("{e} Nothing else was staged.")))?;
             // The insert receipt is JSON (`{"inserted":true,...}`);
             // the drop receipt re-reports it under drop keys.
             let turn = receipt_turn(&receipt);

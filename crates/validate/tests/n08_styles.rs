@@ -103,7 +103,8 @@ fn boxes_of(comp: &notation::model::Composition) -> Vec<notation::model::BoxClip
 
 // --- shared looks resolve onto every referrer -------------------------------
 
-const CARD: &str = "style name=\"card\" fill=\"#ff0000\" x=10 y=20 width=200 height=100 opacity=0.5 radius=4\n";
+const CARD: &str =
+    "style name=\"card\" fill=\"#ff0000\" x=10 y=20 width=200 height=100 opacity=0.5 radius=4\n";
 
 fn three_sharing(body_prefix: &str) -> Vec<notation::model::BoxClip> {
     let body = format!(
@@ -119,14 +120,7 @@ fn three_elements_sharing_one_style_all_render_its_properties() {
     for b in &bs {
         assert_eq!((b.x, b.y), (10.0, 20.0));
         assert_eq!((b.width, b.height), (200.0, 100.0));
-        assert_eq!(
-            b.fill,
-            notation::model::Rgb {
-                r: 255,
-                g: 0,
-                b: 0
-            }
-        );
+        assert_eq!(b.fill, notation::model::Rgb { r: 255, g: 0, b: 0 });
         assert_eq!(b.opacity, 0.5);
         assert_eq!(b.radius, 4.0);
     }
@@ -134,16 +128,12 @@ fn three_elements_sharing_one_style_all_render_its_properties() {
 
 #[test]
 fn element_attribute_overrides_the_same_style_property() {
-    let body = format!(
-        "{OPEN}{CARD}box style=\"card\" fill=\"#0000ff\" x=30 start=0 duration=2\n}}\n"
-    );
+    let body =
+        format!("{OPEN}{CARD}box style=\"card\" fill=\"#0000ff\" x=30 start=0 duration=2\n}}\n");
     let bs = boxes_of(&valid_comp(&body));
     assert_eq!(bs.len(), 1);
     // Element-written `fill` and `x` win; the rest rides the style.
-    assert_eq!(
-        bs[0].fill,
-        notation::model::Rgb { r: 0, g: 0, b: 255 }
-    );
+    assert_eq!(bs[0].fill, notation::model::Rgb { r: 0, g: 0, b: 255 });
     assert_eq!(bs[0].x, 30.0);
     assert_eq!(bs[0].y, 20.0);
     assert_eq!(bs[0].opacity, 0.5);
@@ -157,10 +147,7 @@ fn later_declared_style_wins_over_earlier_style() {
     let bs = boxes_of(&valid_comp(&body));
     assert_eq!(bs.len(), 1);
     // `card` is later, so its fill wins; `x` comes from `base` alone.
-    assert_eq!(
-        bs[0].fill,
-        notation::model::Rgb { r: 0, g: 0, b: 255 }
-    );
+    assert_eq!(bs[0].fill, notation::model::Rgb { r: 0, g: 0, b: 255 });
     assert_eq!(bs[0].x, 10.0);
 }
 
@@ -172,14 +159,7 @@ fn style_order_controls_which_shared_property_wins() {
     let bs = boxes_of(&valid_comp(&body));
     assert_eq!(bs.len(), 1);
     // `base` is later here, so its fill wins back.
-    assert_eq!(
-        bs[0].fill,
-        notation::model::Rgb {
-            r: 255,
-            g: 0,
-            b: 0
-        }
-    );
+    assert_eq!(bs[0].fill, notation::model::Rgb { r: 255, g: 0, b: 0 });
 }
 
 #[test]
@@ -241,14 +221,7 @@ fn forward_style_reference_resolves_whatever_the_order() {
     );
     let bs = boxes_of(&valid_comp(&body));
     assert_eq!(bs.len(), 1);
-    assert_eq!(
-        bs[0].fill,
-        notation::model::Rgb {
-            r: 255,
-            g: 0,
-            b: 0
-        }
-    );
+    assert_eq!(bs[0].fill, notation::model::Rgb { r: 255, g: 0, b: 0 });
 }
 
 // --- styles compose with every styleable element ----------------------------
@@ -262,10 +235,7 @@ fn style_applies_to_text_runs() {
     match &comp.clips[0] {
         notation::model::Clip::Text(t) => {
             assert_eq!(t.size, 48.0);
-            assert_eq!(
-                t.color,
-                notation::model::Rgb { r: 0, g: 255, b: 0 }
-            );
+            assert_eq!(t.color, notation::model::Rgb { r: 0, g: 255, b: 0 });
         }
         other => panic!("expected text, got {other:?}"),
     }
@@ -279,10 +249,7 @@ fn style_applies_to_path_shapes() {
     let comp = valid_comp(&body);
     match &comp.clips[0] {
         notation::model::Clip::Path(p) => {
-            assert_eq!(
-                p.fill,
-                notation::model::Rgb { r: 0, g: 0, b: 255 }
-            );
+            assert_eq!(p.fill, notation::model::Rgb { r: 0, g: 0, b: 255 });
             assert_eq!(p.border_width, 3.0);
         }
         other => panic!("expected a path, got {other:?}"),
@@ -323,11 +290,7 @@ fn style_applies_to_flex_containers_and_child_boxes() {
             assert_eq!(f.children.len(), 1);
             assert_eq!(
                 f.children[0].fill,
-                notation::model::Rgb {
-                    r: 255,
-                    g: 0,
-                    b: 0
-                }
+                notation::model::Rgb { r: 255, g: 0, b: 0 }
             );
         }
         other => panic!("expected flex, got {other:?}"),
@@ -411,7 +374,11 @@ fn unknown_style_with_no_styles_declared_says_so() {
     let ds = diags(&format!(
         "{OPEN}box style=\"ghost\" x=1 y=2 width=50 height=40 start=0 duration=2\n}}\n"
     ));
-    assert_refusal(&ds, "E_BAD_STYLE", &["\"ghost\"", "no styles are declared yet"]);
+    assert_refusal(
+        &ds,
+        "E_BAD_STYLE",
+        &["\"ghost\"", "no styles are declared yet"],
+    );
 }
 
 #[test]

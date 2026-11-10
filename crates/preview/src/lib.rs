@@ -85,7 +85,7 @@ pub use studio::{
 pub use studio_audio::{
     apply_preset, audition_preset, copy_lane, define_audio_group, disband_audio_group,
     load_audio_groups, paste_lane, preset_named, preset_ops, rack_presets, read_master_meter,
-    rewrite_lane, studio_audio_path_for, AuditionReport, AudioGroups, AudioGroupsLoad,
+    rewrite_lane, studio_audio_path_for, AudioGroups, AudioGroupsLoad, AuditionReport,
     LaneClipboard, MeterLevel, PresetReceipt, RackPreset, RackRefusal, RackRefusalKind, RackStage,
     RackTurnReceipt, E_RACK_BAD_GROUP, E_RACK_BAD_VALUE, E_RACK_EMPTY_CLIPBOARD,
     E_RACK_EMPTY_RANGE, E_RACK_SILENT_TARGET, E_RACK_STAGE_FAILED, E_RACK_UNAVAILABLE,
@@ -95,10 +95,9 @@ pub use studio_audio::{
 pub use studio_code::{
     apply_tree_action, code_css, code_file_json, code_html, code_js, jump_json, jump_to_selection,
     language_of, list_tree, parse_save_body, parse_tree_action_body, read_code_file, referrers_of,
-    resolve_code_path, save_code_file, save_receipt_json, tree_json, tree_receipt_json,
-    CodeEntry, CodeFile, CodeJump, CodeSave, SaveReceipt, TreeAction, TreeReceipt,
-    CODE_COMPOSITION_FILE, CODE_COMPOSITION_STARTER, CODE_CONFIG_STARTER, CODE_JSON_STARTER,
-    CODE_MARKDOWN_STARTER,
+    resolve_code_path, save_code_file, save_receipt_json, tree_json, tree_receipt_json, CodeEntry,
+    CodeFile, CodeJump, CodeSave, SaveReceipt, TreeAction, TreeReceipt, CODE_COMPOSITION_FILE,
+    CODE_COMPOSITION_STARTER, CODE_CONFIG_STARTER, CODE_JSON_STARTER, CODE_MARKDOWN_STARTER,
 };
 pub use studio_shortcuts::{
     default_shortcuts, describe_request_text, load_shortcuts, normalize_chord, parse_dispatch_body,

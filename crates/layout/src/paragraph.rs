@@ -662,10 +662,7 @@ pub fn layout_runs(
         Direction::Rtl => BaseDirection::Rtl,
         Direction::Auto => BaseDirection::Auto,
     });
-    for ((run, families), (start, end)) in runs
-        .iter()
-        .zip(lists.iter())
-        .zip(bounds.iter().copied())
+    for ((run, families), (start, end)) in runs.iter().zip(lists.iter()).zip(bounds.iter().copied())
     {
         let range = start..end;
         let names: Vec<FontFamilyName> = families
@@ -682,7 +679,10 @@ pub fn layout_runs(
         } else {
             FontStyle::Normal
         };
-        builder.push(StyleProperty::FontFamily(FontFamily::List(names.into())), range.clone());
+        builder.push(
+            StyleProperty::FontFamily(FontFamily::List(names.into())),
+            range.clone(),
+        );
         builder.push(StyleProperty::FontSize(run.size), range.clone());
         builder.push(StyleProperty::FontWeight(weight), range.clone());
         builder.push(StyleProperty::FontStyle(italic), range.clone());
@@ -723,10 +723,7 @@ pub fn layout_runs(
     // mapping stays identical): each glyph advances its own run's
     // extra spacing, and the spaced width feeds alignment exactly as
     // the renderer draws it.
-    let spacings: Vec<f32> = runs
-        .iter()
-        .map(|r| r.letter_spacing.max(0.0))
-        .collect();
+    let spacings: Vec<f32> = runs.iter().map(|r| r.letter_spacing.max(0.0)).collect();
     let mut spaced_widths: Vec<f32> = Vec::with_capacity(widths.len());
     {
         let mut taken: BTreeMap<(usize, u16), usize> = BTreeMap::new();
@@ -837,11 +834,10 @@ pub fn layout_runs(
                         character: ch,
                     });
                 }
-                let id = u16::try_from(glyph.id)
-                    .map_err(|_| TextError::MissingCharacterRun {
-                        run: idx,
-                        character: ch,
-                    })?;
+                let id = u16::try_from(glyph.id).map_err(|_| TextError::MissingCharacterRun {
+                    run: idx,
+                    character: ch,
+                })?;
                 let skew = run.synthesis().skew().unwrap_or(0.0);
                 let embolden = run.synthesis().embolden();
                 match out_runs.last_mut() {
@@ -920,7 +916,10 @@ pub fn layout_runs(
         };
         let old_last = lines.last().map(|l| l.baseline).unwrap_or(0.0);
         let first = lines[0].baseline;
-        let natural: Vec<f32> = lines.windows(2).map(|w| w[1].baseline - w[0].baseline).collect();
+        let natural: Vec<f32> = lines
+            .windows(2)
+            .map(|w| w[1].baseline - w[0].baseline)
+            .collect();
         let mut start_glyph = 0usize;
         let mut start_pic = 0usize;
         // Baselines accumulate: line i targets first + the running

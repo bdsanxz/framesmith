@@ -1,0 +1,8 @@
+[package]
+name = "threed"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith native 3D scene core: authored primitives, orbit/fixed cameras, point/directional lights, deterministic CPU rasterizer"
+license = "MIT OR Apache-2.0"
+
+[dependencies]

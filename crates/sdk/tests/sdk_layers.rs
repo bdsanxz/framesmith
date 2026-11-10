@@ -228,7 +228,10 @@ fn group_refusals_name_the_cause_and_stage_nothing() {
         })
         .expect_err("empty name refuses");
     assert_eq!(refused.code, sdk::E_SDK_BAD_VALUE);
-    assert!(refused.message.contains("non-empty group name"), "{refused}");
+    assert!(
+        refused.message.contains("non-empty group name"),
+        "{refused}"
+    );
 
     // An unknown member refuses.
     let refused = session
@@ -378,7 +381,10 @@ fn ungroup_releases_members_and_names_holdings() {
         })
         .expect_err("unknown ungroup refuses");
     assert_eq!(refused.code, sdk::E_SDK_BAD_VALUE);
-    assert!(refused.message.contains("names no grouped members"), "{refused}");
+    assert!(
+        refused.message.contains("names no grouped members"),
+        "{refused}"
+    );
     assert!(refused.message.contains("\"flair\""), "{refused}");
 
     // An empty name refuses.
@@ -426,7 +432,10 @@ fn move_refuses_when_motion_sits_inside_the_range() {
     assert_eq!(refused.kind, EditRefusalKind::BadValue);
     assert_eq!(refused.code, sdk::E_SDK_BAD_VALUE);
     assert!(refused.message.contains("re-pointing"), "{refused}");
-    assert!(refused.message.contains("tween 0 (clip index 1)"), "{refused}");
+    assert!(
+        refused.message.contains("tween 0 (clip index 1)"),
+        "{refused}"
+    );
     assert!(refused.message.contains("z-index"), "{refused}");
     assert_eq!(doc_ids(&session), before, "refused move stages nothing");
     assert_eq!(
@@ -489,7 +498,13 @@ fn move_guard_covers_sets_and_keys() {
             to: 3,
         })
         .expect_err("set/key-breaking move refuses");
-    assert!(refused.message.contains("set 0 (clip index 2)"), "{refused}");
-    assert!(refused.message.contains("key 0 (clip index 2)"), "{refused}");
+    assert!(
+        refused.message.contains("set 0 (clip index 2)"),
+        "{refused}"
+    );
+    assert!(
+        refused.message.contains("key 0 (clip index 2)"),
+        "{refused}"
+    );
     assert_eq!(doc_ids(&session), vec!["a", "b", "c", "d"]);
 }

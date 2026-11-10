@@ -358,7 +358,7 @@ fn kind_mismatches_fail_naming_the_clip() {
             "text value=\"Hi\" start=0 duration=4",
             "width",
             "60",
-            "box, image, flex, or svg",
+            "box, image, flex, svg, scene3d, or map",
         ),
         (
             "text value=\"Hi\" start=0 duration=4",

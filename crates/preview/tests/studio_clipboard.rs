@@ -134,7 +134,11 @@ fn valid_names(folder: &Path) -> Vec<String> {
             .map(|d| format!("{} {}", d.code, d.message))
             .collect::<Vec<_>>()
     );
-    verdict.compositions.iter().map(|c| c.name.clone()).collect()
+    verdict
+        .compositions
+        .iter()
+        .map(|c| c.name.clone())
+        .collect()
 }
 
 fn effective(folder: &Path, composition: &str) -> notation::model::Composition {
@@ -180,10 +184,7 @@ fn snapshot(folder: &Path) -> Vec<(PathBuf, Vec<u8>)> {
                 stack.push(path);
             } else {
                 let bytes = std::fs::read(&path).unwrap();
-                out.push((
-                    path.strip_prefix(folder).unwrap().to_path_buf(),
-                    bytes,
-                ));
+                out.push((path.strip_prefix(folder).unwrap().to_path_buf(), bytes));
             }
         }
     }
@@ -286,9 +287,8 @@ fn copy_paste_across_compositions_keeps_offsets_tracks_styles_and_motion() {
 
     // Copy `hero` (1..5) and `card` (2..5): the payload carries both
     // clips with the tween, key (both on hero), and set (on card).
-    let payload =
-        studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["hero", "card"]))
-            .expect("copy resolves");
+    let payload = studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["hero", "card"]))
+        .expect("copy resolves");
     assert_eq!(payload.clips.len(), 2);
     assert_eq!(payload.tweens.len(), 1);
     assert_eq!(payload.keys.len(), 1);
@@ -300,7 +300,10 @@ fn copy_paste_across_compositions_keeps_offsets_tracks_styles_and_motion() {
         .expect("paste lands");
     assert_eq!(receipt.pasted, 2);
     assert_eq!(receipt.at, 3.0);
-    assert_eq!(receipt.renamed, vec!["hero-paste".to_string(), "card-paste".to_string()]);
+    assert_eq!(
+        receipt.renamed,
+        vec!["hero-paste".to_string(), "card-paste".to_string()]
+    );
     // History sequences start at 0: the first recorded turn is turn 0.
     assert_eq!(receipt.turn, 0);
 
@@ -398,9 +401,8 @@ fn copy_paste_across_projects_renames_ids_through_the_wire_format() {
     let back = studio_clipboard::parse_clipboard_body(&wire).expect("wire parses");
     assert_eq!(back.clips.len(), 1);
 
-    let receipt =
-        studio_clipboard::paste_clips(&dir_b, Some("b"), &back, 2.0, "maker", None)
-            .expect("cross-project paste lands");
+    let receipt = studio_clipboard::paste_clips(&dir_b, Some("b"), &back, 2.0, "maker", None)
+        .expect("cross-project paste lands");
     assert_eq!(receipt.renamed, vec!["plain-paste".to_string()]);
     let landed = effective(&dir_b, "b");
     assert_eq!(landed.clips.len(), 1);
@@ -409,7 +411,13 @@ fn copy_paste_across_projects_renames_ids_through_the_wire_format() {
     // rewrite, so its default renders stay byte-identical; the
     // target sources stay byte-identical too (turns live in hidden
     // studio state files, never beside the sources).
-    assert_eq!(sdk::history::list_turns(&dir_a).expect("history lists").turns.len(), 0);
+    assert_eq!(
+        sdk::history::list_turns(&dir_a)
+            .expect("history lists")
+            .turns
+            .len(),
+        0
+    );
     assert_eq!(kdl_bytes(&dir_a), sources_a);
     assert_eq!(effective(&dir_b, "b").clips[0].id(), Some("plain-paste"));
 }
@@ -420,9 +428,8 @@ fn paste_within_one_composition_still_renames_ids() {
     two_comp_project(&folder);
     let payload = studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["hero"]))
         .expect("copy resolves");
-    let receipt =
-        studio_clipboard::paste_clips(&folder, Some("a"), &payload, 5.0, "maker", None)
-            .expect("same-composition paste lands");
+    let receipt = studio_clipboard::paste_clips(&folder, Some("a"), &payload, 5.0, "maker", None)
+        .expect("same-composition paste lands");
     assert_eq!(receipt.renamed, vec!["hero-paste".to_string()]);
     let landed = effective(&folder, "a");
     let ids: Vec<_> = landed.clips.iter().filter_map(|c| c.id()).collect();
@@ -440,9 +447,8 @@ fn paste_within_one_composition_still_renames_ids() {
 fn cut_confirmed_copy_removes_and_carries_the_payload() {
     let folder = tmp("cut-ok");
     two_comp_project(&folder);
-    let receipt =
-        studio_clipboard::cut_clips(&folder, Some("a"), &targets(&["card"]), "maker")
-            .expect("cut applies");
+    let receipt = studio_clipboard::cut_clips(&folder, Some("a"), &targets(&["card"]), "maker")
+        .expect("cut applies");
     assert_eq!(receipt.removed, 1);
     assert_eq!(receipt.payload.clips.len(), 1);
     assert_eq!(receipt.payload.clips[0].id(), Some("card"));
@@ -461,13 +467,18 @@ fn cut_failed_copy_removes_nothing() {
     let folder = tmp("cut-refused");
     two_comp_project(&folder);
     let before = snapshot(&folder);
-    let err =
-        studio_clipboard::cut_clips(&folder, Some("a"), &targets(&["ghost"]), "maker")
-            .expect_err("unknown clip refuses");
+    let err = studio_clipboard::cut_clips(&folder, Some("a"), &targets(&["ghost"]), "maker")
+        .expect_err("unknown clip refuses");
     assert!(err.contains("\"ghost\""), "refusal names the clip: {err}");
     assert_eq!(effective(&folder, "a").clips.len(), 3);
     assert_eq!(snapshot(&folder), before, "failed cut stages nothing");
-    assert_eq!(sdk::history::list_turns(&folder).expect("history lists").turns.len(), 0);
+    assert_eq!(
+        sdk::history::list_turns(&folder)
+            .expect("history lists")
+            .turns
+            .len(),
+        0
+    );
 }
 
 #[test]
@@ -495,7 +506,13 @@ fn duplicate_in_place_keeps_window_and_renames_id() {
     assert_eq!(dup.duration(), orig.duration());
     assert_eq!(dup.track(), orig.track());
     // One duplicate is one undo unit.
-    assert_eq!(sdk::history::list_turns(&folder).expect("history lists").turns.len(), 1);
+    assert_eq!(
+        sdk::history::list_turns(&folder)
+            .expect("history lists")
+            .turns
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -533,8 +550,14 @@ fn drop_file_outside_the_project_refuses_naming_the_import() {
     )
     .expect("drop parses");
     let err = studio_clipboard::drop_onto_timeline(&folder, &req).expect_err("outside refuses");
-    assert!(err.contains("Assets panel"), "refusal names the import: {err}");
-    assert!(err.contains("/tmp/card.png"), "refusal names the file: {err}");
+    assert!(
+        err.contains("Assets panel"),
+        "refusal names the import: {err}"
+    );
+    assert!(
+        err.contains("/tmp/card.png"),
+        "refusal names the file: {err}"
+    );
     assert_eq!(snapshot(&folder), before, "outside drop stages nothing");
 }
 
@@ -553,11 +576,14 @@ fn drop_unsupported_type_refuses_naming_accepted_types() {
     assert!(err.contains("video"), "refusal names accepted types: {err}");
     assert!(err.contains("audio"), "refusal names accepted types: {err}");
     // An unknown drop kind refuses naming the accepted kinds.
-    let bad = studio_clipboard::parse_drop_body("{\"kind\":\"font\"}")
-        .expect_err("unknown kind refuses");
+    let bad =
+        studio_clipboard::parse_drop_body("{\"kind\":\"font\"}").expect_err("unknown kind refuses");
     assert!(bad.contains("file"), "refusal names accepted kinds: {bad}");
     assert!(bad.contains("asset"), "refusal names accepted kinds: {bad}");
-    assert!(bad.contains("composition"), "refusal names accepted kinds: {bad}");
+    assert!(
+        bad.contains("composition"),
+        "refusal names accepted kinds: {bad}"
+    );
     assert_eq!(snapshot(&folder), before, "unsupported drops stage nothing");
 }
 
@@ -603,7 +629,10 @@ fn incompatible_payloads_refuse_by_name_staging_nothing() {
     // No clips.
     let err = studio_clipboard::parse_clipboard_body("{\"clipboard\":1,\"kind\":\"clips\"}")
         .expect_err("missing clips refuses");
-    assert!(err.contains("`clips`"), "refusal names what is missing: {err}");
+    assert!(
+        err.contains("`clips`"),
+        "refusal names what is missing: {err}"
+    );
     // Unknown copy target.
     let err = studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["ghost"]))
         .expect_err("unknown target refuses");
@@ -611,7 +640,10 @@ fn incompatible_payloads_refuse_by_name_staging_nothing() {
     // Unknown copy composition.
     let err = studio_clipboard::copy_clips(&folder, Some("ghost-comp"), &targets(&["hero"]))
         .expect_err("unknown composition refuses");
-    assert!(err.contains("\"ghost-comp\""), "refusal names the composition: {err}");
+    assert!(
+        err.contains("\"ghost-comp\""),
+        "refusal names the composition: {err}"
+    );
 
     // A paste needing media the target project lacks names the file.
     let target = tmp("paste-missing-media");
@@ -624,9 +656,22 @@ fn incompatible_payloads_refuse_by_name_staging_nothing() {
     let before = snapshot(&target);
     let err = studio_clipboard::paste_clips(&target, Some("b"), &payload, 0.0, "maker", None)
         .expect_err("missing media refuses");
-    assert!(err.contains("media/card.png"), "refusal names the file: {err}");
-    assert_eq!(snapshot(&target), before, "missing-media paste stages nothing");
-    assert_eq!(sdk::history::list_turns(&target).expect("history lists").turns.len(), 0);
+    assert!(
+        err.contains("media/card.png"),
+        "refusal names the file: {err}"
+    );
+    assert_eq!(
+        snapshot(&target),
+        before,
+        "missing-media paste stages nothing"
+    );
+    assert_eq!(
+        sdk::history::list_turns(&target)
+            .expect("history lists")
+            .turns
+            .len(),
+        0
+    );
 
     // A paste needing a composition the target lacks names it: the
     // source nests "inner", which the lone-"b" target does not hold.
@@ -639,23 +684,28 @@ fn incompatible_payloads_refuse_by_name_staging_nothing() {
     let payload = studio_clipboard::copy_clips(
         &with_nest,
         Some("a"),
-        &[studio_clipboard::ClipTarget { id: None, index: Some(0) }],
+        &[studio_clipboard::ClipTarget {
+            id: None,
+            index: Some(0),
+        }],
     )
     .expect("nest copy resolves");
     let lone = tmp("paste-nest-target");
     empty_b_project(&lone);
     let err = studio_clipboard::paste_clips(&lone, Some("b"), &payload, 0.0, "maker", None)
         .expect_err("missing composition refuses");
-    assert!(err.contains("\"inner\""), "refusal names the composition: {err}");
+    assert!(
+        err.contains("\"inner\""),
+        "refusal names the composition: {err}"
+    );
 }
 
 #[test]
 fn unfittable_paste_refuses_staging_nothing() {
     let folder = tmp("paste-full");
     two_comp_project(&folder);
-    let payload =
-        studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["hero", "card"]))
-            .expect("copy resolves");
+    let payload = studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["hero", "card"]))
+        .expect("copy resolves");
     let before = snapshot(&folder);
     // Seating override keeps the test fast: `b` holds 0 clips, so a
     // 1-clip cap cannot fit 2 pasted clips.
@@ -666,9 +716,18 @@ fn unfittable_paste_refuses_staging_nothing() {
     // A negative playhead refuses too.
     let err = studio_clipboard::paste_clips(&folder, Some("b"), &payload, -1.0, "maker", None)
         .expect_err("negative playhead refuses");
-    assert!(err.contains("playhead"), "refusal names the playhead: {err}");
+    assert!(
+        err.contains("playhead"),
+        "refusal names the playhead: {err}"
+    );
     assert_eq!(snapshot(&folder), before, "unfittable pastes stage nothing");
-    assert_eq!(sdk::history::list_turns(&folder).expect("history lists").turns.len(), 0);
+    assert_eq!(
+        sdk::history::list_turns(&folder)
+            .expect("history lists")
+            .turns
+            .len(),
+        0
+    );
 }
 
 #[test]
@@ -688,9 +747,8 @@ fn paste_undo_restores_the_timeline_through_one_history() {
     two_comp_project(&folder);
     let payload = studio_clipboard::copy_clips(&folder, Some("a"), &targets(&["hero"]))
         .expect("copy resolves");
-    let receipt =
-        studio_clipboard::paste_clips(&folder, Some("b"), &payload, 2.0, "maker", None)
-            .expect("paste lands");
+    let receipt = studio_clipboard::paste_clips(&folder, Some("b"), &payload, 2.0, "maker", None)
+        .expect("paste lands");
     assert_eq!(effective(&folder, "b").clips.len(), 1);
     sdk::history::undo_turn(&folder, receipt.turn).expect("undo reverses the paste");
     let undone = effective(&folder, "b");
@@ -744,7 +802,10 @@ fn server_clipboard_routes_copy_cut_paste_duplicate_and_drop() {
         );
         assert_eq!(code, 200);
         assert_eq!(cut["removed"], 1);
-        assert_eq!(cut["clipboard"]["clips"].as_array().map(|c| c.len()), Some(1));
+        assert_eq!(
+            cut["clipboard"]["clips"].as_array().map(|c| c.len()),
+            Some(1)
+        );
 
         // Composition drops nest at the drop point.
         let (code, dropped) = json(
@@ -778,6 +839,9 @@ fn server_clipboard_routes_copy_cut_paste_duplicate_and_drop() {
         assert!(text.contains("composition"), "{text}");
 
         // The cut really removed `plain` from the served project.
-        assert!(effective(folder, "a").clips.iter().all(|c| c.id() != Some("plain")));
+        assert!(effective(folder, "a")
+            .clips
+            .iter()
+            .all(|c| c.id() != Some("plain")));
     });
 }

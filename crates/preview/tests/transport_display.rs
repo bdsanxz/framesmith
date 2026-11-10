@@ -72,7 +72,10 @@ fn readout_shows_the_current_time_and_frame_number() {
     let readout = t.readout();
     assert_eq!(readout.frame, 3);
     assert_eq!(readout.frame_count, 10);
-    assert!((readout.time_secs - 0.3).abs() < 1e-9, "frame 3 at 10fps is 0.3s");
+    assert!(
+        (readout.time_secs - 0.3).abs() < 1e-9,
+        "frame 3 at 10fps is 0.3s"
+    );
     assert!((readout.duration_secs - 1.0).abs() < 1e-12);
     let text = readout.to_string();
     assert!(text.contains("3/10"), "{text}");
@@ -131,7 +134,11 @@ fn speed_changes_the_advance_rate() {
     slow.set_speed(0.5).expect("speed acts");
     slow.play().expect("play acts");
     slow.tick(Duration::from_millis(500));
-    assert_eq!(slow.position(), 2, "0.5x over 0.5s is 2.5 frames -> frame 2");
+    assert_eq!(
+        slow.position(),
+        2,
+        "0.5x over 0.5s is 2.5 frames -> frame 2"
+    );
 
     // Sub-frame fractions accumulate instead of dropping: two 0.05s
     // ticks at 10fps are half a frame each, landing one frame on.
@@ -186,7 +193,11 @@ fn unusable_speeds_refuse_and_keep_the_old_rate() {
         let err = t.set_speed(bad).expect_err("bad speed refuses");
         assert_eq!(err.kind, TransportErrorKind::BadSpeed, "{bad}");
         assert_eq!(err.control, TransportControl::SetSpeed);
-        assert!(err.message.contains("finite rate above zero"), "{}", err.message);
+        assert!(
+            err.message.contains("finite rate above zero"),
+            "{}",
+            err.message
+        );
     }
     assert_eq!(t.speed(), 1.0, "refused speeds keep the old rate");
     t.set_speed(0.25).expect("fractional speeds act");

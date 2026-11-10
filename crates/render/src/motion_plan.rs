@@ -82,6 +82,18 @@ pub fn own_values(clip: &Clip, canvas: (f64, f64)) -> [f64; PROP_COUNT] {
             own[Prop::RotateY.index()] = ic.turn.rotation_y;
             own[Prop::Blur.index()] = ic.filter_blur;
         }
+        // A map viewport owns its rect like an image: motion tweens
+        // ride the offset and the viewport extents, while the tiles
+        // stay authored (Sprint 21 adapters, T004).
+        Clip::Map(mc) => {
+            own[Prop::X.index()] = mc.x;
+            own[Prop::Y.index()] = mc.y;
+            own[Prop::Width.index()] = mc.width.unwrap_or(canvas.0);
+            own[Prop::Height.index()] = mc.height.unwrap_or(canvas.1);
+            own[Prop::RotateX.index()] = mc.turn.rotation_x;
+            own[Prop::RotateY.index()] = mc.turn.rotation_y;
+            own[Prop::Blur.index()] = mc.filter_blur;
+        }
         // A vector path owns its offset, paint, and opacity like a
         // box: motion tweens ride these channels, while `d` and the
         // fill rule stay authored.
@@ -110,6 +122,44 @@ pub fn own_values(clip: &Clip, canvas: (f64, f64)) -> [f64; PROP_COUNT] {
             own[Prop::RotateX.index()] = sc.turn.rotation_x;
             own[Prop::RotateY.index()] = sc.turn.rotation_y;
             own[Prop::Blur.index()] = sc.filter_blur;
+        }
+        // A Lottie animation owns its rect like an SVG picture
+        // (Sprint 21 adapters, T001): motion tweens ride the offset
+        // and the declared extents.
+        Clip::Lottie(lc) => {
+            own[Prop::X.index()] = lc.x;
+            own[Prop::Y.index()] = lc.y;
+            own[Prop::Width.index()] = lc.width;
+            own[Prop::Height.index()] = lc.height;
+            own[Prop::RotateX.index()] = lc.turn.rotation_x;
+            own[Prop::RotateY.index()] = lc.turn.rotation_y;
+            own[Prop::Blur.index()] = lc.filter_blur;
+        }
+        // Sibling adapter families (Sprint 21, T002/T003/T004 own the
+        // pixels): motion tweens ride the same rect channels their
+        // validators declare, so tweening parses and evaluates even
+        // before those slices wire their painters.
+        Clip::Chart(ch) => {
+            own[Prop::X.index()] = ch.x;
+            own[Prop::Y.index()] = ch.y;
+            own[Prop::Width.index()] = ch.width.unwrap_or(canvas.0);
+            own[Prop::Height.index()] = ch.height.unwrap_or(canvas.1);
+            own[Prop::RotateX.index()] = ch.turn.rotation_x;
+            own[Prop::RotateY.index()] = ch.turn.rotation_y;
+            own[Prop::Blur.index()] = ch.filter_blur;
+        }
+        // A 3D scene owns its rect like an image (Sprint 21 adapters,
+        // T003): motion tweens ride the offset and the raster
+        // extents, while the objects, camera keys, and lights stay
+        // authored.
+        Clip::Scene3d(s3) => {
+            own[Prop::X.index()] = s3.x;
+            own[Prop::Y.index()] = s3.y;
+            own[Prop::Width.index()] = s3.width;
+            own[Prop::Height.index()] = s3.height;
+            own[Prop::RotateX.index()] = s3.turn.rotation_x;
+            own[Prop::RotateY.index()] = s3.turn.rotation_y;
+            own[Prop::Blur.index()] = s3.filter_blur;
         }
         Clip::Video(vc) => {
             own[Prop::RotateX.index()] = vc.turn.rotation_x;
@@ -170,8 +220,7 @@ pub fn tween_is_constant_noop(decl: &TweenDecl, comp: &Composition) -> bool {
     let Some(clip) = comp.clips.get(decl.target) else {
         return false;
     };
-    let base =
-        own_values(clip, (f64::from(comp.width), f64::from(comp.height)))[prop.index()];
+    let base = own_values(clip, (f64::from(comp.width), f64::from(comp.height)))[prop.index()];
     match decl.kind {
         TweenKind::FromTo => decl.from == Some(base) && decl.to == Some(base),
         TweenKind::To => decl.to == Some(base),

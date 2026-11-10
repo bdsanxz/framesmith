@@ -1532,6 +1532,10 @@ pub(crate) fn clip_label_mut(clip: &mut Clip) -> &mut Option<String> {
         Clip::Image(c) => &mut c.label,
         Clip::Path(c) => &mut c.label,
         Clip::Svg(c) => &mut c.label,
+        Clip::Chart(c) => &mut c.label,
+        Clip::Map(c) => &mut c.label,
+        Clip::Scene3d(c) => &mut c.label,
+        Clip::Lottie(c) => &mut c.label,
         Clip::Audio(c) => &mut c.label,
         Clip::Nest(c) => &mut c.label,
     }
@@ -1571,6 +1575,10 @@ pub(crate) fn clip_set_id(clip: &mut Clip, id: Option<String>) {
         Clip::Image(c) => c.id = id,
         Clip::Path(c) => c.id = id,
         Clip::Svg(c) => c.id = id,
+        Clip::Chart(c) => c.id = id,
+        Clip::Map(c) => c.id = id,
+        Clip::Scene3d(c) => c.id = id,
+        Clip::Lottie(c) => c.id = id,
         Clip::Audio(c) => c.id = id,
         Clip::Nest(c) => c.id = id,
     }
@@ -1586,6 +1594,10 @@ fn clip_set_hidden(clip: &mut Clip, hidden: bool) {
         Clip::Image(c) => c.hidden = hidden,
         Clip::Path(c) => c.hidden = hidden,
         Clip::Svg(c) => c.hidden = hidden,
+        Clip::Chart(c) => c.hidden = hidden,
+        Clip::Map(c) => c.hidden = hidden,
+        Clip::Scene3d(c) => c.hidden = hidden,
+        Clip::Lottie(c) => c.hidden = hidden,
         Clip::Audio(c) => c.hidden = hidden,
         Clip::Nest(c) => c.hidden = hidden,
     }
@@ -2966,6 +2978,10 @@ pub(crate) fn clip_clear_relative(clip: &mut Clip) {
         Clip::Image(c) => c.start_after = None,
         Clip::Path(c) => c.start_after = None,
         Clip::Svg(c) => c.start_after = None,
+        Clip::Chart(c) => c.start_after = None,
+        Clip::Map(c) => c.start_after = None,
+        Clip::Scene3d(c) => c.start_after = None,
+        Clip::Lottie(c) => c.start_after = None,
         Clip::Audio(c) => c.start_after = None,
         Clip::Nest(c) => c.start_after = None,
     }
@@ -3094,12 +3110,12 @@ fn land_paste_clips(
             ));
         }
     }
-    let base = clips
-        .iter()
-        .map(Clip::start)
-        .fold(f64::INFINITY, f64::min);
+    let base = clips.iter().map(Clip::start).fold(f64::INFINITY, f64::min);
     let shift = at - base;
-    let mut taken: Vec<String> = staged.iter().filter_map(|c| c.id().map(str::to_string)).collect();
+    let mut taken: Vec<String> = staged
+        .iter()
+        .filter_map(|c| c.id().map(str::to_string))
+        .collect();
     let mut landed = Vec::with_capacity(clips.len());
     for clip in clips {
         let mut one = clip.clone();

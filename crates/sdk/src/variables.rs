@@ -1323,7 +1323,12 @@ impl crate::SdkSession {
             .filter(|u| u.variable == id)
             .collect();
         uses.sort_by(|a, b| {
-            (&a.file, a.line, a.column, &a.attribute).cmp(&(&b.file, b.line, b.column, &b.attribute))
+            (&a.file, a.line, a.column, &a.attribute).cmp(&(
+                &b.file,
+                b.line,
+                b.column,
+                &b.attribute,
+            ))
         });
         if !uses.is_empty() {
             let list = uses

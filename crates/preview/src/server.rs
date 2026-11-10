@@ -1953,8 +1953,10 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 );
                 return;
             }
-            let preview_only =
-                matches!(action, crate::studio_variables::VariablesAction::Preview { .. });
+            let preview_only = matches!(
+                action,
+                crate::studio_variables::VariablesAction::Preview { .. }
+            );
             if !preview_only {
                 if state.conflict.is_some() {
                     respond_text(
@@ -2354,11 +2356,7 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
         // plus the threshold in CSS pixels. Refusals save nothing.
         ("GET", "/api/studio/snap") => {
             let load = crate::studio_snap_zoom::load_snap(&state.folder);
-            respond_json(
-                stream,
-                "200 OK",
-                &crate::studio_snap_zoom::snap_json(&load),
-            );
+            respond_json(stream, "200 OK", &crate::studio_snap_zoom::snap_json(&load));
         }
         ("POST", "/api/studio/snap") => {
             if !crate::studio::project_reachable(&state.folder) {
@@ -2376,11 +2374,7 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                         restored: true,
                         notice: None,
                     };
-                    respond_json(
-                        stream,
-                        "200 OK",
-                        &crate::studio_snap_zoom::snap_json(&load),
-                    );
+                    respond_json(stream, "200 OK", &crate::studio_snap_zoom::snap_json(&load));
                 }
                 Err(message) => respond_text(stream, "400 Bad Request", &message),
             }
@@ -2729,9 +2723,8 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 Some(base) => {
                     let shown = readout_composition(state, &base, Some(&composition));
                     let scope_raw = query_get(query, "scope").unwrap_or_default();
-                    let scope = match crate::studio_select::resolve_group_scope(
-                        &shown, &scope_raw,
-                    ) {
+                    let scope = match crate::studio_select::resolve_group_scope(&shown, &scope_raw)
+                    {
                         Ok(scope) => scope,
                         Err(message) => {
                             respond_text(stream, "404 Not Found", &message);
@@ -3887,11 +3880,9 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 return;
             }
             match crate::studio_code::list_tree(&state.folder) {
-                Ok(entries) => respond_json(
-                    stream,
-                    "200 OK",
-                    &crate::studio_code::tree_json(&entries),
-                ),
+                Ok(entries) => {
+                    respond_json(stream, "200 OK", &crate::studio_code::tree_json(&entries))
+                }
                 Err(message) => respond_text(stream, "409 Conflict", &message),
             }
         }
@@ -3916,11 +3907,9 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 }
             };
             match crate::studio_code::read_code_file(&state.folder, &rel) {
-                Ok(file) => respond_json(
-                    stream,
-                    "200 OK",
-                    &crate::studio_code::code_file_json(&file),
-                ),
+                Ok(file) => {
+                    respond_json(stream, "200 OK", &crate::studio_code::code_file_json(&file))
+                }
                 Err(message) => respond_text(stream, "409 Conflict", &message),
             }
         }
@@ -4037,11 +4026,8 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                 }
             };
             let composition = query_get(query, "composition");
-            match crate::studio_code::jump_to_selection(
-                &state.folder,
-                composition.as_deref(),
-                &key,
-            ) {
+            match crate::studio_code::jump_to_selection(&state.folder, composition.as_deref(), &key)
+            {
                 Ok(jump) => respond_json(stream, "200 OK", &crate::studio_code::jump_json(&jump)),
                 Err(message) => respond_text(stream, "404 Not Found", &message),
             }
@@ -4064,8 +4050,7 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
             };
             let comps = state.session.all_compositions().to_vec();
             if parsed.scope == crate::studio_assets::AssetScope::All {
-                let projects =
-                    crate::studio_assets::discover_projects(&state.folder, &comps);
+                let projects = crate::studio_assets::discover_projects(&state.folder, &comps);
                 respond_json(
                     stream,
                     "200 OK",
@@ -4192,9 +4177,7 @@ fn route(stream: TcpStream, state: &mut ServerState, method: &str, target: &str,
                     &req.asset,
                     req.name.as_deref(),
                 ),
-                "remove" => {
-                    crate::studio_assets::remove_asset(&state.folder, &comps, &req.asset)
-                }
+                "remove" => crate::studio_assets::remove_asset(&state.folder, &comps, &req.asset),
                 _ => crate::studio_assets::insert_asset(&state.folder, &comps, &req),
             };
             match outcome {
