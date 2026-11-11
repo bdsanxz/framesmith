@@ -1,7 +1,9 @@
 //! T009/T010 end-to-end: pinned self-download, checksum refusal, and
-//! disabled/offline refusal. The child runs with a scrubbed `PATH`
-//! (`/usr/bin:/bin`: `curl`, `unzip` and `sh` present, no FFmpeg) and a
-//! `file://` pinned source served from a fixture zip.
+//! disabled/offline refusal. The child runs with a hermetic `PATH`
+//! (only `curl` and `unzip` symlinks, no FFmpeg) and a `file://`
+//! pinned source served from a fixture zip. The hermetic dir keeps
+//! the tests independent of whether the host (CI installs ffmpeg)
+//! has ffmpeg on PATH.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -25,19 +27,48 @@ fn bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_framesmith"))
 }
 
-const SCRUBBED_PATH: &str = "/usr/bin:/bin";
-
-fn assert_no_host_ffmpeg() {
-    for entry in SCRUBBED_PATH.split(':') {
-        for tool in ["ffmpeg", "ffprobe"] {
-            let p = Path::new(entry).join(tool);
-            assert!(
-                !p.is_file(),
-                "test assumption broken: {tool} exists at {}",
-                p.display()
-            );
+fn on_path(name: &str) -> Option<PathBuf> {
+    for dir in std::env::var_os("PATH")
+        .map(|p| std::env::split_paths(&p).collect::<Vec<_>>())
+        .unwrap_or_default()
+    {
+        for cand in [name.to_string(), format!("{name}.exe")] {
+            let p = dir.join(&cand);
+            if p.is_file() {
+                return Some(p);
+            }
         }
     }
+    None
+}
+
+/// Build a hermetic PATH dir holding only `curl` and `unzip`
+/// symlinks (plus the ffmpeg binaries must be ABSENT). Returns
+/// `None` when a required helper is missing on this host, in
+/// which case the download-path tests skip with a note.
+fn scrubbed_path() -> Option<PathBuf> {
+    let curl = on_path("curl")?;
+    let unzip = on_path("unzip")?;
+    let dir = tmp("scrubbin");
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&curl, dir.join("curl")).unwrap();
+        std::os::unix::fs::symlink(&unzip, dir.join("unzip")).unwrap();
+    }
+    #[cfg(windows)]
+    {
+        std::fs::hard_link(&curl, dir.join("curl.exe")).unwrap();
+        std::fs::hard_link(&unzip, dir.join("unzip.exe")).unwrap();
+    }
+    assert!(!dir.join("ffmpeg").exists(), "scrubbed PATH must lack ffmpeg");
+    assert!(!dir.join("ffprobe").exists(), "scrubbed PATH must lack ffprobe");
+    Some(dir)
+}
+
+static SCRUBBED: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+
+fn scrubbed() -> Option<&'static PathBuf> {
+    SCRUBBED.get_or_init(scrubbed_path).as_ref()
 }
 
 /// Minimal fake `ffmpeg`: answers `-version`/`-encoders` like a suitable
@@ -89,7 +120,7 @@ fn make_fixture(dir: &Path) -> (PathBuf, String) {
 fn run(args: &[&str], cwd: &Path, extra_env: &[(&str, &str)]) -> (i32, String) {
     let mut cmd = Command::new(bin());
     cmd.args(args).current_dir(cwd);
-    cmd.env("PATH", SCRUBBED_PATH);
+    cmd.env("PATH", scrubbed().expect("PATH already built"));
     for (k, v) in extra_env {
         cmd.env(k, v);
     }
@@ -114,7 +145,10 @@ fn scaffold(root: &Path, name: &str) -> PathBuf {
 
 #[test]
 fn render_self_downloads_verifies_and_renders() {
-    assert_no_host_ffmpeg();
+    let Some(_) = scrubbed() else {
+        println!("skip: curl/unzip helpers unavailable on this host");
+        return;
+    };
     let root = tmp("dl");
     let folder = scaffold(&root, "proj");
     let before = std::fs::read(folder.join("composition.kdl")).unwrap();
@@ -160,7 +194,10 @@ fn render_self_downloads_verifies_and_renders() {
 
 #[test]
 fn render_reuses_cache_without_touching_network() {
-    assert_no_host_ffmpeg();
+    let Some(_) = scrubbed() else {
+        println!("skip: curl/unzip helpers unavailable on this host");
+        return;
+    };
     let root = tmp("reuse");
     let folder = scaffold(&root, "proj");
     let (zip, sha) = make_fixture(&root);
@@ -185,7 +222,10 @@ fn render_reuses_cache_without_touching_network() {
 
 #[test]
 fn render_checksum_mismatch_writes_no_mp4() {
-    assert_no_host_ffmpeg();
+    let Some(_) = scrubbed() else {
+        println!("skip: curl/unzip helpers unavailable on this host");
+        return;
+    };
     let root = tmp("badsum");
     let folder = scaffold(&root, "proj");
     let before = std::fs::read(folder.join("composition.kdl")).unwrap();
@@ -216,7 +256,10 @@ fn render_checksum_mismatch_writes_no_mp4() {
 
 #[test]
 fn render_disabled_refuses_with_source_and_config() {
-    assert_no_host_ffmpeg();
+    let Some(_) = scrubbed() else {
+        println!("skip: curl/unzip helpers unavailable on this host");
+        return;
+    };
     let root = tmp("disabled");
     let folder = scaffold(&root, "proj");
     write(&folder, "framesmith.toml", "ffmpeg_auto_download = false\n");
@@ -247,7 +290,10 @@ fn render_disabled_refuses_with_source_and_config() {
 
 #[test]
 fn render_offline_refuses_with_manual_fix_and_check_still_works() {
-    assert_no_host_ffmpeg();
+    let Some(_) = scrubbed() else {
+        println!("skip: curl/unzip helpers unavailable on this host");
+        return;
+    };
     let root = tmp("offline");
     let folder = scaffold(&root, "proj");
     let cache = root.join("cache");
@@ -271,7 +317,10 @@ fn render_offline_refuses_with_manual_fix_and_check_still_works() {
 
 #[test]
 fn render_unreachable_source_fails_safe_without_hanging() {
-    assert_no_host_ffmpeg();
+    let Some(_) = scrubbed() else {
+        println!("skip: curl/unzip helpers unavailable on this host");
+        return;
+    };
     let root = tmp("unreachable");
     let folder = scaffold(&root, "proj");
     let cache = root.join("cache");

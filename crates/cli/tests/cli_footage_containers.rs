@@ -265,11 +265,47 @@ fn disappearing_source_refuses_naming_the_file() {
     assert_no_outputs(&folder, "disappearing");
 }
 
+/// Make a file unreadable on any OS: chmod 000 on Unix, the
+/// readonly attribute on Windows.
+fn deny(path: &std::path::Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o000)).unwrap();
+    }
+    #[cfg(windows)]
+    {
+        std::fs::set_permissions(path, {
+            let mut p = std::fs::metadata(path).unwrap().permissions();
+            p.set_readonly(true);
+            p
+        })
+        .unwrap();
+    }
+}
+
+/// Restore readable access on any OS (inverse of [`deny`]).
+fn allow(path: &std::path::Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    #[cfg(windows)]
+    {
+        std::fs::set_permissions(path, {
+            let mut p = std::fs::metadata(path).unwrap().permissions();
+            p.set_readonly(false);
+            p
+        })
+        .unwrap();
+    }
+}
+
 /// A permission-denied file refuses with its path named, in both
 /// `check` and `render`, leaving nothing behind.
 #[test]
 fn permission_denied_source_refuses_naming_the_file() {
-    use std::os::unix::fs::PermissionsExt;
     let folder = tmp("perms");
     gen_testsrc(
         &folder,
@@ -282,20 +318,12 @@ fn permission_denied_source_refuses_naming_the_file() {
         "composition.kdl",
         &comp(2.0, "video path=\"clip.mp4\" start=0 duration=2"),
     );
-    std::fs::set_permissions(
-        folder.join("clip.mp4"),
-        std::fs::Permissions::from_mode(0o000),
-    )
-    .unwrap();
+    deny(&folder.join("clip.mp4"));
     // A privileged test runner can still open the file: without a real
     // denial there is nothing to assert, so report and stop.
     if std::fs::File::open(folder.join("clip.mp4")).is_ok() {
         println!("skip: process can open mode-000 files (privileged runner)");
-        std::fs::set_permissions(
-            folder.join("clip.mp4"),
-            std::fs::Permissions::from_mode(0o644),
-        )
-        .unwrap();
+        allow(&folder.join("clip.mp4"));
         return;
     }
     let (code, out) = run(&["check", "."], &folder);
@@ -305,9 +333,5 @@ fn permission_denied_source_refuses_naming_the_file() {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("clip.mp4"), "{out}");
     assert_no_outputs(&folder, "permission-denied");
-    std::fs::set_permissions(
-        folder.join("clip.mp4"),
-        std::fs::Permissions::from_mode(0o644),
-    )
-    .unwrap();
+    allow(&folder.join("clip.mp4"));
 }
