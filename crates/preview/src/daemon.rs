@@ -641,13 +641,28 @@ pub fn wait_closed(port: u16, timeout: Duration) -> bool {
     !is_live(port)
 }
 
-/// Best-effort OS kill of one pid (Unix only): the graceful shutdown
-/// route is the primary stop path; this only hurries a server that
-/// answered liveness but ignored the route. Never fails the stop.
+/// Best-effort OS kill of one pid: the graceful shutdown route is
+/// the primary stop path; this only hurries a server that answered
+/// liveness but ignored the route. Never fails the stop.
 #[cfg(unix)]
 fn kill_pid(pid: u32) {
     let _ = std::process::Command::new("kill")
         .arg(pid.to_string())
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+}
+
+/// Windows twin of [`kill_pid`]: without it, servers that ignore
+/// the graceful route leak as zombies and hold their ports for the
+/// rest of the run.
+#[cfg(windows)]
+fn kill_pid(pid: u32) {
+    let _ = std::process::Command::new("taskkill")
+        .arg("/PID")
+        .arg(pid.to_string())
+        .arg("/F")
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -688,6 +703,10 @@ pub fn stop_server(registry_path: &Path, dir: &str) -> Result<StopOutcome, Strin
         let _ = wait_closed(entry.port, SHUTDOWN_WAIT);
     }
     if is_live(entry.port) {
+        kill_pid(entry.pid);
+        let _ = wait_closed(entry.port, SHUTDOWN_WAIT);
+    }
+    if is_live(entry.port) {
         return Err(format!(
             "preview stop failed: {} at {} (port {}) is still answering; stop it manually and re-run",
             entry.name, entry.url, entry.port
@@ -719,9 +738,7 @@ pub fn stop_all_servers(registry_path: &Path) -> Result<StopAllOutcome, String> 
         }
         request_shutdown(entry.port);
         if is_live(entry.port) {
-            #[cfg(unix)]
             kill_pid(entry.pid);
-            #[cfg(unix)]
             let _ = wait_closed(entry.port, SHUTDOWN_WAIT);
         }
         if is_live(entry.port) {
