@@ -339,6 +339,9 @@ impl Drop for PermGuard {
     }
 }
 
+// Write-protection semantics here rest on POSIX directory modes;
+// Windows has no equivalent chmod, so the proof runs on Unix.
+#[cfg(unix)]
 #[test]
 fn history_listing_works_when_writes_are_unavailable() {
     let root = tmp("unwritable");
