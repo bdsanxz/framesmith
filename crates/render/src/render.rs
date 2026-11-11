@@ -4664,7 +4664,7 @@ fn probe_video(ffmpeg_bin: &Path, abs: &Path, rel: &str) -> Result<ProbedVideo, 
             "render refused: video source {rel:?} is unreadable (ffmpeg reports no input stream); no MP4 was written"
         ));
     }
-    let duration = parse_duration(&text);
+    let duration = parse_duration(&text).or_else(|| probe_format_duration(ffmpeg_bin, abs));
     let mut video: Option<(String, u32, u32)> = None;
     let mut has_audio = false;
     for line in text.lines() {
@@ -7293,6 +7293,33 @@ pub(crate) fn effective_source_window(
         (None, src) => src,
     };
     (v.trim_start, end)
+}
+
+/// Fallback duration from `ffprobe`'s format metadata (Sprint 25):
+/// some builds report no `Duration` in `ffmpeg -i` stderr for
+/// containers (notably GIF) whose format duration is exact. Only
+/// consulted when the primary `ffmpeg -i` probe yields none.
+fn probe_format_duration(ffmpeg_bin: &Path, abs: &Path) -> Option<f64> {
+    let ffprobe = ffprobe_for(ffmpeg_bin)?;
+    let out = Command::new(ffprobe)
+        .args([
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            &abs.display().to_string(),
+        ])
+        .output()
+        .ok()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let value: f64 = text.trim().parse().ok()?;
+    if value.is_finite() && value > 0.0 {
+        Some(value)
+    } else {
+        None
+    }
 }
 
 /// Locate the `ffprobe` twin of the resolved `ffmpeg` binary (Sprint 5
