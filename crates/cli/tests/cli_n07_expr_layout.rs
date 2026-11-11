@@ -363,13 +363,16 @@ fn animated_font_size_reflows_wrapped_text() {
     assert_eq!(run(&["render", "proj", "-o", "out.mp4"], &root).0, 0);
     let raw = decode_raw(&root.join("out.mp4"), 30);
     let count = |k: usize| bands(&ink_rows(frame_of(&raw, k, 160, 120), 160, 120));
-    assert_eq!(count(0), 2, "small text wraps to two lines");
+    // System fonts differ per OS, so pin growth, not exact counts:
+    // at 16px the 19 chars always wrap, at 40px always multi-line.
+    let first_bands = count(0);
+    assert!(first_bands >= 2, "small text wraps over lines, got {first_bands}");
     let last = count(29);
     assert!(
-        last >= 3,
-        "grown text reflows to three or more bands, got {last}"
+        last >= 3 && last > first_bands,
+        "grown text reflows wider, got {last} vs {first_bands}"
     );
-    let change = (0..30).find(|k| count(*k) != 2).unwrap();
+    let change = (0..30).find(|k| count(*k) != first_bands).unwrap();
     assert!(
         change > 0 && change < 29,
         "reflow lands inside the window, got {change}"
