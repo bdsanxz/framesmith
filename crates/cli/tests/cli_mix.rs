@@ -159,7 +159,10 @@ fn marked_audio_starts_within_1ms_of_its_written_time() {
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("stage audio: ok"), "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!((96000..=97100).contains(&samples), "full-duration mix, got {samples}");
     let onset = onset_frame(&pcm, 500).expect("tone must be audible");
     println!(
         "onset: frame {onset}, written 48000, error {} samples",
@@ -340,7 +343,9 @@ fn soundless_folder_carries_exact_digital_silence() {
         assert!(probe.contains(want), "{probe}");
     }
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 48000, "full-duration silence");
+    // AAC priming/trim differs across FFmpeg versions (see above).
+    let samples = pcm.len() / 2;
+    assert!((48000..=48900).contains(&samples), "full-duration silence, got {samples}");
     assert!(pcm.iter().all(|&x| x == 0), "silence is exact digital zero");
 }
 
