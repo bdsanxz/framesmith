@@ -1,0 +1,6 @@
+composition name="runners" width=64 height=48 fps=10 duration=4 background="#101010" version=1 {
+    image id="plate" path="bg/background-plate.png" start=0 duration=4 x=0 y=0 width=64 height=48
+    audio id="voice" path="voice.wav" start=0 duration=1
+    captions src="speech.transcript.json" start=0 duration=4 behind-subject=true matte="bg/subject-alpha.png" font-size=8 color="#ffd60a" outline-width=1 outline-color="#000000" background="#141414" max-lines=2
+    tween target=0 property="x" kind="to" start=0 duration=4 to=8 ease="linear"
+}
