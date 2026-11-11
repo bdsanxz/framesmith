@@ -78,6 +78,7 @@ fn staged_files(folder: &Path, stem: &str) -> Vec<PathBuf> {
 
 // --- T005: Ctrl-C mid-frames ----------------------------------------------------
 
+#[cfg(unix)]
 #[test]
 fn ctrl_c_during_frames_exits_130_with_no_files_and_no_child() {
     let root = tmp("frames");
@@ -136,6 +137,7 @@ fn ctrl_c_during_frames_exits_130_with_no_files_and_no_child() {
 
 // --- T005: JSON cancel report -----------------------------------------------------
 
+#[cfg(unix)]
 #[test]
 fn ctrl_c_reports_machine_readable_cancel_with_exit_130() {
     let root = tmp("json");
@@ -189,6 +191,7 @@ fn ctrl_c_reports_machine_readable_cancel_with_exit_130() {
 
 // --- T005: unremovable leftovers ----------------------------------------------------
 
+#[cfg(unix)]
 #[test]
 fn unremovable_leftovers_are_named_with_exit_130() {
     let root = tmp("leftover");

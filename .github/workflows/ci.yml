@@ -32,28 +32,19 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       # End-to-end render tests need a real ffmpeg binary on PATH.
-      # The registry macOS build lacks 10-bit x265 (HDR encodes
-      # downgrade to 8-bit), so macOS uses Homebrew (full x265);
-      # Linux/Windows use the registry assets (proven HDR on
-      # Linux), downloaded directly with no API rate limit.
+      # Registry builds ship x265 without 10-bit (HDR encodes
+      # downgrade to 8-bit), so every OS installs the full
+      # package-manager build: Homebrew, apt, and choco.
       - name: Install FFmpeg (macOS)
         if: matrix.label == 'macos'
         run: brew install ffmpeg
           rm ffmpeg.zip
       - name: Install FFmpeg (Windows)
         if: matrix.label == 'windows'
-        run: |
-          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/latest/download/ffmpeg-windows-x64.zip"
-          Expand-Archive -Path ffmpeg.zip -DestinationPath . -Force
-          $ffmpeg = (Get-ChildItem -Recurse -Filter ffmpeg.exe | Select-Object -First 1).DirectoryName
-          echo "$ffmpeg" >> $env:GITHUB_PATH
+        run: choco install ffmpeg -y
       - name: Install FFmpeg (Linux)
         if: matrix.label == 'linux'
-        run: |
-          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/latest/download/ffmpeg-linux-x64.zip"
-          unzip -o ffmpeg.zip
-          chmod +x ffmpeg ffprobe
-          sudo mv ffmpeg ffprobe /usr/local/bin/
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
           rm ffmpeg.zip
       - name: Build full workspace (${{ matrix.label }})
         run: cargo build --workspace
