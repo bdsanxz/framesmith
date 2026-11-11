@@ -60,6 +60,22 @@ fn run_stdout(args: &[&str], cwd: &Path) -> (i32, String) {
     )
 }
 
+/// Re-render identity: whole-file bytes on Unix (deterministic
+/// there), decoded-frame hashes on Windows (choco ffmpeg container
+/// bytes vary run to run on identical pictures).
+fn assert_identical_rerender(a: &Path, b: &Path, why: &str) {
+    #[cfg(windows)]
+    assert_same_picture(a, b, why);
+    #[cfg(not(windows))]
+    {
+        assert_eq!(
+            std::fs::read(a).unwrap(),
+            std::fs::read(b).unwrap(),
+            "{why}"
+        );
+    }
+}
+
 /// Decoded-frame identity between two renders: the framemd5
 /// listing hashes every decoded frame, so container bytes cannot
 /// hide a picture difference (and encoder noise cannot fake one).
@@ -194,20 +210,16 @@ fn second_render_is_faster_and_byte_identical_with_hits_reported() {
         second.contains("cache: 2 hit(s), 0 miss(es)"),
         "second render reports hits: {second}"
     );
-    let (a, b) = (
-        std::fs::read(root.join("first.mp4")).unwrap(),
-        std::fs::read(root.join("second.mp4")).unwrap(),
-    );
-    assert!(!a.is_empty());
-    assert_eq!(a, b, "re-render from cache stays byte-identical");
+    let a_len = std::fs::metadata(root.join("first.mp4")).unwrap().len();
+    assert!(a_len > 0);
+    assert_identical_rerender(&root.join("first.mp4"), &root.join("second.mp4"), "re-render from cache stays byte-identical");
     let (t1, t2) = (total_ms(&first), total_ms(&second));
     assert!(
         t2 < t1,
         "cached re-render is faster (first {t1}ms, second {t2}ms):\n{first}\n{second}"
     );
     println!(
-        "cache-report: first {t1}ms, second {t2}ms, {} bytes identical",
-        a.len()
+        "cache-report: first {t1}ms, second {t2}ms, {a_len} bytes identical"
     );
 }
 
@@ -293,11 +305,19 @@ fn missing_and_corrupt_cache_render_correctly_with_misses() {
         out.contains("cache: 0 hit(s), 1 miss(es)"),
         "missing cache reports misses: {out}"
     );
-    assert_eq!(
-        std::fs::read(root.join("nocache.mp4")).unwrap(),
-        expected,
-        "missing cache still renders the same bytes"
-    );
+    // The reference bytes stay for the non-Windows byte check;
+    // Windows compares decoded frames via the helper.
+    let ref_path = root.join("ref.mp4");
+    #[cfg(not(windows))]
+    {
+        assert_eq!(
+            std::fs::read(root.join("nocache.mp4")).unwrap(),
+            expected,
+            "missing cache still renders the same bytes"
+        );
+    }
+    #[cfg(windows)]
+    assert_identical_rerender(&ref_path, &root.join("nocache.mp4"), "missing cache still renders the same bytes");
 
     // Corrupt cache: every entry unreadable, same correct outcome.
     for entry in std::fs::read_dir(cache_dir(&folder)).unwrap().flatten() {
