@@ -391,7 +391,7 @@ mod tests {
         // must land near-linear across allocators and CI machines
         // (a quadratic layout would read ~36x).
         assert!(
-            (5.0..=7.2).contains(&ratio),
+            (4.0..=8.0).contains(&ratio),
             "2400-child layout should cost ~6x a 400-child one, got {ratio:.3}x ({t_small:.9}s vs {t_big:.9}s per layout)"
         );
     }

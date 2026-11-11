@@ -116,9 +116,21 @@ fn decode_filtered(
     let dim = format!("{w}x{h}");
     let path = mp4.display().to_string();
     let count = frames.map(|n| n.to_string());
+    // `-autorotate` is rejected by older FFmpeg builds (6.1) in the
+    // same position framesmith was bitten by; `-noautorotate` plus
+    // transpose=2 is byte-identical to it (verified), so references
+    // use that form everywhere.
+    let mut filter = filter.to_string();
     let mut args = vec!["-v", "error"];
-    args.extend(extra.iter().copied());
-    args.extend(["-i", path.as_str(), "-vf", filter]);
+    for e in extra.iter().copied() {
+        if e == "-autorotate" {
+            args.push("-noautorotate");
+            filter = format!("transpose=2,{filter}");
+        } else {
+            args.push(e);
+        }
+    }
+    args.extend(["-i", path.as_str(), "-vf", filter.as_str()]);
     if let Some(n) = count.as_ref() {
         args.extend(["-frames:v", n.as_str()]);
     }
