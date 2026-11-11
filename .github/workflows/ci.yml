@@ -39,25 +39,25 @@ jobs:
         if: matrix.label == 'macos'
         run: |
           curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/latest/download/ffmpeg-osx-arm64.zip"
-          unzip -o ffmpeg.zip ffmpeg
-          chmod +x ffmpeg
+          unzip -o ffmpeg.zip
+          chmod +x ffmpeg ffprobe
           sudo mkdir -p /usr/local/bin
-          sudo mv ffmpeg /usr/local/bin/ffmpeg
+          sudo mv ffmpeg ffprobe /usr/local/bin/
           rm ffmpeg.zip
       - name: Install FFmpeg (Windows)
         if: matrix.label == 'windows'
         run: |
           curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/latest/download/ffmpeg-windows-x64.zip"
           Expand-Archive -Path ffmpeg.zip -DestinationPath . -Force
-          $ffmpeg = (Get-ChildItem -Recurse -Filter ffmpeg.exe | Select-Object -First 1).FullName
+          $ffmpeg = (Get-ChildItem -Recurse -Filter ffmpeg.exe | Select-Object -First 1).DirectoryName
           echo "$ffmpeg" >> $env:GITHUB_PATH
       - name: Install FFmpeg (Linux)
         if: matrix.label == 'linux'
         run: |
           curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/latest/download/ffmpeg-linux-x64.zip"
-          unzip -o ffmpeg.zip ffmpeg
-          chmod +x ffmpeg
-          sudo mv ffmpeg /usr/local/bin/ffmpeg
+          unzip -o ffmpeg.zip
+          chmod +x ffmpeg ffprobe
+          sudo mv ffmpeg ffprobe /usr/local/bin/
           rm ffmpeg.zip
       - name: Build full workspace (${{ matrix.label }})
         run: cargo build --workspace
