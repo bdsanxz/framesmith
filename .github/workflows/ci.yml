@@ -31,6 +31,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      # End-to-end render tests need a real ffmpeg binary on PATH;
+      # the bootstrap download path is rate-limited (403) on CI.
+      - name: Install FFmpeg (macOS)
+        if: matrix.label == 'macos'
+        run: brew install ffmpeg
+      - name: Install FFmpeg (Windows)
+        if: matrix.label == 'windows'
+        run: choco install ffmpeg -y
+      - name: Install FFmpeg (Linux)
+        if: matrix.label == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Build full workspace (${{ matrix.label }})
         run: cargo build --workspace
       - name: Run full test suite (${{ matrix.label }})
