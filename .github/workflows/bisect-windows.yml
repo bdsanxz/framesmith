@@ -1,0 +1,20 @@
+name: bisect-windows
+
+# One-off bisection for a hang in the Windows test suite.
+# Runs a single test binary with a hard timeout.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows-cache:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install FFmpeg (Windows)
+        run: choco install ffmpeg -y
+      - name: Run only cache tests (Windows)
+        run: cargo test -p cli --test cli_footage_cache -- --test-threads=4
