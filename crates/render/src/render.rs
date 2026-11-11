@@ -4791,6 +4791,20 @@ fn needs_autorotate(rotation: f64) -> bool {
         || (rotation - 270.0).abs() < 1e-6
 }
 
+/// The `transpose` filter chain for one probed orientation (Sprint
+/// 25): FFmpeg's `transpose` `dir` semantics match the `autorotate`
+/// orientation for every exact quarter/half turn, and the filter
+/// works on every FFmpeg version (the `-autorotate` flag does not).
+fn transpose_chain(rotation: f64) -> String {
+    if (rotation - 90.0).abs() < 1e-6 {
+        "transpose=1".to_string()
+    } else if (rotation - 180.0).abs() < 1e-6 {
+        "transpose=1,transpose=1".to_string()
+    } else {
+        "transpose=2".to_string()
+    }
+}
+
 /// `Duration: 00:00:03.00` → seconds.
 fn parse_duration(text: &str) -> Option<f64> {
     for line in text.lines() {
@@ -7528,9 +7542,15 @@ fn decode_range(
         }
     };
     let mut args: Vec<String> = vec!["-xerror".into(), "-v".into(), "info".into()];
-    if needs_autorotate(pv.rotation) {
-        args.push("-autorotate".into());
-    }
+    // Rotation applies through `transpose` (`-vf` below), not the
+    // `-autorotate` flag: the flag's option placement is rejected by
+    // older FFmpeg builds (e.g. 6.1), while `transpose` works on
+    // every version and matches the probed orientation exactly.
+    let transpose = if needs_autorotate(pv.rotation) {
+        Some(transpose_chain(pv.rotation))
+    } else {
+        None
+    };
     if target > 0.0 {
         // Input seek: the demuxer jumps to the nearest seek point at or
         // before `target` and drops earlier frames by timestamp, so the
@@ -7544,13 +7564,17 @@ fn decode_range(
     if target > 0.0 {
         args.push("-copyts".into());
     }
+    let vf = match &transpose {
+        Some(t) => format!("{t},showinfo"),
+        None => "showinfo".to_string(),
+    };
     args.extend([
         "-fps_mode".into(),
         "passthrough".into(),
         "-frames:v".into(),
         format!("{}", budget.max(1)),
         "-vf".into(),
-        "showinfo".into(),
+        vf,
         "-f".into(),
         "rawvideo".into(),
         "-pix_fmt".into(),
