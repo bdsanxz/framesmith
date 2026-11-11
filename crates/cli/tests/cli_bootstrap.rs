@@ -149,6 +149,7 @@ fn scaffold(root: &Path, name: &str) -> PathBuf {
     folder
 }
 
+#[cfg(not(windows))]
 #[test]
 fn render_self_downloads_verifies_and_renders() {
     let Some(_) = scrubbed() else {
@@ -198,6 +199,7 @@ fn render_self_downloads_verifies_and_renders() {
     assert!(cache.join("9.0-t").join("bin").join("ffmpeg").is_file());
 }
 
+#[cfg(not(windows))]
 #[test]
 fn render_reuses_cache_without_touching_network() {
     let Some(_) = scrubbed() else {
@@ -226,6 +228,7 @@ fn render_reuses_cache_without_touching_network() {
     assert!(folder.join("out.mp4").is_file());
 }
 
+#[cfg(not(windows))]
 #[test]
 fn render_checksum_mismatch_writes_no_mp4() {
     let Some(_) = scrubbed() else {

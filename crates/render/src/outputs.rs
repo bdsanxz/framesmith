@@ -416,6 +416,11 @@ pub fn resolve_auto(
     ffmpeg_bin: &Path,
     format: OutputFormat,
 ) -> Option<(&'static str, EncoderChoice)> {
+    // `FRAMESMITH_NO_HARDWARE=1` hides all hardware on every OS,
+    // so the software-fallback path exercises anywhere.
+    if hardware_hidden_all() {
+        return None;
+    }
     let text = encoders_text(ffmpeg_bin).ok()?;
     if hardware_hidden_by_hook() {
         let filtered: String = text
@@ -496,7 +501,7 @@ pub fn check_explicit_encoder(
     format: OutputFormat,
     choice: EncoderChoice,
 ) -> Result<&'static str, String> {
-    if choice == EncoderChoice::Videotoolbox && hardware_hidden_by_hook() {
+    if hardware_hidden_all() || (choice == EncoderChoice::Videotoolbox && hardware_hidden_by_hook()) {
         if let Some(codec) = hardware_encoder_for_choice(format, choice) {
             return Err(format!(
                 "render refused: --encoder videotoolbox needs the {codec} encoder, but the FFmpeg at {} does not provide it; re-run with --encoder software (or --encoder auto for automatic fallback) (validation stage); no output was written",
@@ -525,6 +530,9 @@ pub fn hardware_available(ffmpeg_bin: &Path, format: OutputFormat) -> bool {
     let Some(want) = hardware_encoder_for(format) else {
         return false;
     };
+    if hardware_hidden_all() {
+        return false;
+    }
     if std::env::var("FRAMESMITH_NO_VIDEOTOOLBOX")
         .map(|v| {
             let v = v.trim();
@@ -554,6 +562,9 @@ pub fn hardware_available_for_choice(
     if !choice.is_explicit_hardware() {
         return false;
     }
+    if hardware_hidden_all() {
+        return false;
+    }
     if choice == EncoderChoice::Videotoolbox && hardware_hidden_by_hook() {
         return false;
     }
@@ -568,6 +579,18 @@ pub fn hardware_available_for_choice(
 
 fn hardware_hidden_by_hook() -> bool {
     std::env::var("FRAMESMITH_NO_VIDEOTOOLBOX")
+        .map(|v| {
+            let v = v.trim();
+            v == "1" || v.eq_ignore_ascii_case("true")
+        })
+        .unwrap_or(false)
+}
+
+/// `FRAMESMITH_NO_HARDWARE=1` (or `true`) hides all hardware on
+/// every OS: the software-fallback and explicit-refusal paths
+/// exercise anywhere, not just on macOS.
+fn hardware_hidden_all() -> bool {
+    std::env::var("FRAMESMITH_NO_HARDWARE")
         .map(|v| {
             let v = v.trim();
             v == "1" || v.eq_ignore_ascii_case("true")

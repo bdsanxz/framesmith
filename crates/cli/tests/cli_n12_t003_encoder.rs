@@ -347,7 +347,7 @@ fn peak_cap_is_honored() {
 fn explicit_hardware_without_it_refuses_with_fallback() {
     let root = tmp("hw-missing");
     project(&root);
-    let hide = [("FRAMESMITH_NO_VIDEOTOOLBOX", "1")];
+    let hide = [("FRAMESMITH_NO_HARDWARE", "1")];
     let (code, out) = run_env(
         &["render", "proj", "--encoder", "videotoolbox", "-o", "x.mp4"],
         &root,
@@ -368,7 +368,9 @@ fn explicit_hardware_without_it_refuses_with_fallback() {
 fn auto_without_hardware_succeeds_on_software() {
     let root = tmp("auto-fallback");
     project(&root);
-    let hide = [("FRAMESMITH_NO_VIDEOTOOLBOX", "1")];
+    // `FRAMESMITH_NO_HARDWARE=1` hides all hardware on every OS
+    // (the VideoToolbox hook is macOS-only).
+    let hide = [("FRAMESMITH_NO_HARDWARE", "1")];
     let (code, out) = run_env(
         &["render", "proj", "--encoder", "auto", "-o", "a.mp4"],
         &root,
