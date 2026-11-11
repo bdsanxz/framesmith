@@ -355,7 +355,13 @@ fn hold_region_is_silent_while_content_sounds() {
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&root.join("p").join("out.mp4"));
-    assert_eq!(pcm.len(), 4 * 48000 * 2);
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (4 * 48000..=4 * 48000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let half = pcm.len() / 2;
     assert!(
         rms(&pcm[..half]) > 200.0,
@@ -393,7 +399,12 @@ fn nested_audio_follows_trim_and_rate() {
     let (code, out) = run(&["render", "p"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&root.join("p").join("out.mp4"));
-    assert_eq!(pcm.len(), 2 * 48000 * 2);
+    // AAC priming/trim differs across FFmpeg versions (see above).
+    let samples = pcm.len() / 2;
+    assert!(
+        (2 * 48000..=2 * 48000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     // Content is child [0.5, 2) at double speed: 0.75s of tone, then
     // silence for the rest of the 2s use.
     let tone_end = (0.75 * 48000.0) as usize * 2;
