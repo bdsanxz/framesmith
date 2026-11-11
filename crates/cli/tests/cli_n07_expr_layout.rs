@@ -357,7 +357,7 @@ fn animated_font_size_reflows_wrapped_text() {
     write(
         &folder,
         "composition.kdl",
-        "composition name=\"t\" width=160 height=120 duration=1 fps=30 background=\"#000000\" version=1 {\n    text value=\"aaa bbb ccc ddd eee\" x=5 y=10 size=16 color=\"#ffffff\" wrap=100 start=0 duration=1\n    tween target=0 property=\"font-size\" kind=\"from-to\" from=16 to=40 start=0 duration=1\n}\n",
+        "composition name=\"t\" width=160 height=120 duration=1 fps=30 background=\"#000000\" version=1 {\n    text value=\"aaa bbb ccc ddd eee\" x=5 y=10 size=16 color=\"#ffffff\" wrap=40 start=0 duration=1\n    tween target=0 property=\"font-size\" kind=\"from-to\" from=16 to=40 start=0 duration=1\n}\n",
     );
     assert_eq!(run(&["check", "proj"], &root).0, 0);
     assert_eq!(run(&["render", "proj", "-o", "out.mp4"], &root).0, 0);
