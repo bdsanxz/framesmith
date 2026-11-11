@@ -27,6 +27,7 @@
 
 mod catalog_cmd;
 mod commands;
+mod ml_cmd;
 mod resume;
 mod router;
 mod skills;
@@ -52,6 +53,12 @@ fn usage() -> ! {
          \x20 framesmith preview-stop-all\n\
          \x20 framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>\n\
          \x20 framesmith doctor [--json] [<folder>]\n\
+         \x20 framesmith models list [--json]\n\
+         \x20 framesmith models install <name> [--yes] [--json]\n\
+         \x20 framesmith transcribe <input> [--engine auto|NAME|stub] [--model <name>] [--language <lang>] [--to srt|vtt] [-o <out.json>]\n\
+         \x20 framesmith tts <text...> [--voice <voice>] [--speed <f>] [--language <lang>] [--model <name>] [--engine auto|NAME|stub] [-o <out.wav>]\n\
+         \x20 framesmith remove-background <input.png> [--quality fast|balanced|precise] [--model <name>] [--engine auto|NAME|stub] [-o <outdir>]\n\
+         \x20 framesmith beats <input.wav> [-o <out.beats.json>]\n\
          \x20 framesmith benchmark [--json] [--out <dir>]\n\
          \x20 framesmith errors [--json] [CODE]
          \x20 framesmith catalog search <words...> [--json] [--registry <dir>]
@@ -869,6 +876,12 @@ fn main() {
             let (folder, _, json) = parse_listing_args("compositions", &args[1..]);
             commands::cmd_compositions(&folder, json)
         }
+        "models" => ml_cmd::cmd_models(&args),
+        "transcribe" => ml_cmd::cmd_transcribe(&args),
+        "tts" => ml_cmd::cmd_tts(&args),
+        "remove-background" => ml_cmd::cmd_remove_background(&args),
+        "beats" => ml_cmd::cmd_beats(&args),
+        "__ml-stub" => ml::stub::run_stub_verb(&args[1..]),
         "timeline" => {
             // Edit verbs live alongside the Sprint 6 listing: a verb
             // word in first position dispatches to the verb surface,
@@ -1935,7 +1948,12 @@ fn main() {
                  \x20 preview-stop <folder>  end exactly that server\n\
                  \x20 preview-list  show every live server\n\
                  \x20 preview-stop-all  end all servers and report the count\n\
-                 \x20 doctor [<folder>]  report environment and project health facts\n\
+                 \x20 doctor [<folder>]  report environment and project health facts
+                 \x20 models list|install <name> [--yes]  list known models or install one with consent\n\
+                 \x20 transcribe <input>  transcribe speech to word-timed transcript JSON (optionally --to srt|vtt)\n\
+                 \x20 tts <text...>  synthesize voice audio to WAV\n\
+                 \x20 remove-background <input.png>  emit subject alpha plus a background plate\n\
+                 \x20 beats <input.wav>  emit BPM plus a beat file (pure-Rust signal analysis)\n\\n\
                  \x20 benchmark [--out <dir>]  time bundled references (machine-specific)"
             );
             0

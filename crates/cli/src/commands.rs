@@ -8701,6 +8701,60 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
         }
     }
     let _ = writeln!(out, "doctor: host {os}/{arch}.");
+    // Sprint 23 ML health (T001 / INT-003): the same resolution the
+    // runners use, so health output and runner behavior agree.
+    let ml_cfg = ml::MlConfig::from_env();
+    let ml_lines = ml::doctor::doctor_lines(&ml_cfg);
+    for line in &ml_lines {
+        let _ = writeln!(out, "{line}");
+    }
+    let mut ml_json = String::from(",\"ml_engines\":[");
+    let mut first = true;
+    for (name, kind, found) in ml::engines::engine_health() {
+        if !first {
+            ml_json.push(',');
+        }
+        first = false;
+        match found {
+            Some(where_) => {
+                let _ = write!(
+                    ml_json,
+                    "{{\"name\":\"{}\",\"kind\":\"{}\",\"present\":true,\"path\":\"{}\"}}",
+                    json_escape(&name),
+                    json_escape(&kind),
+                    json_escape(&where_)
+                );
+            }
+            None => {
+                let _ = write!(
+                    ml_json,
+                    "{{\"name\":\"{}\",\"kind\":\"{}\",\"present\":false,\"path\":null}}",
+                    json_escape(&name),
+                    json_escape(&kind)
+                );
+            }
+        }
+    }
+    ml_json.push_str("],\"ml_models\":[");
+    first = true;
+    for m in ml::KNOWN_MODELS {
+        if !first {
+            ml_json.push(',');
+        }
+        first = false;
+        let state = match ml::model_status(&ml_cfg, m) {
+            ml::ModelState::Ready => "ready",
+            ml::ModelState::Missing => "missing",
+        };
+        let _ = write!(
+            ml_json,
+            "{{\"name\":\"{}\",\"kind\":\"{}\",\"engine\":\"{}\",\"state\":\"{state}\"}}",
+            json_escape(m.name),
+            json_escape(m.kind),
+            json_escape(m.engine)
+        );
+    }
+    ml_json.push(']');
     if let Some(dir) = folder {
         if !dir.is_dir() {
             let msg = format!(
@@ -8762,7 +8816,7 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
             }
             let _ = write!(
                 job,
-                ",\"os\":\"{os}\",\"arch\":\"{arch}\",\"compositions\":["
+                ",\"os\":\"{os}\",\"arch\":\"{arch}\"{ml_json},\"compositions\":["
             );
             for (i, comp) in verdict.compositions.iter().enumerate() {
                 if i > 0 {
@@ -8826,7 +8880,7 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
             }
             None => job.push_str("null"),
         }
-        let _ = write!(job, ",\"os\":\"{os}\",\"arch\":\"{arch}\"}}");
+        let _ = write!(job, ",\"os\":\"{os}\",\"arch\":\"{arch}\"{ml_json}}}");
         println!("{job}");
     } else {
         print!("{out}");

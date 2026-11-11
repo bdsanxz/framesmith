@@ -1,0 +1,12 @@
+[package]
+name = "ml"
+version = "0.1.0"
+edition = "2021"
+description = "Framesmith ML runners (Sprint 23): consented model manager, deterministic stub engines, transcribe/TTS/background-removal orchestration, and a pure-Rust beat analyzer"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+notation = { path = "../notation" }
+ffmpeg = { path = "../ffmpeg" }
+png = "0.17"
+serde_json = "1"
