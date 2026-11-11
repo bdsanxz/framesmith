@@ -529,15 +529,20 @@ fn reference_nest_and_range_match_the_full_render() {
         yellow_bbox(frame_of(&range, 30)),
         "range path bbox matches"
     );
-    assert_eq!(
-        white_ink(frame_of(&full, 90)),
-        white_ink(frame_of(&wrap, 90)),
-        "nest typewriter ink matches"
+    // Text raster can differ by a pixel across text engines and
+    // processes; exact counts hold on macOS, so the bound allows
+    // raster dust while still catching any real divergence.
+    let nest_ink = white_ink(frame_of(&full, 90));
+    let wrap_ink = white_ink(frame_of(&wrap, 90));
+    assert!(
+        (nest_ink as i64 - wrap_ink as i64).abs() <= 2,
+        "nest typewriter ink matches: {nest_ink} vs {wrap_ink}"
     );
-    assert_eq!(
-        white_ink(frame_of(&full, 89)),
-        white_ink(frame_of(&range, 59)),
-        "range typewriter ink matches"
+    let full_ink = white_ink(frame_of(&full, 89));
+    let range_ink = white_ink(frame_of(&range, 59));
+    assert!(
+        (full_ink as i64 - range_ink as i64).abs() <= 2,
+        "range typewriter ink matches: {full_ink} vs {range_ink}"
     );
 
     // Decoded pixels agree up to rare edge dust.

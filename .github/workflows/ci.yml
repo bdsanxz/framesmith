@@ -31,18 +31,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      # End-to-end render tests need a real ffmpeg binary on PATH
-      # built exactly like the one framesmith ships (the brew/apt/
-      # choco builds encode differently and fail the peak-cap test).
-      # Download the registry asset directly (no API rate limit).
+      # End-to-end render tests need a real ffmpeg binary on PATH.
+      # The registry macOS build lacks 10-bit x265 (HDR encodes
+      # downgrade to 8-bit), so macOS uses Homebrew (full x265);
+      # Linux/Windows use the registry assets (proven HDR on
+      # Linux), downloaded directly with no API rate limit.
       - name: Install FFmpeg (macOS)
         if: matrix.label == 'macos'
-        run: |
-          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/latest/download/ffmpeg-osx-arm64.zip"
-          unzip -o ffmpeg.zip
-          chmod +x ffmpeg ffprobe
-          sudo mkdir -p /usr/local/bin
-          sudo mv ffmpeg ffprobe /usr/local/bin/
+        run: brew install ffmpeg
           rm ffmpeg.zip
       - name: Install FFmpeg (Windows)
         if: matrix.label == 'windows'

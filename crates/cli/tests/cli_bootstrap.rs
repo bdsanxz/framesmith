@@ -57,8 +57,14 @@ fn scrubbed_path() -> Option<PathBuf> {
     }
     #[cfg(windows)]
     {
-        std::fs::hard_link(&curl, dir.join("curl.exe")).unwrap();
-        std::fs::hard_link(&unzip, dir.join("unzip.exe")).unwrap();
+        // Hard links fail against signed System32 binaries; copies
+        // always work.
+        let _ = std::fs::hard_link(&curl, dir.join("curl.exe"))
+            .or_else(|_| std::fs::copy(&curl, dir.join("curl.exe")).map(|_| ()));
+        let _ = std::fs::hard_link(&unzip, dir.join("unzip.exe"))
+            .or_else(|_| std::fs::copy(&unzip, dir.join("unzip.exe")).map(|_| ()));
+        assert!(dir.join("curl.exe").is_file(), "curl helper staged");
+        assert!(dir.join("unzip.exe").is_file(), "unzip helper staged");
     }
     assert!(!dir.join("ffmpeg").exists(), "scrubbed PATH must lack ffmpeg");
     assert!(!dir.join("ffprobe").exists(), "scrubbed PATH must lack ffprobe");
