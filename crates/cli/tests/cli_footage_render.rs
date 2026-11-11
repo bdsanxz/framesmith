@@ -349,7 +349,14 @@ fn trimmed_sound_aligns_and_pitch_follows_rate() {
     let (code, out) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds); the mix
+    // still covers the full duration on both sides.
+    let samples = pcm.len() / 2;
+    assert!(
+        (96000..=97100).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let onset = onset_frame(&pcm, 500).expect("clip sound must be audible");
     println!("sound onset: frame {onset}, written 24000");
     assert!(
