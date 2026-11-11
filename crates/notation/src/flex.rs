@@ -387,8 +387,11 @@ mod tests {
         let t_big = best_per_layout(&big, 500);
         assert!(t_small > 0.0 && t_big > 0.0, "{t_small} {t_big}");
         let ratio = t_big / t_small;
+        // Linear class, not the exact constant: the 6x child ratio
+        // must land near-linear across allocators and CI machines
+        // (a quadratic layout would read ~36x).
         assert!(
-            (5.88..=6.12).contains(&ratio),
+            (5.0..=7.2).contains(&ratio),
             "2400-child layout should cost ~6x a 400-child one, got {ratio:.3}x ({t_small:.9}s vs {t_big:.9}s per layout)"
         );
     }
