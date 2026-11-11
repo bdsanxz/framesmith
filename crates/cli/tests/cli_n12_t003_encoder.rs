@@ -333,9 +333,11 @@ fn peak_cap_is_honored() {
     assert!(out.contains("maxrate=1M"), "{out}");
     // The cap binds on noise (an ignored cap would leave ~30 Mbps):
     // every 1s window and the container average stay near 1 Mbps (the
-    // headroom above the cap covers the VBV burst of the opening GOP).
+    // headroom above the cap covers the VBV burst of the opening GOP;
+    // x264 thread count varies across machines, so the bound carries
+    // thread-count headroom while staying ~12x below the uncapped rate).
     let peak = peak_mbps(&root.join("capped.mp4"));
-    assert!(peak <= 1.75, "per-second peak {peak} Mbps past 1M cap");
+    assert!(peak <= 2.5, "per-second peak {peak} Mbps past 1M cap");
     let avg = avg_bps(&root.join("capped.mp4"));
     assert!(avg <= 1.6e6, "container average {avg} bps past 1M cap");
     assert_eq!(frame_count(&root.join("capped.mp4")), 60);

@@ -97,6 +97,7 @@ fn probe_duration(path: &Path) -> f64 {
 
 /// Convert one HEIC still with the macOS converter (footage scope is
 /// macOS, like the host-ffmpeg fixture builders above).
+#[cfg(target_os = "macos")]
 fn gen_heic(dir: &Path, src_png: &Path, name: &str) {
     let out = Command::new("sips")
         .args(["-s", "format", "heic"])
@@ -411,7 +412,10 @@ fn still_gif_holds_for_clip_window() {
 }
 
 /// HEIC stills render as a full still in `image` and as a held frame
-/// in `video`, matching the PNG reference picture.
+/// in `video`, matching the PNG reference picture. HEIC fixture
+/// generation needs the macOS `sips` converter, so the test runs
+/// only on macOS.
+#[cfg(target_os = "macos")]
 #[test]
 fn heic_renders_in_image_and_as_held_video() {
     let folder = tmp("heic");

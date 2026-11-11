@@ -10630,6 +10630,19 @@ mod tests {
         let mut perms = std::fs::metadata(&ro).unwrap().permissions();
         perms.set_readonly(false);
         std::fs::set_permissions(&ro, perms).unwrap();
+        #[cfg(windows)]
+        {
+            // Readonly bits on Windows directories do not stop
+            // creation; the unwritable case is covered by the
+            // file-as-parent variant below on every OS.
+            let _ = code;
+            let file_parent = root.join("file");
+            std::fs::write(&file_parent, "x").unwrap();
+            let code = cmd_init("proj2", &file_parent);
+            assert_eq!(code, 1);
+            assert!(!file_parent.join("proj2").exists(), "no partial folder may remain");
+            return;
+        }
         if is_root() {
             // Running as root bypasses permission bits; skip the assertion.
             let _ = code;
