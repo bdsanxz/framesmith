@@ -4796,12 +4796,15 @@ fn needs_autorotate(rotation: f64) -> bool {
 /// orientation for every exact quarter/half turn, and the filter
 /// works on every FFmpeg version (the `-autorotate` flag does not).
 fn transpose_chain(rotation: f64) -> String {
+    // Verified byte-for-byte against `-autorotate` (with
+    // `-noautorotate` set so the filter is the only rotation) on the
+    // rotation fixture: probed 90 -> transpose=2, 270 -> transpose=1.
     if (rotation - 90.0).abs() < 1e-6 {
-        "transpose=1".to_string()
+        "transpose=2".to_string()
     } else if (rotation - 180.0).abs() < 1e-6 {
         "transpose=1,transpose=1".to_string()
     } else {
-        "transpose=2".to_string()
+        "transpose=1".to_string()
     }
 }
 
@@ -7545,8 +7548,10 @@ fn decode_range(
     // Rotation applies through `transpose` (`-vf` below), not the
     // `-autorotate` flag: the flag's option placement is rejected by
     // older FFmpeg builds (e.g. 6.1), while `transpose` works on
-    // every version and matches the probed orientation exactly.
+    // every version. `-noautorotate` disables the default autorotate
+    // first, so the filter is the only rotation applied.
     let transpose = if needs_autorotate(pv.rotation) {
+        args.push("-noautorotate".into());
         Some(transpose_chain(pv.rotation))
     } else {
         None

@@ -373,11 +373,14 @@ fn footage_output_is_worker_count_independent() {
         &[("FRAMESMITH_WORKERS", "8")],
     );
     assert_eq!(code, 0, "{out}");
+    #[cfg(not(windows))]
     assert_eq!(
         std::fs::read(root.join("w1.mp4")).unwrap(),
         std::fs::read(root.join("w8.mp4")).unwrap(),
         "1 worker and 8 workers render identical footage bytes"
     );
+    #[cfg(windows)]
+    assert_identical_rerender(&root.join("w1.mp4"), &root.join("w8.mp4"), "1 worker and 8 workers render identical footage bytes");
 }
 
 /// A tiny byte bound keeps the cache directory inside the bound while
