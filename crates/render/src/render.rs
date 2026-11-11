@@ -546,10 +546,16 @@ pub struct RenderOptions {
     /// no encoder is named, so default renders encode exactly as
     /// before on every machine.
     pub encoder_choice: crate::outputs::EncoderChoice,
-    /// Effective hardware use (Sprint 12 outputs, T003): true only
-    /// when the caller resolved `auto`/`videotoolbox` against a host
-    /// FFmpeg that provides the destination's hardware encoder.
+    /// Effective hardware use (Sprint 12 outputs, T003; Sprint 25,
+    /// T002): true only when the caller resolved `auto` or an
+    /// explicit hardware choice against a host FFmpeg that provides
+    /// the destination's hardware encoder.
     pub hardware: bool,
+    /// Resolved hardware codec (Sprint 25, T002): the FFmpeg encoder
+    /// `auto`/explicit resolved to (for example `h264_nvenc`), set
+    /// by the caller alongside [`Self::hardware`]. `None` keeps the
+    /// legacy VideoToolbox mapping for library callers.
+    pub hw_codec: Option<&'static str>,
     /// `--keyint` GOP length (Sprint 12 outputs, T003): None emits no
     /// `-g`, keeping default bytes identical.
     pub keyint: Option<u32>,
@@ -591,6 +597,7 @@ impl Default for RenderOptions {
             supersample: 1,
             encoder_choice: crate::outputs::EncoderChoice::Software,
             hardware: false,
+            hw_codec: None,
             keyint: None,
             maxrate: None,
             hdr: crate::outputs::HdrMode::Auto,
@@ -615,6 +622,7 @@ impl RenderOptions {
             from_preset: self.preset,
             encoder_choice: self.encoder_choice,
             hardware: self.hardware,
+            hw_codec: self.hw_codec,
             keyint: self.keyint,
             maxrate: self.maxrate.clone(),
             hdr: self.hdr,
@@ -663,7 +671,13 @@ impl RenderOptions {
             parts.push(format!("encoder={}", self.encoder_choice.name()));
         }
         if self.hardware {
-            let codec = crate::outputs::hardware_encoder_for(self.format).unwrap_or("software");
+            let codec = self
+                .hw_codec
+                .or_else(|| {
+                    crate::outputs::hardware_encoder_for_choice(self.format, self.encoder_choice)
+                })
+                .or_else(|| crate::outputs::hardware_encoder_for(self.format))
+                .unwrap_or("software");
             parts.push(format!("hw={codec}"));
         }
         if let Some(g) = self.keyint {
@@ -703,9 +717,13 @@ pub struct ResolvedEncoder {
     pub from_preset: Preset,
     /// Requested `--encoder` choice (Sprint 12 outputs, T003).
     pub encoder_choice: crate::outputs::EncoderChoice,
-    /// Effective hardware use (Sprint 12 outputs, T003): the caller
-    /// resolved this against the host FFmpeg before the first frame.
+    /// Effective hardware use (Sprint 12 outputs, T003; Sprint 25,
+    /// T002): the caller resolved this against the host FFmpeg
+    /// before the first frame.
     pub hardware: bool,
+    /// Resolved hardware codec (Sprint 25, T002): `None` keeps the
+    /// legacy VideoToolbox mapping for library callers.
+    pub hw_codec: Option<&'static str>,
     /// `--keyint` GOP length, if named (Sprint 12 outputs, T003).
     pub keyint: Option<u32>,
     /// `--maxrate` peak cap, if named (Sprint 12 outputs, T003).
@@ -4578,7 +4596,18 @@ pub(crate) fn encode_args(
         args.push("-bufsize".into());
         args.push(crate::outputs::maxrate_bufsize(m));
     }
-    let video_codec = if hw { "h264_videotoolbox" } else { "libx264" };
+    let video_codec = if hw {
+        enc.hw_codec
+            .or_else(|| {
+                crate::outputs::hardware_encoder_for_choice(
+                    crate::outputs::OutputFormat::Mp4,
+                    enc.encoder_choice,
+                )
+            })
+            .unwrap_or("h264_videotoolbox")
+    } else {
+        "libx264"
+    };
     args.extend([
         "-c:v".into(),
         video_codec.into(),

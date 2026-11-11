@@ -225,51 +225,60 @@ pub const FFMPEGBIN_RELEASES_PAGE: &str = "https://github.com/bdsanxz/ffmpeg-reg
 pub const FFMPEGBIN_API_LATEST: &str =
     "https://api.github.com/repos/bdsanxz/ffmpeg-registry/releases/latest";
 
+/// Every shipped registry pair: `(os, arch, asset, archive entry,
+/// installed binary)`. OS/arch use [`std::env::consts`] spellings
+/// (`macos` for darwin, `aarch64`/`x86_64`/`x86`). The registry ships
+/// exactly these seven zips; bootstrap never downloads for any other
+/// pair.
+pub const SUPPORTED_PLATFORMS: &[(&str, &str, &str, &str, &str)] = &[
+    ("macos", "aarch64", "ffmpeg-osx-arm64.zip", "ffmpeg", "ffmpeg"),
+    ("macos", "x86_64", "ffmpeg-osx-x64.zip", "ffmpeg", "ffmpeg"),
+    ("linux", "x86_64", "ffmpeg-linux-x64.zip", "ffmpeg", "ffmpeg"),
+    ("linux", "aarch64", "ffmpeg-linux-arm64.zip", "ffmpeg", "ffmpeg"),
+    ("linux", "x86", "ffmpeg-linux-x86.zip", "ffmpeg", "ffmpeg"),
+    (
+        "windows",
+        "x86_64",
+        "ffmpeg-windows-x64.zip",
+        "ffmpeg.exe",
+        "ffmpeg.exe",
+    ),
+    (
+        "windows",
+        "aarch64",
+        "ffmpeg-windows-arm64.zip",
+        "ffmpeg.exe",
+        "ffmpeg.exe",
+    ),
+];
+
+/// The supported-set wording every refusal names, so an unknown
+/// OS/arch pair lists what this build can download.
+pub fn supported_platforms_line() -> String {
+    let names: Vec<String> = SUPPORTED_PLATFORMS
+        .iter()
+        .map(|(os, arch, asset, entry, exe)| format!("{os}/{arch}: {asset} (entry {entry}, binary {exe})"))
+        .collect();
+    format!("supported platforms: {}", names.join("; "))
+}
+
+/// Asset file, archive entry, and installed binary name for one
+/// OS/arch pair (Sprint 25, T001): the shipped registry contract.
+/// Unknown pairs return `None`, so bootstrap refuses with the
+/// supported set named instead of guessing a download.
+pub fn asset_for_os_arch(os: &str, arch: &str) -> Option<(&'static str, &'static str, &'static str)> {
+    SUPPORTED_PLATFORMS
+        .iter()
+        .find(|(o, a, _, _, _)| *o == os && *a == arch)
+        .map(|(_, _, asset, entry, exe)| (*asset, *entry, *exe))
+}
+
 /// Asset file, archive entry, and installed binary name for this host,
 /// decided by the running OS/arch. Platforms without a published build
 /// return `None`: the bootstrap then refuses with the manual-provision
 /// fix instead of guessing a download.
 pub fn ffmpegbin_asset() -> Option<(&'static str, &'static str, &'static str)> {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        Some(("ffmpeg-osx-arm64.zip", "ffmpeg", "ffmpeg"))
-    }
-    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    {
-        Some(("ffmpeg-osx-x64.zip", "ffmpeg", "ffmpeg"))
-    }
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        Some(("ffmpeg-linux-x64.zip", "ffmpeg", "ffmpeg"))
-    }
-    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    {
-        Some(("ffmpeg-linux-arm64.zip", "ffmpeg", "ffmpeg"))
-    }
-    #[cfg(all(target_os = "linux", target_arch = "x86"))]
-    {
-        Some(("ffmpeg-linux-x86.zip", "ffmpeg", "ffmpeg"))
-    }
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    {
-        Some(("ffmpeg-windows-x64.zip", "ffmpeg.exe", "ffmpeg.exe"))
-    }
-    #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
-    {
-        Some(("ffmpeg-windows-arm64.zip", "ffmpeg.exe", "ffmpeg.exe"))
-    }
-    #[cfg(not(any(
-        all(target_os = "macos", target_arch = "aarch64"),
-        all(target_os = "macos", target_arch = "x86_64"),
-        all(target_os = "linux", target_arch = "x86_64"),
-        all(target_os = "linux", target_arch = "aarch64"),
-        all(target_os = "linux", target_arch = "x86"),
-        all(target_os = "windows", target_arch = "x86_64"),
-        all(target_os = "windows", target_arch = "aarch64"),
-    )))]
-    {
-        None
-    }
+    asset_for_os_arch(std::env::consts::OS, std::env::consts::ARCH)
 }
 
 /// Installed binary file name for this host (`ffmpeg.exe` on Windows,
@@ -671,6 +680,97 @@ mod tests {
         std::env::remove_var("FRAMESMITH_FFMPEG_SHA256");
         std::env::remove_var("FRAMESMITH_FFMPEG_VERSION");
         std::env::remove_var("FRAMESMITH_FFMPEG_ENTRY");
+    }
+
+    #[test]
+    fn every_shipped_pair_resolves_its_registry_names() {
+        // Sprint 25 T001: the registry contract, exact asset / entry /
+        // binary names for all seven pairs.
+        let table = [
+            (
+                "macos",
+                "aarch64",
+                ("ffmpeg-osx-arm64.zip", "ffmpeg", "ffmpeg"),
+            ),
+            ("macos", "x86_64", ("ffmpeg-osx-x64.zip", "ffmpeg", "ffmpeg")),
+            (
+                "linux",
+                "x86_64",
+                ("ffmpeg-linux-x64.zip", "ffmpeg", "ffmpeg"),
+            ),
+            (
+                "linux",
+                "aarch64",
+                ("ffmpeg-linux-arm64.zip", "ffmpeg", "ffmpeg"),
+            ),
+            (
+                "linux",
+                "x86",
+                ("ffmpeg-linux-x86.zip", "ffmpeg", "ffmpeg"),
+            ),
+            (
+                "windows",
+                "x86_64",
+                ("ffmpeg-windows-x64.zip", "ffmpeg.exe", "ffmpeg.exe"),
+            ),
+            (
+                "windows",
+                "aarch64",
+                ("ffmpeg-windows-arm64.zip", "ffmpeg.exe", "ffmpeg.exe"),
+            ),
+        ];
+        assert_eq!(SUPPORTED_PLATFORMS.len(), 7);
+        for (os, arch, want) in table {
+            assert_eq!(
+                asset_for_os_arch(os, arch),
+                Some(want),
+                "{os}/{arch} must resolve its shipped asset"
+            );
+        }
+        // The host delegates to the table for the running pair.
+        let host = ffmpegbin_asset();
+        assert_eq!(host, asset_for_os_arch(std::env::consts::OS, std::env::consts::ARCH));
+        if let Some((asset, entry, exe)) = host {
+            assert!(asset.ends_with(".zip"), "{asset}");
+            assert_eq!(exe, exe_name());
+            assert!(!entry.is_empty());
+        }
+        // The table agrees with the public lookup both ways: every row
+        // resolves, and no row is a duplicate pair.
+        for (i, (os, arch, asset, entry, exe)) in SUPPORTED_PLATFORMS.iter().enumerate() {
+            assert_eq!(asset_for_os_arch(os, arch), Some((*asset, *entry, *exe)));
+            for (os2, arch2, ..) in &SUPPORTED_PLATFORMS[i + 1..] {
+                assert!(*os != *os2 || *arch != *arch2, "duplicate pair {os}/{arch}");
+            }
+        }
+    }
+
+    #[test]
+    fn unknown_pairs_refuse_with_the_supported_set_named() {
+        for (os, arch) in [
+            ("macos", "arm64"),
+            ("darwin", "aarch64"),
+            ("windows", "x86"),
+            ("freebsd", "x86_64"),
+            ("linux", "riscv64"),
+            ("linux", "armv7"),
+            ("", ""),
+        ] {
+            assert_eq!(asset_for_os_arch(os, arch), None, "{os}/{arch}");
+        }
+        let line = supported_platforms_line();
+        for asset in [
+            "ffmpeg-osx-arm64.zip",
+            "ffmpeg-osx-x64.zip",
+            "ffmpeg-linux-x64.zip",
+            "ffmpeg-linux-arm64.zip",
+            "ffmpeg-linux-x86.zip",
+            "ffmpeg-windows-x64.zip",
+            "ffmpeg-windows-arm64.zip",
+        ] {
+            assert!(line.contains(asset), "{line}");
+        }
+        assert!(line.contains("supported platforms"), "{line}");
     }
 
     #[test]

@@ -847,11 +847,12 @@ fn execute_job(folder: &Path, seq: u64, hooks: &RunHooks) -> JobOutcome {
     };
     if gpu {
         opts.encoder_choice = render::outputs::EncoderChoice::Auto;
-        if render::outputs::hardware_available(&ffmpeg_bin, format) {
+        // Sprint 25 T002: `auto` resolves per OS to the first hardware
+        // encoder the host listing provides, else software.
+        if let Some((codec, _choice)) = render::outputs::resolve_auto(&ffmpeg_bin, format) {
             opts.hardware = true;
-            if let Some(codec) = render::outputs::hardware_encoder_for(format) {
-                note(&format!("GPU encoding on the hardware encoder ({codec})."));
-            }
+            opts.hw_codec = Some(codec);
+            note(&format!("GPU encoding on the hardware encoder ({codec})."));
         } else {
             note("GPU toggle on but the host FFmpeg provides no hardware encoder for this format; software encode.");
         }

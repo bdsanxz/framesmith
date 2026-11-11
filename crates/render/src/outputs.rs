@@ -148,14 +148,16 @@ impl OutputFormat {
     }
 }
 
-/// One `--encoder` choice (Sprint 12 outputs, CAP-003): `auto`
-/// uses the format's hardware encoder when the host FFmpeg provides
-/// it and software otherwise without failing; `software` always
-/// encodes on the CPU (deterministic: same inputs re-render
-/// byte-identical); `videotoolbox` demands hardware encoding and
-/// refuses before the first frame when the host lacks it. Absent
-/// means `software`, so default renders stay byte-identical on every
-/// machine (hardware encodes verify by decode, never by hash).
+/// One `--encoder` choice (Sprint 12 outputs, CAP-003; Sprint 25,
+/// T002): `auto` uses the first hardware encoder for the running OS
+/// the host FFmpeg provides and software otherwise without failing;
+/// `software` (alias `cpu`) always encodes on the CPU (deterministic:
+/// same inputs re-render byte-identical); each hardware choice
+/// (`videotoolbox`, `nvenc`, `vaapi`, `qsv`, `amf`) demands hardware
+/// encoding and refuses before the first frame when the host lacks
+/// it. Absent means `software`, so default renders stay
+/// byte-identical on every machine (hardware encodes verify by
+/// decode, never by hash).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EncoderChoice {
     Auto,
@@ -163,16 +165,25 @@ pub enum EncoderChoice {
     #[default]
     Software,
     Videotoolbox,
+    Nvenc,
+    Vaapi,
+    Qsv,
+    Amf,
 }
 
 impl EncoderChoice {
-    /// Exactly the three accepted spellings; anything else is refused
-    /// before the first frame with no output written.
+    /// Exactly the accepted spellings (`cpu` aliases `software`);
+    /// anything else is refused before the first frame with no
+    /// output written.
     pub fn parse(raw: &str) -> Option<Self> {
         match raw {
             "auto" => Some(EncoderChoice::Auto),
-            "software" => Some(EncoderChoice::Software),
+            "software" | "cpu" => Some(EncoderChoice::Software),
             "videotoolbox" => Some(EncoderChoice::Videotoolbox),
+            "nvenc" => Some(EncoderChoice::Nvenc),
+            "vaapi" => Some(EncoderChoice::Vaapi),
+            "qsv" => Some(EncoderChoice::Qsv),
+            "amf" => Some(EncoderChoice::Amf),
             _ => None,
         }
     }
@@ -182,12 +193,49 @@ impl EncoderChoice {
             EncoderChoice::Auto => "auto",
             EncoderChoice::Software => "software",
             EncoderChoice::Videotoolbox => "videotoolbox",
+            EncoderChoice::Nvenc => "nvenc",
+            EncoderChoice::Vaapi => "vaapi",
+            EncoderChoice::Qsv => "qsv",
+            EncoderChoice::Amf => "amf",
         }
     }
 
     /// The accepted-values wording every refusal names.
     pub fn accepted() -> &'static str {
-        "auto, software, or videotoolbox"
+        "auto, software, cpu, videotoolbox, nvenc, vaapi, qsv, or amf"
+    }
+
+    /// True for choices that demand a hardware encoder: `auto` and
+    /// `software` never do (they resolve or stay software).
+    pub fn is_explicit_hardware(self) -> bool {
+        matches!(
+            self,
+            EncoderChoice::Videotoolbox
+                | EncoderChoice::Nvenc
+                | EncoderChoice::Vaapi
+                | EncoderChoice::Qsv
+                | EncoderChoice::Amf
+        )
+    }
+
+    /// The OSes this choice serves (Sprint 25, T002): each hardware
+    /// encoder is flagged with the platforms it can serve. `auto`
+    /// and `software` serve every OS.
+    pub fn served_oses(self) -> &'static [&'static str] {
+        match self {
+            EncoderChoice::Auto | EncoderChoice::Software => &["macos", "linux", "windows"],
+            EncoderChoice::Videotoolbox => &["macos"],
+            EncoderChoice::Nvenc => &["windows", "linux"],
+            EncoderChoice::Vaapi => &["linux"],
+            EncoderChoice::Qsv => &["windows", "linux"],
+            EncoderChoice::Amf => &["windows"],
+        }
+    }
+
+    /// True when this choice serves `os` ([`std::env::consts::OS`]
+    /// spelling).
+    pub fn serves(self, os: &str) -> bool {
+        self.served_oses().contains(&os)
     }
 }
 
@@ -246,6 +294,43 @@ pub fn maxrate_bufsize(maxrate: &str) -> String {
     }
 }
 
+/// The FFmpeg encoder one hardware `--encoder` choice writes for one
+/// destination (Sprint 25, T002): the H.264/H.265 hardware encoders
+/// for the H.264/H.265 destinations. `None` means the destination
+/// has no hardware encoder on this stack (WebM ships no hardware VP9
+/// encoder here; ProRes keeps its pinned `prores_ks` path; GIF and
+/// PNG sequences carry no video stream to encode), so an explicit
+/// hardware choice there refuses while `auto` quietly encodes
+/// software. `Auto` and `Software` have no direct encoder.
+pub fn hardware_encoder_for_choice(
+    format: OutputFormat,
+    choice: EncoderChoice,
+) -> Option<&'static str> {
+    match (format, choice) {
+        (OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls, EncoderChoice::Videotoolbox) => {
+            Some("h264_videotoolbox")
+        }
+        (OutputFormat::Hevc, EncoderChoice::Videotoolbox) => Some("hevc_videotoolbox"),
+        (OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls, EncoderChoice::Nvenc) => {
+            Some("h264_nvenc")
+        }
+        (OutputFormat::Hevc, EncoderChoice::Nvenc) => Some("hevc_nvenc"),
+        (OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls, EncoderChoice::Vaapi) => {
+            Some("h264_vaapi")
+        }
+        (OutputFormat::Hevc, EncoderChoice::Vaapi) => Some("hevc_vaapi"),
+        (OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls, EncoderChoice::Qsv) => {
+            Some("h264_qsv")
+        }
+        (OutputFormat::Hevc, EncoderChoice::Qsv) => Some("hevc_qsv"),
+        (OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls, EncoderChoice::Amf) => {
+            Some("h264_amf")
+        }
+        (OutputFormat::Hevc, EncoderChoice::Amf) => Some("hevc_amf"),
+        _ => None,
+    }
+}
+
 /// The host FFmpeg encoder `--encoder videotoolbox` (or `auto` on a
 /// capable machine) writes for one destination (Sprint 12 outputs,
 /// CAP-003): the VideoToolbox H.264/H.265 encoders for the
@@ -255,13 +340,178 @@ pub fn maxrate_bufsize(maxrate: &str) -> String {
 /// sequences carry no video stream to encode), so an explicit
 /// `videotoolbox` there refuses while `auto` quietly encodes software.
 pub fn hardware_encoder_for(format: OutputFormat) -> Option<&'static str> {
-    match format {
-        OutputFormat::Mp4 | OutputFormat::Mov | OutputFormat::Hls => Some("h264_videotoolbox"),
-        OutputFormat::Hevc => Some("hevc_videotoolbox"),
-        OutputFormat::Webm | OutputFormat::Prores | OutputFormat::Gif | OutputFormat::PngSeq => {
-            None
+    hardware_encoder_for_choice(format, EncoderChoice::Videotoolbox)
+}
+
+/// Every hardware encoder name `auto` and `doctor` probe (Sprint 25,
+/// T002): the H.264 and HEVC counterparts of all five hardware
+/// choices, in resolution order. Availability is read from the host
+/// `-encoders` listing, never guessed.
+pub const ALL_HARDWARE_ENCODERS: &[&str] = &[
+    "h264_videotoolbox",
+    "hevc_videotoolbox",
+    "h264_nvenc",
+    "hevc_nvenc",
+    "h264_vaapi",
+    "hevc_vaapi",
+    "h264_qsv",
+    "hevc_qsv",
+    "h264_amf",
+    "hevc_amf",
+];
+
+/// The per-OS `auto` priority (Sprint 25, T002): the hardware
+/// choices tried in order for one OS. `auto` picks the first one
+/// whose encoder the host listing provides, else software.
+pub fn auto_priority_for(os: &str) -> &'static [EncoderChoice] {
+    match os {
+        "macos" => &[EncoderChoice::Videotoolbox],
+        "linux" => &[
+            EncoderChoice::Vaapi,
+            EncoderChoice::Nvenc,
+            EncoderChoice::Qsv,
+        ],
+        "windows" => &[
+            EncoderChoice::Nvenc,
+            EncoderChoice::Qsv,
+            EncoderChoice::Amf,
+        ],
+        _ => &[],
+    }
+}
+
+/// The `auto` priority for the running OS.
+pub fn auto_priority() -> &'static [EncoderChoice] {
+    auto_priority_for(std::env::consts::OS)
+}
+
+/// Resolve `auto` against one `-encoders` listing text (Sprint 25,
+/// T002): the first hardware encoder in the OS priority whose
+/// encoder the listing provides, plus the choice that named it.
+/// `None` means no hardware encoder on this OS is present, so
+/// `auto` encodes software. Pure: tests stage listings.
+pub fn resolve_auto_with_listing(
+    text: &str,
+    format: OutputFormat,
+    os: &str,
+) -> Option<(&'static str, EncoderChoice)> {
+    for &choice in auto_priority_for(os) {
+        let Some(codec) = hardware_encoder_for_choice(format, choice) else {
+            continue;
+        };
+        if text_has_encoder(text, codec) {
+            return Some((codec, choice));
         }
     }
+    None
+}
+
+/// Resolve `auto` against the host FFmpeg's own `-encoders` listing
+/// (Sprint 25, T002): the first hardware encoder in the running-OS
+/// priority the host provides, else `None` for software fallback.
+/// `FRAMESMITH_NO_VIDEOTOOLBOX=1` hides VideoToolbox even when
+/// present, so the software-fallback path exercises on macOS
+/// (matching [`hardware_available`]).
+pub fn resolve_auto(
+    ffmpeg_bin: &Path,
+    format: OutputFormat,
+) -> Option<(&'static str, EncoderChoice)> {
+    let text = encoders_text(ffmpeg_bin).ok()?;
+    if hardware_hidden_by_hook() {
+        let filtered: String = text
+            .lines()
+            .filter(|line| {
+                let mut parts = line.split_whitespace();
+                let _ = parts.next();
+                !matches!(parts.next(), Some("h264_videotoolbox") | Some("hevc_videotoolbox"))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        return resolve_auto_with_listing(&filtered, format, std::env::consts::OS);
+    }
+    resolve_auto_with_listing(&text, format, std::env::consts::OS)
+}
+
+/// The hardware encoders present in one `-encoders` listing text
+/// (Sprint 25, T002): every name in [`ALL_HARDWARE_ENCODERS`] the
+/// listing provides, in canonical order. Doctor and the render path
+/// share this probe, so facts never drift. Pure: tests stage
+/// listings.
+pub fn present_hardware_encoders(text: &str) -> Vec<&'static str> {
+    ALL_HARDWARE_ENCODERS
+        .iter()
+        .copied()
+        .filter(|name| text_has_encoder(text, name))
+        .collect()
+}
+
+/// The hardware encoders the host FFmpeg provides (Sprint 25, T002):
+/// probed from the host `-encoders` listing. Empty when the query
+/// fails or no hardware encoder is present.
+pub fn probe_hardware_encoders(ffmpeg_bin: &Path) -> Vec<&'static str> {
+    match encoders_text(ffmpeg_bin) {
+        Ok(text) => present_hardware_encoders(&text),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Check one explicit hardware choice against the host FFmpeg's own
+/// `-encoders` listing (Sprint 25, T002): `Ok(codec)` when the
+/// destination has a hardware encoder for the choice and the host
+/// provides it; `Err` naming the choice, the codec, and the software
+/// fallback otherwise. Callers refuse `Err` before the first frame
+/// with no output written.
+pub fn check_explicit_encoder_with_listing(
+    text: &str,
+    ffmpeg_bin: &Path,
+    format: OutputFormat,
+    choice: EncoderChoice,
+) -> Result<&'static str, String> {
+    let Some(codec) = hardware_encoder_for_choice(format, choice) else {
+        return Err(format!(
+            "render refused: --encoder {} has no hardware encoder for --format {} (this stack hardware-encodes H.264/H.265 destinations only); re-run with --encoder software (validation stage); no output was written",
+            choice.name(),
+            format.name()
+        ));
+    };
+    if text_has_encoder(text, codec) {
+        Ok(codec)
+    } else {
+        Err(format!(
+            "render refused: --encoder {} needs the {codec} encoder, but the FFmpeg at {} does not provide it; re-run with --encoder software (or --encoder auto for automatic fallback) (validation stage); no output was written",
+            choice.name(),
+            ffmpeg_bin.display()
+        ))
+    }
+}
+
+/// Check one explicit hardware choice against the host FFmpeg
+/// (Sprint 25, T002): the FFmpeg encoder it resolves to when the
+/// host provides it, or the refusal naming the choice and codec.
+/// `FRAMESMITH_NO_VIDEOTOOLBOX=1` hides VideoToolbox even when
+/// present, so the absent-encoder refusal exercises on macOS
+/// (matching [`hardware_available`]).
+pub fn check_explicit_encoder(
+    ffmpeg_bin: &Path,
+    format: OutputFormat,
+    choice: EncoderChoice,
+) -> Result<&'static str, String> {
+    if choice == EncoderChoice::Videotoolbox && hardware_hidden_by_hook() {
+        if let Some(codec) = hardware_encoder_for_choice(format, choice) {
+            return Err(format!(
+                "render refused: --encoder videotoolbox needs the {codec} encoder, but the FFmpeg at {} does not provide it; re-run with --encoder software (or --encoder auto for automatic fallback) (validation stage); no output was written",
+                ffmpeg_bin.display()
+            ));
+        }
+    }
+    let text = encoders_text(ffmpeg_bin).map_err(|e| {
+        format!(
+            "render refused: --encoder {} needs its hardware encoder, but the FFmpeg at {} could not be queried ({e}); re-run with --encoder software (validation stage); no output was written",
+            choice.name(),
+            ffmpeg_bin.display()
+        )
+    })?;
+    check_explicit_encoder_with_listing(&text, ffmpeg_bin, format, choice)
 }
 
 /// True when the host FFmpeg provides the destination's hardware
@@ -290,9 +540,44 @@ pub fn hardware_available(ffmpeg_bin: &Path, format: OutputFormat) -> bool {
     }
 }
 
+/// True when the host FFmpeg provides the hardware encoder one
+/// explicit choice writes for one destination (Sprint 25, T002):
+/// the fact an explicit `nvenc`/`vaapi`/`qsv`/`amf` demands, from
+/// the host listing. Non-hardware choices and unsupported
+/// destinations report false. `videotoolbox` honors the same
+/// `FRAMESMITH_NO_VIDEOTOOLBOX` hook as [`hardware_available`].
+pub fn hardware_available_for_choice(
+    ffmpeg_bin: &Path,
+    format: OutputFormat,
+    choice: EncoderChoice,
+) -> bool {
+    if !choice.is_explicit_hardware() {
+        return false;
+    }
+    if choice == EncoderChoice::Videotoolbox && hardware_hidden_by_hook() {
+        return false;
+    }
+    let Some(want) = hardware_encoder_for_choice(format, choice) else {
+        return false;
+    };
+    match encoders_text(ffmpeg_bin) {
+        Ok(text) => text_has_encoder(&text, want),
+        Err(_) => false,
+    }
+}
+
+fn hardware_hidden_by_hook() -> bool {
+    std::env::var("FRAMESMITH_NO_VIDEOTOOLBOX")
+        .map(|v| {
+            let v = v.trim();
+            v == "1" || v.eq_ignore_ascii_case("true")
+        })
+        .unwrap_or(false)
+}
+
 /// The host FFmpeg's `-encoders` listing (stdout plus stderr): the
 /// shared probe behind the format and hardware checks.
-fn encoders_text(ffmpeg_bin: &Path) -> Result<String, String> {
+pub fn encoders_text(ffmpeg_bin: &Path) -> Result<String, String> {
     let out = std::process::Command::new(ffmpeg_bin)
         .args(["-hide_banner", "-encoders"])
         .output()
@@ -944,13 +1229,15 @@ pub fn encode_args_for(
     }
     // Effective hardware use: only destinations with a hardware
     // encoder honor `enc.hardware` (the caller refuses an explicit
-    // `videotoolbox` there; `auto` resolves to software). Anything
+    // hardware choice there; `auto` resolves to software). Anything
     // else falls back to the software codec, so builders never emit
     // a codec the host may lack. HDR always encodes software
     // (libx265 Main10): the hardware encoders tune SDR, so the HDR
     // flags ride the deterministic CPU path.
     let hw_codec: Option<&str> = if enc.hardware && hdr == HdrTransfer::Sdr {
-        hardware_encoder_for(format)
+        enc.hw_codec
+            .or_else(|| hardware_encoder_for_choice(format, enc.encoder_choice))
+            .or_else(|| hardware_encoder_for(format))
     } else {
         None
     };
@@ -1805,21 +2092,37 @@ mod tests {
     }
 
     #[test]
-    fn encoder_choice_parses_to_exactly_three_spellings() {
+    fn encoder_choice_parses_to_exactly_the_accepted_spellings() {
         use super::EncoderChoice;
         for (raw, want) in [
             ("auto", EncoderChoice::Auto),
             ("software", EncoderChoice::Software),
             ("videotoolbox", EncoderChoice::Videotoolbox),
+            ("nvenc", EncoderChoice::Nvenc),
+            ("vaapi", EncoderChoice::Vaapi),
+            ("qsv", EncoderChoice::Qsv),
+            ("amf", EncoderChoice::Amf),
         ] {
             assert_eq!(EncoderChoice::parse(raw), Some(want), "{raw}");
             assert_eq!(EncoderChoice::parse(raw).unwrap().name(), raw);
         }
-        for bad in ["", "AUTO", "cuda", "gpu", " auto "] {
+        // `cpu` aliases `software`; the canonical name stays `software`.
+        assert_eq!(EncoderChoice::parse("cpu"), Some(EncoderChoice::Software));
+        assert_eq!(
+            EncoderChoice::parse("cpu").unwrap().name(),
+            "software"
+        );
+        for bad in ["", "AUTO", "cuda", "gpu", " auto ", "NVENC", "amf "] {
             assert_eq!(EncoderChoice::parse(bad), None, "{bad:?}");
         }
         assert_eq!(EncoderChoice::default(), EncoderChoice::Software);
-        assert!(EncoderChoice::accepted().contains("videotoolbox"));
+        for wanted in ["auto", "software", "cpu", "videotoolbox", "nvenc", "vaapi", "qsv", "amf"] {
+            assert!(
+                EncoderChoice::accepted().contains(wanted),
+                "{}",
+                EncoderChoice::accepted()
+            );
+        }
     }
 
     #[test]
@@ -1889,6 +2192,307 @@ mod tests {
         assert!(!hardware_available(&ffmpeg, OutputFormat::Mp4));
         assert!(!hardware_available(&ffmpeg, OutputFormat::Hevc));
         std::env::remove_var("FRAMESMITH_NO_VIDEOTOOLBOX");
+    }
+
+    #[test]
+    fn hardware_choices_flag_the_oses_they_serve() {
+        use super::EncoderChoice;
+        assert!(EncoderChoice::Videotoolbox.serves("macos"));
+        assert!(!EncoderChoice::Videotoolbox.serves("linux"));
+        assert!(!EncoderChoice::Videotoolbox.serves("windows"));
+        assert!(EncoderChoice::Nvenc.serves("windows"));
+        assert!(EncoderChoice::Nvenc.serves("linux"));
+        assert!(!EncoderChoice::Nvenc.serves("macos"));
+        assert!(EncoderChoice::Vaapi.serves("linux"));
+        assert!(!EncoderChoice::Vaapi.serves("windows"));
+        assert!(!EncoderChoice::Vaapi.serves("macos"));
+        assert!(EncoderChoice::Qsv.serves("windows"));
+        assert!(EncoderChoice::Qsv.serves("linux"));
+        assert!(!EncoderChoice::Qsv.serves("macos"));
+        assert!(EncoderChoice::Amf.serves("windows"));
+        assert!(!EncoderChoice::Amf.serves("linux"));
+        assert!(!EncoderChoice::Amf.serves("macos"));
+        for choice in [EncoderChoice::Auto, EncoderChoice::Software] {
+            for os in ["macos", "linux", "windows"] {
+                assert!(choice.serves(os), "{choice:?} {os}");
+            }
+        }
+        for choice in [
+            EncoderChoice::Videotoolbox,
+            EncoderChoice::Nvenc,
+            EncoderChoice::Vaapi,
+            EncoderChoice::Qsv,
+            EncoderChoice::Amf,
+        ] {
+            assert!(choice.is_explicit_hardware(), "{choice:?}");
+        }
+        for choice in [EncoderChoice::Auto, EncoderChoice::Software] {
+            assert!(!choice.is_explicit_hardware(), "{choice:?}");
+        }
+    }
+
+    #[test]
+    fn hardware_choices_resolve_h264_and_hevc_counterparts() {
+        use super::EncoderChoice;
+        for (choice, h264, hevc) in [
+            (EncoderChoice::Videotoolbox, "h264_videotoolbox", "hevc_videotoolbox"),
+            (EncoderChoice::Nvenc, "h264_nvenc", "hevc_nvenc"),
+            (EncoderChoice::Vaapi, "h264_vaapi", "hevc_vaapi"),
+            (EncoderChoice::Qsv, "h264_qsv", "hevc_qsv"),
+            (EncoderChoice::Amf, "h264_amf", "hevc_amf"),
+        ] {
+            assert_eq!(
+                hardware_encoder_for_choice(OutputFormat::Mp4, choice),
+                Some(h264),
+                "{choice:?}"
+            );
+            assert_eq!(
+                hardware_encoder_for_choice(OutputFormat::Mov, choice),
+                Some(h264),
+                "{choice:?}"
+            );
+            assert_eq!(
+                hardware_encoder_for_choice(OutputFormat::Hls, choice),
+                Some(h264),
+                "{choice:?}"
+            );
+            assert_eq!(
+                hardware_encoder_for_choice(OutputFormat::Hevc, choice),
+                Some(hevc),
+                "{choice:?}"
+            );
+            for format in [
+                OutputFormat::Webm,
+                OutputFormat::Prores,
+                OutputFormat::Gif,
+                OutputFormat::PngSeq,
+            ] {
+                assert_eq!(
+                    hardware_encoder_for_choice(format, choice),
+                    None,
+                    "{choice:?} {}",
+                    format.name()
+                );
+            }
+        }
+        // `auto` and `software` have no direct encoder.
+        for choice in [EncoderChoice::Auto, EncoderChoice::Software] {
+            assert_eq!(
+                hardware_encoder_for_choice(OutputFormat::Mp4, choice),
+                None
+            );
+        }
+        // The legacy videotoolbox helper still agrees.
+        assert_eq!(
+            hardware_encoder_for(OutputFormat::Mp4),
+            hardware_encoder_for_choice(OutputFormat::Mp4, EncoderChoice::Videotoolbox)
+        );
+        assert_eq!(ALL_HARDWARE_ENCODERS.len(), 10);
+    }
+
+    #[test]
+    fn auto_resolves_per_os_against_staged_listings() {
+        use super::EncoderChoice;
+        const SW: &str = "Encoders:\n V..... libx264   libx264 H.264\n A..... aac        AAC\n";
+        const VT: &str = "Encoders:\n V..... libx264   libx264 H.264\n V..... h264_videotoolbox  vt\n A..... aac        AAC\n";
+        const NV: &str = "Encoders:\n V..... libx264   libx264 H.264\n V..... h264_nvenc   nv\n V..... h264_qsv     qsv\n V..... h264_amf     amf\n A..... aac        AAC\n";
+        const VA: &str = "Encoders:\n V..... libx264   libx264 H.264\n V..... h264_vaapi   va\n V..... h264_nvenc   nv\n V..... h264_qsv     qsv\n A..... aac        AAC\n";
+        const HEVC_NV: &str = "Encoders:\n V..... libx265   libx265 H.265\n V..... hevc_nvenc   nv\n V..... hevc_qsv     qsv\n A..... aac        AAC\n";
+        // macos: videotoolbox first, else software.
+        assert_eq!(
+            resolve_auto_with_listing(VT, OutputFormat::Mp4, "macos"),
+            Some(("h264_videotoolbox", EncoderChoice::Videotoolbox))
+        );
+        assert_eq!(resolve_auto_with_listing(SW, OutputFormat::Mp4, "macos"), None);
+        // Windows-only encoders never resolve on macos.
+        assert_eq!(resolve_auto_with_listing(NV, OutputFormat::Mp4, "macos"), None);
+        // linux priority: vaapi, then nvenc, then qsv.
+        assert_eq!(
+            resolve_auto_with_listing(VA, OutputFormat::Mp4, "linux"),
+            Some(("h264_vaapi", EncoderChoice::Vaapi))
+        );
+        assert_eq!(
+            resolve_auto_with_listing(NV, OutputFormat::Mp4, "linux"),
+            Some(("h264_nvenc", EncoderChoice::Nvenc))
+        );
+        // windows priority: nvenc, then qsv, then amf.
+        assert_eq!(
+            resolve_auto_with_listing(NV, OutputFormat::Mp4, "windows"),
+            Some(("h264_nvenc", EncoderChoice::Nvenc))
+        );
+        assert_eq!(
+            resolve_auto_with_listing(HEVC_NV, OutputFormat::Hevc, "windows"),
+            Some(("hevc_nvenc", EncoderChoice::Nvenc))
+        );
+        // No hardware present: software fallback (`None`), whichever
+        // format or OS.
+        for os in ["macos", "linux", "windows"] {
+            assert_eq!(
+                resolve_auto_with_listing(SW, OutputFormat::Mp4, os),
+                None,
+                "{os}"
+            );
+        }
+        // Destinations without a hardware encoder never resolve.
+        assert_eq!(resolve_auto_with_listing(NV, OutputFormat::Webm, "windows"), None);
+        assert_eq!(resolve_auto_with_listing(NV, OutputFormat::Gif, "windows"), None);
+        // Unknown OS resolves to nothing (software).
+        assert_eq!(resolve_auto_with_listing(VT, OutputFormat::Mp4, "freebsd"), None);
+        // Priority order is exactly as flagged.
+        assert_eq!(
+            auto_priority_for("windows"),
+            &[
+                EncoderChoice::Nvenc,
+                EncoderChoice::Qsv,
+                EncoderChoice::Amf
+            ]
+        );
+        assert_eq!(auto_priority(), auto_priority_for(std::env::consts::OS));
+    }
+
+    #[test]
+    fn explicit_choice_checks_against_staged_listings() {
+        use super::EncoderChoice;
+        const NO_HW: &str = "Encoders:\n V..... libx264   libx264 H.264\n A..... aac        AAC\n";
+        const NV: &str = "Encoders:\n V..... libx264   libx264 H.264\n V..... h264_nvenc   nv\n V..... hevc_nvenc   nv\n A..... aac        AAC\n";
+        // Present: resolves to the concrete encoder.
+        assert_eq!(
+            check_explicit_encoder_with_listing(
+                NV,
+                Path::new("/usr/bin/ffmpeg"),
+                OutputFormat::Mp4,
+                EncoderChoice::Nvenc
+            ),
+            Ok("h264_nvenc")
+        );
+        assert_eq!(
+            check_explicit_encoder_with_listing(
+                NV,
+                Path::new("/usr/bin/ffmpeg"),
+                OutputFormat::Hevc,
+                EncoderChoice::Nvenc
+            ),
+            Ok("hevc_nvenc")
+        );
+        // Absent: refuses naming the choice and the codec.
+        let err = check_explicit_encoder_with_listing(
+            NO_HW,
+            Path::new("/usr/bin/ffmpeg"),
+            OutputFormat::Mp4,
+            EncoderChoice::Nvenc,
+        )
+        .unwrap_err();
+        assert!(err.contains("--encoder nvenc"), "{err}");
+        assert!(err.contains("h264_nvenc"), "{err}");
+        assert!(err.contains("--encoder software"), "{err}");
+        assert!(err.contains("no output was written"), "{err}");
+        // No hardware encoder for the destination: refuses naming it.
+        let err = check_explicit_encoder_with_listing(
+            NV,
+            Path::new("/usr/bin/ffmpeg"),
+            OutputFormat::Webm,
+            EncoderChoice::Nvenc,
+        )
+        .unwrap_err();
+        assert!(err.contains("--encoder nvenc"), "{err}");
+        assert!(err.contains("--format webm"), "{err}");
+        // Prefix confusion never matches: `h264_nvenc` is not
+        // present when only `h264_nvcodec` is listed.
+        let near = "Encoders:\n V..... h264_nvcodec  near\n";
+        assert!(check_explicit_encoder_with_listing(
+            near,
+            Path::new("/usr/bin/ffmpeg"),
+            OutputFormat::Mp4,
+            EncoderChoice::Nvenc
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn present_hardware_reads_every_codec_from_a_listing() {
+        const ALL: &str = "Encoders:\n V..... h264_videotoolbox  vt\n V..... hevc_videotoolbox  vt\n V..... h264_nvenc   nv\n V..... hevc_nvenc   nv\n V..... h264_vaapi   va\n V..... hevc_vaapi   va\n V..... h264_qsv     qsv\n V..... hevc_qsv     qsv\n V..... h264_amf     amf\n V..... hevc_amf     amf\n V..... libx264   libx264\n";
+        assert_eq!(
+            present_hardware_encoders(ALL),
+            ALL_HARDWARE_ENCODERS.to_vec()
+        );
+        assert!(present_hardware_encoders("Encoders:\n V..... libx264   libx264\n").is_empty());
+        assert!(present_hardware_encoders("").is_empty());
+        // Only exact encoder columns match.
+        assert!(present_hardware_encoders(" V..... h264_nvenc2  near\n").is_empty());
+    }
+
+    #[test]
+    fn hardware_argv_writes_the_resolved_codec_without_software_axes() {
+        use super::super::render::RenderOptions;
+        let comp = tiny_comp();
+        // Resolved nvenc on the HEVC destination: hevc_nvenc, no
+        // -crf/-preset (hardware tunes quality through bitrate).
+        let nv = RenderOptions {
+            encoder_choice: super::EncoderChoice::Nvenc,
+            hardware: true,
+            hw_codec: Some("hevc_nvenc"),
+            format: OutputFormat::Hevc,
+            ..RenderOptions::default()
+        }
+        .encoder();
+        let target = file_target(OutputFormat::Hevc);
+        let args = encode_args_for(
+            OutputFormat::Hevc,
+            ProresProfile::Standard,
+            &comp,
+            &[],
+            None,
+            &target,
+            &nv,
+            comp.duration,
+            (comp.width, comp.height),
+        );
+        let joined = args.join(" ");
+        assert!(joined.contains("hevc_nvenc"), "{joined}");
+        assert!(!joined.contains("libx265"), "{joined}");
+        assert!(!joined.contains("-crf"), "{joined}");
+        assert!(!joined.contains("-preset"), "{joined}");
+        // Resolved amf across the pinned MP4 path: h264_amf.
+        let amf = RenderOptions {
+            encoder_choice: super::EncoderChoice::Amf,
+            hardware: true,
+            hw_codec: Some("h264_amf"),
+            ..RenderOptions::default()
+        }
+        .encoder();
+        let target = file_target(OutputFormat::Mp4);
+        let args = encode_args_for(
+            OutputFormat::Mp4,
+            ProresProfile::Standard,
+            &comp,
+            &[],
+            None,
+            &target,
+            &amf,
+            comp.duration,
+            (comp.width, comp.height),
+        );
+        let joined = args.join(" ");
+        assert!(joined.contains("h264_amf"), "{joined}");
+        assert!(!joined.contains("libx264"), "{joined}");
+        // A hardware request on a destination without a hardware
+        // encoder still falls back to the software codec, never a
+        // missing one.
+        let target = file_target(OutputFormat::Webm);
+        let args = encode_args_for(
+            OutputFormat::Webm,
+            ProresProfile::Standard,
+            &comp,
+            &[],
+            None,
+            &target,
+            &nv,
+            comp.duration,
+            (comp.width, comp.height),
+        );
+        let joined = args.join(" ");
+        assert!(joined.contains("libvpx-vp9"), "{joined}");
+        assert!(!joined.contains("nvenc"), "{joined}");
     }
 
     #[test]

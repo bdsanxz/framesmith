@@ -388,7 +388,7 @@ fn unknown_encoder_refuses_naming_the_values() {
     );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("--encoder"), "{out}");
-    assert!(out.contains("auto, software, or videotoolbox"), "{out}");
+    assert!(out.contains("auto, software, cpu, videotoolbox, nvenc, vaapi, qsv, or amf"), "{out}");
     assert!(!root.join("x.mp4").exists(), "nothing written");
 }
 

@@ -12,7 +12,7 @@
 //!   [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--json]
 //!   [--variables JSON] [--strict-variables] [--theme NAME]
 //!   [--format ..] [--prores-profile ..] [--resolution ..] [--supersample N]
-//!   [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto]`
+//!   [--encoder auto|software|cpu|videotoolbox|nvenc|vaapi|qsv|amf] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto]`
 //!   — validate, bootstrap FFmpeg (pinned self-download or refusal),
 //!   refuse or encode with staged progress.
 //! * `framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]`
@@ -84,7 +84,7 @@ fn usage() -> ! {
          \x20 framesmith resume [--json] [--words <text>] [--who <name>] <folder>\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
-         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|mov|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080|4k] [--supersample 1|2|3|4] [--encoder auto|software|videotoolbox] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
+         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|mov|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080|4k] [--supersample 1|2|3|4] [--encoder auto|software|cpu|videotoolbox|nvenc|vaapi|qsv|amf] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
          \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row\n\
          \x20 framesmith grade-bake [--composition <name>] -o <out.cube> <folder>"
     );
@@ -658,7 +658,7 @@ fn main() {
                     "--encoder" => {
                         i += 1;
                         if i >= args.len() {
-                            eprintln!("framesmith render: --encoder needs a value (auto, software, or videotoolbox).");
+                            eprintln!("framesmith render: --encoder needs a value (auto, software, cpu, videotoolbox, nvenc, vaapi, qsv, or amf).");
                             std::process::exit(2);
                         }
                         if req.encoder.is_some() {

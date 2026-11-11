@@ -4506,6 +4506,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
         supersample: resolved.supersample,
         encoder_choice: resolved.encoder,
         hardware: false,
+        hw_codec: None,
         keyint: resolved.keyint,
         maxrate: resolved.maxrate.clone(),
         hdr: resolved.hdr,
@@ -5080,37 +5081,40 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             &msg,
         );
     }
-    // Sprint 12 outputs (T003): resolve the `--encoder` choice against
-    // the host FFmpeg before the first frame. `auto` takes the
-    // destination's hardware encoder when present and software
-    // otherwise without failing; explicit `videotoolbox` refuses
-    // naming the cause and the software fallback, and nothing is
-    // written on refusal.
+    // Sprint 12 outputs (T003; Sprint 25, T002): resolve the
+    // `--encoder` choice against the host FFmpeg before the first
+    // frame. `auto` takes the first hardware encoder for this OS
+    // the host provides and software otherwise without failing
+    // (the fallback fact named); an explicit hardware choice
+    // refuses naming the choice and codec, and nothing is written
+    // on refusal.
     match resolved.encoder {
         render::outputs::EncoderChoice::Software => {}
         render::outputs::EncoderChoice::Auto => {
-            if render::outputs::hardware_available(&ffmpeg_bin, resolved.format) {
-                opts.hardware = true;
-                let codec = render::outputs::hardware_encoder_for(resolved.format)
-                    .unwrap_or("h264_videotoolbox");
-                let note = format!(
-                    "stage output: note: --encoder auto selected hardware encoding ({codec}); software encodes stay byte-identical with --encoder software."
-                );
-                stage_line(json, &note);
-                note_log(folder, "info", "render", &run, &note, json);
-            } else {
-                let note = "stage output: note: --encoder auto selected software encoding (no hardware encoder on this machine).";
-                stage_line(json, note);
-                note_log(folder, "info", "render", &run, note, json);
+            match render::outputs::resolve_auto(&ffmpeg_bin, resolved.format) {
+                Some((codec, _choice)) => {
+                    opts.hardware = true;
+                    opts.hw_codec = Some(codec);
+                    let note = format!(
+                        "stage output: note: --encoder auto selected hardware encoding ({codec}); software encodes stay byte-identical with --encoder software."
+                    );
+                    stage_line(json, &note);
+                    note_log(folder, "info", "render", &run, &note, json);
+                }
+                None => {
+                    let note = "stage output: note: --encoder auto selected software encoding (no hardware encoder on this machine).";
+                    stage_line(json, note);
+                    note_log(folder, "info", "render", &run, note, json);
+                }
             }
         }
-        render::outputs::EncoderChoice::Videotoolbox => {
-            match render::outputs::hardware_encoder_for(resolved.format) {
-                None => {
-                    let msg = format!(
-                        "render refused: --encoder videotoolbox has no hardware encoder for --format {} (this stack hardware-encodes H.264/H.265 destinations only); re-run with --encoder software (validation stage); no output was written",
-                        resolved.format.name()
-                    );
+        choice => {
+            match render::outputs::check_explicit_encoder(
+                &ffmpeg_bin,
+                resolved.format,
+                choice,
+            ) {
+                Err(msg) => {
                     return output_stage_refusal(
                         folder,
                         json,
@@ -5126,30 +5130,9 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
                         &msg,
                     );
                 }
-                Some(codec)
-                    if !render::outputs::hardware_available(&ffmpeg_bin, resolved.format) =>
-                {
-                    let msg = format!(
-                        "render refused: --encoder videotoolbox needs the {codec} encoder, but the FFmpeg at {} does not provide it; re-run with --encoder software (or --encoder auto for automatic fallback) (validation stage); no output was written",
-                        ffmpeg_bin.display()
-                    );
-                    return output_stage_refusal(
-                        folder,
-                        json,
-                        &run,
-                        opts.backend.name(),
-                        opts.preset.name(),
-                        &opts.encoder(),
-                        opts.format.name(),
-                        opts.resolution.name(),
-                        opts.supersample,
-                        &stages,
-                        total_start,
-                        &msg,
-                    );
-                }
-                Some(codec) => {
+                Ok(codec) => {
                     opts.hardware = true;
+                    opts.hw_codec = Some(codec);
                     let note = format!(
                         "stage output: note: encoding with {codec} (hardware); decodability is verified, not byte-identity."
                     );
@@ -5349,6 +5332,7 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             // aside with a note instead of failing the render.
             if transfer != render::outputs::HdrTransfer::Sdr && opts.hardware {
                 opts.hardware = false;
+                opts.hw_codec = None;
                 let hw_note = "stage output: note: HDR renders on software (HEVC Main10 BT.2020); the hardware encoder steps aside for this render.";
                 stage_line(json, hw_note);
                 note_log(folder, "info", "render", &run, hw_note, json);
@@ -8752,6 +8736,45 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
         }
     }
     let _ = writeln!(out, "doctor: host {os}/{arch}.");
+    // Sprint 25 hardware encoders (T002 / INT-003): the same
+    // resolution the render path uses, probed from the host FFmpeg
+    // listing, so doctor and renders never drift. Read-only: doctor
+    // never downloads anything.
+    let hw_encoders: Vec<&str> = finding
+        .ffmpeg_path
+        .as_deref()
+        .map(render::outputs::probe_hardware_encoders)
+        .unwrap_or_default();
+    let auto_codec = finding
+        .ffmpeg_path
+        .as_deref()
+        .and_then(|bin| render::outputs::resolve_auto(bin, render::outputs::OutputFormat::Mp4))
+        .map(|(codec, _choice)| codec);
+    let hw_text = if hw_encoders.is_empty() {
+        "none (software encodes only)".to_string()
+    } else {
+        hw_encoders.join(", ")
+    };
+    let auto_text = match auto_codec {
+        Some(codec) => format!(
+            "{codec} (from --encoder auto on {os}/{arch}; software stays the default)"
+        ),
+        None => format!("software fallback (no hardware encoder for {os}/{arch} H.264)"),
+    };
+    let _ = writeln!(out, "doctor: hardware encoders: {hw_text}.");
+    let _ = writeln!(out, "doctor: auto encoder: {auto_text}.");
+    let hw_json = format!(
+        ",\"hardware_encoders\":[{}],\"auto_encoder\":{}",
+        hw_encoders
+            .iter()
+            .map(|e| format!("\"{}\"", json_escape(e)))
+            .collect::<Vec<_>>()
+            .join(","),
+        match auto_codec {
+            Some(codec) => format!("\"{}\"", json_escape(codec)),
+            None => "\"software\"".to_string(),
+        }
+    );
     // Sprint 23 ML health (T001 / INT-003): the same resolution the
     // runners use, so health output and runner behavior agree.
     let ml_cfg = ml::MlConfig::from_env();
@@ -8867,7 +8890,7 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
             }
             let _ = write!(
                 job,
-                ",\"os\":\"{os}\",\"arch\":\"{arch}\"{ml_json},\"compositions\":["
+                ",\"os\":\"{os}\",\"arch\":\"{arch}\"{hw_json}{ml_json},\"compositions\":["
             );
             for (i, comp) in verdict.compositions.iter().enumerate() {
                 if i > 0 {
@@ -8931,7 +8954,7 @@ pub fn cmd_doctor(folder: Option<&Path>, json: bool) -> i32 {
             }
             None => job.push_str("null"),
         }
-        let _ = write!(job, ",\"os\":\"{os}\",\"arch\":\"{arch}\"{ml_json}}}");
+        let _ = write!(job, ",\"os\":\"{os}\",\"arch\":\"{arch}\"{hw_json}{ml_json}}}");
         println!("{job}");
     } else {
         print!("{out}");
@@ -12615,7 +12638,7 @@ mod tests {
         };
         let err = resolve_destination(&bad_encoder).unwrap_err();
         assert!(err.contains("--encoder"), "{err}");
-        assert!(err.contains("auto, software, or videotoolbox"), "{err}");
+        assert!(err.contains("auto, software, cpu, videotoolbox, nvenc, vaapi, qsv, or amf"), "{err}");
         assert!(err.contains("no output was written"), "{err}");
         // A non-positive keyint names the flag and the accepted shape.
         for bad in ["0", "-4", "1.5", "many", ""] {

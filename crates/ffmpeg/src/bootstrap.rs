@@ -138,11 +138,14 @@ fn offline_message(host_reason: &str, source: Option<&PinSource>) -> String {
 fn no_published_build_message(host_reason: &str) -> String {
     format!(
         "render refused before the first frame (E_NO_FFMPEG): no suitable FFmpeg ({host_reason}), \
-         and the ffmpeg-registry publishes no build for this platform ({}).\n\
+         and the ffmpeg-registry publishes no build for this platform ({os}/{arch}; {}) ({}).\n\
          fix: {} and re-run. No MP4 was written. \
          Validation still works: `framesmith check <folder>`.",
+        ffmpeg::supported_platforms_line(),
         ffmpeg::FFMPEGBIN_RELEASES_PAGE,
         install_line(),
+        os = std::env::consts::OS,
+        arch = std::env::consts::ARCH,
     )
 }
 
@@ -824,6 +827,28 @@ mod tests {
         match ensure_ffmpeg(&unsuitable_host(), &cfg) {
             Bootstrap::Ready { downloaded, .. } => assert!(downloaded, "stale cache must refresh"),
             Bootstrap::Refused { message, .. } => panic!("expected refresh: {message}"),
+        }
+    }
+
+    #[test]
+    fn unknown_platform_refusal_names_the_supported_set() {
+        // Sprint 25 T001: the no-published-build refusal names the
+        // running OS/arch plus every shipped asset.
+        let msg = no_published_build_message("test: no `ffmpeg` binary found on PATH");
+        assert!(msg.contains("E_NO_FFMPEG"), "{msg}");
+        assert!(msg.contains("install FFmpeg"), "{msg}");
+        assert!(msg.contains("No MP4 was written"), "{msg}");
+        assert!(msg.contains("supported platforms"), "{msg}");
+        for asset in [
+            "ffmpeg-osx-arm64.zip",
+            "ffmpeg-osx-x64.zip",
+            "ffmpeg-linux-x64.zip",
+            "ffmpeg-linux-arm64.zip",
+            "ffmpeg-linux-x86.zip",
+            "ffmpeg-windows-x64.zip",
+            "ffmpeg-windows-arm64.zip",
+        ] {
+            assert!(msg.contains(asset), "{msg}");
         }
     }
 }

@@ -1,0 +1,37 @@
+name: CI
+
+# Sprint 25 (T003 / CAP-001): one matrix that builds the full
+# workspace and runs the full test suite on macOS, Windows, and
+# Linux with identical commands per OS; no OS skips what another
+# runs. A red OS fails the run naming the OS and the test.
+#
+# The live green run is pending the owner push (not pushed here):
+# validate the YAML locally before pushing.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} / ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            label: macos
+          - os: windows-latest
+            label: windows
+          - os: ubuntu-latest
+            label: linux
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build full workspace (${{ matrix.label }})
+        run: cargo build --workspace
+      - name: Run full test suite (${{ matrix.label }})
+        run: cargo test --workspace
