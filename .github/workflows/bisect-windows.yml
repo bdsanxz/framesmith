@@ -1,0 +1,34 @@
+name: bisect-windows
+
+# One-off bisection for a hang in the Windows test suite.
+# Runs each test binary with a hard per-binary timeout; the first
+# binary that times out is the hang site.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows-bisect:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install FFmpeg (Windows)
+        run: choco install ffmpeg -y
+      - name: Build all tests
+        run: cargo test --workspace --no-run
+      - name: Run every binary with timeout
+        run: |
+          $bins = @()
+          foreach ($exe in Get-ChildItem target/debug/deps/*.exe | Where-Object { $_.Name -match '^(cli|preview|sdk|render|validate|notation|layout|motion|log|timebase|glyph|ffmpeg|ml|lottie|threed|catalog)' -and $_.Name -notmatch '\.' }) { $bins += $exe.FullName }
+          $bins | Sort-Object | ForEach-Object {
+            Write-Host "===== $(Split-Path $_ -Leaf) ====="
+            $job = Start-Job -ScriptBlock { param($b) & $b 2>&1 } -ArgumentList $_
+            $done = $job | Wait-Job -Timeout 420
+            if ($done) { $job | Receive-Job | Select-Object -Last 2 }
+            else { Write-Host "TIMEOUT: $_"; $job | Stop-Job; }
+            $job | Remove-Job -Force
+          }
+        timeout-minutes: 50
