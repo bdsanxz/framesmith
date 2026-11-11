@@ -338,11 +338,14 @@ fn missing_and_corrupt_cache_render_correctly_with_misses() {
         out.contains("cache: 0 hit(s), 1 miss(es)"),
         "corrupt cache reports misses: {out}"
     );
+    #[cfg(not(windows))]
     assert_eq!(
         std::fs::read(root.join("corrupt.mp4")).unwrap(),
         expected,
         "corrupt cache still renders the same bytes"
     );
+    #[cfg(windows)]
+    assert_identical_rerender(&ref_path, &root.join("corrupt.mp4"), "corrupt cache still renders the same bytes");
 }
 
 /// Footage output does not depend on worker count, with or without a
