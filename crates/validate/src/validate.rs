@@ -172,6 +172,11 @@ pub struct Verdict {
     /// with. Survives invalid verdicts (unlike `compositions`), so a
     /// failed source stays listed with its cause.
     pub readiness: Vec<AdapterReadiness>,
+    /// Validated slideshow manifest (Sprint 24, T001 / CAP-001):
+    /// `None` when the project declares no `slideshow` node, or when
+    /// the project is invalid. Present and first-slide render read
+    /// this; film renders ignore it and produce unchanged bytes.
+    pub slideshow: Option<notation::model::SlideshowManifest>,
 }
 
 /// One reviewable inferred length (Sprint 6 T003): the resolved value
@@ -875,7 +880,7 @@ fn parse_waveform(ctx: &mut Ctx, node: &RawNode, what: &str) -> Option<WaveformD
     })
 }
 
-fn as_f64(v: &RawValue) -> Option<f64> {
+pub(crate) fn as_f64(v: &RawValue) -> Option<f64> {
     match v.kind {
         ValueKind::Int(n) => Some(n as f64),
         ValueKind::Float(x) => Some(x),
@@ -884,7 +889,7 @@ fn as_f64(v: &RawValue) -> Option<f64> {
     }
 }
 
-fn as_str(v: &RawValue) -> Option<&str> {
+pub(crate) fn as_str(v: &RawValue) -> Option<&str> {
     match v.kind {
         ValueKind::Str(ref s) => Some(s.as_str()),
         _ => None,
@@ -935,63 +940,63 @@ struct RefEntry {
     comp: usize,
 }
 
-struct Ctx<'a> {
-    file: String,
-    folder: &'a Path,
-    diags: Vec<Diagnostic>,
-    invalid: bool,
-    footage: Vec<VideoFootage>,
-    inferred: Vec<InferredLength>,
-    stagger_clamps: Vec<StaggerClamp>,
-    ids: Vec<IdEntry>,
-    refs: Vec<RefEntry>,
+pub(crate) struct Ctx<'a> {
+    pub(crate) file: String,
+    pub(crate) folder: &'a Path,
+    pub(crate) diags: Vec<Diagnostic>,
+    pub(crate) invalid: bool,
+    pub(crate) footage: Vec<VideoFootage>,
+    pub(crate) inferred: Vec<InferredLength>,
+    pub(crate) stagger_clamps: Vec<StaggerClamp>,
+    pub(crate) ids: Vec<IdEntry>,
+    pub(crate) refs: Vec<RefEntry>,
     /// Every substituted `var()` use site (Sprint 9 variables, CAP-002):
     /// the attribute location plus the variable ids it drew on. The
     /// end-of-validation amendment pass uses these to name the variable
     /// behind any coercion failure at the same location.
-    bindings: Vec<BindingSite>,
-    crossfade_clamps: Vec<CrossfadeClamp>,
-    effect_tails: Vec<EffectTail>,
-    silences: Vec<SilenceReport>,
-    waveform_clamps: Vec<WaveformClamp>,
+    pub(crate) bindings: Vec<BindingSite>,
+    pub(crate) crossfade_clamps: Vec<CrossfadeClamp>,
+    pub(crate) effect_tails: Vec<EffectTail>,
+    pub(crate) silences: Vec<SilenceReport>,
+    pub(crate) waveform_clamps: Vec<WaveformClamp>,
     /// One entry per file marker dropped from a `lottie` clip
     /// (Sprint 21 adapters, T001): the marker lies outside the
     /// animation window, so it names no range. Reported here with
     /// its numbers, never as a diagnostic, so a dropped marker stays
     /// a valid verdict.
-    marker_drops: Vec<MarkerDrop>,
+    pub(crate) marker_drops: Vec<MarkerDrop>,
     /// Per-source adapter readiness collected for the verdict
     /// (Sprint 21 adapters, T007 / CAP-007): one entry per adapter
     /// clip, recorded at each adapter dispatch arm.
-    readiness: Vec<AdapterReadiness>,
+    pub(crate) readiness: Vec<AdapterReadiness>,
     /// Index of the composition currently validating, in document
     /// order (Sprint 6 T006). Id and reference entries stamp this so
     /// cross-composition `start-after` targets can refuse.
-    current_comp: usize,
+    pub(crate) current_comp: usize,
     /// Per-render caller values for this verdict (Sprint 9 variables,
     /// CAP-003): every declared default they name is swapped for the
     /// coerced override in memory only. The project on disk is never
     /// written.
-    overrides: VariableOverrides,
+    pub(crate) overrides: VariableOverrides,
     /// Default-mode variable warnings collected for the verdict
     /// (Sprint 9 variables, CAP-003/CAP-004): unknown override keys and
     /// declared-but-never-bound variables. Warned visibly without
     /// blocking; empty under `--strict-variables` (both refuse there).
-    override_warnings: Vec<VariableWarning>,
+    pub(crate) override_warnings: Vec<VariableWarning>,
     /// Strict variable validation (Sprint 9 variables, CAP-004): when
     /// true, unknown override keys and declared-but-never-bound
     /// variables refuse as `E_BAD_VARIABLE` instead of warning, and
     /// every default-less variable without a supplied value refuses.
-    strict: bool,
+    pub(crate) strict: bool,
     /// Batched lint findings of this run (Sprint 13 check, T001 /
     /// CAP-001): every fired named rule lands here with its rule id,
     /// severity, location, and fix. Warnings only; lint never flips
     /// `invalid`, so findings never change the verdict or the exit.
-    lint_findings: Vec<LintFinding>,
+    pub(crate) lint_findings: Vec<LintFinding>,
     /// Unrunnable rules of this run (Sprint 13 check, T001 / REC-001):
     /// one named note per rule that could not run, with the cause and
     /// the workaround. The run continues around them.
-    lint_notes: Vec<LintNote>,
+    pub(crate) lint_notes: Vec<LintNote>,
     /// Declared `style` blocks with their homes (Sprint 13 check, T001
     /// / `unused-style`): composition index in document order, block
     /// name, and block location. Recorded in the style pre-pass.
@@ -1009,7 +1014,7 @@ struct Ctx<'a> {
 }
 
 impl<'a> Ctx<'a> {
-    fn push(
+    pub(crate) fn push(
         &mut self,
         line: usize,
         column: usize,
@@ -1048,21 +1053,21 @@ impl<'a> Ctx<'a> {
     }
 }
 
-fn find<'b>(node: &'b RawNode, key: &str) -> Option<&'b RawValue> {
+pub(crate) fn find<'b>(node: &'b RawNode, key: &str) -> Option<&'b RawValue> {
     node.props.iter().find(|(k, _)| k == key).map(|(_, v)| v)
 }
 
 /// Find a hyphenated key under either spelling (`start-after` or
 /// `start_after`): CSS-like hyphenated attributes accept underscore
 /// aliases everywhere.
-fn find_either<'b>(node: &'b RawNode, hyphen: &str, underscore: &str) -> Option<&'b RawValue> {
+pub(crate) fn find_either<'b>(node: &'b RawNode, hyphen: &str, underscore: &str) -> Option<&'b RawValue> {
     find(node, hyphen).or_else(|| find(node, underscore))
 }
 
 /// Sprint 6 id syntax (T001): 1–64 characters of ASCII letters,
 /// digits, dashes, and underscores. Anything else is refused, never
 /// guessed into a referenceable name.
-fn valid_id_syntax(s: &str) -> bool {
+pub(crate) fn valid_id_syntax(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 64
         && s.chars()
@@ -3591,6 +3596,7 @@ pub fn validate_folder_with_variables_strict_themed(
             waveform_clamps: Vec::new(),
             marker_drops: Vec::new(),
             readiness: Vec::new(),
+            slideshow: None,
         };
     }
 
@@ -3632,6 +3638,7 @@ pub fn validate_folder_with_variables_strict_themed(
                 waveform_clamps: Vec::new(),
                 marker_drops: Vec::new(),
                 readiness: Vec::new(),
+                slideshow: None,
             };
         }
     };
@@ -3667,6 +3674,7 @@ pub fn validate_folder_with_variables_strict_themed(
                 waveform_clamps: Vec::new(),
                 marker_drops: Vec::new(),
                 readiness: Vec::new(),
+                slideshow: None,
             };
         }
     };
@@ -3722,8 +3730,9 @@ pub fn validate_folder_with_variables_strict_themed(
         // Any other top-level node is still located for the author.
         // `theme` blocks are legal here (Sprint 9 variables, CAP-005)
         // but cannot save a project with no composition to render.
+        // `slideshow` blocks (Sprint 24) are also legal top-level.
         for n in &roots {
-            if n.name == "theme" {
+            if n.name == "theme" || n.name == "slideshow" {
                 continue;
             }
             ctx.push(
@@ -3731,21 +3740,21 @@ pub fn validate_folder_with_variables_strict_themed(
                 n.name_column,
                 "E_UNKNOWN_ELEMENT",
                 format!("unexpected top-level node {:?}", n.name),
-                "only `composition` and `theme` blocks are allowed at the top level",
+                "only `composition`, `theme`, and `slideshow` blocks are allowed at the top level",
             );
         }
-        return finish(ctx, None, Vec::new(), None, ffmpeg_auto_download);
+        return finish(ctx, None, Vec::new(), None, None, ffmpeg_auto_download);
     }
     for n in roots
         .iter()
-        .filter(|n| n.name != "composition" && n.name != "theme")
+        .filter(|n| n.name != "composition" && n.name != "theme" && n.name != "slideshow")
     {
         ctx.push(
             n.name_line,
             n.name_column,
             "E_UNKNOWN_ELEMENT",
             format!("unexpected top-level node {:?}", n.name),
-            "keep only `composition` and `theme` blocks at the top level",
+            "keep only `composition`, `theme`, and `slideshow` blocks at the top level",
         );
     }
 
@@ -4024,6 +4033,8 @@ pub fn validate_folder_with_variables_strict_themed(
     // substituted binding whose resolved value still failed to coerce,
     // so the refusal names the attribute and the variable together.
     amend_binding_diagnostics(&mut ctx);
+    // Sprint 24 slideshow (T001 / CAP-001): validate the manifest.
+    let slideshow = crate::slideshow::validate_slideshow(&mut ctx, &roots, &compositions);
     let (selected, all, root_name) = if !ctx.invalid {
         let selected = compositions[root_pos].clone();
         let name = compositions[root_pos].name.clone();
@@ -4031,7 +4042,7 @@ pub fn validate_folder_with_variables_strict_themed(
     } else {
         (None, Vec::new(), None)
     };
-    finish(ctx, selected, all, root_name, ffmpeg_auto_download)
+    finish(ctx, selected, all, root_name, slideshow, ffmpeg_auto_download)
 }
 
 /// One composition's validated header plus children (Sprint 6 T006):
@@ -6269,6 +6280,7 @@ fn finish(
     composition: Option<Composition>,
     compositions: Vec<Composition>,
     root_name: Option<String>,
+    slideshow: Option<notation::model::SlideshowManifest>,
     ffmpeg_auto_download: bool,
 ) -> Verdict {
     let status = if ctx.invalid {
@@ -6309,6 +6321,7 @@ fn finish(
         waveform_clamps: ctx.waveform_clamps,
         marker_drops: ctx.marker_drops,
         readiness: ctx.readiness,
+        slideshow: if status == Status::Invalid { None } else { slideshow },
     }
 }
 
@@ -7716,7 +7729,7 @@ fn validate_text(ctx: &mut Ctx, node: &RawNode, styles: &[StyleDecl]) -> Option<
 
 /// Render one authored scalar for diagnostics (Sprint 5 T001): the
 /// value the maker wrote, so refusals can name it.
-fn raw_text(v: &RawValue) -> String {
+pub(crate) fn raw_text(v: &RawValue) -> String {
     match &v.kind {
         ValueKind::Str(s) => format!("{s:?}"),
         ValueKind::Int(n) => n.to_string(),

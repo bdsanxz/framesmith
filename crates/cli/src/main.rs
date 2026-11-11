@@ -52,6 +52,7 @@ fn usage() -> ! {
          \x20 framesmith preview-list\n\
          \x20 framesmith preview-stop-all\n\
          \x20 framesmith play [--port <n>] [--composition <name>] [--foreground] <folder>\n\
+         \x20 framesmith present [--port <n>] [--foreground] <folder>\n\
          \x20 framesmith doctor [--json] [<folder>]\n\
          \x20 framesmith models list [--json]\n\
          \x20 framesmith models install <name> [--yes] [--json]\n\
@@ -1733,6 +1734,92 @@ fn main() {
             match folder {
                 Some(f) => commands::cmd_play(Path::new(&f), &req),
                 None => play_usage_error("missing <folder>"),
+            }
+        }
+        "present" => {
+            let mut req = commands::PreviewStartRequest::default();
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                let arg = &args[i];
+                if *arg == "--port" {
+                    i += 1;
+                    if i >= args.len() {
+                        play_usage_error("--port needs a value (a port number)");
+                    }
+                    if req.port.is_some() {
+                        play_usage_error("duplicate --port flag");
+                    }
+                    req.port = Some(args[i].clone());
+                } else if *arg == "--foreground" {
+                    if req.foreground {
+                        play_usage_error("duplicate --foreground flag");
+                    }
+                    req.foreground = true;
+                } else if arg.starts_with('-') {
+                    play_usage_error(&format!("unknown flag {arg:?}"));
+                } else if folder.is_some() {
+                    play_usage_error(&format!("expected exactly one <folder>, found extra {arg:?}"));
+                } else {
+                    folder = Some(arg.clone());
+                }
+                i += 1;
+            }
+            match folder {
+                Some(f) => commands::cmd_present(Path::new(&f), &req),
+                None => play_usage_error("missing <folder>"),
+            }
+        }
+        "present-serve" => {
+            let mut port: Option<String> = None;
+            let mut registry: Option<String> = None;
+            let mut folder: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--port" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_serve_usage_error("--port needs a value (a port number)");
+                        }
+                        if port.is_some() {
+                            preview_serve_usage_error("duplicate --port flag");
+                        }
+                        port = Some(args[i].clone());
+                    }
+                    "--registry" => {
+                        i += 1;
+                        if i >= args.len() {
+                            preview_serve_usage_error("--registry needs a value (a registry file)");
+                        }
+                        if registry.is_some() {
+                            preview_serve_usage_error("duplicate --registry flag");
+                        }
+                        registry = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        preview_serve_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if folder.is_some() {
+                            preview_serve_usage_error(&format!("expected exactly one <folder>, found extra {other:?}"));
+                        }
+                        folder = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            let port: u16 = match port {
+                Some(p) => p.parse().unwrap_or_else(|_| preview_serve_usage_error(&format!("--port needs a port number, found {p:?}"))),
+                None => preview_serve_usage_error("missing --port <n>"),
+            };
+            let registry = match registry {
+                Some(r) => PathBuf::from(r),
+                None => preview_serve_usage_error("missing --registry <file>"),
+            };
+            match folder {
+                Some(f) => commands::cmd_present_serve(Path::new(&f), port, &registry),
+                None => preview_serve_usage_error("missing <folder>"),
             }
         }
         "preview-status" => {

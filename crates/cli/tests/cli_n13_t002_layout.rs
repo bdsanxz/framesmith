@@ -95,7 +95,7 @@ fn layout_clean_project_reports_zero_findings() {
     let (code, out) = run(&["lint", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     assert!(
-        out.contains("lint: 0 findings across 14 rules"),
+        out.contains("lint: 0 findings across 16 rules"),
         "a lone text stays silent:\n{out}"
     );
 }
@@ -116,7 +116,7 @@ fn layout_seeded_project_batches_one_finding_per_rule() {
         );
     }
     assert!(
-        out.contains("lint: 3 finding(s) and 0 note(s) across 14 rules"),
+        out.contains("lint: 3 finding(s) and 0 note(s) across 16 rules"),
         "{out}"
     );
 }
@@ -180,7 +180,7 @@ fn layout_negatives_stay_silent() {
     let (code, out) = run(&["lint", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     assert!(
-        out.contains("lint: 0 findings across 14 rules"),
+        out.contains("lint: 0 findings across 16 rules"),
         "transparent, hidden, partial, touching, split-track, and quiet texts stay silent:\n{out}"
     );
     assert!(!out.contains("lint["), "{out}");

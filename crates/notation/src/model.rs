@@ -5909,6 +5909,85 @@ impl Composition {
     }
 }
 
+/// Slideshow manifest (Sprint 24, T001 / CAP-001): one `slideshow`
+/// node per project, slides referencing compositions by id (never
+/// embedding), with speaker notes, fragment hold points, branches,
+/// hotspots, and an optional autoplay duration.
+///
+/// KDL shape (hyphenated CSS-like keys):
+/// ```kdl
+/// slideshow autoplay=5 {
+///   slide id="s1" composition="intro" notes="welcome" {
+///     fragment at=1.0 id="f1"
+///     branch to="s2"
+///     hotspot id="h1" x=100 y=100 target="s2"
+///   }
+/// }
+/// ```
+/// `notes` may also be a child `notes value="..."`. `fragment` carries
+/// an optional `id` and a required `at` in slide seconds. `branch`
+/// carries a required `to` (target slide id). `hotspot` carries `id`,
+/// `x`, `y`, and `target`. The manifest is the authority for slide
+/// order; slides never embed compositions.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SlideshowFragment {
+    pub id: Option<String>,
+    pub at: f64,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SlideshowBranch {
+    pub to: String,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SlideshowHotspot {
+    pub id: String,
+    pub x: f64,
+    pub y: f64,
+    pub target: String,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SlideshowSlide {
+    pub id: String,
+    pub composition: String,
+    pub notes: Option<String>,
+    pub fragments: Vec<SlideshowFragment>,
+    pub branches: Vec<SlideshowBranch>,
+    pub hotspots: Vec<SlideshowHotspot>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SlideshowManifest {
+    pub slides: Vec<SlideshowSlide>,
+    /// Autoplay duration in seconds; `None` means manual advance only.
+    /// Present must be a finite number > 0.
+    pub autoplay: Option<f64>,
+    pub line: usize,
+    pub column: usize,
+}
+
+impl SlideshowManifest {
+    pub fn first_slide(&self) -> Option<&SlideshowSlide> {
+        self.slides.first()
+    }
+    pub fn slide_by_id(&self, id: &str) -> Option<&SlideshowSlide> {
+        self.slides.iter().find(|s| s.id == id)
+    }
+    pub fn index_of(&self, id: &str) -> Option<usize> {
+        self.slides.iter().position(|s| s.id == id)
+    }
+}
+
 /// Half-open visibility rule (T005 / CAP-004): a clip with start `S` and
 /// duration `D` is visible exactly for `S <= T < S + D`. The frame at the
 /// exact end instant does not show the clip.

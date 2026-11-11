@@ -33,6 +33,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Point `path` at a readable supported audio file; keep `trim-start`/`trim-end` ordered seconds from 0, `rate` from 0.1 to 10, `volume` at most +12 dB (`-inf` is silence), each fade within the clip duration, and every duration-less track offering a knowable source end (or its own `trim-end`).",
     },
     CatalogEntry {
+        code: "E_BAD_AUTOPLAY",
+        meaning: "A `slideshow` `autoplay` duration is not a finite number > 0 (zero, negative, non-numeric, or non-finite).",
+        example: "slideshow autoplay=0 { slide id=\"s1\" composition=\"intro\" }  // zero duration never auto-advances",
+        fix: "Set `autoplay=<positive seconds>` (for example `autoplay=5`), or remove the key for manual advance only.",
+    },
+    CatalogEntry {
         code: "E_BAD_BLUR",
         meaning: "A composition `motion-blur` element is unusable: a missing or unreadable `shutter` outside 0 to 360 degrees, a missing or non-whole `samples` outside 1 to 32, an unknown `tier`, a child where the element carries attributes only, or a second `motion-blur` on one composition.",
         example: "motion-blur shutter=400 samples=8 tier=\"high\"   // the shutter angle runs 0 to 360 degrees",
@@ -201,6 +207,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         fix: "Give the scene at least one `object` with a unique `name` and `kind` of `box`, `sphere`, `plane`, `cylinder`, or `mesh`; write triplets as `\"x,y,z\"`, sizes and radii as positive numbers, `segments` as a whole number of at least 3, colors as `#rgb`/`#rrggbb`, `metalness`/`roughness` from 0 to 1, mesh lists as `\"x,y,z; ...\"` vertices with 0-based `\"a,b,c; ...\"` faces; set camera `mode` to `orbit` or `fixed` with finite framing numbers and distinct key times; set light `kind` to `point` or `directional` with finite placement numbers. A scene with no `light` renders with the named default light, never darkness.",
     },
     CatalogEntry {
+        code: "E_BAD_SLIDESHOW",
+        meaning: "A `slideshow` manifest is unusable: more than one `slideshow` node per project, a slide with a missing `id` or `composition`, a duplicate slide id, a `fragment` without `at`, a `branch` without `to`, a `hotspot` without `id`/`target`/coordinates, an unknown slideshow key, or an embedded composition where only a reference is allowed.",
+        example: "slideshow { slide composition=\"intro\" }  // missing slide id",
+        fix: "Keep one `slideshow autoplay=<seconds> { slide id=\"s1\" composition=\"intro\" notes=\"...\" { fragment at=1 branch to=\"s2\" hotspot id=\"h1\" x=0 y=0 target=\"s2\" } }` per project; give every slide an `id` and `composition`, every fragment an `at`, every branch a `to`, every hotspot an `id` and `target`, and never nest a composition inside a slide.",
+    },
+    CatalogEntry {
         code: "E_BAD_SPACING",
         meaning: "A text `line-height` or `letter-spacing` is not a non-negative number of canvas pixels.",
         example: "text value=\"Hi\" start=0 duration=1 letter-spacing=-2   // negative spacing",
@@ -265,6 +277,12 @@ pub const CATALOG: &[CatalogEntry] = &[
         meaning: "An `id` is declared more than once in the project; ids must be unique across the whole project (clips and compositions share one namespace).",
         example: "text value=\"A\" start=0 duration=1 id=\"t\"  text value=\"B\" start=1 duration=1 id=\"t\"   // reused id",
         fix: "Rename all but one `id=\"t\"` to unique ids so every clip and composition has its own name.",
+    },
+    CatalogEntry {
+        code: "E_EMPTY_DECK",
+        meaning: "A `slideshow` manifest declares no slides, so present or render would have nothing to show.",
+        example: "slideshow autoplay=5 { }  // no slide children",
+        fix: "Add at least one `slide id=\"...\" composition=\"...\"` child to the `slideshow` block.",
     },
     CatalogEntry {
         code: "E_MISSING_COMPOSITION",
@@ -419,7 +437,10 @@ mod tests {
         "E_BAD_TRANSITION",
         "E_BAD_VARIABLE",
         "E_BAD_VERSION",
+        "E_BAD_AUTOPLAY",
+        "E_BAD_SLIDESHOW",
         "E_BAD_VFX",
+        "E_EMPTY_DECK",
         "E_DOWNLOAD_FAILED",
         "E_DUP_ID",
         "E_MISSING_COMPOSITION",

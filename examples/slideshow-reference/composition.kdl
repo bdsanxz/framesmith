@@ -1,0 +1,19 @@
+composition name="intro" root=true width=160 height=90 fps=10 duration=1 background="#101010" version=1 {
+    text id="t1" value="Intro" start=0 duration=1 x=10 y=30 size=16 color="#ffffff"
+}
+composition name="agenda" width=160 height=90 fps=10 duration=1 background="#202020" version=1 {
+    text id="t2" value="Agenda" start=0 duration=1 x=10 y=30 size=16 color="#ffffff"
+}
+composition name="detail" width=160 height=90 fps=10 duration=1 background="#303030" version=1 {
+    text id="t3" value="Detail" start=0 duration=1 x=10 y=30 size=16 color="#ffffff"
+}
+slideshow autoplay=1 {
+  slide id="s1" composition="intro" notes="welcome" {
+    fragment at=0.5 id="f1"
+    hotspot id="h1" x=120 y=80 target="s3"
+  }
+  slide id="s2" composition="agenda" notes="topics" {
+    branch to="s3"
+  }
+  slide id="s3" composition="detail" notes="wrap up"
+}

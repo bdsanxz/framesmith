@@ -4827,42 +4827,93 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             note_log(folder, "info", "render", &run, &note, json);
         }
     }
-    // Sprint 6 T006: the root renders by default; `--composition`
-    // selects another composition by name (or `id`). An unknown name
-    // refuses before the first frame with no MP4 written.
-    let comp = match select_composition(&verdict, req.composition.as_deref()) {
-        Ok(c) => c,
-        Err(msg) => {
-            stage_line(json, &msg);
-            note_log(folder, "warn", "render", &run, &msg, json);
-            if json {
-                let enc = render::render::RenderOptions::default().encoder();
-                println!(
-                    "{}",
-                    format_render_json(&RenderJson {
-                        folder,
-                        status: "invalid",
-                        exit: 1,
-                        backend: opts.backend.name(),
-                        preset: opts.preset.name(),
-                        format: opts.format.name(),
-                        resolution: opts.resolution.name(),
-                        supersample: opts.supersample,
-                        enc: &enc,
-                        output: "",
-                        message: &msg,
-                        cache_hits: 0,
-                        cache_misses: 0,
-                        peaks: None,
-                        normalize: None,
-                        diagnostics: &[],
-                        stages: &stages,
-                        total_ms: total_start.elapsed().as_millis() as u64
-                    })
-                );
+    // Sprint 24 slideshow (T003 / CAP-004): rendering the deck
+    // renders only the first slide — with the film's validation
+    // gates applied and byte parity to a direct render of that
+    // slide's composition. No linear deck export exists.
+    // When the user names `--composition` explicitly, that wins;
+    // otherwise a deck renders its first slide.
+    let comp = match req.composition.as_deref() {
+        None if verdict.slideshow.is_some() => {
+            let deck = verdict.slideshow.as_ref().unwrap();
+            let first = deck.first_slide().expect("validated deck has a slide");
+            match verdict
+                .compositions
+                .iter()
+                .find(|c| c.name == first.composition || c.id.as_deref() == Some(&first.composition))
+            {
+                Some(c) => c.clone(),
+                None => {
+                    let msg = format!(
+                        "render refused: slide {:?} references unknown composition {:?}; no MP4 was written",
+                        first.id, first.composition
+                    );
+                    stage_line(json, &msg);
+                    note_log(folder, "warn", "render", &run, &msg, json);
+                    if json {
+                        let enc = render::render::RenderOptions::default().encoder();
+                        println!(
+                            "{}",
+                            format_render_json(&RenderJson {
+                                folder,
+                                status: "invalid",
+                                exit: 1,
+                                backend: opts.backend.name(),
+                                preset: opts.preset.name(),
+                                format: opts.format.name(),
+                                resolution: opts.resolution.name(),
+                                supersample: opts.supersample,
+                                enc: &enc,
+                                output: "",
+                                message: &msg,
+                                cache_hits: 0,
+                                cache_misses: 0,
+                                peaks: None,
+                                normalize: None,
+                                diagnostics: &[],
+                                stages: &stages,
+                                total_ms: total_start.elapsed().as_millis() as u64
+                            })
+                        );
+                    }
+                    return 1;
+                }
             }
-            return 1;
         }
+        _ => match select_composition(&verdict, req.composition.as_deref()) {
+                Ok(c) => c,
+                Err(msg) => {
+                    stage_line(json, &msg);
+                    note_log(folder, "warn", "render", &run, &msg, json);
+                    if json {
+                        let enc = render::render::RenderOptions::default().encoder();
+                        println!(
+                            "{}",
+                            format_render_json(&RenderJson {
+                                folder,
+                                status: "invalid",
+                                exit: 1,
+                                backend: opts.backend.name(),
+                                preset: opts.preset.name(),
+                                format: opts.format.name(),
+                                resolution: opts.resolution.name(),
+                                supersample: opts.supersample,
+                                enc: &enc,
+                                output: "",
+                                message: &msg,
+                                cache_hits: 0,
+                                cache_misses: 0,
+                                peaks: None,
+                                normalize: None,
+                                diagnostics: &[],
+                                stages: &stages,
+                                total_ms: total_start.elapsed().as_millis() as u64
+                            })
+                        );
+                    }
+                    return 1;
+                }
+            },
     };
     // Sprint 6 T008: `--start`/`--end` renders exactly that
     // composition-time window as a standalone MP4 on the selected
@@ -9407,6 +9458,176 @@ pub fn cmd_play(folder: &Path, req: &PreviewStartRequest) -> i32 {
         req.port.as_deref(),
         req.composition.clone(),
         req.foreground,
+    )
+}
+
+/// `present` (Sprint 24, T002): serve presenter and audience views on
+/// its own port (default 3004), reusing the preview server shape.
+/// Missing manifest refuses; vanished targets hold.
+pub fn cmd_present(folder: &Path, req: &PreviewStartRequest) -> i32 {
+    // Default port 3004 for present (preview/play use 3003/picked).
+    let port = req.port.as_deref().map(|s| s.to_string()).unwrap_or_else(|| "3004".to_string());
+    let preferred = match parse_preview_port(Some(&port)) {
+        Ok(p) => p,
+        Err(m) => {
+            eprintln!("framesmith present: {m}.");
+            return 2;
+        }
+    };
+    // Validate manifest exists before starting server.
+    let verdict = validate_folder(folder);
+    match verdict.status {
+        Status::Invalid => {
+            eprintln!("framesmith present refused: {} is invalid. No present was started.", folder.display());
+            for d in &verdict.diagnostics {
+                eprintln!("{}:{}:{} {} {} (fix: {})", d.file, d.line, d.column, d.code, d.message, d.fix);
+            }
+            return 1;
+        }
+        Status::Unsupported => {
+            eprintln!("framesmith present refused: {} uses later-sprint elements. No present was started.", folder.display());
+            return 1;
+        }
+        Status::Valid => {}
+    }
+    if verdict.slideshow.is_none() {
+        let file = format!("{}/{}", folder.display(), validate_mod::COMPOSITION_FILE);
+        eprintln!("present refused: {} declares no slideshow manifest (no `slideshow` node in {}); add one `slideshow {{ slide ... }}` block. No present was started.", folder.display(), file);
+        return 1;
+    }
+    // Reuse the preview daemon registry / fall-forward but bind the
+    // present server (which serves /presenter and /audience).
+    let registry = preview::daemon::registry_path();
+    let mut candidate = match preview::daemon::plan_start(&registry, folder, preferred) {
+        Ok(preview::daemon::StartPlan::AlreadyRunning(entry)) => {
+            println!("{}", preview::daemon::msg_existing(&entry));
+            println!("presenter: {}presenter audience: {}audience", entry.url, entry.url);
+            return 0;
+        }
+        Ok(preview::daemon::StartPlan::ToStart { port, .. }) => port,
+        Err(refusal) => {
+            eprintln!("{refusal}");
+            return 1;
+        }
+    };
+    let dir = match preview::daemon::validate_project(folder) {
+        Ok(p) => p.dir,
+        Err(refusal) => {
+            eprintln!("{refusal}");
+            return 1;
+        }
+    };
+    if req.foreground {
+        eprintln!(
+            "framesmith present: serving presenter at {}presenter audience at {}audience; press Ctrl-C to stop.",
+            preview::daemon::url_for_port(candidate),
+            preview::daemon::url_for_port(candidate)
+        );
+        return preview::present::run_present_serve(
+            &preview::present::PresentServeOptions {
+                folder: folder.to_path_buf(),
+                port: candidate,
+            },
+            &registry,
+        );
+    }
+    for _ in 0..10 {
+        let mut child = match spawn_present_child(candidate, &registry, folder) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("framesmith present: cannot start the present server: {e}.");
+                return 1;
+            }
+        };
+        match wait_for_server(
+            &registry,
+            &dir,
+            candidate,
+            &mut child,
+            std::time::Duration::from_secs(20),
+        ) {
+            StartWait::Ready(entry) => {
+                println!("{}", preview::daemon::msg_started(&entry));
+                println!("presenter: {}presenter audience: {}audience", entry.url, entry.url);
+                return 0;
+            }
+            StartWait::ChildExited(Some(preview::server::PORT_BUSY_EXIT)) => {
+                if let Some(entry) = preview::daemon::find_live_for(&registry, &dir) {
+                    println!("{}", preview::daemon::msg_existing(&entry));
+                    println!("presenter: {}presenter audience: {}audience", entry.url, entry.url);
+                    return 0;
+                }
+                match preview::daemon::pick_port(Some(candidate.saturating_add(1))) {
+                    Ok(next) => candidate = next,
+                    Err(m) => {
+                        eprintln!("{m}; no present was started");
+                        return 1;
+                    }
+                }
+                continue;
+            }
+            StartWait::ChildExited(code) => {
+                let tail = serve_log_tail(candidate);
+                eprintln!(
+                    "framesmith present: the present server exited before serving (exit {}); fix the cause and re-run. No present was started.\nserver log {}:\n{tail}",
+                    code.map(|c| c.to_string()).as_deref().unwrap_or("?"),
+                    serve_log_path(candidate).display()
+                );
+                return 1;
+            }
+            StartWait::Timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let tail = serve_log_tail(candidate);
+                eprintln!(
+                    "framesmith present: the present server did not answer within 20s; fix the cause and re-run. No present was started.\nserver log {}:\n{tail}",
+                    serve_log_path(candidate).display()
+                );
+                return 1;
+            }
+        }
+    }
+    eprintln!("framesmith present: the preferred ports stayed busy; free one and re-run. No present was started.");
+    1
+}
+
+fn spawn_present_child(
+    port: u16,
+    registry: &Path,
+    folder: &Path,
+) -> std::io::Result<std::process::Child> {
+    let exe = std::env::current_exe()?;
+    let mut cmd = std::process::Command::new(exe);
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+    }
+    let log = std::fs::File::create(serve_log_path(port))?;
+    cmd.arg("present-serve")
+        .arg("--port")
+        .arg(port.to_string())
+        .arg("--registry")
+        .arg(registry)
+        .arg(folder)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(log);
+    cmd.spawn()
+}
+
+pub fn cmd_present_serve(folder: &Path, port: u16, registry: &Path) -> i32 {
+    preview::present::run_present_serve(
+        &preview::present::PresentServeOptions {
+            folder: folder.to_path_buf(),
+            port,
+        },
+        registry,
     )
 }
 

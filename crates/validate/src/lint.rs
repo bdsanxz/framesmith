@@ -18,7 +18,7 @@
 /// Every lint rule id, in specification order. Ids are stable across
 /// releases: renaming a rule is a breaking change surfaced in the
 /// changelog.
-pub const RULE_IDS: [&str; 14] = [
+pub const RULE_IDS: [&str; 16] = [
     "overlap",
     "off-canvas",
     "caption-zone",
@@ -33,6 +33,8 @@ pub const RULE_IDS: [&str; 14] = [
     "unused-variable",
     "unused-style",
     "unused-theme",
+    "empty-deck",
+    "bad-autoplay",
 ];
 
 /// Rules strict mode elevates (spec CAP-007): `--strict` turns exactly
@@ -66,6 +68,8 @@ pub fn rule_description(id: &str) -> Option<&'static str> {
         "unused-variable" => "a `variable` declaration is never bound by `var(--id)`",
         "unused-style" => "a `style` block is never referenced by `style=\"...\"`",
         "unused-theme" => "a `theme` block is never selected by a composition or `--theme`",
+        "empty-deck" => "a `slideshow` declares no slides, so present has nothing to show",
+        "bad-autoplay" => "a `slideshow` autoplay duration is zero, negative, or non-finite",
         _ => return None,
     })
 }
@@ -105,9 +109,8 @@ impl std::fmt::Display for LintSource {
 pub fn rule_source(id: &str) -> Option<LintSource> {
     Some(match id {
         "overlap" | "off-canvas" | "caption-zone" | "caption-notes" | "appear-by"
-        | "unused-variable" | "unused-style" | "unused-theme" | "discarded-audio" => {
-            LintSource::Static
-        }
+        | "unused-variable" | "unused-style" | "unused-theme" | "discarded-audio"
+        | "empty-deck" | "bad-autoplay" => LintSource::Static,
         "stay-inside" | "keep-moving" | "frozen-timeline" | "contrast" | "silent-audio" => {
             LintSource::Measured
         }
@@ -378,8 +381,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn registry_holds_fourteen_unique_rules_with_stable_meanings() {
-        assert_eq!(RULE_IDS.len(), 14);
+    fn registry_holds_sixteen_unique_rules_with_stable_meanings() {
+        assert_eq!(RULE_IDS.len(), 16);
         let mut seen = std::collections::BTreeSet::new();
         for id in RULE_IDS {
             assert!(seen.insert(id), "duplicate rule id {id:?}");

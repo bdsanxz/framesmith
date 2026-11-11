@@ -144,7 +144,7 @@ fn contrast_audio_clean_project_reports_zero_findings() {
     let (code, out) = run(&["lint", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     assert!(
-        out.contains("lint: 0 findings across 14 rules"),
+        out.contains("lint: 0 findings across 16 rules"),
         "white text on dark with no audio stays silent:\n{out}"
     );
     assert!(!out.contains("lint["), "{out}");
@@ -220,7 +220,7 @@ fn contrast_seeded_project_batches_each_shape() {
     assert!(bare.contains("1.3:1"), "{bare}");
     assert!(bare.contains("against #112233"), "{bare}");
     assert!(
-        out.contains("lint: 5 finding(s) and 0 note(s) across 14 rules"),
+        out.contains("lint: 5 finding(s) and 0 note(s) across 16 rules"),
         "{out}"
     );
 }
@@ -274,7 +274,7 @@ fn audio_each_discarded_cause_names_clip_and_reason() {
         "an audible voice keeps the mix alive:\n{out}"
     );
     assert!(
-        out.contains("lint: 5 finding(s) and 0 note(s) across 14 rules"),
+        out.contains("lint: 5 finding(s) and 0 note(s) across 16 rules"),
         "{out}"
     );
 }
@@ -299,7 +299,7 @@ fn audio_silent_mix_reports_measured_peak() {
     assert!(line.contains("(measured)"), "{line}");
     assert!(line.contains("(fix:"), "{line}");
     assert!(
-        out.contains("lint: 3 finding(s) and 0 note(s) across 14 rules"),
+        out.contains("lint: 3 finding(s) and 0 note(s) across 16 rules"),
         "{out}"
     );
 }
@@ -320,7 +320,7 @@ fn contrast_unrunnable_backgrounds_leave_named_notes() {
     assert!(lines[0].contains("text \"dim\""), "{lines:?}");
     assert!(lines[0].contains("3.6:1"), "{lines:?}");
     assert!(
-        out.contains("lint: 1 finding(s) and 2 note(s) across 14 rules"),
+        out.contains("lint: 1 finding(s) and 2 note(s) across 16 rules"),
         "{out}"
     );
 }

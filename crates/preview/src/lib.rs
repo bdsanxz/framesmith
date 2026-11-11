@@ -25,6 +25,7 @@ mod audio;
 pub mod daemon;
 mod latency;
 pub mod player;
+pub mod present;
 mod reload;
 pub mod server;
 pub mod studio;

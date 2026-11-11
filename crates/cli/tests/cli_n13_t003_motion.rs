@@ -113,7 +113,7 @@ fn motion_satisfied_assertions_stay_silent() {
     let (code, out) = run(&["lint", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     assert!(
-        out.contains("lint: 0 findings across 14 rules"),
+        out.contains("lint: 0 findings across 16 rules"),
         "satisfied appear/inside/moving plus a moving timeline stay silent:\n{out}"
     );
     assert!(!out.contains("lint["), "{out}");
@@ -136,7 +136,7 @@ fn motion_seeded_project_batches_each_motion_rule() {
         );
     }
     assert!(
-        out.contains("lint: 4 finding(s) and 0 note(s) across 14 rules"),
+        out.contains("lint: 4 finding(s) and 0 note(s) across 16 rules"),
         "{out}"
     );
 }
@@ -218,7 +218,7 @@ fn motion_first_and_last_frames_never_count() {
     let (code, out) = run(&["lint", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     assert!(
-        out.contains("lint: 0 findings across 14 rules"),
+        out.contains("lint: 0 findings across 16 rules"),
         "a still span that only exceeds 1s with the edge frames stays silent:\n{out}"
     );
     assert!(!out.contains("lint[frozen-timeline]"), "{out}");
@@ -292,7 +292,7 @@ fn motion_unrunnable_rule_leaves_named_note() {
         "the still tail still reports frozen:\n{out}"
     );
     assert!(
-        out.contains("lint: 2 finding(s) and 1 note(s) across 14 rules"),
+        out.contains("lint: 2 finding(s) and 1 note(s) across 16 rules"),
         "{out}"
     );
 }

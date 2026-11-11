@@ -413,7 +413,7 @@ fn strict_clean_project_stays_clean_without_a_gate() {
             let (code, out) = run(&[cmd, flag, "proj"], &root);
             assert_eq!(code, 0, "{cmd} {flag} on clean exits 0:\n{out}");
             assert!(
-                out.contains("lint: 0 findings across 14 rules"),
+                out.contains("lint: 0 findings across 16 rules"),
                 "{cmd} {flag} stays explicit:\n{out}"
             );
             assert!(
