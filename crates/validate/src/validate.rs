@@ -7749,6 +7749,13 @@ fn tool_on_path(name: &str) -> Option<std::path::PathBuf> {
         if cand.is_file() {
             return Some(cand);
         }
+        #[cfg(windows)]
+        {
+            let cand = dir.join(format!("{name}.exe"));
+            if cand.is_file() {
+                return Some(cand);
+            }
+        }
     }
     None
 }
