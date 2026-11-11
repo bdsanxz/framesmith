@@ -82,7 +82,7 @@ fn assert_identical_rerender(a: &Path, b: &Path, why: &str) {
 fn assert_same_picture(a: &Path, b: &Path, why: &str) {
     let md5 = |f: &Path| -> String {
         let out = Command::new("ffmpeg")
-            .args(["-v", "error", "-i", &f.display().to_string(), "-f", "framemd5", "-"])
+            .args(["-nostdin", "-v", "error", "-i", &f.display().to_string(), "-f", "framemd5", "-"])
             .output()
             .expect("run host ffmpeg");
         assert!(out.status.success(), "framemd5 of {} failed", f.display());

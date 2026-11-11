@@ -4,9 +4,6 @@ name: CI
 # workspace and runs the full test suite on macOS, Windows, and
 # Linux with identical commands per OS; no OS skips what another
 # runs. A red OS fails the run naming the OS and the test.
-#
-# The live green run is pending the owner push (not pushed here):
-# validate the YAML locally before pushing.
 
 on:
   push:
@@ -17,6 +14,7 @@ jobs:
   build-test:
     name: ${{ matrix.os }} / ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -38,14 +36,12 @@ jobs:
       - name: Install FFmpeg (macOS)
         if: matrix.label == 'macos'
         run: brew install ffmpeg
-          rm ffmpeg.zip
       - name: Install FFmpeg (Windows)
         if: matrix.label == 'windows'
         run: choco install ffmpeg -y
       - name: Install FFmpeg (Linux)
         if: matrix.label == 'linux'
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
-          rm ffmpeg.zip
       - name: Build full workspace (${{ matrix.label }})
         run: cargo build --workspace
       - name: Run full test suite (${{ matrix.label }})
