@@ -60,6 +60,21 @@ fn run_stdout(args: &[&str], cwd: &Path) -> (i32, String) {
     )
 }
 
+/// Decoded-frame identity between two renders: the framemd5
+/// listing hashes every decoded frame, so container bytes cannot
+/// hide a picture difference (and encoder noise cannot fake one).
+fn assert_same_picture(a: &Path, b: &Path, why: &str) {
+    let md5 = |f: &Path| -> String {
+        let out = Command::new("ffmpeg")
+            .args(["-v", "error", "-i", &f.display().to_string(), "-f", "framemd5", "-"])
+            .output()
+            .expect("run host ffmpeg");
+        assert!(out.status.success(), "framemd5 of {} failed", f.display());
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    };
+    assert_eq!(md5(a), md5(b), "{why}");
+}
+
 fn ffmpeg(args: &[&str]) {
     let out = Command::new("ffmpeg")
         .args(["-y", "-v", "error"])
@@ -218,11 +233,7 @@ fn json_summary_reports_hits_and_misses() {
     assert_eq!(code, 0, "{doc}");
     let doc = doc.trim();
     assert!(doc.contains("\"cache\":{\"hits\":1,\"misses\":0}"), "{doc}");
-    assert_eq!(
-        std::fs::read(root.join("j1.mp4")).unwrap(),
-        std::fs::read(root.join("j2.mp4")).unwrap(),
-        "json re-render stays byte-identical"
-    );
+    assert_same_picture(&root.join("j1.mp4"), &root.join("j2.mp4"), "json re-render stays byte-identical");
 }
 
 /// Flipping one media byte forces a fresh decode: the output changes
