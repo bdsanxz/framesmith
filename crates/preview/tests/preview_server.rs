@@ -125,7 +125,11 @@ fn status_names_project_composition_and_port() {
         let dir = daemon::canonical_dir(folder).unwrap();
         let (code, body) = body_str(port, "GET", "/api/status");
         assert_eq!(code, 200, "{body}");
-        assert!(body.contains(&dir), "{body}");
+        // The body JSON-escapes backslashes (Windows canonical dirs
+        // carry a `\\?\` prefix), so compare the escaped form; a
+        // no-op on Unix paths.
+        let dir_json = dir.replace('\\', "\\\\");
+        assert!(body.contains(&dir_json), "{body}");
         assert!(body.contains("\"composition\":\"t\""), "{body}");
         assert!(body.contains(&format!("\"port\":{}", entry.port)), "{body}");
         assert!(body.contains(&entry.url), "{body}");
