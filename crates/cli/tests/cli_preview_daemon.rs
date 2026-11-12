@@ -111,6 +111,11 @@ fn run(reg: &Path, args: &[&str]) -> (i32, String) {
     // stall the test either (genuine EOF then sentinel).
     let stdout = out_rx.recv_timeout(Duration::from_secs(5)).unwrap_or_default();
     let stderr = err_rx.recv_timeout(Duration::from_secs(5)).unwrap_or_default();
+    eprintln!(
+        "run: drained {} stdout bytes, {} stderr bytes",
+        stdout.len(),
+        stderr.len()
+    );
     let mut text = String::from_utf8_lossy(&stdout).into_owned();
     text.push_str(&String::from_utf8_lossy(&stderr));
     match status {
@@ -135,6 +140,40 @@ fn extract_url(out: &str) -> Option<(String, u16)> {
     let port: u16 = rest[..end].parse().ok()?;
     let url = format!("{marker}{port}/");
     out.contains(&url).then_some((url, port))
+}
+
+/// Debug dump for the start-failure panic: the registry body plus
+/// the tails of any preview-serve daemon logs in the temp dir.
+fn read_to_string_for_debug(reg: &Path) -> String {
+    std::fs::read_to_string(reg).unwrap_or_else(|e| format!("<unreadable: {e}>"))
+}
+
+fn daemon_logs_for_debug() -> String {
+    let dir = std::env::temp_dir();
+    let mut names: Vec<_> = std::fs::read_dir(&dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| entry.path())
+                .filter(|path| {
+                    path.file_name()
+                        .map(|name| name.to_string_lossy().starts_with("framesmith-preview-serve-"))
+                        .unwrap_or(false)
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    names.sort();
+    let mut out = String::new();
+    for path in names {
+        let body = std::fs::read_to_string(&path).unwrap_or_default();
+        let tail: Vec<&str> = body.lines().rev().take(5).rev().collect();
+        out.push_str(&format!("\n--- {} ---\n{}", path.display(), tail.join("\n")));
+    }
+    if out.is_empty() {
+        out.push_str("<no daemon logs>");
+    }
+    out
 }
 
 /// Stops every server in this test's registry when the test ends.
@@ -171,7 +210,7 @@ fn full_daemon_lifecycle_through_the_binary() {
     assert_eq!(code, 0, "{out}");
     let (url1, port1) = match extract_url(&out) {
         Some(pair) => pair,
-        None => panic!("start prints its URL, got: {out}"),
+        None => panic!("start prints its URL, got: {out}\nregistry: {}\ndaemon logs: {}", read_to_string_for_debug(&reg), daemon_logs_for_debug()),
     };
 
     // Status names the project and port.
