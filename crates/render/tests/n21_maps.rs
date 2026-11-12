@@ -203,8 +203,9 @@ fn corrupted_tile_refuses_before_the_first_frame() {
             Err(e) => e,
         };
     // Separator-agnostic: the refusal names the tile path with the
-    // OS separator, so compare the normalized form.
-    let err = err.replace('\\', "/");
+    // OS separator (possibly Debug-escaped), so compare the
+    // normalized form.
+    let err = err.replace("\\\\", "/").replace('\\', "/");
     assert!(
         err.contains("tiles/1/1/1.png"),
         "refusal must name the file, got: {err}"
