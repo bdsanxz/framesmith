@@ -172,11 +172,11 @@ fi
 echo ""
 echo "--- gate 2: hardware encode choices against staged listings ---"
 if (cd "$FRAMESMITH_DIR" && cargo test --offline -p render --lib -- --test-threads=1 >"$WORKDIR/test-render.log" 2>&1); then
-  if grep -q "425 passed" "$WORKDIR/test-render.log" \
+  if grep -q "426 passed" "$WORKDIR/test-render.log" \
     && grep -q "0 failed" "$WORKDIR/test-render.log"; then
-    pass "cargo-test-render-lib (425 passed, single-threaded: no parallelism flake)"
+    pass "cargo-test-render-lib (426 passed, single-threaded: no parallelism flake)"
   else
-    fail "render-test-count" "test exited 0 without '425 passed'; see test-render.log"
+    fail "render-test-count" "test exited 0 without '426 passed'; see test-render.log"
   fi
   for TN in auto_resolves_per_os_against_staged_listings \
             explicit_choice_checks_against_staged_listings \
