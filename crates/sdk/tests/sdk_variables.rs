@@ -112,7 +112,8 @@ fn added_keys(before: &BTreeMap<String, Vec<u8>>, folder: &Path) -> Vec<String> 
     after
         .keys()
         .filter(|k| !before.contains_key(*k))
-        .cloned()
+        // Separator-agnostic: Windows tree keys carry backslashes.
+        .map(|k| k.replace('\\', "/"))
         .collect()
 }
 

@@ -111,9 +111,10 @@ fn has_render_output(folder: &Path) -> bool {
 }
 
 fn history_files(tree: &BTreeMap<String, Vec<u8>>) -> Vec<String> {
+    // Separator-agnostic: Windows tree keys carry backslashes.
     tree.keys()
+        .map(|k| k.replace('\\', "/"))
         .filter(|k| k.starts_with(".framesmith/"))
-        .cloned()
         .collect()
 }
 
@@ -598,6 +599,8 @@ fn render_check_and_validation_never_read_history() {
     // Every history byte lives under the hidden directory; composition
     // sources carry no trace of the record.
     for key in tree_bytes(&folder).keys() {
+        // Separator-agnostic: Windows tree keys carry backslashes.
+        let key = key.replace('\\', "/");
         assert!(
             key.starts_with(".framesmith/") || key == "composition.kdl",
             "unexpected file: {key}"

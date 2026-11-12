@@ -1001,7 +1001,12 @@ fn edits_leave_default_renders_byte_identical() {
         comp_before
     );
     assert!(!has_render_output(&folder));
-    let mut names: Vec<String> = tree_bytes(&folder).keys().cloned().collect();
+    // Separator-agnostic: Windows tree keys carry backslashes, so
+    // normalize before comparing to the slash forms.
+    let mut names: Vec<String> = tree_bytes(&folder)
+        .keys()
+        .map(|n| n.replace('\\', "/"))
+        .collect();
     names.sort();
     assert!(
         names
