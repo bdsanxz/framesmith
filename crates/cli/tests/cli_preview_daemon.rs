@@ -167,8 +167,9 @@ fn daemon_logs_for_debug() -> String {
     let mut out = String::new();
     for path in names {
         let body = std::fs::read_to_string(&path).unwrap_or_default();
-        let tail: Vec<&str> = body.lines().rev().take(5).rev().collect();
-        out.push_str(&format!("\n--- {} ---\n{}", path.display(), tail.join("\n")));
+        let lines: Vec<&str> = body.lines().collect();
+        let start = lines.len().saturating_sub(5);
+        out.push_str(&format!("\n--- {} ---\n{}", path.display(), lines[start..].join("\n")));
     }
     if out.is_empty() {
         out.push_str("<no daemon logs>");
