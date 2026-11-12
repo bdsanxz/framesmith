@@ -260,7 +260,13 @@ fn reference_renders_root_named_and_range_with_aligned_sound() {
         );
     }
     let mix = decode_audio(&root.join("root.mp4"));
-    assert_eq!(mix.len(), 4 * 48000 * 2, "root mix spans 4 s stereo");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = mix.len() / 2;
+    assert!(
+        (4 * 48000..=4 * 48000 + 1024).contains(&samples),
+        "root mix spans 4 s stereo, got {samples}"
+    );
     for (q, slice) in mix.chunks(mix.len() / 4).enumerate() {
         assert!(rms(slice) > 1500.0, "quarter {q} carries the bed tone");
     }
