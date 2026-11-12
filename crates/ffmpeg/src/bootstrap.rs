@@ -722,7 +722,10 @@ mod tests {
         assert!(!fx.cache.exists(), "a failed lookup must fetch nothing");
     }
 
+    // The staged fake FFmpeg is a shell script; it cannot execute on
+    // Windows, so the download-and-verify path exercises on Unix.
     #[test]
+    #[cfg(unix)]
     fn file_download_verifies_installs_and_announces() {
         let fx = fixture("dl");
         let cfg = cfg_for(&fx);
@@ -795,7 +798,10 @@ mod tests {
         }
     }
 
+    // See `file_download_verifies_installs_and_announces`: the staged
+    // fake FFmpeg executes only on Unix.
     #[test]
+    #[cfg(unix)]
     fn cache_reuse_skips_network_and_stale_cache_refreshes() {
         let fx = fixture("reuse");
         let cfg = cfg_for(&fx);

@@ -778,7 +778,7 @@ mod tests {
         let dir = std::path::Path::new("/cache");
         assert_eq!(
             cached_binary(dir, "9.0"),
-            std::path::Path::new("/cache/9.0/bin/ffmpeg")
+            dir.join("9.0").join("bin").join(exe_name())
         );
     }
 
