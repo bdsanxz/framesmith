@@ -78,5 +78,10 @@ jobs:
           ffmpeg -hide_banner -filters | grep -E "volumedetect|loudnorm|aeval"
       - name: Build full workspace (${{ matrix.label }})
         run: cargo build --workspace
+      # The render package runs single-threaded: its slope tests time
+      # against CPU shared with sibling draw tests (as the proofs
+      # already do locally), which starves them on shared runners.
       - name: Run full test suite (${{ matrix.label }})
-        run: cargo test --workspace
+        run: cargo test --workspace --exclude render
+      - name: Run render package single-threaded (${{ matrix.label }})
+        run: cargo test -p render -- --test-threads=1
