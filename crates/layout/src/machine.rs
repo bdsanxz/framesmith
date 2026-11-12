@@ -30,6 +30,14 @@ const GENERIC_LINUX: [(&str, &str); 3] = [
     ("monospace", "DejaVu Sans Mono"),
 ];
 
+/// Extra Windows candidates tried when the generic family itself is
+/// absent from the machine.
+const GENERIC_WINDOWS: [(&str, &str); 3] = [
+    ("sans-serif", "Segoe UI"),
+    ("serif", "Times New Roman"),
+    ("monospace", "Consolas"),
+];
+
 /// The families the fallback tries first, in this order, before every
 /// other family of the machine.
 const FIRST_IN_FALL_BACK: [&str; 3] = ["Helvetica", "Arial Unicode MS", "Apple Color Emoji"];
@@ -58,7 +66,8 @@ pub(crate) struct Machine {
 }
 
 /// The folders read, in order. macOS folders first (old-engine parity),
-/// then the Linux system folders and the user folder of each system.
+/// then the Linux system folders and the user folder of each system,
+/// then the Windows system fonts folder and the per-user one.
 fn folders() -> Vec<PathBuf> {
     let mut folders = vec![
         PathBuf::from("/System/Library/Fonts"),
@@ -73,6 +82,13 @@ fn folders() -> Vec<PathBuf> {
     folders.push(PathBuf::from("/usr/share/fonts"));
     if let Some(home) = std::env::var_os("HOME") {
         folders.push(Path::new(&home).join(".fonts"));
+    }
+    let system_root = std::env::var_os("SystemRoot")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(r"C:\Windows"));
+    folders.push(system_root.join("Fonts"));
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        folders.push(PathBuf::from(local).join(r"Microsoft\Windows\Fonts"));
     }
     folders
 }
@@ -220,6 +236,26 @@ impl Machine {
             .into_iter()
             .find(|(generic, _)| *generic == name)
             .map(|(_, family)| family)
+    }
+
+    pub(crate) fn generic_windows(name: &str) -> Option<&'static str> {
+        GENERIC_WINDOWS
+            .into_iter()
+            .find(|(generic, _)| *generic == name)
+            .map(|(_, family)| family)
+    }
+
+    /// The missing-glyph fallback family present on this machine, in
+    /// preference order: the macOS one, then the Linux one, then the
+    /// Windows one, so an unresolvable name still resolves wherever
+    /// any system font family lives.
+    pub(crate) fn missing_mark_family(&self) -> Option<&str> {
+        for wanted in [MISSING_MARK_FAMILY, "DejaVu Sans", "Segoe UI"] {
+            if let Some(found) = self.family(wanted) {
+                return Some(found);
+            }
+        }
+        None
     }
 
     /// The family of the machine that `name` names: matched without

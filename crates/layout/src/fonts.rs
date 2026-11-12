@@ -16,7 +16,7 @@ use parley::fontique::{Blob, Collection, CollectionOptions, FontInfoOverride};
 
 use glyph::tables::{has_sbix, maps_char, one_face, sbix_graphic};
 
-use crate::machine::{Machine, MISSING_MARK_FAMILY};
+use crate::machine::Machine;
 use crate::paragraph::TextError;
 
 /// The start of the name under which the engine knows a family of the
@@ -335,6 +335,9 @@ impl Fonts {
                 if let Some(linux) = Machine::generic_linux(name) {
                     v.push(linux.to_string());
                 }
+                if let Some(windows) = Machine::generic_windows(name) {
+                    v.push(windows.to_string());
+                }
                 v
             }
             None => vec![name.to_string()],
@@ -357,7 +360,7 @@ impl Fonts {
             }
         }
         if families.is_empty() {
-            match self.machine.family(MISSING_MARK_FAMILY).map(str::to_string) {
+            match self.machine.missing_mark_family().map(str::to_string) {
                 Some(family) => families.extend(self.machine_family(&family)),
                 None => return Err(TextError::NoFamily),
             }
