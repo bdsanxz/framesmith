@@ -1129,10 +1129,12 @@ mod tests {
         // times so scheduling jitter averages out inside the sample
         // instead of across medians.
         let mut per_size: Vec<Vec<u128>> = vec![Vec::new(), Vec::new(), Vec::new()];
+        // 20 draws per sample (was 10): longer holds keep the
+        // slope verdict honest under shared-CPU contention.
         for _ in 0..7 {
             for (i, (p, c)) in prepared.iter().enumerate() {
                 let t = std::time::Instant::now();
-                for _ in 0..10 {
+                for _ in 0..20 {
                     layer.fill(0);
                     draw_path_layer(&mut layer, cw, chh, p, c);
                 }

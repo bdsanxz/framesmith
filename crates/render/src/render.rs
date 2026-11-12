@@ -13571,7 +13571,11 @@ mod tests {
         let five = mk(5);
         let ten = mk(10);
         let fifteen = mk(15);
-        const N: usize = 200_000;
+        // Long holds: with shared-CPU contention the per-size gap is
+        // noise-dominated at small sample counts (medians spiked to
+        // negative slopes on CI); 1M samples + 7 rounds keeps the
+        // 0.7-1.4 band honest without widening it.
+        const N: usize = 1_000_000;
         let ts: Vec<f64> = (0..N).map(|i| (i % 1000) as f64 / 1000.0).collect();
         let mut acc = 0u64;
         let mut time = |stops: &[GradientStop]| {
@@ -13585,7 +13589,7 @@ mod tests {
             start.elapsed().as_secs_f64()
         };
         let mut ratios = Vec::new();
-        for _ in 0..5 {
+        for _ in 0..7 {
             let (a5, a10, a15) = (time(&five), time(&ten), time(&fifteen));
             let (b15, b10, b5) = (time(&fifteen), time(&ten), time(&five));
             let slope_lo = ((a10 - a5) + (b10 - b5)) / 2.0;
@@ -13593,7 +13597,7 @@ mod tests {
             ratios.push(slope_hi / slope_lo);
         }
         ratios.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let ratio = ratios[2];
+        let ratio = ratios[3];
         assert!(
             (0.7..=1.4).contains(&ratio),
             "stop cost must scale linearly (slope ratio ~1, quadratic would read ~0.25), got median {ratio:.3} from {ratios:.3?}"
