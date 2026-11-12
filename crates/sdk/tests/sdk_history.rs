@@ -416,7 +416,10 @@ fn shared_begins_coexist_and_if_open_attaches() {
     sdk::history::end_turn(&folder, "cara").expect("end cara");
 }
 
+// Unavailability is forced with Unix directory permission bits,
+// which Windows does not honor the same way.
 #[test]
+#[cfg(unix)]
 fn listing_works_when_writes_are_unavailable() {
     let root = tmp("unwritable");
     let folder = root.join("proj");
