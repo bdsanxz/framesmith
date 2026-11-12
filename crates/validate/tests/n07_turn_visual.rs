@@ -217,7 +217,7 @@ fn turn_keys_refuse_on_clips_without_pictures() {
 fn visual_properties_validate_on_their_clips() {
     // Every listed property tweens on the clips carrying it; aliases
     // normalize to the canonical property.
-    for (clip, prop, to, canonical) in [
+    for (case, (clip, prop, to, canonical)) in [
         (
             "box x=4 y=4 width=20 height=12 fill=\"#ff0000\" start=0 duration=4",
             "width",
@@ -327,8 +327,11 @@ fn visual_properties_validate_on_their_clips() {
             "2",
             "blur",
         ),
-    ] {
-        let dir = tmp(&format!("vis-{canonical}-{to}"));
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let dir = tmp(&format!("vis-{case}-{canonical}"));
         touch_media(&dir);
         write_comp(
             &dir,
