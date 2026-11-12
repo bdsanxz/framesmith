@@ -27,7 +27,7 @@ jobs:
       - name: Run every binary with timeout
         run: |
           $bins = @()
-          foreach ($exe in Get-ChildItem target/debug/deps/*.exe | Where-Object { $_.Name -match '^(cli|preview|sdk|render|validate|notation|layout|motion|log|timebase|glyph|ffmpeg|ml|lottie|threed|catalog)' -and $_.Name -notmatch '\.' }) { $bins += $exe.FullName }
+          foreach ($exe in Get-ChildItem target/debug/deps/*.exe | Where-Object { $_.Name -match '^(cli|preview|sdk|render|validate|notation|layout|motion|log|timebase|glyph|ffmpeg|ml|lottie|threed|catalog)' }) { $bins += $exe.FullName }
           $bins | Sort-Object | ForEach-Object {
             Write-Host "===== $(Split-Path $_ -Leaf) ====="
             $job = Start-Job -ScriptBlock { param($b) & $b 2>&1 } -ArgumentList $_

@@ -47,10 +47,13 @@ fn text_project(folder: &Path, name: &str) {
 /// Bounded: a hung child is killed after the timeout and the partial
 /// output is returned as a failure, so the suite never stalls and the
 /// hung command names itself (the daemon spawns long-lived servers,
-/// which output() alone cannot bound).
+/// which output() alone cannot bound). Pipe drains are bounded too: a
+/// grandchild that keeps a pipe open must not stall the test.
 fn run(reg: &Path, args: &[&str]) -> (i32, String) {
     use std::io::Read;
+    use std::sync::mpsc;
     const TIMEOUT: Duration = Duration::from_secs(120);
+    eprintln!("run: framesmith {}", args.join(" "));
     let mut child = Command::new(bin())
         .args(args)
         .env("FRAMESMITH_PREVIEW_REGISTRY", reg)
@@ -59,26 +62,28 @@ fn run(reg: &Path, args: &[&str]) -> (i32, String) {
         .stderr(std::process::Stdio::piped())
         .spawn()
         .expect("run framesmith binary");
-    let drain = |pipe: Option<std::process::ChildStdout>| -> std::thread::JoinHandle<Vec<u8>> {
+    let (out_tx, out_rx) = mpsc::channel::<Vec<u8>>();
+    {
+        let mut pipe = child.stdout.take();
         std::thread::spawn(move || {
             let mut buf = Vec::new();
-            if let Some(mut pipe) = pipe {
+            if let Some(mut pipe) = pipe.take() {
                 let _ = pipe.read_to_end(&mut buf);
             }
-            buf
-        })
-    };
-    let out_h = drain(child.stdout.take());
-    let err_h = {
-        let stderr = child.stderr.take();
+            let _ = out_tx.send(buf);
+        });
+    }
+    let (err_tx, err_rx) = mpsc::channel::<Vec<u8>>();
+    {
+        let mut pipe = child.stderr.take();
         std::thread::spawn(move || {
             let mut buf = Vec::new();
-            if let Some(mut pipe) = stderr {
+            if let Some(mut pipe) = pipe.take() {
                 let _ = pipe.read_to_end(&mut buf);
             }
-            buf
-        })
-    };
+            let _ = err_tx.send(buf);
+        });
+    }
     let start = Instant::now();
     let status = loop {
         match child.try_wait() {
@@ -86,7 +91,15 @@ fn run(reg: &Path, args: &[&str]) -> (i32, String) {
             Ok(None) => {
                 if start.elapsed() >= TIMEOUT {
                     let _ = child.kill();
-                    let _ = child.wait();
+                    // Reap with a deadline too: a killed child that
+                    // will not die must not stall the test either.
+                    let reap = Instant::now();
+                    while reap.elapsed() < Duration::from_secs(5) {
+                        match child.try_wait() {
+                            Ok(Some(_)) => break,
+                            _ => std::thread::sleep(Duration::from_millis(50)),
+                        }
+                    }
                     break None;
                 }
                 std::thread::sleep(Duration::from_millis(100));
@@ -94,13 +107,22 @@ fn run(reg: &Path, args: &[&str]) -> (i32, String) {
             Err(_) => break None,
         }
     };
-    let stdout = out_h.join().unwrap_or_default();
-    let stderr = err_h.join().unwrap_or_default();
+    // Bounded drains: a grandchild that keeps a pipe open must not
+    // stall the test either (genuine EOF then sentinel).
+    let stdout = out_rx.recv_timeout(Duration::from_secs(5)).unwrap_or_default();
+    let stderr = err_rx.recv_timeout(Duration::from_secs(5)).unwrap_or_default();
     let mut text = String::from_utf8_lossy(&stdout).into_owned();
     text.push_str(&String::from_utf8_lossy(&stderr));
     match status {
         Some(status) => (status.code().unwrap_or(-1), text),
-        None => (-1, format!("TIMED OUT after {}s: framesmith {}\n{text}", TIMEOUT.as_secs(), args.join(" "))),
+        None => (
+            -1,
+            format!(
+                "TIMED OUT after {}s: framesmith {}\n{text}",
+                TIMEOUT.as_secs(),
+                args.join(" ")
+            ),
+        ),
     }
 }
 
