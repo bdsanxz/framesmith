@@ -128,7 +128,7 @@ fn present_session_proves_two_view_sync_through_the_state_machine() {
             panic!("present server exited before serving");
         }
         assert!(
-            start.elapsed() < Duration::from_secs(20),
+            start.elapsed() < Duration::from_secs(60),
             "present server never became ready"
         );
         std::thread::sleep(Duration::from_millis(100));

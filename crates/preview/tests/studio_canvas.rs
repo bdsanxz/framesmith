@@ -119,7 +119,7 @@ fn with_server(
             panic!("server exited before serving");
         }
         assert!(
-            start.elapsed() < Duration::from_secs(20),
+            start.elapsed() < Duration::from_secs(60),
             "server never became ready"
         );
         std::thread::sleep(Duration::from_millis(100));

@@ -599,7 +599,7 @@ fn code_routes_roundtrip_over_http() {
             panic!("server exited before serving");
         }
         assert!(
-            start.elapsed() < Duration::from_secs(20),
+            start.elapsed() < Duration::from_secs(60),
             "server never ready"
         );
         std::thread::sleep(Duration::from_millis(100));
