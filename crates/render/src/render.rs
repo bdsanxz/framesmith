@@ -4343,7 +4343,12 @@ pub fn render_with_options_progress(
 /// project font needs no note; otherwise the used system files join in
 /// registration order, or the bitmap last resort is announced. A
 /// composition drawing no text carries no note, as before.
-fn origin_note(project: bool, fonts: &layout::Fonts, bitmap: bool, text_drawn: bool) -> String {
+pub(crate) fn origin_note(
+    project: bool,
+    fonts: &layout::Fonts,
+    bitmap: bool,
+    text_drawn: bool,
+) -> String {
     if project || !text_drawn {
         return String::new();
     }
@@ -4405,7 +4410,7 @@ fn rel_name(folder: &Path, path: &Path) -> String {
 }
 
 /// Last `n` non-empty stderr lines, joined for the stage report.
-fn stderr_tail(stderr: &[u8], n: usize) -> String {
+pub(crate) fn stderr_tail(stderr: &[u8], n: usize) -> String {
     let text = String::from_utf8_lossy(stderr);
     let lines: Vec<&str> = text
         .lines()
@@ -4809,7 +4814,7 @@ fn transpose_chain(rotation: f64) -> String {
 }
 
 /// `Duration: 00:00:03.00` → seconds.
-fn parse_duration(text: &str) -> Option<f64> {
+pub(crate) fn parse_duration(text: &str) -> Option<f64> {
     for line in text.lines() {
         let line = line.trim();
         if let Some(rest) = line.strip_prefix("Duration:") {
@@ -4828,7 +4833,7 @@ fn parse_duration(text: &str) -> Option<f64> {
 }
 
 /// `Stream #0:0...: Video: h264 ..., 640x480 ...` → (codec, w, h).
-fn parse_video_stream(line: &str) -> Option<(String, u32, u32)> {
+pub(crate) fn parse_video_stream(line: &str) -> Option<(String, u32, u32)> {
     let after = line.split("Video:").nth(1)?.trim();
     let codec = after
         .split(|c: char| c == ' ' || c == '(' || c == ',')
@@ -7316,7 +7321,7 @@ pub(crate) fn effective_source_window(
 /// some builds report no `Duration` in `ffmpeg -i` stderr for
 /// containers (notably GIF) whose format duration is exact. Only
 /// consulted when the primary `ffmpeg -i` probe yields none.
-fn probe_format_duration(ffmpeg_bin: &Path, abs: &Path) -> Option<f64> {
+pub(crate) fn probe_format_duration(ffmpeg_bin: &Path, abs: &Path) -> Option<f64> {
     let ffprobe = ffprobe_for(ffmpeg_bin)?;
     let out = Command::new(ffprobe)
         .args([

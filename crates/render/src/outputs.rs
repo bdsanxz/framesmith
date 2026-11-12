@@ -894,6 +894,18 @@ impl Provenance {
         format!("{} {} inputs={}", Self::tool(), self.version, self.digest)
     }
 
+    /// The stamp of a chunked output (Sprint 26, T004 / CAP-004):
+    /// the base stamp plus the chunking fact — how many chunks and
+    /// frames were reassembled. A chunked output never carries the
+    /// plain single-pass stamp: claiming single-pass byte identity
+    /// for reassembled bytes would be false.
+    pub fn chunked_stamp(&self, chunks: usize, frames: u64) -> String {
+        format!(
+            "{} render=chunked chunks={chunks} frames={frames}",
+            self.stamp()
+        )
+    }
+
     /// The PNG-sequence sidecar body (Sprint 12 outputs, CAP-005): the
     /// same tool, version, and digest fields the containers carry as
     /// tags. The version and digest are caller-controlled version and

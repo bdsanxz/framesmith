@@ -3406,6 +3406,27 @@ pub struct RenderRequest {
     /// (`off`, `pq`, `hlg`, `auto`). None means `auto` (HDR in leads
     /// to HDR out, SDR in to SDR out, decided from source probes).
     pub hdr: Option<String>,
+    /// Chunk count (Sprint 26, T001): the raw `--chunks` flag text
+    /// (a whole number of chunks). None keeps single-pass rendering
+    /// exactly as before.
+    pub chunks: Option<String>,
+    /// Chunk size (Sprint 26, T001): the raw `--chunk-size` flag
+    /// text (a whole number of frames per chunk). None keeps
+    /// single-pass rendering exactly as before.
+    pub chunk_size: Option<String>,
+    /// Invited LAN workers (Sprint 26, T002): the raw `--workers`
+    /// flag text (a comma-separated `host:port` list). None keeps
+    /// every chunk on this machine exactly as before.
+    pub workers: Option<String>,
+    /// Invitation secret (Sprint 26, T002): the raw
+    /// `--worker-token` flag text. None (with `--workers`) refuses
+    /// before the first frame: chunks never dispatch uninvited.
+    pub worker_token: Option<String>,
+    /// Resume an interrupted chunked run (Sprint 26, T003): the flag
+    /// resumes from the render journal instead of starting fresh.
+    /// None (flag absent) keeps the plain chunked or single-pass
+    /// behavior exactly as before.
+    pub resume: bool,
 }
 
 /// Flag choices resolved before the first frame (T001/T002, Sprint 12
@@ -3667,6 +3688,102 @@ fn resolve_render_request(req: &RenderRequest) -> Result<ResolvedRender, String>
         strict_variables: req.strict_variables,
         theme: req.theme.clone(),
     })
+}
+
+/// Chunking selection (Sprint 26, T001 / CAP-001): the parsed
+/// `--chunks` count or `--chunk-size` frames. `None` on both flags
+/// renders single-pass exactly as before; both flags together refuse
+/// naming the combination, before the first frame.
+struct ChunkSelection {
+    count: Option<usize>,
+    size: Option<usize>,
+}
+
+/// Resolve the `--chunks` / `--chunk-size` flags (Sprint 26, T001):
+/// each takes a whole number from 1 to 1,000,000, and exactly one of
+/// them may be passed. Anything else refuses before the first frame
+/// naming the flag and the accepted range, with nothing written.
+fn resolve_chunk_request(req: &RenderRequest) -> Result<Option<ChunkSelection>, String> {
+    const MAX: usize = 1_000_000;
+    if req.chunks.is_some() && req.chunk_size.is_some() {
+        return Err(
+            "render refused: --chunks and --chunk-size together are ambiguous: pass only one chunk target (validation stage); no MP4 was written"
+                .to_string(),
+        );
+    }
+    let parse = |flag: &str, raw: &str| -> Result<usize, String> {
+        match raw.trim().parse::<usize>() {
+            Ok(n) if (1..=MAX).contains(&n) => Ok(n),
+            _ => Err(format!(
+                "render refused: {flag} {raw:?} is not a whole number from 1 to {MAX} (validation stage); no MP4 was written"
+            )),
+        }
+    };
+    let count = match &req.chunks {
+        None => None,
+        Some(raw) => Some(parse("--chunks", raw)?),
+    };
+    let size = match &req.chunk_size {
+        None => None,
+        Some(raw) => Some(parse("--chunk-size", raw)?),
+    };
+    Ok(match (count, size) {
+        (None, None) => None,
+        _ => Some(ChunkSelection { count, size }),
+    })
+}
+
+/// Invited-worker selection (Sprint 26, T002 / CAP-006): the
+/// parsed `--workers` invitation list plus its token. `None` on
+/// both flags renders every chunk on this machine exactly as
+/// before (in-process chunking when `--chunks` is set,
+/// single-pass otherwise).
+struct WorkerSelection {
+    /// Explicitly invited workers, in the order as written.
+    addresses: Vec<String>,
+    token: String,
+}
+
+/// Resolve the `--workers` / `--worker-token` flags (Sprint 26,
+/// T002): workers only ever join on the maker's explicit
+/// invitation, so the flags arrive as a pair naming a non-empty
+/// invited set and its secret. A token without workers, workers
+/// without a token, and workers without a chunk target all refuse
+/// before the first frame naming the flag, with nothing written.
+/// The invitation list itself validates through the shared LAN
+/// parser ([`render::lan::parse_workers`]).
+fn resolve_workers_request(
+    req: &RenderRequest,
+) -> Result<Option<WorkerSelection>, String> {
+    match (&req.workers, &req.worker_token) {
+        (None, None) => Ok(None),
+        (None, Some(_)) => Err(
+            "render refused: --worker-token without --workers names a secret for machines that are not invited: pass --workers host:port,... with --worker-token SECRET (validation stage); no MP4 was written"
+                .to_string(),
+        ),
+        (Some(_), None) => Err(
+            "render refused: --workers invites machines without the invitation secret: pass --worker-token SECRET alongside --workers host:port,... (validation stage); no MP4 was written"
+                .to_string(),
+        ),
+        (Some(raw), Some(token)) => {
+            if token.trim().is_empty() {
+                return Err(
+                    "render refused: --worker-token is empty: pass the invitation secret the workers were started with (validation stage); no MP4 was written"
+                        .to_string(),
+                );
+            }
+            if req.chunks.is_none() && req.chunk_size.is_none() {
+                return Err(
+                    "render refused: --workers distributes chunks but no chunk target is set: pass --chunks <count> or --chunk-size <frames> with --workers host:port,... (validation stage); no MP4 was written"
+                        .to_string(),
+                );
+            }
+            Ok(Some(WorkerSelection {
+                addresses: render::lan::parse_workers(raw)?,
+                token: token.clone(),
+            }))
+        }
+    }
 }
 
 /// Short display names of probed HDR sources (Sprint 12 outputs,
@@ -4502,6 +4619,81 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
             return 1;
         }
     };
+    // Sprint 26 parallel render (T001 / CAP-001): the chunk flags
+    // resolve with the other flag choices, before the first frame.
+    // Absent flags keep the single-pass render exactly as before.
+    let chunk_sel = match resolve_chunk_request(req) {
+        Ok(s) => s,
+        Err(e) => {
+            stage_line(json, &e);
+            note_log(folder, "warn", "render", &run, &e, json);
+            if json {
+                let enc = render::render::RenderOptions::default().encoder();
+                println!(
+                    "{}",
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: "unknown",
+                        preset: "unknown",
+                        format: "unknown",
+                        resolution: "unknown",
+                        supersample: 0,
+                        enc: &enc,
+                        output: "",
+                        message: &e,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
+                        diagnostics: &[],
+                        stages: &[],
+                        total_ms: 0
+                    })
+                );
+            }
+            return 1;
+        }
+    };
+    // Sprint 26 parallel render (T002 / CAP-006): the worker
+    // invitation resolves with the other flag choices, before the
+    // first frame. Absent flags keep every chunk on this machine
+    // exactly as before.
+    let workers_sel = match resolve_workers_request(req) {
+        Ok(s) => s,
+        Err(e) => {
+            stage_line(json, &e);
+            note_log(folder, "warn", "render", &run, &e, json);
+            if json {
+                let enc = render::render::RenderOptions::default().encoder();
+                println!(
+                    "{}",
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: "unknown",
+                        preset: "unknown",
+                        format: "unknown",
+                        resolution: "unknown",
+                        supersample: 0,
+                        enc: &enc,
+                        output: "",
+                        message: &e,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
+                        diagnostics: &[],
+                        stages: &[],
+                        total_ms: 0
+                    })
+                );
+            }
+            return 1;
+        }
+    };
     let mut opts = render::render::RenderOptions {
         backend: resolved.backend,
         preset: resolved.preset,
@@ -4531,6 +4723,45 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // historical `-o`-as-given semantics; sequences resolve to a
     // directory (PNG) or a playlist-plus-segments directory (HLS).
     let dest = render::outputs::resolve_output(resolved.format, folder, output);
+    // Sprint 26 parallel render (T001 / CAP-001, T002 / CAP-006,
+    // T003 / CAP-007): only file containers join through the ordered
+    // reassembly; directory-style destinations and GIFs refuse here,
+    // before any frame is drawn. A resume without an explicit chunk
+    // target still intends a file-container reassembly.
+    if chunk_sel.is_some() || workers_sel.is_some() || req.resume {
+        if let Err(msg) = render::chunk::check_chunked_format(resolved.format) {
+            stage_line(json, &msg);
+            note_log(folder, "warn", "render", &run, &msg, json);
+            if json {
+                println!(
+                    "{}",
+                    format_render_json(&RenderJson {
+                        folder,
+                        status: "invalid",
+                        exit: 1,
+                        backend: opts.backend.name(),
+                        preset: opts.preset.name(),
+                        format: opts.format.name(),
+                        resolution: opts.resolution.name(),
+                        supersample: opts.supersample,
+                        enc: &opts.encoder(),
+                        output: "",
+                        message: &msg,
+                        cache_hits: 0,
+                        cache_misses: 0,
+                        peaks: None,
+                        normalize: None,
+                        diagnostics: &[],
+                        stages: &stages,
+                        total_ms: total_start.elapsed().as_millis() as u64
+                    })
+                );
+            } else {
+                println!("{msg}");
+            }
+            return 1;
+        }
+    }
 
     stage_line(json, "stage validate: running");
     let validate_start = Instant::now();
@@ -5325,6 +5556,231 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
     // per frame, so its pixel-valued results ride the internal
     // multiplier from here (1.0 on the identity path: a no-op).
     prep.scale_expr_results(scale.expr_scale());
+    // Sprint 26 parallel render (T001 / CAP-001): the chunk plan is
+    // computed and shown before any frame is drawn. An unplannable
+    // split refuses here, before frame one, with no output written.
+    let chunk_ranges: Option<Vec<render::chunk::ChunkRange>> = if let Some(sel) = &chunk_sel {
+        let total_frames = prep.frames();
+        match render::chunk::plan_chunks(total_frames, sel.count, sel.size) {
+            Ok(plan) => {
+                let head = format!(
+                    "stage chunks: planning {total_frames} frame(s) into {} chunk(s)",
+                    plan.len()
+                );
+                stage_line(json, &head);
+                note_log(folder, "info", "render", &run, &head, json);
+                for c in &plan {
+                    let line = format!("stage chunks: plan {}", c.label(plan.len()));
+                    stage_line(json, &line);
+                    note_log(folder, "info", "render", &run, &line, json);
+                }
+                Some(plan)
+            }
+            Err(e) => {
+                let ms = frames_start.elapsed().as_millis() as u64;
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed("frames", ms, "chunk plan failed".to_string()),
+                );
+                stage_line(json, &format!("stage frames: failed ({ms}ms): {e}"));
+                print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                note_log(folder, "warn", "render", &run, &e, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "invalid",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &e,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
+                    );
+                } else {
+                    println!("{e}");
+                }
+                return 1;
+            }
+        }
+    } else if req.resume {
+        // Sprint 26 parallel render (T003 / CAP-007): a resume
+        // without an explicit chunk target derives its plan from
+        // the render journal under the project's hidden state.
+        // The journal itself is the plan authority here; an
+        // unreadable journal refuses naming the file.
+        let final_path_for_resume = match &dest {
+            render::outputs::ResolvedOutput::File { path } => path.clone(),
+            _ => {
+                let ms = frames_start.elapsed().as_millis() as u64;
+                let msg = "render refused: --resume needs a file output (single-pass sequences have no ordered reassembly); remove --resume or pass a file destination (validation stage); no MP4 was written".to_string();
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed("frames", ms, "resume needs a file output".to_string()),
+                );
+                stage_line(json, &format!("stage frames: failed ({ms}ms): {msg}"));
+                print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                note_log(folder, "warn", "render", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "invalid",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &msg,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
+                    );
+                } else {
+                    println!("{msg}");
+                }
+                return 1;
+            }
+        };
+        let jpath = render::journal::journal_path_for(folder, &final_path_for_resume);
+        match render::journal::Journal::load(&jpath) {
+            Ok(journal) => {
+                let total_frames = prep.frames();
+                if journal.total_frames != total_frames {
+                    let ms = frames_start.elapsed().as_millis() as u64;
+                    let msg = format!(
+                        "render refused: --resume journal {} plans {} frame(s) but this composition has {} frame(s); resume the same composition or remove the journal and restart; no MP4 was written",
+                        jpath.display(),
+                        journal.total_frames,
+                        total_frames
+                    );
+                    push_stage(
+                        &mut stages,
+                        render::render::StageTiming::failed("frames", ms, "journal plan mismatch".to_string()),
+                    );
+                    stage_line(json, &format!("stage frames: failed ({ms}ms): {msg}"));
+                    print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                    note_log(folder, "warn", "render", &run, &msg, json);
+                    if json {
+                        println!(
+                            "{}",
+                            format_render_json(&RenderJson {
+                                folder,
+                                status: "invalid",
+                                exit: 1,
+                                backend: opts.backend.name(),
+                                preset: opts.preset.name(),
+                                format: opts.format.name(),
+                                resolution: opts.resolution.name(),
+                                supersample: opts.supersample,
+                                enc: &opts.encoder(),
+                                output: "",
+                                message: &msg,
+                                cache_hits: 0,
+                                cache_misses: 0,
+                                peaks: None,
+                                normalize: None,
+                                diagnostics: &[],
+                                stages: &stages,
+                                total_ms: total_start.elapsed().as_millis() as u64
+                            })
+                        );
+                    } else {
+                        println!("{msg}");
+                    }
+                    return 1;
+                }
+                let plan: Vec<render::chunk::ChunkRange> = journal
+                    .chunks
+                    .iter()
+                    .map(|c| render::chunk::ChunkRange {
+                        index: c.index,
+                        start_frame: c.start_frame,
+                        end_frame: c.end_frame,
+                    })
+                    .collect();
+                let head = format!(
+                    "stage chunks: resuming {} frame(s) into {} chunk(s) from journal {}",
+                    total_frames,
+                    plan.len(),
+                    jpath.display()
+                );
+                stage_line(json, &head);
+                note_log(folder, "info", "render", &run, &head, json);
+                for c in &plan {
+                    let line = format!("stage chunks: plan {}", c.label(plan.len()));
+                    stage_line(json, &line);
+                    note_log(folder, "info", "render", &run, &line, json);
+                }
+                Some(plan)
+            }
+            Err(e) => {
+                let ms = frames_start.elapsed().as_millis() as u64;
+                let msg = format!(
+                    "render refused: render journal {} is unreadable: {e}; repair the file or remove it and re-run; no MP4 was written",
+                    jpath.display()
+                );
+                push_stage(
+                    &mut stages,
+                    render::render::StageTiming::failed("frames", ms, "journal unreadable".to_string()),
+                );
+                stage_line(json, &format!("stage frames: failed ({ms}ms): {msg}"));
+                print_timing_line(json, &stages, total_start.elapsed().as_millis() as u64);
+                note_log(folder, "warn", "render", &run, &msg, json);
+                if json {
+                    println!(
+                        "{}",
+                        format_render_json(&RenderJson {
+                            folder,
+                            status: "invalid",
+                            exit: 1,
+                            backend: opts.backend.name(),
+                            preset: opts.preset.name(),
+                            format: opts.format.name(),
+                            resolution: opts.resolution.name(),
+                            supersample: opts.supersample,
+                            enc: &opts.encoder(),
+                            output: "",
+                            message: &msg,
+                            cache_hits: 0,
+                            cache_misses: 0,
+                            peaks: None,
+                            normalize: None,
+                            diagnostics: &[],
+                            stages: &stages,
+                            total_ms: total_start.elapsed().as_millis() as u64
+                        })
+                    );
+                } else {
+                    println!("{msg}");
+                }
+                return 1;
+            }
+        }
+    } else {
+        None
+    };
     // Sprint 12 outputs (T004): the HDR decision resolves from the
     // requested mode plus the probed source transfers, before the
     // first frame and before any output exists. A refusal here names
@@ -5652,8 +6108,124 @@ pub fn cmd_render_full(folder: &Path, output: Option<&Path>, req: &RenderRequest
 
     // Frames stage, second half, plus encode: draw in parallel in bounded
     // batches, re-emit in frame order, and rename the MP4 into place.
-    let (done_msg, draw_ms, encode_ms) =
-        match render::render::render_staged(&prep, &plan, &opts, &ffmpeg_bin, &dest, &scale) {
+    // A chunked run draws and encodes each planned chunk independently
+    // through the same staged path, then reassembles in plan order.
+    let (done_msg, draw_ms, encode_ms) = match (|| -> Result<(String, u64, u64), String> {
+        if let (Some(workers), Some(ranges), render::outputs::ResolvedOutput::File { path }) =
+            (&workers_sel, &chunk_ranges, &dest)
+        {
+            // Sprint 26 parallel render (T002 / CAP-006): invited
+            // workers render the chunks over the local network;
+            // the coordinator reassembles through the same T001
+            // path and names every chunk's worker.
+            let final_path = path.clone();
+            let composition_file = folder.join(validate_mod::COMPOSITION_FILE);
+            let composition_source = std::fs::read_to_string(&composition_file).map_err(|e| {
+                format!(
+                    "render refused: cannot read the composition source {} for LAN dispatch: {e} (validation stage); no MP4 was written",
+                    composition_file.display()
+                )
+            })?;
+            let (provenance_version, provenance_digest) = match &opts.provenance {
+                Some(p) => (p.version.clone(), p.digest.clone()),
+                None => (String::new(), String::new()),
+            };
+            let hook = |line: &str| {
+                stage_line(json, line);
+                note_log(folder, "info", "render", &run, line, json);
+            };
+            let outcome = render::lan::render_distributed(render::lan::LanInputs {
+                prep: &mut prep,
+                full_plan: &plan,
+                opts: &opts,
+                ffmpeg_bin: &ffmpeg_bin,
+                final_path: &final_path,
+                scale: &scale,
+                chunks: ranges.as_slice(),
+                composition_source: &composition_source,
+                composition_name: &scaled_comp.name,
+                variables_json: req.variables.as_deref(),
+                strict_variables: resolved.strict_variables,
+                theme: resolved.theme.as_deref(),
+                range_start: range.map(|r| r.start),
+                range_end: range.map(|r| r.end),
+                provenance_version: &provenance_version,
+                provenance_digest: &provenance_digest,
+                workers: &workers.addresses,
+                token: &workers.token,
+                timeout: render::lan::worker_chunk_timeout(),
+                on_progress: Some(&hook),
+            })?;
+            if let Some(mix) = &plan.mix_pcm {
+                let _ = std::fs::remove_file(mix);
+            }
+            let dir_note = format!(
+                "stage chunks: chunk artifacts kept in {}",
+                outcome.chunk_dir.display()
+            );
+            stage_line(json, &dir_note);
+            note_log(folder, "info", "render", &run, &dir_note, json);
+            for (receipt, worker) in outcome
+                .receipts
+                .iter()
+                .zip(outcome.workers.iter())
+            {
+                let line = format!(
+                    "stage workers: chunk {} rendered on {worker}",
+                    receipt.index + 1
+                );
+                stage_line(json, &line);
+                note_log(folder, "info", "render", &run, &line, json);
+            }
+            Ok((outcome.message, outcome.draw_ms, outcome.encode_ms))
+        } else if let (Some(ranges), render::outputs::ResolvedOutput::File { path }) =
+            (&chunk_ranges, &dest)
+        {
+            let final_path = path.clone();
+            let journal_path = render::journal::journal_path_for(folder, &final_path);
+            let outcome = render::chunk::render_chunked_with_journal(
+                &mut prep,
+                &plan,
+                &opts,
+                &ffmpeg_bin,
+                &final_path,
+                &scale,
+                ranges,
+                Some(&journal_path),
+                &run,
+                req.resume,
+                Some(&|line: &str| {
+                    stage_line(json, line);
+                    note_log(folder, "info", "render", &run, line, json);
+                }),
+            )?;
+            // The staged full mix is a work file: only the destination
+            // plus the run log record remain after a render, exactly
+            // like single-pass.
+            if let Some(mix) = &plan.mix_pcm {
+                let _ = std::fs::remove_file(mix);
+            }
+            let dir_note = format!(
+                "stage chunks: chunk artifacts kept in {}",
+                outcome.chunk_dir.display()
+            );
+            stage_line(json, &dir_note);
+            note_log(folder, "info", "render", &run, &dir_note, json);
+            // Sprint 26, T004 / CAP-004: the probe judged the
+            // reassembled output against the single-pass oracle;
+            // its measurements ride the stage report.
+            for line in outcome.probe.measurement_lines() {
+                stage_line(json, &line);
+                note_log(folder, "info", "render", &run, &line, json);
+            }
+            let verdict = outcome.probe.verdict_line(true);
+            stage_line(json, &verdict);
+            note_log(folder, "info", "render", &run, &verdict, json);
+            Ok((outcome.message, outcome.draw_ms, outcome.encode_ms))
+        } else {
+            render::render::render_staged(&prep, &plan, &opts, &ffmpeg_bin, &dest, &scale)
+        }
+    })() {
             Ok(outcome) => outcome,
             Err(e) => {
                 if render::cancel::is_cancel_error(&e) || render::cancel::is_cancelled() {
@@ -9012,6 +9584,170 @@ struct BenchmarkResult {
     first_rgb: Vec<u8>,
 }
 
+/// `verify` request (Sprint 26, T004 / CAP-004, CAP-009): the
+/// candidate file to judge, the single-pass oracle file to judge
+/// it against, whether JSON output is wanted, and whether the
+/// candidate must name chunking in its provenance stamp.
+pub struct VerifyRequest {
+    pub candidate: PathBuf,
+    pub oracle: PathBuf,
+    pub json: bool,
+    pub chunked: bool,
+}
+
+/// `verify` (Sprint 26, T004 / CAP-004, CAP-009): judge one file
+/// against the single-pass oracle inside the codec noise band.
+/// Decoded video compares frame-aligned, decoded audio
+/// sample-aligned, counts exact; the measurement and the verdict
+/// print, claiming only within-noise equivalence — never
+/// single-pass byte identity. Beyond the band the run refuses
+/// naming the disagreeing frames and promotes nothing; the oracle
+/// checker judges single-pass outputs the same way. With
+/// `--chunked`, the candidate must additionally name chunking in
+/// its container stamp. Read-only: writes nothing. Exits 0
+/// within noise, 1 beyond noise or undecodable, 2 on usage errors.
+pub fn cmd_verify(req: &VerifyRequest) -> i32 {
+    use std::fmt::Write;
+    let json = req.json;
+    let finding = ffmpeg_mod::detect();
+    let cfg = bootstrap::BootstrapConfig::from_env(true);
+    let ffmpeg_bin = match bootstrap::ensure_ffmpeg(&finding, &cfg) {
+        bootstrap::Bootstrap::Ready {
+            ffmpeg_path,
+            downloaded: _,
+            announcements,
+        } => {
+            for a in &announcements {
+                println!("{a}");
+            }
+            ffmpeg_path
+        }
+        bootstrap::Bootstrap::Refused { message, .. } => {
+            if json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"verify\",\"status\":\"failed\",\"exit\":1,\"message\":\"{}\"}}",
+                    json_escape(&message)
+                );
+            } else {
+                println!("{message}");
+            }
+            return 1;
+        }
+    };
+    let band = render::probe::NoiseBand::default();
+    let report = match render::probe::probe_files(
+        &ffmpeg_bin,
+        &req.candidate,
+        &req.oracle,
+        &band,
+    ) {
+        Ok(report) => report,
+        Err(e) => {
+            if json {
+                println!(
+                    "{{\"tool\":\"framesmith\",\"command\":\"verify\",\"status\":\"refused\",\"exit\":1,\"candidate\":\"{}\",\"oracle\":\"{}\",\"message\":\"{}\"}}",
+                    json_escape(&req.candidate.display().to_string()),
+                    json_escape(&req.oracle.display().to_string()),
+                    json_escape(&e)
+                );
+            } else {
+                println!("{e}");
+            }
+            return 1;
+        }
+    };
+    let comment = render::probe::container_comment(&ffmpeg_bin, &req.candidate);
+    let names_chunking = comment.as_deref().is_some_and(render::probe::is_chunked_stamp);
+    let mut out = String::new();
+    let _ = writeln!(
+        out,
+        "verify candidate {} oracle {}",
+        req.candidate.display(),
+        req.oracle.display()
+    );
+    for line in report.measurement_lines() {
+        let _ = writeln!(out, "{line}");
+    }
+    match &comment {
+        Some(c) => {
+            let _ = writeln!(out, "verify provenance: {c}");
+        }
+        None => {
+            let _ = writeln!(out, "verify provenance: none read back");
+        }
+    }
+    let _ = writeln!(
+        out,
+        "verify provenance {} chunking",
+        if names_chunking { "names" } else { "does not name" }
+    );
+    if !report.within_noise {
+        let refusal = report.refusal(&req.candidate, &req.oracle);
+        let _ = writeln!(out, "{refusal}");
+        if json {
+            println!(
+                "{{\"tool\":\"framesmith\",\"command\":\"verify\",\"status\":\"refused\",\"exit\":1,\"within_noise\":false,\"provenance_chunked\":{names_chunking},\"comment\":{},\"video_max\":{},\"video_mean\":{:.3},\"video_psnr\":{:.1},\"audio_max\":{},\"audio_mean\":{:.3},\"frames_candidate\":{},\"frames_oracle\":{},\"disagreeing_frames\":{:?},\"message\":\"{}\"}}",
+                match &comment {
+                    Some(c) => format!("\"{}\"", json_escape(c)),
+                    None => "null".to_string(),
+                },
+                report.video_max,
+                report.video_mean,
+                report.video_psnr,
+                report.audio_max,
+                report.audio_mean,
+                report.frames_candidate,
+                report.frames_oracle,
+                report.disagreeing_frames,
+                json_escape(&refusal)
+            );
+        } else {
+            print!("{out}");
+        }
+        return 1;
+    }
+    if req.chunked && !names_chunking {
+        let msg = format!(
+            "verify refused: {} does not name chunking in its provenance stamp; a chunked output must say so",
+            req.candidate.display()
+        );
+        let _ = writeln!(out, "{msg}");
+        if json {
+            println!(
+                "{{\"tool\":\"framesmith\",\"command\":\"verify\",\"status\":\"refused\",\"exit\":1,\"within_noise\":true,\"provenance_chunked\":{names_chunking},\"message\":\"{}\"}}",
+                json_escape(&msg)
+            );
+        } else {
+            print!("{out}");
+        }
+        return 1;
+    }
+    let verdict = report.verdict_line(req.chunked);
+    let _ = writeln!(out, "{verdict}");
+    if json {
+        println!(
+            "{{\"tool\":\"framesmith\",\"command\":\"verify\",\"status\":\"within-noise\",\"exit\":0,\"within_noise\":true,\"provenance_chunked\":{names_chunking},\"comment\":{},\"video_max\":{},\"video_mean\":{:.3},\"video_psnr\":{:.1},\"audio_max\":{},\"audio_mean\":{:.3},\"frames_candidate\":{},\"frames_oracle\":{},\"duration_candidate\":{:.3},\"duration_oracle\":{:.3},\"message\":\"{}\"}}",
+            match &comment {
+                Some(c) => format!("\"{}\"", json_escape(c)),
+                None => "null".to_string(),
+            },
+            report.video_max,
+            report.video_mean,
+            report.video_psnr,
+            report.audio_max,
+            report.audio_mean,
+            report.frames_candidate,
+            report.frames_oracle,
+            report.duration_candidate,
+            report.duration_oracle,
+            json_escape(&verdict)
+        );
+    } else {
+        print!("{out}");
+    }
+    0
+}
+
 /// `benchmark`: render the bundled references twice each, report
 /// per-reference timings with versions and date, and label the
 /// numbers machine-specific (Sprint 13 check, T006 / CAP-006). With
@@ -9466,6 +10202,66 @@ fn spawn_serve_child(
 
 /// `preview`: start (or reuse) one background server and print its
 /// URL. Returns the process exit code.
+/// `framesmith worker-serve --port <n> --token <secret> [--bind
+/// <addr>]`: the invited LAN worker process (Sprint 26, T002 /
+/// CAP-006). A worker never serves without the maker's token —
+/// it refuses to listen instead. Each request resolves this
+/// worker's own FFmpeg from the pinned registry (latest build,
+/// per request), renders exactly the chunk in the spec, and
+/// returns its artifact plus receipt; an uninvited request is
+/// refused naming the invitation.
+pub fn cmd_worker_serve(bind: Option<&str>, port_raw: String, token: Option<&str>) -> i32 {
+    let port: u16 = match port_raw.trim().parse() {
+        Ok(p) => p,
+        Err(_) => {
+            eprintln!(
+                "framesmith worker-serve: --port {port_raw:?} is not a port number from 0 to 65535."
+            );
+            return 2;
+        }
+    };
+    match token {
+        Some(t) if !t.trim().is_empty() => {}
+        _ => {
+            eprintln!(
+                "framesmith worker-serve: a worker never serves uninvited: pass --token <secret> (the secret the coordinator passes with --worker-token)."
+            );
+            return 2;
+        }
+    }
+    let token = token.unwrap().to_string();
+    let addr = match bind {
+        Some(b) if !b.trim().is_empty() => format!("{}:{port}", b.trim()),
+        _ => format!("0.0.0.0:{port}"),
+    };
+    let resolve_ffmpeg = || -> Result<PathBuf, String> {
+        let finding = ffmpeg_mod::detect();
+        let cfg = bootstrap::BootstrapConfig::from_env(true);
+        match bootstrap::ensure_ffmpeg(&finding, &cfg) {
+            bootstrap::Bootstrap::Ready {
+                ffmpeg_path,
+                announcements,
+                ..
+            } => {
+                for a in &announcements {
+                    println!("{a}");
+                }
+                Ok(ffmpeg_path)
+            }
+            bootstrap::Bootstrap::Refused { message, .. } => Err(message),
+        }
+    };
+    let log_hook = |line: &str| {
+        println!("{line}");
+    };
+    let log_hook: &(dyn Fn(&str) + Send + Sync) = &log_hook;
+    if let Err(e) = render::lan::serve_worker(&addr, &token, &resolve_ffmpeg, log_hook) {
+        eprintln!("framesmith worker-serve: {e}");
+        return 1;
+    }
+    0
+}
+
 pub fn cmd_preview(folder: &Path, req: &PreviewStartRequest) -> i32 {
     cmd_start(
         "preview",

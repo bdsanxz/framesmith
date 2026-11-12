@@ -1045,6 +1045,7 @@ dependencies = [
  "notation",
  "png",
  "resvg",
+ "serde",
  "serde_json",
  "threed",
  "timebase",

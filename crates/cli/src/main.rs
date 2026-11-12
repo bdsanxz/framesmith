@@ -60,7 +60,8 @@ fn usage() -> ! {
          \x20 framesmith tts <text...> [--voice <voice>] [--speed <f>] [--language <lang>] [--model <name>] [--engine auto|NAME|stub] [-o <out.wav>]\n\
          \x20 framesmith remove-background <input.png> [--quality fast|balanced|precise] [--model <name>] [--engine auto|NAME|stub] [-o <outdir>]\n\
          \x20 framesmith beats <input.wav> [-o <out.beats.json>]\n\
-         \x20 framesmith benchmark [--json] [--out <dir>]\n\
+         \x20 framesmith benchmark [--json] [--out <dir>]
+         \x20 framesmith verify [--json] [--chunked] <candidate> --oracle <oracle>  judge a file against the single-pass oracle within the codec noise band\n\
          \x20 framesmith errors [--json] [CODE]
          \x20 framesmith catalog search <words...> [--json] [--registry <dir>]
          \x20 framesmith catalog show <name> [--json] [--registry <dir>]
@@ -84,7 +85,7 @@ fn usage() -> ! {
          \x20 framesmith resume [--json] [--words <text>] [--who <name>] <folder>\n\
          \x20 framesmith info [--json] [--composition <name>] <folder> [<name>]\n\
          \x20 framesmith waveform [--json] [--composition <name>] [--buckets N] <folder> [<name>]\n\
-         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|mov|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080|4k] [--supersample 1|2|3|4] [--encoder auto|software|cpu|videotoolbox|nvenc|vaapi|qsv|amf] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
+         \x20 framesmith render <folder> [-o <output>] [--composition <name>] [--start S] [--end E] [--backend cpu|gpu|auto] [--preset draft|standard|high] [--crf N] [--video-bitrate B] [--format mp4|hevc|webm|mov|prores|gif|pngseq|hls] [--prores-profile proxy|lt|standard|hq|4444] [--resolution source|1080p|720p|480p|square-1080|4k] [--supersample 1|2|3|4] [--encoder auto|software|cpu|videotoolbox|nvenc|vaapi|qsv|amf] [--keyint N] [--maxrate B] [--hdr off|pq|hlg|auto] [--chunks N|--chunk-size N] [--workers host:port,...] [--worker-token SECRET] [--resume] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] [--json]\n\
          \x20 framesmith render <folder> --batch rows.json [--name-template TPL] [--jobs N] [--fail-fast]  one MP4 per row\n\
          \x20 framesmith grade-bake [--composition <name>] -o <out.cube> <folder>"
     );
@@ -218,6 +219,12 @@ fn doctor_usage_error(msg: &str) -> ! {
 fn benchmark_usage_error(msg: &str) -> ! {
     eprintln!("framesmith benchmark: {msg}.");
     eprintln!("usage: framesmith benchmark [--json] [--out <dir>]");
+    std::process::exit(2);
+}
+
+fn verify_usage_error(msg: &str) -> ! {
+    eprintln!("framesmith verify: {msg}.");
+    eprintln!("usage: framesmith verify [--json] [--chunked] <candidate> --oracle <oracle>");
     std::process::exit(2);
 }
 
@@ -704,6 +711,69 @@ fn main() {
                             std::process::exit(2);
                         }
                         req.hdr = Some(args[i].clone());
+                    }
+                    "--chunks" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith render: --chunks needs a value (a chunk count of 1 or more)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if req.chunks.is_some() {
+                            eprintln!("framesmith render: duplicate --chunks flag.");
+                            std::process::exit(2);
+                        }
+                        req.chunks = Some(args[i].clone());
+                    }
+                    "--chunk-size" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith render: --chunk-size needs a value (frames per chunk, 1 or more)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if req.chunk_size.is_some() {
+                            eprintln!("framesmith render: duplicate --chunk-size flag.");
+                            std::process::exit(2);
+                        }
+                        req.chunk_size = Some(args[i].clone());
+                    }
+                    "--resume" => {
+                        if req.resume {
+                            eprintln!("framesmith render: duplicate --resume flag.");
+                            std::process::exit(2);
+                        }
+                        req.resume = true;
+                    }
+                    "--workers" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith render: --workers needs a value (a comma-separated host:port invitation list)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if req.workers.is_some() {
+                            eprintln!("framesmith render: duplicate --workers flag.");
+                            std::process::exit(2);
+                        }
+                        req.workers = Some(args[i].clone());
+                    }
+                    "--worker-token" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith render: --worker-token needs a value (the invitation secret the workers were started with)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if req.worker_token.is_some() {
+                            eprintln!("framesmith render: duplicate --worker-token flag.");
+                            std::process::exit(2);
+                        }
+                        req.worker_token = Some(args[i].clone());
                     }
                     "--json" => {
                         if req.json {
@@ -1685,6 +1755,78 @@ fn main() {
                 None => preview_usage_error("missing <folder>"),
             }
         }
+        "worker-serve" => {
+            let mut bind: Option<String> = None;
+            let mut port: Option<String> = None;
+            let mut token: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--bind" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith worker-serve: --bind needs a value (an interface address, for example 192.168.1.10)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if bind.is_some() {
+                            eprintln!("framesmith worker-serve: duplicate --bind flag.");
+                            std::process::exit(2);
+                        }
+                        bind = Some(args[i].clone());
+                    }
+                    "--port" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith worker-serve: --port needs a value (a port number, 0 picks a free port)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if port.is_some() {
+                            eprintln!("framesmith worker-serve: duplicate --port flag.");
+                            std::process::exit(2);
+                        }
+                        port = Some(args[i].clone());
+                    }
+                    "--token" => {
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!(
+                                "framesmith worker-serve: --token needs a value (the invitation secret the coordinator passes with --worker-token)."
+                            );
+                            std::process::exit(2);
+                        }
+                        if token.is_some() {
+                            eprintln!("framesmith worker-serve: duplicate --token flag.");
+                            std::process::exit(2);
+                        }
+                        token = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        eprintln!("framesmith worker-serve: unknown flag {other:?}.");
+                        std::process::exit(2);
+                    }
+                    other => {
+                        eprintln!("framesmith worker-serve: unexpected argument {other:?}.");
+                        std::process::exit(2);
+                    }
+                }
+                i += 1;
+            }
+            match port {
+                Some(p) => commands::cmd_worker_serve(
+                    bind.as_deref(),
+                    p,
+                    token.as_deref(),
+                ),
+                None => {
+                    eprintln!("framesmith worker-serve: missing --port (a port number).");
+                    std::process::exit(2);
+                }
+            }
+        }
         "play" => {
             let mut req = commands::PreviewStartRequest::default();
             let mut folder: Option<String> = None;
@@ -2000,6 +2142,61 @@ fn main() {
                 i += 1;
             }
             commands::cmd_benchmark(&req)
+        }
+        "verify" => {
+            let mut candidate: Option<String> = None;
+            let mut oracle: Option<String> = None;
+            let mut json = false;
+            let mut chunked = false;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--oracle" => {
+                        i += 1;
+                        if i >= args.len() {
+                            verify_usage_error("--oracle needs a value (the single-pass oracle file)");
+                        }
+                        if oracle.is_some() {
+                            verify_usage_error("duplicate --oracle flag");
+                        }
+                        oracle = Some(args[i].clone());
+                    }
+                    "--json" => {
+                        if json {
+                            verify_usage_error("duplicate --json flag");
+                        }
+                        json = true;
+                    }
+                    "--chunked" => {
+                        if chunked {
+                            verify_usage_error("duplicate --chunked flag");
+                        }
+                        chunked = true;
+                    }
+                    other if other.starts_with('-') => {
+                        verify_usage_error(&format!("unknown flag {other:?}"));
+                    }
+                    other => {
+                        if candidate.is_some() {
+                            verify_usage_error(&format!(
+                                "expected exactly one <candidate>, found extra {other:?}"
+                            ));
+                        }
+                        candidate = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            match (candidate, oracle) {
+                (Some(cand), Some(orc)) => commands::cmd_verify(&commands::VerifyRequest {
+                    candidate: PathBuf::from(cand),
+                    oracle: PathBuf::from(orc),
+                    json,
+                    chunked,
+                }),
+                (None, _) => verify_usage_error("expected exactly one <candidate> file"),
+                (Some(_), None) => verify_usage_error("--oracle needs a value (the single-pass oracle file)"),
+            }
         }
         "-h" | "--help" | "help" => {
             println!(
