@@ -183,7 +183,8 @@ fn arabic_lam_alef_shapes_mandatory_ligature() {
     assert_eq!(
         glyph_count(&block),
         1,
-        "lam plus alef must shape into one mandatory ligature glyph"
+        "lam plus alef must shape into one mandatory ligature glyph, got {} glyphs",
+        glyph_count(&block)
     );
 }
 
@@ -202,7 +203,9 @@ fn arabic_word_shapes_fewer_glyphs_than_characters() {
     .expect("arabic must lay out");
     assert!(
         glyph_count(&block) < word.chars().count(),
-        "ligatures must merge glyphs below the character count"
+        "ligatures must merge glyphs below the character count, got {} for {} chars",
+        glyph_count(&block),
+        word.chars().count()
     );
 }
 
