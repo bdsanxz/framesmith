@@ -616,11 +616,20 @@ fn delete_says_what_was_removed_and_refuses_running_jobs() {
     assert!(queue_of(&folder).is_empty());
     let unknown = studio_renders::delete_job(&folder, 7).expect_err("unknown refuses");
     assert!(unknown.contains("unknown job"), "{unknown}");
-    // A crafted running row refuses until cancelled.
-    let raw = format!(
-        "{{\"version\":1,\"jobs\":[{{\"seq\":3,\"composition\":\"t\",\"status\":\"running\",\"output\":\"{}/ghost.mp4\",\"actor\":\"maker\",\"lint\":0}}]}}",
-        folder.join(".framesmith").join("studio-renders").display()
-    );
+    // A crafted running row refuses until cancelled (serialized with
+    // proper JSON escaping: bare Windows paths would not parse).
+    let raw = serde_json::to_string(&serde_json::json!({
+        "version": 1,
+        "jobs": [{
+            "seq": 3,
+            "composition": "t",
+            "status": "running",
+            "output": folder.join(".framesmith").join("studio-renders").join("ghost.mp4").display().to_string(),
+            "actor": "maker",
+            "lint": 0,
+        }]
+    }))
+    .unwrap();
     std::fs::create_dir_all(folder.join(".framesmith")).unwrap();
     std::fs::write(
         folder.join(".framesmith").join("studio-render-queue.json"),
@@ -1067,11 +1076,29 @@ fn restarted_server_fails_interrupted_rows_while_queued_rows_wait() {
             std::fs::write(&partial, b"partial").unwrap();
             std::fs::write(
                 folder.join(".framesmith").join("studio-render-queue.json"),
-                format!(
-                    "{{\"version\":1,\"jobs\":[{{\"seq\":1,\"composition\":\"t\",\"status\":\"running\",\"stage\":\"frames\",\"output\":\"{}\",\"actor\":\"maker\",\"lint\":0}},{{\"seq\":2,\"composition\":\"t\",\"status\":\"queued\",\"output\":\"{}\",\"actor\":\"maker\",\"lint\":0}}]}}",
-                    partial.display(),
-                    renders.join("t-2.mp4").display()
-                ),
+                serde_json::to_string(&serde_json::json!({
+                    "version": 1,
+                    "jobs": [
+                        {
+                            "seq": 1,
+                            "composition": "t",
+                            "status": "running",
+                            "stage": "frames",
+                            "output": partial.display().to_string(),
+                            "actor": "maker",
+                            "lint": 0,
+                        },
+                        {
+                            "seq": 2,
+                            "composition": "t",
+                            "status": "queued",
+                            "output": renders.join("t-2.mp4").display().to_string(),
+                            "actor": "maker",
+                            "lint": 0,
+                        },
+                    ]
+                }))
+                .unwrap(),
             )
             .unwrap();
         },
