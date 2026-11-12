@@ -214,7 +214,13 @@ fn delay_taps_land_at_exact_multiples_with_decaying_gains() {
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (96000..=96000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let dry = peak(&pcm, 0, 2400);
     let tap1 = peak(&pcm, 14400, 16800);
     let tap2 = peak(&pcm, 28800, 31200);

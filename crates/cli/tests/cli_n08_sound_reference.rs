@@ -201,7 +201,13 @@ fn reference_matches_hand_values_and_rerenders_identically() {
     let (code, _) = run(&["render", ".", "-o", "out.mp4"], &folder);
     assert_eq!(code, 0);
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 4 * 48_000);
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (4 * 48_000..=4 * 48_000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let bed = |t0: f64, t1: f64| goertzel(&pcm, 440.0, t0, t1, 0);
     // Volume ramp: env mean 1.0 over [0.7,0.9] vs 0.7 over [0.1,0.3].
     let ramp = bed(0.7, 0.9) / bed(0.1, 0.3);
@@ -314,7 +320,12 @@ fn reference_refusals_and_range_agree() {
     assert!(out.contains("rendering sub-range 1.000s..3.000s"), "{out}");
     let full = decode_audio(&folder.join("full.mp4"));
     let rng = decode_audio(&folder.join("range.mp4"));
-    assert_eq!(rng.len() / 2, 2 * 48_000);
+    // AAC priming/trim differs across FFmpeg versions (see above).
+    let samples = rng.len() / 2;
+    assert!(
+        (2 * 48_000..=2 * 48_000 + 1024).contains(&samples),
+        "range mix, got {samples}"
+    );
     for (freq, t0, t1) in [
         (440.0, 1.1, 1.4),
         (660.0, 1.1, 1.4),

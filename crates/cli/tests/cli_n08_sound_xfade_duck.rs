@@ -141,7 +141,13 @@ fn default_overlap_blends_constant_power() {
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 144000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (144000..=144000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let mid = peak(&pcm, 68000, 76000);
     let alone = peak(&pcm, 120000, 139200);
     println!("constant-power blend: mid-overlap peak={mid} alone peak={alone}");
@@ -298,7 +304,12 @@ fn bed_ducks_under_voice_and_returns_to_full() {
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 192000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (see above).
+    let samples = pcm.len() / 2;
+    assert!(
+        (192000..=192000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let outside = rms(&pcm, 9600, 38400);
     let under = rms(&pcm, 72000, 120000);
     let after = rms(&pcm, 153600, 182400);

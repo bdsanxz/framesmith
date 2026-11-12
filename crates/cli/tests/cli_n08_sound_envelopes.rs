@@ -159,7 +159,13 @@ fn volume_key_shapes_the_audible_ramp() {
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (96000..=96000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let early = peak(&pcm, 480, 4800, 0);
     let mid = peak(&pcm, 43000, 48000, 0);
     let end = peak(&pcm, 91000, 95500, 0);

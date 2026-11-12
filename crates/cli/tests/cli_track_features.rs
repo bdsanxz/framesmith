@@ -134,7 +134,13 @@ fn trims_on_both_ends_sound_exactly_the_window() {
     let (code, out) = run(&["render", "proj"], &root);
     assert_eq!(code, 0, "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 144000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (144000..=144000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let onset = onset_frame(&pcm, 500).expect("trimmed tone must be audible");
     println!("both-ends onset: frame {onset}, written 24000");
     assert!(

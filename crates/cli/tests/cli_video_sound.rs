@@ -189,7 +189,13 @@ fn video_sound_mixes_at_unity_by_default_and_aligns_with_picture() {
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("stage audio: ok"), "{out}");
     let pcm = decode_audio(&folder.join("out.mp4"));
-    assert_eq!(pcm.len() / 2, 96000, "full-duration mix");
+    // AAC priming/trim differs across FFmpeg versions (up to one
+    // 1024-sample frame of overshoot on older builds).
+    let samples = pcm.len() / 2;
+    assert!(
+        (96000..=96000 + 1024).contains(&samples),
+        "full-duration mix, got {samples}"
+    );
     let onset = onset_frame(&pcm, 500).expect("video sound must be audible");
     println!("video onset: frame {onset}, written 24000");
     assert!(
