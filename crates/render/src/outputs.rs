@@ -422,19 +422,66 @@ pub fn resolve_auto(
         return None;
     }
     let text = encoders_text(ffmpeg_bin).ok()?;
-    if hardware_hidden_by_hook() {
-        let filtered: String = text
-            .lines()
+    let text = if hardware_hidden_by_hook() {
+        text.lines()
             .filter(|line| {
                 let mut parts = line.split_whitespace();
                 let _ = parts.next();
                 !matches!(parts.next(), Some("h264_videotoolbox") | Some("hevc_videotoolbox"))
             })
             .collect::<Vec<_>>()
-            .join("\n");
-        return resolve_auto_with_listing(&filtered, format, std::env::consts::OS);
+            .join("\n")
+    } else {
+        text
+    };
+    // A listing can name an encoder whose device/driver is absent
+    // (h264_nvenc without NVIDIA hardware): such an encoder must not
+    // win the priority, or the render dies at the encode stage
+    // instead of falling back. Each listed candidate must first
+    // pass [`encoder_opens`].
+    for &choice in auto_priority_for(std::env::consts::OS) {
+        let Some(codec) = hardware_encoder_for_choice(format, choice) else {
+            continue;
+        };
+        if !text_has_encoder(&text, codec) {
+            continue;
+        }
+        if encoder_opens(ffmpeg_bin, codec) {
+            return Some((codec, choice));
+        }
     }
-    resolve_auto_with_listing(&text, format, std::env::consts::OS)
+    None
+}
+
+/// Smoke-probe one hardware encoder with a 1-frame null encode
+/// through the host FFmpeg binary: `true` when the encoder opens
+/// on this machine. The probe is a strict subset of the real
+/// hardware encode argv (`-c:v <codec> -pix_fmt yuv420p`), so a
+/// failure here means the real encode would fail at the same step.
+fn encoder_opens(ffmpeg_bin: &Path, codec: &str) -> bool {
+    std::process::Command::new(ffmpeg_bin)
+        .args([
+            "-nostdin",
+            "-v",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=64x64:d=0.04",
+            "-frames:v",
+            "1",
+            "-c:v",
+            codec,
+            "-pix_fmt",
+            "yuv420p",
+            "-f",
+            "null",
+            "-",
+        ])
+        .output()
+        .map(|out| out.status.success())
+        .unwrap_or(false)
 }
 
 /// The hardware encoders present in one `-encoders` listing text
@@ -2175,6 +2222,24 @@ mod tests {
         assert_eq!(maxrate_bufsize("500000"), "1000000");
         assert_eq!(maxrate_bufsize("1.5M"), "3M");
         assert!(maxrate_accepted().contains("8M"));
+    }
+
+    #[test]
+    fn smoke_probe_rejects_a_missing_binary_and_accepts_the_host_encoder() {
+        // Deterministic without host ffmpeg: a missing binary never opens.
+        assert!(!encoder_opens(
+            Path::new("definitely-not-a-real-binary"),
+            "libx264"
+        ));
+        // With host ffmpeg on PATH (CI and dev machines), the software
+        // encoder opens.
+        let host = std::process::Command::new("ffmpeg")
+            .args(["-hide_banner", "-version"])
+            .output();
+        if !matches!(host, Ok(out) if out.status.success()) {
+            return;
+        }
+        assert!(encoder_opens(Path::new("ffmpeg"), "libx264"));
     }
 
     #[test]
