@@ -169,7 +169,10 @@ fn full_daemon_lifecycle_through_the_binary() {
     // Start binds a free port and prints its URL.
     let (code, out) = run(&reg, &["preview", p1.to_str().unwrap()]);
     assert_eq!(code, 0, "{out}");
-    let (url1, port1) = extract_url(&out).expect("start prints its URL: {out}");
+    let (url1, port1) = match extract_url(&out) {
+        Some(pair) => pair,
+        None => panic!("start prints its URL, got: {out}"),
+    };
 
     // Status names the project and port.
     let (code, out) = run(&reg, &["preview-status", p1.to_str().unwrap()]);
@@ -182,7 +185,10 @@ fn full_daemon_lifecycle_through_the_binary() {
     let (code, out) = run(&reg, &["preview", p1.to_str().unwrap()]);
     assert_eq!(code, 0, "{out}");
     assert!(out.contains("already"), "{out}");
-    let (url1b, _) = extract_url(&out).expect("second start prints a URL: {out}");
+    let (url1b, _) = match extract_url(&out) {
+        Some(pair) => pair,
+        None => panic!("second start prints a URL, got: {out}"),
+    };
     assert_eq!(url1b, url1, "the existing URL is reused, not duplicated");
 
     // A busy preferred port falls forward with the new URL printed.
@@ -196,7 +202,10 @@ fn full_daemon_lifecycle_through_the_binary() {
         ],
     );
     assert_eq!(code, 0, "{out}");
-    let (url2, port2) = extract_url(&out).expect("fall-forward prints its URL: {out}");
+    let (url2, port2) = match extract_url(&out) {
+        Some(pair) => pair,
+        None => panic!("fall-forward prints its URL, got: {out}"),
+    };
     assert_ne!(port2, port1, "the busy port falls forward: {out}");
     assert_ne!(url2, url1);
 
