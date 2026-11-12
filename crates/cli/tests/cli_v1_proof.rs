@@ -158,19 +158,12 @@ fn gate_contract_invalid_and_later_folders_are_refused() {
 
 fn command_missing_hyperframes() -> bool {
     // The benchmark detects HyperFrames the same way: the pinned npm
-    // package via npx (there is no PATH binary on the proving machine).
-    // Keep this probe in sync with benchmark.sh, or the two disagree by
-    // construction. Missing means neither form is runnable.
-    let path_missing = Command::new("sh")
-        .args(["-c", "command -v hyperframes"])
-        .output()
-        .map(|o| !o.status.success())
-        .unwrap_or(true);
-    if !path_missing {
-        return false;
-    }
-    Command::new("npx")
-        .args(["--yes", "hyperframes@0.9.6", "--version"])
+    // package via npx, invoked through the shell (benchmark.sh does
+    // `npx --yes hyperframes@0.9.6 --version` in sh). Keep this probe
+    // in sync with benchmark.sh, or the two disagree by construction —
+    // a direct spawn of npx fails on Windows (.cmd needs a shell).
+    Command::new("sh")
+        .args(["-c", "npx --yes hyperframes@0.9.6 --version >/dev/null 2>&1"])
         .output()
         .map(|o| !o.status.success())
         .unwrap_or(true)
