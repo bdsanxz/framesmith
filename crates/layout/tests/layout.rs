@@ -172,10 +172,9 @@ fn unknown_family_refuses() {
 #[test]
 fn emoji_picture_or_explicit_refusal() {
     let mut fonts = Fonts::new();
-    let ffmpeg = ["ffmpeg", "/opt/homebrew/bin/ffmpeg", "/usr/bin/ffmpeg"]
-        .into_iter()
-        .map(std::path::PathBuf::from)
-        .find(|p| p.is_file());
+    // Resolve ffmpeg on PATH (the CI runner keeps it in a workspace
+    // dir, not a system prefix).
+    let ffmpeg = ffmpeg::ffmpeg::find_helper("ffmpeg");
     let result = layout(
         &mut fonts,
         "A\u{1F600}",
