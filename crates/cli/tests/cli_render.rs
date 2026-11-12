@@ -680,7 +680,10 @@ fn undecodable_audio_refuses_without_silent_track() {
     assert!(!folder.join("out.mp4").exists());
 }
 
+// `sh`-`ulimit` failure injection is Unix-only (byte-size limits do
+// not exist the same way on Windows).
 #[test]
+#[cfg(unix)]
 fn encode_failure_reports_stage_and_writes_no_mp4() {
     let root = tmp("encfail");
     let folder = root.join("proj");
@@ -1267,16 +1270,12 @@ fn unwritable_output_dir_refuses_with_path_named() {
         "composition.kdl",
         "composition name=\"t\" width=64 height=48 duration=1 fps=30 background=\"#000000\" version=1 {\n    text value=\"Hi\" start=0 duration=1\n}\n",
     );
+    // The output "directory" is a regular file: no OS can create
+    // the output under it, so the refusal holds everywhere (a
+    // read-only directory bit does not block writes on Windows).
     let outdir = root.join("locked");
-    std::fs::create_dir_all(&outdir).unwrap();
-    let mut perms = std::fs::metadata(&outdir).unwrap().permissions();
-    perms.set_readonly(true);
-    std::fs::set_permissions(&outdir, perms).unwrap();
+    std::fs::write(&outdir, b"not a directory").unwrap();
     let (code, out) = run(&["render", "proj", "-o", "locked/out.mp4"], &root);
-    // Restore so the temp dir can be cleaned up.
-    let mut perms = std::fs::metadata(&outdir).unwrap().permissions();
-    perms.set_readonly(false);
-    std::fs::set_permissions(&outdir, perms).unwrap();
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("locked"), "refusal names the path: {out}");
     assert!(

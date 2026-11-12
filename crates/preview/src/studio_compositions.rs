@@ -913,6 +913,31 @@ struct RenderQueueFile {
     jobs: Vec<RenderJob>,
 }
 
+/// Atomically persist `raw` at `path`: write a sibling temp file and
+/// rename it over the target, so a concurrent reader (for example a
+/// cancel handler racing a progress tick) never observes a truncated
+/// queue.
+pub(crate) fn write_queue_file(path: &Path, raw: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static N: AtomicU64 = AtomicU64::new(0);
+    let tmp = path.with_extension(format!(
+        "tmp-{}-{}",
+        std::process::id(),
+        N.fetch_add(1, Ordering::SeqCst)
+    ));
+    {
+        let mut file = std::fs::File::create(&tmp)?;
+        file.write_all(raw.as_bytes())?;
+        file.sync_all()?;
+    }
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    Ok(())
+}
+
 /// Read the persisted render queue: missing file means an empty queue
 /// (no banner); a corrupt or version-wrong file refuses naming the
 /// file, never guessed or clobbered.
@@ -1098,7 +1123,7 @@ pub fn queue_render_one(
             "the render queue cannot be encoded: {e}. Nothing was queued or rendered."
         )))
     })?;
-    std::fs::write(&path, raw).map_err(|e| {
+    write_queue_file(&path, &raw).map_err(|e| {
         RenderOneError::Refused(refused_compositions(format!(
             "the render queue {} cannot be written: {e}. Nothing was queued or rendered.",
             path.display()

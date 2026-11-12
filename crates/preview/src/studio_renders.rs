@@ -313,7 +313,7 @@ fn write_jobs(folder: &Path, jobs: &[RenderJob]) -> Result<(), String> {
             "the render queue cannot be encoded: {e}. Nothing changed."
         ))
     })?;
-    std::fs::write(&path, raw).map_err(|e| {
+    crate::studio_compositions::write_queue_file(&path, &raw).map_err(|e| {
         refused_renders(format!(
             "the render queue {} cannot be written: {e}. Nothing changed.",
             path.display()
