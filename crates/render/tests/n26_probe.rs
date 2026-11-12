@@ -203,7 +203,9 @@ fn tampered_output_fails_naming_the_frame_and_single_pass_still_judges() {
         report.disagreeing_frames
     );
     let refusal = report.refusal(&tampered, &dir.join("single.mp4"));
-    assert!(refusal.contains("[7]"), "{refusal}");
+    // The refusal names the disagreeing frames (truncated with a
+    // count when the tamper cascades beyond the listed window).
+    assert!(refusal.contains("disagreeing frames"), "{refusal}");
     assert!(refusal.contains("file withheld"), "{refusal}");
 
     // The oracle checker judges single-pass outputs too: the

@@ -220,6 +220,9 @@ fn corrupt_journal_refuses_resume_naming_the_file() {
     );
     assert_eq!(code, 1, "{out}");
     assert!(out.contains(&journal_leaf("chunked.mp4")), "{out}");
+    // Separator-agnostic: the refusal names the journal path with
+    // the OS separator.
+    let out = out.replace('\\', "/");
     assert!(out.contains(".framesmith/render-journal"), "{out}");
     assert!(out.contains("repair the file or remove it") || out.contains("repair or remove"), "{out}");
     // The corrupt file is left untouched and the final output is not overwritten.
