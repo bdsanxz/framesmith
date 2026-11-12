@@ -851,6 +851,9 @@ fn panel_writes_stay_hidden_and_sources_stay_byte_identical() {
         "composition sources stay byte-identical"
     );
     for (name, _) in tree_bytes(&folder) {
+        // Separator-agnostic: the hidden prefix holds on both sides
+        // of the slash/backslash divide.
+        let name = name.replace('\\', "/");
         assert!(
             name.starts_with(".framesmith/") || name == "composition.kdl",
             "only validated turns plus hidden studio state files land in the project, found {name}"
