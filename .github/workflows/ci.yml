@@ -29,19 +29,53 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      # End-to-end render tests need a real ffmpeg binary on PATH.
-      # Registry builds ship x265 without 10-bit (HDR encodes
-      # downgrade to 8-bit), so every OS installs the full
-      # package-manager build: Homebrew, apt, and choco.
+      # FFmpeg from the project's own registry (bdsanxz/ffmpeg-registry),
+      # pinned at 9.0.2 — the first release with x265 multilib
+      # (10/12-bit). Package-manager builds shipped x265 8-bit only
+      # and silently downgraded HDR encodes to yuv420p.
       - name: Install FFmpeg (macOS)
         if: matrix.label == 'macos'
-        run: brew install ffmpeg
+        run: |
+          arch=$(uname -m); [ "$arch" = "arm64" ] && asset=arm64 || asset=x64
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-osx-$asset.zip"
+          unzip -o -q ffmpeg.zip -d ffmpeg-registry
+          xattr -cr ffmpeg-registry/ffmpeg ffmpeg-registry/ffprobe 2>/dev/null || true
+          echo "$PWD/ffmpeg-registry" >> $GITHUB_PATH
+          ./ffmpeg-registry/ffmpeg -version | head -n 1
       - name: Install FFmpeg (Windows)
         if: matrix.label == 'windows'
-        run: choco install ffmpeg -y
+        shell: pwsh
+        run: |
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-windows-x64.zip"
+          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-registry -Force
+          "$PWD/ffmpeg-registry" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & .\ffmpeg-registry\ffmpeg.exe -version | Select-Object -First 1
       - name: Install FFmpeg (Linux)
         if: matrix.label == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: |
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-linux-x64.zip"
+          unzip -o -q ffmpeg.zip -d ffmpeg-registry
+          echo "$PWD/ffmpeg-registry" >> $GITHUB_PATH
+          ./ffmpeg-registry/ffmpeg -version | head -n 1
+      # Capability gate mirroring ffmpeg-registry/CAPABILITIES.md (the
+      # registry's scripts/verify-capabilities.sh): x265 multilib
+      # 10/12-bit plus volumedetect, loudnorm, and aeval.
+      - name: Verify capabilities (macOS)
+        if: matrix.label == 'macos'
+        run: |
+          ffmpeg -hide_banner -h encoder=libx265 | grep -E "yuv420p10le|yuv422p10le|yuv444p10le|yuv420p12le"
+          ffmpeg -hide_banner -filters | grep -E "volumedetect|loudnorm|aeval"
+      - name: Verify capabilities (Windows)
+        if: matrix.label == 'windows'
+        shell: pwsh
+        run: |
+          & ffmpeg -hide_banner -h encoder=libx265 | Select-String -Pattern "yuv420p10le|yuv422p10le|yuv444p10le|yuv420p12le"
+          & ffmpeg -hide_banner -filters | Select-String -Pattern "volumedetect|loudnorm|aeval"
+      - name: Verify capabilities (Linux)
+        if: matrix.label == 'linux'
+        run: |
+          ffmpeg -hide_banner -h encoder=libx265 | grep -E "yuv420p10le|yuv422p10le|yuv444p10le|yuv420p12le"
+          ffmpeg -hide_banner -filters | grep -E "volumedetect|loudnorm|aeval"
       - name: Build full workspace (${{ matrix.label }})
         run: cargo build --workspace
       - name: Run full test suite (${{ matrix.label }})

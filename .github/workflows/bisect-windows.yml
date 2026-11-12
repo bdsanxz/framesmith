@@ -16,7 +16,12 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install FFmpeg (Windows)
-        run: choco install ffmpeg -y
+        shell: pwsh
+        run: |
+          curl -fsSL -o ffmpeg.zip "https://github.com/bdsanxz/ffmpeg-registry/releases/download/9.0.2/ffmpeg-windows-x64.zip"
+          Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-registry -Force
+          "$PWD/ffmpeg-registry" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & .\ffmpeg-registry\ffmpeg.exe -version | Select-Object -First 1
       - name: Build all tests
         run: cargo test --workspace --no-run
       - name: Run every binary with timeout
