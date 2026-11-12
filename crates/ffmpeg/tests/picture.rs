@@ -34,6 +34,13 @@ fn which_ffmpeg() -> Option<PathBuf> {
         if cand.is_file() {
             return Some(cand);
         }
+        #[cfg(windows)]
+        {
+            let cand = dir.join("ffmpeg.exe");
+            if cand.is_file() {
+                return Some(cand);
+            }
+        }
     }
     None
 }

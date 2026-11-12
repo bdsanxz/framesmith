@@ -30,6 +30,13 @@ fn ffmpeg() -> PathBuf {
         if cand.is_file() {
             return cand;
         }
+        #[cfg(windows)]
+        {
+            let cand = dir.join("ffmpeg.exe");
+            if cand.is_file() {
+                return cand;
+            }
+        }
     }
     panic!("tests need ffmpeg on PATH");
 }
