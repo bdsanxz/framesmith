@@ -300,7 +300,10 @@ pub fn render_worker_chunk(
         ));
     }
 
-    let stamp = Instant::now().elapsed().as_millis() as u64;
+    // Monotonic per-chunk stamp (a process-relative clock reads 0
+    // here and previously collided across parallel workers and tests).
+    static STAMP: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let stamp = STAMP.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     let dir = work_root.join(format!(
         "lan-chunk-{}-{}-{}",
         spec.index,
