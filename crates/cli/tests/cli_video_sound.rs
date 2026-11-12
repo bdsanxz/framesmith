@@ -424,6 +424,29 @@ fn undecodable_video_sound_refuses_before_the_first_frame() {
         "-shortest",
         &folder.join("broken_av.mp4").display().to_string(),
     ]);
+    // Decode tolerance differs across FFmpeg versions: if this build
+    // resynchronizes the corrupt audio stream, the premise (an
+    // undecodable stream) does not hold; skip rather than fail on a
+    // tolerant decoder (same guard shape as has_bold_variant).
+    let decodes = Command::new("ffmpeg")
+        .args([
+            "-nostdin",
+            "-v",
+            "error",
+            "-i",
+            &folder.join("broken_av.mp4").display().to_string(),
+            "-map",
+            "0:a",
+            "-f",
+            "null",
+            "-",
+        ])
+        .output()
+        .expect("run host ffmpeg");
+    if decodes.status.success() {
+        eprintln!("ffmpeg decodes the corrupt stream; skipping refusal half");
+        return;
+    }
     // The window fits the probed picture duration, so the failure is
     // the undecodable audio stream itself (not a too-short picture).
     write(
