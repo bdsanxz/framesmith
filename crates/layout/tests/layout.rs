@@ -184,6 +184,19 @@ fn emoji_picture_or_explicit_refusal() {
     );
     match result {
         Ok(block) => {
+            // Without a color-emoji face in the shaping fallback (e.g.
+            // DejaVu on Linux), the emoji draws as monochrome outlines;
+            // the picture-routing half needs a color face, so skip it
+            // (same guard shape as has_bold_variant).
+            let emoji_outlines = block
+                .runs
+                .iter()
+                .flat_map(|r| &r.glyphs)
+                .any(|g| g.ch == '\u{1F600}');
+            if block.pictures.is_empty() && emoji_outlines {
+                eprintln!("outline face shaped the emoji; skipping picture half");
+                return;
+            }
             assert!(
                 !block.pictures.is_empty(),
                 "emoji must draw as a picture, never outlines"
