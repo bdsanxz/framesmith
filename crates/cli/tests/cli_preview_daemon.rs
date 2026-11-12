@@ -51,39 +51,27 @@ fn text_project(folder: &Path, name: &str) {
 /// grandchild that keeps a pipe open must not stall the test.
 fn run(reg: &Path, args: &[&str]) -> (i32, String) {
     use std::io::Read;
-    use std::sync::mpsc;
     const TIMEOUT: Duration = Duration::from_secs(120);
     eprintln!("run: framesmith {}", args.join(" "));
+    // File-redirected stdio (not pipes): the spawned daemon inherits
+    // stray parent handles on Windows, which would keep a pipe's EOF
+    // from ever arriving — hanging output() or losing the bytes.
+    // Files need no EOF: after the child exits, the bytes are read
+    // back directly even while the daemon holds the file open.
+    static RUN_N: AtomicU64 = AtomicU64::new(0);
+    let tag = format!("{}-{}", std::process::id(), RUN_N.fetch_add(1, Ordering::SeqCst));
+    let out_path = std::env::temp_dir().join(format!("framesmith-test-{tag}.out"));
+    let err_path = std::env::temp_dir().join(format!("framesmith-test-{tag}.err"));
+    let out_file = std::fs::File::create(&out_path).expect("create capture file");
+    let err_file = std::fs::File::create(&err_path).expect("create capture file");
     let mut child = Command::new(bin())
         .args(args)
         .env("FRAMESMITH_PREVIEW_REGISTRY", reg)
         .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::from(out_file))
+        .stderr(std::process::Stdio::from(err_file))
         .spawn()
         .expect("run framesmith binary");
-    let (out_tx, out_rx) = mpsc::channel::<Vec<u8>>();
-    {
-        let mut pipe = child.stdout.take();
-        std::thread::spawn(move || {
-            let mut buf = Vec::new();
-            if let Some(mut pipe) = pipe.take() {
-                let _ = pipe.read_to_end(&mut buf);
-            }
-            let _ = out_tx.send(buf);
-        });
-    }
-    let (err_tx, err_rx) = mpsc::channel::<Vec<u8>>();
-    {
-        let mut pipe = child.stderr.take();
-        std::thread::spawn(move || {
-            let mut buf = Vec::new();
-            if let Some(mut pipe) = pipe.take() {
-                let _ = pipe.read_to_end(&mut buf);
-            }
-            let _ = err_tx.send(buf);
-        });
-    }
     let start = Instant::now();
     let status = loop {
         match child.try_wait() {
@@ -107,10 +95,20 @@ fn run(reg: &Path, args: &[&str]) -> (i32, String) {
             Err(_) => break None,
         }
     };
-    // Bounded drains: a grandchild that keeps a pipe open must not
-    // stall the test either (genuine EOF then sentinel).
-    let stdout = out_rx.recv_timeout(Duration::from_secs(5)).unwrap_or_default();
-    let stderr = err_rx.recv_timeout(Duration::from_secs(5)).unwrap_or_default();
+    let read_file = |path: &Path| -> Vec<u8> {
+        std::fs::File::open(path)
+            .ok()
+            .and_then(|mut file| {
+                let mut buf = Vec::new();
+                let _ = file.read_to_end(&mut buf);
+                Some(buf)
+            })
+            .unwrap_or_default()
+    };
+    let stdout = read_file(&out_path);
+    let stderr = read_file(&err_path);
+    let _ = std::fs::remove_file(&out_path);
+    let _ = std::fs::remove_file(&err_path);
     eprintln!(
         "run: drained {} stdout bytes, {} stderr bytes",
         stdout.len(),
