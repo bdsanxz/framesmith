@@ -1085,8 +1085,13 @@ fn restarted_server_fails_interrupted_rows_while_queued_rows_wait() {
                 .as_str()
                 .unwrap_or_default()
                 .contains("interrupted"));
+            // A fast machine finishes the tiny row before this poll;
+            // "succeeded" is the row running normally, which the
+            // restart logic must never prevent.
             assert!(
-                jobs[1]["status"] == "queued" || jobs[1]["status"] == "running",
+                ["queued", "running", "succeeded"].contains(
+                    &jobs[1]["status"].as_str().unwrap_or_default()
+                ),
                 "the queued row waits its turn or runs normally, never fails: {}",
                 jobs[1]
             );

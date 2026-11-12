@@ -968,7 +968,9 @@ fn font_style_bold_uses_variant_and_adds_ink() {
     let root = tmp("fstylebold");
     let (raw_regular, _) = render_style(&root, "regular", "regular");
     let (raw_bold, out_bold) = render_style(&root, "bold", "bold");
-    assert!(out_bold.contains("Arial Bold.ttf"), "{out_bold}");
+    // Per-OS variant filenames (resolver table): Arial Bold.ttf on
+    // macOS, DejaVuSans-Bold.ttf on Linux.
+    assert!(out_bold.contains("Bold.ttf"), "{out_bold}");
     let ink = |r: &[u8]| r.iter().map(|b| *b as u64).sum::<u64>();
     assert!(
         ink(&raw_bold) > ink(&raw_regular),
@@ -985,7 +987,12 @@ fn font_style_italic_slants() {
     let root = tmp("fstyleitalic");
     let (raw_regular, _) = render_style(&root, "regular", "regular");
     let (raw_italic, out_italic) = render_style(&root, "italic", "italic");
-    assert!(out_italic.contains("Arial Italic.ttf"), "{out_italic}");
+    // Per-OS variant names: "Italic.ttf" (Arial) or "Oblique.ttf"
+    // (DejaVu) both count as the italic variant.
+    assert!(
+        out_italic.contains("Italic.ttf") || out_italic.contains("Oblique.ttf"),
+        "{out_italic}"
+    );
     assert_ne!(raw_italic, raw_regular, "italic must differ from upright");
 }
 
@@ -998,7 +1005,12 @@ fn font_style_bold_italic_combines() {
     let root = tmp("fstylebi");
     let (raw_regular, _) = render_style(&root, "regular", "regular");
     let (raw_bi, out_bi) = render_style(&root, "bi", "bold-italic");
-    assert!(out_bi.contains("Arial Bold Italic.ttf"), "{out_bi}");
+    // Per-OS variant names: "Bold Italic.ttf" (Arial) or
+    // "BoldOblique.ttf" (DejaVu).
+    assert!(
+        out_bi.contains("Bold Italic.ttf") || out_bi.contains("BoldOblique.ttf"),
+        "{out_bi}"
+    );
     assert_ne!(raw_bi, raw_regular, "bold-italic must differ from upright");
 }
 
