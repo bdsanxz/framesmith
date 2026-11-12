@@ -83,10 +83,13 @@ fn long_project(folder: &Path) {
 /// test watches this job go running before cancelling, so the abort
 /// always lands mid-run with seconds of margin.
 fn http_cancel_project(folder: &Path) {
+    // Long enough (120s of 30fps = 3600 frames) that the run spans
+    // seconds even on a fast encode, so the cancel always lands
+    // mid-run instead of racing the finish.
     write(
         folder,
         "composition.kdl",
-        "composition name=\"t\" width=320 height=180 duration=20 fps=30 background=\"#112233\" version=1 {\n    text id=\"a\" value=\"Hello cancel\" start=0 duration=20 x=10 y=40 size=24 color=\"#ffffff\"\n    text id=\"b\" value=\"second line here\" start=0 duration=20 x=10 y=90 size=24 color=\"#ffff00\"\n}\n",
+        "composition name=\"t\" width=320 height=180 duration=120 fps=30 background=\"#112233\" version=1 {\n    text id=\"a\" value=\"Hello cancel\" start=0 duration=120 x=10 y=40 size=24 color=\"#ffffff\"\n    text id=\"b\" value=\"second line here\" start=0 duration=120 x=10 y=90 size=24 color=\"#ffff00\"\n}\n",
     );
 }
 

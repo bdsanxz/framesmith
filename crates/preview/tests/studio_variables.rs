@@ -683,6 +683,9 @@ fn panel_work_keeps_sources_byte_identical() {
         .expect_err("bound removal refuses");
     assert_eq!(kdl_bytes(&dir), before_kdl, "sources byte-identical");
     for (name, _) in tree_bytes(&dir) {
+        // Separator-agnostic: the hidden prefix holds on both sides
+        // of the slash/backslash divide.
+        let name = name.replace('\\', "/");
         assert!(
             !name.ends_with(".mp4") && !name.ends_with(".png") && !name.ends_with(".mov"),
             "no render output: {name}"
