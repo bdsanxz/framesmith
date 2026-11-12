@@ -44,15 +44,64 @@ fn text_project(folder: &Path, name: &str) {
 }
 
 /// One CLI invocation with this test's registry; returns (exit, stdout+stderr).
+/// Bounded: a hung child is killed after the timeout and the partial
+/// output is returned as a failure, so the suite never stalls and the
+/// hung command names itself (the daemon spawns long-lived servers,
+/// which output() alone cannot bound).
 fn run(reg: &Path, args: &[&str]) -> (i32, String) {
-    let out = Command::new(bin())
+    use std::io::Read;
+    const TIMEOUT: Duration = Duration::from_secs(120);
+    let mut child = Command::new(bin())
         .args(args)
         .env("FRAMESMITH_PREVIEW_REGISTRY", reg)
-        .output()
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
         .expect("run framesmith binary");
-    let mut text = String::from_utf8_lossy(&out.stdout).into_owned();
-    text.push_str(&String::from_utf8_lossy(&out.stderr));
-    (out.status.code().unwrap_or(-1), text)
+    let drain = |pipe: Option<std::process::ChildStdout>| -> std::thread::JoinHandle<Vec<u8>> {
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            if let Some(mut pipe) = pipe {
+                let _ = pipe.read_to_end(&mut buf);
+            }
+            buf
+        })
+    };
+    let out_h = drain(child.stdout.take());
+    let err_h = {
+        let stderr = child.stderr.take();
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            if let Some(mut pipe) = stderr {
+                let _ = pipe.read_to_end(&mut buf);
+            }
+            buf
+        })
+    };
+    let start = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Some(status),
+            Ok(None) => {
+                if start.elapsed() >= TIMEOUT {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    break None;
+                }
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(_) => break None,
+        }
+    };
+    let stdout = out_h.join().unwrap_or_default();
+    let stderr = err_h.join().unwrap_or_default();
+    let mut text = String::from_utf8_lossy(&stdout).into_owned();
+    text.push_str(&String::from_utf8_lossy(&stderr));
+    match status {
+        Some(status) => (status.code().unwrap_or(-1), text),
+        None => (-1, format!("TIMED OUT after {}s: framesmith {}\n{text}", TIMEOUT.as_secs(), args.join(" "))),
+    }
 }
 
 /// Pull the first `http://127.0.0.1:<port>/` URL (plus port) from output.
