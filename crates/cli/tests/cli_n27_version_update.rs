@@ -110,13 +110,23 @@ fn write_release(
     let sums = dir.join("checksums.txt");
     std::fs::write(&sums, format!("{archive_hex}  {asset_name}\n")).unwrap();
     let file_url = |p: &Path| format!("file://{}", p.display());
-    let body = format!(
-        "{{\"tag_name\": \"{tag}\", \"html_url\": \"https://example.invalid/releases/{tag}\", \
-        \"assets\": [{{\"name\": \"{asset_name}\", \"browser_download_url\": \"{}\"}}, \
-        {{\"name\": \"checksums.txt\", \"browser_download_url\": \"{}\"}}]}}",
-        file_url(&archive_path),
-        file_url(&sums),
-    );
+    // Serialized (not hand-formatted): bare Windows paths inside a
+    // JSON string are invalid escapes.
+    let body = serde_json::to_string(&serde_json::json!({
+        "tag_name": tag,
+        "html_url": format!("https://example.invalid/releases/{tag}"),
+        "assets": [
+            {
+                "name": asset_name,
+                "browser_download_url": file_url(&archive_path),
+            },
+            {
+                "name": "checksums.txt",
+                "browser_download_url": file_url(&sums),
+            },
+        ]
+    }))
+    .unwrap();
     let meta = dir.join("release.json");
     std::fs::write(&meta, body).unwrap();
     meta
