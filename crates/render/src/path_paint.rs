@@ -1129,8 +1129,8 @@ mod tests {
         // times so scheduling jitter averages out inside the sample
         // instead of across medians.
         let mut per_size: Vec<Vec<u128>> = vec![Vec::new(), Vec::new(), Vec::new()];
-        // 20 draws per sample (was 10): longer holds keep the
-        // slope verdict honest under shared-CPU contention.
+        // 30 draws per sample (was 20, originally 10): longer holds
+        // keep the slope verdict honest under shared-CPU contention.
         // Process-CPU clock (as in stop_cost): shared-runner
         // preemption inflates wall time but never CPU time.
         #[cfg(unix)]
@@ -1146,10 +1146,16 @@ mod tests {
             let anchor = std::time::Instant::now();
             move || anchor.elapsed().as_nanos()
         };
-        for _ in 0..7 {
-            for (i, (p, c)) in prepared.iter().enumerate() {
+        // Rotate the starting size each round: the largest size always
+        // measured last in a fixed order deflates its slope under
+        // clock-ramp drift (observed ratio 0.46 on macOS CI), while a
+        // rotating order lands the drift on every size alike.
+        for round in 0..11 {
+            for k in 0..3 {
+                let i = (round + k) % 3;
+                let (p, c) = &prepared[i];
                 let t = cpu_nanos();
-                for _ in 0..20 {
+                for _ in 0..30 {
                     layer.fill(0);
                     draw_path_layer(&mut layer, cw, chh, p, c);
                 }

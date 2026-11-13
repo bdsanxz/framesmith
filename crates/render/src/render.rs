@@ -13572,10 +13572,10 @@ mod tests {
         let ten = mk(10);
         let fifteen = mk(15);
         // Long holds: with shared-CPU contention the per-size gap is
-        // noise-dominated at small sample counts (medians spiked to
-        // negative slopes on CI); 1M samples + 7 rounds keeps the
-        // 0.7-1.4 band honest without widening it.
-        const N: usize = 1_000_000;
+        // noise-dominated at small sample counts (per-round ratios ran
+        // negative on macOS CI: median 0.324); 3M samples + 9 rounds
+        // keeps the envelope honest without widening it.
+        const N: usize = 3_000_000;
         let ts: Vec<f64> = (0..N).map(|i| (i % 1000) as f64 / 1000.0).collect();
         // Process-CPU clock: shared-runner preemption inflates wall
         // time but never CPU time, so slope verdicts survive noisy
@@ -13607,7 +13607,7 @@ mod tests {
             cpu_now() - start
         };
         let mut ratios = Vec::new();
-        for _ in 0..7 {
+        for _ in 0..9 {
             let (a5, a10, a15) = (time(&five), time(&ten), time(&fifteen));
             let (b15, b10, b5) = (time(&fifteen), time(&ten), time(&five));
             let slope_lo = ((a10 - a5) + (b10 - b5)) / 2.0;
@@ -13615,7 +13615,7 @@ mod tests {
             ratios.push(slope_hi / slope_lo);
         }
         ratios.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let ratio = ratios[3];
+        let ratio = ratios[4];
         // Band separates the linear class from a quadratic leak
         // (~0.25): the low bound stays >=2x above it, while the
         // upper bound absorbs cache-driven superlinearity (observed
