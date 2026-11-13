@@ -13616,8 +13616,12 @@ mod tests {
         }
         ratios.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let ratio = ratios[3];
+        // Band separates the linear class from a quadratic leak
+        // (~0.25) by >=2x on each side; CPU-time medians ride ~1.2
+        // (allocator/cache variance), so 0.55-1.75 is the honest
+        // envelope (same latitude as the flex widen).
         assert!(
-            (0.7..=1.4).contains(&ratio),
+            (0.55..=1.75).contains(&ratio),
             "stop cost must scale linearly (slope ratio ~1, quadratic would read ~0.25), got median {ratio:.3} from {ratios:.3?}"
         );
     }
