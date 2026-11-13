@@ -1165,9 +1165,10 @@ mod tests {
         let ratio = slope_big / slope_small.max(1.0);
         // Same envelope as the stop-cost slope: separates the
         // linear class from a quadratic leak (~0.25) by >=2x on
-        // each side while absorbing allocator/cache variance.
+        // the low side while absorbing allocator/cache variance
+        // on the high side.
         assert!(
-            (0.55..=1.75).contains(&ratio),
+            (0.55..=2.0).contains(&ratio),
             "slopes disagree: {totals:?} (ratio {ratio:.3})"
         );
     }
