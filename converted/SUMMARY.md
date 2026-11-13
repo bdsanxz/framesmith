@@ -1,6 +1,6 @@
 # Conversion summary -- 49 inspirations into Framesmith projects (Sprint 28 T002)
 
-- date(UTC): 2026-11-13T08:56:10Z
+- date(UTC): 2026-11-13T10:48:32Z
 - machine: Darwin 27.0.0 arm64
 - framesmith: framesmith 0.1.0 (bin /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/target/debug/framesmith)
 - inspirations root: /Users/budisantoso/Dev/bdsanxz/BeEditorWorkspace/skills/video/direcfy/inspirations
@@ -26,13 +26,13 @@
 | hyperframes-week-sizzle | refused | 9 | 29 | 9 | - | - | hyperframes-week-sizzle/fidelity.json: compositions/frames/01-cold-open.html:54 [tl.fromTo] position "t" is an expression; refusing the call site |
 | keyframe-arc-sting | refused | 4 | 5 | 4 | - | - | keyframe-arc-sting/fidelity.json: compositions/sting.html:70 [tl.registerPlugin] timeline call "registerPlugin" is outside the translatable grammar (to/from/fromTo/set); refusing the call site |
 | krakatoa-heard-round-the-world | refused | 78 | 216 | 55 | - | - | krakatoa-heard-round-the-world/fidelity.json: compositions/map.html:108 [tl.fromTo] position "t + i / cps" is an expression; refusing the call site |
-| lottie-json-showcase | emitted-invalid (converter exit 0, check fails E_PARSE) | 5 | 6 | 0 | 1 | fail E_PARSE | lottie-json-showcase/fidelity.json, lottie-json-showcase.check.txt |
+| lottie-json-showcase | converted | 5 | 6 | 0 | 1 | ok | lottie-json-showcase/fidelity.json, lottie-json-showcase/FIDELITY.md |
 | media-ledger-card | converted | 5 | 6 | 0 | 1 | ok | media-ledger-card/fidelity.json, media-ledger-card/FIDELITY.md |
 | msg-does-not-make-you-dull | refused | 88 | 144 | 58 | - | - | msg-does-not-make-you-dull/fidelity.json: index.html:67 [asset img] element #v-s01 references remote asset "data:image/svg+xml,%3C!--s01.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' pattern |
 | nadiem-and-our-frustration | refused | 128 | 1994 | 370 | - | - | nadiem-and-our-frustration/fidelity.json: index.html:103 [asset img] element #? references remote asset "data:image/svg+xml,%3C!--backdrop.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patte |
 | name-card-template | converted | 9 | 8 | 0 | 0 | ok | name-card-template/fidelity.json, name-card-template/FIDELITY.md |
 | odometer-roll-block | refused | 5 | 19 | 10 | - | - | odometer-roll-block/fidelity.json: compositions/odometer-roll.html:221 [tl.to] duration "duration" is not a non-negative number; refusing the call site |
-| one-card-many-videos | emitted-invalid (converter exit 0, check fails E_DUP_ID) | 67 | 59 | 0 | 0 | fail E_DUP_ID | one-card-many-videos/fidelity.json, one-card-many-videos.check.txt |
+| one-card-many-videos | converted | 67 | 59 | 0 | 0 | ok | one-card-many-videos/fidelity.json, one-card-many-videos/FIDELITY.md |
 | one-take-journey | refused | 10 | 23 | 8 | - | - | one-take-journey/fidelity.json: compositions/journey.html:196 [tl.to] to vars object is not a literal; refusing the call site |
 | parallax-infographic | refused | 2 | 31 | 8 | - | - | parallax-infographic/fidelity.json: compositions/stage.html:137 [tl.fromTo] property "--cam-x" (value "TRAVEL") has no KDL motion property; refusing the call site |
 | pr-reviewer-briefing | refused | 12 | 31 | 8 | - | - | pr-reviewer-briefing/fidelity.json: compositions/code-diff.html:867 [tl.set] target "parts.scene" is not a DOM selector ("parts.scene" is runtime state); naming the call site instead of guessing a clip |
@@ -61,5 +61,5 @@
 
 ## Verdict
 
-- executed: 49 of 49 enumerated references; converted (emitted KDL passes check): 2; emitted-invalid (converter exit 0, check fails): 2; refused with named cause: 45; unaccounted: 0
+- executed: 49 of 49 enumerated references; converted (emitted KDL passes check): 4; emitted-invalid (converter exit 0, check fails): 0; refused with named cause: 45; unaccounted: 0
 - refused (named, not passed): apollo-launch-archive apollo-launch-archive-cantonese apollo-launch-archive-indonesian arcade-style-paragraph aurora-labs-brand-reel aurora-launch-storyboard bannister-four-minute-mile catalog-reel clip-wipe-captions cooper-vanishes-over-washington design-export-to-video flat-footage-grade github-stars-overlay hindenburg-thirty-four-seconds hyperframes-week-sizzle keyframe-arc-sting krakatoa-heard-round-the-world msg-does-not-make-you-dull nadiem-and-our-frustration odometer-roll-block one-take-journey parallax-infographic pr-reviewer-briefing prabowo-incomplete-speech projects-folder-open render-endpoint rotisserie-carousel-reskin sarajevo-wrong-turn sarajevo-wrong-turn-cantonese sarajevo-wrong-turn-indonesian seeked-not-played-recut sketchbook-family sound-shopping-list split-flap-board still-life-costumes strasbourg-dancing-plague strawberry-is-not-a-berry studio-edit-roundtrip terminal-shatter-intro text-behind-subject thirty-for-thirty vox-photo-parallax voyager-leaves-the-sun what-is-a-skill-explainer why-onions-make-you-cry

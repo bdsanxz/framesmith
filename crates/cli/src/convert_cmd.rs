@@ -137,6 +137,9 @@ fn kdl_str(s: &str) -> String {
         match c {
             '\\' => out.push_str("\\\\"),
             '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
             _ => out.push(c),
         }
     }
@@ -897,6 +900,8 @@ struct FileCtx<'a> {
     consts: HashMap<String, f64>,
     /// `const NAME = document.getElementById("id")` aliases.
     id_aliases: HashMap<String, String>,
+    /// Emitted-id counters for duplicate names within the source file.
+    id_counters: HashMap<String, usize>,
 }
 
 impl<'a> FileCtx<'a> {
@@ -1160,9 +1165,35 @@ fn emit_clip(
         .get("data-duration")
         .and_then(|s| s.parse::<f64>().ok())
         .unwrap_or((default_duration - start).max(MIN_DURATION));
+    // Slot files share HTML page scope, so the same id name repeats
+    // across files and occasionally within one file: emit a
+    // per-file-stem namespace (deterministic, so re-conversion
+    // stays byte-identical) with a counter suffix for repeats.
+    // Raw ids stay canonical internally for selector matching.
     let id_attr = id
         .as_deref()
-        .map(|i| format!(" id={}", kdl_str(i)))
+        .map(|i| {
+            let stem = Path::new(&ctx.file_rel)
+                .file_stem()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "file".to_string());
+            let stem: String = stem
+                .chars()
+                .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                })
+                .collect();
+            let n = ctx.id_counters.get(i).copied().unwrap_or(0);
+            ctx.id_counters.insert(i.to_string(), n + 1);
+            let numbered = if n == 0 {
+                format!("{i}__{stem}")
+            } else {
+                format!("{i}__{stem}-{n}")
+            };
+            format!(" id={}", kdl_str(&numbered))
+        })
         .unwrap_or_default();
     let track_attr = el
         .get("data-track-kind")
@@ -2273,11 +2304,22 @@ fn walk_typeon(ctx: &mut FileCtx<'_>, body_start: usize, body: &str) {
                 continue;
             }
             // Resolve the selector to a text clip for its length.
+            // Clip html ids are namespaced by file stem (see
+            // `el_id`); try that form first, then the raw name.
             let id = sel.strip_prefix('#').unwrap_or("");
+            let stem = Path::new(&ctx.file_rel)
+                .file_stem()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "file".to_string());
+            let stem: String = stem
+                .chars()
+                .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+                .collect();
+            let namespaced = format!("{id}__{stem}");
             let Some(clip) = ctx
                 .clips
                 .iter()
-                .find(|c| c.html_id.as_deref() == Some(id))
+                .find(|c| c.html_id.as_deref() == Some(id) || c.html_id.as_deref() == Some(&namespaced))
             else {
                 ctx.entries.push(Entry::refused(
                     &ctx.file_rel,
@@ -2519,6 +2561,7 @@ fn convert_comp_src_full(
         positions: HashMap::new(),
         consts: HashMap::new(),
         id_aliases: HashMap::new(),
+        id_counters: ctx.id_counters.clone(),
     };
     if let Some(g) = guide_line(src) {
         sub.guides.push((rel.to_string(), g));
@@ -2529,6 +2572,7 @@ fn convert_comp_src_full(
     ctx.entries.extend(sub.entries);
     ctx.assets.extend(sub.assets);
     ctx.guides.extend(sub.guides);
+    ctx.id_counters = sub.id_counters.clone();
 }
 
 /// Render the KDL project text (deterministic, byte-stable).
@@ -2854,6 +2898,7 @@ fn convert_project(project_root: &Path) -> Result<Project, String> {
         positions: HashMap::new(),
         consts: HashMap::new(),
         id_aliases: HashMap::new(),
+        id_counters: HashMap::new(),
     };
     convert_file(&mut ctx, project_root, 0.0, Some(duration));
     ctx.entries.splice(0..0, var_entries);

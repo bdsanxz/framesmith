@@ -1,60 +1,8 @@
 composition name="main" root=true width=1920 height=1080 fps=30 duration=5 background="#0f1115" version=1 {
-  text id="json-view-label" value="Found JSON is an animation." start=0 duration=2.5 x=0 y=0 size=56 color="#ffffff"
-  text id="json-view-file" value="assets/tile-pulse.json · 2s @ 30fps" start=0 duration=2.5 x=0 y=0 size=26 color="#8b93a7"
-  text id="json-view-code" value="{
-  \"v\": \"5.7.4\",
-  \"fr\": 30,
-  \"ip\": 0,
-  \"op\": 60,
-  \"w\": 400,
-  \"h\": 400,
-  \"nm\": \"tile-pulse\",
-  \"ddd\": 0,
-  \"assets\": [],
-  \"layers\": [
-    {
-      \"ddd\": 0,
-      \"ind\": 1,
-      \"ty\": 4,
-      \"nm\": \"tile\",
-      \"sr\": 1,
-      \"ks\": {
-        \"o\": {
-          \"a\": 0,
-          \"k\": 100
-        },
-        \"r\": {
-          \"a\": 1,
-          \"k\": [
-            {
-              \"t\": 0,
-              \"s\": [
-                0
-              ],
-              \"i\": {
-                \"x\": [
-                  0.4
-                ],
-                \"y\": [
-                  1
-                ]
-              },
-              \"o\": {
-                \"x\": [
-                  0.6
-                ],
-                \"y\": [
-                  0
-                ]
-              }
-            },
-            {
-              \"t\": 60,
-              \"s\": [
-                180
-              ]
-            }" start=0 duration=2.5 x=0 y=120 size=22 color="#c9d1e3"
-  text id="lottie-play-stage" value="" start=2.5 duration=0.016666666666666666 x=0 y=0
+  text id="json-view-label__json-view" value="Found JSON is an animation." start=0 duration=2.5 x=0 y=0 size=56 color="#ffffff"
+  text id="json-view-file__json-view" value="assets/tile-pulse.json · 2s @ 30fps" start=0 duration=2.5 x=0 y=0 size=26 color="#8b93a7"
+  text id="json-view-code__json-view" value="{\n  \"v\": \"5.7.4\",\n  \"fr\": 30,\n  \"ip\": 0,\n  \"op\": 60,\n  \"w\": 400,\n  \"h\": 400,\n  \"nm\": \"tile-pulse\",\n  \"ddd\": 0,\n  \"assets\": [],\n  \"layers\": [\n    {\n      \"ddd\": 0,\n      \"ind\": 1,\n      \"ty\": 4,\n      \"nm\": \"tile\",\n      \"sr\": 1,\n      \"ks\": {\n        \"o\": {\n          \"a\": 0,\n          \"k\": 100\n        },\n        \"r\": {\n          \"a\": 1,\n          \"k\": [\n            {\n              \"t\": 0,\n              \"s\": [\n                0\n              ],\n              \"i\": {\n                \"x\": [\n                  0.4\n                ],\n                \"y\": [\n                  1\n                ]\n              },\n              \"o\": {\n                \"x\": [\n                  0.6\n                ],\n                \"y\": [\n                  0\n                ]\n              }\n            },\n            {\n              \"t\": 60,\n              \"s\": [\n                180\n              ]\n            }" start=0 duration=2.5 x=0 y=120 size=22 color="#c9d1e3"
+  text id="lottie-play-stage__lottie-play" value="" start=2.5 duration=0.016666666666666666 x=0 y=0
   tween target=2 property="opacity" kind="from-to" start=0.1 duration=0.5 from=0 to=1 ease="out-quart"
   tween target=2 property="y" kind="from-to" start=0.1 duration=0.5 from=30 to=0 ease="out-quart"
   tween target=0 property="opacity" kind="from-to" start=0.3 duration=0.5 from=0 to=1 ease="out-quart"

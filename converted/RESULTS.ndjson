@@ -15,13 +15,13 @@ hindenburg-thirty-four-seconds	refused	75	197	53	-	-
 hyperframes-week-sizzle	refused	9	29	9	-	-
 keyframe-arc-sting	refused	4	5	4	-	-
 krakatoa-heard-round-the-world	refused	78	216	55	-	-
-lottie-json-showcase	emitted-invalid	5	6	0	1	fail:E_PARSE
+lottie-json-showcase	converted	5	6	0	1	ok
 media-ledger-card	converted	5	6	0	1	ok
 msg-does-not-make-you-dull	refused	88	144	58	-	-
 nadiem-and-our-frustration	refused	128	1994	370	-	-
 name-card-template	converted	9	8	0	0	ok
 odometer-roll-block	refused	5	19	10	-	-
-one-card-many-videos	emitted-invalid	67	59	0	0	fail:E_DUP_ID
+one-card-many-videos	converted	67	59	0	0	ok
 one-take-journey	refused	10	23	8	-	-
 parallax-infographic	refused	2	31	8	-	-
 pr-reviewer-briefing	refused	12	31	8	-	-

@@ -1,54 +1,54 @@
 composition name="main" root=true width=1920 height=1080 fps=30 duration=10 background="#0b0c10" version=1 {
   variable id="headline" type="string" default="One card, many videos"
-  text id="intro" value="var(--headline)" start=0 duration=1.8 x=0 y=0 size=120 color="#f3f4f8"
-  text id="card-glow" value="" start=1.8 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=1.8 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=1.8 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=1.8 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=1.8 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=1.8 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=3.4 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=3.4 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=3.4 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=3.4 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=3.4 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=3.4 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=4.9 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=4.9 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=4.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=4.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=4.9 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=4.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=6.4 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=6.4 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=6.4 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=6.4 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=6.4 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=6.4 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
-  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
-  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
-  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
-  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
-  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
-  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="intro__index" value="var(--headline)" start=0 duration=1.8 x=0 y=0 size=120 color="#f3f4f8"
+  text id="card-glow__card" value="" start=1.8 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card" value="" start=1.8 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card" value="var(--label, TEMPLATE)" start=1.8 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card" value="var(--title, Defaults only)" start=1.8 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=1.8 duration=0.016666666666666666
+  text id="card-detail__card" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=1.8 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-1" value="" start=3.4 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-1" value="" start=3.4 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-1" value="var(--label, TEMPLATE)" start=3.4 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-1" value="var(--title, Defaults only)" start=3.4 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-1" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=3.4 duration=0.016666666666666666
+  text id="card-detail__card-1" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=3.4 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-2" value="" start=4.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-2" value="" start=4.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-2" value="var(--label, TEMPLATE)" start=4.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-2" value="var(--title, Defaults only)" start=4.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-2" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=4.9 duration=0.016666666666666666
+  text id="card-detail__card-2" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=4.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-3" value="" start=6.4 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-3" value="" start=6.4 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-3" value="var(--label, TEMPLATE)" start=6.4 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-3" value="var(--title, Defaults only)" start=6.4 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-3" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=6.4 duration=0.016666666666666666
+  text id="card-detail__card-3" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=6.4 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-4" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-4" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-4" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-4" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-4" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail__card-4" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-5" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-5" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-5" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-5" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-5" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail__card-5" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-6" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-6" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-6" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-6" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-6" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail__card-6" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow__card-7" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body__card-7" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label__card-7" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title__card-7" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule__card-7" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail__card-7" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
   tween target=3 property="opacity" kind="from-to" start=1.85 duration=0.35 from=0 to=1 ease="out-quart"
   tween target=3 property="y" kind="from-to" start=1.85 duration=0.35 from=16 to=0 ease="out-quart"
   tween target=4 property="opacity" kind="from-to" start=1.92 duration=0.45 from=0 to=1 ease="out-expo"
