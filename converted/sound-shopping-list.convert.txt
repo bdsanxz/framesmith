@@ -1,0 +1,5 @@
+framesmith convert refused for sound-shopping-list: 4 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/sound-shopping-list/fidelity.json.
+  compositions/terminal.html:66 [tl.set] position "0.3 + (i * 1.05) / cmd.length" is an expression; refusing the call site
+  compositions/demos.html:76 [tl.fromTo] property "skewX" (value "0") has no KDL motion property; refusing the call site
+  compositions/demos.html:88 [tl.set] position "4.23 + (i * 1.0) / word.length" is an expression; refusing the call site
+  compositions/demos.html:92 [tl.fromTo] property "color" (value "\"#ffffff\"") has no KDL motion property; refusing the call site

@@ -1,0 +1,13 @@
+composition name="main" root=true width=1920 height=1080 fps=30 duration=5 background="#0d1117" version=1 {
+  image id="card-mark" path=".media/images/logo_001.svg" start=0 duration=5 x=0 y=0 width=220 height=220
+  text id="card-text" value="" start=0 duration=5 x=0 y=0
+  text id="card-title" value="Merged." start=0 duration=5 x=0 y=0 size=150 color="#f0f6fc"
+  text id="card-sub" value="sourced, not redrawn" start=0 duration=5 x=0 y=164 size=34 color="#9da7b3"
+  tween target=0 property="opacity" kind="from-to" start=0.2 duration=0.5 from=0 to=1 ease="out-expo"
+  tween target=0 property="x" kind="from-to" start=0.2 duration=0.5 from=-300 to=0 ease="out-expo"
+  tween target=0 property="rotation" kind="from-to" start=0.2 duration=0.5 from=-25 to=0 ease="out-expo"
+  tween target=2 property="opacity" kind="from-to" start=1.5 duration=0.2 from=0 to=1 ease="out-expo"
+  tween target=2 property="scale" kind="from-to" start=1.5 duration=0.2 from=1.2 to=1 ease="out-expo"
+  tween target=3 property="opacity" kind="from-to" start=2 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=3 property="y" kind="from-to" start=2 duration=0.4 from=16 to=0 ease="out-quart"
+}

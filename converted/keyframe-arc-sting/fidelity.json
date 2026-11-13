@@ -1,0 +1,118 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 5,
+    "refused": 4,
+    "translated": 4
+  },
+  "duration": 6.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sting-group has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/sting.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sting-title has no own left/top; placed by flow approximation at (0, 470)",
+      "file": "compositions/sting.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sting-group is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/sting.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sting-title-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/sting.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.registerPlugin",
+      "detail": "timeline call \"registerPlugin\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/sting.html",
+      "line": 70,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/sting.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#sting-title\" at start=0.0000 duration=0.6000",
+      "file": "compositions/sting.html",
+      "line": 74,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"keyframes\" (value \"[\\n            { scale: 1.12, duration: 0.25, ease: \\\"power2.out\\\" },\\n            { scale: 0.97, duration: 0.3, ease: \\\"power2.inOut\\\" },\\n            { scale: 1.0, duration: 0.4, ease: \\\"power2.out\\\" },\\n          ]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/sting.html",
+      "line": 78,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"motionPath\" (value \"{ path: [{ x: 0, y: 0 }, { x: 390, y: -560 }, { x: 790, y: -270 }], curviness: 1.5, autoRotate: true }\") has no KDL motion property; refusing the call site",
+      "file": "compositions/sting.html",
+      "line": 89,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/sting.html",
+      "line": 95,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#sting-group\" at start=2.6000 duration=3.3000",
+      "file": "compositions/sting.html",
+      "line": 99,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 48,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 41,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\", 6 seconds, 1080 by 1080)"
+    },
+    {
+      "file": "compositions/sting.html",
+      "guide": "compositions/sting.html (composition id \"sting\")"
+    }
+  ],
+  "source": "keyframe-arc-sting"
+}

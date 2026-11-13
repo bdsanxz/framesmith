@@ -1,0 +1,9 @@
+framesmith convert refused for parallax-infographic: 8 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/parallax-infographic/fidelity.json.
+  compositions/stage.html:137 [tl.fromTo] property "--cam-x" (value "TRAVEL") has no KDL motion property; refusing the call site
+  compositions/stage.html:139 [tl.fromTo] property "--dof" (value "\"0px\"") has no KDL motion property; refusing the call site
+  compositions/stage.html:140 [tl.fromTo] property "--dof" (value "\"0px\"") has no KDL motion property; refusing the call site
+  compositions/stage.html:141 [tl.fromTo] property "--dof" (value "\"1.2px\"") has no KDL motion property; refusing the call site
+  compositions/stage.html:142 [tl.fromTo] property "--dof" (value "\"2px\"") has no KDL motion property; refusing the call site
+  compositions/stage.html:146 [tl.fromTo] target "`#pi-fill-${i}`" is not a DOM selector ("`#pi-fill-${i}`" is runtime state); naming the call site instead of guessing a clip
+  compositions/stage.html:147 [tl.fromTo] position "at + 0.25" is an expression; refusing the call site
+  compositions/stage.html:149 [tl.fromTo] fromTo `to` object is not a literal; refusing the call site

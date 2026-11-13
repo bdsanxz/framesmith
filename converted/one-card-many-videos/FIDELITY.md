@@ -1,0 +1,137 @@
+# Fidelity report: one-card-many-videos → main
+
+- translated: 67
+- approximated (with deltas): 59
+- refused: 0
+
+## Approximated (measured deltas)
+
+- `index.html`:30 [variable] variable "headline" ("string") carried with default "One card, many videos" delta: fields [label] and type "string" not expressible in KDL variables; no render effect
+- `index.html`:49 [placement] element #intro has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:57 [placement] element #card-glow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:60 [placement] element #card-label has no own left/top; placed by flow approximation at (160, 300) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:61 [placement] element #card-title has no own left/top; placed by flow approximation at (160, 360) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:62 [placement] element #card-rule has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:63 [placement] element #card-detail has no own left/top; placed by flow approximation at (160, 522) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/card.html`:57 [container element] element #card-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/card.html`:59 [container element] element #card-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:48 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
+
+## Translated
+
+- `index.html`:49 [variable text] text from render-time variable "headline"; default baked as var(--headline)
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=1.8500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=1.9200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=2.1000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=2.2000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=3.4500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=3.5200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=3.7000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=3.8000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=4.9500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=5.0200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=5.2000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=5.3000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=6.4500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=6.5200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=6.7000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=6.8000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=7.9500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=8.0200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=8.2000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=8.3000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=7.9500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=8.0200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=8.2000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=8.3000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=7.9500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=8.0200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=8.2000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=8.3000 duration=0.4000
+- `compositions/card.html`:60 [variable text] text from render-time variable "label"; undeclared in index.html, bound as var(--label, fallback "TEMPLATE")
+- `compositions/card.html`:61 [variable text] text from render-time variable "title"; undeclared in index.html, bound as var(--title, fallback "Defaults only")
+- `compositions/card.html`:63 [variable text] text from render-time variable "detail"; undeclared in index.html, bound as var(--detail, fallback "No values passed: this is the card on its declared defaults.")
+- `compositions/card.html`:68 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/card.html`:69 [tl.fromTo] tl.fromTo on "#card-label" at start=7.9500 duration=0.3500
+- `compositions/card.html`:70 [tl.fromTo] tl.fromTo on "#card-title" at start=8.0200 duration=0.4500
+- `compositions/card.html`:71 [tl.fromTo] tl.fromTo on "#card-rule" at start=8.2000 duration=0.4000
+- `compositions/card.html`:72 [tl.fromTo] tl.fromTo on "#card-detail" at start=8.3000 duration=0.4000
+- `index.html`:71 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `index.html`:72 [tl.fromTo] tl.fromTo on "#intro" at start=0.1000 duration=0.5000

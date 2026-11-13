@@ -1,0 +1,835 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 66,
+    "refused": 27,
+    "translated": 12
+  },
+  "duration": 19.5,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #clip has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #clip-framed has no own left/top; placed by flow approximation at (480, 180)",
+      "file": "index.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #clip references remote asset \"data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 73,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #slot-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #clip-framed references remote asset \"data:image/svg+xml,%3C!--clip.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/clip.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 90,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-t-root has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-title.html",
+      "line": 102,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-t-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-title.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-t-line has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-title.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-t-under has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-title.html",
+      "line": 113,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-t-under-path has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-title.html",
+      "line": 113,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-t-drv has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-title.html",
+      "line": 116,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-t-root is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-title.html",
+      "line": 102,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-t-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-title.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-t-line is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-title.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-t-under is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-title.html",
+      "line": 113,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-t-under-path is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-title.html",
+      "line": 113,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-t-drv is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-title.html",
+      "line": 116,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.eventCallback",
+      "detail": "timeline call \"eventCallback\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 161,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.time",
+      "detail": "timeline call \"time\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 182,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"els[i]\" is not a DOM selector (\"els[i]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/hw-title.html",
+      "line": 184,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/hw-title.html",
+      "line": 249,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "tl.set on wrap at start=0.0000 duration=0.5000",
+      "file": "compositions/hw-title.html",
+      "line": 253,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"IN\" is not a non-negative number; refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 254,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 269,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"strokeDasharray\" (value \"len\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 279,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"uAt\" is an expression; refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 281,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"OUT\" is not a non-negative number; refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 296,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"DUR - 0.02\" is an expression; refusing the call site",
+      "file": "compositions/hw-title.html",
+      "line": 298,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-root has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/notes.html",
+      "line": 122,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-mug-scribble has no own left/top; placed by flow approximation at (1190, 0)",
+      "file": "compositions/notes.html",
+      "line": 135,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-mug-outline has no own left/top; placed by flow approximation at (1190, 0)",
+      "file": "compositions/notes.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-mug-connector has no own left/top; placed by flow approximation at (1190, 0)",
+      "file": "compositions/notes.html",
+      "line": 140,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-mug-label has no own left/top; placed by flow approximation at (1190, 0)",
+      "file": "compositions/notes.html",
+      "line": 143,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-lemon-scribble has no own left/top; placed by flow approximation at (975, 0)",
+      "file": "compositions/notes.html",
+      "line": 152,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-lemon-outline has no own left/top; placed by flow approximation at (975, 0)",
+      "file": "compositions/notes.html",
+      "line": 153,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-lemon-connector has no own left/top; placed by flow approximation at (975, 0)",
+      "file": "compositions/notes.html",
+      "line": 157,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-lemon-label has no own left/top; placed by flow approximation at (975, 0)",
+      "file": "compositions/notes.html",
+      "line": 160,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-co-drv has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/notes.html",
+      "line": 165,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-root is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 122,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-mug is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 131,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 132,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 133,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-mug-scribble is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 135,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-mug-outline is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 139,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-mug-connector is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 140,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 142,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-mug-label is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 143,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-lemon is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 148,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 149,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 150,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-lemon-scribble is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 152,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-lemon-outline is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 153,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 156,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-lemon-connector is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 157,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 159,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-lemon-label is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 160,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-co-drv is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/notes.html",
+      "line": 165,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/notes.html",
+      "line": 197,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"visibility\" (value \"\\\"hidden\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/notes.html",
+      "line": 203,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-st-root has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-st-svg has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-st-solid has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-st-drv has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-st-root is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-st-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-st-solid is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-st-drv is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 157,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"strokeDasharray\" (value \"len\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 162,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"0.04 * i\" is an expression; refusing the call site",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 163,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#hw-st-solid\" at start=11.2000 duration=0.1200",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 167,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#hw-st-solid\" at start=11.8200 duration=0.1500",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 170,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 173,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"visibility\" (value \"\\\"hidden\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-scribble-transition.html",
+      "line": 182,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-fr-root has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-frame.html",
+      "line": 138,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-fr-media has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-frame.html",
+      "line": 147,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-fr-svg has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-frame.html",
+      "line": 149,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-fr-border has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-frame.html",
+      "line": 149,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-fr-caption has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-frame.html",
+      "line": 151,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hw-fr-drv has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/hw-frame.html",
+      "line": 153,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-fr-media is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-frame.html",
+      "line": 147,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-fr-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-frame.html",
+      "line": 149,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-fr-border is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-frame.html",
+      "line": 149,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-fr-caption is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-frame.html",
+      "line": 151,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hw-fr-drv is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/hw-frame.html",
+      "line": 153,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.eventCallback",
+      "detail": "timeline call \"eventCallback\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 197,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.time",
+      "detail": "timeline call \"time\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 219,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"els[i]\" is not a DOM selector (\"els[i]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/hw-frame.html",
+      "line": 221,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/hw-frame.html",
+      "line": 323,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "tl.set on media at start=11.5000 duration=0.5000",
+      "file": "compositions/hw-frame.html",
+      "line": 327,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"IN * 1.4\" is not a non-negative number; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 328,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"strokeDasharray\" (value \"blen\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 332,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"strokeDashoffset\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 333,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"strokeDasharray\" (value \"l\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 337,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"1.1 + i * 0.12\" is an expression; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 338,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on caption at start=12.9000 duration=0.4000",
+      "file": "compositions/hw-frame.html",
+      "line": 341,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"transformOrigin\" (value \"\\\"50% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 345,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"OUT\" is not a non-negative number; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 358,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"DUR - 0.02\" is an expression; refusing the call site",
+      "file": "compositions/hw-frame.html",
+      "line": 360,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 94,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#slot-wrap\" at start=11.7500 duration=0.4000",
+      "file": "index.html",
+      "line": 96,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#slot-wrap\" at start=19.0000 duration=0.4000",
+      "file": "index.html",
+      "line": 97,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 71,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition) (composition id \"main\")"
+    },
+    {
+      "file": "compositions/hw-title.html",
+      "guide": "compositions/hw-title.html (composition id \"hw-title\")"
+    },
+    {
+      "file": "compositions/notes.html",
+      "guide": "compositions/notes.html (composition id \"notes\")"
+    },
+    {
+      "file": "compositions/hw-scribble-transition.html",
+      "guide": "compositions/hw-scribble-transition.html (composition id \"hw-scribble-transition\")"
+    },
+    {
+      "file": "compositions/hw-frame.html",
+      "guide": "compositions/hw-frame.html (composition id \"hw-frame\")"
+    }
+  ],
+  "source": "sketchbook-family"
+}

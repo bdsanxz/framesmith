@@ -1,0 +1,340 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 31,
+    "refused": 8,
+    "translated": 2
+  },
+  "duration": 8.0,
+  "entries": [
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"number\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"parallax\" (\"number\") carried with default \"1\"",
+      "file": "index.html",
+      "line": 29,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-far has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-far-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 87,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-far-dots has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-back has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-titleplane has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-kicker has no own left/top; placed by flow approximation at (120, 150)",
+      "file": "compositions/stage.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-head has no own left/top; placed by flow approximation at (120, 150)",
+      "file": "compositions/stage.html",
+      "line": 97,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-sub has no own left/top; placed by flow approximation at (120, 150)",
+      "file": "compositions/stage.html",
+      "line": 98,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-chart has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 102,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-labels has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 106,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-near has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-fill-${i} has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 124,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pi-val-${i} has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stage.html",
+      "line": 127,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-far is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-far-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 87,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-far-dots is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-back is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-titleplane is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-title is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 95,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-chart is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 102,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-labels is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 106,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-near is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 109,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 110,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 124,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pi-fill-${i} is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stage.html",
+      "line": 124,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/stage.html",
+      "line": 135,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--cam-x\" (value \"TRAVEL\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 137,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--dof\" (value \"\\\"0px\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 139,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--dof\" (value \"\\\"0px\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 140,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--dof\" (value \"\\\"1.2px\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 141,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--dof\" (value \"\\\"2px\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 142,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "target \"`#pi-fill-${i}`\" is not a DOM selector (\"`#pi-fill-${i}`\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/stage.html",
+      "line": 146,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"at + 0.25\" is an expression; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 147,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo `to` object is not a literal; refusing the call site",
+      "file": "compositions/stage.html",
+      "line": 149,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 52,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 45,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\", the root composition)"
+    },
+    {
+      "file": "compositions/stage.html",
+      "guide": "compositions/stage.html (composition id \"stage\")"
+    }
+  ],
+  "source": "parallax-infographic"
+}

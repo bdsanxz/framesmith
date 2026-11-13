@@ -1,0 +1,216 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 19,
+    "refused": 3,
+    "translated": 3
+  },
+  "duration": 5.5,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-bg-0 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/rotary.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-bg-1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/rotary.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-bg-2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/rotary.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-bg-3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/rotary.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-row has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/rotary.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-fixed-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/rotary.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-drum has no own left/top; placed by flow approximation at (0, 52)",
+      "file": "compositions/rotary.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-axis has no own left/top; placed by flow approximation at (0, 52)",
+      "file": "compositions/rotary.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-cyl has no own left/top; placed by flow approximation at (0, 52)",
+      "file": "compositions/rotary.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rotary-fixed-b has no own left/top; placed by flow approximation at (0, 52)",
+      "file": "compositions/rotary.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-bg-0 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-bg-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-bg-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-bg-3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-row is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-drum is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-axis is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rotary-cyl is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/rotary.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/rotary.html",
+      "line": 105,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/rotary.html",
+      "line": 107,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/rotary.html",
+      "line": 110,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/rotary.html",
+      "line": 111,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rotary-row\" at start=0.0000 duration=5.5000",
+      "file": "compositions/rotary.html",
+      "line": 114,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 42,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 35,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\")"
+    },
+    {
+      "file": "compositions/rotary.html",
+      "guide": "compositions/rotary.html (composition id \"rotary\")"
+    }
+  ],
+  "source": "rotisserie-carousel-reskin"
+}

@@ -1,0 +1,700 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 55,
+    "refused": 28,
+    "translated": 6
+  },
+  "duration": 24.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sting-mono-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sting-mono has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 101,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sting-color-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 103,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sting-color has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 104,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #source-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #source has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 109,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #corrected-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #corrected has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 113,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #graded-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #graded has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 118,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #look-warm has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #look-muted has no own left/top; placed by flow approximation at (960, 0)",
+      "file": "index.html",
+      "line": 126,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #look-deep has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 129,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #look-mono has no own left/top; placed by flow approximation at (960, 0)",
+      "file": "index.html",
+      "line": 132,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #finished-wrap has no own left/top; placed by flow approximation at (960, 0)",
+      "file": "index.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #finished has no own left/top; placed by flow approximation at (960, 0)",
+      "file": "index.html",
+      "line": 137,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hue-wrap has no own left/top; placed by flow approximation at (960, 0)",
+      "file": "index.html",
+      "line": 140,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hue has no own left/top; placed by flow approximation at (960, 0)",
+      "file": "index.html",
+      "line": 141,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sting-mono-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #sting-mono references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 101,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sting-color-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 103,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #sting-color references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 104,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #source-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #source references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 109,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #corrected-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #corrected references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 113,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #graded-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #graded references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 118,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tile-warm is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 122,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #look-warm references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 123,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tile-muted is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 125,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 126,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #look-muted references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 126,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tile-deep is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 128,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 129,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #look-deep references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 129,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tile-mono is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 131,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 132,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #look-mono references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 132,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #finished-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #finished references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 137,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hue-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 140,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #hue references remote asset \"data:image/svg+xml,%3C!--flat.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'497' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/flat.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 141,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-title has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #title-plate has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-source has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-correct has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-grade has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 101,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-look has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-finish has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 116,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #g-end has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/labels.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-title is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #title-plate is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-source is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-correct is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-grade is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 101,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 102,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-look is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-finish is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 116,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #g-end is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #end-plate is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/labels.html",
+      "line": 124,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/labels.html",
+      "line": 130,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"a\" is an expression; refusing the call site",
+      "file": "compositions/labels.html",
+      "line": 134,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"b\" is an expression; refusing the call site",
+      "file": "compositions/labels.html",
+      "line": 135,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "tl.from on \"#title-plate\" at start=0.9000 duration=0.6000",
+      "file": "compositions/labels.html",
+      "line": 139,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-source .stage\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 141,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-source .payload\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 142,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#seam\" at start=6.2000 duration=1.2000",
+      "file": "compositions/labels.html",
+      "line": 145,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#seam\" at start=7.8000 duration=1.4000",
+      "file": "compositions/labels.html",
+      "line": 146,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-correct .stage\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 148,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-correct .payload\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 149,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-grade .stage\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 152,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-grade .payload\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 153,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-look .tag\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 155,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-finish .stage\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 157,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#g-finish .payload\" is compound; only `#id` and `.class` land",
+      "file": "compositions/labels.html",
+      "line": 158,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "tl.from on \"#end-plate\" at start=21.6000 duration=0.6000",
+      "file": "compositions/labels.html",
+      "line": 160,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 151,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 0% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "index.html",
+      "line": 153,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 50% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "index.html",
+      "line": 155,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 12% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "index.html",
+      "line": 156,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "position \"13.5 + i * 0.15\" is an expression; refusing the call site",
+      "file": "index.html",
+      "line": 159,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"--hf-color-grading-lut-intensity\" (value \"0.6\") has no KDL motion property; refusing the call site",
+      "file": "index.html",
+      "line": 161,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"clipPath\" (value \"\\\"circle(2300px at 1340px 600px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "index.html",
+      "line": 163,
+      "verdict": "refused"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 97,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, id \"main\", 24 seconds, 1920 by 1080)"
+    },
+    {
+      "file": "compositions/labels.html",
+      "guide": "compositions/labels.html (composition id \"labels\")"
+    }
+  ],
+  "source": "flat-footage-grade"
+}

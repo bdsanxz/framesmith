@@ -1,0 +1,113 @@
+# Fidelity report: aurora-labs-brand-reel → main
+
+- translated: 21
+- approximated (with deltas): 61
+- refused: 17
+
+## Refused (cause named; conversion refused)
+
+- `compositions/wordmark-palette.html`:85 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
+- `compositions/wordmark-palette.html`:87 [tl.fromTo] selector "#wordmark-palette-swatches .swatch" is compound; only `#id` and `.class` land
+- `compositions/type-specimen.html`:78 [tl.fromTo] selector "#type-specimen-copy .type-specimen-label" is compound; only `#id` and `.class` land
+- `compositions/type-specimen.html`:80 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
+- `compositions/type-specimen.html`:82 [tl.fromTo] property "transformOrigin" (value "\"0% 50%\"") has no KDL motion property; refusing the call site
+- `compositions/ui-card.html`:98 [tl.fromTo] property "v" (value "99.98") has no KDL motion property; refusing the call site
+- `compositions/ui-card.html`:101 [tl.fromTo] property "transformOrigin" (value "\"0% 50%\"") has no KDL motion property; refusing the call site
+- `compositions/ui-card.html`:103 [tl.fromTo] selector "#ui-card-steps .ui-card-step" is compound; only `#id` and `.class` land
+- `compositions/logo-close.html`:72 [tl.fromTo] property "strokeDashoffset" (value "0") has no KDL motion property; refusing the call site
+- `compositions/logo-close.html`:73 [tl.fromTo] property "transformOrigin" (value "\"50% 50%\"") has no KDL motion property; refusing the call site
+- `compositions/logo-close.html`:75 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
+- `compositions/aurora-wipe.html`:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
+- `compositions/aurora-wipe.html`:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site
+- `compositions/aurora-wipe.html`:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
+- `compositions/aurora-wipe.html`:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site
+- `compositions/aurora-wipe.html`:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
+- `compositions/aurora-wipe.html`:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site
+
+## Approximated (measured deltas)
+
+- `compositions/wordmark-palette.html`:64 [placement] element #wordmark-palette-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/wordmark-palette.html`:66 [placement] element #wordmark-palette-head has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/wordmark-palette.html`:67 [placement] element #wordmark-palette-label has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/wordmark-palette.html`:68 [placement] element #wordmark-palette-word has no own left/top; placed by flow approximation at (0, 48) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/wordmark-palette.html`:71 [placement] element #wordmark-palette-swatches has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/wordmark-palette.html`:63 [container element] element #wordmark-palette-glow is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:64 [container element] element #wordmark-palette-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:66 [container element] element #wordmark-palette-head is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:71 [container element] element #wordmark-palette-swatches is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:72 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:73 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:74 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:75 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/wordmark-palette.html`:76 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/type-specimen.html`:59 [placement] element #type-specimen-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:61 [placement] element #type-specimen-glyph has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:63 [placement] element #type-specimen-copy has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:65 [placement] element #type-specimen-h2 has no own left/top; placed by flow approximation at (0, 56) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:66 [placement] element #type-specimen-rule has no own left/top; placed by flow approximation at (0, 184) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:68 [placement] element #type-specimen-body has no own left/top; placed by flow approximation at (0, 240) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:69 [placement] element #type-specimen-mono has no own left/top; placed by flow approximation at (0, 312) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/type-specimen.html`:59 [container element] element #type-specimen-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/type-specimen.html`:63 [container element] element #type-specimen-copy is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/type-specimen.html`:66 [container element] element #type-specimen-rule is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:72 [placement] element #ui-card-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:74 [placement] element #ui-card-card has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:75 [placement] element #ui-card-header has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:76 [placement] element #ui-card-title has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:77 [placement] element #ui-card-chip has no own left/top; placed by flow approximation at (0, 26) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:77 [placement] element #ui-card-dot has no own left/top; placed by flow approximation at (0, 26) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:79 [placement] element #ui-card-metric has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:79 [placement] element #ui-card-value has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:79 [placement] element #ui-card-unit has no own left/top; placed by flow approximation at (0, 170) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:80 [placement] element #ui-card-track has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:80 [placement] element #ui-card-fill has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:81 [placement] element #ui-card-steps has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/ui-card.html`:72 [container element] element #ui-card-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:75 [container element] element #ui-card-header is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:77 [container element] element #ui-card-chip is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:79 [container element] element #ui-card-metric is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:80 [container element] element #ui-card-track is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:81 [container element] element #ui-card-steps is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:82 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:83 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/ui-card.html`:84 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-close.html`:54 [placement] element #logo-close-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:56 [placement] element #logo-close-lockup has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:57 [placement] element #logo-close-mark has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:58 [placement] element #logo-close-ring has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:60 [placement] element #logo-close-core has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:62 [placement] element #logo-close-word has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:65 [placement] element #logo-close-tag has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-close.html`:54 [container element] element #logo-close-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-close.html`:56 [container element] element #logo-close-lockup is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-close.html`:57 [container element] element #logo-close-mark is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-close.html`:58 [container element] element #logo-close-ring is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-close.html`:60 [container element] element #logo-close-core is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/aurora-wipe.html`:37 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/aurora-wipe.html`:37 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/aurora-wipe.html`:37 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:45 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
+
+## Translated
+
+- `compositions/wordmark-palette.html`:82 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/wordmark-palette.html`:84 [tl.fromTo] tl.fromTo on "#wordmark-palette-label" at start=0.2000 duration=0.6000
+- `compositions/wordmark-palette.html`:90 [tl.fromTo] tl.fromTo on "#wordmark-palette-stage" at start=0.0000 duration=5.0000
+- `compositions/wordmark-palette.html`:91 [tl.fromTo] tl.fromTo on "#wordmark-palette-glow" at start=0.0000 duration=5.0000
+- `compositions/type-specimen.html`:75 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/type-specimen.html`:77 [tl.fromTo] tl.fromTo on "#type-specimen-glyph" at start=5.4500 duration=0.6000
+- `compositions/type-specimen.html`:84 [tl.fromTo] tl.fromTo on "#type-specimen-body" at start=6.2000 duration=0.6000
+- `compositions/type-specimen.html`:85 [tl.fromTo] tl.fromTo on "#type-specimen-mono" at start=6.4000 duration=0.6000
+- `compositions/type-specimen.html`:87 [tl.fromTo] tl.fromTo on "#type-specimen-stage" at start=5.0000 duration=5.0000
+- `compositions/ui-card.html`:91 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/ui-card.html`:93 [tl.fromTo] tl.fromTo on "#ui-card-card" at start=10.4500 duration=0.6000
+- `compositions/ui-card.html`:94 [tl.fromTo] tl.fromTo on "#ui-card-chip" at start=10.9000 duration=0.2500
+- `compositions/ui-card.html`:105 [tl.fromTo] tl.fromTo on "#ui-card-dot" at start=11.2000 duration=0.5000
+- `compositions/ui-card.html`:107 [tl.fromTo] tl.fromTo on "#ui-card-stage" at start=10.0000 duration=6.0000
+- `compositions/logo-close.html`:70 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/logo-close.html`:77 [tl.fromTo] tl.fromTo on "#logo-close-tag" at start=17.3000 duration=0.6000
+- `compositions/logo-close.html`:79 [tl.fromTo] tl.fromTo on "#logo-close-stage" at start=16.0000 duration=4.0000
+- `compositions/aurora-wipe.html`:43 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/aurora-wipe.html`:43 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/aurora-wipe.html`:43 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `index.html`:66 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek

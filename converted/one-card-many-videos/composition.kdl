@@ -1,0 +1,102 @@
+composition name="main" root=true width=1920 height=1080 fps=30 duration=10 background="#0b0c10" version=1 {
+  variable id="headline" type="string" default="One card, many videos"
+  text id="intro" value="var(--headline)" start=0 duration=1.8 x=0 y=0 size=120 color="#f3f4f8"
+  text id="card-glow" value="" start=1.8 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=1.8 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=1.8 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=1.8 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=1.8 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=1.8 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=3.4 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=3.4 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=3.4 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=3.4 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=3.4 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=3.4 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=4.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=4.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=4.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=4.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=4.9 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=4.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=6.4 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=6.4 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=6.4 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=6.4 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=6.4 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=6.4 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  text id="card-glow" value="" start=7.9 duration=0.016666666666666666 x=0 y=0
+  text id="card-body" value="" start=7.9 duration=0.016666666666666666 x=160 y=300
+  text id="card-label" value="var(--label, TEMPLATE)" start=7.9 duration=0.016666666666666666 x=160 y=300 size=30 color="#9aa3b5"
+  text id="card-title" value="var(--title, Defaults only)" start=7.9 duration=0.016666666666666666 x=160 y=360 size=132 color="#f3f4f8"
+  box id="card-rule" x=160 y=522 width=120 height=8 fill="#9aa3b5" start=7.9 duration=0.016666666666666666
+  text id="card-detail" value="var(--detail, No values passed: this is the card on its declared defaults.)" start=7.9 duration=0.016666666666666666 x=160 y=522 size=40 color="#b9bfcc"
+  tween target=3 property="opacity" kind="from-to" start=1.85 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=3 property="y" kind="from-to" start=1.85 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=4 property="opacity" kind="from-to" start=1.92 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=4 property="y" kind="from-to" start=1.92 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=5 property="scale" kind="from-to" start=2.1 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=6 property="opacity" kind="from-to" start=2.2 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=9 property="opacity" kind="from-to" start=3.4499999999999997 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=9 property="y" kind="from-to" start=3.4499999999999997 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=10 property="opacity" kind="from-to" start=3.52 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=10 property="y" kind="from-to" start=3.52 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=11 property="scale" kind="from-to" start=3.6999999999999997 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=12 property="opacity" kind="from-to" start=3.8 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=15 property="opacity" kind="from-to" start=4.95 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=15 property="y" kind="from-to" start=4.95 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=16 property="opacity" kind="from-to" start=5.0200000000000005 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=16 property="y" kind="from-to" start=5.0200000000000005 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=17 property="scale" kind="from-to" start=5.2 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=18 property="opacity" kind="from-to" start=5.300000000000001 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=21 property="opacity" kind="from-to" start=6.45 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=21 property="y" kind="from-to" start=6.45 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=22 property="opacity" kind="from-to" start=6.5200000000000005 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=22 property="y" kind="from-to" start=6.5200000000000005 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=23 property="scale" kind="from-to" start=6.7 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=24 property="opacity" kind="from-to" start=6.800000000000001 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=27 property="opacity" kind="from-to" start=7.95 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=27 property="y" kind="from-to" start=7.95 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=28 property="opacity" kind="from-to" start=8.02 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=28 property="y" kind="from-to" start=8.02 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=29 property="scale" kind="from-to" start=8.200000000000001 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=30 property="opacity" kind="from-to" start=8.3 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=33 property="opacity" kind="from-to" start=7.95 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=33 property="y" kind="from-to" start=7.95 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=34 property="opacity" kind="from-to" start=8.02 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=34 property="y" kind="from-to" start=8.02 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=35 property="scale" kind="from-to" start=8.200000000000001 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=36 property="opacity" kind="from-to" start=8.3 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=39 property="opacity" kind="from-to" start=7.95 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=39 property="y" kind="from-to" start=7.95 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=40 property="opacity" kind="from-to" start=8.02 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=40 property="y" kind="from-to" start=8.02 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=41 property="scale" kind="from-to" start=8.200000000000001 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=42 property="opacity" kind="from-to" start=8.3 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=45 property="opacity" kind="from-to" start=7.95 duration=0.35 from=0 to=1 ease="out-quart"
+  tween target=45 property="y" kind="from-to" start=7.95 duration=0.35 from=16 to=0 ease="out-quart"
+  tween target=46 property="opacity" kind="from-to" start=8.02 duration=0.45 from=0 to=1 ease="out-expo"
+  tween target=46 property="y" kind="from-to" start=8.02 duration=0.45 from=30 to=0 ease="out-expo"
+  tween target=47 property="scale" kind="from-to" start=8.200000000000001 duration=0.4 from=0 to=1 ease="out-quart"
+  tween target=48 property="opacity" kind="from-to" start=8.3 duration=0.4 from=0 to=1 ease="out-cubic"
+  tween target=0 property="opacity" kind="from-to" start=0.1 duration=0.5 from=0 to=1 ease="out-expo"
+  tween target=0 property="scale" kind="from-to" start=0.1 duration=0.5 from=1.08 to=1 ease="out-expo"
+}

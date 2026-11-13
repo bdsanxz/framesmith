@@ -1,0 +1,366 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 23,
+    "refused": 13,
+    "translated": 7
+  },
+  "duration": 6.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #boot-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/boot.html",
+      "line": 46,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #boot-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/boot.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #boot-title has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/boot.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #boot-sub has no own left/top; placed by flow approximation at (0, 188)",
+      "file": "compositions/boot.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #boot-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/boot.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/boot.html",
+      "line": 52,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"steps(4)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/boot.html",
+      "line": 55,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "ease \"steps(4)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/boot.html",
+      "line": 56,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.12 }, { scale: 0.9, duration: 0.08 }, { scale: 1, duration: 0.08 }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/boot.html",
+      "line": 58,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/boot.html",
+      "line": 60,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/boot.html",
+      "line": 61,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #score-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/score.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #score-num has no own left/top; placed by flow approximation at (90, 204)",
+      "file": "compositions/score.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #score-burst has no own left/top; placed by flow approximation at (444, 864)",
+      "file": "compositions/score.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #score-hud is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/score.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #score-star is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/score.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #score-burst is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/score.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/score.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"v\" (value \"12450\") has no KDL motion property; refusing the call site",
+      "file": "compositions/score.html",
+      "line": 65,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.12 }, { scale: 0.9, duration: 0.08 }, { scale: 1, duration: 0.08 }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/score.html",
+      "line": 67,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "ease \"steps(2)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/score.html",
+      "line": 68,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "file": "compositions/score.html",
+      "line": 78,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.1 }, { scale: 1, duration: 0.1 }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/score.html",
+      "line": 81,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #start-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/start.html",
+      "line": 43,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #start-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/start.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #start-text has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/start.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #start-coin has no own left/top; placed by flow approximation at (0, 152)",
+      "file": "compositions/start.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #start-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/start.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/start.html",
+      "line": 48,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/start.html",
+      "line": 51,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #coin-flash-fill has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/coin-flash.html",
+      "line": 36,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/coin-flash.html",
+      "line": 40,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"steps(1)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/coin-flash.html",
+      "line": 42,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #crt-glitch-a is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/crt-glitch.html",
+      "line": 38,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #crt-glitch-b is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/crt-glitch.html",
+      "line": 39,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #crt-glitch-c is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/crt-glitch.html",
+      "line": 40,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/crt-glitch.html",
+      "line": 43,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"0.02 * i\" is an expression; refusing the call site",
+      "file": "compositions/crt-glitch.html",
+      "line": 47,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #scanlines-fill has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/scanlines.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #scanlines-fill is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/scanlines.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/scanlines.html",
+      "line": 41,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 44,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\")"
+    },
+    {
+      "file": "compositions/boot.html",
+      "guide": "compositions/boot.html (composition id \"boot\")"
+    },
+    {
+      "file": "compositions/score.html",
+      "guide": "compositions/score.html (composition id \"score\")"
+    },
+    {
+      "file": "compositions/start.html",
+      "guide": "compositions/start.html (composition id \"start\")"
+    },
+    {
+      "file": "compositions/coin-flash.html",
+      "guide": "compositions/coin-flash.html (composition id \"coin-flash\")"
+    },
+    {
+      "file": "compositions/crt-glitch.html",
+      "guide": "compositions/crt-glitch.html (composition id \"crt-glitch\")"
+    },
+    {
+      "file": "compositions/scanlines.html",
+      "guide": "compositions/scanlines.html (composition id \"scanlines\")"
+    }
+  ],
+  "source": "arcade-style-paragraph"
+}

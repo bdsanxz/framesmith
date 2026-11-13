@@ -1,0 +1,151 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 10,
+    "refused": 2,
+    "translated": 5
+  },
+  "duration": 6.0,
+  "entries": [
+    {
+      "construct": "background",
+      "delta": "background defaulted to #000000",
+      "detail": "no concrete background found on html/body/#root rules",
+      "file": "index.html",
+      "line": 39,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #stat-star has no own left/top; placed by flow approximation at (192, 0)",
+      "file": "compositions/stat.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #stat-text has no own left/top; placed by flow approximation at (192, 0)",
+      "file": "compositions/stat.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #stat-num has no own left/top; placed by flow approximation at (192, 0)",
+      "file": "compositions/stat.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #stat-label has no own left/top; placed by flow approximation at (192, 130)",
+      "file": "compositions/stat.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #stat-date has no own left/top; placed by flow approximation at (192, 166)",
+      "file": "compositions/stat.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #stat-card is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #stat-star is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #stat-text is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/stat.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#stat-card\" at start=0.2000 duration=0.5000",
+      "file": "compositions/stat.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#stat-star\" at start=0.4500 duration=0.3500",
+      "file": "compositions/stat.html",
+      "line": 74,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"v\" (value \"TARGET\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stat.html",
+      "line": 78,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "target \"[\\\"#stat-label\\\", \\\"#stat-date\\\"]\" is not a DOM selector (\"[\\\"#stat-label\\\", \\\"#stat-date\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/stat.html",
+      "line": 81,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#stat-card\" at start=5.5000 duration=0.4000",
+      "file": "compositions/stat.html",
+      "line": 83,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 46,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 39,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, id \"main\", 6 seconds, 1920 by 1080, transparent)"
+    },
+    {
+      "file": "compositions/stat.html",
+      "guide": "compositions/stat.html (composition id \"stat\")"
+    }
+  ],
+  "source": "github-stars-overlay"
+}

@@ -1,0 +1,841 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 64,
+    "refused": 9,
+    "translated": 32
+  },
+  "duration": 25.5,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hook-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/hook.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hook-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/hook.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hook-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/hook.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hook-b has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/hook.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #hook-forget has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/hook.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hook-ground is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/hook.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #hook-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/hook.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/hook.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#hook-a\" at start=0.0500 duration=0.5000",
+      "file": "compositions/frames/hook.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#hook-b\" at start=1.6500 duration=0.6000",
+      "file": "compositions/frames/hook.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#hook-forget\" at start=2.9000 duration=0.8000",
+      "file": "compositions/frames/hook.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#hook-stage\" at start=0.0000 duration=4.5300",
+      "file": "compositions/frames/hook.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-eyebrow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-folder has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-tab has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-body has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-dir has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/intro.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-file has no own left/top; placed by flow approximation at (0, 62)",
+      "file": "compositions/frames/intro.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-dot has no own left/top; placed by flow approximation at (0, 62)",
+      "file": "compositions/frames/intro.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro-note has no own left/top; placed by flow approximation at (0, 62)",
+      "file": "compositions/frames/intro.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #intro-ground is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/intro.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #intro-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/intro.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #intro-folder is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/intro.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #intro-tab is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/intro.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #intro-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/intro.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #intro-file is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/intro.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/intro.html",
+      "line": 80,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro-eyebrow\" at start=4.6300 duration=0.5000",
+      "file": "compositions/frames/intro.html",
+      "line": 82,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"0% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/frames/intro.html",
+      "line": 83,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro-body\" at start=5.6300 duration=0.6000",
+      "file": "compositions/frames/intro.html",
+      "line": 84,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro-dir\" at start=5.9300 duration=0.4000",
+      "file": "compositions/frames/intro.html",
+      "line": 85,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro-file\" at start=6.7200 duration=0.5000",
+      "file": "compositions/frames/intro.html",
+      "line": 86,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro-note\" at start=7.5600 duration=0.4000",
+      "file": "compositions/frames/intro.html",
+      "line": 87,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro-stage\" at start=4.5300 duration=4.0400",
+      "file": "compositions/frames/intro.html",
+      "line": 88,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-doc has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-file has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-head has no own left/top; placed by flow approximation at (0, 48)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-name has no own left/top; placed by flow approximation at (0, 86)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-desc has no own left/top; placed by flow approximation at (0, 86)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #anatomy-body has no own left/top; placed by flow approximation at (0, 48)",
+      "file": "compositions/frames/anatomy.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-ground is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-doc is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-head is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-name is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-desc is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #anatomy-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/anatomy.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/anatomy.html",
+      "line": 83,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#anatomy-file\" at start=8.6200 duration=0.4000",
+      "file": "compositions/frames/anatomy.html",
+      "line": 85,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#anatomy-head\" at start=9.4300 duration=0.5000",
+      "file": "compositions/frames/anatomy.html",
+      "line": 86,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#anatomy-body\" at start=9.5700 duration=0.5000",
+      "file": "compositions/frames/anatomy.html",
+      "line": 87,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#anatomy-name\" at start=10.3200 duration=0.3000",
+      "file": "compositions/frames/anatomy.html",
+      "line": 88,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#anatomy-desc\" at start=11.2000 duration=0.3000",
+      "file": "compositions/frames/anatomy.html",
+      "line": 89,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"filter\" (value \"\\\"blur(6px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/frames/anatomy.html",
+      "line": 90,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#anatomy-stage\" at start=8.5700 duration=5.1600",
+      "file": "compositions/frames/anatomy.html",
+      "line": 91,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-eyebrow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-rows has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-r1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-r2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ladder-r3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/ladder.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ladder-ground is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/ladder.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ladder-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/ladder.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ladder-rows is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/ladder.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ladder-r1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/ladder.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ladder-r2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/ladder.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ladder-r3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/ladder.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/ladder.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ladder-eyebrow\" at start=13.7800 duration=0.4000",
+      "file": "compositions/frames/ladder.html",
+      "line": 74,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ladder-r1\" at start=13.8300 duration=0.5000",
+      "file": "compositions/frames/ladder.html",
+      "line": 75,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ladder-r2\" at start=15.7000 duration=0.5000",
+      "file": "compositions/frames/ladder.html",
+      "line": 76,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ladder-r3\" at start=17.7800 duration=0.5000",
+      "file": "compositions/frames/ladder.html",
+      "line": 77,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ladder-stage\" at start=13.7300 duration=6.3600",
+      "file": "compositions/frames/ladder.html",
+      "line": 78,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #thesis-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/thesis.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #thesis-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/thesis.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #thesis-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/thesis.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #thesis-b has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/thesis.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #thesis-line has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/thesis.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #thesis-ground is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/thesis.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #thesis-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/thesis.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/thesis.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#thesis-a\" at start=20.1400 duration=0.6000",
+      "file": "compositions/frames/thesis.html",
+      "line": 65,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#thesis-b\" at start=21.6500 duration=0.6000",
+      "file": "compositions/frames/thesis.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#thesis-line\" at start=22.0900 duration=0.5000",
+      "file": "compositions/frames/thesis.html",
+      "line": 67,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#thesis-stage\" at start=20.0900 duration=5.4100",
+      "file": "compositions/frames/thesis.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #clip-wipe has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wp-container has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 129,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #clip-wipe is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 128,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wp-container is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 129,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 261,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"g.start\" is an expression; refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 289,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 296,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"w.start + 0.1\" is an expression; refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 302,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"w.end\" is an expression; refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 304,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 308,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"g.end\" is an expression; refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 318,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.seek",
+      "detail": "timeline call \"seek\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/components/caption-clip-wipe.html",
+      "line": 322,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 81,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 56,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition) (composition id \"main\")"
+    },
+    {
+      "file": "compositions/frames/hook.html",
+      "guide": "compositions/frames/hook.html (composition id \"hook\")"
+    },
+    {
+      "file": "compositions/frames/intro.html",
+      "guide": "compositions/frames/intro.html (composition id \"intro\")"
+    },
+    {
+      "file": "compositions/frames/anatomy.html",
+      "guide": "compositions/frames/anatomy.html (composition id \"anatomy\")"
+    },
+    {
+      "file": "compositions/frames/ladder.html",
+      "guide": "compositions/frames/ladder.html (composition id \"ladder\")"
+    },
+    {
+      "file": "compositions/frames/thesis.html",
+      "guide": "compositions/frames/thesis.html (composition id \"thesis\")"
+    },
+    {
+      "file": "compositions/components/caption-clip-wipe.html",
+      "guide": "compositions/components/caption-clip-wipe.html (composition id \"caption-clip-wipe\")"
+    }
+  ],
+  "source": "clip-wipe-captions"
+}

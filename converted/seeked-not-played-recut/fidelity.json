@@ -1,0 +1,1008 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 94,
+    "refused": 7,
+    "translated": 23
+  },
+  "duration": 17.96,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #aroll has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #video-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #aroll references remote asset \"data:image/svg+xml,%3C!--aroll.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/aroll.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 71,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #title-a has no own left/top; placed by flow approximation at (0, 150)",
+      "file": "compositions/cards/title.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #title-arrow has no own left/top; placed by flow approximation at (0, 210)",
+      "file": "compositions/cards/title.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #title-b has no own left/top; placed by flow approximation at (0, 366)",
+      "file": "compositions/cards/title.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #title-box is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/cards/title.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/cards/title.html",
+      "line": 46,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#title-a\" at start=1.5600 duration=0.3000",
+      "file": "compositions/cards/title.html",
+      "line": 48,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#title-arrow\" at start=1.9000 duration=0.3000",
+      "file": "compositions/cards/title.html",
+      "line": 49,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#title-b\" at start=2.3000 duration=0.3000",
+      "file": "compositions/cards/title.html",
+      "line": 50,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #registry-panel has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/cards/registry.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #registry-num has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/cards/registry.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #registry-label has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/cards/registry.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #registry-panel is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/cards/registry.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/cards/registry.html",
+      "line": 57,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#registry-panel\" at start=2.9500 duration=0.6000",
+      "file": "compositions/cards/registry.html",
+      "line": 59,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"v\" (value \"400\") has no KDL motion property; refusing the call site",
+      "file": "compositions/cards/registry.html",
+      "line": 63,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#registry-label\" at start=5.1900 duration=0.4000",
+      "file": "compositions/cards/registry.html",
+      "line": 64,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fonts-panel has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/cards/fonts.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fonts-num has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/cards/fonts.html",
+      "line": 46,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fonts-label has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/cards/fonts.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #fonts-panel is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/cards/fonts.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/cards/fonts.html",
+      "line": 52,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#fonts-num\" at start=6.7700 duration=0.2500",
+      "file": "compositions/cards/fonts.html",
+      "line": 54,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#fonts-label\" at start=7.2100 duration=0.4000",
+      "file": "compositions/cards/fonts.html",
+      "line": 55,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #seek-a has no own left/top; placed by flow approximation at (0, 140)",
+      "file": "compositions/cards/seek.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #seek-b has no own left/top; placed by flow approximation at (0, 234)",
+      "file": "compositions/cards/seek.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #seek-arrow has no own left/top; placed by flow approximation at (0, 282)",
+      "file": "compositions/cards/seek.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #seek-video has no own left/top; placed by flow approximation at (0, 330)",
+      "file": "compositions/cards/seek.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #seek-card is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/cards/seek.html",
+      "line": 46,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #seek-b is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/cards/seek.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/cards/seek.html",
+      "line": 53,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#seek-card\" at start=10.8500 duration=0.5000",
+      "file": "compositions/cards/seek.html",
+      "line": 55,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#seek-b\" at start=12.6000 duration=0.4000",
+      "file": "compositions/cards/seek.html",
+      "line": 56,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "target \"[\\\"#seek-arrow\\\", \\\"#seek-video\\\"]\" is not a DOM selector (\"[\\\"#seek-arrow\\\", \\\"#seek-video\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/cards/seek.html",
+      "line": 58,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #close-hl has no own left/top; placed by flow approximation at (0, 150)",
+      "file": "compositions/cards/close.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/cards/close.html",
+      "line": 41,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#close-line\" at start=15.9500 duration=0.5000",
+      "file": "compositions/cards/close.html",
+      "line": 43,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#close-hl\" at start=16.5000 duration=0.2500",
+      "file": "compositions/cards/close.html",
+      "line": 44,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bug-dot has no own left/top; placed by flow approximation at (0, 64)",
+      "file": "compositions/cards/url-bug.html",
+      "line": 38,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bug is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/cards/url-bug.html",
+      "line": 38,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/cards/url-bug.html",
+      "line": 42,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#bug\" at start=0.3000 duration=0.5000",
+      "file": "compositions/cards/url-bug.html",
+      "line": 43,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l0 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w0 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w4 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w5 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w6 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w7 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w8 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w9 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w10 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w11 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w12 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w13 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w14 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w15 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w16 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w17 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l4 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w18 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w19 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w20 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l5 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w21 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w22 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w23 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w24 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w25 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w26 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l6 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w27 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w28 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l7 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w29 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w30 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w31 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w32 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l8 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w33 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w34 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w35 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l9 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w36 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w37 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l10 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w38 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w39 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w40 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w41 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-l11 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w42 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w43 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w44 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #captions-w45 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/captions.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l0 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l4 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l5 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l6 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l7 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l8 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l9 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l10 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #captions-l11 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/captions.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/captions.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"color\" (value \"\\\"#8e8e93\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/captions.html",
+      "line": 68,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"start\" is an expression; refusing the call site",
+      "file": "compositions/captions.html",
+      "line": 69,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"end\" is an expression; refusing the call site",
+      "file": "compositions/captions.html",
+      "line": 70,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 90,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"transformOrigin\" (value \"\\\"50% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "index.html",
+      "line": 92,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#video-wrap\" at start=2.6000 duration=0.7000",
+      "file": "index.html",
+      "line": 94,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#video-wrap\" at start=9.4000 duration=0.7000",
+      "file": "index.html",
+      "line": 96,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#video-wrap\" at start=15.2500 duration=2.7100",
+      "file": "index.html",
+      "line": 98,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 68,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition) (composition id \"main\")"
+    },
+    {
+      "file": "compositions/cards/title.html",
+      "guide": "compositions/cards/title.html (composition id \"card-title\")"
+    },
+    {
+      "file": "compositions/cards/registry.html",
+      "guide": "compositions/cards/registry.html (composition id \"card-registry\")"
+    },
+    {
+      "file": "compositions/cards/fonts.html",
+      "guide": "compositions/cards/fonts.html (composition id \"card-fonts\")"
+    },
+    {
+      "file": "compositions/cards/seek.html",
+      "guide": "compositions/cards/seek.html (composition id \"card-seek\")"
+    },
+    {
+      "file": "compositions/cards/close.html",
+      "guide": "compositions/cards/close.html (composition id \"card-close\")"
+    },
+    {
+      "file": "compositions/cards/url-bug.html",
+      "guide": "compositions/cards/url-bug.html (composition id \"card-url-bug\")"
+    },
+    {
+      "file": "compositions/captions.html",
+      "guide": "compositions/captions.html (composition id \"captions\")"
+    }
+  ],
+  "source": "seeked-not-played-recut"
+}

@@ -1,0 +1,11 @@
+framesmith convert refused for odometer-roll-block: 10 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/odometer-roll-block/fidelity.json.
+  compositions/odometer-roll.html:221 [tl.to] duration "duration" is not a non-negative number; refusing the call site
+  compositions/odometer-roll.html:223 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:234 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:242 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:249 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:221 [tl.to] duration "duration" is not a non-negative number; refusing the call site
+  compositions/odometer-roll.html:223 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:234 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:242 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+  compositions/odometer-roll.html:249 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site

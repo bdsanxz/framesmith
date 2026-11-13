@@ -1,0 +1,991 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 59,
+    "refused": 0,
+    "translated": 67
+  },
+  "duration": 10.0,
+  "entries": [
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"string\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"headline\" (\"string\") carried with default \"One card, many videos\"",
+      "file": "index.html",
+      "line": 30,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #intro has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"headline\"; default baked as var(--headline)",
+      "file": "index.html",
+      "line": 49,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=1.8500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=1.9200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=2.1000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=2.2000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=3.4500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=3.5200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=3.7000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=3.8000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=4.9500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=5.0200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=5.2000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=5.3000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=6.4500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=6.5200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=6.7000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=6.8000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=7.9500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=8.0200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=8.2000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=8.3000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=7.9500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=8.0200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=8.2000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=8.3000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=7.9500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=8.0200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=8.2000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=8.3000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-glow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-label has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (160, 360)",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-rule has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-detail has no own left/top; placed by flow approximation at (160, 522)",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-body is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"TEMPLATE\")",
+      "file": "compositions/card.html",
+      "line": 60,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"title\"; undeclared in index.html, bound as var(--title, fallback \"Defaults only\")",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"detail\"; undeclared in index.html, bound as var(--detail, fallback \"No values passed: this is the card on its declared defaults.\")",
+      "file": "compositions/card.html",
+      "line": 63,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-label\" at start=7.9500 duration=0.3500",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=8.0200 duration=0.4500",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-rule\" at start=8.2000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-detail\" at start=8.3000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#intro\" at start=0.1000 duration=0.5000",
+      "file": "index.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 48,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition)"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    }
+  ],
+  "source": "one-card-many-videos"
+}

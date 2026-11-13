@@ -27,6 +27,7 @@
 
 mod catalog_cmd;
 mod commands;
+mod convert_cmd;
 mod ml_cmd;
 mod resume;
 mod router;
@@ -41,6 +42,7 @@ fn usage() -> ! {
     eprintln!(
         "usage:\n\
          \x20 framesmith init <name> [--dir <parent>] [--example <starter>]\n\
+         \x20 framesmith convert <html-project> [--out <dir>] [--json]\n\
          \x20 framesmith check [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] <folder>\n\
          \x20 framesmith lint [--json] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] [--strict|--strict-all] <folder>\n\
          \x20 framesmith snapshot [--json] [--composition <name>] [--backend cpu|gpu|auto] [--variables JSON] [--strict-variables] [--theme NAME] (--at <t,..> | --every <secs> | --from <s> --to <e>) --out <dir> <folder>\n\
@@ -347,6 +349,72 @@ fn main() {
                 Some(n) => commands::cmd_init_with_example(&n, &dir, example.as_deref()),
                 None => {
                     eprintln!("framesmith init: missing <name>.");
+                    std::process::exit(2);
+                }
+            }
+        }
+        "convert" => {
+            let mut json = false;
+            let mut src: Option<String> = None;
+            let mut out: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--json" => {
+                        if json {
+                            eprintln!("framesmith convert: duplicate --json flag.");
+                            std::process::exit(2);
+                        }
+                        json = true;
+                    }
+                    "--out" => {
+                        if out.is_some() {
+                            eprintln!("framesmith convert: duplicate --out flag.");
+                            std::process::exit(2);
+                        }
+                        i += 1;
+                        if i >= args.len() {
+                            eprintln!("framesmith convert: --out needs a value.");
+                            std::process::exit(2);
+                        }
+                        out = Some(args[i].clone());
+                    }
+                    other if other.starts_with('-') => {
+                        eprintln!("framesmith convert: unknown flag {other:?}.");
+                        std::process::exit(2);
+                    }
+                    other => {
+                        if src.is_some() {
+                            eprintln!(
+                                "framesmith convert: expected one <html-project>, found extra {other:?}."
+                            );
+                            std::process::exit(2);
+                        }
+                        src = Some(other.to_string());
+                    }
+                }
+                i += 1;
+            }
+            match src {
+                Some(s) => {
+                    let src_path = PathBuf::from(&s);
+                    let out_path = match out {
+                        Some(o) => PathBuf::from(&o),
+                        None => {
+                            let base = src_path
+                                .file_name()
+                                .map(|n| n.to_string_lossy().into_owned())
+                                .unwrap_or_else(|| "converted".to_string());
+                            src_path
+                                .parent()
+                                .map(|p| p.join(format!("{base}.framesmith")))
+                                .unwrap_or_else(|| PathBuf::from(format!("{base}.framesmith")))
+                        }
+                    };
+                    convert_cmd::cmd_convert(&src_path, &out_path, json)
+                }
+                None => {
+                    eprintln!("framesmith convert: missing <html-project>.");
                     std::process::exit(2);
                 }
             }

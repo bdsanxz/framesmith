@@ -1,0 +1,18 @@
+framesmith convert refused for aurora-labs-brand-reel: 17 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/aurora-labs-brand-reel/fidelity.json.
+  compositions/wordmark-palette.html:85 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
+  compositions/wordmark-palette.html:87 [tl.fromTo] selector "#wordmark-palette-swatches .swatch" is compound; only `#id` and `.class` land
+  compositions/type-specimen.html:78 [tl.fromTo] selector "#type-specimen-copy .type-specimen-label" is compound; only `#id` and `.class` land
+  compositions/type-specimen.html:80 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
+  compositions/type-specimen.html:82 [tl.fromTo] property "transformOrigin" (value "\"0% 50%\"") has no KDL motion property; refusing the call site
+  compositions/ui-card.html:98 [tl.fromTo] property "v" (value "99.98") has no KDL motion property; refusing the call site
+  compositions/ui-card.html:101 [tl.fromTo] property "transformOrigin" (value "\"0% 50%\"") has no KDL motion property; refusing the call site
+  compositions/ui-card.html:103 [tl.fromTo] selector "#ui-card-steps .ui-card-step" is compound; only `#id` and `.class` land
+  compositions/logo-close.html:72 [tl.fromTo] property "strokeDashoffset" (value "0") has no KDL motion property; refusing the call site
+  compositions/logo-close.html:73 [tl.fromTo] property "transformOrigin" (value "\"50% 50%\"") has no KDL motion property; refusing the call site
+  compositions/logo-close.html:75 [tl.fromTo] property "clipPath" (value "\"inset(0 0% 0 0)\"") has no KDL motion property; refusing the call site
+  compositions/aurora-wipe.html:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
+  compositions/aurora-wipe.html:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site
+  compositions/aurora-wipe.html:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
+  compositions/aurora-wipe.html:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site
+  compositions/aurora-wipe.html:45 [tl.fromTo] property "xPercent" (value "0") has no KDL motion property; refusing the call site
+  compositions/aurora-wipe.html:46 [tl.to] property "xPercent" (value "100") has no KDL motion property; refusing the call site

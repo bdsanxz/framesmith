@@ -1,0 +1,8 @@
+framesmith convert refused for projects-folder-open: 7 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/projects-folder-open/fidelity.json.
+  compositions/desktop.html:94 [tl.to] property "transformOrigin" (value "\"10% 6%\"") has no KDL motion property; refusing the call site
+  compositions/desktop.html:95 [tl.to] property "transformOrigin" (value "\"10% 6%\"") has no KDL motion property; refusing the call site
+  compositions/desktop.html:96 [tl.fromTo] property "color" (value "\"#ffffff\"") has no KDL motion property; refusing the call site
+  compositions/desktop.html:98 [tl.fromTo] property "transformPerspective" (value "900") has no KDL motion property; refusing the call site
+  compositions/desktop.html:99 [tl.fromTo] property "transformOrigin" (value "\"50% 100%\"") has no KDL motion property; refusing the call site
+  compositions/desktop.html:106 [tl.fromTo] position "3.0 + i * 0.15" is an expression; refusing the call site
+  compositions/desktop.html:109 [tl.to] position "4.1 + i * 0.12" is an expression; refusing the call site

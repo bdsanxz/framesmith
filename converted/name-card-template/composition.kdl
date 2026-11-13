@@ -1,0 +1,18 @@
+composition name="main" root=true width=1920 height=1080 fps=30 duration=5 background="#0e0f14" version=1 {
+  variable id="name" type="string" default="Ada Lovelace"
+  variable id="role" type="string" default="First programmer"
+  variable id="accent" type="color" default="#7c5cff"
+  box id="card-bar" x=200 y=380 width=16 height=320 fill="var(--accent)" start=0 duration=5
+  text id="card-text" value="" start=0 duration=5 x=260 y=380
+  text id="card-hello" value="WELCOME" start=0 duration=5 x=260 y=380 size=34 color="#a2a6b8"
+  text id="card-name" value="var(--name)" start=0 duration=5 x=260 y=438 size=150 color="#f4f5fa"
+  text id="card-role" value="var(--role)" start=0 duration=5 x=260 y=612 size=48 color="var(--accent)"
+  tween target=0 property="scale" kind="from-to" start=0.2 duration=0.6 from=0 to=1 ease="out-quart"
+  tween target=2 property="opacity" kind="from-to" start=0.4 duration=0.5 from=0 to=1 ease="out-quart"
+  tween target=2 property="x" kind="from-to" start=0.4 duration=0.5 from=-20 to=0 ease="out-quart"
+  tween target=3 property="opacity" kind="from-to" start=0.55 duration=0.7 from=0 to=1 ease="out-expo"
+  tween target=3 property="y" kind="from-to" start=0.55 duration=0.7 from=40 to=0 ease="out-expo"
+  tween target=4 property="opacity" kind="from-to" start=0.9 duration=0.5 from=0 to=1 ease="out-quart"
+  tween target=4 property="y" kind="from-to" start=0.9 duration=0.5 from=20 to=0 ease="out-quart"
+  tween target=1 property="x" kind="from-to" start=1 duration=4 from=0 to=24 ease="linear"
+}

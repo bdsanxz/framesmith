@@ -1,0 +1,3 @@
+master peak: -inf dBFS (digital silence).
+lint: 0 findings across 16 rules in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/name-card-template.
+ok: /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/name-card-template is valid (1920x1080, 5s, 30fps, 5 clip(s)).

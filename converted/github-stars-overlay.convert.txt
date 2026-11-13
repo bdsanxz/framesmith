@@ -1,0 +1,3 @@
+framesmith convert refused for github-stars-overlay: 2 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/github-stars-overlay/fidelity.json.
+  compositions/stat.html:78 [tl.fromTo] property "v" (value "TARGET") has no KDL motion property; refusing the call site
+  compositions/stat.html:81 [tl.fromTo] target "[\"#stat-label\", \"#stat-date\"]" is not a DOM selector ("[\"#stat-label\", \"#stat-date\"]" is runtime state); naming the call site instead of guessing a clip

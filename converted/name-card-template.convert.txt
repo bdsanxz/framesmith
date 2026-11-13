@@ -1,0 +1,1 @@
+{"converted":true,"source":"name-card-template","out":"/Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/name-card-template","translated":9,"approximated":8,"refused":0,"assets_copied":0}

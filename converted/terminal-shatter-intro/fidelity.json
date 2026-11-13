@@ -1,0 +1,315 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 26,
+    "refused": 5,
+    "translated": 6
+  },
+  "duration": 8.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-type-window has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/terminal-type.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-type-typed has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/terminal-type.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-type-cursor has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/terminal-type.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-type-window is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-type-typed is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-type-cursor is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-type.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/terminal-type.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#terminal-type-window\" at start=0.0000 duration=0.5000",
+      "file": "compositions/terminal-type.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"0.5 + i * 0.06\" is an expression; refusing the call site",
+      "file": "compositions/terminal-type.html",
+      "line": 78,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"blink / 2\" is not a non-negative number; refusing the call site",
+      "file": "compositions/terminal-type.html",
+      "line": 83,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-shatter-source has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/terminal-shatter.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-shatter-flash has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/terminal-shatter.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-shatter-source is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal-shatter.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/terminal-shatter.html",
+      "line": 86,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"rand() * 0.12\" is an expression; refusing the call site",
+      "file": "compositions/terminal-shatter.html",
+      "line": 110,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on flash at start=4.0000 duration=0.2500",
+      "file": "compositions/terminal-shatter.html",
+      "line": 119,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #kinetic-title-l1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/kinetic-title.html",
+      "line": 45,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #kinetic-title-l2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/kinetic-title.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #kinetic-title-l1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/kinetic-title.html",
+      "line": 45,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #kinetic-title-l2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/kinetic-title.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/kinetic-title.html",
+      "line": 55,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "target \"word\" is not a DOM selector (\"word\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/kinetic-title.html",
+      "line": 60,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "target \"[\\\"#kinetic-title-l1\\\", \\\"#kinetic-title-l2\\\"]\" is not a DOM selector (\"[\\\"#kinetic-title-l1\\\", \\\"#kinetic-title-l2\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/kinetic-title.html",
+      "line": 63,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 59,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 46,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition)"
+    },
+    {
+      "file": "compositions/terminal-type.html",
+      "guide": "compositions/terminal-type.html (composition id \"terminal-type\")"
+    },
+    {
+      "file": "compositions/terminal-shatter.html",
+      "guide": "compositions/terminal-shatter.html (composition id \"terminal-shatter\")"
+    },
+    {
+      "file": "compositions/kinetic-title.html",
+      "guide": "compositions/kinetic-title.html (composition id \"kinetic-title\")"
+    }
+  ],
+  "source": "terminal-shatter-intro"
+}

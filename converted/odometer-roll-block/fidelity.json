@@ -1,0 +1,283 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 19,
+    "refused": 10,
+    "translated": 5
+  },
+  "duration": 10.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-root has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 156,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 165,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-row has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 166,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-rule has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 167,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-label has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 168,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-reel-' +\n            i +\n            ' has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 206,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #od-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/odometer-roll.html",
+      "line": 165,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #od-row is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/odometer-roll.html",
+      "line": 166,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"renders this month\")",
+      "file": "compositions/odometer-roll.html",
+      "line": 168,
+      "verdict": "translated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/odometer-roll.html",
+      "line": 206,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/odometer-roll.html",
+      "line": 219,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"duration\" is not a non-negative number; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 221,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 223,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 234,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 242,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 249,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-root has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 156,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 165,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-row has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 166,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-rule has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 167,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-label has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 168,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #od-reel-' +\n            i +\n            ' has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/odometer-roll.html",
+      "line": 206,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #od-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/odometer-roll.html",
+      "line": 165,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #od-row is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/odometer-roll.html",
+      "line": 166,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"label\"; undeclared in index.html, bound as var(--label, fallback \"renders this month\")",
+      "file": "compositions/odometer-roll.html",
+      "line": 168,
+      "verdict": "translated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/odometer-roll.html",
+      "line": 206,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/odometer-roll.html",
+      "line": 219,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"duration\" is not a non-negative number; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 221,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 223,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 234,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 242,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/odometer-roll.html",
+      "line": 249,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 54,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 43,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition)"
+    },
+    {
+      "file": "compositions/odometer-roll.html",
+      "guide": "compositions/odometer-roll.html (composition id \"odometer-roll\")"
+    },
+    {
+      "file": "compositions/odometer-roll.html",
+      "guide": "compositions/odometer-roll.html (composition id \"odometer-roll\")"
+    }
+  ],
+  "source": "odometer-roll-block"
+}

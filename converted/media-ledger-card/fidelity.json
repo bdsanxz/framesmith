@@ -1,0 +1,105 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 6,
+    "refused": 0,
+    "translated": 5
+  },
+  "duration": 5.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-mark has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-text has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-title has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/card.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-sub has no own left/top; placed by flow approximation at (0, 164)",
+      "file": "compositions/card.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-text is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 61,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-mark\" at start=0.2000 duration=0.5000",
+      "file": "compositions/card.html",
+      "line": 64,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-title\" at start=1.5000 duration=0.2000",
+      "file": "compositions/card.html",
+      "line": 67,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-sub\" at start=2.0000 duration=0.4000",
+      "file": "compositions/card.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 56,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, id \"main\", 5 seconds, 1920 by 1080)"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    }
+  ],
+  "source": "media-ledger-card"
+}

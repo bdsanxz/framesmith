@@ -1,0 +1,800 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 61,
+    "refused": 17,
+    "translated": 21
+  },
+  "duration": 20.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wordmark-palette-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/wordmark-palette.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wordmark-palette-head has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/wordmark-palette.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wordmark-palette-label has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/wordmark-palette.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wordmark-palette-word has no own left/top; placed by flow approximation at (0, 48)",
+      "file": "compositions/wordmark-palette.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wordmark-palette-swatches has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/wordmark-palette.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wordmark-palette-glow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wordmark-palette-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wordmark-palette-head is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wordmark-palette-swatches is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/wordmark-palette.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/wordmark-palette.html",
+      "line": 82,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#wordmark-palette-label\" at start=0.2000 duration=0.6000",
+      "file": "compositions/wordmark-palette.html",
+      "line": 84,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 0% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/wordmark-palette.html",
+      "line": 85,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#wordmark-palette-swatches .swatch\" is compound; only `#id` and `.class` land",
+      "file": "compositions/wordmark-palette.html",
+      "line": 87,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#wordmark-palette-stage\" at start=0.0000 duration=5.0000",
+      "file": "compositions/wordmark-palette.html",
+      "line": 90,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#wordmark-palette-glow\" at start=0.0000 duration=5.0000",
+      "file": "compositions/wordmark-palette.html",
+      "line": 91,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/type-specimen.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-glyph has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/type-specimen.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-copy has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/type-specimen.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-h2 has no own left/top; placed by flow approximation at (0, 56)",
+      "file": "compositions/type-specimen.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-rule has no own left/top; placed by flow approximation at (0, 184)",
+      "file": "compositions/type-specimen.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-body has no own left/top; placed by flow approximation at (0, 240)",
+      "file": "compositions/type-specimen.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #type-specimen-mono has no own left/top; placed by flow approximation at (0, 312)",
+      "file": "compositions/type-specimen.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #type-specimen-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/type-specimen.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #type-specimen-copy is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/type-specimen.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #type-specimen-rule is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/type-specimen.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/type-specimen.html",
+      "line": 75,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#type-specimen-glyph\" at start=5.4500 duration=0.6000",
+      "file": "compositions/type-specimen.html",
+      "line": 77,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#type-specimen-copy .type-specimen-label\" is compound; only `#id` and `.class` land",
+      "file": "compositions/type-specimen.html",
+      "line": 78,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 0% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/type-specimen.html",
+      "line": 80,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"0% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/type-specimen.html",
+      "line": 82,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#type-specimen-body\" at start=6.2000 duration=0.6000",
+      "file": "compositions/type-specimen.html",
+      "line": 84,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#type-specimen-mono\" at start=6.4000 duration=0.6000",
+      "file": "compositions/type-specimen.html",
+      "line": 85,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#type-specimen-stage\" at start=5.0000 duration=5.0000",
+      "file": "compositions/type-specimen.html",
+      "line": 87,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-card has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-header has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-title has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-chip has no own left/top; placed by flow approximation at (0, 26)",
+      "file": "compositions/ui-card.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-dot has no own left/top; placed by flow approximation at (0, 26)",
+      "file": "compositions/ui-card.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-metric has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-value has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-unit has no own left/top; placed by flow approximation at (0, 170)",
+      "file": "compositions/ui-card.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-track has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-fill has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ui-card-steps has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ui-card.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ui-card-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ui-card-header is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ui-card-chip is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ui-card-metric is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ui-card-track is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ui-card-steps is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ui-card.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/ui-card.html",
+      "line": 91,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ui-card-card\" at start=10.4500 duration=0.6000",
+      "file": "compositions/ui-card.html",
+      "line": 93,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ui-card-chip\" at start=10.9000 duration=0.2500",
+      "file": "compositions/ui-card.html",
+      "line": 94,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"v\" (value \"99.98\") has no KDL motion property; refusing the call site",
+      "file": "compositions/ui-card.html",
+      "line": 98,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"0% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/ui-card.html",
+      "line": 101,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#ui-card-steps .ui-card-step\" is compound; only `#id` and `.class` land",
+      "file": "compositions/ui-card.html",
+      "line": 103,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ui-card-dot\" at start=11.2000 duration=0.5000",
+      "file": "compositions/ui-card.html",
+      "line": 105,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ui-card-stage\" at start=10.0000 duration=6.0000",
+      "file": "compositions/ui-card.html",
+      "line": 107,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-lockup has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-mark has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-ring has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-core has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-word has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-close-tag has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-close.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #logo-close-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-close.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #logo-close-lockup is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-close.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #logo-close-mark is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-close.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #logo-close-ring is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-close.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #logo-close-core is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-close.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/logo-close.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"strokeDashoffset\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/logo-close.html",
+      "line": 72,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"50% 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/logo-close.html",
+      "line": 73,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 0% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/logo-close.html",
+      "line": 75,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#logo-close-tag\" at start=17.3000 duration=0.6000",
+      "file": "compositions/logo-close.html",
+      "line": 77,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#logo-close-stage\" at start=16.0000 duration=4.0000",
+      "file": "compositions/logo-close.html",
+      "line": 79,
+      "verdict": "translated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/aurora-wipe.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/aurora-wipe.html",
+      "line": 43,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"xPercent\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/aurora-wipe.html",
+      "line": 45,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"xPercent\" (value \"100\") has no KDL motion property; refusing the call site",
+      "file": "compositions/aurora-wipe.html",
+      "line": 46,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/aurora-wipe.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/aurora-wipe.html",
+      "line": 43,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"xPercent\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/aurora-wipe.html",
+      "line": 45,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"xPercent\" (value \"100\") has no KDL motion property; refusing the call site",
+      "file": "compositions/aurora-wipe.html",
+      "line": 46,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/aurora-wipe.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/aurora-wipe.html",
+      "line": 43,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"xPercent\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/aurora-wipe.html",
+      "line": 45,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"xPercent\" (value \"100\") has no KDL motion property; refusing the call site",
+      "file": "compositions/aurora-wipe.html",
+      "line": 46,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 45,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\")"
+    },
+    {
+      "file": "compositions/wordmark-palette.html",
+      "guide": "compositions/wordmark-palette.html (composition id \"wordmark-palette\")"
+    },
+    {
+      "file": "compositions/type-specimen.html",
+      "guide": "compositions/type-specimen.html (composition id \"type-specimen\")"
+    },
+    {
+      "file": "compositions/ui-card.html",
+      "guide": "compositions/ui-card.html (composition id \"ui-card\")"
+    },
+    {
+      "file": "compositions/logo-close.html",
+      "guide": "compositions/logo-close.html (composition id \"logo-close\")"
+    },
+    {
+      "file": "compositions/aurora-wipe.html",
+      "guide": "compositions/aurora-wipe.html (composition id \"aurora-wipe\")"
+    },
+    {
+      "file": "compositions/aurora-wipe.html",
+      "guide": "compositions/aurora-wipe.html (composition id \"aurora-wipe\")"
+    },
+    {
+      "file": "compositions/aurora-wipe.html",
+      "guide": "compositions/aurora-wipe.html (composition id \"aurora-wipe\")"
+    }
+  ],
+  "source": "aurora-labs-brand-reel"
+}

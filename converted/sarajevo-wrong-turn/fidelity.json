@@ -1,0 +1,1397 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 105,
+    "refused": 42,
+    "translated": 31
+  },
+  "duration": 27.5,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-map has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-hl has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-city has no own left/top; placed by flow approximation at (140, 436)",
+      "file": "compositions/map.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-sub has no own left/top; placed by flow approximation at (140, 436)",
+      "file": "compositions/map.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-pin is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-pin-shadow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-label is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/map.html",
+      "line": 84,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 95,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"filter\" (value \"\\\"blur(8px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 99,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=0.6000",
+      "file": "compositions/map.html",
+      "line": 100,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 101,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"keyframes\" (value \"[{ scale: 1, duration: 1.6, ease: \\\"power2.out\\\" }, { scale: 1.05, duration: 2.65, ease: \\\"sine.inOut\\\" }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 102,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-hl\" at start=1.7000 duration=0.4000",
+      "file": "compositions/map.html",
+      "line": 104,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#mp-pin svg\" is compound; only `#id` and `.class` land",
+      "file": "compositions/map.html",
+      "line": 105,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-pin-shadow\" at start=2.7500 duration=0.3000",
+      "file": "compositions/map.html",
+      "line": 106,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-lead\" at start=3.3500 duration=0.3500",
+      "file": "compositions/map.html",
+      "line": 109,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 87,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 4.2500s gives 1.8824 chars/s instead of 12.0000 chars/s",
+      "detail": "typeOn \"#mp-city\" at 2.9500 for 8 chars at 12.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6667s)",
+      "file": "compositions/map.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 4.2500s gives 7.0588 chars/s instead of 45.0000 chars/s",
+      "detail": "typeOn \"#mp-sub\" at 3.3000 for 30 chars at 45.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6667s)",
+      "file": "compositions/map.html",
+      "line": 110,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/title.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-route-mask has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/title.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-route-reveal has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/title.html",
+      "line": 87,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/title.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-arrow has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/title.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-title-bg has no own left/top; placed by flow approximation at (720, 360)",
+      "file": "compositions/title.html",
+      "line": 104,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-title-text has no own left/top; placed by flow approximation at (720, 360)",
+      "file": "compositions/title.html",
+      "line": 105,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-sub-bg has no own left/top; placed by flow approximation at (760, 600)",
+      "file": "compositions/title.html",
+      "line": 109,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tt-sub-text has no own left/top; placed by flow approximation at (760, 600)",
+      "file": "compositions/title.html",
+      "line": 110,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-route-mask is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-route-reveal is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 87,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #tt-sea references remote asset \"data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/title.html",
+      "line": 92,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-land-top is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-land-bottom is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-route is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 98,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-arrow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-title is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 103,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 105,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tt-sub is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/title.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/title.html",
+      "line": 116,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/title.html",
+      "line": 128,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#tt-title\" at start=4.2700 duration=0.2000",
+      "file": "compositions/title.html",
+      "line": 132,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#tt-title .tt-mark\" is compound; only `#id` and `.class` land",
+      "file": "compositions/title.html",
+      "line": 134,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"strokeDashoffset\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/title.html",
+      "line": 136,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"50% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/title.html",
+      "line": 137,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#tt-sub\" at start=5.2000 duration=0.0500",
+      "file": "compositions/title.html",
+      "line": 139,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#tt-cam\" at start=4.2500 duration=2.9100",
+      "file": "compositions/title.html",
+      "line": 142,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/title.html",
+      "line": 119,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 1260.0000 chars/s instead of 22.0000 chars/s",
+      "detail": "typeOn \"#tt-sub-text\" at 1.0000 for 21 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.9545s)",
+      "file": "compositions/title.html",
+      "line": 140,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ad-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/archduke.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ad-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/archduke.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ad-name-bg has no own left/top; placed by flow approximation at (960, 380)",
+      "file": "compositions/archduke.html",
+      "line": 106,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ad-name-text has no own left/top; placed by flow approximation at (960, 380)",
+      "file": "compositions/archduke.html",
+      "line": 107,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ad-role-bg has no own left/top; placed by flow approximation at (1000, 560)",
+      "file": "compositions/archduke.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ad-role-text has no own left/top; placed by flow approximation at (1000, 560)",
+      "file": "compositions/archduke.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ad-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ad-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #ad-sea references remote asset \"data:image/svg+xml,%3C!--sea.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'649' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/sea.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/archduke.html",
+      "line": 98,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ad-person is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 101,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--ff.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'630' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/ff.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/archduke.html",
+      "line": 101,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ad-stroke is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 102,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ad-name is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 105,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 107,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ad-role is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/archduke.html",
+      "line": 110,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/archduke.html",
+      "line": 118,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/archduke.html",
+      "line": 129,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ad-person\" at start=7.1600 duration=0.4000",
+      "file": "compositions/archduke.html",
+      "line": 133,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/archduke.html",
+      "line": 134,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"strokeDashoffset\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/archduke.html",
+      "line": 135,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/archduke.html",
+      "line": 137,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/archduke.html",
+      "line": 138,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#ad-name .ad-mark\" is compound; only `#id` and `.class` land",
+      "file": "compositions/archduke.html",
+      "line": 139,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ad-role\" at start=10.0400 duration=0.0500",
+      "file": "compositions/archduke.html",
+      "line": 141,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ad-cam\" at start=7.1600 duration=5.4000",
+      "file": "compositions/archduke.html",
+      "line": 144,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/archduke.html",
+      "line": 120,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 1920.0000 chars/s instead of 22.0000 chars/s",
+      "detail": "typeOn \"#ad-role-text\" at 2.9300 for 32 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.4545s)",
+      "file": "compositions/archduke.html",
+      "line": 142,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #as-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/assassins.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #as-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/assassins.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #as-card-bg has no own left/top; placed by flow approximation at (190, 300)",
+      "file": "compositions/assassins.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #as-label-text has no own left/top; placed by flow approximation at (40, 0)",
+      "file": "compositions/assassins.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-print is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--trial.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/trial.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/assassins.html",
+      "line": 85,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-bar-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-bar-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 87,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-bar-3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #as-card is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/assassins.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/assassins.html",
+      "line": 102,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/assassins.html",
+      "line": 113,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#as-card\" at start=12.5800 duration=0.1800",
+      "file": "compositions/assassins.html",
+      "line": 117,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#as-num\" at start=13.4300 duration=0.1200",
+      "file": "compositions/assassins.html",
+      "line": 118,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#as-print\" at start=12.8600 duration=0.3800",
+      "file": "compositions/assassins.html",
+      "line": 121,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/assassins.html",
+      "line": 122,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "delta": "selector matched 3 clips; stagger 0.1000s expanded to per-element start offsets",
+      "detail": "tl.fromTo on \".as-bar\" at start=13.9100 duration=0.1200",
+      "file": "compositions/assassins.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#as-cam\" at start=12.5600 duration=2.5000",
+      "file": "compositions/assassins.html",
+      "line": 125,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/assassins.html",
+      "line": 104,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 900.0000 chars/s instead of 26.0000 chars/s",
+      "detail": "typeOn \"#as-label-text\" at 1.0500 for 15 chars at 26.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.5769s)",
+      "file": "compositions/assassins.html",
+      "line": 119,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-ink has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-hatch has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-waves has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-route has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-ring has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-car-lead has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-car-ad has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 116,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-car-rear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/street.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-ink is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-plan is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-hatch is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-waves is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-route is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-ring is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-car-lead is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-car-rear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 117,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-princip is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/street.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--princip.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/princip.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/street.html",
+      "line": 123,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/street.html",
+      "line": 129,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 0% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/street.html",
+      "line": 131,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-car-lead\" at start=15.0600 duration=3.6000",
+      "file": "compositions/street.html",
+      "line": 132,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-car-rear\" at start=15.0600 duration=2.3000",
+      "file": "compositions/street.html",
+      "line": 133,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"path\") has no KDL motion property; refusing the call site",
+      "file": "compositions/street.html",
+      "line": 145,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"path\") has no KDL motion property; refusing the call site",
+      "file": "compositions/street.html",
+      "line": 146,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"immediateRender\" (value \"false\") has no KDL motion property; refusing the call site",
+      "file": "compositions/street.html",
+      "line": 147,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-wrong\" at start=18.2400 duration=0.1400",
+      "file": "compositions/street.html",
+      "line": 149,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"strokeDasharray\" (value \"\\\"1000 0\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/street.html",
+      "line": 151,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-stall\" at start=21.0100 duration=0.1400",
+      "file": "compositions/street.html",
+      "line": 152,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-princip\" at start=22.3600 duration=0.2200",
+      "file": "compositions/street.html",
+      "line": 154,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"0 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/street.html",
+      "line": 155,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-cam\" at start=15.0600 duration=8.7800",
+      "file": "compositions/street.html",
+      "line": 156,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shots.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shots.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-burst-1 has no own left/top; placed by flow approximation at (250, 230)",
+      "file": "compositions/shots.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-burst-2 has no own left/top; placed by flow approximation at (250, 230)",
+      "file": "compositions/shots.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-card-bg has no own left/top; placed by flow approximation at (1380, 300)",
+      "file": "compositions/shots.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-label-text has no own left/top; placed by flow approximation at (50, 0)",
+      "file": "compositions/shots.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-black has no own left/top; placed by flow approximation at (250, 230)",
+      "file": "compositions/shots.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sh-flash has no own left/top; placed by flow approximation at (250, 230)",
+      "file": "compositions/shots.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-gun is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--pistol.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'706' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/pistol.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/shots.html",
+      "line": 82,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-burst-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-burst-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-card is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sh-flash is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shots.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/shots.html",
+      "line": 97,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 108,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#sh-gun\" at start=23.8400 duration=0.3800",
+      "file": "compositions/shots.html",
+      "line": 111,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 112,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#sh-card\" at start=24.2900 duration=0.1800",
+      "file": "compositions/shots.html",
+      "line": 114,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#sh-num\" at start=24.3900 duration=0.1200",
+      "file": "compositions/shots.html",
+      "line": 115,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ scale: 1.15, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 118,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ scale: 1.25, duration: 0.06 }, { scale: 1, opacity: 0, duration: 0.3 }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 119,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ x: -14, y: 8, duration: 0.04 }, { x: 9, y: -6, duration: 0.05 }, { x: 0, y: 0, duration: 0.08 }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 120,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"keyframes\" (value \"[{ opacity: 1, duration: 0.03 }, { opacity: 1, duration: 0.08 }, { opacity: 0, duration: 0.3, ease: \\\"power2.in\\\" }]\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 122,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "delta": "duration 0.0100s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "tl.fromTo on \"#sh-black\" at start=25.4000 duration=0.0100",
+      "file": "compositions/shots.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"autoAlpha\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 124,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/shots.html",
+      "line": 99,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 300.0000 chars/s instead of 20.0000 chars/s",
+      "detail": "typeOn \"#sh-label-text\" at 0.7500 for 5 chars at 20.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.2500s)",
+      "file": "compositions/shots.html",
+      "line": 116,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pp-vig has no own left/top; placed by flow approximation at (-96, -54)",
+      "file": "compositions/paper.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #pp-sheet references remote asset \"data:image/svg+xml,%3C!--paper.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paper.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/paper.html",
+      "line": 48,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pp-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/paper.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/paper.html",
+      "line": 53,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 137,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 93,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition) (composition id \"main\")"
+    },
+    {
+      "file": "compositions/map.html",
+      "guide": "compositions/map.html (composition id \"map\")"
+    },
+    {
+      "file": "compositions/title.html",
+      "guide": "compositions/title.html (composition id \"title\")"
+    },
+    {
+      "file": "compositions/archduke.html",
+      "guide": "compositions/archduke.html (composition id \"archduke\")"
+    },
+    {
+      "file": "compositions/assassins.html",
+      "guide": "compositions/assassins.html (composition id \"assassins\")"
+    },
+    {
+      "file": "compositions/street.html",
+      "guide": "compositions/street.html (composition id \"street\")"
+    },
+    {
+      "file": "compositions/shots.html",
+      "guide": "compositions/shots.html (composition id \"shots\")"
+    },
+    {
+      "file": "compositions/paper.html",
+      "guide": "compositions/paper.html (composition id \"paper\")"
+    }
+  ],
+  "source": "sarajevo-wrong-turn"
+}

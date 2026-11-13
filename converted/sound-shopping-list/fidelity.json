@@ -1,0 +1,335 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 25,
+    "refused": 4,
+    "translated": 11
+  },
+  "duration": 16.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-cmd has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/terminal.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-typed has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/terminal.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #terminal-note has no own left/top; placed by flow approximation at (160, 300)",
+      "file": "compositions/terminal.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-box is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-cmd is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #terminal-typed is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/terminal.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/terminal.html",
+      "line": 57,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"0.3 + (i * 1.05) / cmd.length\" is an expression; refusing the call site",
+      "file": "compositions/terminal.html",
+      "line": 66,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#terminal-note\" at start=1.8500 duration=0.2000",
+      "file": "compositions/terminal.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-whoosh has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-whoosh-w has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-click has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-click-btn has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-typing has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-typing-w has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-impact has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-impact-w has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-riser has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #demos-riser-w has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/demos.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-whoosh is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-click is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-click-btn is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-cursor is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-typing is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-typing-w is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #demos-riser is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/demos.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/demos.html",
+      "line": 74,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"skewX\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/demos.html",
+      "line": 76,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#demos-cursor\" at start=4.1200 duration=0.8000",
+      "file": "compositions/demos.html",
+      "line": 78,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#demos-click-btn\" at start=5.0390 duration=0.0600",
+      "file": "compositions/demos.html",
+      "line": 79,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#demos-click-btn\" at start=5.1100 duration=0.1800",
+      "file": "compositions/demos.html",
+      "line": 80,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"4.23 + (i * 1.0) / word.length\" is an expression; refusing the call site",
+      "file": "compositions/demos.html",
+      "line": 88,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#demos-impact\" at start=8.0340 duration=1.2000",
+      "file": "compositions/demos.html",
+      "line": 91,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"color\" (value \"\\\"#ffffff\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/demos.html",
+      "line": 92,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#demos-riser-w\" at start=10.0310 duration=3.9690",
+      "file": "compositions/demos.html",
+      "line": 94,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #end-line has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/end.html",
+      "line": 37,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/end.html",
+      "line": 41,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#end-line\" at start=14.0000 duration=0.2500",
+      "file": "compositions/end.html",
+      "line": 42,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 84,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 61,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\", the root composition)"
+    },
+    {
+      "file": "compositions/terminal.html",
+      "guide": "compositions/terminal.html (composition id \"terminal\")"
+    },
+    {
+      "file": "compositions/demos.html",
+      "guide": "compositions/demos.html (composition id \"demos\")"
+    },
+    {
+      "file": "compositions/end.html",
+      "guide": "compositions/end.html (composition id \"end\")"
+    }
+  ],
+  "source": "sound-shopping-list"
+}

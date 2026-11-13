@@ -1,0 +1,119 @@
+# Fidelity report: clip-wipe-captions → main
+
+- translated: 32
+- approximated (with deltas): 64
+- refused: 9
+
+## Refused (cause named; conversion refused)
+
+- `compositions/frames/intro.html`:83 [tl.fromTo] property "transformOrigin" (value "\"0% 100%\"") has no KDL motion property; refusing the call site
+- `compositions/frames/anatomy.html`:90 [tl.to] property "filter" (value "\"blur(6px)\"") has no KDL motion property; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:289 [tl.set] position "g.start" is an expression; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:296 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:302 [tl.to] position "w.start + 0.1" is an expression; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:304 [tl.to] position "w.end" is an expression; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:308 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:318 [tl.set] position "g.end" is an expression; refusing the call site
+- `compositions/components/caption-clip-wipe.html`:322 [tl.seek] timeline call "seek" is outside the translatable grammar (to/from/fromTo/set); refusing the call site
+
+## Approximated (measured deltas)
+
+- `compositions/frames/hook.html`:57 [placement] element #hook-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/hook.html`:59 [placement] element #hook-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/hook.html`:60 [placement] element #hook-a has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/hook.html`:61 [placement] element #hook-b has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/hook.html`:61 [placement] element #hook-forget has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/hook.html`:57 [container element] element #hook-ground is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/hook.html`:59 [container element] element #hook-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:64 [placement] element #intro-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:66 [placement] element #intro-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:67 [placement] element #intro-eyebrow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:68 [placement] element #intro-folder has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:69 [placement] element #intro-tab has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:70 [placement] element #intro-body has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:71 [placement] element #intro-dir has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:72 [placement] element #intro-file has no own left/top; placed by flow approximation at (0, 62) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:72 [placement] element #intro-dot has no own left/top; placed by flow approximation at (0, 62) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:73 [placement] element #intro-note has no own left/top; placed by flow approximation at (0, 62) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/intro.html`:64 [container element] element #intro-ground is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:66 [container element] element #intro-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:68 [container element] element #intro-folder is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:69 [container element] element #intro-tab is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:70 [container element] element #intro-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/intro.html`:72 [container element] element #intro-file is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:62 [placement] element #anatomy-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:63 [placement] element #anatomy-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:65 [placement] element #anatomy-doc has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:66 [placement] element #anatomy-file has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:67 [placement] element #anatomy-head has no own left/top; placed by flow approximation at (0, 48) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:69 [placement] element #anatomy-name has no own left/top; placed by flow approximation at (0, 86) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:70 [placement] element #anatomy-desc has no own left/top; placed by flow approximation at (0, 86) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:73 [placement] element #anatomy-body has no own left/top; placed by flow approximation at (0, 48) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/anatomy.html`:62 [container element] element #anatomy-ground is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:63 [container element] element #anatomy-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:65 [container element] element #anatomy-doc is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:67 [container element] element #anatomy-head is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:69 [container element] element #anatomy-name is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:70 [container element] element #anatomy-desc is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/anatomy.html`:73 [container element] element #anatomy-body is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/ladder.html`:59 [placement] element #ladder-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:61 [placement] element #ladder-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:62 [placement] element #ladder-eyebrow has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:63 [placement] element #ladder-rows has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:64 [placement] element #ladder-r1 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:65 [placement] element #ladder-r2 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:66 [placement] element #ladder-r3 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/ladder.html`:59 [container element] element #ladder-ground is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/ladder.html`:61 [container element] element #ladder-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/ladder.html`:63 [container element] element #ladder-rows is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/ladder.html`:64 [container element] element #ladder-r1 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/ladder.html`:65 [container element] element #ladder-r2 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/ladder.html`:66 [container element] element #ladder-r3 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/thesis.html`:53 [placement] element #thesis-ground has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/thesis.html`:55 [placement] element #thesis-stage has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/thesis.html`:56 [placement] element #thesis-a has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/thesis.html`:57 [placement] element #thesis-b has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/thesis.html`:58 [placement] element #thesis-line has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/frames/thesis.html`:53 [container element] element #thesis-ground is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/frames/thesis.html`:55 [container element] element #thesis-stage is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/components/caption-clip-wipe.html`:117 [placement] element #clip-wipe has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/components/caption-clip-wipe.html`:129 [placement] element #wp-container has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/components/caption-clip-wipe.html`:117 [container element] element #clip-wipe is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/components/caption-clip-wipe.html`:128 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/components/caption-clip-wipe.html`:129 [container element] element #wp-container is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:56 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
+
+## Translated
+
+- `compositions/frames/hook.html`:66 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/frames/hook.html`:68 [tl.fromTo] tl.fromTo on "#hook-a" at start=0.0500 duration=0.5000
+- `compositions/frames/hook.html`:69 [tl.fromTo] tl.fromTo on "#hook-b" at start=1.6500 duration=0.6000
+- `compositions/frames/hook.html`:70 [tl.fromTo] tl.fromTo on "#hook-forget" at start=2.9000 duration=0.8000
+- `compositions/frames/hook.html`:71 [tl.fromTo] tl.fromTo on "#hook-stage" at start=0.0000 duration=4.5300
+- `compositions/frames/intro.html`:80 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/frames/intro.html`:82 [tl.fromTo] tl.fromTo on "#intro-eyebrow" at start=4.6300 duration=0.5000
+- `compositions/frames/intro.html`:84 [tl.fromTo] tl.fromTo on "#intro-body" at start=5.6300 duration=0.6000
+- `compositions/frames/intro.html`:85 [tl.fromTo] tl.fromTo on "#intro-dir" at start=5.9300 duration=0.4000
+- `compositions/frames/intro.html`:86 [tl.fromTo] tl.fromTo on "#intro-file" at start=6.7200 duration=0.5000
+- `compositions/frames/intro.html`:87 [tl.fromTo] tl.fromTo on "#intro-note" at start=7.5600 duration=0.4000
+- `compositions/frames/intro.html`:88 [tl.fromTo] tl.fromTo on "#intro-stage" at start=4.5300 duration=4.0400
+- `compositions/frames/anatomy.html`:83 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/frames/anatomy.html`:85 [tl.fromTo] tl.fromTo on "#anatomy-file" at start=8.6200 duration=0.4000
+- `compositions/frames/anatomy.html`:86 [tl.fromTo] tl.fromTo on "#anatomy-head" at start=9.4300 duration=0.5000
+- `compositions/frames/anatomy.html`:87 [tl.fromTo] tl.fromTo on "#anatomy-body" at start=9.5700 duration=0.5000
+- `compositions/frames/anatomy.html`:88 [tl.fromTo] tl.fromTo on "#anatomy-name" at start=10.3200 duration=0.3000
+- `compositions/frames/anatomy.html`:89 [tl.fromTo] tl.fromTo on "#anatomy-desc" at start=11.2000 duration=0.3000
+- `compositions/frames/anatomy.html`:91 [tl.fromTo] tl.fromTo on "#anatomy-stage" at start=8.5700 duration=5.1600
+- `compositions/frames/ladder.html`:72 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/frames/ladder.html`:74 [tl.fromTo] tl.fromTo on "#ladder-eyebrow" at start=13.7800 duration=0.4000
+- `compositions/frames/ladder.html`:75 [tl.fromTo] tl.fromTo on "#ladder-r1" at start=13.8300 duration=0.5000
+- `compositions/frames/ladder.html`:76 [tl.fromTo] tl.fromTo on "#ladder-r2" at start=15.7000 duration=0.5000
+- `compositions/frames/ladder.html`:77 [tl.fromTo] tl.fromTo on "#ladder-r3" at start=17.7800 duration=0.5000
+- `compositions/frames/ladder.html`:78 [tl.fromTo] tl.fromTo on "#ladder-stage" at start=13.7300 duration=6.3600
+- `compositions/frames/thesis.html`:63 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/frames/thesis.html`:65 [tl.fromTo] tl.fromTo on "#thesis-a" at start=20.1400 duration=0.6000
+- `compositions/frames/thesis.html`:66 [tl.fromTo] tl.fromTo on "#thesis-b" at start=21.6500 duration=0.6000
+- `compositions/frames/thesis.html`:67 [tl.fromTo] tl.fromTo on "#thesis-line" at start=22.0900 duration=0.5000
+- `compositions/frames/thesis.html`:68 [tl.fromTo] tl.fromTo on "#thesis-stage" at start=20.0900 duration=5.4100
+- `compositions/components/caption-clip-wipe.html`:261 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `index.html`:81 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek

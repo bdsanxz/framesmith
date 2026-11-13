@@ -1,0 +1,109 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 6,
+    "refused": 0,
+    "translated": 5
+  },
+  "duration": 5.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #json-view-label has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/json-view.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #json-view-file has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/json-view.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #json-view-code has no own left/top; placed by flow approximation at (0, 120)",
+      "file": "compositions/json-view.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/json-view.html",
+      "line": 109,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#json-view-code\" at start=0.1000 duration=0.5000",
+      "file": "compositions/json-view.html",
+      "line": 111,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#json-view-label\" at start=0.3000 duration=0.5000",
+      "file": "compositions/json-view.html",
+      "line": 113,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #lottie-play-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/lottie-play.html",
+      "line": 43,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #lottie-play-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/lottie-play.html",
+      "line": 43,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/lottie-play.html",
+      "line": 57,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 48,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 38,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\")"
+    },
+    {
+      "file": "compositions/json-view.html",
+      "guide": "compositions/json-view.html (composition id \"json-view\")"
+    },
+    {
+      "file": "compositions/lottie-play.html",
+      "guide": "compositions/lottie-play.html (composition id \"lottie-play\")"
+    }
+  ],
+  "source": "lottie-json-showcase"
+}

@@ -1,0 +1,149 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 8,
+    "refused": 0,
+    "translated": 9
+  },
+  "duration": 5.0,
+  "entries": [
+    {
+      "construct": "variable",
+      "delta": "fields [label, maxLength] and type \"string\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"name\" (\"string\") carried with default \"Ada Lovelace\"",
+      "file": "index.html",
+      "line": 24,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"string\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"role\" (\"string\") carried with default \"First programmer\"",
+      "file": "index.html",
+      "line": 24,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"color\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"accent\" (\"color\") carried with default \"#7c5cff\"",
+      "file": "index.html",
+      "line": 24,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-hello has no own left/top; placed by flow approximation at (260, 380)",
+      "file": "compositions/card.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-name has no own left/top; placed by flow approximation at (260, 438)",
+      "file": "compositions/card.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #card-role has no own left/top; placed by flow approximation at (260, 612)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #card-text is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/card.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"name\"; default baked as var(--name)",
+      "file": "compositions/card.html",
+      "line": 56,
+      "verdict": "translated"
+    },
+    {
+      "construct": "variable text",
+      "detail": "text from render-time variable \"role\"; default baked as var(--role)",
+      "file": "compositions/card.html",
+      "line": 57,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/card.html",
+      "line": 62,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-bar\" at start=0.2000 duration=0.6000",
+      "file": "compositions/card.html",
+      "line": 64,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-hello\" at start=0.4000 duration=0.5000",
+      "file": "compositions/card.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-name\" at start=0.5500 duration=0.7000",
+      "file": "compositions/card.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-role\" at start=0.9000 duration=0.5000",
+      "file": "compositions/card.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#card-text\" at start=1.0000 duration=4.0000",
+      "file": "compositions/card.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 53,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 46,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, id \"main\", 5 seconds, 1920 by 1080)"
+    },
+    {
+      "file": "compositions/card.html",
+      "guide": "compositions/card.html (composition id \"card\")"
+    }
+  ],
+  "source": "name-card-template"
+}

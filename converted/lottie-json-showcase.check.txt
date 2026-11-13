@@ -1,0 +1,3 @@
+error[E_PARSE] /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/lottie-json-showcase/composition.kdl:4:32: malformed KDL: unterminated string (fix: fix the notation syntax at the reported location)
+lint: 0 findings across 16 rules in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/lottie-json-showcase.
+invalid: /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/lottie-json-showcase has 1 problem(s); no output written.

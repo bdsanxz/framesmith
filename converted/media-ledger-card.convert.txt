@@ -1,0 +1,1 @@
+{"converted":true,"source":"media-ledger-card","out":"/Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/media-ledger-card","translated":5,"approximated":6,"refused":0,"assets_copied":1}

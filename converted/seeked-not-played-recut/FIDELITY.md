@@ -1,0 +1,138 @@
+# Fidelity report: seeked-not-played-recut → main
+
+- translated: 23
+- approximated (with deltas): 94
+- refused: 7
+
+## Refused (cause named; conversion refused)
+
+- `index.html`:71 [asset img] element #aroll references remote asset "data:image/svg+xml,%3C!--aroll.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'516' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/aroll.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
+- `compositions/cards/registry.html`:63 [tl.fromTo] property "v" (value "400") has no KDL motion property; refusing the call site
+- `compositions/cards/seek.html`:58 [tl.fromTo] target "[\"#seek-arrow\", \"#seek-video\"]" is not a DOM selector ("[\"#seek-arrow\", \"#seek-video\"]" is runtime state); naming the call site instead of guessing a clip
+- `compositions/captions.html`:68 [tl.set] property "color" (value "\"#8e8e93\"") has no KDL motion property; refusing the call site
+- `compositions/captions.html`:69 [tl.set] position "start" is an expression; refusing the call site
+- `compositions/captions.html`:70 [tl.set] position "end" is an expression; refusing the call site
+- `index.html`:92 [tl.set] property "transformOrigin" (value "\"50% 50%\"") has no KDL motion property; refusing the call site
+
+## Approximated (measured deltas)
+
+- `index.html`:71 [placement] element #aroll has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `index.html`:70 [container element] element #video-wrap is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/cards/title.html`:42 [placement] element #title-a has no own left/top; placed by flow approximation at (0, 150) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/title.html`:42 [placement] element #title-arrow has no own left/top; placed by flow approximation at (0, 210) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/title.html`:42 [placement] element #title-b has no own left/top; placed by flow approximation at (0, 366) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/title.html`:42 [container element] element #title-box is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/cards/registry.html`:49 [placement] element #registry-panel has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/registry.html`:51 [placement] element #registry-num has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/registry.html`:52 [placement] element #registry-label has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/registry.html`:49 [container element] element #registry-panel is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/cards/fonts.html`:44 [placement] element #fonts-panel has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/fonts.html`:46 [placement] element #fonts-num has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/fonts.html`:47 [placement] element #fonts-label has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/fonts.html`:44 [container element] element #fonts-panel is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/cards/seek.html`:47 [placement] element #seek-a has no own left/top; placed by flow approximation at (0, 140) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/seek.html`:48 [placement] element #seek-b has no own left/top; placed by flow approximation at (0, 234) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/seek.html`:48 [placement] element #seek-arrow has no own left/top; placed by flow approximation at (0, 282) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/seek.html`:48 [placement] element #seek-video has no own left/top; placed by flow approximation at (0, 330) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/seek.html`:46 [container element] element #seek-card is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/cards/seek.html`:48 [container element] element #seek-b is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/cards/close.html`:37 [placement] element #close-hl has no own left/top; placed by flow approximation at (0, 150) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/url-bug.html`:38 [placement] element #bug-dot has no own left/top; placed by flow approximation at (0, 64) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/cards/url-bug.html`:38 [container element] element #bug is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:47 [placement] element #captions-l0 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:47 [placement] element #captions-w0 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:47 [placement] element #captions-w1 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:47 [placement] element #captions-w2 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:47 [placement] element #captions-w3 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:47 [placement] element #captions-w4 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:48 [placement] element #captions-l1 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:48 [placement] element #captions-w5 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:48 [placement] element #captions-w6 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:48 [placement] element #captions-w7 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:48 [placement] element #captions-w8 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:48 [placement] element #captions-w9 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:49 [placement] element #captions-l2 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:49 [placement] element #captions-w10 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:49 [placement] element #captions-w11 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:49 [placement] element #captions-w12 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:49 [placement] element #captions-w13 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:50 [placement] element #captions-l3 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:50 [placement] element #captions-w14 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:50 [placement] element #captions-w15 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:50 [placement] element #captions-w16 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:50 [placement] element #captions-w17 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:51 [placement] element #captions-l4 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:51 [placement] element #captions-w18 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:51 [placement] element #captions-w19 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:51 [placement] element #captions-w20 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-l5 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-w21 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-w22 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-w23 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-w24 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-w25 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:52 [placement] element #captions-w26 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:53 [placement] element #captions-l6 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:53 [placement] element #captions-w27 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:53 [placement] element #captions-w28 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:54 [placement] element #captions-l7 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:54 [placement] element #captions-w29 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:54 [placement] element #captions-w30 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:54 [placement] element #captions-w31 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:54 [placement] element #captions-w32 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:55 [placement] element #captions-l8 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:55 [placement] element #captions-w33 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:55 [placement] element #captions-w34 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:55 [placement] element #captions-w35 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:56 [placement] element #captions-l9 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:56 [placement] element #captions-w36 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:56 [placement] element #captions-w37 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:57 [placement] element #captions-l10 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:57 [placement] element #captions-w38 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:57 [placement] element #captions-w39 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:57 [placement] element #captions-w40 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:57 [placement] element #captions-w41 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:58 [placement] element #captions-l11 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:58 [placement] element #captions-w42 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:58 [placement] element #captions-w43 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:58 [placement] element #captions-w44 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:58 [placement] element #captions-w45 has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/captions.html`:47 [container element] element #captions-l0 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:48 [container element] element #captions-l1 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:49 [container element] element #captions-l2 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:50 [container element] element #captions-l3 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:51 [container element] element #captions-l4 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:52 [container element] element #captions-l5 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:53 [container element] element #captions-l6 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:54 [container element] element #captions-l7 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:55 [container element] element #captions-l8 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:56 [container element] element #captions-l9 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:57 [container element] element #captions-l10 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/captions.html`:58 [container element] element #captions-l11 is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:68 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
+
+## Translated
+
+- `compositions/cards/title.html`:46 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/cards/title.html`:48 [tl.fromTo] tl.fromTo on "#title-a" at start=1.5600 duration=0.3000
+- `compositions/cards/title.html`:49 [tl.fromTo] tl.fromTo on "#title-arrow" at start=1.9000 duration=0.3000
+- `compositions/cards/title.html`:50 [tl.fromTo] tl.fromTo on "#title-b" at start=2.3000 duration=0.3000
+- `compositions/cards/registry.html`:57 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/cards/registry.html`:59 [tl.fromTo] tl.fromTo on "#registry-panel" at start=2.9500 duration=0.6000
+- `compositions/cards/registry.html`:64 [tl.fromTo] tl.fromTo on "#registry-label" at start=5.1900 duration=0.4000
+- `compositions/cards/fonts.html`:52 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/cards/fonts.html`:54 [tl.fromTo] tl.fromTo on "#fonts-num" at start=6.7700 duration=0.2500
+- `compositions/cards/fonts.html`:55 [tl.fromTo] tl.fromTo on "#fonts-label" at start=7.2100 duration=0.4000
+- `compositions/cards/seek.html`:53 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/cards/seek.html`:55 [tl.fromTo] tl.fromTo on "#seek-card" at start=10.8500 duration=0.5000
+- `compositions/cards/seek.html`:56 [tl.fromTo] tl.fromTo on "#seek-b" at start=12.6000 duration=0.4000
+- `compositions/cards/close.html`:41 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/cards/close.html`:43 [tl.fromTo] tl.fromTo on "#close-line" at start=15.9500 duration=0.5000
+- `compositions/cards/close.html`:44 [tl.fromTo] tl.fromTo on "#close-hl" at start=16.5000 duration=0.2500
+- `compositions/cards/url-bug.html`:42 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/cards/url-bug.html`:43 [tl.fromTo] tl.fromTo on "#bug" at start=0.3000 duration=0.5000
+- `compositions/captions.html`:63 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `index.html`:90 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `index.html`:94 [tl.to] tl.to on "#video-wrap" at start=2.6000 duration=0.7000
+- `index.html`:96 [tl.to] tl.to on "#video-wrap" at start=9.4000 duration=0.7000
+- `index.html`:98 [tl.to] tl.to on "#video-wrap" at start=15.2500 duration=2.7100

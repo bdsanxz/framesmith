@@ -1,0 +1,782 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 66,
+    "refused": 27,
+    "translated": 5
+  },
+  "duration": 16.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bed-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 99,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bed has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 99,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #grain-overlay has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "index.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bed-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 99,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #bed references remote asset \"data:image/svg+xml,%3C!--bed.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: assets/bed.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "index.html",
+      "line": 99,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #grain-overlay is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 108,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "index.html",
+      "line": 109,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #xp-card has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/x-post.html",
+      "line": 253,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #xp-like-btn has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/x-post.html",
+      "line": 323,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #xp-heart-outline has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/x-post.html",
+      "line": 327,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #xp-heart-filled has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/x-post.html",
+      "line": 333,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #xp-like-count has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/x-post.html",
+      "line": 341,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #xp-card is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 253,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 255,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 256,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 263,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 264,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 266,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 278,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 296,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 297,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 299,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 300,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 311,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 312,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #xp-like-btn is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 323,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 324,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #xp-heart-outline is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 327,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #xp-heart-filled is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 333,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 345,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 346,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 357,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 359,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 360,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 370,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/x-post.html",
+      "line": 371,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/x-post.html",
+      "line": 389,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "tl.set on card at start=0.0000 duration=0.5000",
+      "file": "compositions/x-post.html",
+      "line": 399,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 402,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 414,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 425,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 436,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 447,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 458,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/x-post.html",
+      "line": 472,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #data-chart has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/data-chart.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #data-chart is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 95,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 97,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 103,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 106,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 109,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 110,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/data-chart.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/data-chart.html",
+      "line": 259,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 349,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 359,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 369,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 379,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 398,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 408,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 423,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "set takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 434,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 448,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 463,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 474,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/data-chart.html",
+      "line": 489,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #logo-outro has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/logo-outro.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #logo-outro is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/logo-outro.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/logo-outro.html",
+      "line": 181,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 198,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 209,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"expandTime + 0.3\" is an expression; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 215,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 218,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to takes 2-3 arguments, found 4; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 224,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 232,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/logo-outro.html",
+      "line": 239,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 114,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 97,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\")"
+    },
+    {
+      "file": "compositions/x-post.html",
+      "guide": "compositions/x-post.html (composition id \"x-post\")"
+    },
+    {
+      "file": "compositions/data-chart.html",
+      "guide": "compositions/data-chart.html (composition id \"data-chart\")"
+    },
+    {
+      "file": "compositions/logo-outro.html",
+      "guide": "compositions/logo-outro.html (composition id \"logo-outro\")"
+    }
+  ],
+  "source": "catalog-reel"
+}

@@ -1,0 +1,332 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 23,
+    "refused": 8,
+    "translated": 10
+  },
+  "duration": 17.5,
+  "entries": [
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"color\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"accent\" (\"color\") carried with default \"#6ee7c8\"",
+      "file": "index.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"color\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"canvas\" (\"color\") carried with default \"#0f1115\"",
+      "file": "index.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wire has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/journey.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wave-g has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/journey.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #wave has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/journey.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bars has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/journey.html",
+      "line": 126,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #strip has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/journey.html",
+      "line": 134,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ticks has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/journey.html",
+      "line": 141,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #world is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 109,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wire-svg is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 111,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wire is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 112,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wave-g is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #wave is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 115,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 120,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #code is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 121,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bars is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 126,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #strip is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 134,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ruler is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 141,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ticks is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 141,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 161,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 177,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/journey.html",
+      "line": 182,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/journey.html",
+      "line": 146,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to vars object is not a literal; refusing the call site",
+      "file": "compositions/journey.html",
+      "line": 196,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "to vars object is not a literal; refusing the call site",
+      "file": "compositions/journey.html",
+      "line": 207,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \"#code .ch\" is compound; only `#id` and `.class` land",
+      "file": "compositions/journey.html",
+      "line": 211,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"0.2 + i * 0.055\" is an expression; refusing the call site",
+      "file": "compositions/journey.html",
+      "line": 213,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "tl.set on \"#caret\" at start=2.8200 duration=0.5000",
+      "file": "compositions/journey.html",
+      "line": 214,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on chip at start=3.4000 duration=0.3000",
+      "file": "compositions/journey.html",
+      "line": 217,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "tl.from on \"#chart-title\" at start=5.7200 duration=0.5000",
+      "file": "compositions/journey.html",
+      "line": 223,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "tl.from on \".bar-col\" at start=6.5600 duration=0.4500",
+      "file": "compositions/journey.html",
+      "line": 224,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "selector \".bar-val, .bar-name\" is compound; only `#id` and `.class` land",
+      "file": "compositions/journey.html",
+      "line": 225,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"svgOrigin\" (value \"\\\"4850 760\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/journey.html",
+      "line": 230,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#wave-g\" at start=9.4100 duration=0.8000",
+      "file": "compositions/journey.html",
+      "line": 232,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \".frame-cell\" at start=11.4700 duration=0.0800",
+      "file": "compositions/journey.html",
+      "line": 238,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"f\" (value \"525\") has no KDL motion property; refusing the call site",
+      "file": "compositions/journey.html",
+      "line": 241,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "tl.from on \"#file\" at start=13.0700 duration=0.5000",
+      "file": "compositions/journey.html",
+      "line": 244,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#playhead\" at start=0.0000 duration=17.5000",
+      "file": "compositions/journey.html",
+      "line": 250,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"t\" (value \"DUR\") has no KDL motion property; refusing the call site",
+      "file": "compositions/journey.html",
+      "line": 251,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 74,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 59,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, id \"main\", 17.5 seconds, 1920 by 1080)"
+    },
+    {
+      "file": "compositions/journey.html",
+      "guide": "compositions/journey.html (composition id \"journey\")"
+    }
+  ],
+  "source": "one-take-journey"
+}

@@ -1,0 +1,122 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 2,
+    "refused": 9,
+    "translated": 3
+  },
+  "duration": 6.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #board-grid has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/board.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/board.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"[ftop, fbot]\" is not a DOM selector (\"[ftop, fbot]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/board.html",
+      "line": 85,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 94,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 95,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 96,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"STEP / 2\" is not a non-negative number; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 97,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + STEP / 2\" is an expression; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 98,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + STEP / 2\" is an expression; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 99,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"STEP / 2\" is not a non-negative number; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 100,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + STEP\" is an expression; refusing the call site",
+      "file": "compositions/board.html",
+      "line": 101,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#board-grid\" at start=0.0000 duration=6.0000",
+      "file": "compositions/board.html",
+      "line": 107,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 45,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 38,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, composition id \"main\")"
+    },
+    {
+      "file": "compositions/board.html",
+      "guide": "compositions/board.html (composition id \"board\")"
+    }
+  ],
+  "source": "split-flap-board"
+}

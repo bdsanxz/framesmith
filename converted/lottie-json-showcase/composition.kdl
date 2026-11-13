@@ -1,0 +1,62 @@
+composition name="main" root=true width=1920 height=1080 fps=30 duration=5 background="#0f1115" version=1 {
+  text id="json-view-label" value="Found JSON is an animation." start=0 duration=2.5 x=0 y=0 size=56 color="#ffffff"
+  text id="json-view-file" value="assets/tile-pulse.json · 2s @ 30fps" start=0 duration=2.5 x=0 y=0 size=26 color="#8b93a7"
+  text id="json-view-code" value="{
+  \"v\": \"5.7.4\",
+  \"fr\": 30,
+  \"ip\": 0,
+  \"op\": 60,
+  \"w\": 400,
+  \"h\": 400,
+  \"nm\": \"tile-pulse\",
+  \"ddd\": 0,
+  \"assets\": [],
+  \"layers\": [
+    {
+      \"ddd\": 0,
+      \"ind\": 1,
+      \"ty\": 4,
+      \"nm\": \"tile\",
+      \"sr\": 1,
+      \"ks\": {
+        \"o\": {
+          \"a\": 0,
+          \"k\": 100
+        },
+        \"r\": {
+          \"a\": 1,
+          \"k\": [
+            {
+              \"t\": 0,
+              \"s\": [
+                0
+              ],
+              \"i\": {
+                \"x\": [
+                  0.4
+                ],
+                \"y\": [
+                  1
+                ]
+              },
+              \"o\": {
+                \"x\": [
+                  0.6
+                ],
+                \"y\": [
+                  0
+                ]
+              }
+            },
+            {
+              \"t\": 60,
+              \"s\": [
+                180
+              ]
+            }" start=0 duration=2.5 x=0 y=120 size=22 color="#c9d1e3"
+  text id="lottie-play-stage" value="" start=2.5 duration=0.016666666666666666 x=0 y=0
+  tween target=2 property="opacity" kind="from-to" start=0.1 duration=0.5 from=0 to=1 ease="out-quart"
+  tween target=2 property="y" kind="from-to" start=0.1 duration=0.5 from=30 to=0 ease="out-quart"
+  tween target=0 property="opacity" kind="from-to" start=0.3 duration=0.5 from=0 to=1 ease="out-quart"
+  tween target=0 property="x" kind="from-to" start=0.3 duration=0.5 from=-30 to=0 ease="out-quart"
+}

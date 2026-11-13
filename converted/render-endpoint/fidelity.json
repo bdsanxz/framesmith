@@ -1,0 +1,20 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 0,
+    "refused": 1,
+    "translated": 0
+  },
+  "duration": 0.0,
+  "entries": [
+    {
+      "construct": "parse",
+      "detail": "refused: index.html cannot be read: No such file or directory (os error 2); the project file index.html is unparseable",
+      "file": "index.html",
+      "line": 1,
+      "verdict": "refused"
+    }
+  ],
+  "guides": [],
+  "source": "render-endpoint"
+}

@@ -1,0 +1,307 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 26,
+    "refused": 7,
+    "translated": 4
+  },
+  "duration": 6.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #desktop-doc-1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/desktop.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #desktop-doc-2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/desktop.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #desktop-doc-3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/desktop.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #desktop-lid-wrap has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/desktop.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #desktop-label-pill has no own left/top; placed by flow approximation at (0, 792)",
+      "file": "compositions/desktop.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-shadow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-folder is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-back is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-doc-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-doc-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-doc-3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-lid-wrap is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-lid is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-label is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #desktop-cursor is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/desktop.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/desktop.html",
+      "line": 86,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#desktop-cursor\" at start=0.1000 duration=1.8000",
+      "file": "compositions/desktop.html",
+      "line": 91,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"transformOrigin\" (value \"\\\"10% 6%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 94,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"transformOrigin\" (value \"\\\"10% 6%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 95,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"color\" (value \"\\\"#ffffff\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 96,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformPerspective\" (value \"900\") has no KDL motion property; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 98,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"50% 100%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 99,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "delta": "elastic amplitude/period (GSAP defaults 1/0.3) not expressible; default curve used",
+      "detail": "tl.to on \"#desktop-folder\" at start=2.4500 duration=0.4500",
+      "file": "compositions/desktop.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"3.0 + i * 0.15\" is an expression; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 106,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"4.1 + i * 0.12\" is an expression; refusing the call site",
+      "file": "compositions/desktop.html",
+      "line": 109,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#desktop-cursor\" at start=3.4000 duration=1.2000",
+      "file": "compositions/desktop.html",
+      "line": 112,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 45,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 38,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\")"
+    },
+    {
+      "file": "compositions/desktop.html",
+      "guide": "compositions/desktop.html (composition id \"desktop\")"
+    }
+  ],
+  "source": "projects-folder-open"
+}

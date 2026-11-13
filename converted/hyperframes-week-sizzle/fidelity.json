@@ -1,0 +1,392 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 29,
+    "refused": 9,
+    "translated": 9
+  },
+  "duration": 16.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cold-open-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 40,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cold-open-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cold-open-w1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 43,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cold-open-w2 has no own left/top; placed by flow approximation at (0, 32)",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cold-open-hf has no own left/top; placed by flow approximation at (0, 64)",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 45,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #cold-open-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 50,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 54,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#cold-open-stage\" at start=0.0000 duration=2.0200",
+      "file": "compositions/frames/01-cold-open.html",
+      "line": 57,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cards-1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/02-cards.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cards-2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/02-cards.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cards-3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/02-cards.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #cards-4 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/02-cards.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #cards-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #cards-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #cards-3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #cards-4 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/02-cards.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/02-cards.html",
+      "line": 73,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"downbeats[i]\" is an expression; refusing the call site",
+      "file": "compositions/frames/02-cards.html",
+      "line": 79,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"downbeats[i]\" is an expression; refusing the call site",
+      "file": "compositions/frames/02-cards.html",
+      "line": 80,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"snares[i]\" is an expression; refusing the call site",
+      "file": "compositions/frames/02-cards.html",
+      "line": 81,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"downbeats[i]\" is an expression; refusing the call site",
+      "file": "compositions/frames/02-cards.html",
+      "line": 82,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #roll-counter-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #roll-counter-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #roll-counter-kicker has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 50,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #roll-counter-num has no own left/top; placed by flow approximation at (0, 64)",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 51,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #roll-counter-sub has no own left/top; placed by flow approximation at (0, 508)",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 52,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #roll-counter-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 57,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"textContent\" (value \"\\\"05\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 62,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 66,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 67,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#roll-counter-sub\" at start=10.2310 duration=0.3000",
+      "file": "compositions/frames/03-roll-counter.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #banner-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/04-banner.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #banner-push has no own left/top; placed by flow approximation at (0, 330)",
+      "file": "compositions/frames/04-banner.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #banner-text has no own left/top; placed by flow approximation at (0, 330)",
+      "file": "compositions/frames/04-banner.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #banner-push is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/04-banner.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/04-banner.html",
+      "line": 48,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"clipPath\" (value \"\\\"inset(0 0% 0 0)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/frames/04-banner.html",
+      "line": 51,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#banner-text\" at start=14.0800 duration=0.2500",
+      "file": "compositions/frames/04-banner.html",
+      "line": 53,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#banner-push\" at start=14.3000 duration=1.7000",
+      "file": "compositions/frames/04-banner.html",
+      "line": 55,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 67,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 52,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition)"
+    },
+    {
+      "file": "compositions/frames/01-cold-open.html",
+      "guide": "compositions/frames/01-cold-open.html (composition id \"cold-open\")"
+    },
+    {
+      "file": "compositions/frames/02-cards.html",
+      "guide": "compositions/frames/02-cards.html (composition id \"cards\")"
+    },
+    {
+      "file": "compositions/frames/03-roll-counter.html",
+      "guide": "compositions/frames/03-roll-counter.html (composition id \"roll-counter\")"
+    },
+    {
+      "file": "compositions/frames/04-banner.html",
+      "guide": "compositions/frames/04-banner.html (composition id \"banner\")"
+    }
+  ],
+  "source": "hyperframes-week-sizzle"
+}

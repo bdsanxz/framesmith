@@ -1,0 +1,2334 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 189,
+    "refused": 44,
+    "translated": 64
+  },
+  "duration": 63.4,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-drift has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-map has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-hl has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-ring-1 has no own left/top; placed by flow approximation at (1330, 480)",
+      "file": "compositions/map.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-vig has no own left/top; placed by flow approximation at (1330, 480)",
+      "file": "compositions/map.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-dot has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-line has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/map.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-name has no own left/top; placed by flow approximation at (128, 398)",
+      "file": "compositions/map.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #mp-sub has no own left/top; placed by flow approximation at (128, 398)",
+      "file": "compositions/map.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-drift is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 71,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-pin is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-ring-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-ring-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-shadow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-lead is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-dot is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-line is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #mp-label is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/map.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/map.html",
+      "line": 95,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 105,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "property \"filter\" (value \"\\\"blur(8px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 109,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#mp-cam\" at start=0.0000 duration=0.4500",
+      "file": "compositions/map.html",
+      "line": 110,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 111,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-cam\" at start=0.3000 duration=1.9000",
+      "file": "compositions/map.html",
+      "line": 112,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-hl\" at start=1.8500 duration=0.4000",
+      "file": "compositions/map.html",
+      "line": 113,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#mp-pin svg\" is compound; only `#id` and `.class` land",
+      "file": "compositions/map.html",
+      "line": 115,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-shadow\" at start=2.3200 duration=0.2500",
+      "file": "compositions/map.html",
+      "line": 116,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-ring-1\" at start=2.4000 duration=0.5000",
+      "file": "compositions/map.html",
+      "line": 117,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-ring-2\" at start=2.5000 duration=0.6000",
+      "file": "compositions/map.html",
+      "line": 118,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-dot\" at start=3.2600 duration=0.1000",
+      "file": "compositions/map.html",
+      "line": 120,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "property \"strokeDashoffset\" (value \"0\") has no KDL motion property; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 121,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#mp-drift\" at start=0.0000 duration=5.4500",
+      "file": "compositions/map.html",
+      "line": 124,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/map.html",
+      "line": 97,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 5.4500s gives 2.0183 chars/s instead of 12.0000 chars/s",
+      "detail": "typeOn \"#mp-name\" at 2.3400 for 11 chars at 12.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.9167s)",
+      "file": "compositions/map.html",
+      "line": 119,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 5.4500s gives 9.1743 chars/s instead of 34.0000 chars/s",
+      "detail": "typeOn \"#mp-sub\" at 3.4000 for 50 chars at 34.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.4706s)",
+      "file": "compositions/map.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-a-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-b has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-b-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-vig has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-tag-1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rc-tag-2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/race.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rc-a is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/race.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #rc-a-video references remote asset \"data:image/svg+xml,%3C!--a1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/race.html",
+      "line": 58,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rc-b is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/race.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #rc-b-video references remote asset \"data:image/svg+xml,%3C!--a2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/a2.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/race.html",
+      "line": 61,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rc-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/race.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/race.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "tl.set on \"#rc-tag-2\" at start=5.4500 duration=0.5000",
+      "file": "compositions/race.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rc-a\" at start=5.4500 duration=3.0800",
+      "file": "compositions/race.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rc-b\" at start=8.5300 duration=4.4600",
+      "file": "compositions/race.html",
+      "line": 73,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rc-tag-1\" at start=5.7200 duration=0.2000",
+      "file": "compositions/race.html",
+      "line": 75,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "delta": "duration 0.0010s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "tl.to on \"#rc-tag-1\" at start=8.5300 duration=0.0010",
+      "file": "compositions/race.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rc-tag-2\" at start=9.8600 duration=0.2000",
+      "file": "compositions/race.html",
+      "line": 78,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-bg has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stat.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-shade has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/stat.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-kicker has no own left/top; placed by flow approximation at (132, 300)",
+      "file": "compositions/stat.html",
+      "line": 68,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-num has no own left/top; placed by flow approximation at (132, 300)",
+      "file": "compositions/stat.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #st-unit has no own left/top; placed by flow approximation at (132, 300)",
+      "file": "compositions/stat.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-bg is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--finish.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'782' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/finish.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/stat.html",
+      "line": 65,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-shade is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-block is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #st-source is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/stat.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/stat.html",
+      "line": 77,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-bg\" at start=12.9900 duration=6.2500",
+      "file": "compositions/stat.html",
+      "line": 78,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-kicker\" at start=13.0400 duration=0.3500",
+      "file": "compositions/stat.html",
+      "line": 79,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-num\" at start=14.2400 duration=0.2000",
+      "file": "compositions/stat.html",
+      "line": 80,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"v\" (value \"239.4\") has no KDL motion property; refusing the call site",
+      "file": "compositions/stat.html",
+      "line": 89,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-unit\" at start=17.4400 duration=0.4000",
+      "file": "compositions/stat.html",
+      "line": 90,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#st-source\" at start=17.9400 duration=0.3000",
+      "file": "compositions/stat.html",
+      "line": 91,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-bg has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/statement.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/statement.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-tint has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/statement.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-shade has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/statement.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-tick has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-line has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-w1 has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-w2 has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-w3 has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-w4 has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-w5 has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sm-w6 has no own left/top; placed by flow approximation at (132, 566)",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sm-bg is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/statement.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #sm-video references remote asset \"data:image/svg+xml,%3C!--f1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/f1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/statement.html",
+      "line": 60,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sm-shade is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/statement.html",
+      "line": 63,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sm-block is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/statement.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #sm-line is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/statement.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/statement.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#sm-bg\" at start=19.2400 duration=4.1500",
+      "file": "compositions/statement.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"grayscale(1) blur(4px) brightness(0.36)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/statement.html",
+      "line": 74,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"transformOrigin\" (value \"\\\"0 50%\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/statement.html",
+      "line": 75,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "position \"t\" is an expression; refusing the call site",
+      "file": "compositions/statement.html",
+      "line": 78,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/bannister.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-ink has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/bannister.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/bannister.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-name-bg has no own left/top; placed by flow approximation at (800, 230)",
+      "file": "compositions/bannister.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-name-text has no own left/top; placed by flow approximation at (800, 230)",
+      "file": "compositions/bannister.html",
+      "line": 97,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-role-bg has no own left/top; placed by flow approximation at (860, 412)",
+      "file": "compositions/bannister.html",
+      "line": 100,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-role-text has no own left/top; placed by flow approximation at (860, 412)",
+      "file": "compositions/bannister.html",
+      "line": 101,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-note-bg has no own left/top; placed by flow approximation at (900, 842)",
+      "file": "compositions/bannister.html",
+      "line": 105,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #bn-note-text has no own left/top; placed by flow approximation at (900, 842)",
+      "file": "compositions/bannister.html",
+      "line": 107,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-ink is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 85,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-news is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-sheet is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-person is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--bannister.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/bannister.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/bannister.html",
+      "line": 93,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-tape is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-name is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 95,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 97,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-role is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 99,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-note is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 104,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #bn-note-tape is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/bannister.html",
+      "line": 106,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/bannister.html",
+      "line": 113,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/bannister.html",
+      "line": 124,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"[\\\"#bn-stamp\\\", \\\"#bn-note\\\", \\\"#bn-role\\\"]\" is not a DOM selector (\"[\\\"#bn-stamp\\\", \\\"#bn-note\\\", \\\"#bn-role\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/bannister.html",
+      "line": 127,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#bn-person\" at start=23.3900 duration=0.4000",
+      "file": "compositions/bannister.html",
+      "line": 129,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/bannister.html",
+      "line": 130,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/bannister.html",
+      "line": 132,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/bannister.html",
+      "line": 133,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "selector \"#bn-name .bn-mark\" is compound; only `#id` and `.class` land",
+      "file": "compositions/bannister.html",
+      "line": 134,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#bn-stamp\" at start=24.5900 duration=0.1400",
+      "file": "compositions/bannister.html",
+      "line": 136,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#bn-role\" at start=26.2500 duration=0.0500",
+      "file": "compositions/bannister.html",
+      "line": 138,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#bn-note\" at start=27.3700 duration=0.0500",
+      "file": "compositions/bannister.html",
+      "line": 140,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#bn-cam\" at start=23.3900 duration=5.8500",
+      "file": "compositions/bannister.html",
+      "line": 142,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/bannister.html",
+      "line": 115,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 900.0000 chars/s instead of 24.0000 chars/s",
+      "detail": "typeOn \"#bn-role-text\" at 2.9000 for 15 chars at 24.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6250s)",
+      "file": "compositions/bannister.html",
+      "line": 139,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 1560.0000 chars/s instead of 22.0000 chars/s",
+      "detail": "typeOn \"#bn-note-text\" at 4.0300 for 26 chars at 22.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 1.1818s)",
+      "file": "compositions/bannister.html",
+      "line": 141,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/record.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-ink has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/record.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/record.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-id-bg has no own left/top; placed by flow approximation at (860, 962)",
+      "file": "compositions/record.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-id-text has no own left/top; placed by flow approximation at (860, 962)",
+      "file": "compositions/record.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-card-bg has no own left/top; placed by flow approximation at (150, 250)",
+      "file": "compositions/record.html",
+      "line": 87,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #rd-label-text has no own left/top; placed by flow approximation at (150, 0)",
+      "file": "compositions/record.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-ink is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-news is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-man is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--hagg.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'668' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/hagg.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/record.html",
+      "line": 81,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-id is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-card is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 86,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #rd-tape is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/record.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/record.html",
+      "line": 97,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/record.html",
+      "line": 107,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"[\\\"#rd-id\\\", \\\"#rd-card\\\", \\\"#rd-tape\\\", \\\"#rd-num\\\", \\\"#rd-stamp\\\"]\" is not a DOM selector (\"[\\\"#rd-id\\\", \\\"#rd-card\\\", \\\"#rd-tape\\\", \\\"#rd-num\\\", \\\"#rd-stamp\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/record.html",
+      "line": 110,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rd-card\" at start=29.3600 duration=0.1800",
+      "file": "compositions/record.html",
+      "line": 112,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"back.out(2)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/record.html",
+      "line": 113,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rd-man\" at start=29.7400 duration=0.4000",
+      "file": "compositions/record.html",
+      "line": 114,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"filter\" (value \"\\\"blur(0px)\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/record.html",
+      "line": 115,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rd-num\" at start=30.5800 duration=0.1200",
+      "file": "compositions/record.html",
+      "line": 117,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#rd-id\" at start=31.2400 duration=0.0500",
+      "file": "compositions/record.html",
+      "line": 119,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rd-stamp\" at start=32.5200 duration=0.1400",
+      "file": "compositions/record.html",
+      "line": 122,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#rd-cam\" at start=29.2400 duration=5.5900",
+      "file": "compositions/record.html",
+      "line": 123,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/record.html",
+      "line": 98,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 960.0000 chars/s instead of 20.0000 chars/s",
+      "detail": "typeOn \"#rd-label-text\" at 1.8000 for 16 chars at 20.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.8000s)",
+      "file": "compositions/record.html",
+      "line": 118,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 1620.0000 chars/s instead of 28.0000 chars/s",
+      "detail": "typeOn \"#rd-id-text\" at 2.0500 for 27 chars at 28.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.9643s)",
+      "file": "compositions/record.html",
+      "line": 120,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-tear has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-grid has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-hatch has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-cinder has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 97,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-need-bg has no own left/top; placed by flow approximation at (850, 610)",
+      "file": "compositions/track.html",
+      "line": 120,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-need-text has no own left/top; placed by flow approximation at (850, 610)",
+      "file": "compositions/track.html",
+      "line": 121,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-r42 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 123,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-r44 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 124,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-r41 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 125,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-row-1-text has no own left/top; placed by flow approximation at (0, 82)",
+      "file": "compositions/track.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-row-2-text has no own left/top; placed by flow approximation at (0, 172)",
+      "file": "compositions/track.html",
+      "line": 137,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-row-3-text has no own left/top; placed by flow approximation at (0, 262)",
+      "file": "compositions/track.html",
+      "line": 138,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-row-4-text has no own left/top; placed by flow approximation at (0, 352)",
+      "file": "compositions/track.html",
+      "line": 139,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-note-44 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/track.html",
+      "line": 142,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-note-42 has no own left/top; placed by flow approximation at (0, 86)",
+      "file": "compositions/track.html",
+      "line": 143,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #tk-note-41 has no own left/top; placed by flow approximation at (0, 172)",
+      "file": "compositions/track.html",
+      "line": 144,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-tear is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 91,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-grid is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-plan is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-hatch is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 96,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-cinder is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 97,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-need is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 119,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-burst is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 126,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-board is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 134,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-row-1 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 136,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-row-2 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 137,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 137,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-row-3 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 138,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 138,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-row-4 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 139,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 139,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-key is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 141,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-key-44 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 142,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-key-42 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 143,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #tk-key-41 is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/track.html",
+      "line": 144,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/track.html",
+      "line": 149,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "position \"t + i / cps\" is an expression; refusing the call site",
+      "file": "compositions/track.html",
+      "line": 160,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"[\\\"#tk-row-1\\\", \\\"#tk-row-2\\\", \\\"#tk-row-3\\\", \\\"#tk-row-4\\\", \\\"#tk-need\\\", \\\"#tk-burst\\\", \\\"#tk-f41\\\", \\\"#tk-key-44\\\", \\\"#tk-key-42\\\", \\\"#tk-key-41\\\"]\" is not a DOM selector (\"[\\\"#tk-row-1\\\", \\\"#tk-row-2\\\", \\\"#tk-row-3\\\", \\\"#tk-row-4\\\", \\\"#tk-need\\\", \\\"#tk-burst\\\", \\\"#tk-f41\\\", \\\"#tk-key-44\\\", \\\"#tk-key-42\\\", \\\"#tk-key-41\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/track.html",
+      "line": 163,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"t\" (value \"12.51\") has no KDL motion property; refusing the call site",
+      "file": "compositions/track.html",
+      "line": 245,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#tk-key-44\" at start=35.0500 duration=0.1200",
+      "file": "compositions/track.html",
+      "line": 249,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#tk-key-42\" at start=39.0000 duration=0.1200",
+      "file": "compositions/track.html",
+      "line": 251,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#tk-key-41\" at start=43.1300 duration=0.1200",
+      "file": "compositions/track.html",
+      "line": 253,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#tk-f41\" at start=43.1300 duration=0.1200",
+      "file": "compositions/track.html",
+      "line": 254,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "position \"t - 0.04\" is an expression; refusing the call site",
+      "file": "compositions/track.html",
+      "line": 258,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#tk-need\" at start=44.8300 duration=0.0500",
+      "file": "compositions/track.html",
+      "line": 262,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "ease \"back.out(2.5)\" has no Framesmith curve; refusing the call site",
+      "file": "compositions/track.html",
+      "line": 265,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#tk-cam\" at start=34.8300 duration=12.5100",
+      "file": "compositions/track.html",
+      "line": 266,
+      "verdict": "translated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"sel\" is not a string literal; refusing the call site",
+      "file": "compositions/track.html",
+      "line": 151,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 960.0000 chars/s instead of 26.0000 chars/s",
+      "detail": "typeOn \"#tk-note-44\" at 1.0700 for 16 chars at 26.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6154s)",
+      "file": "compositions/track.html",
+      "line": 250,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 540.0000 chars/s instead of 26.0000 chars/s",
+      "detail": "typeOn \"#tk-note-42\" at 5.0100 for 9 chars at 26.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.3462s)",
+      "file": "compositions/track.html",
+      "line": 252,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 1020.0000 chars/s instead of 26.0000 chars/s",
+      "detail": "typeOn \"#tk-note-41\" at 8.8900 for 17 chars at 26.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.6538s)",
+      "file": "compositions/track.html",
+      "line": 255,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "typeOn",
+      "detail": "typeOn selector \"`#tk-row-${k}-text`\" is not a string literal; refusing the call site",
+      "file": "compositions/track.html",
+      "line": 259,
+      "verdict": "refused"
+    },
+    {
+      "construct": "typeOn",
+      "delta": "reveal paced over the clip window 0.0167s gives 1140.0000 chars/s instead of 24.0000 chars/s",
+      "detail": "typeOn \"#tk-need-text\" at 10.0500 for 19 chars at 24.0000 chars/s lands as split=\"chars\" typewriter on the text clip (authored reveal 0.7917s)",
+      "file": "compositions/track.html",
+      "line": 263,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fn-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/finish.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fn-a-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/finish.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fn-b has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/finish.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fn-b-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/finish.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fn-vig has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/finish.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #fn-flash has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/finish.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #fn-a is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/finish.html",
+      "line": 53,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #fn-a-video references remote asset \"data:image/svg+xml,%3C!--c1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/finish.html",
+      "line": 54,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #fn-b is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/finish.html",
+      "line": 56,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #fn-b-video references remote asset \"data:image/svg+xml,%3C!--c2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/c2.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/finish.html",
+      "line": 57,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #fn-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/finish.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/finish.html",
+      "line": 64,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#fn-flash\" at start=47.3800 duration=0.3400",
+      "file": "compositions/finish.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#fn-a\" at start=47.3400 duration=1.3900",
+      "file": "compositions/finish.html",
+      "line": 67,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#fn-b\" at start=48.7300 duration=2.9600",
+      "file": "compositions/finish.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/landy.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-a-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/landy.html",
+      "line": 70,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-b has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/landy.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-photo has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/landy.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-vig has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/landy.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-num has no own left/top; placed by flow approximation at (120, 708)",
+      "file": "compositions/landy.html",
+      "line": 76,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-tick has no own left/top; placed by flow approximation at (120, 708)",
+      "file": "compositions/landy.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-caps has no own left/top; placed by flow approximation at (120, 708)",
+      "file": "compositions/landy.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-cap-1 has no own left/top; placed by flow approximation at (120, 708)",
+      "file": "compositions/landy.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #ld-cap-2 has no own left/top; placed by flow approximation at (120, 708)",
+      "file": "compositions/landy.html",
+      "line": 80,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ld-a is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/landy.html",
+      "line": 69,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #ld-a-video references remote asset \"data:image/svg+xml,%3C!--d1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/d1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/landy.html",
+      "line": 70,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ld-b is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/landy.html",
+      "line": 72,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #ld-photo references remote asset \"data:image/svg+xml,%3C!--landy.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'763' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/src/landy.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/landy.html",
+      "line": 72,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ld-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/landy.html",
+      "line": 73,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ld-shade is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/landy.html",
+      "line": 74,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ld-block is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/landy.html",
+      "line": 75,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #ld-caps is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/landy.html",
+      "line": 78,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/landy.html",
+      "line": 86,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"[\\\"#ld-b\\\", \\\"#ld-cap-2\\\"]\" is not a DOM selector (\"[\\\"#ld-b\\\", \\\"#ld-cap-2\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/landy.html",
+      "line": 87,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ld-a\" at start=51.6900 duration=1.8200",
+      "file": "compositions/landy.html",
+      "line": 88,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "delta": "duration 0.0010s below the 1/60s clip minimum; clamped to 0.0167s",
+      "detail": "tl.to on \"#ld-b\" at start=53.5100 duration=0.0010",
+      "file": "compositions/landy.html",
+      "line": 89,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ld-b\" at start=53.5100 duration=3.4600",
+      "file": "compositions/landy.html",
+      "line": 90,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ld-num\" at start=51.7100 duration=0.1500",
+      "file": "compositions/landy.html",
+      "line": 96,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"v\" (value \"46\") has no KDL motion property; refusing the call site",
+      "file": "compositions/landy.html",
+      "line": 97,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ld-tick\" at start=51.9900 duration=0.2500",
+      "file": "compositions/landy.html",
+      "line": 98,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#ld-cap-1\" at start=52.3900 duration=0.2500",
+      "file": "compositions/landy.html",
+      "line": 99,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#ld-cap-1\" at start=54.6400 duration=0.1500",
+      "file": "compositions/landy.html",
+      "line": 101,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#ld-cap-2\" at start=54.8000 duration=0.2500",
+      "file": "compositions/landy.html",
+      "line": 102,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #en-a has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ending.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #en-a-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ending.html",
+      "line": 55,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #en-b has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ending.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #en-b-video has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ending.html",
+      "line": 58,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #en-vig has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ending.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #en-black has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/ending.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #en-a is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ending.html",
+      "line": 54,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #en-a-video references remote asset \"data:image/svg+xml,%3C!--e1.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e1.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/ending.html",
+      "line": 55,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #en-b is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ending.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #en-b-video references remote asset \"data:image/svg+xml,%3C!--e2.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: footage/e2.mp4%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/ending.html",
+      "line": 58,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #en-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/ending.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/ending.html",
+      "line": 66,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "tl.set on \"#en-black\" at start=56.9700 duration=0.5000",
+      "file": "compositions/ending.html",
+      "line": 67,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#en-a\" at start=56.9700 duration=2.2900",
+      "file": "compositions/ending.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#en-b\" at start=59.2600 duration=4.1400",
+      "file": "compositions/ending.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#en-tag\" at start=59.3100 duration=0.2000",
+      "file": "compositions/ending.html",
+      "line": 71,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "tl.to on \"#en-black\" at start=62.1200 duration=1.1000",
+      "file": "compositions/ending.html",
+      "line": 73,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pp-vig has no own left/top; placed by flow approximation at (-96, -54)",
+      "file": "compositions/paper.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #pp-sheet references remote asset \"data:image/svg+xml,%3C!--paper.jpg--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'687' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/paper.jpg%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/paper.html",
+      "line": 47,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pp-vig is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/paper.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/paper.html",
+      "line": 52,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-1 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 40,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-2 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 41,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-3 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 42,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-4 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 43,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-5 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 44,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-6 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 45,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-7 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 46,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-8 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 47,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-9 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 48,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #sub-10 has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/subs.html",
+      "line": 49,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/subs.html",
+      "line": 53,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 150,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 70,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (composition id \"main\", the root composition)"
+    },
+    {
+      "file": "compositions/map.html",
+      "guide": "compositions/map.html (composition id \"map\")"
+    },
+    {
+      "file": "compositions/race.html",
+      "guide": "compositions/race.html (composition id \"race\")"
+    },
+    {
+      "file": "compositions/stat.html",
+      "guide": "compositions/stat.html (composition id \"stat\")"
+    },
+    {
+      "file": "compositions/statement.html",
+      "guide": "compositions/statement.html (composition id \"statement\")"
+    },
+    {
+      "file": "compositions/bannister.html",
+      "guide": "compositions/bannister.html (composition id \"bannister\")"
+    },
+    {
+      "file": "compositions/record.html",
+      "guide": "compositions/record.html (composition id \"record\")"
+    },
+    {
+      "file": "compositions/track.html",
+      "guide": "compositions/track.html (composition id \"track\")"
+    },
+    {
+      "file": "compositions/finish.html",
+      "guide": "compositions/finish.html (composition id \"finish\")"
+    },
+    {
+      "file": "compositions/landy.html",
+      "guide": "compositions/landy.html (composition id \"landy\")"
+    },
+    {
+      "file": "compositions/ending.html",
+      "guide": "compositions/ending.html (composition id \"ending\")"
+    },
+    {
+      "file": "compositions/paper.html",
+      "guide": "compositions/paper.html (composition id \"paper\")"
+    },
+    {
+      "file": "compositions/subs.html",
+      "guide": "compositions/subs.html (composition id \"subs\")"
+    }
+  ],
+  "source": "bannister-four-minute-mile"
+}

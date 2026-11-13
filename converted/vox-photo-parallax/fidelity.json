@@ -1,0 +1,244 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 19,
+    "refused": 7,
+    "translated": 3
+  },
+  "duration": 7.0,
+  "entries": [
+    {
+      "construct": "variable",
+      "delta": "fields [label] and type \"number\" not expressible in KDL variables; no render effect",
+      "detail": "variable \"parallax\" (\"number\") carried with default \"1\"",
+      "file": "index.html",
+      "line": 23,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-cam has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shot.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-plate has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shot.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-titleplane has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shot.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-kicker has no own left/top; placed by flow approximation at (150, 150)",
+      "file": "compositions/shot.html",
+      "line": 83,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-head has no own left/top; placed by flow approximation at (150, 150)",
+      "file": "compositions/shot.html",
+      "line": 84,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-subject has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shot.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-near has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shot.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #vp-prop has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/shot.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-cam is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 77,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-plate is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 79,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--plate.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'820' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/layers/plate.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/shot.html",
+      "line": 79,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-titleplane is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 81,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-title is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 82,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-subject is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 88,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--plane-1-subject.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'1010' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/layers/plane-1-subject.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/shot.html",
+      "line": 88,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-near is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 90,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--plane-2-near.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'953' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/layers/plane-2-near.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/shot.html",
+      "line": 90,
+      "verdict": "refused"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-prop is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 92,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-boulder is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 93,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #vp-boulder-shadow is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/shot.html",
+      "line": 94,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "asset img",
+      "detail": "element #? references remote asset \"data:image/svg+xml,%3C!--boulder.png--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'725' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EPHOTO: assets/generated/boulder.png%3C/text%3E%3C/svg%3E\"; only project-local files are copied",
+      "file": "compositions/shot.html",
+      "line": 95,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/shot.html",
+      "line": 104,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--cam-x\" (value \"TRAVEL\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shot.html",
+      "line": 106,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--dof\" (value \"\\\"0px\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shot.html",
+      "line": 108,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "property \"--dof\" (value \"\\\"0px\\\"\") has no KDL motion property; refusing the call site",
+      "file": "compositions/shot.html",
+      "line": 109,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#vp-title\" at start=0.3000 duration=1.1000",
+      "file": "compositions/shot.html",
+      "line": 111,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 48,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 41,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, composition id \"main\")"
+    },
+    {
+      "file": "compositions/shot.html",
+      "guide": "compositions/shot.html (composition id \"shot\")"
+    }
+  ],
+  "source": "vox-photo-parallax"
+}

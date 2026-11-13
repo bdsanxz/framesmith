@@ -1,0 +1,6 @@
+framesmith convert refused for what-is-a-skill-explainer: 5 refused construct(s); fidelity report in /Users/budisantoso/Dev/bdsanxz/FramesmithWorkspace/framesmith/converted/what-is-a-skill-explainer/fidelity.json.
+  compositions/frames/intro.html:92 [tl.fromTo] property "transformOrigin" (value "\"0% 100%\"") has no KDL motion property; refusing the call site
+  compositions/frames/anatomy.html:98 [tl.to] property "filter" (value "\"blur(6px)\"") has no KDL motion property; refusing the call site
+  compositions/captions.html:76 [tl.set] property "color" (value "\"#6b6b6b\"") has no KDL motion property; refusing the call site
+  compositions/captions.html:77 [tl.set] position "start" is an expression; refusing the call site
+  compositions/captions.html:78 [tl.set] position "end" is an expression; refusing the call site

@@ -1,0 +1,418 @@
+{
+  "composition": "main",
+  "counts": {
+    "approximated": 31,
+    "refused": 8,
+    "translated": 12
+  },
+  "duration": 14.0,
+  "entries": [
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 57,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-kicker has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-line has no own left/top; placed by flow approximation at (0, 68)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-meta has no own left/top; placed by flow approximation at (0, 258)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-plus has no own left/top; placed by flow approximation at (0, 258)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-hook-minus has no own left/top; placed by flow approximation at (0, 258)",
+      "file": "compositions/frames/01-hook.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pr-hook-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/01-hook.html",
+      "line": 59,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pr-hook-meta is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/01-hook.html",
+      "line": 62,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/01-hook.html",
+      "line": 67,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-hook-kicker\" at start=0.2000 duration=0.6000",
+      "file": "compositions/frames/01-hook.html",
+      "line": 68,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-hook-line\" at start=0.4000 duration=0.9000",
+      "file": "compositions/frames/01-hook.html",
+      "line": 69,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-hook-meta\" at start=1.2000 duration=0.6000",
+      "file": "compositions/frames/01-hook.html",
+      "line": 70,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-hook-stage\" at start=0.0000 duration=4.0000",
+      "file": "compositions/frames/01-hook.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #editor has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/code-diff.html",
+      "line": 300,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #surface has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/code-diff.html",
+      "line": 308,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 296,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 297,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 298,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 299,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #editor is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 300,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 301,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 302,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 303,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 303,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 303,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #? is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 305,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #surface is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/code-diff.html",
+      "line": 308,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"parts.scene\" is not a DOM selector (\"parts.scene\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/code-diff.html",
+      "line": 867,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "target \"parts.scene\" is not a DOM selector (\"parts.scene\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/code-diff.html",
+      "line": 868,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/code-diff.html",
+      "line": 871,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.set",
+      "detail": "target \"el\" is not a DOM selector (\"el\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/code-diff.html",
+      "line": 880,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "fromTo takes 3-4 arguments, found 5; refusing the call site",
+      "file": "compositions/code-diff.html",
+      "line": 881,
+      "verdict": "refused"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/code-diff.html",
+      "line": 903,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.from",
+      "detail": "tl.from on \"#editor\" at start=4.0000 duration=0.5000",
+      "file": "compositions/code-diff.html",
+      "line": 911,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.duration",
+      "detail": "timeline call \"duration\" is outside the translatable grammar (to/from/fromTo/set); refusing the call site",
+      "file": "compositions/code-diff.html",
+      "line": 913,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.to",
+      "detail": "duration \"dur\" is not a non-negative number; refusing the call site",
+      "file": "compositions/code-diff.html",
+      "line": 914,
+      "verdict": "refused"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-handoff-ground has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 60,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-handoff-stage has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-handoff-avatar has no own left/top; placed by flow approximation at (0, 0)",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 64,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-handoff-name has no own left/top; placed by flow approximation at (0, 132)",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 65,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-handoff-role has no own left/top; placed by flow approximation at (0, 252)",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 66,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "placement",
+      "delta": "CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights",
+      "detail": "element #pr-handoff-pill has no own left/top; placed by flow approximation at (0, 314)",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 67,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "container element",
+      "delta": "container background and flex layout not painted; anchor carries no pixels",
+      "detail": "element #pr-handoff-stage is a layout container; carried as an empty text anchor for motion targeting",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 61,
+      "verdict": "approximated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 72,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-handoff-avatar\" at start=10.2000 duration=0.7000",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 73,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "target \"[\\\"#pr-handoff-name\\\", \\\"#pr-handoff-role\\\"]\" is not a DOM selector (\"[\\\"#pr-handoff-name\\\", \\\"#pr-handoff-role\\\"]\" is runtime state); naming the call site instead of guessing a clip",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 74,
+      "verdict": "refused"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-handoff-pill\" at start=11.1000 duration=0.5000",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 75,
+      "verdict": "translated"
+    },
+    {
+      "construct": "tl.fromTo",
+      "detail": "tl.fromTo on \"#pr-handoff-stage\" at start=10.0000 duration=4.0000",
+      "file": "compositions/frames/08-handoff.html",
+      "line": 77,
+      "verdict": "translated"
+    },
+    {
+      "construct": "gsap.timeline",
+      "detail": "paused timeline construction; KDL time is driven by the renderer seek",
+      "file": "index.html",
+      "line": 65,
+      "verdict": "translated"
+    },
+    {
+      "construct": "frame rate",
+      "delta": "frame rate undeclared in source; HyperFrames default 30fps assumed",
+      "detail": "fps=30 emitted on the composition root",
+      "file": "index.html",
+      "line": 52,
+      "verdict": "approximated"
+    }
+  ],
+  "guides": [
+    {
+      "file": "index.html",
+      "guide": "index.html (root composition, id \"main\", 14 seconds, 1920 by 1080)"
+    },
+    {
+      "file": "compositions/frames/01-hook.html",
+      "guide": "compositions/frames/01-hook.html (composition id \"pr-hook\")"
+    },
+    {
+      "file": "compositions/code-diff.html",
+      "guide": "compositions/code-diff.html (composition id \"code-diff\")"
+    },
+    {
+      "file": "compositions/frames/08-handoff.html",
+      "guide": "compositions/frames/08-handoff.html (composition id \"pr-handoff\")"
+    }
+  ],
+  "source": "pr-reviewer-briefing"
+}

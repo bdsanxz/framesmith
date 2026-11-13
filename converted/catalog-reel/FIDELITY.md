@@ -1,0 +1,112 @@
+# Fidelity report: catalog-reel → main
+
+- translated: 5
+- approximated (with deltas): 66
+- refused: 27
+
+## Refused (cause named; conversion refused)
+
+- `index.html`:99 [asset img] element #bed references remote asset "data:image/svg+xml,%3C!--bed.mp4--%3E%3Csvg xmlns%3D'http://www.w3.org/2000/svg' width%3D'1600' height%3D'900' viewBox%3D'0 0 1600 900'%3E%3Cdefs%3E%3Cpattern id%3D'h' width%3D'56' height%3D'56' patternUnits%3D'userSpaceOnUse' patternTransform%3D'rotate(45)'%3E%3Crect width%3D'2' height%3D'56' fill%3D'%23808080' fill-opacity%3D'0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width%3D'1600' height%3D'900' fill%3D'url(%23h)'/%3E%3Crect x%3D'96' y%3D'720' width%3D'459' height%3D'64' rx%3D'6' fill%3D'%2315181b' fill-opacity%3D'0.78'/%3E%3Ctext x%3D'126' y%3D'763' font-family%3D'monospace' font-size%3D'32' fill%3D'%23e6edf3'%3EVIDEO: assets/bed.mp4%3C/text%3E%3C/svg%3E"; only project-local files are copied
+- `compositions/x-post.html`:402 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/x-post.html`:414 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/x-post.html`:425 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/x-post.html`:436 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/x-post.html`:447 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/x-post.html`:458 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/x-post.html`:472 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:349 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:359 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:369 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:379 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:398 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:408 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:423 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:434 [tl.set] set takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:448 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:463 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:474 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/data-chart.html`:489 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/logo-outro.html`:198 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+- `compositions/logo-outro.html`:209 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/logo-outro.html`:215 [tl.to] position "expandTime + 0.3" is an expression; refusing the call site
+- `compositions/logo-outro.html`:218 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+- `compositions/logo-outro.html`:224 [tl.to] to takes 2-3 arguments, found 4; refusing the call site
+- `compositions/logo-outro.html`:232 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+- `compositions/logo-outro.html`:239 [tl.fromTo] fromTo takes 3-4 arguments, found 5; refusing the call site
+
+## Approximated (measured deltas)
+
+- `index.html`:99 [placement] element #bed-wrap has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `index.html`:99 [placement] element #bed has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `index.html`:108 [placement] element #grain-overlay has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `index.html`:99 [container element] element #bed-wrap is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:108 [container element] element #grain-overlay is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:109 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:253 [placement] element #xp-card has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/x-post.html`:323 [placement] element #xp-like-btn has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/x-post.html`:327 [placement] element #xp-heart-outline has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/x-post.html`:333 [placement] element #xp-heart-filled has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/x-post.html`:341 [placement] element #xp-like-count has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/x-post.html`:253 [container element] element #xp-card is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:255 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:256 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:263 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:264 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:266 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:278 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:296 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:297 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:299 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:300 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:311 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:312 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:323 [container element] element #xp-like-btn is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:324 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:327 [container element] element #xp-heart-outline is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:333 [container element] element #xp-heart-filled is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:345 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:346 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:357 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:359 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:360 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:370 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/x-post.html`:371 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:71 [placement] element #data-chart has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/data-chart.html`:71 [container element] element #data-chart is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:79 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:81 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:84 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:85 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:86 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:89 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:95 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:97 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:100 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:103 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:106 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:109 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:110 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:111 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/data-chart.html`:115 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:62 [placement] element #logo-outro has no own left/top; placed by flow approximation at (0, 0) delta: CSS flow layout not simulated; absolute offsets derived from the container origin plus stacked sibling heights
+- `compositions/logo-outro.html`:62 [container element] element #logo-outro is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:70 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:72 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:75 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:76 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:79 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:80 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:81 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:82 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:83 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:88 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `compositions/logo-outro.html`:90 [container element] element #? is a layout container; carried as an empty text anchor for motion targeting delta: container background and flex layout not painted; anchor carries no pixels
+- `index.html`:97 [frame rate] fps=30 emitted on the composition root delta: frame rate undeclared in source; HyperFrames default 30fps assumed
+
+## Translated
+
+- `compositions/x-post.html`:389 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/x-post.html`:399 [tl.set] tl.set on card at start=0.0000 duration=0.5000
+- `compositions/data-chart.html`:259 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `compositions/logo-outro.html`:181 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
+- `index.html`:114 [gsap.timeline] paused timeline construction; KDL time is driven by the renderer seek
