@@ -13577,16 +13577,34 @@ mod tests {
         // 0.7-1.4 band honest without widening it.
         const N: usize = 1_000_000;
         let ts: Vec<f64> = (0..N).map(|i| (i % 1000) as f64 / 1000.0).collect();
+        // Process-CPU clock: shared-runner preemption inflates wall
+        // time but never CPU time, so slope verdicts survive noisy
+        // CI hosts. Windows has no std process-CPU clock, so it
+        // keeps anchored wall (proven passing); the CI render step
+        // already runs this package single-threaded.
+        #[cfg(unix)]
+        let cpu_now = || -> f64 {
+            unsafe {
+                let mut ts: libc::timespec = std::mem::zeroed();
+                libc::clock_gettime(libc::CLOCK_PROCESS_CPUTIME_ID, &mut ts);
+                ts.tv_sec as f64 + ts.tv_nsec as f64 * 1e-9
+            }
+        };
+        #[cfg(not(unix))]
+        let cpu_now = {
+            let anchor = std::time::Instant::now();
+            move || anchor.elapsed().as_secs_f64()
+        };
         let mut acc = 0u64;
         let mut time = |stops: &[GradientStop]| {
             acc = 0;
-            let start = std::time::Instant::now();
+            let start = cpu_now();
             for &t in &ts {
                 let (r, g, b) = sample_gradient(stops, t);
                 acc += r as u64 + g as u64 + b as u64;
             }
             std::hint::black_box(acc);
-            start.elapsed().as_secs_f64()
+            cpu_now() - start
         };
         let mut ratios = Vec::new();
         for _ in 0..7 {

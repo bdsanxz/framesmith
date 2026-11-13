@@ -1131,14 +1131,29 @@ mod tests {
         let mut per_size: Vec<Vec<u128>> = vec![Vec::new(), Vec::new(), Vec::new()];
         // 20 draws per sample (was 10): longer holds keep the
         // slope verdict honest under shared-CPU contention.
+        // Process-CPU clock (as in stop_cost): shared-runner
+        // preemption inflates wall time but never CPU time.
+        #[cfg(unix)]
+        let cpu_nanos = || -> u128 {
+            unsafe {
+                let mut ts: libc::timespec = std::mem::zeroed();
+                libc::clock_gettime(libc::CLOCK_PROCESS_CPUTIME_ID, &mut ts);
+                ts.tv_sec as u128 * 1_000_000_000 + ts.tv_nsec as u128
+            }
+        };
+        #[cfg(not(unix))]
+        let cpu_nanos = {
+            let anchor = std::time::Instant::now();
+            move || anchor.elapsed().as_nanos()
+        };
         for _ in 0..7 {
             for (i, (p, c)) in prepared.iter().enumerate() {
-                let t = std::time::Instant::now();
+                let t = cpu_nanos();
                 for _ in 0..20 {
                     layer.fill(0);
                     draw_path_layer(&mut layer, cw, chh, p, c);
                 }
-                per_size[i].push(t.elapsed().as_nanos());
+                per_size[i].push(cpu_nanos() - t);
             }
         }
         let totals: Vec<f64> = per_size
